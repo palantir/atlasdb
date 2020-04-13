@@ -24,13 +24,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -58,6 +61,7 @@ import com.palantir.atlasdb.v2.api.api.NewValue.KvsValue;
 import com.palantir.atlasdb.v2.api.api.NewValue.TransactionValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
+import com.palantir.atlasdb.v2.api.api.ScanFilter.ColumnsFilter;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.iterators.IteratorFutureIterator;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWrites;
@@ -189,7 +193,7 @@ public final class LegacyKvs implements Kvs {
     public AsyncIterator<KvsValue> scan(TransactionState state, ScanDefinition definition) {
         return definition.filter().accept(new ScanFilter.Visitor<AsyncIterator<KvsValue>>() {
             @Override
-            public AsyncIterator<KvsValue> rowsAndColumns(ScanFilter.RowsFilter rows, ScanFilter.ColumnsFilter columns,
+            public AsyncIterator<KvsValue> rowsAndColumns(ScanFilter.RowsFilter rows, ColumnsFilter columns,
                     int limit) {
                 return rows.accept(new ScanFilter.RowsFilter.Visitor<AsyncIterator<KvsValue>>() {
                     @Override
@@ -199,8 +203,11 @@ public final class LegacyKvs implements Kvs {
 
                     @Override
                     public AsyncIterator<KvsValue> visitExactRows(ImmutableSortedSet<Row> rows) {
+                        Comparator<Cell> cellComparator = Ordering.explicit(rows.asList())
+                                .onResultOf(Cell::row)
+                                .thenComparing(Cell::column);
                         return columns.accept(
-                                new ScanFilter.ColumnsFilter.Visitor<AsyncIterator<KvsValue>>() {
+                                new ColumnsFilter.Visitor<AsyncIterator<KvsValue>>() {
                                     @Override
                                     public AsyncIterator<KvsValue> visitAllColumns() {
                                         return execute(ColumnSelection.all());
@@ -220,11 +227,12 @@ public final class LegacyKvs implements Kvs {
                                                     byteArrayRows,
                                                     columnSelection,
                                                     state.readTimestamp());
-                                            return KeyedStream.stream(rows)
+                                            Map<Cell, KvsValue> modern = KeyedStream.stream(rows)
                                                     .mapKeys(cell -> fromLegacy(cell))
                                                     .map((cell, value) -> fromLegacy(cell, value))
+                                                    .collectToMap();
+                                            return ImmutableSortedMap.copyOf(modern, cellComparator)
                                                     .values()
-                                                    .sorted(definition.filter().toValueComparator())
                                                     .iterator();
                                         }));
                                     }
@@ -249,7 +257,7 @@ public final class LegacyKvs implements Kvs {
                         return iterators.concat(iterators.transform(toAsyncIterator(rows), rowResult -> {
                             List<KvsValue> results = new ArrayList<>(rowResult.getColumns().size());
                             Row row = NewIds.row(rowResult.getRowName());
-                            rowResult.getColumns().forEach((column, value) -> {
+                            postFilter(rowResult.getColumns(), columns).forEach((column, value) -> {
                                 Column c = NewIds.column(column);
                                 Cell cell = NewIds.cell(row, c);
                                 results.add(fromLegacy(cell, value));
@@ -279,6 +287,36 @@ public final class LegacyKvs implements Kvs {
 
     }
 
+    private static SortedMap<byte[], Value> postFilter(SortedMap<byte[], Value> map, ColumnsFilter filter) {
+        return filter.accept(new ColumnsFilter.Visitor<SortedMap<byte[], Value>>() {
+                    @Override
+                    public SortedMap<byte[], Value> visitAllColumns() {
+                        // no postfiltering necessary
+                        return map;
+                    }
+
+                    @Override
+                    public SortedMap<byte[], Value> visitExactColumns(
+                            ImmutableSortedSet<Column> columns) {
+                        // no postfiltering necessary
+                        return map;
+                    }
+
+                    @Override
+                    public SortedMap<byte[], Value> visitColumnRange(
+                            Optional<Column> fromInclusive, Optional<Column> toExclusive) {
+                        SortedMap<byte[], Value> filtered = map;
+                        if (fromInclusive.isPresent()) {
+                            filtered = filtered.tailMap(fromInclusive.get().toByteArray());
+                        }
+                        if (toExclusive.isPresent()) {
+                            filtered = filtered.headMap(toExclusive.get().toByteArray());
+                        }
+                        return filtered;
+                    }
+                });
+    }
+
     // this... might work.
     private <T> AsyncIterator<T> toAsyncIterator(Iterator<T> iterator) {
         Iterator<List<T>> pageIterator = Iterators.partition(iterator, BATCH_HINT_FOR_ITERATORS);
@@ -301,8 +339,8 @@ public final class LegacyKvs implements Kvs {
         return iterators.concat(asyncPageIterator);
     }
 
-    private static ColumnSelection toColumnSelection(ScanFilter.ColumnsFilter filter) {
-        return filter.accept(new ScanFilter.ColumnsFilter.Visitor<ColumnSelection>() {
+    private static ColumnSelection toColumnSelection(ColumnsFilter filter) {
+        return filter.accept(new ColumnsFilter.Visitor<ColumnSelection>() {
             @Override
             public ColumnSelection visitAllColumns() {
                 return ColumnSelection.all();
