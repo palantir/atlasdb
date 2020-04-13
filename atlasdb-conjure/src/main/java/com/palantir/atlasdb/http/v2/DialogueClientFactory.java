@@ -129,8 +129,6 @@ final class DialogueClientFactory {
         return builder.toString();
     }
 
-
-
     private static Channel alwaysThrowingChannel(Supplier<? extends Throwable> exceptionSupplier) {
         return (endpoint, request) -> Futures.immediateFailedFuture(exceptionSupplier.get());
     }

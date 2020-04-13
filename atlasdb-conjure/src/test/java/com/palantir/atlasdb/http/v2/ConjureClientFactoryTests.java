@@ -54,7 +54,6 @@ public final class ConjureClientFactoryTests {
     private final HostMetricsRegistry hostMetrics = new HostMetricsRegistry();
     private final ConjureClientFactory factory;
 
-    private final JaxrsImplementation jaxrsImplementation;
     private String wireMockUrl;
 
     public enum JaxrsImplementation {
@@ -62,13 +61,12 @@ public final class ConjureClientFactoryTests {
         DIALOGUE
     }
 
-    @Parameterized.Parameters(name = "{0} {1}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] { {JaxrsImplementation.CJR}, {JaxrsImplementation.DIALOGUE} });
     }
 
     public ConjureClientFactoryTests(JaxrsImplementation jaxrsImplementation) {
-        this.jaxrsImplementation = jaxrsImplementation;
         this.factory = new ConjureClientFactory(
                 serverListConfig,
                 taggedMetricRegistry,

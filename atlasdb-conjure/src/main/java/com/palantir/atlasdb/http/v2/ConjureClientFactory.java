@@ -31,6 +31,7 @@ import com.palantir.conjure.java.okhttp.HostEventsSink;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.Tritium;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class ConjureClientFactory {
@@ -100,9 +101,7 @@ public class ConjureClientFactory {
         return conf -> {
             ClientConfiguration clientConfiguration = toClientConfig(staticConfig, conf);
             T service = JaxRsClient.create(serviceClass, userAgent, hostEventsSink, clientConfiguration);
-            // TODO(forozco): instrument
-//            return Tritium.instrument(serviceClass, service, metrics);
-            return service;
+            return Tritium.instrument(serviceClass, service, taggedMetricRegistry);
         };
     }
 

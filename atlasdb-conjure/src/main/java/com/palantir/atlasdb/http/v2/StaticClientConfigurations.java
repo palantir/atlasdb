@@ -35,33 +35,21 @@ public final class StaticClientConfigurations {
     // to give a suitable response.
     // In the context of TimeLock, this timeout must be longer than how long an AwaitingLeadershipProxy takes to
     // decide whether a node is the leader and still has a quorum.
-    public static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
+    private  static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
 
     // Should not be reduced below 65 seconds to support workflows involving locking.
-    static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);
-
-    // Under standard settings, throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
-    private static final Duration STANDARD_BACKOFF_SLOT_SIZE = Duration.ofMillis(10);
-    private static final int STANDARD_MAX_RETRIES = 13;
-    private static final int NO_RETRIES = 0;
-
-    private static final Duration STANDARD_FAILED_URL_COOLDOWN = Duration.ofMillis(100);
-    private static final Duration NON_RETRY_FAILED_URL_COOLDOWN = Duration.ofMillis(1);
-
+    private static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);
 
     static ClientConfiguration apply(StaticClientConfiguration staticClientConfig, ServerListConfig serverConfig) {
         ClientConfiguration.Builder mixed = ClientConfiguration.builder()
                 .from(ClientConfigurations.of(toServiceConfiguration(serverConfig)))
+                .connectTimeout(CONNECT_TIMEOUT)
                 .enableGcmCipherSuites(true)
                 .enableHttp2(true);
 
         mixed.readTimeout(staticClientConfig.fastReadTimeOut() ? NON_BLOCKING_READ_TIMEOUT : BLOCKING_READ_TIMEOUT);
         // TODO(forozco): add more config if necessary
-//        staticClientConfig.nodeSelectionStrategy().ifPresent(mixed::nodeSelectionStrategy);
-//        staticClientConfig.failedUrlCooldown().ifPresent(mixed::failedUrlCooldown);
         staticClientConfig.clientQoS().ifPresent(mixed::clientQoS);
-//        staticClientConfig.serverQoS().ifPresent(mixed::serverQoS);
-//        staticClientConfig.retryOnTimeout().ifPresent(mixed::retryOnTimeout);
         staticClientConfig.maxNumRetries().ifPresent(mixed::maxNumRetries);
         return mixed.build();
     }
