@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.promise;
+package com.palantir.atlasdb.v2.api.kvs;
 
-import java.util.concurrent.Executor;
+import org.junit.Test;
 
-import com.google.common.util.concurrent.ListenableFuture;
+public class DefaultConflictCheckerTest {
 
-public interface Promise<T> {
-    boolean isDone();
 
-    // Like Future.get but throws if we're not done yet. Call toListenableFuture if you'd like to block.
-    T get();
+    @Test
+    public void testSkipsReadWriteConflictChecking() {
 
-    void addListener(Runnable runnable, Executor executor);
-    ListenableFuture<T> toListenableFuture();
+    }
+
+    @Test
+    public void testSkipsWriteWriteConflictChecking() {
+
+    }
 }
