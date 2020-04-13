@@ -18,7 +18,6 @@ package com.palantir.atlasdb.v2.api.iterators;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -82,11 +81,6 @@ public final class AsyncIterators {
                         }, executor);
             }
         };
-    }
-
-    public <T> ListenableFuture<List<T>> toList(AsyncIterator<T> iterator) {
-        List<T> list = new ArrayList<>();
-        return Futures.transform(takeWhile(iterator, $ -> true), $ -> list, executor);
     }
 
     public <T> AsyncIterator<List<T>> nonBlockingPages(AsyncIterator<T> iterator) {
