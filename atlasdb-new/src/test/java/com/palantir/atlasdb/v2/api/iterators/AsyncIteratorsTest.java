@@ -18,12 +18,15 @@ package com.palantir.atlasdb.v2.api.iterators;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.junit.Test;
@@ -135,22 +138,37 @@ public class AsyncIteratorsTest {
 
     @Test
     public void testConcat() {
-
+        fail();
     }
 
     @Test
     public void testMergeSorted() {
-
+        fail();
     }
 
     @Test
     public void testTransform() {
-
+        TestIterator iterator = new TestIterator();
+        AsyncIterator<Integer> transformed = iterators.transform(iterator, x -> -x);
+        iterator.setNextElement(-1);
+        assertThat(transformed.next()).isEqualTo(1);
+        iterator.setNextElement(-2);
+        assertThat(transformed.next()).isEqualTo(2);
     }
 
     @Test
     public void testTransformAsync() {
-
+        Map<Integer, SettableFuture<Integer>> futureMap = new HashMap<>();
+        TestIterator iterator = new TestIterator();
+        AsyncIterator<Integer> transformed = iterators.transformAsync(iterator,
+                x -> futureMap.computeIfAbsent(x, $ -> SettableFuture.create()));
+        iterator.setNextElement(0);
+        assertThat(transformed.onHasNext()).isNotDone();
+        futureMap.get(0).set(1);
+        assertThat(transformed.onHasNext()).isDone();
+        assertThat(transformed.next()).isEqualTo(1);
+        iterator.setFinished();
+        assertThat(transformed.hasNext()).isFalse();
     }
 
     @Test
