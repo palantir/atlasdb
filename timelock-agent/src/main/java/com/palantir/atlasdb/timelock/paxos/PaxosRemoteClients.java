@@ -79,7 +79,8 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
-    public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosAcceptorRpcClient>> singleLeaderAcceptorsWithExecutors() {
+    public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosAcceptorRpcClient>>
+    singleLeaderAcceptorsWithExecutors() {
         // Retries should be performed at a higher level, in AwaitingLeadershipProxy.
         return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
                 TimelockSingleLeaderPaxosAcceptorRpcClient.class, false);

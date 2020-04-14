@@ -24,7 +24,9 @@ import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.timelock.paxos.WithDedicatedExecutor;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -80,7 +82,7 @@ public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
                 throw new SafeIllegalArgumentException("Dedicated executors aren't currently supported for timestamp"
                         + " paxos.");
             default:
-                throw new IllegalStateException("Unexpected value: " + paxosUseCase);
+                throw new SafeIllegalStateException("Unexpected use case", SafeArg.of("paxosUseCase", paxosUseCase));
         }
     }
 
@@ -101,7 +103,7 @@ public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
                                 acceptor))
                         .collect(Collectors.toList());
             default:
-                throw new IllegalStateException("Unexpected value: " + paxosUseCase);
+                throw new SafeIllegalStateException("Unexpected use case", SafeArg.of("paxosUseCase", paxosUseCase));
         }
     }
 }
