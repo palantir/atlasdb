@@ -28,7 +28,6 @@ import javax.ws.rs.Path;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
@@ -93,7 +92,8 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<WithDedicatedExecutor<BatchPaxosAcceptorRpcClient>> batchAcceptorsWithExecutors() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(BatchPaxosAcceptorRpcClient.class, false);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+                BatchPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived

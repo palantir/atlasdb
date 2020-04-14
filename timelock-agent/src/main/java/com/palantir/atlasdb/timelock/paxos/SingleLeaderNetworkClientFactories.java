@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -76,7 +77,8 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .map(acceptor -> WithDedicatedExecutor.of(acceptor, sharedExecutor()))
                     .collect(Collectors.toList());
         }
-        throw new SafeIllegalStateException("The use case " + useCase() + " is unsupported for single leader paxos.");
+        throw new SafeIllegalStateException("This use case is unsupported for single leader paxos.",
+                SafeArg.of("paxosUseCase", useCase()));
     }
 
     @Value.Auxiliary
