@@ -40,9 +40,15 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
             rows.add(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         SnapshotsStreamIdxTable indexTable = tables.getSnapshotsStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
-        Set<Long> toDelete = Sets.newHashSet();
+
+        Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> rowsWithNoIndexEntries =
+                executeUnreferencedStreamDiagnostics(indexTable, rows);
+        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
+                .map(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow::getId)
+                .collect(Collectors.toSet()));
+
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> currentMetadata =
+                metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));
         for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 toDelete.add(e.getKey().getId());
@@ -88,7 +94,7 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(SnapshotsStreamIdxTable indexTable, Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> metadataRows) {
+    private static Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> executeUnreferencedStreamDiagnostics(SnapshotsStreamIdxTable indexTable, Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> metadataRows) {
         Set<SnapshotsStreamIdxTable.SnapshotsStreamIdxRow> indexRows = metadataRows.stream()
                 .map(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow::getId)
                 .map(SnapshotsStreamIdxTable.SnapshotsStreamIdxRow::of)
@@ -99,9 +105,11 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+            return Sets.newHashSet();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
+            return unreferencedStreamsByIterator;
         }
     }
 }
