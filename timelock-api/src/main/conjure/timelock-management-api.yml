@@ -2,7 +2,7 @@ services:
   TimeLockManagementService:
     name: TimeLock Management Service
     default-auth: header
-    package: com.palantir.atlasdb.timelock.api
+    package: com.palantir.atlasdb.timelock.api.management
     base-path: /tl/management
     endpoints:
       getNamespaces:

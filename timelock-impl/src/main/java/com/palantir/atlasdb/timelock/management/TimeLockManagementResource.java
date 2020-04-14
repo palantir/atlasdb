@@ -22,9 +22,9 @@ import java.util.Set;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.timelock.api.TimeLockManagementService;
-import com.palantir.atlasdb.timelock.api.TimeLockManagementServiceEndpoints;
-import com.palantir.atlasdb.timelock.api.UndertowTimeLockManagementService;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
 
