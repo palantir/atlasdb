@@ -64,18 +64,10 @@ abstract class SingleLeaderNetworkClientFactories implements
     }
 
     private List<WithDedicatedExecutor<PaxosAcceptor>> assignExecutors(Client client) {
-        if (useCase() == PaxosUseCase.LEADER_FOR_ALL_CLIENTS) {
+        if (useCase() == PaxosUseCase.LEADER_FOR_ALL_CLIENTS || useCase() == PaxosUseCase.TIMESTAMP) {
             return TimelockPaxosAcceptorAdapter
                     .wrapWithDedicatedExecutors(useCase(), remoteClients())
                     .apply(client);
-
-        } else if (useCase() == PaxosUseCase.TIMESTAMP) {
-            return TimelockPaxosAcceptorAdapter
-                    .wrapWithoutDedicatedExecutors(useCase(), remoteClients())
-                    .apply(client)
-                    .stream()
-                    .map(acceptor -> WithDedicatedExecutor.of(acceptor, sharedExecutor()))
-                    .collect(Collectors.toList());
         }
         throw new SafeIllegalStateException("This use case is unsupported for single leader paxos.",
                 SafeArg.of("paxosUseCase", useCase()));
