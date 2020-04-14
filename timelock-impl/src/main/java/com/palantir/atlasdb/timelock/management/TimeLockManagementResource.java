@@ -16,35 +16,49 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import java.nio.file.Path;
 import java.util.Set;
+import java.util.function.Function;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureTimelockResource;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.UndertowTimeLockManagementService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockManagementResource implements UndertowTimeLockManagementService {
     private final DiskNamespaceLoader diskNamespaceLoader;
 
-    private TimeLockManagementResource(DiskNamespaceLoader diskNamespaceLoader) {
+    public TimeLockManagementResource(DiskNamespaceLoader diskNamespaceLoader) {
         this.diskNamespaceLoader = diskNamespaceLoader;
     }
 
-    public static TimeLockManagementResource create(Path rootDataDirectory) {
-        return new TimeLockManagementResource(new DiskNamespaceLoader(rootDataDirectory));
+    public static UndertowService undertow(DiskNamespaceLoader loader) {
+        return TimeLockManagementServiceEndpoints.of(new TimeLockManagementResource(loader));
     }
 
-    public static UndertowService undertow(Path rootDataDirectory) {
-        return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(rootDataDirectory));
-    }
-
-    public static TimeLockManagementService jersey(Path rootDataDirectory) {
-        return new JerseyAdapter(TimeLockManagementResource.create(rootDataDirectory));
+    public static TimeLockManagementService jersey(DiskNamespaceLoader loader) {
+        return new JerseyAdapter(new TimeLockManagementResource(loader));
     }
 
     @Override
