@@ -48,6 +48,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.Runnables;
 import com.palantir.tracing.Tracers;
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -122,13 +124,7 @@ public final class PTExecutors {
      */
     @Deprecated
     public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory) {
-        return newThreadPoolExecutor(
-                0,
-                Integer.MAX_VALUE,
-                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS,
-                TimeUnit.MILLISECONDS,
-                new SynchronousQueue<Runnable>(),
-                threadFactory);
+        return newCachedThreadPool(threadFactory, DEFAULT_THREAD_POOL_TIMEOUT_MILLIS);
     }
 
     /**
@@ -146,13 +142,25 @@ public final class PTExecutors {
      */
     @Deprecated
     public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
-        return newThreadPoolExecutor(
+        return tryInstrument(newThreadPoolExecutor(
                 0,
                 Integer.MAX_VALUE,
                 threadTimeoutMillis,
                 TimeUnit.MILLISECONDS,
                 new SynchronousQueue<Runnable>(),
-                threadFactory);
+                threadFactory), threadFactory);
+    }
+
+    /**
+     * Instruments the provided {@link ExecutorService} if the {@link ThreadFactory} is a {@link NamedThreadFactory}.
+     */
+    @SuppressWarnings("deprecation") // No reasonable way to pass a TaggedMetricRegistry
+    private static ExecutorService tryInstrument(ExecutorService executorService, ThreadFactory factory) {
+        if (factory instanceof NamedThreadFactory) {
+            String name = ((NamedThreadFactory) factory).getPrefix();
+            return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(), executorService, name);
+        }
+        return executorService;
     }
 
     /**
