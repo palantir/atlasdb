@@ -49,7 +49,7 @@ import com.palantir.util.Mutables;
  * @author jtamer, ddoan
  */
 public abstract class LockServiceTest {
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool("LockServiceTest");
+    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(LockServiceTest.class.getName());
 
     private LockService server;
     private LockClient client;

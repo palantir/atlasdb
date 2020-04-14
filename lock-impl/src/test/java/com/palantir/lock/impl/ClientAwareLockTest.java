@@ -47,7 +47,8 @@ import com.palantir.lock.StringLockDescriptor;
 @ShouldRetry
 public final class ClientAwareLockTest {
 
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool("ClientAwareLockTest");
+    private static final ExecutorService executor =
+            PTExecutors.newCachedThreadPool(ClientAwareLockTest.class.getName());
 
     private final LockClient client = LockClient.of("client");
     private ClientAwareReadWriteLock readWriteLock;
