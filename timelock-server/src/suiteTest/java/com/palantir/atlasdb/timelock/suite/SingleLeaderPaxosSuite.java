@@ -49,7 +49,7 @@ public final class SingleLeaderPaxosSuite {
     public static final TestableTimelockCluster BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
             "batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9083, builder ->
+            generateThreeNodeTimelockCluster(9086, builder ->
                     builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
@@ -57,7 +57,7 @@ public final class SingleLeaderPaxosSuite {
     public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
             "batched single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9086, builder ->
+            generateThreeNodeTimelockCluster(9092, builder ->
                     builder.clientPaxosBuilder(builder.clientPaxosBuilder()
                             .isUseBatchPaxosTimestamp(false)
                             .isBatchSingleLeader(true))

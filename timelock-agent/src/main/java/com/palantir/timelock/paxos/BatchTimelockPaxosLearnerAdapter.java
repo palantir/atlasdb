@@ -17,8 +17,10 @@
 package com.palantir.timelock.paxos;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -38,7 +40,7 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
     private final Client client;
     private final BatchPaxosLearnerRpcClient rpcClient;
 
-    private volatile long lastKnownSequence = Long.MIN_VALUE;
+    private AtomicLong lastKnownSequence = new AtomicLong(Long.MIN_VALUE);
 
     public BatchTimelockPaxosLearnerAdapter(
             PaxosUseCase paxosUseCase,
@@ -77,10 +79,9 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
     @Override
     public Optional<PaxosValue> getGreatestLearnedValue() {
         Set<PaxosValue> result = rpcClient
-                .getLearnedValuesSince(paxosUseCase, ImmutableMap.of(client, lastKnownSequence))
+                .getLearnedValuesSince(paxosUseCase, ImmutableMap.of(client, lastKnownSequence.get()))
                 .get(client);
-        Optional<PaxosValue> greatestIfExists = result.stream()
-                .reduce((fst, snd) -> fst.getRound() > snd.getRound() ? fst : snd);
+        Optional<PaxosValue> greatestIfExists = result.stream().max(Comparator.comparingLong(PaxosValue::getRound));
         greatestIfExists.ifPresent(paxosValue -> updateLastKnownSequence(paxosValue.getRound()));
         return greatestIfExists;
     }
@@ -101,8 +102,6 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
     }
 
     private void updateLastKnownSequence(long seq) {
-        if (seq > lastKnownSequence) {
-            lastKnownSequence = seq;
-        }
+        lastKnownSequence.accumulateAndGet(seq, Long::max);
     }
 }

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -263,12 +262,12 @@ public final class PaxosResourcesFactory {
         }
 
         @Value.Derived
-        default Set<String> clusterAddresses() {
+        default List<String> clusterAddresses() {
             return PaxosRemotingUtils.getClusterAddresses(install());
         }
 
         @Value.Derived
-        default Set<String> remoteUris() {
+        default List<String> remoteUris() {
             return PaxosRemotingUtils.getRemoteServerPaths(install());
         }
 
