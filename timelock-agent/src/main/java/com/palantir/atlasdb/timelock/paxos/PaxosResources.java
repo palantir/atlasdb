@@ -36,7 +36,6 @@ public abstract class PaxosResources {
     abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
     abstract LeadershipContextFactory leadershipContextFactory();
     abstract List<Object> adhocResources();
-    abstract NetworkClientFactories clientFactories();
 
     @Value.Derived
     Map<PaxosUseCase, BatchPaxosResources> leadershipBatchResources() {
