@@ -35,7 +35,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
@@ -88,7 +90,7 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
-                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics.getTaggedRegistry());
+                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics);
 
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             BatchPingableLeader local = dependencies.components().batchPingableLeader();
@@ -97,6 +99,12 @@ public final class PaxosResourcesFactory {
                     .map(MultiLeaderHealthCheckPinger::new)
                     .collect(Collectors.toList());
         };
+
+        // we do *not* use CoalescingPaxosLatestRoundVerifier because any coalescing will happen in the
+        // AutobatchingPaxosAcceptorNetworkClient. This is for us to avoid context switching as much as possible on the
+        // hot path since batching twice doesn't necessarily give us anything.
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
+                new PaxosLatestRoundVerifierImpl(acceptorClient);
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
@@ -108,6 +116,7 @@ public final class PaxosResourcesFactory {
                 .networkClientFactoryBuilder(ImmutableBatchingNetworkClientFactories.builder())
                 .leaderPingerFactoryBuilder(ImmutableBatchingLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
+                .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
         return resourcesBuilder
@@ -125,7 +134,7 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
-                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics.getTaggedRegistry());
+                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
@@ -134,6 +143,9 @@ public final class PaxosResourcesFactory {
                     .map(SingleLeaderHealthCheckPinger::new)
                     .collect(Collectors.toList());
         };
+
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
+                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
@@ -146,6 +158,7 @@ public final class PaxosResourcesFactory {
                         .useBatchedEndpoints(() -> paxosRuntime.get().enableBatchingForSingleLeader()))
                 .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
+                .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
         return resourcesBuilder
@@ -167,7 +180,7 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 
         LocalPaxosComponents paxosComponents = new LocalPaxosComponents(
                 timelockMetrics,

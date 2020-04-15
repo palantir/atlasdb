@@ -23,8 +23,11 @@ import java.util.function.UnaryOperator;
 import javax.annotation.Nullable;
 
 import com.palantir.logsafe.Preconditions;
+import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLatestRoundVerifier;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -42,6 +45,8 @@ public final class LeaderElectionServiceBuilder {
     @Nullable private Duration randomWaitBeforeProposingLeadership;
     @Nullable private Duration leaderAddressCacheTtl;
     @Nullable private UUID leaderUuid;
+    @Nullable private PaxosLatestRoundVerifier latestRoundVerifier;
+
     private UnaryOperator<PaxosProposer> proposerDecorator = paxosProposer -> paxosProposer;
 
     public LeaderElectionServiceBuilder acceptorClient(PaxosAcceptorNetworkClient acceptorClient) {
@@ -104,12 +109,18 @@ public final class LeaderElectionServiceBuilder {
         return this;
     }
 
+    public LeaderElectionServiceBuilder latestRoundVerifier(PaxosLatestRoundVerifier latestRoundVerifier) {
+        this.latestRoundVerifier =
+                Preconditions.checkNotNull(latestRoundVerifier, "latestRoundVerifier cannot be null");
+        return this;
+    }
+
     public LeaderElectionService build() {
         return new PaxosLeaderElectionService(
                 proposerDecorator.apply(buildProposer()),
                 knowledge(),
                 leaderPinger(),
-                acceptorClient(),
+                latestRoundVerifier(),
                 learnerClient(),
                 pingRate(),
                 randomWaitBeforeProposingLeadership(),
@@ -127,6 +138,14 @@ public final class LeaderElectionServiceBuilder {
 
     private PaxosLearnerNetworkClient learnerClient() {
         return Preconditions.checkNotNull(learnerClient, "learnerClient not set");
+    }
+
+    private PaxosLatestRoundVerifier latestRoundVerifier() {
+        if (latestRoundVerifier == null) {
+            return new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient()));
+        } else {
+            return latestRoundVerifier;
+        }
     }
 
     private PaxosLearner knowledge() {

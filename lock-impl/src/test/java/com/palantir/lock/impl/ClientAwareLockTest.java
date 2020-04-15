@@ -32,7 +32,6 @@ import org.junit.rules.TestRule;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.InterruptibleFuture;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
@@ -48,8 +47,8 @@ import com.palantir.lock.StringLockDescriptor;
 @ShouldRetry
 public final class ClientAwareLockTest {
 
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true));
+    private static final ExecutorService executor =
+            PTExecutors.newCachedThreadPool(ClientAwareLockTest.class.getName());
 
     private final LockClient client = LockClient.of("client");
     private ClientAwareReadWriteLock readWriteLock;

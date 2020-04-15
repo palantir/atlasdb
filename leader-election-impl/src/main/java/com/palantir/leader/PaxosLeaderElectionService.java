@@ -34,13 +34,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosAcceptorNetworkClient;
-import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
+import com.palantir.paxos.PaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -63,7 +61,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private static final byte[] LEADERSHIP_PROPOSAL_VALUE = null;
 
     private final ReentrantLock lock = new ReentrantLock();
-    private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
+    private final PaxosLatestRoundVerifier latestRoundVerifier;
 
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
@@ -85,7 +83,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             PaxosProposer proposer,
             PaxosLearner knowledge,
             LeaderPinger leaderPinger,
-            PaxosAcceptorNetworkClient acceptorClient,
+            PaxosLatestRoundVerifier latestRoundVerifier,
             PaxosLearnerNetworkClient learnerClient,
             Duration updatePollingWait,
             Duration randomWaitBeforeProposingLeadership,
@@ -94,12 +92,11 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.leaderPinger = leaderPinger;
+        this.latestRoundVerifier = latestRoundVerifier;
         this.learnerClient = learnerClient;
         this.updatePollingRate = updatePollingWait;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.eventRecorder = eventRecorder;
-        this.latestRoundVerifier =
-                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
         this.leaderAddressCache = Caffeine.newBuilder()
                 .expireAfterWrite(leaderAddressCacheTtl)
                 .build();

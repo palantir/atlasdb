@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweepStrategy;
+import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
@@ -95,6 +96,11 @@ public class ReadTransaction extends ForwardingTransaction {
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
         checkTableName(tableRef);
         return delegate().getRanges(tableRef, rangeRequests, visitableProcessor);
+    }
+
+    @Override
+    public <T> Stream<T> getRanges(GetRangesQuery<T> getRangesQuery) {
+        return delegate().getRanges(getRangesQuery);
     }
 
     @Override

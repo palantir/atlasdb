@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLatestRoundVerifier;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 
@@ -41,6 +43,10 @@ public interface Factories {
 
     interface LeaderPingHealthCheckFactory {
         List<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
+    }
+
+    interface PaxosLatestRoundVerifierFactory {
+        PaxosLatestRoundVerifier create(PaxosAcceptorNetworkClient acceptorNetworkClient);
     }
 
     @Value.Immutable

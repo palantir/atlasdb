@@ -18,6 +18,7 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -27,8 +28,13 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
+import com.codahale.metrics.Meter;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Runnables;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Name matches the class we're testing
 public class PTExecutorsTest {
@@ -119,6 +125,23 @@ public class PTExecutorsTest {
                     .describedAs("Executor inheritable state should not be propagated to recurring tasks")
                     .isNull();
         });
+    }
+
+    @Test
+    @SuppressWarnings("deprecation") // Testing a component that relies on the singleton TaggedMetricRegistry
+    public void testCachedExecutorMetricsRecorded() {
+        // Metrics are recorded to the global singleton registry, so we generate a random name to avoid
+        // clobbering state from other tests.
+        String executorName = UUID.randomUUID().toString();
+        TaggedMetricRegistry metrics = SharedTaggedMetricRegistries.getSingleton();
+        withExecutor(() -> PTExecutors.newCachedThreadPool(executorName), executor -> {
+            executor.submit(Runnables.doNothing());
+        });
+        Meter submitted = metrics.meter(MetricName.builder()
+                .safeName("executor.submitted")
+                .putSafeTags("executor", executorName)
+                .build());
+        assertThat(submitted.getCount()).isOne();
     }
 
     private static <T extends ExecutorService> void withExecutor(Supplier<T> factory, ThrowingConsumer<T> test) {
