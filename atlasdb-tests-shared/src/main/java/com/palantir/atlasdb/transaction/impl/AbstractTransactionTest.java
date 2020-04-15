@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.SortedMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -1307,6 +1308,33 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] rangeEnd = RangeRequests.nextLexicographicName(row00Bytes);
         List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row0Bytes).endRowExclusive(rangeEnd).batchHint(1).build());
         verifyAllGetRangesImplsNumRanges(t, ranges, ImmutableList.of("v"));
+    }
+
+    @Test
+    public void getRows() {
+        Transaction t = startTransaction();
+        byte[] rowKey = PtBytes.toBytes("row");
+        byte[] value = PtBytes.toBytes("value");
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(rowKey, PtBytes.toBytes("col")), value));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> result =
+                t.getRows(TEST_TABLE, ImmutableList.of(rowKey), ColumnSelection.all());
+        assertThat(result.get(rowKey))
+                .as("it should be possible to get a row from getRows with a passed-in byte array")
+                .isNotNull()
+                .satisfies(rowResult ->
+                        assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
+        ;
+
+        byte[] rowKeyCopy = PtBytes.toBytes("row");
+        assertThat(result.get(rowKeyCopy))
+                .as("it should be possible to get a row from getRows with a copy of a passed-in byte array")
+                .isNotNull()
+                .satisfies(rowResult ->
+                        assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
     }
 
     @Test

@@ -46,7 +46,8 @@ public interface Transaction {
      * columns according to the provided {@link ColumnSelection}.
      *
      * The returned {@link SortedMap} is sorted on the byte order of row keys; the ordering of the input parameter
-     * {@code rows} is irrelevant.
+     * {@code rows} is irrelevant. Access to the returned {@link SortedMap} is permitted both with the original byte
+     * array, as well as with byte arrays that are equal in terms of {@link java.util.Arrays#equals(byte[], byte[])}.
      *
      * If there are rows with no cells matching the provided {@link ColumnSelection}, they will not be present in the
      * {@link Map#keySet()} of the output map at all.
@@ -71,8 +72,9 @@ public interface Transaction {
      * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate, sorted on
      * (ascending) byte ordering.
      *
-     * It is guaranteed that the {@link Map#keySet()} of the returned map has the same elements as {@code rows},
-     * even if there are rows where no columns match the predicate.
+     * It is guaranteed that the {@link Map#keySet()} of the returned map has the same elements as {@code rows} by
+     * identity, even if there are rows where no columns match the predicate. Random access for the returned map
+     * should ONLY be performed through the original byte arrays that were passed in.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
@@ -118,8 +120,9 @@ public interface Transaction {
      * The returned {@link Iterator}s are guaranteed to return cells matching the predicate, sorted on (ascending) byte
      * ordering.
      *
-     * It is guaranteed that the {@link Map#keySet()} of the returned map has the same elements as {@code rows},
-     * even if there are rows where no columns match the predicate.
+     * It is guaranteed that the {@link Map#keySet()} of the returned map has the same elements as {@code rows} by
+     * identity, even if there are rows where no columns match the predicate. Random access for the returned map
+     * should ONLY be performed through the original byte arrays that were passed in.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
