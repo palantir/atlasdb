@@ -55,7 +55,7 @@ public abstract class PaxosRemoteClients {
     @Value.Derived
     Map<String, ExecutorService> dedicatedExecutors() {
         Set<String> remoteUris = context().remoteUris();
-        int executorIndex = 0; // Acceptable for Set, we just want to differentiate the elements
+        int executorIndex = 0;
 
         ImmutableMap.Builder<String, ExecutorService> builder = ImmutableMap.builder();
         for (String remoteUri : remoteUris) {
