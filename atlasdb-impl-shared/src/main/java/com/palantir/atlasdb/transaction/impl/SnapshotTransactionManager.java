@@ -60,8 +60,8 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.BatchManager;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.BatchManager;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -208,9 +208,27 @@ import com.palantir.timestamp.TimestampService;
         // For now, we do this dirty, dirty hack! Aim is to capture correctness first, then make it clean
         try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> manager = new BatchManager<>(
                 response -> timelockService.tryUnlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
-            responses.forEach(response -> manager.execute(() -> response)); // HACK to track all of them
+            //            responses.forEach(response -> manager.safeExecute(() -> response)); // HACK to track all of them
+            manager.trackAll(responses);
             return Streams.zip(
                     responses.stream(),
+                    conditions.stream(),
+                    (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
+        }
+    }
+
+    //    @Override
+    public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
+            List<PreCommitCondition> conditions) {
+
+        // Also messy, but this way we are keeping the same tracking throughout
+        // And so, there is no window where transactions could die and leave open locks
+        // And if, at some point, any of these fail, it will raise an exception and unlock them all.
+        // Note that try-unlock is actually the same as the unlock method used in transaction starter.
+        try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> responses =
+                timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
+            return Streams.zip(
+                    responses.getResources().stream(),
                     conditions.stream(),
                     (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
         }

@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.lock;
+package com.palantir.lock.v2;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -24,6 +27,8 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
+
+import com.palantir.logsafe.Preconditions;
 
 // We probably want to do this a bit more cleanly, not using two ExceptionProneRunners, but
 // this is just supposed to capture correctness, not elegance.
@@ -37,17 +42,31 @@ public final class BatchManager<R> implements AutoCloseable {
         this.cleaner = cleaner;
     }
 
-    public R execute(Supplier<R> supplier) {
+    public R safeExecute(Supplier<R> supplier) {
         // so now, we perform the entire block (since it is async and therefore we need to power through them all
         // then, at the end, if we caught any exceptions, we
         R result = runner.supplySafely(supplier);
-        if(result != null) {
+        if (result != null) {
             resources.add(result);
         }
         // nulls can be returned (I think)
         return result;
     }
 
+    public void trackAll(Collection<R> collection) {
+        collection.forEach(value -> Preconditions.checkArgument(value != null, "Null value being tracked"));
+        resources.addAll(collection);
+    }
+
+    public List<R> getResources() {
+        return new ArrayList<>(resources);
+    }
+
+    public BatchManager<R> copy() {
+        BatchManager<R> newManager = new BatchManager<>(cleaner);
+        newManager.trackAll(resources);
+        return newManager;
+    }
 
     @Override
     public void close() {
@@ -57,7 +76,7 @@ public final class BatchManager<R> implements AutoCloseable {
             runner.close();
         } catch (RuntimeException e) {
             // Otherwise, we now close everything. If something throws mid-way, we capture
-            // and then at the end close, which may throw, propogating up (as we expect).
+            // and then at the end close, which may throw, propagating up (as we expect).
             try (ExceptionProneRunner closer = new ExceptionProneRunner()) {
                 // may just be able to use a single consumer for whole batch
                 resources.forEach(resource -> closer.runSafely(() -> cleaner.accept(resource)));
@@ -65,7 +84,6 @@ public final class BatchManager<R> implements AutoCloseable {
         }
 
     }
-
 
     @Value.Immutable
     interface ResourceHandle<R> {

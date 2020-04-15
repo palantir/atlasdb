@@ -22,6 +22,7 @@ import java.util.Set;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.lock.v2.BatchManager;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -108,6 +109,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
         return transactionStarter.startIdentifiedAtlasDbTransactions(count);
+    }
+
+    @Override
+    public BatchManager<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionsBatch(int count) {
+        return transactionStarter.startIdentifiedAtlasDbTransactionsBatch(count);
     }
 
     @Override

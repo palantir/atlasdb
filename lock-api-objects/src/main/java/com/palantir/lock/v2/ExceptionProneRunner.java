@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.lock;
+package com.palantir.lock.v2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -26,7 +25,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 public final class ExceptionProneRunner implements AutoCloseable {
     private final List<Throwable> failures = new ArrayList<>();
 
-    void runSafely(Runnable shutdownCallback) {
+    public void runSafely(Runnable shutdownCallback) {
         try {
             shutdownCallback.run();
         } catch (Throwable throwable) {
@@ -34,7 +33,7 @@ public final class ExceptionProneRunner implements AutoCloseable {
         }
     }
 
-    <T> T supplySafely(Supplier<T> shutdownCallback) {
+    public <T> T supplySafely(Supplier<T> shutdownCallback) {
         try {
             return shutdownCallback.get();
         } catch (Throwable throwable) {
