@@ -196,9 +196,9 @@ public class TimeLockAgent {
     private void registerManagementResource() {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockManagementResource.undertow(rootDataDirectory));
+            undertowRegistrar.get().accept(TimeLockManagementResource.undertow(rootDataDirectory, null));
         } else {
-            registrar.accept(TimeLockManagementResource.jersey(rootDataDirectory));
+            registrar.accept(TimeLockManagementResource.jersey(rootDataDirectory, null));
         }
     }
 

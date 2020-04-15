@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.management;
 
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.function.Function;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -27,29 +28,40 @@ import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockManagementResource implements UndertowTimeLockManagementService {
     private final DiskNamespaceLoader diskNamespaceLoader;
     private final TimelockNamespaces timelockNamespaces;
+    private final Function<String, PaxosAcceptorNetworkClient> networkClientFactory;
 
     private TimeLockManagementResource(DiskNamespaceLoader diskNamespaceLoader,
-            TimelockNamespaces timelockNamespaces) {
+            TimelockNamespaces timelockNamespaces,
+            Function<String, PaxosAcceptorNetworkClient> networkClientFactory) {
         this.diskNamespaceLoader = diskNamespaceLoader;
         this.timelockNamespaces = timelockNamespaces;
+        this.networkClientFactory = networkClientFactory;
     }
 
-    public static TimeLockManagementResource create(Path rootDataDirectory, TimelockNamespaces timelockNamespaces) {
-        return new TimeLockManagementResource(new DiskNamespaceLoader(rootDataDirectory), timelockNamespaces);
+    public static TimeLockManagementResource create(
+            Path rootDataDirectory,
+            TimelockNamespaces timelockNamespaces,
+            Function<String, PaxosAcceptorNetworkClient> networkClientFactory) {
+        return new TimeLockManagementResource(new DiskNamespaceLoader(rootDataDirectory), timelockNamespaces,
+                networkClientFactory);
     }
 
-    public static UndertowService undertow(Path rootDataDirectory, TimelockNamespaces timelockNamespaces) {
+    public static UndertowService undertow(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+            Function<String, PaxosAcceptorNetworkClient> networkClientFactory) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(rootDataDirectory,
-                timelockNamespaces));
+                timelockNamespaces, networkClientFactory));
     }
 
-    public static TimeLockManagementService jersey(Path rootDataDirectory, TimelockNamespaces timelockNamespaces) {
-        return new JerseyAdapter(TimeLockManagementResource.create(rootDataDirectory, timelockNamespaces));
+    public static TimeLockManagementService jersey(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+            Function<String, PaxosAcceptorNetworkClient> networkClientFactory) {
+        return new JerseyAdapter(TimeLockManagementResource.create(rootDataDirectory, timelockNamespaces,
+                networkClientFactory));
     }
 
     @Override

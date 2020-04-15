@@ -189,41 +189,8 @@ public final class PaxosResourcesFactory {
                 install.nodeUuid(),
                 install.install().paxos().canCreateNewClients());
 
-        NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
-                .useCase(PaxosUseCase.TIMESTAMP)
-                .metrics(timelockMetrics)
-                .remoteClients(remoteClients)
-                .components(paxosComponents)
-                .quorumSize(install.quorumSize())
-                .sharedExecutor(sharedExecutor)
-                .build();
-
-        NetworkClientFactories singleLeaderClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
-                .useCase(PaxosUseCase.TIMESTAMP)
-                .metrics(timelockMetrics)
-                .remoteClients(remoteClients)
-                .components(paxosComponents)
-                .quorumSize(install.quorumSize())
-                .sharedExecutor(sharedExecutor)
-                .build();
-
-        Supplier<Boolean> useBatchPaxosForTimestamps = Suppliers.compose(
-                runtime -> runtime.timestampPaxos().useBatchPaxos(), paxosRuntime::get);
-
-        NetworkClientFactories combinedNetworkClientFactories = ImmutableNetworkClientFactories.builder()
-                .acceptor(client -> PredicateSwitchedProxy.newProxyInstance(
-                        batchClientFactories.acceptor().create(client),
-                        singleLeaderClientFactories.acceptor().create(client),
-                        useBatchPaxosForTimestamps,
-                        PaxosAcceptorNetworkClient.class))
-                .learner(client -> PredicateSwitchedProxy.newProxyInstance(
-                        batchClientFactories.learner().create(client),
-                        singleLeaderClientFactories.learner().create(client),
-                        useBatchPaxosForTimestamps,
-                        PaxosLearnerNetworkClient.class))
-                .addAllCloseables(batchClientFactories.closeables())
-                .addAllCloseables(singleLeaderClientFactories.closeables())
-                .build();
+        NetworkClientFactories combinedNetworkClientFactories = getNetworkClientFactories(install, paxosRuntime,
+                sharedExecutor, remoteClients, timelockMetrics, paxosComponents);
 
         Factory<PaxosProposer> proposerFactory = client -> {
             PaxosAcceptorNetworkClient acceptorNetworkClient = combinedNetworkClientFactories.acceptor().create(client);
@@ -254,7 +221,52 @@ public final class PaxosResourcesFactory {
         return ImmutablePaxosResources.builder()
                 .addAdhocResources(new TimestampPaxosResource(paxosComponents))
                 .timestampPaxosComponents(paxosComponents)
-                .timestampServiceFactory(timestampFactory);
+                .timestampServiceFactory(timestampFactory)
+                .clientFactories(combinedNetworkClientFactories);
+    }
+
+    private static NetworkClientFactories getNetworkClientFactories(
+            TimelockPaxosInstallationContext install,
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
+            ExecutorService sharedExecutor,
+            PaxosRemoteClients remoteClients,
+            TimelockPaxosMetrics timelockMetrics,
+            LocalPaxosComponents paxosComponents) {
+        NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
+                .useCase(PaxosUseCase.TIMESTAMP)
+                .metrics(timelockMetrics)
+                .remoteClients(remoteClients)
+                .components(paxosComponents)
+                .quorumSize(install.quorumSize())
+                .sharedExecutor(sharedExecutor)
+                .build();
+
+        NetworkClientFactories singleLeaderClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
+                .useCase(PaxosUseCase.TIMESTAMP)
+                .metrics(timelockMetrics)
+                .remoteClients(remoteClients)
+                .components(paxosComponents)
+                .quorumSize(install.quorumSize())
+                .sharedExecutor(sharedExecutor)
+                .build();
+
+        Supplier<Boolean> useBatchPaxosForTimestamps = Suppliers.compose(
+                runtime -> runtime.timestampPaxos().useBatchPaxos(), paxosRuntime::get);
+
+        return ImmutableNetworkClientFactories.builder()
+                .acceptor(client -> PredicateSwitchedProxy.newProxyInstance(
+                        batchClientFactories.acceptor().create(client),
+                        singleLeaderClientFactories.acceptor().create(client),
+                        useBatchPaxosForTimestamps,
+                        PaxosAcceptorNetworkClient.class))
+                .learner(client -> PredicateSwitchedProxy.newProxyInstance(
+                        batchClientFactories.learner().create(client),
+                        singleLeaderClientFactories.learner().create(client),
+                        useBatchPaxosForTimestamps,
+                        PaxosLearnerNetworkClient.class))
+                .addAllCloseables(batchClientFactories.closeables())
+                .addAllCloseables(singleLeaderClientFactories.closeables())
+                .build();
     }
 
     @Value.Immutable
