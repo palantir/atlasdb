@@ -123,10 +123,10 @@ public final class PTExecutors {
         Preconditions.checkNotNull(name, "Name is required");
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         String threadNamePrefix = name + '-';
-        return wrap(name, ThreadNamingExecutorService.builder()
+        return instrument(wrap(name, ThreadNamingExecutorService.builder()
                 .executor(CachedExecutorView.of(SHARED_CACHED_EXECUTOR.get()))
                 .threadNameFunction(originalName -> threadNamePrefix + originalName)
-                .build());
+                .build()), name);
     }
 
     /**
@@ -171,13 +171,20 @@ public final class PTExecutors {
     /**
      * Instruments the provided {@link ExecutorService} if the {@link ThreadFactory} is a {@link NamedThreadFactory}.
      */
-    @SuppressWarnings("deprecation") // No reasonable way to pass a TaggedMetricRegistry
     private static ExecutorService tryInstrument(ExecutorService executorService, ThreadFactory factory) {
         if (factory instanceof NamedThreadFactory) {
             String name = ((NamedThreadFactory) factory).getPrefix();
-            return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(), executorService, name);
+            return instrument(executorService, name);
         }
         return executorService;
+    }
+
+    /**
+     * Instruments the provided {@link ExecutorService}.
+     */
+    @SuppressWarnings("deprecation") // No reasonable way to pass a TaggedMetricRegistry
+    private static ExecutorService instrument(ExecutorService executorService, String name) {
+        return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(), executorService, name);
     }
 
     /**
