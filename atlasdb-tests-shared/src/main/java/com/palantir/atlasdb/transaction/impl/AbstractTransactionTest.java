@@ -1327,7 +1327,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .isNotNull()
                 .satisfies(rowResult ->
                         assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
-        ;
 
         byte[] rowKeyCopy = PtBytes.toBytes("row");
         assertThat(result.get(rowKeyCopy))
