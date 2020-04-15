@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -35,6 +36,7 @@ import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -58,6 +60,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
+import com.palantir.lock.BatchManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -166,29 +169,56 @@ import com.palantir.timestamp.TimestampService;
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
                 = timelockService.startIdentifiedAtlasDbTransaction();
         try {
-            LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
-            long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
-            recordImmutableTimestamp(immutableTs);
-
-            cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
-            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                    transactionResponse.startTimestampAndPartition().timestamp());
-
-            Transaction transaction = createTransaction(
-                    immutableTs,
-                    startTimestampSupplier,
-                    immutableTsLock,
-                    condition);
-            return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+            return wrap(condition, transactionResponse);
         } catch (Throwable e) {
             timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
+    private TransactionAndImmutableTsLock wrap(PreCommitCondition condition,
+            StartIdentifiedAtlasDbTransactionResponse transactionResponse) {
+        LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
+        long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
+        recordImmutableTimestamp(immutableTs);
+
+        cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
+        Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
+                transactionResponse.startTimestampAndPartition().timestamp());
+
+        Transaction transaction = createTransaction(
+                immutableTs,
+                startTimestampSupplier,
+                immutableTsLock,
+                condition);
+        return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+    }
+
+    //    @Override
+    public List<TransactionAndImmutableTsLock> setupRunTasksWithConditionThrowOnConflict(
+            List<PreCommitCondition> conditions) {
+
+        // These are guaranteed to be either all good, or closed, at least at time of return from timelockService.
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = timelockService.startIdentifiedAtlasDbTransactions(
+                conditions.size());
+
+        // We need a slightly different abstraction here - if one fails now, then we need to fail the whole lot
+        // even the ones we haven't looked at yet
+        // This may be an argument of passing Resources around
+        // For now, we do this dirty, dirty hack! Aim is to capture correctness first, then make it clean
+        try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> manager = new BatchManager<>(
+                response -> timelockService.tryUnlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
+            responses.forEach(response -> manager.execute(() -> response)); // HACK to track all of them
+            return Streams.zip(
+                    responses.stream(),
+                    conditions.stream(),
+                    (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
+        }
+    }
+
     @Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
-                                                                           TransactionTask<T, E> task)
+            TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
@@ -272,7 +302,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private  <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
+    private <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
@@ -318,11 +348,11 @@ import com.palantir.timestamp.TimestampService;
     /**
      * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
-     *
-     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
-     * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
-     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
-     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
+     * <p>
+     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback may be
+     * called (but is not necessarily called). Callbacks registered before the invocation of close() are guaranteed to
+     * be executed (because we use a synchronized list) as long as no exceptions arise. If an exception arises, then no
+     * guarantees are made with regard to subsequent callbacks being executed.
      */
     @Override
     public void close() {
@@ -397,8 +427,8 @@ import com.palantir.timestamp.TimestampService;
     /**
      * This will always return a valid ImmutableTimestamp, but it may be slightly out of date.
      * <p>
-     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires
-     * 2 extra remote calls which we can skip.
+     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires 2
+     * extra remote calls which we can skip.
      */
     private long getApproximateImmutableTimestamp() {
         long recentTs = recentImmutableTs.get();

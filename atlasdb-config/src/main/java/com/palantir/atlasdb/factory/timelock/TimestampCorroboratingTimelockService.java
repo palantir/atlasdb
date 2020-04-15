@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import java.util.List;
 import java.util.concurrent.atomic.LongAccumulator;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -65,6 +66,11 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         return checkAndUpdateLowerBound(delegate::startIdentifiedAtlasDbTransaction,
                 r -> r.startTimestampAndPartition().timestamp(),
                 r -> r.startTimestampAndPartition().timestamp());
+    }
+
+    @Override
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
+        return null;
     }
 
     private <T> T checkAndUpdateLowerBound(Supplier<T> timestampContainerSupplier,

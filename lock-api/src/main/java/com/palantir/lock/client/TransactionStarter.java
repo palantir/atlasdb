@@ -23,17 +23,20 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.base.Throwables;
+import com.palantir.lock.BatchManager;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
@@ -45,7 +48,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
  * service also handles creating {@link LockTokenShare}'s to enable multiple transactions sharing a single immutable
  * timestamp.
- *
+ * <p>
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
@@ -70,8 +73,31 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+        return getFuture(autobatcher.apply(null));
+    }
+
+    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
+        // Now:
+        // BatchManager will swallow all exceptions when getFuture is being called
+        // (or otherwise)
+        // However, when it closes, BatchManager will throw iff any exceptions have been swallowed
+        // and will call the cleanup, which is the unlock method.
+        // If this fails during cleanup, then that's cool too, because we swallow exceptions during that
+        // and re-throw later.
+        try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> manager = new BatchManager<>(
+                response -> unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
+            return autobatcher.applyBatch(
+                    IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
+                    .stream()
+                    .map(response -> manager.execute(() -> getFuture(response)))
+                    .collect(Collectors.toList());
+        }
+    }
+
+    private StartIdentifiedAtlasDbTransactionResponse getFuture(
+            ListenableFuture<StartIdentifiedAtlasDbTransactionResponse> response) {
         try {
-            return autobatcher.apply(null).get();
+            return response.get();
         } catch (ExecutionException e) {
             throw Throwables.throwUncheckedException(e.getCause());
         } catch (Throwable t) {
@@ -119,7 +145,7 @@ final class TransactionStarter implements AutoCloseable {
     /**
      * Calling unlock on a set of LockTokenShares only calls unlock on shared token iff all references to shared token
      * are unlocked.
-     *
+     * <p>
      * {@link com.palantir.lock.v2.TimelockService#unlock(Set)} has a guarantee that returned tokens were valid until
      * calling unlock. To keep that guarantee, we need to check if LockTokenShares were valid (by calling refresh with
      * referenced shared token) even if we don't unlock the underlying shared token.

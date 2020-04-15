@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.impl;
 
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
@@ -146,6 +147,11 @@ public class LegacyTimelockService implements TimelockService {
         // this blocks indefinitely, and can only fail if the connection fails (and throws an exception)
         lockAnonymous(legacyRequest);
         return WaitForLocksResponse.successful();
+    }
+
+    @Override
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
+        return null;
     }
 
     private com.palantir.lock.LockRequest toLegacyLockRequest(LockRequest request) {

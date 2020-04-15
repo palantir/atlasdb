@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.v2;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.QueryParam;
@@ -52,6 +53,8 @@ public interface TimelockService {
     LockResponse lock(LockRequest request);
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
+
+    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count);
 
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 

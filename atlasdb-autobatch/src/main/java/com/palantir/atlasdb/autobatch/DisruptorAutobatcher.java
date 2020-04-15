@@ -17,10 +17,13 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.io.Closeable;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -29,12 +32,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -42,8 +47,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 
 /**
- * While this class is public, it shouldn't be used as API outside of AtlasDB because we
- * don't guarantee we won't break it.
+ * While this class is public, it shouldn't be used as API outside of AtlasDB because we don't guarantee we won't break
+ * it.
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
@@ -91,6 +96,28 @@ public final class DisruptorAutobatcher<T, R>
             refresh.argument = argument;
         });
         return result;
+    }
+
+    public List<ListenableFuture<R>> applyBatch(List<T> arguments) {
+        // todo - this is a bit messy, and I need to verify that this is properly correct
+        Preconditions.checkState(!closed, "Autobatcher is already shut down");
+        List<DisruptorFuture<R>> results =
+                IntStream.range(0, arguments.size())
+                        .mapToObj($ -> new DisruptorFuture<R>(safeLoggablePurpose))
+                        .collect(Collectors.toList());
+
+        List<EventTranslator<DefaultBatchElement<T, R>>> translators = Streams.zip(
+                results.stream(),
+                arguments.stream(),
+                (result, argument) ->
+                        (EventTranslator<DefaultBatchElement<T, R>>) (refresh, sequence) -> {
+                            refresh.result = result;
+                            refresh.argument = argument;
+                        }).collect(Collectors.toList());
+
+        buffer.publishEvents((EventTranslator<DefaultBatchElement<T, R>>[]) translators.toArray());
+
+        return results.stream().map(result -> (ListenableFuture<R>) result).collect(Collectors.toList());
     }
 
     @Override

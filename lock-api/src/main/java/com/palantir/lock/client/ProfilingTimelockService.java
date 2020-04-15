@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -133,6 +134,11 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         // Don't profile this, as it may be skewed by user contention on locks.
         tryFlushLogs();
         return delegate.waitForLocks(request);
+    }
+
+    @Override
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
+        return null;
     }
 
     @Override
