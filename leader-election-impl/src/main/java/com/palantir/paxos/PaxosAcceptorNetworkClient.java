@@ -16,6 +16,9 @@
 
 package com.palantir.paxos;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 /**
  * {@link PaxosAcceptorNetworkClient} encapsulates the consensus portion of the request and involves communicating with
  * multiple {@link PaxosAcceptor}s. This should be used over {@link PaxosQuorumChecker} and {@link PaxosAcceptor} where
@@ -49,5 +52,9 @@ public interface PaxosAcceptorNetworkClient {
      *         included if an acceptor has not prepared or accepted any rounds.
      */
     PaxosResponses<PaxosLong> getLatestSequencePreparedOrAccepted();
+
+    default ListenableFuture<PaxosResponses<PaxosLong>> getLatestSequencePreparedOrAcceptedAsync() {
+        return Futures.immediateFuture(getLatestSequencePreparedOrAccepted());
+    }
 
 }

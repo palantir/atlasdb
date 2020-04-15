@@ -36,7 +36,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
@@ -99,6 +101,12 @@ public final class PaxosResourcesFactory {
                     .collect(Collectors.toList());
         };
 
+        // we do *not* use CoalescingPaxosLatestRoundVerifier because any coalescing will happen in the
+        // AutobatchingPaxosAcceptorNetworkClient. This is for us to avoid context switching as much as possible on the
+        // hot path since batching twice doesn't necessarily give us anything.
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
+                new PaxosLatestRoundVerifierImpl(acceptorClient);
+
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
                 .sharedExecutor(sharedExecutor)
@@ -109,6 +117,7 @@ public final class PaxosResourcesFactory {
                 .networkClientFactoryBuilder(ImmutableBatchingNetworkClientFactories.builder())
                 .leaderPingerFactoryBuilder(ImmutableBatchingLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
+                .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
         return resourcesBuilder
@@ -136,6 +145,9 @@ public final class PaxosResourcesFactory {
                     .collect(Collectors.toList());
         };
 
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
+                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
+
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
                 .sharedExecutor(sharedExecutor)
@@ -146,6 +158,7 @@ public final class PaxosResourcesFactory {
                 .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
                 .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
+                .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
         return resourcesBuilder

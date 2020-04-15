@@ -25,6 +25,9 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 // TODO(nziebart): these tests are mostly sanity checks, until we have better tests for {@link PaxosQuorumChecker}.
 public class PaxosLatestRoundVerifierTest {
 
@@ -38,22 +41,15 @@ public class PaxosLatestRoundVerifierTest {
 
     @Test
     public void hasQuorumIfAllNodesAgree() {
-        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+        when(acceptorClient.getLatestSequencePreparedOrAcceptedAsync())
                 .thenReturn(response(ROUND, ROUND, ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
     }
 
-    private static PaxosResponses<PaxosLong> response(long... latestSequences) {
-        List<PaxosLong> responses = Arrays.stream(latestSequences)
-                .<PaxosLong>mapToObj(ImmutablePaxosLong::of)
-                .collect(Collectors.toList());
-        return PaxosResponses.of(2, responses);
-    }
-
     @Test
     public void hasQuorumIfQuorumAgrees() {
-        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+        when(acceptorClient.getLatestSequencePreparedOrAcceptedAsync())
                 .thenReturn(response(ROUND, ROUND, LATER_ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
@@ -61,7 +57,7 @@ public class PaxosLatestRoundVerifierTest {
 
     @Test
     public void hasAgreementIfLatestSequenceIsOlder() {
-        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+        when(acceptorClient.getLatestSequencePreparedOrAcceptedAsync())
                 .thenReturn(response(EARLIER_ROUND, EARLIER_ROUND, LATER_ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
@@ -69,7 +65,7 @@ public class PaxosLatestRoundVerifierTest {
 
     @Test
     public void doesNotHaveQuorumIfQuorumFails() {
-        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+        when(acceptorClient.getLatestSequencePreparedOrAcceptedAsync())
                 .thenReturn(response(ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.NO_QUORUM);
@@ -77,10 +73,17 @@ public class PaxosLatestRoundVerifierTest {
 
     @Test
     public void hasDisagreementIfQuorumDoesNotAgree() {
-        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+        when(acceptorClient.getLatestSequencePreparedOrAcceptedAsync())
                 .thenReturn(response(ROUND, LATER_ROUND, LATER_ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.SOME_DISAGREED);
+    }
+
+    private static ListenableFuture<PaxosResponses<PaxosLong>> response(long... latestSequences) {
+        List<PaxosLong> responses = Arrays.stream(latestSequences)
+                .<PaxosLong>mapToObj(ImmutablePaxosLong::of)
+                .collect(Collectors.toList());
+        return Futures.immediateFuture(PaxosResponses.of(2, responses));
     }
 
 }
