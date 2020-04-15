@@ -8,3 +8,9 @@ services:
       getNamespaces:
         http: POST /getNamespaces
         returns: set<string>
+
+      achieveConsensus:
+        http: POST /achieveConsensus
+        args:
+          namespaces: set<string>
+        returns: string
