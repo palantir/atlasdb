@@ -34,7 +34,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.Tritium;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class ConjureClientFactory {
+public class AtlasClientFactory {
     static final StaticClientConfiguration EMPTY_STATIC_CONFIG =
             StaticClientConfiguration.builder().build();
 
@@ -45,7 +45,7 @@ public class ConjureClientFactory {
     private final HostEventsSink hostEventsSink;
     private final DialogueClientFactory dialogueClientFactory;
 
-    public ConjureClientFactory(
+    public AtlasClientFactory(
             Supplier<ServerListConfig> clientConfig,
             TaggedMetricRegistry taggedMetricRegistry,
             UserAgent userAgent,

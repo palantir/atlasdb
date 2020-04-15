@@ -33,7 +33,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @RunWith(Parameterized.class)
-public final class ConjureClientFactoryTests {
+public final class AtlasClientFactoryTests {
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of("Test", "1.0"));
     public static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(
             Paths.get("../atlasdb-ete-tests/var/security/trustStore.jks"),
@@ -52,7 +52,7 @@ public final class ConjureClientFactoryTests {
     private final Supplier<ServerListConfig> serverListConfig = () -> configValue;
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
     private final HostMetricsRegistry hostMetrics = new HostMetricsRegistry();
-    private final ConjureClientFactory factory;
+    private final AtlasClientFactory factory;
 
     private String wireMockUrl;
 
@@ -66,8 +66,8 @@ public final class ConjureClientFactoryTests {
         return Arrays.asList(new Object[][] { {JaxrsImplementation.CJR}, {JaxrsImplementation.DIALOGUE} });
     }
 
-    public ConjureClientFactoryTests(JaxrsImplementation jaxrsImplementation) {
-        this.factory = new ConjureClientFactory(
+    public AtlasClientFactoryTests(JaxrsImplementation jaxrsImplementation) {
+        this.factory = new AtlasClientFactory(
                 serverListConfig,
                 taggedMetricRegistry,
                 USER_AGENT,

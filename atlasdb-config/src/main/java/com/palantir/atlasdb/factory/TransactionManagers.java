@@ -86,7 +86,7 @@ import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockServi
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
-import com.palantir.atlasdb.http.v2.ConjureClientFactory;
+import com.palantir.atlasdb.http.v2.AtlasClientFactory;
 import com.palantir.atlasdb.http.v2.StaticClientConfiguration;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
@@ -1009,7 +1009,7 @@ public abstract class TransactionManagers {
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
             boolean useDialogue) {
 
-        ConjureClientFactory clientFactory = new ConjureClientFactory(
+        AtlasClientFactory clientFactory = new AtlasClientFactory(
                 timelockServerListConfig,
                 metricsManager.getTaggedRegistry(),
                 userAgent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT),
