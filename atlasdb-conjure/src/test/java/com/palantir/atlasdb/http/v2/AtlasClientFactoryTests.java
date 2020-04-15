@@ -15,7 +15,6 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +28,7 @@ import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
+import com.palantir.refreshable.DefaultRefreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -48,8 +48,7 @@ public final class AtlasClientFactoryTests {
             .trustStorePath("../atlasdb-ete-tests/var/security/trustStore.jks")
             .trustStorePassword("palantir"));
 
-    private ServerListConfig configValue;
-    private final Supplier<ServerListConfig> serverListConfig = () -> configValue;
+    private DefaultRefreshable<ServerListConfig> serverListConfig;
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
     private final HostMetricsRegistry hostMetrics = new HostMetricsRegistry();
     private final AtlasClientFactory factory;
@@ -81,7 +80,7 @@ public final class AtlasClientFactoryTests {
         wiremock.stubFor(get(urlMatching("/string")).willReturn(okJson("\"body\"")));
 
         wireMockUrl = "https://localhost:" + wiremock.httpsPort();
-        updateUris(wireMockUrl);
+        serverListConfig = new DefaultRefreshable<>(toServerList(wireMockUrl));
     }
 
     @Test
@@ -123,7 +122,11 @@ public final class AtlasClientFactoryTests {
     }
 
     private void updateUris(String... uris) {
-        configValue = ImmutableServerListConfig.builder()
+        serverListConfig.update(toServerList(uris));
+    }
+
+    private ServerListConfig toServerList(String... uris) {
+        return ImmutableServerListConfig.builder()
                 .addServers(uris)
                 .sslConfiguration(SSL_CONFIGURATION)
                 .build();

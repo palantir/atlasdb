@@ -3,6 +3,7 @@ apply from: '../gradle/shared.gradle'
 dependencies {
   compile project(':atlasdb-commons')
   compile project(':atlasdb-remoting-api')
+  implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.dialogue:dialogue-serde'
   implementation 'com.palantir.dialogue:dialogue-apache-hc4-client'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'

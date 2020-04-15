@@ -37,6 +37,7 @@ import com.palantir.dialogue.hc4.ApacheHttpClientChannels;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.Tritium;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -45,12 +46,12 @@ final class DialogueClientFactory {
             DefaultConjureRuntime.builder().build();
     private static final String SERVICE_NAME = "lock";
     private final TaggedMetricRegistry taggedMetricRegistry;
-    private final Supplier<Optional<ServerListConfig>> config;
+    private final Refreshable<Optional<ServerListConfig>> config;
     private final UserAgent userAgent;
     private volatile ConcurrentHashMap<CacheKey, DialogueChannel> cachedChannels = new ConcurrentHashMap<>();
 
     DialogueClientFactory(
-            Supplier<Optional<ServerListConfig>> config,
+            Refreshable<Optional<ServerListConfig>> config,
             TaggedMetricRegistry taggedMetricRegistry,
             UserAgent userAgent) {
         this.taggedMetricRegistry = taggedMetricRegistry;
@@ -78,8 +79,7 @@ final class DialogueClientFactory {
     }
 
     private Channel liveReloadableChannel(StaticClientConfiguration staticClientConfig) {
-        Supplier<Channel> channelSupplier = new CachedComposingSupplier<>(
-                config, maybeConfig -> {
+        Supplier<Channel> channelSupplier = config.map(maybeConfig -> {
             if (!maybeConfig.isPresent()) {
                 return alwaysThrowingChannel(() -> new SafeIllegalStateException("Service not configured"));
             }

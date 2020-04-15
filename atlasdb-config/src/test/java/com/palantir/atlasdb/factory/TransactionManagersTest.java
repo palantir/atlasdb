@@ -120,6 +120,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -294,7 +295,7 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        () -> runtimeConfig,
+                        Refreshable.only(runtimeConfig),
                         environment,
                         lockServiceSupplier,
                         () -> ts,
@@ -746,7 +747,7 @@ public class TransactionManagersTest {
         return TransactionManagers.createLockAndTimestampServices(
                 metricsManager,
                 config,
-                () -> runtimeConfig,
+                Refreshable.only(runtimeConfig),
                 environment,
                 LockServiceImpl::create,
                 () -> ts,
@@ -766,7 +767,7 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        () -> runtimeConfig,
+                        Refreshable.only(runtimeConfig),
                         environment,
                         LockServiceImpl::create,
                         () -> ts,

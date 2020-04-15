@@ -31,6 +31,7 @@ import com.palantir.conjure.java.okhttp.HostEventsSink;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.Tritium;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -39,21 +40,20 @@ public class AtlasClientFactory {
             StaticClientConfiguration.builder().build();
 
     private final boolean useDialogueJaxrs;
-    private final Supplier<Optional<ServerListConfig>> clientConfig;
+    private final Refreshable<Optional<ServerListConfig>> clientConfig;
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final UserAgent userAgent;
     private final HostEventsSink hostEventsSink;
     private final DialogueClientFactory dialogueClientFactory;
 
     public AtlasClientFactory(
-            Supplier<ServerListConfig> clientConfig,
+            Refreshable<ServerListConfig> clientConfig,
             TaggedMetricRegistry taggedMetricRegistry,
             UserAgent userAgent,
             HostEventsSink hostEventsSink,
             boolean useDialogueJaxrs) {
         this.useDialogueJaxrs = useDialogueJaxrs;
-        this.clientConfig = new CachedComposingSupplier<>(clientConfig,
-                c -> c.hasAtLeastOneServer() ? Optional.of(c) : Optional.empty());
+        this.clientConfig = clientConfig.map(c -> c.hasAtLeastOneServer() ? Optional.of(c) : Optional.empty());
         this.taggedMetricRegistry = taggedMetricRegistry;
         this.userAgent = userAgent;
         this.hostEventsSink = hostEventsSink;
@@ -81,7 +81,7 @@ public class AtlasClientFactory {
     private <T> T jaxrsInternal(Class<T> serviceClass, StaticClientConfiguration staticClientConfig) {
         Function<ServerListConfig, T> clientFactory = jaxrsFactory(serviceClass,
                 staticClientConfig);
-        Supplier<Optional<T>> client = new CachedComposingSupplier<>(clientConfig, conf -> conf.map(clientFactory));
+        Supplier<Optional<T>> client = clientConfig.map(conf -> conf.map(clientFactory));
         T alwaysThrowingService = serviceProxy(serviceClass, (proxy, method, args) -> {
             throw new SafeIllegalStateException("Service not configured");
         });

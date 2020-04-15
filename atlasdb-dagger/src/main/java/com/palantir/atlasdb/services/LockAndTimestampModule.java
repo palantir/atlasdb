@@ -25,6 +25,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -51,7 +52,7 @@ public class LockAndTimestampModule {
         return TransactionManagers.createLockAndTimestampServicesForCli(
                 metricsManager,
                 config.atlasDbConfig(),
-                config::atlasDbRuntimeConfig,
+                Refreshable.only(config.atlasDbRuntimeConfig()),
                 resource -> { },
                 LockServiceImpl::create,
                 managedTimestampService,

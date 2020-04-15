@@ -5,6 +5,7 @@ apply from: '../gradle/shared.gradle'
 dependencies {
   compile project(':atlasdb-service')
   compile group: 'com.google.dagger', name: 'dagger'
+  implementation 'com.palantir.refreshable:refreshable'
 
   annotationProcessor group: 'com.google.dagger', name: 'dagger-compiler'
   compileOnly 'com.google.dagger:dagger-compiler'
