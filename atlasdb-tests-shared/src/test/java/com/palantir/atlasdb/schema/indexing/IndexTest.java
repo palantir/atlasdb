@@ -25,8 +25,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.hash.Hashing;
@@ -150,20 +148,7 @@ public class IndexTest extends AtlasDbTestCase {
 
         Assert.assertArrayEquals(expected, firstComponentOfRow);
     }
-    @Test
-    public void wat() {
-        RangeRequest r1 = RangeRequest.builder()
-                .startRowInclusive(PtBytes.toBytes("tom"))
-                .endRowExclusive(PtBytes.toBytes("zzzz"))
-                .retainColumns(ImmutableList.of(PtBytes.toBytes("name")))
-                .build();
-        RangeRequest r2 = RangeRequest.builder()
-                .startRowInclusive(PtBytes.toBytes("tom"))
-                .endRowExclusive(PtBytes.toBytes("zzzz"))
-                .retainColumns(ImmutableList.of(PtBytes.toBytes("name")))
-                .build();
-        assertEquals(ImmutableSet.of(r1, r2).size(), 1); // :(
-    }
+
     private IndexTestTableFactory getTableFactory() {
         return IndexTestTableFactory.of();
     }
