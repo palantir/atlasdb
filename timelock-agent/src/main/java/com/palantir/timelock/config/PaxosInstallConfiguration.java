@@ -45,6 +45,16 @@ public interface PaxosInstallConfiguration {
     @JsonProperty("is-new-service")
     boolean isNewService();
 
+    /**
+     * If true, TimeLock is allowed to create clients that it has never seen before.
+     * If false, then TimeLock will continue to serve requests for clients that it already knows about (across the
+     * history of its persistent state, not just the life of the current JVM), but it will not accept any new clients.
+     */
+    @JsonProperty("can-create-new-clients")
+    default boolean canCreateNewClients() {
+        return true;
+    }
+
     enum PaxosLeaderMode {
         SINGLE_LEADER,
         LEADER_PER_CLIENT,

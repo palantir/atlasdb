@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposal;
@@ -59,7 +61,8 @@ public class LocalPaxosComponentsTest {
         paxosComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 logDirectory,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                true);
     }
 
     @Test
@@ -86,4 +89,24 @@ public class LocalPaxosComponentsTest {
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 
+    @Test
+    public void newClientCannotBeCreatedIfCreatingClientsIsNotPermitted() {
+        LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                logDirectory,
+                UUID.randomUUID(),
+                false);
+        assertThatThrownBy(() -> rejectingComponents.learner(CLIENT)).isInstanceOf(ServiceNotAvailableException.class);
+    }
+
+    @Test
+    public void newClientCanBeCreatedIfItAlreadyExistsInTheDirectory() {
+        paxosComponents.learner(CLIENT);
+        LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                logDirectory,
+                UUID.randomUUID(),
+                false);
+        assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
+    }
 }

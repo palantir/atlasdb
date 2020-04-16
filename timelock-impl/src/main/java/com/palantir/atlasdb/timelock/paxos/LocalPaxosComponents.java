@@ -15,18 +15,23 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -41,14 +46,19 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
+    private final boolean canCreateNewClients;
 
-    LocalPaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory, UUID leaderUuid) {
+    LocalPaxosComponents(TimelockPaxosMetrics metrics,
+            Path logDirectory,
+            UUID leaderUuid,
+            boolean canCreateNewClients) {
         this.metrics = metrics;
         this.logDirectory = logDirectory;
         this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
         this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
+        this.canCreateNewClients = canCreateNewClients;
     }
 
     public PaxosAcceptor acceptor(Client client) {
@@ -81,6 +91,11 @@ public class LocalPaxosComponents {
 
     private Components createComponents(Client client) {
         Path clientDirectory = logDirectory.resolve(client.value());
+        if (!canCreateNewClients && !Files.exists(clientDirectory)) {
+            throw new ServiceNotAvailableException("This TimeLock server is not allowed to create new clients at this"
+                    + " time, and the client " + client + " provided is novel for this TimeLock server.");
+        }
+
         Path learnerLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
 
         PaxosLearner learner = PaxosLearnerImpl.newLearner(learnerLogDir.toString());
