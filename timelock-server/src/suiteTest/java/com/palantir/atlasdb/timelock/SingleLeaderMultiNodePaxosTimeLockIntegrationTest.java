@@ -52,7 +52,7 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_TIMESTAMP_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;

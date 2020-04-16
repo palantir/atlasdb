@@ -17,4 +17,3 @@ external timestamp and lock service. Please consult the relevant section of the 
    lock_service/index
    timestamp_service/index
    timelock_service/index
-   qos_service/index

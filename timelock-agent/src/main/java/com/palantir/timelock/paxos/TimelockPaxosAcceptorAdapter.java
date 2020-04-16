@@ -38,7 +38,7 @@ public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     private final String client;
     private final TimelockPaxosAcceptorRpcClient timelockPaxosAcceptorRpcClient;
 
-    private TimelockPaxosAcceptorAdapter(
+    TimelockPaxosAcceptorAdapter(
             PaxosUseCase paxosUseCase,
             String client,
             TimelockPaxosAcceptorRpcClient timelockPaxosAcceptorRpcClient) {

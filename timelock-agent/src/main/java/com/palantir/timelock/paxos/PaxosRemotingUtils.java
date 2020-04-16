@@ -20,13 +20,12 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.UriBuilder;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -40,17 +39,18 @@ public final class PaxosRemotingUtils {
         return elements.size() / 2 + 1;
     }
 
-    public static Set<String> getRemoteServerPaths(TimeLockInstallConfiguration install) {
+    public static List<String> getRemoteServerPaths(TimeLockInstallConfiguration install) {
         return addProtocols(install, getRemoteServerAddresses(install));
     }
 
-    public static ImmutableSet<String> getClusterAddresses(TimeLockInstallConfiguration install) {
-        return ImmutableSet.copyOf(getClusterConfiguration(install).clusterMembers());
+    public static ImmutableList<String> getClusterAddresses(TimeLockInstallConfiguration install) {
+        return ImmutableList.copyOf(getClusterConfiguration(install).clusterMembers());
     }
 
-    public static Set<String> getRemoteServerAddresses(TimeLockInstallConfiguration install) {
-        return Sets.difference(getClusterAddresses(install),
-                ImmutableSet.of(install.cluster().localServer()));
+    public static List<String> getRemoteServerAddresses(TimeLockInstallConfiguration install) {
+        List<String> result = Lists.newArrayList(getClusterAddresses(install));
+        result.remove(install.cluster().localServer());
+        return ImmutableList.copyOf(result);
     }
 
     public static ClusterConfiguration getClusterConfiguration(TimeLockInstallConfiguration install) {
@@ -66,10 +66,10 @@ public final class PaxosRemotingUtils {
         return protocolPrefix + address;
     }
 
-    public static Set<String> addProtocols(TimeLockInstallConfiguration install, Set<String> addresses) {
+    public static List<String> addProtocols(TimeLockInstallConfiguration install, List<String> addresses) {
         return addresses.stream()
                 .map(address -> addProtocol(install, address))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     public static URL convertAddressToUrl(TimeLockInstallConfiguration install, String address) {

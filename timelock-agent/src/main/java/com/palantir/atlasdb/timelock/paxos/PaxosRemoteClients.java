@@ -54,7 +54,7 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     Map<String, ExecutorService> dedicatedExecutors() {
-        Set<String> remoteUris = context().remoteUris();
+        List<String> remoteUris = context().remoteUris();
         int executorIndex = 0;
 
         ImmutableMap.Builder<String, ExecutorService> builder = ImmutableMap.builder();

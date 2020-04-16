@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
@@ -32,11 +33,16 @@ import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapter;
-import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapter;
+import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapters;
 
 @Value.Immutable
 abstract class SingleLeaderNetworkClientFactories implements
         NetworkClientFactories, Dependencies.NetworkClientFactories {
+
+    @Value.Default
+    Supplier<Boolean> useBatchedEndpoints() {
+        return () -> false;
+    }
 
     @Value.Auxiliary
     @Value.Derived
@@ -86,9 +92,8 @@ abstract class SingleLeaderNetworkClientFactories implements
     @Override
     public Factory<PaxosLearnerNetworkClient> learner() {
         return client -> {
-            List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapter
-                    .wrap(useCase(), remoteClients())
-                    .apply(client);
+            List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapters
+                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client);
             PaxosLearner localLearner = components().learner(client);
 
             LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner, remoteLearners)
