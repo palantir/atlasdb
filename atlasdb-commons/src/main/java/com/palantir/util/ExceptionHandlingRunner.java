@@ -24,7 +24,8 @@ import java.util.function.Supplier;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
- * Some more java doc. Blah
+ * Runs runnables and suppliers that may throw exceptions, and swallows those exceptions until later. Can be used as a
+ * resource in a try block, or delegated to by another resource.
  */
 public final class ExceptionHandlingRunner implements AutoCloseable {
     private final List<Throwable> failures = new ArrayList<>();
@@ -52,6 +53,10 @@ public final class ExceptionHandlingRunner implements AutoCloseable {
         }
     }
 
+    /**
+     * Calling close with no failures should be a no-op; equally, calling close multiple times will re-throw a runtime
+     * exception with the same suppressed errors (plus any additional errors suppressed since the last close call).
+     */
     @Override
     public void close() {
         if (!failures.isEmpty()) {
