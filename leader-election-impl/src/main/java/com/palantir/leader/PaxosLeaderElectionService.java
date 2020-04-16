@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -60,7 +59,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     // stored here to be consistent when proposing to take over leadership
     private static final byte[] LEADERSHIP_PROPOSAL_VALUE = null;
 
-    private final ReentrantLock lock = new ReentrantLock();
+    private final Object lock = new Object();
     private final PaxosLatestRoundVerifier latestRoundVerifier;
 
     private final PaxosProposer proposer;
@@ -187,24 +186,23 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {
-        lock.lock();
-        try {
-            log.debug("Proposing leadership with value [{}]", SafeArg.of("paxosValue", value));
-            if (!isLatestRound(value)) {
-                // This means that new data has come in so we shouldn't propose leadership.
-                // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader behaves correctly.
-                return;
+        synchronized (lock) {
+            try {
+                log.debug("Proposing leadership with value [{}]", SafeArg.of("paxosValue", value));
+                if (!isLatestRound(value)) {
+                    // This means that new data has come in so we shouldn't propose leadership.
+                    // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader behaves correctly.
+                    return;
+                }
+
+                long seq = getNextSequenceNumber(value);
+
+                eventRecorder.recordProposalAttempt(seq);
+                proposer.propose(seq, LEADERSHIP_PROPOSAL_VALUE);
+            } catch (PaxosRoundFailureException e) {
+                // We have failed trying to become the leader.
+                eventRecorder.recordProposalFailure(e);
             }
-
-            long seq = getNextSequenceNumber(value);
-
-            eventRecorder.recordProposalAttempt(seq);
-            proposer.propose(seq, LEADERSHIP_PROPOSAL_VALUE);
-        } catch (PaxosRoundFailureException e) {
-            // We have failed trying to become the leader.
-            eventRecorder.recordProposalFailure(e);
-        } finally {
-            lock.unlock();
         }
     }
 
