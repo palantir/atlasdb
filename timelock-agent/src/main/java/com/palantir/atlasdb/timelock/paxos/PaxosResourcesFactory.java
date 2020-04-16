@@ -58,7 +58,7 @@ public final class PaxosResourcesFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor) {
-        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics.getTaggedRegistry());
+        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
         ImmutablePaxosResources.Builder resourcesBuilder =
                 setupTimestampResources(install, metrics, paxosRuntime, sharedExecutor, remoteClients);

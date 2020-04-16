@@ -17,6 +17,7 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,7 @@ import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
+import com.palantir.atlasdb.timelock.paxos.WithDedicatedExecutor;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.PaxosAcceptor;
@@ -34,26 +36,32 @@ public final class TimelockPaxosAcceptorAdapters {
         // pl0x n0
     }
 
-    public static List<PaxosAcceptor> create(
+    public static List<WithDedicatedExecutor<PaxosAcceptor>> create(
             PaxosUseCase paxosUseCase,
             PaxosRemoteClients remoteClients,
             Supplier<Boolean> useBatchedSingleLeader,
-            Client client) {
+            Client client,
+            ExecutorService sharedExecutor) {
         switch (paxosUseCase) {
             case LEADER_FOR_ALL_CLIENTS:
                 return Streams.zip(
-                        remoteClients.batchAcceptor().stream(),
-                        remoteClients.singleLeaderAcceptor().stream(),
-                        (batch, legacy) -> createSwitchingClient(batch, legacy, useBatchedSingleLeader))
+                        remoteClients.batchAcceptorsWithExecutors().stream(),
+                        remoteClients.singleLeaderAcceptorsWithExecutors().stream(),
+                        (batch, legacy) ->
+                                WithDedicatedExecutor.of(
+                                        createSwitchingClient(
+                                                batch.service(), legacy.service(), useBatchedSingleLeader),
+                                        batch.executor()))
                         .collect(Collectors.toList());
             case LEADER_FOR_EACH_CLIENT:
                 throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
             case TIMESTAMP:
                 return remoteClients.nonBatchTimestampAcceptor().stream()
-                        .map(acceptor -> new TimelockPaxosAcceptorAdapter(
+                        .<PaxosAcceptor>map(acceptor -> new TimelockPaxosAcceptorAdapter(
                                 paxosUseCase,
                                 client.value(),
                                 acceptor))
+                        .map(acceptor -> WithDedicatedExecutor.of(acceptor, sharedExecutor))
                         .collect(Collectors.toList());
             default:
                 throw new IllegalStateException("Unexpected value: " + paxosUseCase);

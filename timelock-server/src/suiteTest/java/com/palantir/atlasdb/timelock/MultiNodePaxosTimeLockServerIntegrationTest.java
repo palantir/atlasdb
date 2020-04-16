@@ -46,7 +46,7 @@ import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
+import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.LockDescriptor;
@@ -64,7 +64,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> MultiLeaderPaxosSuite.MULTI_LEADER_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_TIMESTAMP_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -306,11 +306,11 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         }
     }
 
-    private void assertNumberOfThreadsReasonable(int startingNumThreads, int threadCount, boolean isNonLeaderTakenOut) {
+    private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
         // TODO (jkong): Lower the amount over the threshold. This needs to be slightly higher for now because of the
         // current threading model in batch mode, where separate threads may be spun up on the autobatcher.
-        int threadLimit = startingNumThreads + 300;
-        if (isNonLeaderTakenOut) {
+        int threadLimit = startingThreads + 300;
+        if (nonLeaderDown) {
             assertThat(threadCount)
                     .as("should not additionally spin up too many threads after a non-leader failed")
                     .isLessThanOrEqualTo(threadLimit);
