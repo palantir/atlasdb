@@ -73,7 +73,6 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultiset;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.random.SecureRandomPool;
 import com.palantir.common.remoting.ServiceNotAvailableException;
@@ -233,7 +232,7 @@ public final class LockServiceImpl
     public static LockServiceImpl create(LockServerOptions options) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
         ExecutorService newExecutor = PTExecutors
-                .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+                .newCachedThreadPool(LockServiceImpl.class.getName());
         return create(options, Ownable.owned(newExecutor));
     }
 
