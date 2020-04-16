@@ -77,20 +77,11 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        // Now:
-        // Batch will swallow all exceptions when getFuture is being called (or otherwise)
-        // However, when it closes, BatchManager will throw iff any exceptions have been swallowed
-        // and will call the cleanup, which is the unlock method.
-        // If this fails during cleanup, then that's cool too, because we swallow exceptions during that
-        // and re-throw later.
         try (StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
-                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(
-                        response -> unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
+                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(response ->
+                        unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
             List<Void> inputs = IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList());
-            autobatcher.applyBatch(inputs)
-                    .forEach(response -> batchBuilder.safeAddToBatch(() -> getFuture(response)));
-            // this won't actually be returned if there are exceptions caught, because the close will throw
-            // (as it would have previously, except that we clean up this time).
+            autobatcher.applyBatch(inputs).forEach(response -> batchBuilder.safeAddToBatch(() -> getFuture(response)));
             return batchBuilder.build();
         }
     }
