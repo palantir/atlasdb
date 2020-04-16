@@ -191,7 +191,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
                 log.debug("Proposing leadership with value [{}]", SafeArg.of("paxosValue", value));
                 if (!isLatestRound(value)) {
                     // This means that new data has come in so we shouldn't propose leadership.
-                    // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader behaves correctly.
+                    // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader
+                    // behaves correctly.
                     return;
                 }
 
