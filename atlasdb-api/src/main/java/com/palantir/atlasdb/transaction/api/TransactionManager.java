@@ -435,12 +435,12 @@ public interface TransactionManager extends AutoCloseable {
     TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
 
     /**
-     * Some java doc stuff
-     * @param condition
-     * @return
-     * @deprecated bleh bleh bleh
+     * This method exposes the ability to start a batch of transactions with pre-commit conditions in a single call.
+     * The result is similar to calling {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}, except
+     * the code has been specifically optimised with respect to batching and error handling.
+     *
+     * @return a list of transactions and their associated immutable timestamp locks for the tasks
      */
-    @Deprecated
     @Timed
     List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
             List<PreCommitCondition> condition);
