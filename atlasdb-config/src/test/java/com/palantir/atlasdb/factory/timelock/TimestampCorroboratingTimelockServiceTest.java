@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +37,7 @@ import org.mockito.stubbing.Answer;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampRange;
@@ -71,13 +73,27 @@ public class TimestampCorroboratingTimelockServiceTest {
     @Test
     public void startIdentifiedAtlasDbTransactionShouldFail() {
         StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
-                StartIdentifiedAtlasDbTransactionResponse.of(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE,
-                        TimestampAndPartition.of(1L, 0));
+                makeResponse(1L);
 
         when(rawTimelockService.startIdentifiedAtlasDbTransaction())
                 .thenReturn(startIdentifiedAtlasDbTransactionResponse);
 
         assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransaction());
+    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionBatchShouldFail() {
+        StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
+                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder($ -> {});
+
+        batchBuilder.safeAddToBatch(() -> makeResponse(1L));
+        batchBuilder.safeAddToBatch(() -> makeResponse(2L));
+        batchBuilder.safeAddToBatch(() -> makeResponse(3L));
+        StartIdentifiedAtlasDbTransactionResponseBatch batch = batchBuilder.build();
+
+        when(rawTimelockService.startIdentifiedAtlasDbTransactionsBatch(eq(3))).thenReturn(batch);
+
+        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionsBatch(3));
     }
 
     @Test
@@ -100,6 +116,11 @@ public class TimestampCorroboratingTimelockServiceTest {
         blockingTimestampReturning1.countdown();
         assertThatCode(blockingGetFreshTimestampCall::get)
                 .doesNotThrowAnyException();
+    }
+
+    private StartIdentifiedAtlasDbTransactionResponse makeResponse(long timestamp) {
+        return StartIdentifiedAtlasDbTransactionResponse.of(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE,
+                TimestampAndPartition.of(timestamp, 0));
     }
 
     private static final class BlockingTimestamp implements Answer<Long> {
