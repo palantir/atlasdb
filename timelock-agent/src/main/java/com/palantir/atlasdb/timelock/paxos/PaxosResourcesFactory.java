@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -155,7 +154,8 @@ public final class PaxosResourcesFactory {
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .metrics(timelockMetrics)
-                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
+                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder()
+                        .useBatchedEndpoints(() -> paxosRuntime.get().enableBatchingForSingleLeader()))
                 .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
                 .latestRoundVerifierFactory(latestRoundVerifierFactory)
@@ -275,12 +275,12 @@ public final class PaxosResourcesFactory {
         }
 
         @Value.Derived
-        default Set<String> clusterAddresses() {
+        default List<String> clusterAddresses() {
             return PaxosRemotingUtils.getClusterAddresses(install());
         }
 
         @Value.Derived
-        default Set<String> remoteUris() {
+        default List<String> remoteUris() {
             return PaxosRemotingUtils.getRemoteServerPaths(install());
         }
 
