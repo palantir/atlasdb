@@ -45,8 +45,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 
 /**
- * While this class is public, it shouldn't be used as API outside of AtlasDB because we
- * don't guarantee we won't break it.
+ * While this class is public, it shouldn't be used as API outside of AtlasDB because we don't guarantee we won't break
+ * it.
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
@@ -89,24 +89,17 @@ public final class DisruptorAutobatcher<T, R>
     public ListenableFuture<R> apply(T argument) {
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
         DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
-        buffer.publishEvent((refresh, sequence) -> {
-            refresh.result = result;
-            refresh.argument = argument;
-        });
+        buffer.publishEvent(createTranslator(argument, result));
         return result;
     }
 
     public List<ListenableFuture<R>> applyBatch(List<T> arguments) {
-        // todo - this is a bit messy, and I need to verify that this is properly correct
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
         List<ListenableFuture<R>> results = new ArrayList<>();
 
         EventTranslator<DefaultBatchElement<T, R>>[] translators = arguments.stream().map(argument -> {
             DisruptorFuture<R> result = new DisruptorFuture<>(safeLoggablePurpose);
-            EventTranslator<DefaultBatchElement<T, R>> translator = (refresh, sequence) -> {
-                refresh.result = result;
-                refresh.argument = argument;
-            };
+            EventTranslator<DefaultBatchElement<T, R>> translator = createTranslator(argument, result);
             results.add(result);
             return translator;
         }).toArray(EventTranslator[]::new);
@@ -114,6 +107,13 @@ public final class DisruptorAutobatcher<T, R>
         buffer.publishEvents(translators);
 
         return results;
+    }
+
+    private EventTranslator<DefaultBatchElement<T, R>> createTranslator(T argument, DisruptorFuture<R> result) {
+        return (refresh, $) -> {
+            refresh.result = result;
+            refresh.argument = argument;
+        };
     }
 
     @Override
