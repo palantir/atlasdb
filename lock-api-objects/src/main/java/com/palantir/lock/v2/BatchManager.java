@@ -32,6 +32,8 @@ import com.palantir.logsafe.Preconditions;
 
 // We probably want to do this a bit more cleanly, not using two ExceptionProneRunners, but
 // this is just supposed to capture correctness, not elegance.
+// TODO tomorrow - read through Jakub's comments from the old attempt and consider implementing some of them.
+
 public final class BatchManager<R> implements AutoCloseable {
 
     private final Set<R> resources = new LinkedHashSet<>();

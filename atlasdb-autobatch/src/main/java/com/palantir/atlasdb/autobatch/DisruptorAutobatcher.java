@@ -17,13 +17,12 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -32,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -101,23 +99,21 @@ public final class DisruptorAutobatcher<T, R>
     public List<ListenableFuture<R>> applyBatch(List<T> arguments) {
         // todo - this is a bit messy, and I need to verify that this is properly correct
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
-        List<DisruptorFuture<R>> results =
-                IntStream.range(0, arguments.size())
-                        .mapToObj($ -> new DisruptorFuture<R>(safeLoggablePurpose))
-                        .collect(Collectors.toList());
+        List<ListenableFuture<R>> results = new ArrayList<>();
 
-        List<EventTranslator<DefaultBatchElement<T, R>>> translators = Streams.zip(
-                results.stream(),
-                arguments.stream(),
-                (result, argument) ->
-                        (EventTranslator<DefaultBatchElement<T, R>>) (refresh, sequence) -> {
-                            refresh.result = result;
-                            refresh.argument = argument;
-                        }).collect(Collectors.toList());
+        EventTranslator<DefaultBatchElement<T, R>>[] translators = arguments.stream().map(argument -> {
+            DisruptorFuture<R> result = new DisruptorFuture<>(safeLoggablePurpose);
+            EventTranslator<DefaultBatchElement<T, R>> translator = (refresh, sequence) -> {
+                refresh.result = result;
+                refresh.argument = argument;
+            };
+            results.add(result);
+            return translator;
+        }).toArray(EventTranslator[]::new);
 
-        buffer.publishEvents((EventTranslator<DefaultBatchElement<T, R>>[]) translators.toArray());
+        buffer.publishEvents(translators);
 
-        return results.stream().map(result -> (ListenableFuture<R>) result).collect(Collectors.toList());
+        return results;
     }
 
     @Override

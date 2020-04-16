@@ -54,6 +54,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
+import com.palantir.atlasdb.transaction.api.TransactionBatchFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -227,6 +228,11 @@ import com.palantir.timestamp.TimestampService;
         // Note that try-unlock is actually the same as the unlock method used in transaction starter.
         try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> responses =
                 timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
+            if (responses.getResources().size() != conditions.size()) {
+                throw new TransactionBatchFailedRetriableException(
+                        "The number of transactions started does not match the size of the batch");
+            }
+
             return Streams.zip(
                     responses.getResources().stream(),
                     conditions.stream(),
