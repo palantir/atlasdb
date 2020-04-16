@@ -82,6 +82,7 @@ public class ProfilingTimelockServiceTest {
     public void doesNotLogIfOperationsAreFast() {
         flushLogsWithCall(SHORT_DURATION, profilingTimelockService::getFreshTimestamp);
         flushLogsWithCall(SHORT_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
+        flushLogsWithCall(SHORT_DURATION, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionsBatch(999));
 
         verify(delegate).getFreshTimestamp();
         verify(delegate).startIdentifiedAtlasDbTransaction();
