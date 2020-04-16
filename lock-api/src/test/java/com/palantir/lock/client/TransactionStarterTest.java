@@ -58,6 +58,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -103,6 +104,21 @@ public class TransactionStarterTest {
         StartIdentifiedAtlasDbTransactionResponse response = transactionStarter.startIdentifiedAtlasDbTransaction();
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
+    }
+
+    @Test
+    public void shouldDeriveStartTransactionResponseBatchFromBatchedResponse_multipleTransactions() {
+        ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(12, 5);
+
+        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 5)).thenReturn(batchResponse);
+        StartIdentifiedAtlasDbTransactionResponseBatch responses =
+                transactionStarter.startIdentifiedAtlasDbTransactionsBatch(5);
+
+        assertThat(responses.getResponses())
+                .satisfies(TransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
+                .hasSize(5)
+                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse,
+                        batchResponse));
     }
 
     @Test
