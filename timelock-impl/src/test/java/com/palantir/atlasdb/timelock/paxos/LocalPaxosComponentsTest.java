@@ -96,7 +96,10 @@ public class LocalPaxosComponentsTest {
                 logDirectory,
                 UUID.randomUUID(),
                 false);
-        assertThatThrownBy(() -> rejectingComponents.learner(CLIENT)).isInstanceOf(ServiceNotAvailableException.class);
+        assertThatThrownBy(() -> rejectingComponents.learner(CLIENT))
+                .isInstanceOf(ServiceNotAvailableException.class)
+                .hasMessageContaining("not allowed to create new clients at this time")
+                .hasMessageContaining(CLIENT.value());
     }
 
     @Test

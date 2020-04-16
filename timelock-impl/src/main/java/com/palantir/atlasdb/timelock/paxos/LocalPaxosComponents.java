@@ -91,7 +91,7 @@ public class LocalPaxosComponents {
 
     private Components createComponents(Client client) {
         Path clientDirectory = logDirectory.resolve(client.value());
-        if (!canCreateNewClients && !Files.exists(clientDirectory)) {
+        if (!canCreateNewClients && !clientDirectory.toFile().exists()) {
             throw new ServiceNotAvailableException("This TimeLock server is not allowed to create new clients at this"
                     + " time, and the client " + client + " provided is novel for this TimeLock server.");
         }
