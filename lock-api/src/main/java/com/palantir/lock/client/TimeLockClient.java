@@ -17,10 +17,10 @@ package com.palantir.lock.client;
 
 import java.net.ConnectException;
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -104,12 +104,12 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        // I believe that this now means that if this registerLock method fails,
-        // the block will clean up properly and then will re-throw.
-        try (StartIdentifiedAtlasDbTransactionResponseBatch responses = executeOnTimeLock(
-                () -> delegate.startIdentifiedAtlasDbTransactionsBatch(count))) {
-            responses.getResponses().forEach(
-                    response -> lockRefresher.registerLock(response.immutableTimestamp().getLock()));
+        try (StartIdentifiedAtlasDbTransactionResponseBatch responses = executeOnTimeLock(() ->
+                delegate.startIdentifiedAtlasDbTransactionsBatch(count))) {
+            lockRefresher.registerLocks(responses.getResponses()
+                    .stream()
+                    .map(response -> response.immutableTimestamp().getLock())
+                    .collect(Collectors.toList()));
             return responses;
         }
     }
