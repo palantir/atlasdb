@@ -195,10 +195,11 @@ import com.palantir.timestamp.TimestampService;
                         "The number of transactions started does not match the size of the batch");
             }
 
-            return Streams.zip(
+            List<TransactionAndImmutableTsLock> transactions = Streams.zip(
                     responses.getResponses().stream(),
                     conditions.stream(),
                     (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
+            return responses.successful(transactions);
         }
     }
 
