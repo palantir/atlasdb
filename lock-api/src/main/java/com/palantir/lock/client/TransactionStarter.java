@@ -88,7 +88,8 @@ final class TransactionStarter implements AutoCloseable {
             List<Void> inputs = IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList());
             autobatcher.applyBatch(inputs)
                     .forEach(response -> batch.safeExecute(() -> getFuture(response)));
-            // this won't actually be returned if there are exceptions caught, because the finally will throw
+            // this won't actually be returned if there are exceptions caught, because the close will throw
+            // (as it would have previously, except that we clean up this time).
             return batch.copy();
         }
     }

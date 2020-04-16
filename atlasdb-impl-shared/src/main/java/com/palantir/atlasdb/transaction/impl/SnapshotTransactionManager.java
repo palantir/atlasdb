@@ -184,6 +184,10 @@ import com.palantir.timestamp.TimestampService;
         // And so, there is no window where transactions could die and leave open locks
         // And if, at some point, any of these fail, it will raise an exception and unlock them all.
         // Note that try-unlock is actually the same as the unlock method used in transaction starter.
+
+        // Another note: if timelockService.blah throws, then this will throw before even entering the try block (and
+        // therefore won't call the close method), but we know that the cleanup will have already been done. This will
+        // throw the underlying exception, but that behaviour is the same as before anyway.
         try (StartIdentifiedAtlasDbTransactionResponseBatch responses =
                 timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
             if (responses.size() != conditions.size()) {
