@@ -19,9 +19,12 @@ package com.palantir.lock.v2;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import com.palantir.util.ExceptionHandlingRunner;
 
 public final class StartIdentifiedAtlasDbTransactionResponseBatch implements AutoCloseable {
 
@@ -83,13 +86,10 @@ public final class StartIdentifiedAtlasDbTransactionResponseBatch implements Aut
             this.cleaner = cleaner;
         }
 
-        public StartIdentifiedAtlasDbTransactionResponse safeAddToBatch(
+        public void safeAddToBatch(
                 Supplier<StartIdentifiedAtlasDbTransactionResponse> supplier) {
-            StartIdentifiedAtlasDbTransactionResponse response = runner.supplySafely(supplier);
-            if (response != null) {
-                responses.add(response);
-            }
-            return response;
+            Optional<StartIdentifiedAtlasDbTransactionResponse> response = runner.supplySafely(supplier);
+            response.ifPresent(responses::add);
         }
 
         public StartIdentifiedAtlasDbTransactionResponseBatch build() {

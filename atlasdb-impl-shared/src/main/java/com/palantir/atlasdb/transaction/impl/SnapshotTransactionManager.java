@@ -170,7 +170,7 @@ import com.palantir.timestamp.TimestampService;
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
                 = timelockService.startIdentifiedAtlasDbTransaction();
         try {
-            return wrap(condition, transactionResponse);
+            return createTransaction(condition, transactionResponse);
         } catch (Throwable e) {
             timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -180,30 +180,22 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
             List<PreCommitCondition> conditions) {
-        // Also messy, but this way we are keeping the same tracking throughout
-        // And so, there is no window where transactions could die and leave open locks
-        // And if, at some point, any of these fail, it will raise an exception and unlock them all.
-        // Note that try-unlock is actually the same as the unlock method used in transaction starter.
-
-        // Another note: if timelockService.blah throws, then this will throw before even entering the try block (and
-        // therefore won't call the close method), but we know that the cleanup will have already been done. This will
-        // throw the underlying exception, but that behaviour is the same as before anyway.
         try (StartIdentifiedAtlasDbTransactionResponseBatch responses =
                 timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
             if (responses.size() != conditions.size()) {
                 throw new TransactionBatchFailedRetriableException(
-                        "The number of transactions started does not match the size of the batch");
+                        "The number of transactions started does not match the size of the batch.");
             }
 
             List<TransactionAndImmutableTsLock> transactions = Streams.zip(
                     responses.getResponses().stream(),
                     conditions.stream(),
-                    (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
+                    (response, condition) -> createTransaction(condition, response)).collect(Collectors.toList());
             return responses.successful(transactions);
         }
     }
 
-    private TransactionAndImmutableTsLock wrap(PreCommitCondition condition,
+    private TransactionAndImmutableTsLock createTransaction(PreCommitCondition condition,
             StartIdentifiedAtlasDbTransactionResponse transactionResponse) {
         LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
         long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();

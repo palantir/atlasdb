@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
+/**
+ * Some more java doc. Blah
+ */
 public final class ExceptionHandlingRunner implements AutoCloseable {
     private final List<Throwable> failures = new ArrayList<>();
 
@@ -39,13 +43,12 @@ public final class ExceptionHandlingRunner implements AutoCloseable {
         }
     }
 
-    public <T> T supplySafely(Supplier<T> shutdownCallback) {
+    public <T> Optional<T> supplySafely(Supplier<T> shutdownCallback) {
         try {
-            return shutdownCallback.get();
+            return Optional.of(shutdownCallback.get());
         } catch (Throwable throwable) {
             failures.add(throwable);
-            // perfectly acceptable to return null, as we will error before this gets returned up anyway
-            return null;
+            return Optional.empty();
         }
     }
 
