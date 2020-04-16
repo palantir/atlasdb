@@ -32,6 +32,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -102,6 +103,18 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
+    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
+        // I believe that this now means that if this registerLock method fails,
+        // the block will clean up properly and then will re-throw.
+        try (StartIdentifiedAtlasDbTransactionResponseBatch responses = executeOnTimeLock(
+                () -> delegate.startIdentifiedAtlasDbTransactionsBatch(count))) {
+            responses.getResponses().forEach(
+                    response -> lockRefresher.registerLock(response.immutableTimestamp().getLock()));
+            return responses;
+        }
+    }
+
+    @Override
     public long getImmutableTimestamp() {
         return executeOnTimeLock(delegate::getImmutableTimestamp);
     }
@@ -118,11 +131,6 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return executeOnTimeLock(() -> delegate.waitForLocks(request));
-    }
-
-    @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
-        return null;
     }
 
     @Override

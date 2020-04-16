@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,6 +36,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -45,18 +45,18 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampRange;
 
 /**
- * Logs operations on an underlying {@link TimelockService} that take a long time (defined as longer than
- * {@link ProfilingTimelockService#SLOW_THRESHOLD}). This logger is configured not to record more than one
- * operation every {@link ProfilingTimelockService#LOGGING_TIME_WINDOW}. It will log what the longest operation that
- * completed in the past {@link ProfilingTimelockService#LOGGING_TIME_WINDOW} window was, and how long it took. If no
- * operation took longer than {@link ProfilingTimelockService#SLOW_THRESHOLD} it will not log.
- *
- * The {@link ProfilingTimelockService} does not cover specific operations which are at risk for taking long
- * times owing to contention - in particular, this includes {@link #lock(LockRequest)} and
- * {@link #waitForLocks(WaitForLocksRequest)}.
- *
- * Profiling is done explicitly at this level (and not at {@link com.palantir.lock.v2.TimelockRpcClient} level)
- * to reflect the impact of timelock operations and cluster state changes (e.g. leader elections, rolling bounces) on
+ * Logs operations on an underlying {@link TimelockService} that take a long time (defined as longer than {@link
+ * ProfilingTimelockService#SLOW_THRESHOLD}). This logger is configured not to record more than one operation every
+ * {@link ProfilingTimelockService#LOGGING_TIME_WINDOW}. It will log what the longest operation that completed in the
+ * past {@link ProfilingTimelockService#LOGGING_TIME_WINDOW} window was, and how long it took. If no operation took
+ * longer than {@link ProfilingTimelockService#SLOW_THRESHOLD} it will not log.
+ * <p>
+ * The {@link ProfilingTimelockService} does not cover specific operations which are at risk for taking long times owing
+ * to contention - in particular, this includes {@link #lock(LockRequest)} and {@link
+ * #waitForLocks(WaitForLocksRequest)}.
+ * <p>
+ * Profiling is done explicitly at this level (and not at {@link com.palantir.lock.v2.TimelockRpcClient} level) to
+ * reflect the impact of timelock operations and cluster state changes (e.g. leader elections, rolling bounces) on
  * clients.
  */
 public class ProfilingTimelockService implements AutoCloseable, TimelockService {
@@ -118,6 +118,12 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
+    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
+        return runTaskTimed("startIdentifiedAtlasDbTransactionsBatch",
+                () -> delegate.startIdentifiedAtlasDbTransactionsBatch(count));
+    }
+
+    @Override
     public long getImmutableTimestamp() {
         return runTaskTimed("getImmutableTimestamp", delegate::getImmutableTimestamp);
     }
@@ -134,11 +140,6 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         // Don't profile this, as it may be skewed by user contention on locks.
         tryFlushLogs();
         return delegate.waitForLocks(request);
-    }
-
-    @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
-        return null;
     }
 
     @Override

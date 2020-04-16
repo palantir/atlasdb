@@ -38,6 +38,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -125,6 +126,13 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
+    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
+        // do we want to implement? If so, it will probably just be an array version of the above
+        // (no fancy batching here, unless we really want to
+        throw new UnsupportedOperationException("Not implemented (yet?)");
+    }
+
+    @Override
     public long getImmutableTimestamp() {
         long ts = timestampService.getFreshTimestamp();
         return getImmutableTimestampInternal(ts);
@@ -147,11 +155,6 @@ public class LegacyTimelockService implements TimelockService {
         // this blocks indefinitely, and can only fail if the connection fails (and throws an exception)
         lockAnonymous(legacyRequest);
         return WaitForLocksResponse.successful();
-    }
-
-    @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
-        return null;
     }
 
     private com.palantir.lock.LockRequest toLegacyLockRequest(LockRequest request) {

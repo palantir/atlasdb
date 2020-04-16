@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -27,6 +26,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -69,6 +69,11 @@ public class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
+    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
+        return executeWithRecord(() -> timelockService.startIdentifiedAtlasDbTransactionsBatch(count));
+    }
+
+    @Override
     public long getImmutableTimestamp() {
         return executeWithRecord(timelockService::getImmutableTimestamp);
     }
@@ -81,11 +86,6 @@ public class InstrumentedTimelockService implements TimelockService {
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return executeWithRecord(() -> timelockService.waitForLocks(request));
-    }
-
-    @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
-        return null;
     }
 
     @Override
