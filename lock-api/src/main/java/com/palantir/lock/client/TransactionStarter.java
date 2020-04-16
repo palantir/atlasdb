@@ -48,7 +48,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
  * service also handles creating {@link LockTokenShare}'s to enable multiple transactions sharing a single immutable
  * timestamp.
- * <p>
+ *
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
@@ -145,7 +145,7 @@ final class TransactionStarter implements AutoCloseable {
     /**
      * Calling unlock on a set of LockTokenShares only calls unlock on shared token iff all references to shared token
      * are unlocked.
-     * <p>
+     *
      * {@link com.palantir.lock.v2.TimelockService#unlock(Set)} has a guarantee that returned tokens were valid until
      * calling unlock. To keep that guarantee, we need to check if LockTokenShares were valid (by calling refresh with
      * referenced shared token) even if we don't unlock the underlying shared token.

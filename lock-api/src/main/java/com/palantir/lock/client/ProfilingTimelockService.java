@@ -45,18 +45,18 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampRange;
 
 /**
- * Logs operations on an underlying {@link TimelockService} that take a long time (defined as longer than {@link
- * ProfilingTimelockService#SLOW_THRESHOLD}). This logger is configured not to record more than one operation every
- * {@link ProfilingTimelockService#LOGGING_TIME_WINDOW}. It will log what the longest operation that completed in the
- * past {@link ProfilingTimelockService#LOGGING_TIME_WINDOW} window was, and how long it took. If no operation took
- * longer than {@link ProfilingTimelockService#SLOW_THRESHOLD} it will not log.
- * <p>
- * The {@link ProfilingTimelockService} does not cover specific operations which are at risk for taking long times owing
- * to contention - in particular, this includes {@link #lock(LockRequest)} and {@link
- * #waitForLocks(WaitForLocksRequest)}.
- * <p>
- * Profiling is done explicitly at this level (and not at {@link com.palantir.lock.v2.TimelockRpcClient} level) to
- * reflect the impact of timelock operations and cluster state changes (e.g. leader elections, rolling bounces) on
+ * Logs operations on an underlying {@link TimelockService} that take a long time (defined as longer than
+ * {@link ProfilingTimelockService#SLOW_THRESHOLD}). This logger is configured not to record more than one
+ * operation every {@link ProfilingTimelockService#LOGGING_TIME_WINDOW}. It will log what the longest operation that
+ * completed in the past {@link ProfilingTimelockService#LOGGING_TIME_WINDOW} window was, and how long it took. If no
+ * operation took longer than {@link ProfilingTimelockService#SLOW_THRESHOLD} it will not log.
+ *
+ * The {@link ProfilingTimelockService} does not cover specific operations which are at risk for taking long
+ * times owing to contention - in particular, this includes {@link #lock(LockRequest)} and
+ * {@link #waitForLocks(WaitForLocksRequest)}.
+ *
+ * Profiling is done explicitly at this level (and not at {@link com.palantir.lock.v2.TimelockRpcClient} level)
+ * to reflect the impact of timelock operations and cluster state changes (e.g. leader elections, rolling bounces) on
  * clients.
  */
 public class ProfilingTimelockService implements AutoCloseable, TimelockService {
