@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -42,6 +43,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -81,6 +83,8 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     private enum Extreme { GREATEST, LEAST }
 
     final String path;
+    private final Supplier<Long> getLeastLogEntry;
+    private final Supplier<Long> getGreatestLogEntry;
 
     public PaxosStateLogImpl(String path) {
         this.path = path;
@@ -95,6 +99,8 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         } catch (IOException e) {
             throw new RuntimeException("IO problem related to the path " + new File(path).getAbsolutePath(), e);
         }
+        getLeastLogEntry = new CoalescingSupplier<>(this::getLeastLogEntryImpl);
+        getGreatestLogEntry = new CoalescingSupplier<>(this::getGreatestLogEntryImpl);
     }
 
     @Override
@@ -169,12 +175,12 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
 
     @Override
     public long getLeastLogEntry() {
-        return getExtremeLogEntry(Extreme.LEAST);
+        return getLeastLogEntry.get();
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return getExtremeLogEntry(Extreme.GREATEST);
+        return getGreatestLogEntry.get();
     }
 
     public long getExtremeLogEntry(Extreme extreme) {
@@ -278,4 +284,11 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         return null;
     }
 
+    private long getLeastLogEntryImpl() {
+        return getExtremeLogEntry(Extreme.LEAST);
+    }
+
+    private long getGreatestLogEntryImpl() {
+        return getExtremeLogEntry(Extreme.GREATEST);
+    }
 }
