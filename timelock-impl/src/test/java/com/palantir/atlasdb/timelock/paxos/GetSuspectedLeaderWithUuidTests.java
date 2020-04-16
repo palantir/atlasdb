@@ -44,8 +44,8 @@ import org.mockito.Answers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.paxos.LeaderPingerContext;
 
 public class GetSuspectedLeaderWithUuidTests {
@@ -164,8 +164,8 @@ public class GetSuspectedLeaderWithUuidTests {
 
         @Value.Lazy
         @Override
-        default SettableFuture<Optional<ClientAwareLeaderPinger>> result() {
-            return SettableFuture.create();
+        default DisruptorAutobatcher.DisruptorFuture<Optional<ClientAwareLeaderPinger>> result() {
+            return new DisruptorAutobatcher.DisruptorFuture<>("test");
         }
 
         default Optional<ClientAwareLeaderPinger> get()

@@ -40,23 +40,32 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 public final class SingleLeaderPaxosSuite {
 
     public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
-            "non-batched paxos single leader",
+            "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(9080, builder ->
-                    builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxos(false))
+                    builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     public static final TestableTimelockCluster BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
-            "batched paxos single leader",
+            "batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9083, builder ->
+            generateThreeNodeTimelockCluster(9086, builder ->
                     builder.clientPaxosBuilder(
-                            builder.clientPaxosBuilder().isUseBatchPaxos(true))
+                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
+                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+
+    public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
+            "batched single leader",
+            "paxosMultiServer.ftl",
+            generateThreeNodeTimelockCluster(9092, builder ->
+                    builder.clientPaxosBuilder(builder.clientPaxosBuilder()
+                            .isUseBatchPaxosTimestamp(false)
+                            .isBatchSingleLeader(true))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {
-        return ImmutableSet.of(NON_BATCHED_TIMESTAMP_PAXOS, BATCHED_TIMESTAMP_PAXOS);
+        return ImmutableSet.of(NON_BATCHED_TIMESTAMP_PAXOS, BATCHED_TIMESTAMP_PAXOS, BATCHED_PAXOS);
     }
 
     @Rule

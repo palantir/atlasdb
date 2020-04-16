@@ -37,6 +37,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
@@ -83,6 +85,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -1335,6 +1338,57 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
+    }
+
+    @Test
+    public void getRangesProcessesVisitableOnOriginalElements() {
+        UnaryOperator<RangeRequest> fiveElementLimit = range -> range.withBatchHint(5);
+        RangeRequest sevenElementRequest = RangeRequest.builder()
+                .startRowInclusive(PtBytes.toBytes("tom"))
+                .batchHint(7)
+                .build();
+        RangeRequest nineElementRequest = RangeRequest.builder()
+                .startRowInclusive(PtBytes.toBytes("tom"))
+                .batchHint(9)
+                .build();
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, RangeRequest> exposingProcessor
+                = (rangeRequest, $) -> rangeRequest;
+
+        Transaction transaction = startTransaction();
+        List<RangeRequest> visited = transaction.getRanges(ImmutableGetRangesQuery.<RangeRequest>builder()
+                .tableRef(TEST_TABLE)
+                .rangeRequests(ImmutableList.of(sevenElementRequest, nineElementRequest))
+                .rangeRequestOptimizer(fiveElementLimit)
+                .visitableProcessor(exposingProcessor)
+                .build())
+                .collect(Collectors.toList());
+
+        assertThat(visited).containsExactlyInAnyOrder(sevenElementRequest, nineElementRequest);
+    }
+
+    @Test
+    public void getRangesSendsQueriesThatHaveGoneThroughTheOptimizer() {
+        RangeRequest goldenRequest = RangeRequest.builder().startRowInclusive(PtBytes.toBytes("tom")).build();
+        RangeRequest otherRequest = RangeRequest.builder().startRowInclusive(PtBytes.toBytes("zzzz")).build();
+
+        // Contract is not entirely valid, but we don't have a good way of mocking out the KVS.
+        UnaryOperator<RangeRequest> goldenForcingOperator = $ -> goldenRequest;
+
+        putDirect("tom", "col", "value", 0);
+
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> singleValueExtractor
+                = ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))
+                        .getOnlyColumnValue();
+
+        Transaction transaction = startTransaction();
+        List<byte[]> extractedValue = transaction.getRanges(ImmutableGetRangesQuery.<byte[]>builder()
+                .tableRef(TEST_TABLE)
+                .rangeRequests(ImmutableList.of(otherRequest))
+                .rangeRequestOptimizer(goldenForcingOperator)
+                .visitableProcessor(singleValueExtractor)
+                .build())
+                .collect(Collectors.toList());
+        assertThat(extractedValue).containsExactly(PtBytes.toBytes("value"));
     }
 
     private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {

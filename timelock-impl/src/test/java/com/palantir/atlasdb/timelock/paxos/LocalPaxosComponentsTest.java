@@ -28,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposal;
@@ -56,7 +57,7 @@ public class LocalPaxosComponentsTest {
     public void setUp() throws IOException {
         logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
         paxosComponents = new LocalPaxosComponents(
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, new DefaultTaggedMetricRegistry()),
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 logDirectory,
                 UUID.randomUUID());
     }

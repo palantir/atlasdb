@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import com.palantir.paxos.WithDedicatedExecutor;
 
 public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor {
 
@@ -97,9 +99,13 @@ public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor
         }
     }
 
-    public static List<BatchPaxosAcceptor> wrap(PaxosUseCase useCase, List<BatchPaxosAcceptorRpcClient> remotes) {
+    public static Stream<WithDedicatedExecutor<BatchPaxosAcceptor>> wrap(
+            PaxosUseCase useCase, List<WithDedicatedExecutor<BatchPaxosAcceptorRpcClient>> remotes) {
         return remotes.stream()
-                .map(rpcClient -> new UseCaseAwareBatchPaxosAcceptorAdapter(useCase, rpcClient))
-                .collect(Collectors.toList());
+                .map(withExecutor -> withExecutor.transformService(rpcClient -> wrapInAdapter(useCase, rpcClient));
+    }
+
+    private static BatchPaxosAcceptor wrapInAdapter(PaxosUseCase useCase, BatchPaxosAcceptorRpcClient rpcClient) {
+        return new UseCaseAwareBatchPaxosAcceptorAdapter(useCase, rpcClient);
     }
 }

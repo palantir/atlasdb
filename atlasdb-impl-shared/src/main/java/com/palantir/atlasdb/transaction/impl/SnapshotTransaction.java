@@ -15,10 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,8 +49,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -110,6 +112,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.GetRangesQuery;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -390,16 +394,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
-        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
-        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
-            BatchColumnRangeSelection batchColumnRangeSelection =
-                    BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-            return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
-        });
-
-        return Iterators.concat(postFiltered);
+        BatchColumnRangeSelection batchColumnRangeSelection =
+                BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
+        return getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults);
     }
 
     @Override
@@ -444,17 +441,62 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return filterDeletedValues(mergedIterator, tableRef);
     }
 
+    private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
+            TableReference tableRef,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            RowColumnRangeIterator rawIterator) {
+        Iterator<Map.Entry<Cell, Value>> postFilterIterator =
+                getRowColumnRangePostFiltered(tableRef, rawIterator, batchColumnRangeSelection.getBatchHint());
+        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(postFilterIterator);
+        Iterator<Map.Entry<Cell, byte[]>> merged = Iterators.concat(Iterators.transform(rawResultsByRow, row -> {
+            SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(
+                    tableRef, batchColumnRangeSelection, row.getKey());
+            Iterator<Map.Entry<Cell, byte[]>> remoteIterator = Iterators.transform(
+                    row.getValue(), entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
+            Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
+            return IteratorUtils.mergeIterators(localIterator,
+                    remoteIterator,
+                    Ordering.from(UnsignedBytes.lexicographicalComparator())
+                            .onResultOf(entry -> entry.getKey().getColumnName()),
+                    from -> from.getLhSide());
+        }));
+
+        return filterDeletedValues(merged, tableRef);
+    }
+
     private Iterator<Map.Entry<Cell, byte[]>> filterDeletedValues(
             Iterator<Map.Entry<Cell, byte[]>> unfiltered,
             TableReference tableReference) {
-        Meter emptyValueMeter = getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference);
+        Counter emptyValueCounter = getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference);
         return Iterators.filter(unfiltered, entry -> {
             if (entry.getValue().length == 0) {
-                emptyValueMeter.mark();
+                emptyValueCounter.inc();
                 return false;
             }
             return true;
         });
+    }
+
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
+            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
+        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
+            ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+            batch.forEach(rawBuilder::put);
+            Map<Cell, Value> raw = rawBuilder.build();
+
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            if (raw.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+
+            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
+                    getWithPostFilteringSync(
+                            tableRef,
+                            raw,
+                            x -> x),
+                    preserveInputRowOrder(batch));
+            return postFiltered.entrySet().iterator();
+        }));
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
@@ -492,13 +534,30 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.concat(postFilteredBatches);
     }
 
+    private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
+        // N.B. This batch could be spread across multiple rows, and those rows might extend into other
+        // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
+        // is to preserve the original row order.
+        return Comparator
+                .comparing(
+                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                        Ordering.explicit(inputEntries.stream()
+                                .map(Map.Entry::getKey)
+                                .map(Cell::getRowName)
+                                .map(ByteBuffer::wrap)
+                                .distinct()
+                                .collect(ImmutableList.toImmutableList())))
+                .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR);
+    }
+
     /**
      * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name.
      * {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees
      * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
      * entry per non-empty row.
      */
-    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(RowColumnRangeIterator rawResults) {
+    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(
+            Iterator<Map.Entry<Cell, Value>> rawResults) {
         PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
         return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
             byte[] prevRowName;
@@ -576,8 +635,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
-                .mark(unfiltered.size() - filtered.size());
+        getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
+                .inc(unfiltered.size() - filtered.size());
         return filtered;
     }
 
@@ -803,19 +862,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!Iterables.isEmpty(rangeRequests)) {
             hasReads = true;
         }
-        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
-                StreamSupport.stream(rangeRequests.spliterator(), false)
-                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
-
-        if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
-            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
-        }
-
-        return MoreStreams.blockingStreamWithParallelism(
-                requestAndVisitables,
-                pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
-                getRangesExecutor,
-                concurrencyLevel);
+        return getRanges(ImmutableGetRangesQuery.<T>builder()
+                .tableRef(tableRef)
+                .rangeRequests(rangeRequests)
+                .concurrencyLevel(concurrencyLevel)
+                .visitableProcessor(visitableProcessor)
+                .build());
     }
 
     @Override
@@ -827,6 +879,31 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             hasReads = true;
         }
         return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
+    }
+
+    @Override
+    public <T> Stream<T> getRanges(GetRangesQuery<T> query) {
+        if (!Iterables.isEmpty(query.rangeRequests())) {
+            hasReads = true;
+        }
+        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
+                StreamSupport.stream(query.rangeRequests().spliterator(), false)
+                        .map(rangeRequest -> Pair.of(
+                                rangeRequest,
+                                getLazyRange(query.tableRef(), query.rangeRequestOptimizer().apply(rangeRequest))));
+
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> processor = query.visitableProcessor();
+        int concurrencyLevel = query.concurrencyLevel().orElse(defaultGetRangesConcurrency);
+
+        if (concurrencyLevel == 1 || isSingleton(query.rangeRequests())) {
+            return requestAndVisitables.map(pair -> processor.apply(pair.getLeft(), pair.getRight()));
+        }
+
+        return MoreStreams.blockingStreamWithParallelism(
+                requestAndVisitables,
+                pair -> processor.apply(pair.getLeft(), pair.getRight()),
+                getRangesExecutor,
+                concurrencyLevel);
     }
 
     private static boolean isSingleton(Iterable<?> elements) {
@@ -986,8 +1063,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.transform(unfilteredRows, unfilteredRow -> {
             SortedMap<byte[], byte[]> filteredColumns =
                     Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
-            getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
-                    .mark(unfilteredRow.getColumns().size() - filteredColumns.size());
+            getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
+                    .inc(unfilteredRow.getColumns().size() - filteredColumns.size());
             return RowResult.create(unfilteredRow.getRowName(), filteredColumns);
         });
     }
@@ -1022,7 +1099,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 numEmptyValues++;
             }
         }
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef).mark(numEmptyValues);
+        getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef).inc(numEmptyValues);
         return mergedWritesWithoutEmptyValues;
     }
 
@@ -1181,7 +1258,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ, tableRef).update(bytes);
         }
 
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
+        getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).inc(rawResults.size());
 
         // LinkedList is chosen for fast append operation since we just add to this collection.
         Collection<Map.Entry<Cell, T>> resultsAccumulator = new LinkedList<>();
@@ -1218,8 +1295,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         if (remainingResultsToPostFilter.isEmpty()) {
-            getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
-                    .mark(resultsAccumulator.size());
+            getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
+                    .inc(resultsAccumulator.size());
             return Futures.immediateFuture(resultsAccumulator);
         }
 
@@ -1307,7 +1384,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Value value = e.getValue();
 
             if (isSweepSentinel(value)) {
-                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).mark();
+                getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).inc();
 
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
@@ -1334,7 +1411,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
                         keysToDelete.put(key, value.getTimestamp());
-                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef).mark();
+                        getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef).inc();
                     }
                 } else if (theirCommitTimestamp > getStartTimestamp()) {
                     // The value's commit timestamp is after our start timestamp.
@@ -1342,8 +1419,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
-                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
-                            .mark();
+                    getCounter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
+                            .inc();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
@@ -2374,8 +2451,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 metricsManager.getTableNameTagFor(tableRef));
     }
 
-    private Meter getMeter(String name, TableReference tableRef) {
-        return metricsManager.registerOrGetTaggedMeter(
+    private Counter getCounter(String name, TableReference tableRef) {
+        return metricsManager.registerOrGetTaggedCounter(
                 SnapshotTransaction.class,
                 name,
                 metricsManager.getTableNameTagFor(tableRef));

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.logsafe.Preconditions;
@@ -116,6 +117,11 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
             } catch (ExecutionException | InterruptedException e) {
                 throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
+        }
+
+        @Override
+        public ListenableFuture<PaxosResponses<PaxosLong>> getLatestSequencePreparedOrAcceptedAsync() {
+            return latestSequence.apply(client);
         }
     }
 

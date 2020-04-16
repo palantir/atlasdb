@@ -95,6 +95,7 @@ public abstract class ClientOptions {
                 .from(ClientConfigurations.of(partialConfig))
                 .failedUrlCooldown(failedUrlCooldown())
                 .enableGcmCipherSuites(true)
+                .enableHttp2(true)
                 .fallbackToCommonNameVerification(true)
                 .clientQoS(clientQoS())
                 .build();
@@ -114,6 +115,7 @@ public abstract class ClientOptions {
                 .failedUrlCooldown(failedUrlCooldown())
                 .maxNumRetries(maxNumRetries())
                 .enableGcmCipherSuites(true)
+                .enableHttp2(true)
                 .fallbackToCommonNameVerification(true)
                 .clientQoS(clientQoS())
                 .serverQoS(serverQoS());

@@ -50,7 +50,6 @@ public class PaxosConsensusFastTest {
     private static final int NUM_POTENTIAL_LEADERS = 6;
     private static final int QUORUM_SIZE = 4;
 
-
     @Before
     public void setup() {
         state = PaxosConsensusTestUtils.setup(NUM_POTENTIAL_LEADERS, QUORUM_SIZE);
@@ -202,6 +201,19 @@ public class PaxosConsensusFastTest {
     }
 
     @Test
+    public void gainLeadershipAfterHostileTakeover() {
+        LeadershipToken token1 = state.gainLeadership(0);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
+                .isEqualTo(StillLeadingStatus.LEADING);
+
+        state.leader(1).hostileTakeover();
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
+                .isEqualTo(StillLeadingStatus.NOT_LEADING);
+        assertThat(state.leader(1).getCurrentTokenIfLeading())
+                .isNotEmpty();
+    }
+
+    @Test
     public void otherNodeCanBecomeLeaderAfterSteppingDown() {
         LeadershipToken token = state.gainLeadership(0);
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
@@ -252,6 +264,20 @@ public class PaxosConsensusFastTest {
         restoreAllNodes();
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
                 .isEqualTo(StillLeadingStatus.LEADING);
+    }
+
+    @Test
+    public void failToTakeOverIfNoQuorum() {
+        LeadershipToken token = state.gainLeadership(1);
+        assertThat(Futures.getUnchecked(state.leader(1).isStillLeading(token)))
+                .isEqualTo(StillLeadingStatus.LEADING);
+
+        knockOutQuorumNotIncludingZero();
+        assertThat(state.leader(0).hostileTakeover()).isFalse();
+
+        restoreAllNodes();
+        assertThat(state.leader(0).getCurrentTokenIfLeading())
+                .isEmpty();
     }
 
     @Test

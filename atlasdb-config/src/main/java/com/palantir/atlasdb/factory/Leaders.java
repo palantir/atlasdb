@@ -65,9 +65,12 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
+import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosExecutionEnvironment;
+import com.palantir.paxos.PaxosExecutionEnvironments;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
@@ -158,8 +161,7 @@ public final class Leaders {
                 .filter(learner -> !learner.equals(ourLearner))
                 .collect(ImmutableList.toImmutableList());
         PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
-                ourLearner,
-                remoteLearners,
+                LocalAndRemotes.of(ourLearner, remoteLearners),
                 config.quorumSize(),
                 createExecutorsForService(metricsManager, learners, "knowledge-update"),
                 true);
@@ -171,10 +173,13 @@ public final class Leaders {
                 trustContext,
                 PaxosAcceptor.class,
                 userAgent);
+
+        // todo(gmaretic): should we useCurrentThreadForLocalService?
+        PaxosExecutionEnvironment<PaxosAcceptor> environment = PaxosExecutionEnvironments.threadPerService(
+                acceptors, createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"));
         PaxosAcceptorNetworkClient acceptorNetworkClient = new SingleLeaderAcceptorNetworkClient(
-                acceptors,
+                environment,
                 config.quorumSize(),
-                createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"),
                 true);
 
         List<LeaderPingerContext<PingableLeader>> otherLeaders = generatePingables(

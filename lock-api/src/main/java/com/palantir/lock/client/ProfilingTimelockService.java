@@ -91,6 +91,11 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return runTaskTimed("getFreshTimestamp", delegate::getFreshTimestamp);
     }

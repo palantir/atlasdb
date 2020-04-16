@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
-import com.google.common.util.concurrent.SettableFuture;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.logsafe.SafeArg;
 
@@ -32,7 +31,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     private static final Logger log = LoggerFactory.getLogger(CoalescingBatchingEventHandler.class);
 
     private final CoalescingRequestFunction<T, R> function;
-    private final SetMultimap<T, SettableFuture<R>> pending;
+    private final SetMultimap<T, DisruptorAutobatcher.DisruptorFuture<R>> pending;
 
     CoalescingBatchingEventHandler(CoalescingRequestFunction<T, R> function, int bufferSize) {
         this.function = function;

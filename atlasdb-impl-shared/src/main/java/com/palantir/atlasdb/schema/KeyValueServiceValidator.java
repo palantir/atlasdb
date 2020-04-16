@@ -115,7 +115,8 @@ public class KeyValueServiceValidator {
     private void validateTable(final TableReference table) {
         final int limit = getBatchSize(table);
         // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-        validationFromTransactionManager.runTaskWithRetry(
+        // not using retries as each attempt could take up to 8 hours
+        validationFromTransactionManager.runTaskThrowOnConflict(
                 (TransactionTask<Map<Cell, byte[]>, RuntimeException>) t1 -> {
                     validateTable(table, limit, t1);
                     return null;
@@ -126,7 +127,8 @@ public class KeyValueServiceValidator {
 
     private void validateTable(final TableReference table, final int limit, final Transaction t1) {
         // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-        validationToTransactionManager.runTaskWithRetry(
+        // not using retries as each attempt could take up to 8 hours
+        validationToTransactionManager.runTaskThrowOnConflict(
                 (TransactionTask<Map<Cell, byte[]>, RuntimeException>) t2 -> {
                     validateTable(table, limit, t1, t2);
                     return null;

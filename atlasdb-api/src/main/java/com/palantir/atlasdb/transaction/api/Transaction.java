@@ -109,8 +109,11 @@ public interface Transaction {
             Iterable<RangeRequest> rangeRequests);
 
     /**
-     * Creates unvisited visitibles that scan the provided ranges and then applies the provided visitableProcessor
+     * Creates unvisited visitables that scan the provided ranges and then applies the provided visitableProcessor
      * function with concurrency specified by the concurrencyLevel parameter.
+     *
+     * It is guaranteed that the range requests seen by the provided visitable processor are equal to the provided
+     * iterable of range requests, though no guarantees are made on the order they are encountered in.
      */
     @Idempotent
     <T> Stream<T> getRanges(
@@ -128,6 +131,13 @@ public interface Transaction {
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+
+    /**
+     * Same as {@link #getRanges(TableReference, Iterable, int, BiFunction)}. However, additionally allows for the
+     * specification of additional parameters specific to {@link GetRangesQuery}.
+     */
+    @Idempotent
+    <T> Stream<T> getRanges(GetRangesQuery<T> getRangesQuery);
 
     /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting

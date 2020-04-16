@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Disruptor Autobatchers now trace their calls. Time spent waiting for the
+    batch to start and for the batch to be processed are also tracked in child spans.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4674

@@ -51,33 +51,13 @@ public final class PaxosQuorumChecker {
      * This method short-circuits if a quorum can no longer be obtained (if too many servers have sent nacks), and
      * cancels pending requests once a quorum has been obtained.
      *
-     * @param remotes a list endpoints to make the remote call on
+     * @param executionEnvironment environment in which to run the request
      * @param request the request to make on each of the remote endpoints
      * @param quorumSize number of acknowledge requests required to reach quorum
-     * @param executors runs requests for a given remote on its own executor
      * @param remoteRequestTimeout timeout for the call
      * @param cancelRemainingCalls whether or not to cancel in progress calls after we've received enough responses
      * @return a list responses
      */
-    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
-            collectQuorumResponses(
-            ImmutableList<SERVICE> remotes,
-            Function<SERVICE, RESPONSE> request,
-            int quorumSize,
-            Map<? extends SERVICE, ExecutorService> executors,
-            Duration remoteRequestTimeout,
-            boolean cancelRemainingCalls) {
-        Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
-                "Each remote should have an executor.");
-        return collectResponses(
-                PaxosExecutionEnvironments.threadPerService(remotes, executors),
-                request,
-                quorumSize,
-                remoteRequestTimeout,
-                quorumShortcutPredicate(quorumSize),
-                cancelRemainingCalls);
-    }
-
     public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
             collectQuorumResponses(
             PaxosExecutionEnvironment<SERVICE> executionEnvironment,

@@ -33,13 +33,13 @@ import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestingService;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
@@ -62,6 +62,10 @@ import com.palantir.timestamp.ManagedTimestampService;
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 1L;
+
+    private static final int MAX_SHARED_EXECUTOR_THREADS = 256;
+    private static final int CORE_SHARED_EXECUTOR_THREADS = 10;
+    private static final String PAXOS_SHARED_EXECUTOR = "paxos-shared-executor";
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
@@ -140,13 +144,12 @@ public class TimeLockAgent {
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
         return new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(
-                        new InstrumentedThreadFactory(new ThreadFactoryBuilder()
-                                .setNameFormat("paxos-timestamp-creator-%d")
-                                .setDaemon(true)
-                                .build(), metricsManager.getRegistry())),
+                PTExecutors.newCachedThreadPool(new InstrumentedThreadFactory(new ThreadFactoryBuilder()
+                        .setNameFormat("paxos-timestamp-creator-%d")
+                        .setDaemon(true)
+                        .build(), metricsManager.getRegistry())),
                 metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
+                MetricRegistry.name(PaxosLeaderElectionService.class, PAXOS_SHARED_EXECUTOR, "executor"));
     }
 
     private TimestampCreator getTimestampCreator() {
@@ -174,17 +177,16 @@ public class TimeLockAgent {
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
-        LockWatchTestingService.create(
-                Suppliers.compose(TimeLockRuntimeConfiguration::lockWatchTestConfig, runtime::get),
-                resource::getLockWatchingResource);
+
         registrar.accept(resource);
 
-        Function<String, AsyncTimelockService> serviceCreator =
-                namespace -> namespaces.get(namespace).getTimelockService();
+        Function<String, AsyncTimelockService> creator = namespace -> namespaces.get(namespace).getTimelockService();
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(ConjureTimelockResource.undertow(redirectRetryTargeter(), serviceCreator));
+            undertowRegistrar.get().accept(ConjureTimelockResource.undertow(redirectRetryTargeter(), creator));
+            undertowRegistrar.get().accept(ConjureLockWatchingResource.undertow(redirectRetryTargeter(), creator));
         } else {
-            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), serviceCreator));
+            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), creator));
+            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), creator));
         }
     }
 

@@ -16,37 +16,25 @@
 
 package com.palantir.paxos;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
-import com.google.common.collect.ImmutableList;
-
 public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkClient {
 
-    private final ImmutableList<PaxosAcceptor> acceptors;
+    private final PaxosExecutionEnvironment<PaxosAcceptor> environment;
     private final int quorumSize;
-    private final Map<PaxosAcceptor, ExecutorService> executors;
     private final boolean cancelRemainingCalls;
 
-    public SingleLeaderAcceptorNetworkClient(
-            List<PaxosAcceptor> acceptors,
-            int quorumSize,
-            Map<PaxosAcceptor, ExecutorService> executors,
-            boolean cancelRemainingCalls) {
-        this.acceptors = ImmutableList.copyOf(acceptors);
+    public SingleLeaderAcceptorNetworkClient(PaxosExecutionEnvironment<PaxosAcceptor> environment,
+            int quorumSize, boolean cancelRemainingCalls) {
+        this.environment = environment;
         this.quorumSize = quorumSize;
-        this.executors = executors;
         this.cancelRemainingCalls = cancelRemainingCalls;
     }
 
     @Override
     public PaxosResponses<PaxosPromise> prepare(long seq, PaxosProposalId proposalId) {
         return PaxosQuorumChecker.collectQuorumResponses(
-                acceptors,
+                environment,
                 acceptor -> acceptor.prepare(seq, proposalId),
                 quorumSize,
-                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
                 cancelRemainingCalls).withoutRemotes();
     }
@@ -54,10 +42,9 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
     @Override
     public PaxosResponses<BooleanPaxosResponse> accept(long seq, PaxosProposal proposal) {
         return PaxosQuorumChecker.collectQuorumResponses(
-                acceptors,
+                environment,
                 acceptor -> acceptor.accept(seq, proposal),
                 quorumSize,
-                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
                 cancelRemainingCalls).withoutRemotes();
     }
@@ -65,10 +52,9 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
     @Override
     public PaxosResponses<PaxosLong> getLatestSequencePreparedOrAccepted() {
         return PaxosQuorumChecker.<PaxosAcceptor, PaxosLong>collectQuorumResponses(
-                acceptors,
+                environment,
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 quorumSize,
-                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
                 cancelRemainingCalls).withoutRemotes();
     }

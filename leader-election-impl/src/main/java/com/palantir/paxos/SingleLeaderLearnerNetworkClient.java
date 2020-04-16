@@ -16,7 +16,6 @@
 
 package com.palantir.paxos;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -34,35 +33,31 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
 
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderLearnerNetworkClient.class);
 
-    private final PaxosLearner localLearner;
-    private final ImmutableList<PaxosLearner> remoteLearners;
-    private final ImmutableList<PaxosLearner> allLearners;
+    private final LocalAndRemotes<PaxosLearner> localAndRemotes;
     private final int quorumSize;
     private final Map<PaxosLearner, ExecutorService> executors;
     private final boolean cancelRemainingCalls;
+    private final PaxosExecutionEnvironment<PaxosLearner> executionEnvironment;
 
     public SingleLeaderLearnerNetworkClient(
-            PaxosLearner localLearner,
-            List<PaxosLearner> remoteLearners,
+            LocalAndRemotes<PaxosLearner> localAndRemotes,
             int quorumSize,
             Map<PaxosLearner, ExecutorService> executors,
             boolean cancelRemainingCalls) {
-        this.localLearner = localLearner;
-        this.remoteLearners = ImmutableList.copyOf(remoteLearners);
+        this.localAndRemotes = localAndRemotes;
         this.quorumSize = quorumSize;
         this.executors = executors;
         this.cancelRemainingCalls = cancelRemainingCalls;
-        this.allLearners = ImmutableList.<PaxosLearner>builder()
-                .add(localLearner)
-                .addAll(remoteLearners)
-                .build();
+        this.executionEnvironment = PaxosExecutionEnvironments.useCurrentThreadForLocalService(
+                localAndRemotes,
+                executors);
     }
 
 
     @Override
     public void learn(long seq, PaxosValue value) {
         // broadcast learned value
-        for (final PaxosLearner learner : remoteLearners) {
+        for (final PaxosLearner learner : localAndRemotes.remotes()) {
             executors.get(learner).execute(() -> {
                 try {
                     learner.learn(seq, value);
@@ -78,7 +73,7 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
         }
 
         // force local learner to update
-        localLearner.learn(seq, value);
+        localAndRemotes.local().learn(seq, value);
     }
 
     @Override
@@ -86,10 +81,9 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
             long seq,
             Function<Optional<PaxosValue>, T> mapper) {
         return PaxosQuorumChecker.collectQuorumResponses(
-                allLearners,
+                executionEnvironment,
                 learner -> mapper.apply(learner.getLearnedValue(seq)),
                 quorumSize,
-                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
                 cancelRemainingCalls).withoutRemotes();
     }
@@ -97,10 +91,9 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
     @Override
     public PaxosResponses<PaxosUpdate> getLearnedValuesSince(long seq) {
         return PaxosQuorumChecker.collectQuorumResponses(
-                allLearners,
+                executionEnvironment,
                 learner -> new PaxosUpdate(ImmutableList.copyOf(learner.getLearnedValuesSince(seq))),
                 quorumSize,
-                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
                 cancelRemainingCalls).withoutRemotes();
     }

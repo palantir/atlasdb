@@ -32,7 +32,7 @@ import com.palantir.tracing.Observability;
 
 public final class Autobatchers {
 
-    private static final int DEFAULT_BUFFER_SIZE = 2048;
+    private static final int DEFAULT_BUFFER_SIZE = 4096;
 
     /**
      * When invoking an {@link DisruptorAutobatcher autobatcher}, an argument needs to be supplied. In the case of
@@ -116,7 +116,7 @@ public final class Autobatchers {
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> tracingHandler =
-                    new TracingEventHandler<>(handler, purpose, observability);
+                    new TracingEventHandler<>(handler, DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());

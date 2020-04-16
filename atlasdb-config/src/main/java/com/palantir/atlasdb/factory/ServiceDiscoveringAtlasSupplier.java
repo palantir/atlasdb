@@ -25,9 +25,7 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.LongSupplier;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,17 +39,17 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {
     private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
-    private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private static String timestampServiceCreationInfo = null;
 
-    private final KeyValueServiceConfig config;
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<ManagedTimestampService> timestampService;
@@ -66,7 +64,6 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
-        this.config = config;
         this.leaderConfig = leaderConfig;
 
         AtlasDbFactory atlasFactory = createAtlasFactoryOfCorrectType(config);
@@ -115,14 +112,16 @@ public class ServiceDiscoveringAtlasSupplier {
         }
     }
 
-    private AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig kvsConfig) {
-        return StreamSupport.stream(loader.spliterator(), false)
-                .filter(producesCorrectType())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for KeyValueService type " + kvsConfig.type() + " could be found."
-                                + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
-                ));
+    private AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig config) {
+        for (AtlasDbFactory factory : ServiceLoader.load(AtlasDbFactory.class)) {
+            if (config.type().equalsIgnoreCase(factory.getType())) {
+                return factory;
+            }
+        }
+        throw new SafeIllegalStateException("No atlas provider for the configured type could be found. "
+                + "Ensure that the implementation of the AtlasDbFactory is annotated "
+                + "@AutoService(AtlasDbFactory.class) and that it is on your classpath.",
+                SafeArg.of("type", config.type()));
     }
 
     @VisibleForTesting
@@ -171,9 +170,5 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private static void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
         outputStream.write(stringToWrite.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private Predicate<AtlasDbFactory> producesCorrectType() {
-        return factory -> config.type().equalsIgnoreCase(factory.getType());
     }
 }

@@ -20,9 +20,9 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public interface LockWatchingService {

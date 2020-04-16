@@ -72,6 +72,11 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
     }
 
     @Override
+    public boolean hostileTakeover() {
+        return delegate.hostileTakeover();
+    }
+
+    @Override
     public Optional<HostAndPort> getRecentlyPingedLeaderHost() {
         return delegate.getRecentlyPingedLeaderHost();
     }

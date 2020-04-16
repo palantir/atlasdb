@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -111,7 +112,7 @@ public class PaxosTimestampBoundStoreTest {
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();
             LocalPaxosComponents components = new LocalPaxosComponents(
-                    TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, SharedTaggedMetricRegistries.getSingleton()),
+                    TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                     Paths.get(root, Integer.toString(i)),
                     UUID.randomUUID());
 
@@ -174,12 +175,14 @@ public class PaxosTimestampBoundStoreTest {
             learnerNetworkClientFactories.forEach(closer::register);
         } else {
             acceptorClient = new SingleLeaderAcceptorNetworkClient(
-                    acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), true);
+                    PaxosExecutionEnvironments.threadPerService(acceptors, Maps.toMap(acceptors, $ -> executor)),
+                    QUORUM_SIZE, true);
 
             learnerClientsByNode = learners.stream()
                     .map(learner -> new SingleLeaderLearnerNetworkClient(
-                            learner,
-                            learners.stream().filter(otherLearners -> otherLearners != learner).collect(toList()),
+                            LocalAndRemotes.of(learner, learners.stream()
+                                            .filter(otherLearners -> otherLearners != learner)
+                                            .collect(toList())),
                             QUORUM_SIZE,
                             Maps.toMap(learners, $ -> executor),
                             true))

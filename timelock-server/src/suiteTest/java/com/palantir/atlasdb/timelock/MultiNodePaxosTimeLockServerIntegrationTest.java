@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
@@ -33,8 +34,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.http.v2.ClientOptions;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -43,7 +46,7 @@ import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
+import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.LockDescriptor;
@@ -61,7 +64,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> MultiLeaderPaxosSuite.MULTI_LEADER_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_TIMESTAMP_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -82,7 +85,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Before
     public void bringAllNodesOnline() {
-        client = cluster.clientForRandomNamespace();
+        client = cluster.clientForRandomNamespace().throughWireMockProxy();
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
     }
 
@@ -126,7 +129,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void canUseNamespaceStartingWithTlOnLegacyEndpoints() {
-        cluster.client("tl" + "suffix").getFreshTimestamp();
+        cluster.client("tl" + "suffix").throughWireMockProxy().getFreshTimestamp();
     }
 
     @Test
@@ -146,6 +149,29 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         nonLeaders.forEach(TestableTimelockServer::start);
         client.getFreshTimestamp();
+    }
+
+    @Test
+    public void canHostilelyTakeOverNamespace() {
+        TestableTimelockServer currentLeader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer nonLeader = Iterables.get(
+                cluster.nonLeaders(client.namespace()).get(client.namespace()), 0);
+
+        assertThatThrownBy(nonLeader.client(client.namespace())::getFreshTimestamp)
+                .as("non leader is not the leader before the takeover - sanity check")
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+
+        assertThat(nonLeader.takeOverLeadershipForNamespace(client.namespace()))
+                .as("successfully took over namespace")
+                .isTrue();
+
+        assertThatThrownBy(currentLeader.client(client.namespace())::getFreshTimestamp)
+                .as("previous leader is no longer the leader after the takeover")
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+
+        assertThat(cluster.currentLeaderFor(client.namespace()))
+                .as("new leader is the previous non leader (hostile takeover)")
+                .isEqualTo(nonLeader);
     }
 
     @Test
@@ -203,7 +229,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void canCreateNewClientsDynamically() {
         for (int i = 0; i < 5; i++) {
-            NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
+            NamespacedClients randomNamespace = cluster.clientForRandomNamespace().throughWireMockProxy();
 
             randomNamespace.getFreshTimestamp();
             LockToken token = randomNamespace.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
@@ -256,6 +282,51 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .collect(Collectors.toSet());
             client.namespacedConjureTimelockService().unlock(ConjureUnlockRequest.of(tokens));
         }
+    }
+
+    @Test
+    public void stressTest() {
+        TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
+        int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
+        boolean isNonLeaderTakenOut = false;
+        try {
+            for (int i = 0; i < 10_000; i++) { // Needed as it takes a while for the thread buildup to occur
+                client.getFreshTimestamp();
+                assertNumberOfThreadsReasonable(
+                        startingNumThreads,
+                        ManagementFactory.getThreadMXBean().getThreadCount(),
+                        isNonLeaderTakenOut);
+                if (i == 1_000) {
+                    makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
+                    isNonLeaderTakenOut = true;
+                }
+            }
+        } finally {
+            nonLeader.serverHolder().resetWireMock();
+        }
+    }
+
+    private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
+        // TODO (jkong): Lower the amount over the threshold. This needs to be slightly higher for now because of the
+        // current threading model in batch mode, where separate threads may be spun up on the autobatcher.
+        int threadLimit = startingThreads + 300;
+        if (nonLeaderDown) {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads after a non-leader failed")
+                    .isLessThanOrEqualTo(threadLimit);
+        } else {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads in the absence of failures")
+                    .isLessThanOrEqualTo(threadLimit);
+        }
+    }
+
+    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
+        nonLeader.serverHolder().wireMock().register(
+                WireMock.any(WireMock.anyUrl())
+                        .atPriority(Integer.MAX_VALUE - 1)
+                        .willReturn(WireMock.serviceUnavailable().withFixedDelay(
+                                Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {

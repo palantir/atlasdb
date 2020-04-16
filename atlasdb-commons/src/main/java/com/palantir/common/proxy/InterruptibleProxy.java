@@ -25,7 +25,6 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirInterruptedException;
 
@@ -38,8 +37,7 @@ import com.palantir.exception.PalantirInterruptedException;
  */
 public final class InterruptibleProxy implements DelegatingInvocationHandler {
     private static final Supplier<ExecutorService> defaultExecutor = Suppliers.memoize(() ->
-            PTExecutors.newCachedThreadPool(new NamedThreadFactory(
-                    "Interruptible Proxy", true /* isDaemon */ )));
+            PTExecutors.newCachedThreadPool("Interruptible Proxy"));
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, CancelDelegate cancel) {
         return newProxyInstance(interfaceClass, delegate, cancel, defaultExecutor.get());

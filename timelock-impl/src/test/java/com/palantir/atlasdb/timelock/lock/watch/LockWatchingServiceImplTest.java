@@ -34,6 +34,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchReferenceUtils;
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.ExclusiveLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocks;
@@ -46,7 +47,6 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 
@@ -83,7 +83,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(request.references(), ImmutableSet.of(ROW_DESCRIPTOR)));
+                createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -100,8 +100,8 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(entireTableRequest);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(prefixRequest.references(), ImmutableSet.of(ROW_DESCRIPTOR)),
-                createdEvent(entireTableRequest.references(), ImmutableSet.of(ROW_DESCRIPTOR, secondRow)));
+                createdEvent(prefixRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                createdEvent(entireTableRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR, secondRow)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -137,7 +137,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(prefixRequest);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(request.references(), ImmutableSet.of(ROW_DESCRIPTOR)));
+                createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -153,7 +153,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(prefixAndOtherTableRequest);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(request.references(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
                 createdEvent(ImmutableSet.of(newWatch), ImmutableSet.of(descriptorForOtherTable())));
         assertLoggedEvents(expectedEvents);
     }
@@ -171,7 +171,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(request.references(), ImmutableSet.of()),
+                createdEvent(request.getReferences(), ImmutableSet.of()),
                 lockEvent(ImmutableSet.of(CELL_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
@@ -186,7 +186,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(rowRequest.references(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                createdEvent(rowRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
                 lockEvent(ImmutableSet.of(ROW_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
@@ -203,7 +203,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(prefixRequest.references(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                createdEvent(prefixRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
                 lockEvent(ImmutableSet.of(CELL_DESCRIPTOR, ROW_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
@@ -229,7 +229,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(rangeRequest.references(), ImmutableSet.of()),
+                createdEvent(rangeRequest.getReferences(), ImmutableSet.of()),
                 lockEvent(ImmutableSet.of(cellInRange, rowInRange, rowInRange2)));
         assertLoggedEvents(expectedEvents);
     }
@@ -248,7 +248,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(tableRequest.references(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                createdEvent(tableRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
                 lockEvent(ImmutableSet.of(ROW_DESCRIPTOR, CELL_DESCRIPTOR, rowInRange)));
         assertLoggedEvents(expectedEvents);
     }
@@ -261,7 +261,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.registerUnlock(ImmutableSet.of(CELL_DESCRIPTOR));
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(tableRequest.references(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                createdEvent(tableRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
                 unlockEvent(ImmutableSet.of(CELL_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }

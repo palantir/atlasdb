@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -26,6 +27,7 @@ import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosExecutionEnvironments;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
+import com.palantir.paxos.WithDedicatedExecutor;
 
 @Value.Immutable
 abstract class BatchingNetworkClientFactories implements
@@ -35,13 +37,14 @@ abstract class BatchingNetworkClientFactories implements
     @Value.Derived
     AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory() {
         BatchPaxosAcceptor local = components().batchAcceptor();
-        List<BatchPaxosAcceptor> remotes =
-                UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor());
-        LocalAndRemotes<BatchPaxosAcceptor> allBatchAcceptors = LocalAndRemotes.of(local, remotes)
-                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote));
+        List<WithDedicatedExecutor<BatchPaxosAcceptor>> remotesAndExecutors = UseCaseAwareBatchPaxosAcceptorAdapter
+                .wrap(useCase(), remoteClients().batchAcceptorsWithExecutors())
+                .map(service -> service.transformService(
+                        remote -> metrics().instrument(BatchPaxosAcceptor.class, remote)))
+                .collect(Collectors.toList());
 
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                PaxosExecutionEnvironments.useCurrentThreadForLocalService(allBatchAcceptors, sharedExecutor()),
+                PaxosExecutionEnvironments.useCurrentThreadForLocalService(local, remotesAndExecutors),
                 quorumSize());
     }
 

@@ -63,6 +63,13 @@ public final class PaxosExecutionEnvironments {
     }
 
     public static <S> PaxosExecutionEnvironment<S> useCurrentThreadForLocalService(
+            S local,
+            List<WithDedicatedExecutor<S>> remotes) {
+        return UseCurrentThreadForLocalExecution.create(local, remotes);
+    }
+
+
+    public static <S> PaxosExecutionEnvironment<S> useCurrentThreadForLocalService(
             LocalAndRemotes<S> localAndRemotes,
             ExecutorService executor) {
         return useCurrentThreadForLocalService(localAndRemotes, localAndRemotes.withSharedExecutor(executor));
@@ -132,6 +139,13 @@ public final class PaxosExecutionEnvironments {
                     new AllRequestsOnSeparateThreads<>(localAndRemotes.remotes(), executors);
         }
 
+        private static <R> PaxosExecutionEnvironment<R> create(R local, List<WithDedicatedExecutor<R>> remotes) {
+            return new UseCurrentThreadForLocalExecution<>(
+                    LocalAndRemotes.of(local, remotes.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList())),
+                    KeyedStream.of(remotes).mapKeys(WithDedicatedExecutor::service).map(WithDedicatedExecutor::executor).collectToMap());
+        }
+
+
         @Override
         public int numberOfServices() {
             return localAndRemotes.all().size();
@@ -139,7 +153,7 @@ public final class PaxosExecutionEnvironments {
 
         @Override
         public <R extends PaxosResponse> ExecutionContext<T, R> execute(Function<T, R> function) {
-            ExecutionContext<T, R> remoteExecutionContext = this.remoteExecutionEnvironment.execute(function);
+            ExecutionContext<T, R> remoteExecutionContext = remoteExecutionEnvironment.execute(function);
             return remoteExecutionContext.withExistingResults(ImmutableList.of(executeLocally(function)));
         }
 
