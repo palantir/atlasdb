@@ -22,7 +22,12 @@ import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+<<<<<<< HEAD
 import com.palantir.paxos.LocalAndRemotes;
+=======
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.streams.KeyedStream;
+>>>>>>> 94127801739ee3b6030ca11737d4e525df5b624d
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosExecutionEnvironments;
@@ -30,7 +35,10 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
+<<<<<<< HEAD
 import com.palantir.paxos.WithDedicatedExecutor;
+=======
+>>>>>>> 94127801739ee3b6030ca11737d4e525df5b624d
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapters;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapters;
 
