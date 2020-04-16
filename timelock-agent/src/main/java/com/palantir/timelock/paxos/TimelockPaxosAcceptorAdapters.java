@@ -26,10 +26,10 @@ import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
-import com.palantir.paxos.WithDedicatedExecutor;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.WithDedicatedExecutor;
 
 public final class TimelockPaxosAcceptorAdapters {
     private TimelockPaxosAcceptorAdapters() {

@@ -57,22 +57,21 @@ public final class PaxosExecutionEnvironments {
     }
 
     public static <S> PaxosExecutionEnvironment<S> useCurrentThreadForLocalService(
-            LocalAndRemotes<S> localAndRemotes,
-            Map<? extends S, ExecutorService> executors) {
-        return new UseCurrentThreadForLocalExecution<>(localAndRemotes, executors);
-    }
-
-    public static <S> PaxosExecutionEnvironment<S> useCurrentThreadForLocalService(
             S local,
             List<WithDedicatedExecutor<S>> remotes) {
         return UseCurrentThreadForLocalExecution.create(local, remotes);
     }
 
-
     public static <S> PaxosExecutionEnvironment<S> useCurrentThreadForLocalService(
             LocalAndRemotes<S> localAndRemotes,
             ExecutorService executor) {
-        return useCurrentThreadForLocalService(localAndRemotes, localAndRemotes.withSharedExecutor(executor));
+        return new UseCurrentThreadForLocalExecution<>(localAndRemotes, localAndRemotes.withSharedExecutor(executor));
+    }
+
+    public static <S> PaxosExecutionEnvironment<S> useCurrentThreadForLocalService(
+            LocalAndRemotes<S> localAndRemotes,
+            Map<? extends S, ExecutorService> executors) {
+        return new UseCurrentThreadForLocalExecution<>(localAndRemotes, executors);
     }
 
     private static final class AllRequestsOnSeparateThreads<T> implements PaxosExecutionEnvironment<T> {
@@ -141,8 +140,14 @@ public final class PaxosExecutionEnvironments {
 
         private static <R> PaxosExecutionEnvironment<R> create(R local, List<WithDedicatedExecutor<R>> remotes) {
             return new UseCurrentThreadForLocalExecution<>(
-                    LocalAndRemotes.of(local, remotes.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList())),
-                    KeyedStream.of(remotes).mapKeys(WithDedicatedExecutor::service).map(WithDedicatedExecutor::executor).collectToMap());
+                    LocalAndRemotes.of(local,
+                            remotes.stream()
+                                    .map(WithDedicatedExecutor::service)
+                                    .collect(Collectors.toList())),
+                    KeyedStream.of(remotes)
+                            .mapKeys(WithDedicatedExecutor::service)
+                            .map(WithDedicatedExecutor::executor)
+                            .collectToMap());
         }
 
 

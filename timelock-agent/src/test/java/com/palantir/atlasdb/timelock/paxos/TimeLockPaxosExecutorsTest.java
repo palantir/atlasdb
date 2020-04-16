@@ -37,6 +37,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.paxos.LocalAndRemotes;
 
 public class TimeLockPaxosExecutorsTest {
     private static final String TEST = "test";

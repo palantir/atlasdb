@@ -75,9 +75,8 @@ public final class PaxosConsensusTestUtils {
         }
 
         PaxosAcceptorNetworkClient acceptorNetworkClient = new SingleLeaderAcceptorNetworkClient(
-                acceptors,
+                PaxosExecutionEnvironments.threadPerService(acceptors, Maps.toMap(acceptors, $ -> executor)),
                 quorumSize,
-                Maps.toMap(acceptors, $ -> executor),
                 true);
 
         for (int i = 0; i < numLeaders; i++) {
@@ -88,7 +87,10 @@ public final class PaxosConsensusTestUtils {
                     .filter(learner -> !learner.equals(ourLearner))
                     .collect(ImmutableList.toImmutableList());
             PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
-                    ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor), true);
+                    LocalAndRemotes.of(ourLearner, remoteLearners),
+                    quorumSize,
+                    Maps.toMap(remoteLearners, $ -> executor),
+                    true);
 
             LeaderElectionService leader = new LeaderElectionServiceBuilder()
                     .leaderUuid(leaderUuid)

@@ -48,11 +48,9 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
         this.quorumSize = quorumSize;
         this.executors = executors;
         this.cancelRemainingCalls = cancelRemainingCalls;
-        this.executionEnvironment = PaxosExecutionEnvironments.useCurrentThreadForLocalService(
-                localAndRemotes,
-                executors);
+        this.executionEnvironment = PaxosExecutionEnvironments
+                .useCurrentThreadForLocalService(localAndRemotes, executors);
     }
-
 
     @Override
     public void learn(long seq, PaxosValue value) {

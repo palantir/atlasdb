@@ -102,7 +102,7 @@ public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor
     public static Stream<WithDedicatedExecutor<BatchPaxosAcceptor>> wrap(
             PaxosUseCase useCase, List<WithDedicatedExecutor<BatchPaxosAcceptorRpcClient>> remotes) {
         return remotes.stream()
-                .map(withExecutor -> withExecutor.transformService(rpcClient -> wrapInAdapter(useCase, rpcClient));
+                .map(withExecutor -> withExecutor.transformService(rpcClient -> wrapInAdapter(useCase, rpcClient)));
     }
 
     private static BatchPaxosAcceptor wrapInAdapter(PaxosUseCase useCase, BatchPaxosAcceptorRpcClient rpcClient) {

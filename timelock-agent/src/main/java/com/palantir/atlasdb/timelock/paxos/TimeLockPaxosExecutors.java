@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.paxos.LocalAndRemotes;
 
 final class TimeLockPaxosExecutors {
     @VisibleForTesting

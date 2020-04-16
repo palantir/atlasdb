@@ -30,8 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.palantir.logsafe.Preconditions;
 
 @SuppressWarnings("MethodTypeParameterName")
 public final class PaxosQuorumChecker {
