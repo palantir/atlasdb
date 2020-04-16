@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump sls-cassandra max dependency to 6.x.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4716
