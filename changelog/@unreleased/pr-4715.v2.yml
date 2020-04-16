@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    PaxosStateLogImpl and PaxosLeaderElectionService use structured
+    locks (the synchronized keyword) for better observability.
+    This makes it easier to discover which thread is holding locks
+    while others wait from a jstack.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4715
