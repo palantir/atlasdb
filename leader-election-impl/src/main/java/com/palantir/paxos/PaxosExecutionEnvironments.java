@@ -150,7 +150,6 @@ public final class PaxosExecutionEnvironments {
                             .collectToMap());
         }
 
-
         @Override
         public int numberOfServices() {
             return localAndRemotes.all().size();
