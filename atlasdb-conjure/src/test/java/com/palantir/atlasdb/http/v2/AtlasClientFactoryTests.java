@@ -48,11 +48,12 @@ public final class AtlasClientFactoryTests {
             .trustStorePath("../atlasdb-ete-tests/var/security/trustStore.jks")
             .trustStorePassword("palantir"));
 
-    private DefaultRefreshable<ServerListConfig> serverListConfig;
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
     private final HostMetricsRegistry hostMetrics = new HostMetricsRegistry();
-    private final AtlasClientFactory factory;
+    private final JaxrsImplementation jaxrsImplementation;
 
+    private AtlasClientFactory factory;
+    private DefaultRefreshable<ServerListConfig> serverListConfig;
     private String wireMockUrl;
 
     public enum JaxrsImplementation {
@@ -66,12 +67,8 @@ public final class AtlasClientFactoryTests {
     }
 
     public AtlasClientFactoryTests(JaxrsImplementation jaxrsImplementation) {
-        this.factory = new AtlasClientFactory(
-                serverListConfig,
-                taggedMetricRegistry,
-                USER_AGENT,
-                hostMetrics,
-                JaxrsImplementation.DIALOGUE == jaxrsImplementation);
+
+        this.jaxrsImplementation = jaxrsImplementation;
     }
 
     @Before
@@ -81,6 +78,12 @@ public final class AtlasClientFactoryTests {
 
         wireMockUrl = "https://localhost:" + wiremock.httpsPort();
         serverListConfig = new DefaultRefreshable<>(toServerList(wireMockUrl));
+        factory = new AtlasClientFactory(
+                serverListConfig,
+                taggedMetricRegistry,
+                USER_AGENT,
+                hostMetrics,
+                JaxrsImplementation.DIALOGUE == jaxrsImplementation);
     }
 
     @Test
