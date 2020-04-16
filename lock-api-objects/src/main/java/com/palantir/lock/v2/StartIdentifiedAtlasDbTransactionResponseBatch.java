@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.ExceptionHandlingRunner;
 
 public final class StartIdentifiedAtlasDbTransactionResponseBatch implements AutoCloseable {
@@ -36,6 +37,9 @@ public final class StartIdentifiedAtlasDbTransactionResponseBatch implements Aut
 
     private StartIdentifiedAtlasDbTransactionResponseBatch(List<StartIdentifiedAtlasDbTransactionResponse> responses,
             Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner) {
+        // Perhaps instead of throwing like this, we want to similarly throw a transactionFailedRetriableException
+        Preconditions.checkState(!responses.isEmpty(),
+                "Batch created with no transaction responses - something has gone wrong");
         this.responses = responses;
         this.cleaner = cleaner;
         this.closed = false;

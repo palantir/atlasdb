@@ -181,6 +181,7 @@ import com.palantir.util.ExceptionHandlingRunner;
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
             List<PreCommitCondition> conditions) {
+        Preconditions.checkArgument(!conditions.isEmpty(), "Trying to start an empty batch");
         try (StartIdentifiedAtlasDbTransactionResponseBatch responses =
                 timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
             if (responses.size() != conditions.size()) {

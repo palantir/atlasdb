@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -126,9 +127,17 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        // do we want to implement? If so, it will probably just be an array version of the above
-        // (no fancy batching here, unless we really want to
-        throw new UnsupportedOperationException("Not implemented (yet?)");
+        // Going to implement this naively for now, and can always revisit it a bit later
+        try (StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
+                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(response ->
+                        unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
+            IntStream.range(0, count).forEach($ -> batchBuilder.safeAddToBatch(() ->
+                    // given that #getFreshTimestamps is a thing, I think we'll want to use that
+                    // if we want this to be properly efficient, but not doing so for now
+                    StartIdentifiedAtlasDbTransactionResponse.of(lockImmutableTimestamp(),
+                            TimestampAndPartition.of(getFreshTimestamp(), 0))));
+            return batchBuilder.build();
+        }
     }
 
     @Override

@@ -16,9 +16,12 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -31,13 +34,16 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -46,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionBatchFailedRetriableException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -54,7 +61,12 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
 
@@ -238,6 +250,32 @@ public class SnapshotTransactionManagerTest {
         transactionManager.runTaskReadOnly(tx -> "ignored");
         transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
         verify(timelockService, never()).startIdentifiedAtlasDbTransaction();
+    }
+
+    @Test
+    public void failsToStartTransactionBatchWhenBatchIsNotCorrectSize() {
+        TimelockService timelockService =
+                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
+
+        Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner = mock(Consumer.class);
+
+        StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
+                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(cleaner);
+
+        StartIdentifiedAtlasDbTransactionResponse response = StartIdentifiedAtlasDbTransactionResponse.of(
+                LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID())),
+                TimestampAndPartition.of(2L, 0));
+
+        batchBuilder.safeAddToBatch(() -> response);
+
+        doReturn(batchBuilder.build()).when(timelockService).startIdentifiedAtlasDbTransactionsBatch(anyInt());
+
+        assertThatExceptionOfType(TransactionBatchFailedRetriableException.class)
+                .isThrownBy(() -> transactionManager.setupRunTaskBatchWithConditionThrowOnConflict(
+                        ImmutableList.of(PreCommitConditions.NO_OP, PreCommitConditions.NO_OP)));
+
+        verify(cleaner).accept(response);
     }
 
     private SnapshotTransactionManager createSnapshotTransactionManager(
