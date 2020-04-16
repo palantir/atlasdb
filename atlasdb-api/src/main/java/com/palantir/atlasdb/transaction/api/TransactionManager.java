@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -39,13 +40,13 @@ public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
      * and is ready to service transactions.
-     *
-     * If an attempt is made to execute a transaction when this method returns {@code false}, a
-     * {@link NotInitializedException} will be thrown.
-     *
-     * This method is used for TransactionManagers that can be initializeppd asynchronously (i.e. those extending
-     * {@link com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default
-     * implementation, and return true (they're trivially fully initialized).
+     * <p>
+     * If an attempt is made to execute a transaction when this method returns {@code false}, a {@link
+     * NotInitializedException} will be thrown.
+     * <p>
+     * This method is used for TransactionManagers that can be initializeppd asynchronously (i.e. those extending {@link
+     * com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default implementation,
+     * and return true (they're trivially fully initialized).
      *
      * @return true if and only if the TransactionManager has been fully initialized
      */
@@ -55,93 +56,77 @@ public interface TransactionManager extends AutoCloseable {
     }
 
     /**
-     * Runs the given {@link TransactionTask}. If the task completes successfully
-     * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
-     * {@link Transaction#commit()} is called automatically.
+     * Runs the given {@link TransactionTask}. If the task completes successfully and does not call {@link
+     * Transaction#commit()} or {@link Transaction#abort()}, {@link Transaction#commit()} is called automatically.
      * <p>
      * The task is re-run if a conflict is detected (if a {@link TransactionConflictException} is thrown)
      * <p>
-     * If <code>runTaskWithRetry</code> completes successfully (no exception is thrown)
-     * and the task did not explicitly
-     * abort the transaction, then the transaction was successfully committed.
-     * If an exception is thrown by the <code>TransactionTask</code> and the task did not call
-     * {@link Transaction#commit()}, then the transaction will be rolled back.
-     *<p>
-     * NOTE: If an exception is thrown by {@link Transaction#commit()}, the transaction might have
-     * been committed.
+     * If <code>runTaskWithRetry</code> completes successfully (no exception is thrown) and the task did not explicitly
+     * abort the transaction, then the transaction was successfully committed. If an exception is thrown by the
+     * <code>TransactionTask</code> and the task did not call {@link Transaction#commit()}, then the transaction will be
+     * rolled back.
      * <p>
-     * It is important that the {@link TransactionTask} does not modify any of its input state
-     * in any non-idempotent way.  If this task gets retried, and if you modified your input, then the
-     * second try might not do the right thing.  For example: if you are passed a list of objects
-     * and at the end of the {@link TransactionTask}, you clear the list.  If your task gets retried
-     * it will have no work to do, because the list was cleared.
+     * NOTE: If an exception is thrown by {@link Transaction#commit()}, the transaction might have been committed.
+     * <p>
+     * It is important that the {@link TransactionTask} does not modify any of its input state in any non-idempotent
+     * way.  If this task gets retried, and if you modified your input, then the second try might not do the right
+     * thing.  For example: if you are passed a list of objects and at the end of the {@link TransactionTask}, you clear
+     * the list.  If your task gets retried it will have no work to do, because the list was cleared.
      *
      * @param task task to run
-     *
      * @return value returned by task
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
     <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E;
 
     /**
-     * {@link #runTaskWithRetry(TransactionTask)} should be preferred over
-     * {@link #runTaskThrowOnConflict(TransactionTask)}.
+     * {@link #runTaskWithRetry(TransactionTask)} should be preferred over {@link #runTaskThrowOnConflict(TransactionTask)}.
      * This method should be used unless {@link #runTaskWithRetry(TransactionTask)} cannot be used because the arguments
      * passed are not immutable and will be modified by the transaction so doing automatic retry is unsafe.
-     *
-     * Runs the given {@link TransactionTask}. If the task completes successfully
-     * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
-     * {@link Transaction#commit()} is called automatically.
      * <p>
-     * If <code>runTaskThrowOnConflict()</code> completes successfully (no exception is thrown)
-     * and the task did not explicitly
-     * abort the transaction, then the transaction was successfully committed.
-     * If an exception is thrown by the <code>TransactionTask</code> and the task did not call
-     * {@link Transaction#commit()}, then the transaction will be rolled back.
-     *<p>
-     * NOTE: If an exception is thrown by {@link Transaction#commit()}, the transaction might have
-     * been committed.
+     * Runs the given {@link TransactionTask}. If the task completes successfully and does not call {@link
+     * Transaction#commit()} or {@link Transaction#abort()}, {@link Transaction#commit()} is called automatically.
+     * <p>
+     * If <code>runTaskThrowOnConflict()</code> completes successfully (no exception is thrown) and the task did not
+     * explicitly abort the transaction, then the transaction was successfully committed. If an exception is thrown by
+     * the <code>TransactionTask</code> and the task did not call {@link Transaction#commit()}, then the transaction
+     * will be rolled back.
+     * <p>
+     * NOTE: If an exception is thrown by {@link Transaction#commit()}, the transaction might have been committed.
      *
      * @param task task to run
-     *
      * @return value returned by task
-     *
      * @throws TransactionConflictException if a write-write conflict occurs
-     * @throws IllegalStateException if the transaction manager has been closed.
+     * @throws IllegalStateException        if the transaction manager has been closed.
      */
     @Timed
     <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException;
 
     /**
-     * This will open and run a read-only transaction. Read-only transactions are similar to other
-     * transactions, but will throw if any write operations are called. Furthermore, they often
-     * make fewer network calls than their read/write counterparts so should be used where possible.
+     * This will open and run a read-only transaction. Read-only transactions are similar to other transactions, but
+     * will throw if any write operations are called. Furthermore, they often make fewer network calls than their
+     * read/write counterparts so should be used where possible.
      *
      * @param task task to run
-     *
      * @return value returned by task
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
     <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 
     /**
-     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
-     * acquire locks right before the transaction is created and release them after the task is complete.
+     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will acquire locks right
+     * before the transaction is created and release them after the task is complete.
      * <p>
      * The created transaction will not commit successfully if these locks are invalid by the time commit is run.
      *
      * @param lockSupplier supplier for the lock request
-     * @param task task to run
-     *
+     * @param task         task to run
      * @return value returned by task
-     *
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
-     * @throws IllegalStateException if the transaction manager has been closed.
+     * @throws IllegalStateException    if the transaction manager has been closed.
      */
     @Timed
     <T, E extends Exception> T runTaskWithLocksWithRetry(
@@ -149,11 +134,11 @@ public interface TransactionManager extends AutoCloseable {
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
     /**
-     * This is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}, but instead
-     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
+     * This is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}, but instead takes in
+     * a Guava supplier. This is deprecated in favour of the aforementioned method.
      *
-     * @deprecated use {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)} instead.
      * @see #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)
+     * @deprecated use {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)} instead.
      */
     @DoNotDelegate
     @Deprecated
@@ -166,16 +151,14 @@ public interface TransactionManager extends AutoCloseable {
     }
 
     /**
-     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
-     * but it will also ensure that the existing lock tokens passed are still valid before committing.
+     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)} but it will
+     * also ensure that the existing lock tokens passed are still valid before committing.
      *
      * @param lockTokens lock tokens to acquire while transaction executes
-     * @param task task to run
-     *
+     * @param task       task to run
      * @return value returned by task
-     *
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
-     * @throws IllegalStateException if the transaction manager has been closed.
+     * @throws IllegalStateException    if the transaction manager has been closed.
      */
     @Timed
     <T, E extends Exception> T runTaskWithLocksWithRetry(
@@ -187,8 +170,8 @@ public interface TransactionManager extends AutoCloseable {
      * This is the same as {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)}, but instead
      * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
      *
-     * @deprecated use {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)} instead.
      * @see #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)
+     * @deprecated use {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)} instead.
      */
     @DoNotDelegate
     @Deprecated
@@ -202,14 +185,12 @@ public interface TransactionManager extends AutoCloseable {
     }
 
     /**
-     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
-     * will not commit successfully if these locks are invalid by the time commit is run.
+     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction will
+     * not commit successfully if these locks are invalid by the time commit is run.
      *
      * @param lockTokens lock tokens to refresh while transaction executes
-     * @param task task to run
-     *
+     * @param task       task to run
      * @return value returned by task
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
@@ -218,17 +199,15 @@ public interface TransactionManager extends AutoCloseable {
             LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 
     /**
-     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)}, but it will
-     * acquire a {@link PreCommitCondition} right before the transaction is created and check it
-     * immediately before the transaction commits.
+     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)}, but it will acquire a {@link
+     * PreCommitCondition} right before the transaction is created and check it immediately before the transaction
+     * commits.
      * <p>
      * The created transaction will not commit successfully if the check fails.
      *
      * @param conditionSupplier supplier for the condition
-     * @param task task to run
-     *
+     * @param task              task to run
      * @return value returned by task
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
@@ -239,8 +218,8 @@ public interface TransactionManager extends AutoCloseable {
      * This is the same as {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)}, but instead
      * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
      *
-     * @deprecated use {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)} instead.
      * @see #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)
+     * @deprecated use {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)} instead.
      */
     @DoNotDelegate
     @Deprecated
@@ -252,16 +231,14 @@ public interface TransactionManager extends AutoCloseable {
     }
 
     /**
-     * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes
-     * a {@link PreCommitCondition} and checks it immediately before the transaction commits.
+     * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes a {@link
+     * PreCommitCondition} and checks it immediately before the transaction commits.
      * <p>
      * The created transaction will not commit successfully if the check fails.
      *
      * @param condition condition associated with the transaction
-     * @param task task to run
-     *
+     * @param task      task to run
      * @return value returned by task
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
@@ -270,17 +247,14 @@ public interface TransactionManager extends AutoCloseable {
             throws E, TransactionFailedRetriableException;
 
     /**
-     * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it takes
-     * a {@link PreCommitCondition} and checks it for validity before executing reads.
+     * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it takes a {@link
+     * PreCommitCondition} and checks it for validity before executing reads.
      * <p>
-     * The created transaction will fail if the check is no longer valid after fetching the read
-     * timestamp.
+     * The created transaction will fail if the check is no longer valid after fetching the read timestamp.
      *
      * @param condition condition associated with the transaction
-     * @param task task to run
-     *
+     * @param task      task to run
      * @return value returned by task
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
@@ -289,8 +263,8 @@ public interface TransactionManager extends AutoCloseable {
 
     /**
      * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
-     * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
-     * and an open transaction can only read values that were committed before its start timestamp.
+     * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp and
+     * an open transaction can only read values that were committed before its start timestamp.
      * <p>
      * This method will return a timestamp that is before any uncommited/aborted open start timestamps.
      * <p>
@@ -300,7 +274,6 @@ public interface TransactionManager extends AutoCloseable {
      * immutableTimestamp
      *
      * @return the latest timestamp for which there are no open transactions
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getImmutableTimestamp();
@@ -332,18 +305,17 @@ public interface TransactionManager extends AutoCloseable {
     TimestampService getTimestampService();
 
     /**
-     * The timestamp management service is used by libraries providing additional functionality
-     * around AtlasDB. End-user clients probably should not require it.
+     * The timestamp management service is used by libraries providing additional functionality around AtlasDB. End-user
+     * clients probably should not require it.
      *
      * @return the timestamp management service for this transaction manager
      */
     TimestampManagementService getTimestampManagementService();
 
     /**
-     * The transaction service is used by libraries providing additional functionality around AtlasDB.
-     * End-user clients probably should not require it.
-     * Abuse of the transaction service, especially involving putting new records in, may result in severe and
-     * irrecoverable data corruption.
+     * The transaction service is used by libraries providing additional functionality around AtlasDB. End-user clients
+     * probably should not require it. Abuse of the transaction service, especially involving putting new records in,
+     * may result in severe and irrecoverable data corruption.
      *
      * @return the transaction service for this transaction manager
      */
@@ -357,17 +329,17 @@ public interface TransactionManager extends AutoCloseable {
     Cleaner getCleaner();
 
     /**
-     * Returns the KVS used by this transaction manager. In general, this should not be used by clients, as
-     * direct reads and writes to the KVS will bypass the Atlas transaction protocol.
+     * Returns the KVS used by this transaction manager. In general, this should not be used by clients, as direct reads
+     * and writes to the KVS will bypass the Atlas transaction protocol.
      *
      * @return the key value service for this transaction manager
      */
     KeyValueService getKeyValueService();
 
     /**
-     * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store.
-     * This can be used to infer product health - in the usual, conservative case, products can call
-     * {@link KeyValueServiceStatus#isHealthy()}, which returns true only if all KVS nodes are up.
+     * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store. This can be
+     * used to infer product health - in the usual, conservative case, products can call {@link
+     * KeyValueServiceStatus#isHealthy()}, which returns true only if all KVS nodes are up.
      * <p>
      * Products that use AtlasDB only for reads and writes (no schema mutations or deletes, including having sweep and
      * scrub disabled) can also treat {@link KeyValueServiceStatus#HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES} as
@@ -378,69 +350,77 @@ public interface TransactionManager extends AutoCloseable {
     KeyValueServiceStatus getKeyValueServiceStatus();
 
     /**
-     * Provides a {@link TimelockServiceStatus}, indicating the current availability of the timelock service.
-     * This can be used to infer product health - in the usual, conservative case, products can call
-     * {@link TimelockServiceStatus#isHealthy()}, which returns true only a healthy connection to timelock
-     * service is established.
+     * Provides a {@link TimelockServiceStatus}, indicating the current availability of the timelock service. This can
+     * be used to infer product health - in the usual, conservative case, products can call {@link
+     * TimelockServiceStatus#isHealthy()}, which returns true only a healthy connection to timelock service is
+     * established.
      *
      * @return status of the timelock service
      */
     TimelockServiceStatus getTimelockServiceStatus();
 
     /**
-     * Returns the timestamp that is before any open start timestamps. This is different from the immutable
-     * timestamp, because it takes into account open read-only transactions. There is likely to be NO
-     * running transactions open at a timestamp before the unreadable timestamp, however this cannot be guaranteed.
+     * Returns the timestamp that is before any open start timestamps. This is different from the immutable timestamp,
+     * because it takes into account open read-only transactions. There is likely to be NO running transactions open at
+     * a timestamp before the unreadable timestamp, however this cannot be guaranteed.
      * <p>
      * When using the unreadable timestamp for cleanup it is important to leave a sentinel value behind at a negative
      * timestamp so any transaction that is open will fail out if reading a value that is cleaned up instead of just
-     * getting back no data. This is needed to ensure that all transactions either produce correct values or fail.
-     * It is not an option to return incorrect data.
+     * getting back no data. This is needed to ensure that all transactions either produce correct values or fail. It is
+     * not an option to return incorrect data.
      *
      * @return the timestamp that is before any open start timestamps
-     *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
     long getUnreadableTimestamp();
 
     /**
-     * Clear the timestamp cache. This is mostly useful for tests that perform operations that would invalidate
-     * the cache, although this can also be used to free up some memory.
+     * Clear the timestamp cache. This is mostly useful for tests that perform operations that would invalidate the
+     * cache, although this can also be used to free up some memory.
      */
     void clearTimestampCache();
 
     /**
      * Registers a Runnable that will be run after the transaction manager is closed.
-     *
+     * <p>
      * Concurrency: If this method races with close(), then closingCallback may not be called.
      */
     void registerClosingCallback(Runnable closingCallback);
 
     /**
-     * This method can be used for direct control of a transaction's life cycle. For example, if the work done in
-     * the transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method
-     * allows for a long lived transaction object. For the any data read or written to the transaction to be valid,
-     * the transaction must be committed, preferably by calling
-     * {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock, TransactionTask)} to also perform
-     * additional cleanup.
-     *
-     * @deprecated Similar functionality will exist, but this method is likely to change in the future
+     * This method can be used for direct control of a transaction's life cycle. For example, if the work done in the
+     * transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method allows
+     * for a long lived transaction object. For the any data read or written to the transaction to be valid, the
+     * transaction must be committed, preferably by calling {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock,
+     * TransactionTask)} to also perform additional cleanup.
      *
      * @return the transaction and associated immutable timestamp lock for the task
+     * @deprecated Similar functionality will exist, but this method is likely to change in the future
      */
     @Deprecated
     @Timed
     TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
+
+
+    /**
+     * Some java doc stuff
+     * @param condition
+     * @return
+     * @deprecated bleh bleh bleh
+     */
+    @Deprecated
+    @Timed
+    List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
+            List<PreCommitCondition> condition);
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
      * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}. If no further work needs to be done with
      * the transaction, a no-op task can be passed in.
      *
-     * @deprecated Similar functionality will exist, but this method is likely to change in the future
-     *
      * @return value returned by the task
+     * @deprecated Similar functionality will exist, but this method is likely to change in the future
      */
     @Deprecated
     @Timed
@@ -449,16 +429,16 @@ public interface TransactionManager extends AutoCloseable {
             throws E, TransactionFailedRetriableException;
 
     /**
-     * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.
-     * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
-     *
-     * All callbacks will execute in the reverse order of registration, regardless
-     * of any exceptions thrown. If any exceptions occur, they will be collected and rethrown as a new exception
-     * with any exceptions that occurred set as suppressed exceptions.
-     *
-     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
-     * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
-     * guaranteed to be executed.
+     * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close. This
+     * includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
+     * <p>
+     * All callbacks will execute in the reverse order of registration, regardless of any exceptions thrown. If any
+     * exceptions occur, they will be collected and rethrown as a new exception with any exceptions that occurred set as
+     * suppressed exceptions.
+     * <p>
+     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback may be
+     * called (but is not necessarily called). Callbacks registered before the invocation of close() are guaranteed to
+     * be executed.
      */
     @Override
     void close();

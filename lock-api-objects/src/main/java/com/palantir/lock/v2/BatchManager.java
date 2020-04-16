@@ -38,7 +38,7 @@ public final class BatchManager<R> implements AutoCloseable {
 
     private final Set<R> resources = new LinkedHashSet<>();
     private final Consumer<R> cleaner;
-    private final ExceptionProneRunner runner = new ExceptionProneRunner();
+    private final ExceptionHandlingRunner runner = new ExceptionHandlingRunner();
 
     public BatchManager(Consumer<R> cleaner) {
         this.cleaner = cleaner;
@@ -79,7 +79,7 @@ public final class BatchManager<R> implements AutoCloseable {
         } catch (RuntimeException e) {
             // Otherwise, we now close everything. If something throws mid-way, we capture
             // and then at the end close, which may throw, propagating up (as we expect).
-            try (ExceptionProneRunner closer = new ExceptionProneRunner()) {
+            try (ExceptionHandlingRunner closer = new ExceptionHandlingRunner()) {
                 // may just be able to use a single consumer for whole batch
                 resources.forEach(resource -> closer.runSafely(() -> cleaner.accept(resource)));
             }

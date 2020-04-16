@@ -22,8 +22,14 @@ import java.util.function.Supplier;
 
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
-public final class ExceptionProneRunner implements AutoCloseable {
+public final class ExceptionHandlingRunner implements AutoCloseable {
     private final List<Throwable> failures = new ArrayList<>();
+
+    public ExceptionHandlingRunner() {}
+
+    public ExceptionHandlingRunner(Throwable t) {
+        failures.add(t);
+    }
 
     public void runSafely(Runnable shutdownCallback) {
         try {
@@ -38,7 +44,8 @@ public final class ExceptionProneRunner implements AutoCloseable {
             return shutdownCallback.get();
         } catch (Throwable throwable) {
             failures.add(throwable);
-            return null; // perfectly acceptable to return null, as we will error before this gets returned up anyway
+            // perfectly acceptable to return null, as we will error before this gets returned up anyway
+            return null;
         }
     }
 

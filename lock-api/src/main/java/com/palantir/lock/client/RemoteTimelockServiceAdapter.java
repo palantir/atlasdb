@@ -22,13 +22,13 @@ import java.util.Set;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
-import com.palantir.lock.v2.BatchManager;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -107,12 +107,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
-        return transactionStarter.startIdentifiedAtlasDbTransactions(count);
-    }
-
-    @Override
-    public BatchManager<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionsBatch(int count) {
+    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
         return transactionStarter.startIdentifiedAtlasDbTransactionsBatch(count);
     }
 

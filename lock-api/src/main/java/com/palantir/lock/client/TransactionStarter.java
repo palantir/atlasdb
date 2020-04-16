@@ -36,11 +36,11 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.v2.BatchManager;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchEventCache;
 
@@ -76,38 +76,20 @@ final class TransactionStarter implements AutoCloseable {
         return getFuture(autobatcher.apply(null));
     }
 
-    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactions(int count) {
+    StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
         // Now:
-        // BatchManager will swallow all exceptions when getFuture is being called
-        // (or otherwise)
+        // Batch will swallow all exceptions when getFuture is being called (or otherwise)
         // However, when it closes, BatchManager will throw iff any exceptions have been swallowed
         // and will call the cleanup, which is the unlock method.
         // If this fails during cleanup, then that's cool too, because we swallow exceptions during that
         // and re-throw later.
-        try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> manager = new BatchManager<>(
+        try (StartIdentifiedAtlasDbTransactionResponseBatch batch = new StartIdentifiedAtlasDbTransactionResponseBatch(
                 response -> unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
-            return autobatcher.applyBatch(
-                    IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
-                    .stream()
-                    .map(response -> manager.safeExecute(() -> getFuture(response)))
-                    .collect(Collectors.toList());
-        }
-    }
-
-    BatchManager<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionsBatch(int count) {
-        // Now:
-        // BatchManager will swallow all exceptions when getFuture is being called
-        // (or otherwise)
-        // However, when it closes, BatchManager will throw iff any exceptions have been swallowed
-        // and will call the cleanup, which is the unlock method.
-        // If this fails during cleanup, then that's cool too, because we swallow exceptions during that
-        // and re-throw later.
-        try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> manager = new BatchManager<>(
-                response -> unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
-            autobatcher.applyBatch(
-                    IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
-                    .forEach(response -> manager.safeExecute(() -> getFuture(response)));
-            return manager.copy();
+            List<Void> inputs = IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList());
+            autobatcher.applyBatch(inputs)
+                    .forEach(response -> batch.safeExecute(() -> getFuture(response)));
+            // this won't actually be returned if there are exceptions caught, because the finally will throw
+            return batch.copy();
         }
     }
 

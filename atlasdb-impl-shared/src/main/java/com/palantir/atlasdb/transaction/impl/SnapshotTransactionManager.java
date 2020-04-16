@@ -62,9 +62,9 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.BatchManager;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -177,6 +177,27 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
+    @Override
+    public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
+            List<PreCommitCondition> conditions) {
+        // Also messy, but this way we are keeping the same tracking throughout
+        // And so, there is no window where transactions could die and leave open locks
+        // And if, at some point, any of these fail, it will raise an exception and unlock them all.
+        // Note that try-unlock is actually the same as the unlock method used in transaction starter.
+        try (StartIdentifiedAtlasDbTransactionResponseBatch responses =
+                timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
+            if (responses.size() != conditions.size()) {
+                throw new TransactionBatchFailedRetriableException(
+                        "The number of transactions started does not match the size of the batch");
+            }
+
+            return Streams.zip(
+                    responses.getResponses().stream(),
+                    conditions.stream(),
+                    (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
+        }
+    }
+
     private TransactionAndImmutableTsLock wrap(PreCommitCondition condition,
             StartIdentifiedAtlasDbTransactionResponse transactionResponse) {
         LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
@@ -193,51 +214,6 @@ import com.palantir.timestamp.TimestampService;
                 immutableTsLock,
                 condition);
         return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
-    }
-
-    //    @Override
-    public List<TransactionAndImmutableTsLock> setupRunTasksWithConditionThrowOnConflict(
-            List<PreCommitCondition> conditions) {
-
-        // These are guaranteed to be either all good, or closed, at least at time of return from timelockService.
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = timelockService.startIdentifiedAtlasDbTransactions(
-                conditions.size());
-
-        // We need a slightly different abstraction here - if one fails now, then we need to fail the whole lot
-        // even the ones we haven't looked at yet
-        // This may be an argument of passing Resources around
-        // For now, we do this dirty, dirty hack! Aim is to capture correctness first, then make it clean
-        try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> manager = new BatchManager<>(
-                response -> timelockService.tryUnlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
-            //            responses.forEach(response -> manager.safeExecute(() -> response)); // HACK to track all of them
-            manager.trackAll(responses);
-            return Streams.zip(
-                    responses.stream(),
-                    conditions.stream(),
-                    (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
-        }
-    }
-
-    //    @Override
-    public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
-            List<PreCommitCondition> conditions) {
-
-        // Also messy, but this way we are keeping the same tracking throughout
-        // And so, there is no window where transactions could die and leave open locks
-        // And if, at some point, any of these fail, it will raise an exception and unlock them all.
-        // Note that try-unlock is actually the same as the unlock method used in transaction starter.
-        try (BatchManager<StartIdentifiedAtlasDbTransactionResponse> responses =
-                timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
-            if (responses.getResources().size() != conditions.size()) {
-                throw new TransactionBatchFailedRetriableException(
-                        "The number of transactions started does not match the size of the batch");
-            }
-
-            return Streams.zip(
-                    responses.getResources().stream(),
-                    conditions.stream(),
-                    (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
-        }
     }
 
     @Override
