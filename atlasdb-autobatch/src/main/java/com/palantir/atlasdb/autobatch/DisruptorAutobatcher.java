@@ -45,8 +45,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 
 /**
- * While this class is public, it shouldn't be used as API outside of AtlasDB because we don't guarantee we won't break
- * it.
+ * While this class is public, it shouldn't be used as API outside of AtlasDB because we
+ * don't guarantee we won't break it.
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
