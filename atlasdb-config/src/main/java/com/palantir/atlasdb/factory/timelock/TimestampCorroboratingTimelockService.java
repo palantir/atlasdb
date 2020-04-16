@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.atomic.LongAccumulator;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -72,10 +72,14 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        return checkAndUpdateLowerBoundBatch(() -> delegate.startIdentifiedAtlasDbTransactionsBatch(count),
-                StartIdentifiedAtlasDbTransactionResponseBatch::getResponses,
-                r -> r.startTimestampAndPartition().timestamp(),
-                r -> r.startTimestampAndPartition().timestamp());
+        // clean this up, that's a silly amount of repeated work.
+        return checkAndUpdateLowerBound(() -> delegate.startIdentifiedAtlasDbTransactionsBatch(count),
+                r -> Collections.min(
+                        r.getResponses().stream().map(x -> x.immutableTimestamp().getImmutableTimestamp()).collect(
+                                Collectors.toList())),
+                r -> Collections.max(
+                        r.getResponses().stream().map(x -> x.immutableTimestamp().getImmutableTimestamp()).collect(
+                                Collectors.toList())));
     }
 
     private <T> T checkAndUpdateLowerBound(Supplier<T> timestampContainerSupplier,
@@ -87,21 +91,6 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         checkTimestamp(threadLocalLowerBound, lowerBoundExtractor.applyAsLong(timestampContainer));
         updateLowerBound(upperBoundExtractor.applyAsLong(timestampContainer));
         return timestampContainer;
-    }
-
-    // pretty weird, I haven't put much effort into this, just to plug the gap really
-    private <T, R> T checkAndUpdateLowerBoundBatch(Supplier<T> timestampContainerSupplier,
-            Function<T, List<R>> responseExtractor,
-            ToLongFunction<R> lowerBoundExtractor,
-            ToLongFunction<R> upperBoundExtractor) {
-        long threadLocalLowerBound = lowerBound.get();
-        T timestampContainers = timestampContainerSupplier.get();
-        List<R> responses = responseExtractor.apply(timestampContainers);
-        responses.forEach(timestampContainer -> {
-            checkTimestamp(threadLocalLowerBound, lowerBoundExtractor.applyAsLong(timestampContainer));
-            updateLowerBound(upperBoundExtractor.applyAsLong(timestampContainer));
-        });
-        return timestampContainers;
     }
 
     private static void checkTimestamp(long timestampLowerBound, long freshTimestamp) {
