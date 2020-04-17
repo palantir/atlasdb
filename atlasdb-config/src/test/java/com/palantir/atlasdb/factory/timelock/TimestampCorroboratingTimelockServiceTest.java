@@ -84,7 +84,7 @@ public class TimestampCorroboratingTimelockServiceTest {
     @Test
     public void startIdentifiedAtlasDbTransactionBatchShouldFail() {
         StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
-                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder($ -> {});
+                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder($ -> { });
 
         batchBuilder.safeAddToBatch(() -> makeResponse(1L));
         batchBuilder.safeAddToBatch(() -> makeResponse(2L));

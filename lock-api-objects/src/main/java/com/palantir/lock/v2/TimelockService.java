@@ -15,7 +15,6 @@
  */
 package com.palantir.lock.v2;
 
-import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.QueryParam;

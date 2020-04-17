@@ -16,7 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.List;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
