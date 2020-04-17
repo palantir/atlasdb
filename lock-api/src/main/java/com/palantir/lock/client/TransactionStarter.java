@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -30,12 +29,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
@@ -73,7 +71,7 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return getFuture(autobatcher.apply(null));
+        return AtlasFutures.getUnchecked(autobatcher.apply(null));
     }
 
     StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
@@ -81,19 +79,9 @@ final class TransactionStarter implements AutoCloseable {
                 new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(response ->
                         unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
             List<Void> inputs = IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList());
-            autobatcher.applyBatch(inputs).forEach(response -> batchBuilder.safeAddToBatch(() -> getFuture(response)));
+            autobatcher.applyBatch(inputs).forEach(
+                    response -> batchBuilder.safeAddToBatch(() -> AtlasFutures.getUnchecked(response)));
             return batchBuilder.build();
-        }
-    }
-
-    private StartIdentifiedAtlasDbTransactionResponse getFuture(
-            ListenableFuture<StartIdentifiedAtlasDbTransactionResponse> response) {
-        try {
-            return response.get();
-        } catch (ExecutionException e) {
-            throw Throwables.throwUncheckedException(e.getCause());
-        } catch (Throwable t) {
-            throw Throwables.throwUncheckedException(t);
         }
     }
 
