@@ -27,6 +27,9 @@ import org.junit.Test;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public final class ExceptionHandlingRunnerTests {
+    private static final Runnable RUNNABLE_WITH_EXCEPTION = () -> {
+        throw new RuntimeException();
+    };
 
     private ExceptionHandlingRunner runner;
 
@@ -37,13 +40,8 @@ public final class ExceptionHandlingRunnerTests {
 
     @Test
     public void runnableExceptionNotThrown() {
-        Runnable runnableWithException = () -> {
-            throw new RuntimeException();
-        };
-
-        assertThatCode(() -> runner.runSafely(runnableWithException)).doesNotThrowAnyException();
-        assertThatExceptionOfType(SafeRuntimeException.class)
-                .isThrownBy(() -> runner.close());
+        assertThatRunnableDoesNotThrow(RUNNABLE_WITH_EXCEPTION);
+        assertThatCloseThrows();
     }
 
     @Test
@@ -51,16 +49,44 @@ public final class ExceptionHandlingRunnerTests {
         Supplier<?> supplierWithException = () -> {
             throw new RuntimeException();
         };
-
-        assertThatCode(() -> runner.supplySafely(supplierWithException)).doesNotThrowAnyException();
-        assertThatExceptionOfType(SafeRuntimeException.class)
-                .isThrownBy(() -> runner.close());
+        assertThatSupplierDoesNotThrow(supplierWithException);
+        assertThatCloseThrows();
     }
 
     @Test
     public void closeDoesNotThrowWhenNoExceptionsCaught() {
         Supplier<Integer> cleanSupplier = () -> 4;
-        assertThatCode(() -> runner.supplySafely(cleanSupplier)).doesNotThrowAnyException();
-        assertThatCode(() -> runner.close()).doesNotThrowAnyException();
+        Runnable cleanRunnable = () -> {
+        };
+        assertThatSupplierDoesNotThrow(cleanSupplier);
+        assertThatRunnableDoesNotThrow(cleanRunnable);
+        assertThatCode(runner::close).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void closeThrowsWhenInstantiatedWithException() {
+        RuntimeException runtimeException = new RuntimeException();
+        runner = new ExceptionHandlingRunner(runtimeException);
+        assertThatCloseThrows();
+    }
+
+    @Test
+    public void closeMultipleTimesRethrows() {
+        assertThatRunnableDoesNotThrow(RUNNABLE_WITH_EXCEPTION);
+        assertThatCloseThrows();
+        assertThatCloseThrows();
+    }
+
+    private void assertThatRunnableDoesNotThrow(Runnable runnable) {
+        assertThatCode(() -> runner.runSafely(runnable)).doesNotThrowAnyException();
+    }
+
+    private void assertThatSupplierDoesNotThrow(Supplier<?> supplier) {
+        assertThatCode(() -> runner.supplySafely(supplier)).doesNotThrowAnyException();
+    }
+
+    private void assertThatCloseThrows() {
+        assertThatExceptionOfType(SafeRuntimeException.class)
+                .isThrownBy(runner::close);
     }
 }
