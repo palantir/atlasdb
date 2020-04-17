@@ -16,14 +16,7 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -35,7 +28,7 @@ public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     private final String client;
     private final TimelockPaxosAcceptorRpcClient timelockPaxosAcceptorRpcClient;
 
-    private TimelockPaxosAcceptorAdapter(
+    TimelockPaxosAcceptorAdapter(
             PaxosUseCase paxosUseCase,
             String client,
             TimelockPaxosAcceptorRpcClient timelockPaxosAcceptorRpcClient) {
@@ -57,31 +50,5 @@ public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     @Override
     public long getLatestSequencePreparedOrAccepted() {
         return timelockPaxosAcceptorRpcClient.getLatestSequencePreparedOrAccepted(paxosUseCase, client);
-    }
-
-    /**
-     * Given a list of {@link TimelockPaxosAcceptorRpcClient}s, returns a function allowing for injection of the client
-     * name.
-     */
-    public static Function<Client, List<PaxosAcceptor>> wrap(
-            PaxosUseCase paxosUseCase,
-            PaxosRemoteClients remoteClients) {
-        switch (paxosUseCase) {
-            case LEADER_FOR_ALL_CLIENTS:
-                return _client -> remoteClients.singleLeaderAcceptor().stream()
-                        .<PaxosAcceptor>map(Function.identity())
-                        .collect(Collectors.toList());
-            case LEADER_FOR_EACH_CLIENT:
-                throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
-            case TIMESTAMP:
-                return client -> remoteClients.nonBatchTimestampAcceptor().stream()
-                        .map(acceptor -> new TimelockPaxosAcceptorAdapter(
-                                paxosUseCase,
-                                client.value(),
-                                acceptor))
-                        .collect(Collectors.toList());
-            default:
-                throw new IllegalStateException("Unexpected value: " + paxosUseCase);
-        }
     }
 }

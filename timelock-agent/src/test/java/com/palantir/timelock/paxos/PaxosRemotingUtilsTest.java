@@ -28,7 +28,6 @@ import java.util.Optional;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -96,24 +95,20 @@ public class PaxosRemotingUtilsTest {
     @Test
     public void canGetRemoteServerPaths() {
         // foo should not be present, because it is the local server
-        assertThat(PaxosRemotingUtils.getRemoteServerPaths(SSL_TIMELOCK)).containsExactlyInAnyOrder(
-                "https://bar:2",
-                "https://baz:3");
+        assertThat(PaxosRemotingUtils.getRemoteServerPaths(SSL_TIMELOCK))
+                .isEqualTo(ImmutableList.of("https://bar:2", "https://baz:3"));
     }
 
     @Test
     public void canGetClusterAddresses() {
-        assertThat(PaxosRemotingUtils.getClusterAddresses(SSL_TIMELOCK)).containsExactlyInAnyOrder(
-                "foo:1",
-                "bar:2",
-                "baz:3");
+        assertThat(PaxosRemotingUtils.getClusterAddresses(SSL_TIMELOCK))
+                .isEqualTo(ImmutableList.of("foo:1", "bar:2", "baz:3"));
     }
 
     @Test
     public void canGetRemoteServerAddresses() {
-        assertThat(PaxosRemotingUtils.getRemoteServerAddresses(SSL_TIMELOCK)).containsExactlyInAnyOrder(
-                "bar:2",
-                "baz:3");
+        assertThat(PaxosRemotingUtils.getRemoteServerAddresses(SSL_TIMELOCK))
+                .isEqualTo(ImmutableList.of("bar:2", "baz:3"));
     }
 
     @Test
@@ -141,14 +136,14 @@ public class PaxosRemotingUtilsTest {
 
     @Test
     public void addProtocolsAddsHttpIfSslNotPresent() {
-        assertThat(PaxosRemotingUtils.addProtocols(NO_SSL_TIMELOCK, ImmutableSet.of("foo:1", "bar:2")))
-                .containsExactlyInAnyOrder("http://foo:1", "http://bar:2");
+        assertThat(PaxosRemotingUtils.addProtocols(NO_SSL_TIMELOCK, ImmutableList.of("foo:1", "bar:2")))
+                .isEqualTo(ImmutableList.of("http://foo:1", "http://bar:2"));
     }
 
     @Test
     public void addProtocolsAddsHttpsIfSslPresent() {
-        assertThat(PaxosRemotingUtils.addProtocols(SSL_TIMELOCK, ImmutableSet.of("foo:1", "bar:2")))
-                .containsExactlyInAnyOrder("https://foo:1", "https://bar:2");
+        assertThat(PaxosRemotingUtils.addProtocols(SSL_TIMELOCK, ImmutableList.of("foo:1", "bar:2")))
+                .isEqualTo(ImmutableList.of("https://foo:1", "https://bar:2"));
     }
 
     @Test

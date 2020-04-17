@@ -24,7 +24,7 @@ install:
 runtime:
   paxos:
     timestamp-paxos:
-      use-batch-paxos: ${clientPaxos.useBatchPaxos?c}
+      use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
 
 server:
   minThreads: 1

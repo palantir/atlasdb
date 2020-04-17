@@ -69,7 +69,11 @@ public interface TemplateVariables {
 
     @Value.Immutable
     interface TimestampPaxos {
-        boolean isUseBatchPaxos();
+        boolean isUseBatchPaxosTimestamp();
+        @Value.Default
+        default boolean isBatchSingleLeader() {
+            return false;
+        }
     }
 
     static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(

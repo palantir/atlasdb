@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -36,7 +35,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
@@ -57,7 +58,7 @@ public final class PaxosResourcesFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor) {
-        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics.getTaggedRegistry());
+        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
         ImmutablePaxosResources.Builder resourcesBuilder =
                 setupTimestampResources(install, metrics, paxosRuntime, sharedExecutor, remoteClients);
@@ -99,6 +100,12 @@ public final class PaxosResourcesFactory {
                     .collect(Collectors.toList());
         };
 
+        // we do *not* use CoalescingPaxosLatestRoundVerifier because any coalescing will happen in the
+        // AutobatchingPaxosAcceptorNetworkClient. This is for us to avoid context switching as much as possible on the
+        // hot path since batching twice doesn't necessarily give us anything.
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
+                new PaxosLatestRoundVerifierImpl(acceptorClient);
+
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
                 .sharedExecutor(sharedExecutor)
@@ -109,6 +116,7 @@ public final class PaxosResourcesFactory {
                 .networkClientFactoryBuilder(ImmutableBatchingNetworkClientFactories.builder())
                 .leaderPingerFactoryBuilder(ImmutableBatchingLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
+                .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
         return resourcesBuilder
@@ -136,6 +144,9 @@ public final class PaxosResourcesFactory {
                     .collect(Collectors.toList());
         };
 
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
+                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
+
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
                 .sharedExecutor(sharedExecutor)
@@ -143,9 +154,11 @@ public final class PaxosResourcesFactory {
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .metrics(timelockMetrics)
-                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
+                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder()
+                        .useBatchedEndpoints(() -> paxosRuntime.get().enableBatchingForSingleLeader()))
                 .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
+                .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
         return resourcesBuilder
@@ -262,12 +275,12 @@ public final class PaxosResourcesFactory {
         }
 
         @Value.Derived
-        default Set<String> clusterAddresses() {
+        default List<String> clusterAddresses() {
             return PaxosRemotingUtils.getClusterAddresses(install());
         }
 
         @Value.Derived
-        default Set<String> remoteUris() {
+        default List<String> remoteUris() {
             return PaxosRemotingUtils.getRemoteServerPaths(install());
         }
 
