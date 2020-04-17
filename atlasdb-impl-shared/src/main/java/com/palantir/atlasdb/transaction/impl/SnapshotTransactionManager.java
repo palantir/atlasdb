@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -67,7 +66,6 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.ExceptionHandlingRunner;
@@ -171,7 +169,7 @@ import com.palantir.util.ExceptionHandlingRunner;
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
                 = timelockService.startIdentifiedAtlasDbTransaction();
         try {
-            return createTransaction(condition, transactionResponse);
+            return wrapResponse(condition, transactionResponse);
         } catch (Throwable e) {
             timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -192,12 +190,12 @@ import com.palantir.util.ExceptionHandlingRunner;
             List<TransactionAndImmutableTsLock> transactions = Streams.zip(
                     responses.getResponses().stream(),
                     conditions.stream(),
-                    (response, condition) -> createTransaction(condition, response)).collect(Collectors.toList());
+                    (response, condition) -> wrapResponse(condition, response)).collect(Collectors.toList());
             return responses.successful(transactions);
         }
     }
 
-    private TransactionAndImmutableTsLock createTransaction(PreCommitCondition condition,
+    private TransactionAndImmutableTsLock wrapResponse(PreCommitCondition condition,
             StartIdentifiedAtlasDbTransactionResponse transactionResponse) {
         LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
         long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();

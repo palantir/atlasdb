@@ -258,10 +258,10 @@ public class SnapshotTransactionManagerTest {
                 spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
 
-        Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner = mock(Consumer.class);
+        Consumer<StartIdentifiedAtlasDbTransactionResponse> consumer = mock(Consumer.class);
 
         StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
-                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(cleaner);
+                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(consumer);
 
         StartIdentifiedAtlasDbTransactionResponse response = StartIdentifiedAtlasDbTransactionResponse.of(
                 LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID())),
@@ -275,7 +275,7 @@ public class SnapshotTransactionManagerTest {
                 .isThrownBy(() -> transactionManager.setupRunTaskBatchWithConditionThrowOnConflict(
                         ImmutableList.of(PreCommitConditions.NO_OP, PreCommitConditions.NO_OP)));
 
-        verify(cleaner).accept(response);
+        verify(consumer).accept(response);
     }
 
     private SnapshotTransactionManager createSnapshotTransactionManager(
