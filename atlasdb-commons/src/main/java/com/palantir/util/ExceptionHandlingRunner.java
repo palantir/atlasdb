@@ -32,6 +32,9 @@ public final class ExceptionHandlingRunner implements AutoCloseable {
 
     public ExceptionHandlingRunner() {}
 
+    /**
+     * Instantiates the runner with a throwable that has already been caught, to be rethrown when close is complete.
+     */
     public ExceptionHandlingRunner(Throwable t) {
         failures.add(t);
     }

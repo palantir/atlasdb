@@ -37,7 +37,7 @@ public final class StartIdentifiedAtlasDbTransactionResponseBatch implements Aut
 
     private StartIdentifiedAtlasDbTransactionResponseBatch(List<StartIdentifiedAtlasDbTransactionResponse> responses,
             Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner) {
-        // Perhaps instead of throwing like this, we want to similarly throw a transactionFailedRetriableException
+        // This will only be called if the builder is built without any attempts at adding responses
         Preconditions.checkState(!responses.isEmpty(),
                 "Batch created with no transaction responses - something has gone wrong");
         this.responses = responses;
@@ -97,6 +97,10 @@ public final class StartIdentifiedAtlasDbTransactionResponseBatch implements Aut
         }
 
         public StartIdentifiedAtlasDbTransactionResponseBatch build() {
+            // This ensures that the errors causing this to be empty propogate up
+            if (responses.isEmpty()) {
+                close();
+            }
             return new StartIdentifiedAtlasDbTransactionResponseBatch(responses, cleaner);
         }
 
