@@ -165,6 +165,7 @@ import com.palantir.util.ExceptionHandlingRunner;
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
                 = timelockService.startIdentifiedAtlasDbTransaction();
         try {
+            // t
             LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
             long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
