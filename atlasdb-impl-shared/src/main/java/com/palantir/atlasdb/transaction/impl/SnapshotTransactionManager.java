@@ -66,6 +66,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.ExceptionHandlingRunner;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransactionManager.class);
@@ -330,19 +331,19 @@ import com.palantir.timestamp.TimestampService;
             return;
         }
 
-        try (ShutdownRunner shutdownRunner = new ShutdownRunner()) {
-            shutdownRunner.shutdownSafely(super::close);
-            shutdownRunner.shutdownSafely(cleaner::close);
-            shutdownRunner.shutdownSafely(keyValueService::close);
-            shutdownRunner.shutdownSafely(() -> shutdownExecutor(deleteExecutor));
-            shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
-            shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
+        try (ExceptionHandlingRunner shutdownRunner = new ExceptionHandlingRunner()) {
+            shutdownRunner.runSafely(super::close);
+            shutdownRunner.runSafely(cleaner::close);
+            shutdownRunner.runSafely(keyValueService::close);
+            shutdownRunner.runSafely(() -> shutdownExecutor(deleteExecutor));
+            shutdownRunner.runSafely(() -> shutdownExecutor(getRangesExecutor));
+            shutdownRunner.runSafely(this::closeLockServiceIfPossible);
 
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
-                shutdownRunner.shutdownSafely(callback);
+                shutdownRunner.runSafely(callback);
             }
 
-            shutdownRunner.shutdownSafely(metricsManager::deregisterMetrics);
+            shutdownRunner.runSafely(metricsManager::deregisterMetrics);
         }
     }
 
@@ -490,27 +491,5 @@ import com.palantir.timestamp.TimestampService;
         }
         throw new IllegalArgumentException("Can't use a transaction which is not SnapshotTransaction in "
                 + "SnapshotTransactionManager");
-    }
-
-    private static final class ShutdownRunner implements AutoCloseable {
-        private final List<Throwable> failures = new ArrayList<>();
-
-        void shutdownSafely(Runnable shutdownCallback) {
-            try {
-                shutdownCallback.run();
-            } catch (Throwable throwable) {
-                failures.add(throwable);
-            }
-        }
-
-        @Override
-        public void close() {
-            if (!failures.isEmpty()) {
-                RuntimeException closeFailed = new SafeRuntimeException(
-                        "Close failed. Please inspect the code and fix the failures");
-                failures.forEach(closeFailed::addSuppressed);
-                throw closeFailed;
-            }
-        }
     }
 }
