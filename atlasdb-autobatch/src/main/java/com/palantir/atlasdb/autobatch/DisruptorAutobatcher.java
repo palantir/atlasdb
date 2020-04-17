@@ -110,7 +110,7 @@ public final class DisruptorAutobatcher<T, R>
     }
 
     private EventTranslator<DefaultBatchElement<T, R>> createTranslator(T argument, DisruptorFuture<R> result) {
-        return (refresh, $) -> {
+        return (refresh, unused) -> {
             refresh.result = result;
             refresh.argument = argument;
         };
