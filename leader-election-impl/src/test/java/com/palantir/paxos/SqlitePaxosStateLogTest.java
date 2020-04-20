@@ -18,8 +18,11 @@ package com.palantir.paxos;
 
 import java.sql.Connection;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.function.Supplier;
 
+import org.assertj.core.api.Assertions;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class SqlitePaxosStateLogTest {
@@ -27,7 +30,15 @@ public class SqlitePaxosStateLogTest {
     private final SqlitePaxosStateLog<PaxosValue> stateLog = new SqlitePaxosStateLog<>(connectionSupplier);
 
     @Test
+    public void readingThrows() {
+        System.out.println(Arrays.toString(stateLog.readRound(32)));
+    }
+
+    @Test
     public void canWriteAValue() {
-        System.out.println(Arrays.toString(stateLog.readRound(52)));
+        PaxosValue paxosValue = new PaxosValue("leader", 25, new byte[] {0});
+        stateLog.writeRound(12, paxosValue);
+        Assertions.assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(12)))
+                .isEqualTo(paxosValue);
     }
 }

@@ -16,12 +16,15 @@
 
 package com.palantir.paxos;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.function.Supplier;
 
+import com.google.common.io.ByteStreams;
 import com.palantir.common.persist.Persistable;
 import com.palantir.exception.PalantirSqlException;
 
@@ -36,51 +39,52 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
     private void setup() {
 
         executeIgnoringError(
-                "CREATE TABLE dual (id BIGINT, CONSTRAINT "
-                        + "pk_dual"
-                        + " PRIMARY KEY (id))",
+                "CREATE TABLE test (id BIGINT, val BLOB, CONSTRAINT pk_dual PRIMARY KEY (id))",
                 "already exists"
-        );
-
-        try {
-            ResultSet x = connectionSupplier.get().prepareStatement("SELECT sql FROM sqlite_master;").executeQuery();
-            System.out.println(x);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-
-        executeIgnoringError(
-                "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )",
-                "duplicate key"
         );
     }
 
     @Override
     public void writeRound(long seq, V round) {
-        System.out.println("42");
-    }
-
-    @Override
-    public byte[] readRound(long seq) {
         try {
-            return BigInteger.valueOf(connectionSupplier.get().prepareStatement(
-                    "SELECT 1 FROM dual;"
-            ).executeQuery().getInt(0)).toByteArray();
+            PreparedStatement preparedStatement = connectionSupplier.get().prepareStatement(
+                    "INSERT INTO test (id, val) VALUES (?, ?)");
+            preparedStatement.setLong(1, seq);
+            preparedStatement.setBytes(2, round.persistToBytes());
+            preparedStatement.execute();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
+    public byte[] readRound(long seq) {
+        try {
+            ResultSet resultSet = executeStatement(String.format("SELECT val FROM test WHERE id = %s;", seq));
+            return ByteStreams.toByteArray(resultSet.getBinaryStream(1));
+        } catch (SQLException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public long getLeastLogEntry() {
-        return 0;
+        try {
+            ResultSet resultSet = executeStatement("SELECT MIN(id) FROM test");
+            return resultSet.getLong(1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return 0;
-    }
+        try {
+            ResultSet resultSet = executeStatement("SELECT MAX(id) FROM test");
+            return resultSet.getLong(1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }    }
 
     @Override
     public void truncate(long toDeleteInclusive) {
@@ -95,6 +99,14 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
             if (!e.getMessage().contains(errorToIgnore)) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    private ResultSet executeStatement(String statement) {
+        try {
+            return connectionSupplier.get().prepareStatement(statement).executeQuery();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 }

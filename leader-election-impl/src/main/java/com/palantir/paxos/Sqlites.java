@@ -21,6 +21,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
+
 /**
  * This class is responsible for creating Sqlite connections to an instance.
  * There should be one instance per timelock.
@@ -31,7 +33,8 @@ public class Sqlites {
     }
 
     public static Supplier<Connection> createDatabaseForTests() {
-        return createSqliteDatabase(":memory:");
+        Supplier<Connection> memoized = Suppliers.memoize(createSqliteDatabase(":memory:")::get);
+        return memoized;
     }
 
     public static Supplier<Connection> createSqliteDatabase(String path) {
