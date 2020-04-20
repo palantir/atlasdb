@@ -35,7 +35,7 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.Tritium;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class AtlasClientFactory {
+public class AtlasClientFactory implements AutoCloseable {
     static final StaticClientConfiguration EMPTY_STATIC_CONFIG =
             StaticClientConfiguration.builder().build();
 
@@ -117,5 +117,10 @@ public class AtlasClientFactory {
                 .taggedMetricRegistry(taggedMetricRegistry)
                 .userAgent(userAgent)
                 .build();
+    }
+
+    @Override
+    public void close() {
+        dialogueClientFactory.close();
     }
 }

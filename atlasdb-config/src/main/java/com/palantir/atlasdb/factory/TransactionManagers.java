@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -210,22 +211,13 @@ public abstract class TransactionManagers {
 
     abstract AtlasDbConfig config();
 
-    @Value.Default
-    Refreshable<Optional<AtlasDbRuntimeConfig>> runtimeConfig() {
-        return Refreshables.create(runtimeConfigSupplier()::get, exception -> {
-            log.error("Failed to load runtime config",
-                    exception);
-        }, PTExecutors.newSingleThreadScheduledExecutor(), REFRESH_INTERVAL);
-    }
+    abstract Optional<Refreshable<Optional<AtlasDbRuntimeConfig>>> runtimeConfig();
 
     /**
      * @deprecated use {@link #runtimeConfig} instead.
      */
     @Deprecated
-    @Value.Default
-    Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier() {
-        return Optional::empty;
-    }
+    abstract Optional<Supplier<Optional<AtlasDbRuntimeConfig>>> runtimeConfigSupplier();
 
     abstract Set<Schema> schemas();
 
@@ -260,7 +252,7 @@ public abstract class TransactionManagers {
     }
 
     @Value.Default
-    boolean useDialogue() {
+    boolean useDialogueFeignShim() {
         return false;
     }
 
@@ -304,6 +296,12 @@ public abstract class TransactionManagers {
         thread.start();
     };
 
+    @Value.Check
+    public void check() {
+        Preconditions.checkArgument(runtimeConfigSupplier().isPresent() ^ runtimeConfig().isPresent(),
+                "Refreshable runtime config or Supplier of runtime config must be provide, not both");
+    }
+
     /**
      * Accepts a single {@link Schema}.
      *
@@ -335,6 +333,7 @@ public abstract class TransactionManagers {
     public TransactionManager serializable() {
         List<AutoCloseable> closeables = Lists.newArrayList();
 
+
         try {
             return serializableInternal(closeables);
         } catch (Throwable throwable) {
@@ -362,7 +361,16 @@ public abstract class TransactionManagers {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfig().map(config -> config.orElse(defaultRuntime));
+        Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfig()
+                .orElseGet(() -> {
+                    ScheduledExecutorService refreshableExecutor = PTExecutors.newSingleThreadScheduledExecutor();
+                    closeables.add(refreshableExecutor::shutdown);
+                    return Refreshables.create(
+                            runtimeConfigSupplier().get()::get,
+                            exception -> log.error("Failed to load runtime config", exception),
+                            refreshableExecutor, REFRESH_INTERVAL);
+                })
+                .map(config -> config.orElse(defaultRuntime));
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -386,7 +394,7 @@ public abstract class TransactionManagers {
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent(),
                 lockDiagnosticInfoCollector(),
-                useDialogue());
+                useDialogueFeignShim());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -400,7 +408,7 @@ public abstract class TransactionManagers {
 
             // Even if sweep queue writes are enabled, unless targeted sweep is enabled we generally still want to
             // at least retain the option to perform background sweep, which requires updating the priority table.
-            if (!targetedSweepIsFullyEnabled()) {
+            if (!targetedSweepIsFullyEnabled(runtime)) {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
                         Suppliers.compose(SweepConfig::writeThreshold, sweepConfig::get),
@@ -563,9 +571,10 @@ public abstract class TransactionManagers {
 
     }
 
-    private boolean targetedSweepIsFullyEnabled() {
+    private boolean targetedSweepIsFullyEnabled(
+            Refreshable<AtlasDbRuntimeConfig> runtime) {
         return config().targetedSweep().enableSweepQueueWrites()
-                && runtimeConfigSupplier().get().map(config -> config.targetedSweep().enabled()).orElse(false);
+                && runtime.map(config -> config.targetedSweep().enabled()).get();
     }
 
     private TransactionComponents createTransactionComponents(
@@ -1082,7 +1091,10 @@ public abstract class TransactionManagers {
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
                 .lockWatcher(lockWatcher)
-                .close(remoteTimelockServiceAdapter::close)
+                .close(() -> {
+                    remoteTimelockServiceAdapter.close();
+                    clientFactory.close();
+                })
                 .build();
     }
 

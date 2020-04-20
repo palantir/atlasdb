@@ -16,13 +16,17 @@
 
 package com.palantir.atlasdb.http.v2;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -41,14 +45,15 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.Tritium;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-final class DialogueClientFactory {
+final class DialogueClientFactory implements AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(DialogueClientFactory.class);
     private static final DefaultConjureRuntime DIALOGUE_RUNTIME =
             DefaultConjureRuntime.builder().build();
     private static final String SERVICE_NAME = "lock";
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Refreshable<Optional<ServerListConfig>> config;
     private final UserAgent userAgent;
-    private volatile ConcurrentHashMap<CacheKey, DialogueChannel> cachedChannels = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<CacheKey, CachedClient> cachedChannels = new ConcurrentHashMap<>();
 
     DialogueClientFactory(
             Refreshable<Optional<ServerListConfig>> config,
@@ -86,19 +91,13 @@ final class DialogueClientFactory {
 
             // TODO(forozco): support cases when ssl config changes
             ClientConfiguration clientConfig = getClientConf(staticClientConfig, maybeConfig.get());
-            DialogueChannel channel = cachedChannels.computeIfAbsent(CacheKey.of(SERVICE_NAME, staticClientConfig),
-                    cacheKey -> {
-                        String channelName = toChannelName(cacheKey);
-                        ApacheHttpClientChannels.CloseableClient client = ApacheHttpClientChannels
-                                .createCloseableHttpClient(clientConfig, channelName);
-                        return DialogueChannel.builder()
-                                .channelName(channelName)
-                                .clientConfiguration(clientConfig)
-                                .channelFactory(uri -> ApacheHttpClientChannels.createSingleUri(uri, client))
-                                .build();
-                    });
-            channel.updateUris(maybeConfig.get().servers());
-            return channel;
+            CachedClient cachedClient = cachedChannels.computeIfAbsent(
+                    CacheKey.of(SERVICE_NAME, staticClientConfig), cacheKey -> CachedClient.of(cacheKey, clientConfig));
+            return cachedClient.channel()
+                    .<Channel>map(channel -> {
+                        channel.channel().updateUris(maybeConfig.get().servers());
+                        return channel.channel();
+                    }).orElseGet(() -> alwaysThrowingChannel(cachedClient.throwable()::get));
         });
 
         return new SupplierChannel(channelSupplier);
@@ -111,6 +110,28 @@ final class DialogueClientFactory {
                 .taggedMetricRegistry(taggedMetricRegistry)
                 .userAgent(userAgent)
                 .build();
+    }
+
+    @Override
+    public void close() {
+        for (Map.Entry<CacheKey, CachedClient> entry : cachedChannels.entrySet()) {
+            CacheKey cacheKey = entry.getKey();
+            CachedClient value = entry.getValue();
+            cachedChannels.remove(cacheKey);
+            closeCachedClient(value, cacheKey.serviceName());
+        }
+    }
+
+    private void closeCachedClient(CachedClient cachedClient, String serviceName) {
+        try {
+            if (cachedClient.channel().isPresent()) {
+                ApacheHttpClientChannels.CloseableClient toClose =
+                        cachedClient.channel().get().closeableClient();
+                toClose.close();
+            }
+        } catch (RuntimeException | IOException | Error e) {
+            log.error("Failed to close client", SafeArg.of("serviceName", serviceName), e);
+        }
     }
 
     static boolean isDialogue(Class<?> serviceInterface) {
@@ -168,6 +189,55 @@ final class DialogueClientFactory {
             return ImmutableCacheKey.builder()
                     .serviceName(serviceName)
                     .staticConfig(staticConfig)
+                    .build();
+        }
+    }
+
+
+    @Value.Immutable
+    interface CachedClient {
+        StaticClientConfiguration staticConfig();
+
+        @Value.Auxiliary
+        Optional<CloseableChannel> channel();
+
+        @Value.Auxiliary
+        Optional<Throwable> throwable();
+
+        static CachedClient of(CacheKey cacheKey, ClientConfiguration clientConfig) {
+            ImmutableCachedClient.Builder builder = ImmutableCachedClient.builder()
+                    .staticConfig(cacheKey.staticConfig());
+            try {
+                String channelName = toChannelName(cacheKey);
+                ApacheHttpClientChannels.ClientBuilder clientBuilder = ApacheHttpClientChannels.clientBuilder()
+                        .clientConfiguration(clientConfig)
+                        .clientName(channelName);
+                ApacheHttpClientChannels.CloseableClient client = clientBuilder.build();
+                return builder.channel(CloseableChannel.of(
+                        DialogueChannel.builder()
+                                .channelName(channelName)
+                                .clientConfiguration(clientConfig)
+                                .channelFactory(uri -> ApacheHttpClientChannels.createSingleUri(uri, client))
+                                .build(),
+                        client))
+                        .build();
+            } catch (Exception | Error e) {
+                return builder.throwable(e).build();
+            }
+        }
+    }
+
+
+    @Value.Immutable
+    interface CloseableChannel {
+        DialogueChannel channel();
+
+        ApacheHttpClientChannels.CloseableClient closeableClient();
+
+        static CloseableChannel of(DialogueChannel channel, ApacheHttpClientChannels.CloseableClient closeableClient) {
+            return ImmutableCloseableChannel.builder()
+                    .channel(channel)
+                    .closeableClient(closeableClient)
                     .build();
         }
     }
