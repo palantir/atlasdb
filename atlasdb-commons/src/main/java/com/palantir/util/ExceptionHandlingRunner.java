@@ -24,7 +24,8 @@ import java.util.function.Supplier;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
- * Runs runnables and suppliers that may throw exceptions, and swallows those exceptions until the runner is closed.
+ * Runs runnables and suppliers that may throw exceptions, and swallows those exceptions until the runner is closed. If
+ * any exceptions occurred, they are suppressed in the order in which they were thrown.
  * Can be used as a resource in a try block, or delegated to by another resource.
  */
 public final class ExceptionHandlingRunner implements AutoCloseable {
