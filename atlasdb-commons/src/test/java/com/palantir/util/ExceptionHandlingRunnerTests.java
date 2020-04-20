@@ -80,6 +80,23 @@ public final class ExceptionHandlingRunnerTests {
         assertThatCloseThrows();
     }
 
+    @Test
+    public void closeThrowsExceptionsInOrderOfSuppressing() {
+        RuntimeException runtimeException1 = new RuntimeException();
+        RuntimeException runtimeException2 = new RuntimeException();
+        runner.runSafely(() -> {
+            throw runtimeException1;
+        });
+        runner.runSafely(() -> {
+            throw runtimeException2;
+        });
+        try {
+            runner.close();
+        } catch (Throwable t) {
+            assertThat(t.getSuppressed()).containsSequence(runtimeException1, runtimeException2);
+        }
+    }
+
     private void assertThatRunnableDoesNotThrow(Runnable runnable) {
         assertThatCode(() -> runner.runSafely(runnable)).doesNotThrowAnyException();
     }
