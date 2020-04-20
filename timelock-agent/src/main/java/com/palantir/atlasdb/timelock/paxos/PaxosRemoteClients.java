@@ -28,6 +28,7 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -160,7 +161,11 @@ public abstract class PaxosRemoteClients {
                                 .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
                                 .shouldSupportBlockingOperations(false)
                                 .build()))
-                .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(metrics().getTaggedRegistry(), clazz, proxy));
+                .map((host, proxy) -> AtlasDbMetrics.instrumentWithTaggedMetrics(
+                        metrics().getTaggedRegistry(),
+                        clazz,
+                        proxy,
+                        any -> ImmutableMap.of(AtlasDbMetricNames.TAG_REMOTE_HOST, host)));
     }
 
     private static HostAndPort convertAddressToHostAndPort(String url) {
