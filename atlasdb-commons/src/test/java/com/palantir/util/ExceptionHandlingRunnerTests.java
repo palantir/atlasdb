@@ -93,7 +93,7 @@ public final class ExceptionHandlingRunnerTests {
         try {
             runner.close();
         } catch (Throwable t) {
-            assertThat(t.getSuppressed()).containsSequence(runtimeException1, runtimeException2);
+            assertThat(t.getSuppressed()).containsExactly(runtimeException1, runtimeException2);
         }
     }
 
