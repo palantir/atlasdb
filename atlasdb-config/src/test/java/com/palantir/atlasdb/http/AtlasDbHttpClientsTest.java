@@ -27,7 +27,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
-import java.net.SocketTimeoutException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -62,7 +61,6 @@ import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPattern;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -318,14 +316,6 @@ public class AtlasDbHttpClientsTest {
         void reset() {
             urls.clear();
         }
-    }
-
-    @Test
-    public void testIsPossiblyOkHttpTimeoutBug() {
-        assertThat(AtlasDbHttpClients.isPossiblyOkHttpTimeoutBug(
-                new RuntimeException(new UncheckedExecutionException(new SocketTimeoutException())))).isTrue();
-        assertThat(AtlasDbHttpClients.isPossiblyOkHttpTimeoutBug(new RuntimeException(new RuntimeException())))
-                .isFalse();
     }
 
 }

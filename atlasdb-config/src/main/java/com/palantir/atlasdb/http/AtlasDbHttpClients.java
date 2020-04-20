@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -24,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
+import com.palantir.atlasdb.http.v2.OkHttpBugs;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
@@ -111,15 +111,7 @@ public final class AtlasDbHttpClients {
                 type,
                 supplier,
                 Duration.ofMinutes(20),
-                AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
+                OkHttpBugs::isPossiblyOkHttpTimeoutBug);
     }
 
-    @VisibleForTesting
-    static boolean isPossiblyOkHttpTimeoutBug(Throwable throwable) {
-        if (throwable instanceof SocketTimeoutException) {
-            return true;
-        }
-        Throwable cause = throwable.getCause();
-        return cause != null && isPossiblyOkHttpTimeoutBug(cause);
-    }
 }

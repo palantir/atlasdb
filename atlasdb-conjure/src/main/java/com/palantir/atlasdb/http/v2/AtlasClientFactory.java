@@ -19,11 +19,13 @@ package com.palantir.atlasdb.http.v2;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
@@ -81,10 +83,17 @@ public class AtlasClientFactory implements AutoCloseable {
     private <T> T jaxrsInternal(Class<T> serviceClass, StaticClientConfiguration staticClientConfig) {
         Function<ServerListConfig, T> clientFactory = jaxrsFactory(serviceClass,
                 staticClientConfig);
-        Supplier<Optional<T>> client = clientConfig.map(conf -> conf.map(clientFactory));
+        Supplier<Optional<T>> client = clientConfig.map(maybeConf ->
+                maybeConf.map(conf ->
+                        ReplaceIfExceptionMatchingProxy.create(
+                                serviceClass,
+                                () -> clientFactory.apply(conf),
+                                Duration.ofMinutes(20),
+                                OkHttpBugs::isPossiblyOkHttpTimeoutBug)));
         T alwaysThrowingService = serviceProxy(serviceClass, (proxy, method, args) -> {
             throw new SafeIllegalStateException("Service not configured");
         });
+
 
         return serviceProxy(serviceClass, (proxy, method, args) -> {
             T service = client.get().orElse(alwaysThrowingService);
