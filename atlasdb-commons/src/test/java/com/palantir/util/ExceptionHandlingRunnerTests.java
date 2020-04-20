@@ -16,6 +16,7 @@
 
 package com.palantir.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -50,6 +51,7 @@ public final class ExceptionHandlingRunnerTests {
             throw new RuntimeException();
         };
         assertThatSupplierDoesNotThrow(supplierWithException);
+        assertThat(runner.supplySafely(supplierWithException)).isEmpty();
         assertThatCloseThrows();
     }
 
@@ -59,6 +61,7 @@ public final class ExceptionHandlingRunnerTests {
         Runnable cleanRunnable = () -> {
         };
         assertThatSupplierDoesNotThrow(cleanSupplier);
+        assertThat(runner.supplySafely(cleanSupplier)).hasValue(4);
         assertThatRunnableDoesNotThrow(cleanRunnable);
         assertThatCode(runner::close).doesNotThrowAnyException();
     }
