@@ -91,7 +91,7 @@ public class LocalPaxosComponents {
 
     private Components createComponents(Client client) {
         Path clientDirectory = logDirectory.resolve(client.value());
-        if (!canCreateNewClients && !clientDirectory.toFile().exists()) {
+        if (!canCreateNewClients && clientDirectoryDoesNotExist(clientDirectory)) {
             throw new ServiceNotAvailableException("This TimeLock server is not allowed to create new clients at this"
                     + " time, and the client " + client + " provided is novel for this TimeLock server.");
         }
@@ -110,6 +110,10 @@ public class LocalPaxosComponents {
                 .learner(learner)
                 .pingableLeader(localPingableLeader)
                 .build();
+    }
+
+    private boolean clientDirectoryDoesNotExist(Path clientDirectory) {
+        return !clientDirectory.toFile().exists();
     }
 
     private BatchPaxosAcceptor createBatchAcceptor() {
