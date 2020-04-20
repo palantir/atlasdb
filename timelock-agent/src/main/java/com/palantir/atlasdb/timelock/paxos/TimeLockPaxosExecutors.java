@@ -68,7 +68,7 @@ final class TimeLockPaxosExecutors {
      *
      * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
      */
-    private static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase, int index) {
+    static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase, int index) {
         return new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
                         SINGLE_THREAD_FOR_MOSTLY_AUTOBATCHED_OPERATIONS,

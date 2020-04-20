@@ -17,15 +17,9 @@
 package com.palantir.timelock.paxos;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
@@ -34,7 +28,7 @@ public final class TimelockPaxosLearnerAdapter implements PaxosLearner {
     private final String client;
     private final TimelockPaxosLearnerRpcClient clientAwarePaxosLearner;
 
-    private TimelockPaxosLearnerAdapter(
+    TimelockPaxosLearnerAdapter(
             PaxosUseCase paxosUseCase,
             String client,
             TimelockPaxosLearnerRpcClient clientAwarePaxosLearner) {
@@ -62,30 +56,4 @@ public final class TimelockPaxosLearnerAdapter implements PaxosLearner {
     public Collection<PaxosValue> getLearnedValuesSince(long seq) {
         return clientAwarePaxosLearner.getLearnedValuesSince(paxosUseCase, client, seq);
     }
-
-    /**
-     * Given a list of {@link TimelockPaxosLearnerRpcClient}s, returns a function allowing for injection of the client
-     * name.
-     */
-    public static Function<Client, List<PaxosLearner>> wrap(
-            PaxosUseCase paxosUseCase,
-            PaxosRemoteClients remoteClients) {
-        switch (paxosUseCase) {
-            case LEADER_FOR_ALL_CLIENTS:
-                return _client -> remoteClients.singleLeaderLearner().stream()
-                        .<PaxosLearner>map(Function.identity())
-                        .collect(Collectors.toList());
-            case LEADER_FOR_EACH_CLIENT:
-                throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
-            case TIMESTAMP:
-                return client -> remoteClients.nonBatchTimestampLearner().stream()
-                        .map(learner -> new TimelockPaxosLearnerAdapter(
-                                paxosUseCase,
-                                client.value(),
-                                learner)).collect(Collectors.toList());
-            default:
-                throw new IllegalStateException("Unexpected value: " + paxosUseCase);
-        }
-    }
-
 }

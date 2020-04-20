@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: Added a new paxos runtime configuration `enable-batching-for-single-leader`
+    to timelock runtime configuration. If set to true, timelock internal communication
+    will use the batched endpoints in a single leader mode. This feature is experimental,
+    contact the altasdb team if you wish to enable it.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4695

@@ -18,17 +18,22 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
@@ -37,7 +42,6 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Value.Immutable
 public abstract class PaxosRemoteClients {
@@ -46,7 +50,23 @@ public abstract class PaxosRemoteClients {
     public abstract PaxosResourcesFactory.TimelockPaxosInstallationContext context();
 
     @Value.Parameter
-    public abstract TaggedMetricRegistry metrics();
+    public abstract MetricsManager metrics();
+
+    @Value.Derived
+    Map<String, ExecutorService> dedicatedExecutors() {
+        List<String> remoteUris = context().remoteUris();
+        int executorIndex = 0;
+
+        ImmutableMap.Builder<String, ExecutorService> builder = ImmutableMap.builder();
+        for (String remoteUri : remoteUris) {
+            builder.put(remoteUri, TimeLockPaxosExecutors.createBoundedExecutor(
+                    metrics().getRegistry(),
+                    "paxos-remote-clients-dedicated-executors",
+                    executorIndex));
+            executorIndex++;
+        }
+        return builder.build();
+    }
 
     @Value.Derived
     public List<TimelockPaxosAcceptorRpcClient> nonBatchTimestampAcceptor() {
@@ -59,9 +79,11 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
-    public List<TimelockSingleLeaderPaxosAcceptorRpcClient> singleLeaderAcceptor() {
+    public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosAcceptorRpcClient>>
+            singleLeaderAcceptorsWithExecutors() {
         // Retries should be performed at a higher level, in AwaitingLeadershipProxy.
-        return createInstrumentedRemoteProxyList(TimelockSingleLeaderPaxosAcceptorRpcClient.class, false);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+                TimelockSingleLeaderPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
@@ -70,8 +92,9 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
-    public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
-        return createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, false);
+    public List<WithDedicatedExecutor<BatchPaxosAcceptorRpcClient>> batchAcceptorsWithExecutors() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+                BatchPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
@@ -104,7 +127,9 @@ public abstract class PaxosRemoteClients {
     }
 
     private <T> List<LeaderPingerContext<T>> leaderPingerContext(Class<T> clazz) {
-        return createInstrumentedRemoteProxies(clazz, false).entries()
+        return createInstrumentedRemoteProxies(clazz, false)
+                .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort)
+                .entries()
                 .<LeaderPingerContext<T>>map(entry -> ImmutableLeaderPingerContext.of(entry.getValue(), entry.getKey()))
                 .collect(Collectors.toList());
     }
@@ -113,7 +138,17 @@ public abstract class PaxosRemoteClients {
         return createInstrumentedRemoteProxies(clazz, shouldRetry).values().collect(Collectors.toList());
     }
 
-    private <T> KeyedStream<HostAndPort, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
+    private <T> List<WithDedicatedExecutor<T>> createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+            Class<T> clazz,
+            boolean shouldRetry) {
+        return createInstrumentedRemoteProxies(clazz, shouldRetry)
+                .mapKeys(uri -> dedicatedExecutors().get(uri))
+                .entries()
+                .map(entry -> WithDedicatedExecutor.<T>of(entry.getValue(), entry.getKey()))
+                .collect(Collectors.toList());
+    }
+
+    private <T> KeyedStream<String, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
         return KeyedStream.of(context().remoteUris())
                 .map(uri -> AtlasDbHttpClients.createProxy(
                         context().trustContext(),
@@ -126,8 +161,11 @@ public abstract class PaxosRemoteClients {
                                 .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
                                 .shouldSupportBlockingOperations(false)
                                 .build()))
-                .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, proxy))
-                .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort);
+                .map((host, proxy) -> AtlasDbMetrics.instrumentWithTaggedMetrics(
+                        metrics().getTaggedRegistry(),
+                        clazz,
+                        proxy,
+                        any -> ImmutableMap.of(AtlasDbMetricNames.TAG_REMOTE_HOST, host)));
     }
 
     private static HostAndPort convertAddressToHostAndPort(String url) {

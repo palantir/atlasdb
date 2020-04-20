@@ -68,6 +68,7 @@ public interface Dependencies {
         com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
         Supplier<PaxosRuntimeConfiguration> runtime();
         AutobatchingLeadershipObserverFactory leadershipObserverFactory();
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
     }
 
     interface LeaderElectionService {
@@ -79,6 +80,7 @@ public interface Dependencies {
         PaxosLeadershipEventRecorder eventRecorder();
         PaxosLearner localLearner();
         com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
     }
 
     interface HealthCheckPinger {

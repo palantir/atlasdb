@@ -1,0 +1,8 @@
+type: break
+break:
+  description: |-
+    PTExecutors thread factory uses daemon threads by default. Most consumers prefer daemon threads to avoid propping up JVMs that want to die.
+    PTExecutors.newCachedThreadPool returns ExecutorService instances instead of ThreadPoolExecutor concrete types. This is an ABI break. Please use WC executor factories!
+    PTExecutors (and all executors using NamedThreadFactory) report metrics into the singleton TaggedMetricRegistry.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4707

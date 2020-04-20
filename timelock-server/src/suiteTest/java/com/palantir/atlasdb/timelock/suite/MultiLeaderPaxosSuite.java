@@ -43,7 +43,7 @@ public final class MultiLeaderPaxosSuite {
             "batched timestamp paxos multi leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(9086, builder ->
-                    builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxos(true))
+                    builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
                             .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)));
 
     @Parameterized.Parameters(name = "{0}")
