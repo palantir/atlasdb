@@ -24,8 +24,7 @@ import java.util.function.Supplier;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
- * Runs runnables and suppliers that may throw exceptions, and swallows those exceptions until the runner is closed. If
- * any exceptions occurred, they are suppressed in the order in which they were thrown.
+ * Runs runnables and suppliers that may throw exceptions, and swallows those exceptions until the runner is closed.
  * Can be used as a resource in a try block, or delegated to by another resource.
  */
 public final class ExceptionHandlingRunner implements AutoCloseable {
@@ -58,8 +57,9 @@ public final class ExceptionHandlingRunner implements AutoCloseable {
     }
 
     /**
-     * Calling close with no failures should be a no-op; equally, calling close multiple times will re-throw a runtime
-     * exception with the same suppressed errors (plus any additional errors suppressed since the last close call).
+     * Calling close with no exceptions is a no-op. If exceptions did occur, then a runtime exception will be thrown
+     * with the errors suppressed in the order in which they were thrown. Calling close multiple times will re-throw
+     * with the same suppressed errors (plus any additional errors suppressed since the last close call).
      */
     @Override
     public void close() {
