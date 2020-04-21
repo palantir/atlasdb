@@ -78,6 +78,7 @@ public class SqlitePaxosStateLogTest {
         writeValueForRound(5L);
         writeValueForRound(7L);
         writeValueForRound(9L);
+        writeValueForRound(1L);
 
         stateLog.truncate(7L);
         assertThat(stateLog.getLeastLogEntry()).isEqualTo(9L);
