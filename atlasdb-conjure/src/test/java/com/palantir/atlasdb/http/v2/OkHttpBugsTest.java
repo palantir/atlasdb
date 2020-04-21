@@ -22,7 +22,7 @@ import java.net.SocketTimeoutException;
 import org.junit.Test;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-class OkHttpBugsTest {
+public class OkHttpBugsTest {
 
     @Test
     public void testIsPossiblyOkHttpTimeoutBug() {
