@@ -29,16 +29,17 @@ import org.junit.Test;
 import com.google.common.base.Suppliers;
 
 public class SqlitePaxosStateLogTest {
+    private static final String LOG_NAMESPACE_1 = "tom";
+    private static final String LOG_NAMESPACE_2 = "two";
+
+    private final Supplier<Connection> connections = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
+
     private PaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
         Supplier<Connection> connectionSupplier = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
-<<<<<<< HEAD
-        stateLog = SqlitePaxosStateLog.createInitialized(connectionSupplier);
-=======
-        stateLog = SqlitePaxosStateLog.createInitialized(connectionSupplier, "tom");
->>>>>>> a453bbc176... Namespaced paxos state log
+        stateLog = SqlitePaxosStateLog.createInitialized(connections, LOG_NAMESPACE_1);
     }
 
     @Test
@@ -93,6 +94,25 @@ public class SqlitePaxosStateLogTest {
 
         stateLog.truncate(7L);
         assertThat(stateLog.getLeastLogEntry()).isEqualTo(9L);
+    }
+
+    @Test
+    public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.createInitialized(connections, LOG_NAMESPACE_2);
+        writeValueForRound(1L);
+
+        assertThat(stateLog.readRound(1L)).isNotNull();
+        assertThat(otherLog.readRound(1L)).isNull();
+    }
+
+    @Test
+    public void differentLogsToTheSameNamespaceShareState() throws IOException {
+        PaxosStateLog<PaxosValue> otherLogWithSameNamespace
+                = SqlitePaxosStateLog.createInitialized(connections, LOG_NAMESPACE_1);
+        writeValueForRound(1L);
+
+        assertThat(stateLog.readRound(1L)).isNotNull();
+        assertThat(otherLogWithSameNamespace.readRound(1L)).isEqualTo(stateLog.readRound(1L));
     }
 
     private PaxosValue writeValueForRound(long round) {
