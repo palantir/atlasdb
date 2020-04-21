@@ -348,7 +348,11 @@ public abstract class TransactionManagers {
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         ConfigRefreshable configRefreshable = initializeCloseable(() -> runtimeConfig()
                 .map(ConfigRefreshable::wrap)
-                .orElseGet(() -> ConfigRefreshable.createPolling(runtimeConfigSupplier().get())), closeables);
+                .orElseGet(() -> {
+                    Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfig = runtimeConfigSupplier()
+                            .orElse(Optional::empty);
+                    return ConfigRefreshable.createPolling(runtimeConfig);
+                }), closeables);
 
         Refreshable<AtlasDbRuntimeConfig> runtime = configRefreshable.refreshable()
                 .map(config -> config.orElse(defaultRuntime));
