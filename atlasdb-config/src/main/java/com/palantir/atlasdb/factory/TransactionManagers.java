@@ -297,9 +297,9 @@ public abstract class TransactionManagers {
     };
 
     @Value.Check
-    public void check() {
-        Preconditions.checkArgument(runtimeConfigSupplier().isPresent() ^ runtimeConfig().isPresent(),
-                "Refreshable runtime config or Supplier of runtime config must be provide, not both");
+    protected void check() {
+        Preconditions.checkState(runtimeConfigSupplier().isPresent() ^ runtimeConfig().isPresent(),
+                "Either Refreshable or Supplier of runtime config must be provide, but not both");
     }
 
     /**
@@ -324,12 +324,13 @@ public abstract class TransactionManagers {
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .addAllSchemas(schemas)
+                .runtimeConfigSupplier(Optional::empty)
                 .build()
                 .serializable();
     }
 
     @JsonIgnore
-    @Value.Derived
+    @Value.Lazy
     public TransactionManager serializable() {
         List<AutoCloseable> closeables = Lists.newArrayList();
 

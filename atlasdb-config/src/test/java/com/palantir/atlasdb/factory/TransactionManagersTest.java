@@ -331,6 +331,7 @@ public class TransactionManagersTest {
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
+                .runtimeConfigSupplier(Optional::empty)
                 .build()
                 .serializable();
 
@@ -364,6 +365,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .runtimeConfigSupplier(Optional::empty)
                 .build()
                 .serializable()
                 .getKeyValueService();
@@ -392,6 +394,7 @@ public class TransactionManagersTest {
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
+                .runtimeConfigSupplier(Optional::empty)
                 .build()
                 .serializable();
         manager.registerClosingCallback(callback);
@@ -412,6 +415,7 @@ public class TransactionManagersTest {
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
+                .runtimeConfigSupplier(Optional::empty)
                 .build()
                 .serializable();
         assertThat(metrics.getNames().stream()
@@ -495,6 +499,7 @@ public class TransactionManagersTest {
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .lockImmutableTsOnReadOnlyTransactions(option)
+                .runtimeConfigSupplier(Optional::empty)
                 .build();
     }
 
@@ -582,6 +587,7 @@ public class TransactionManagersTest {
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .addSchemas(GenericTestSchema.getSchema())
+                .runtimeConfigSupplier(Optional::empty)
                 .build()
                 .serializable();
 
@@ -615,6 +621,24 @@ public class TransactionManagersTest {
     public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(false));
+    }
+
+    @Test
+    public void failsIfRuntimeConfigIsProvidedInTwoWays() {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+
+        assertThatThrownBy(() -> TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .addSchemas(GenericTestSchema.getSchema())
+                .runtimeConfigSupplier(Optional::empty)
+                .runtimeConfig(Refreshable.only(Optional.empty()))
+                .build()).isInstanceOf(SafeIllegalStateException.class);
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(
