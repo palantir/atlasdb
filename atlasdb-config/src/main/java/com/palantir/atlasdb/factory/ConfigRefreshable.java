@@ -57,7 +57,8 @@ final class ConfigRefreshable implements AutoCloseable {
     }
 
     static ConfigRefreshable wrap(Refreshable<Optional<AtlasDbRuntimeConfig>> delegate) {
-        return new ConfigRefreshable(delegate, () -> {});
+        return new ConfigRefreshable(delegate, () -> {
+        });
     }
 
     @SuppressWarnings("FutureReturnValueIgnored")
