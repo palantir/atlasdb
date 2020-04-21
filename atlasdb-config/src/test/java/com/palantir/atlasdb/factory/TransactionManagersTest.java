@@ -233,7 +233,7 @@ public class TransactionManagersTest {
                         .runtimeConfig(Refreshable.only(Optional.empty()))
                         .runtimeConfigSupplier(Optional::empty)
                         .build())
-                .hasMessage("Either Refreshable or Supplier of runtime config must be provided or none, but not both");
+                .hasMessage("Cannot provide both Refreshable and Supplier of runtime config");
     }
 
     @Test
