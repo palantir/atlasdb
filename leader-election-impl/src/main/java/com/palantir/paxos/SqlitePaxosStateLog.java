@@ -49,7 +49,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
     public void writeRound(long seq, V round) {
         try {
             PreparedStatement preparedStatement = connectionSupplier.get().prepareStatement(
-                    "INSERT INTO paxosLog (seq, val) VALUES (?, ?)");
+                    "INSERT OR REPLACE INTO paxosLog (seq, val) VALUES (?, ?)");
             preparedStatement.setLong(1, seq);
             preparedStatement.setBytes(2, round.persistToBytes());
             preparedStatement.execute();

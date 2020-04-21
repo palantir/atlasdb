@@ -50,6 +50,13 @@ public class SqlitePaxosStateLogTest {
     }
 
     @Test
+    public void canOverwriteSequences() throws IOException {
+        writeValueForRound(5L);
+        PaxosValue newEntry = writeValueForRound(5L);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L))).isEqualTo(newEntry);
+    }
+
+    @Test
     public void returnsDefaultValueForExtremesWhenNoEntries() {
         assertThat(stateLog.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(stateLog.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
