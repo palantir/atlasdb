@@ -95,7 +95,7 @@ final class AtlasDbRuntimeConfigRefreshable implements AutoCloseable {
         return new AtlasDbRuntimeConfigRefreshable(refreshable, () -> {
             if (!MoreExecutors.shutdownAndAwaitTermination(
                     executor, GRACEFUL_SHUTDOWN.toMillis(), TimeUnit.MILLISECONDS)) {
-                log.error("Executor did not terminate within graceful shutdown duration");
+                log.warn("Executor did not terminate within graceful shutdown duration");
             }
         });
     }
