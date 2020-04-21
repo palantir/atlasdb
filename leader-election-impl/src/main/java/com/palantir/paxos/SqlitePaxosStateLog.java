@@ -60,7 +60,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
 
     @Override
     public byte[] readRound(long seq) {
-        return executeStatement(String.format("SELECT val FROM paxosLog WHERE seq = %s;", seq))
+        return executeStatement(String.format("SELECT val FROM paxosLog WHERE seq = %s", seq))
                 .map(SqlitePaxosStateLog::getByteArrayUnchecked)
                 .orElse(null);
     }

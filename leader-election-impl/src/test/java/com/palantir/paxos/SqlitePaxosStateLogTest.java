@@ -34,7 +34,7 @@ public class SqlitePaxosStateLogTest {
     @Before
     public void setup() {
         Supplier<Connection> connectionSupplier = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
-        stateLog =  SqlitePaxosStateLog.createInitialized(connectionSupplier);
+        stateLog = SqlitePaxosStateLog.createInitialized(connectionSupplier);
     }
 
     @Test
