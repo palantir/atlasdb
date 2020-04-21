@@ -70,8 +70,7 @@ final class ConfigRefreshable implements AutoCloseable {
                     try {
                         refreshable.update(config.get());
                     } catch (Throwable e) {
-                        // TODO(jkozlowski): This is rather bad if it occurs,
-                        // ideally we would propagate and not just throw our hands in the air
+                        // This should not occur in practice
                         log.error("Failed to load runtime config", e);
                     }
                 },
