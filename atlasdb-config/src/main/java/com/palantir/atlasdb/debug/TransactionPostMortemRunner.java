@@ -70,7 +70,7 @@ public class TransactionPostMortemRunner {
             TransactionManager transactionManager,
             TableReference tableReference,
             AtlasDbConfig install,
-            AtlasDbRuntimeConfig runtime,
+            Refreshable<AtlasDbRuntimeConfig> runtime,
             ClientLockDiagnosticCollector clientLockDiagnosticCollector) {
         this.timelockNamespace = timelockNamespace(install);
         this.clientLockDiagnosticCollector = clientLockDiagnosticCollector;
@@ -177,9 +177,9 @@ public class TransactionPostMortemRunner {
 
     private static LockDiagnosticInfoService createRpcClient(
             AtlasDbConfig config,
-            AtlasDbRuntimeConfig runtimeConfig) {
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Supplier<ServerListConfig> serverListConfigSupplier =
-                getServerListConfigSupplierForTimeLock(config, runtimeConfig);
+                getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
         timelockNamespace(config);
 
@@ -187,7 +187,7 @@ public class TransactionPostMortemRunner {
                 new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), _unused -> true),
                 serverListConfigSupplier,
                 UserAgent.of(UserAgent.Agent.of("agent", "0.0.0")),
-                runtimeConfig::remotingClient);
+                () -> runtimeConfigSupplier.get().remotingClient());
 
         return serviceCreator.createService(LockDiagnosticInfoService.class);
     }
@@ -199,13 +199,11 @@ public class TransactionPostMortemRunner {
 
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
-            AtlasDbRuntimeConfig runtimeConfigSupplier) {
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
         return ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,
-                Refreshable.only(runtimeConfigSupplier.timelockRuntime()));
+                runtimeConfigSupplier.map(AtlasDbRuntimeConfig::timelockRuntime));
     }
-
-
 }
