@@ -26,7 +26,10 @@ import org.immutables.value.Value;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.palantir.leader.LocalPingableLeader;
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
+import com.palantir.leader.PaxosLeaderElectionEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.ImmutablePaxosStorageParameters;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -35,16 +38,18 @@ import com.palantir.paxos.PaxosLearnerImpl;
 public class LocalPaxosComponents {
 
     private final TimelockPaxosMetrics metrics;
-    private final Path logDirectory;
+    private final PaxosUseCase paxosUseCase;
+    private final Path baseLogDirectory;
     private final UUID leaderUuid;
     private final Map<Client, Components> componentsByClient = Maps.newConcurrentMap();
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
 
-    LocalPaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory, UUID leaderUuid) {
+    LocalPaxosComponents(TimelockPaxosMetrics metrics, PaxosUseCase useCase, Path logDirectory, UUID leaderUuid) {
         this.metrics = metrics;
-        this.logDirectory = logDirectory;
+        this.paxosUseCase = useCase;
+        this.baseLogDirectory = logDirectory;
         this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
@@ -80,13 +85,26 @@ public class LocalPaxosComponents {
     }
 
     private Components createComponents(Client client) {
-        Path clientDirectory = logDirectory.resolve(client.value());
+        Path clientDirectory = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory)
+                .resolve(client.value());
         Path learnerLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
+        String learnerNamespace = String.format("%s!%s!learner", paxosUseCase.toString(), client);
 
-        PaxosLearner learner = PaxosLearnerImpl.newLearner(learnerLogDir.toString());
+        PaxosLearner learner = PaxosLearnerImpl.newLearner(
+                ImmutablePaxosStorageParameters.builder()
+                        .fileBasedLogDirectory(learnerLogDir.toString())
+                        .databaseNamespace(learnerNamespace)
+                        .build(),
+                PaxosKnowledgeEventRecorder.NO_OP);
 
         Path acceptorLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
-        PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(acceptorLogDir.toString());
+        String acceptorNamespace = String.format("%s!%s!acceptor", paxosUseCase.toString(), client);
+
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(
+                ImmutablePaxosStorageParameters.builder()
+                        .fileBasedLogDirectory(acceptorLogDir.toString())
+                        .databaseNamespace(acceptorNamespace)
+                        .build());
 
         PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
 

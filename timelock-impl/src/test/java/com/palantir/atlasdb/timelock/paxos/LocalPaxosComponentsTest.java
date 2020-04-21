@@ -58,6 +58,7 @@ public class LocalPaxosComponentsTest {
         logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
         paxosComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
                 logDirectory,
                 UUID.randomUUID());
     }

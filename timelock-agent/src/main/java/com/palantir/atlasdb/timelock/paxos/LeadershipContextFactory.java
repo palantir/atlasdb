@@ -54,7 +54,8 @@ public abstract class LeadershipContextFactory implements
     public LocalPaxosComponents components() {
         return new LocalPaxosComponents(
                 metrics(),
-                useCase().logDirectoryRelativeToDataDirectory(install().dataDirectory()),
+                useCase(),
+                install().dataDirectory(),
                 leaderUuid());
     }
 
