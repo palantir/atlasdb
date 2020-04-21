@@ -285,7 +285,7 @@ public abstract class TransactionManagers {
     @Value.Check
     protected void check() {
         Preconditions.checkState(!(runtimeConfigSupplier().isPresent() && runtimeConfig().isPresent()),
-                "Either Refreshable or Supplier of runtime config must be provided or none, but not both");
+                "Cannot provide both Refreshable and Supplier of runtime config");
     }
 
     /**
