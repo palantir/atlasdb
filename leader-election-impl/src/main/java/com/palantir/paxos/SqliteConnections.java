@@ -21,13 +21,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.function.Supplier;
 
-import com.google.common.base.Suppliers;
-
 /**
  * This class is responsible for creating Sqlite connections to an instance.
  * There should be one instance per timelock.
  */
-public class SqliteConnections {
+public final class SqliteConnections {
     private SqliteConnections() {
         // no
     }

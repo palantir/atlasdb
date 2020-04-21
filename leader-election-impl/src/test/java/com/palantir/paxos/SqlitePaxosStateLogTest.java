@@ -20,11 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +34,7 @@ public class SqlitePaxosStateLogTest {
     @Before
     public void setup() {
         Supplier<Connection> connectionSupplier = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
-        stateLog =  SqlitePaxosStateLog.createInitialized(connectionSupplier);
+        stateLog = SqlitePaxosStateLog.createInitialized(connectionSupplier);
     }
 
     @Test

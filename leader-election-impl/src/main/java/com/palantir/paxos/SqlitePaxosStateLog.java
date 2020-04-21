@@ -28,7 +28,7 @@ import com.google.common.io.ByteStreams;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
-public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
+public final class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private final Supplier<Connection> connectionSupplier;
 
     private SqlitePaxosStateLog(Supplier<Connection> connectionSupplier) {
@@ -61,7 +61,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
 
     @Override
     public byte[] readRound(long seq) {
-        return executeStatement(String.format("SELECT val FROM paxosLog WHERE seq = %s;", seq))
+        return executeStatement(String.format("SELECT val FROM paxosLog WHERE seq = %s", seq))
                 .map(SqlitePaxosStateLog::getByteArrayUnchecked)
                 .orElse(null);
     }

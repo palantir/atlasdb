@@ -18,11 +18,11 @@ package com.palantir.paxos;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,33 +31,34 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class MigrationPaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
-    private final static Logger log = LoggerFactory.getLogger(MigrationPaxosStateLog.class);
+public final class MigrationPaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
+    private static final Logger log = LoggerFactory.getLogger(MigrationPaxosStateLog.class);
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock(false);
     private final PaxosStateLog<V> legacyLog;
     private final PaxosStateLog<V> currentLog;
+    private final Persistable.Hydrator<V> hydrator;
 
-    private MigrationPaxosStateLog(PaxosStateLog<V> legacyLog, PaxosStateLog<V> currentLog) {
-        this.legacyLog = legacyLog;
-        this.currentLog = currentLog;
+    private MigrationPaxosStateLog(Settings<V> settings) {
+        this.legacyLog = settings.sourceOfTruth();
+        this.currentLog = settings.secondary();
+        this.hydrator = settings.hydrator();
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(PaxosStateLog<V> legacyLog,
-            PaxosStateLog<V> currentLog, Persistable.Hydrator<V> hydrator) {
-        runMigration(legacyLog, currentLog, hydrator);
-        return new MigrationPaxosStateLog<>(currentLog, legacyLog);
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(Settings<V> settings) {
+        seedCurrentFromLegacy(settings);
+        return new MigrationPaxosStateLog<>(settings);
     }
 
-    private static <V extends Persistable & Versionable> void runMigration(PaxosStateLog<V> legacyLog,
-            PaxosStateLog<V> currentLog, Persistable.Hydrator<V> hydrator) {
-        long leastSequence = legacyLog.getLeastLogEntry();
-        long greatestSequence = legacyLog.getGreatestLogEntry();
+    private static <V extends Persistable & Versionable> void seedCurrentFromLegacy(Settings<V> settings) {
+        PaxosStateLog<V> sourceOfTruth = settings.sourceOfTruth();
+        long leastSequence = sourceOfTruth.getLeastLogEntry();
+        long greatestSequence = sourceOfTruth.getGreatestLogEntry();
         for (long sequence = leastSequence; sequence <= greatestSequence; sequence++) {
             try {
-                byte[] bytes = legacyLog.readRound(sequence);
+                byte[] bytes = sourceOfTruth.readRound(sequence);
                 if (bytes != null) {
-                    currentLog.writeRound(sequence, hydrator.hydrateFromBytes(bytes));
+                    settings.secondary().writeRound(sequence, settings.hydrator().hydrateFromBytes(bytes));
                 }
             } catch (IOException e) {
                 log.error("Encountered exception while trying to read round {} from legacy log.",
@@ -89,8 +90,8 @@ public class MigrationPaxosStateLog<V extends Persistable & Versionable> impleme
                 log.error("Mismatch in reading round for sequence number {} between legacy and current "
                         + "implementations. Legacy result {}, current result {}.",
                         SafeArg.of("sequence", seq),
-                        UnsafeArg.of("legacy", hydratePaxosValue(legacyResult)),
-                        UnsafeArg.of("current", hydratePaxosValue(currentResult)));
+                        UnsafeArg.of("legacy", hydrator.hydrateFromBytes(legacyResult)),
+                        UnsafeArg.of("current", hydrator.hydrateFromBytes(currentResult)));
             }
             return legacyResult;
         } finally {
@@ -121,10 +122,6 @@ public class MigrationPaxosStateLog<V extends Persistable & Versionable> impleme
         }
     }
 
-    private static Optional<PaxosValue> hydratePaxosValue(byte[] bytes) {
-        return Optional.ofNullable(bytes).map(PaxosValue.BYTES_HYDRATOR::hydrateFromBytes);
-    }
-
     private long getExtremeLogEntry(Function<PaxosStateLog<V>, Long> extractor) {
         lock.readLock().lock();
         try {
@@ -140,5 +137,12 @@ public class MigrationPaxosStateLog<V extends Persistable & Versionable> impleme
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    @Value.Immutable
+    public interface Settings<V extends Persistable & Versionable> {
+        PaxosStateLog<V> sourceOfTruth();
+        PaxosStateLog<V> secondary();
+        Persistable.Hydrator<V> hydrator();
     }
 }
