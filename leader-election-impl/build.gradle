@@ -9,6 +9,7 @@ dependencies {
   compile group: "com.google.protobuf", name: "protobuf-java"
   compile group: "commons-io", name: "commons-io"
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  compile group: 'org.xerial', name: 'sqlite-jdbc'
 
   implementation group: 'com.palantir.common', name: 'streams'
 
