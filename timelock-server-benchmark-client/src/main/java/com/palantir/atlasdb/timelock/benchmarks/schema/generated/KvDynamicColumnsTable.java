@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -686,14 +687,27 @@ public final class KvDynamicColumnsTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<KvDynamicColumnsRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvDynamicColumnsRowResult::of)));
+        return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                            .tableRef(tableRef)
+                            .rangeRequests(ranges)
+                            .rangeRequestOptimizer(this::optimizeRangeRequest)
+                            .concurrencyLevel(concurrencyLevel)
+                            .visitableProcessor((rangeRequest, visitable) ->
+                                    visitableProcessor.apply(rangeRequest,
+                                            BatchingVisitables.transform(visitable, KvDynamicColumnsRowResult::of)))
+                            .build());
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<KvDynamicColumnsRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvDynamicColumnsRowResult::of)));
+        return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                            .tableRef(tableRef)
+                            .rangeRequests(ranges)
+                            .rangeRequestOptimizer(this::optimizeRangeRequest)
+                            .visitableProcessor((rangeRequest, visitable) ->
+                                    visitableProcessor.apply(rangeRequest,
+                                            BatchingVisitables.transform(visitable, KvDynamicColumnsRowResult::of)))
+                            .build());
     }
 
     public Stream<BatchingVisitable<KvDynamicColumnsRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -776,6 +790,7 @@ public final class KvDynamicColumnsTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -818,5 +833,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3/12MNoh2MYjeLZ49CGDFQ==";
+    static String __CLASS_HASH = "AUHX2d91IINW6dxAajKwcA==";
 }
