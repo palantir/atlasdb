@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -36,6 +37,7 @@ final class ConfigRefreshable implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigRefreshable.class);
     private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(1);
+    private static final Duration GRACEFUL_SHUTDOWN = Duration.ofSeconds(5);
 
     private final Refreshable<Optional<AtlasDbRuntimeConfig>> delegate;
     private final Runnable closer;
@@ -79,7 +81,12 @@ final class ConfigRefreshable implements AutoCloseable {
                 REFRESH_INTERVAL.toNanos(),
                 TimeUnit.NANOSECONDS);
 
-        return new ConfigRefreshable(refreshable, executor::shutdown);
+        return new ConfigRefreshable(refreshable, () -> {
+            if (!MoreExecutors.shutdownAndAwaitTermination(
+                    executor, GRACEFUL_SHUTDOWN.toMillis(), TimeUnit.MILLISECONDS)) {
+                log.error("Executor did not terminate within graceful shutdown duration");
+            }
+        });
     }
 
     private static <T> T call(Supplier<T> callable) {
