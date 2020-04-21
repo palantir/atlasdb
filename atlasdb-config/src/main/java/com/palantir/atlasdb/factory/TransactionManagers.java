@@ -299,7 +299,7 @@ public abstract class TransactionManagers {
     @Value.Check
     protected void check() {
         Preconditions.checkState(runtimeConfigSupplier().isPresent() ^ runtimeConfig().isPresent(),
-                "Either Refreshable or Supplier of runtime config must be provide, but not both");
+                "Either Refreshable or Supplier of runtime config must be provided, but not both");
     }
 
     /**
@@ -333,7 +333,6 @@ public abstract class TransactionManagers {
     @Value.Lazy
     public TransactionManager serializable() {
         List<AutoCloseable> closeables = Lists.newArrayList();
-
 
         try {
             return serializableInternal(closeables);
