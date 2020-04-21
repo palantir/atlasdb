@@ -81,7 +81,7 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
                 transactionManagerContext.transactionManager(),
                 TABLE_REFERENCE,
                 transactionManagerContext.install(),
-                transactionManagerContext.runtimeSupplier(),
+                transactionManagerContext.runtime(),
                 diagnosticCollector);
     }
 
