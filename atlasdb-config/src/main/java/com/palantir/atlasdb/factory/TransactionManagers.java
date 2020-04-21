@@ -345,17 +345,10 @@ public abstract class TransactionManagers {
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
 
-        AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        ConfigRefreshable configRefreshable = initializeCloseable(() -> runtimeConfig()
-                .map(ConfigRefreshable::wrap)
-                .orElseGet(() -> {
-                    Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfig = runtimeConfigSupplier()
-                            .orElse(Optional::empty);
-                    return ConfigRefreshable.createPolling(runtimeConfig);
-                }), closeables);
+        AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
+                () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
-        Refreshable<AtlasDbRuntimeConfig> runtime = configRefreshable.refreshable()
-                .map(config -> config.orElse(defaultRuntime));
+        Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -489,7 +482,7 @@ public abstract class TransactionManagers {
                         conflictTracer),
                 closeables);
 
-        transactionManager.registerClosingCallback(configRefreshable::close);
+        transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
         transactionManager.registerClosingCallback(lockAndTimestampServices.close());
         transactionManager.registerClosingCallback(transactionService::close);

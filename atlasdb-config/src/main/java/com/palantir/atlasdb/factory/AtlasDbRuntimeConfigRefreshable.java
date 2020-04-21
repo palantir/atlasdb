@@ -33,23 +33,24 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.DefaultRefreshable;
 import com.palantir.refreshable.Refreshable;
 
-final class ConfigRefreshable implements AutoCloseable {
+final class AtlasDbRuntimeConfigRefreshable implements AutoCloseable {
 
-    private static final Logger log = LoggerFactory.getLogger(ConfigRefreshable.class);
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbRuntimeConfigRefreshable.class);
     private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(1);
     private static final Duration GRACEFUL_SHUTDOWN = Duration.ofSeconds(5);
+    private static final AtlasDbRuntimeConfig DEFAULT_RUNTIME = AtlasDbRuntimeConfig.defaultRuntimeConfig();
 
-    private final Refreshable<Optional<AtlasDbRuntimeConfig>> delegate;
+    private final Refreshable<AtlasDbRuntimeConfig> delegate;
     private final Runnable closer;
 
-    private ConfigRefreshable(
+    private AtlasDbRuntimeConfigRefreshable(
             Refreshable<Optional<AtlasDbRuntimeConfig>> delegate,
             Runnable closer) {
-        this.delegate = delegate;
+        this.delegate = delegate.map(config -> config.orElse(DEFAULT_RUNTIME));
         this.closer = closer;
     }
 
-    public Refreshable<Optional<AtlasDbRuntimeConfig>> refreshable() {
+    public Refreshable<AtlasDbRuntimeConfig> config() {
         return delegate;
     }
 
@@ -58,13 +59,23 @@ final class ConfigRefreshable implements AutoCloseable {
         closer.run();
     }
 
-    static ConfigRefreshable wrap(Refreshable<Optional<AtlasDbRuntimeConfig>> delegate) {
-        return new ConfigRefreshable(delegate, () -> {
+    static AtlasDbRuntimeConfigRefreshable create(TransactionManagers builder) {
+        return builder.runtimeConfig()
+                .map(AtlasDbRuntimeConfigRefreshable::wrap)
+                .orElseGet(() -> {
+                    Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfig = builder.runtimeConfigSupplier()
+                            .orElse(Optional::empty);
+                    return AtlasDbRuntimeConfigRefreshable.createPolling(runtimeConfig);
+                });
+    }
+
+    private static AtlasDbRuntimeConfigRefreshable wrap(Refreshable<Optional<AtlasDbRuntimeConfig>> delegate) {
+        return new AtlasDbRuntimeConfigRefreshable(delegate, () -> {
         });
     }
 
     @SuppressWarnings("FutureReturnValueIgnored")
-    static ConfigRefreshable createPolling(Supplier<Optional<AtlasDbRuntimeConfig>> config) {
+    private static AtlasDbRuntimeConfigRefreshable createPolling(Supplier<Optional<AtlasDbRuntimeConfig>> config) {
         DefaultRefreshable<Optional<AtlasDbRuntimeConfig>> refreshable = new DefaultRefreshable<>(call(config));
 
         ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
@@ -81,7 +92,7 @@ final class ConfigRefreshable implements AutoCloseable {
                 REFRESH_INTERVAL.toNanos(),
                 TimeUnit.NANOSECONDS);
 
-        return new ConfigRefreshable(refreshable, () -> {
+        return new AtlasDbRuntimeConfigRefreshable(refreshable, () -> {
             if (!MoreExecutors.shutdownAndAwaitTermination(
                     executor, GRACEFUL_SHUTDOWN.toMillis(), TimeUnit.MILLISECONDS)) {
                 log.error("Executor did not terminate within graceful shutdown duration");
