@@ -55,7 +55,8 @@ public abstract class LeadershipContextFactory implements
         return new LocalPaxosComponents(
                 metrics(),
                 useCase().logDirectoryRelativeToDataDirectory(install().dataDirectory()),
-                leaderUuid());
+                leaderUuid(),
+                install().install().paxos().canCreateNewClients());
     }
 
     @Value.Derived
