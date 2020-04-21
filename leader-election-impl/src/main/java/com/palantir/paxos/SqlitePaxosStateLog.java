@@ -30,27 +30,35 @@ import com.palantir.common.persist.Persistable;
 
 public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private final Supplier<Connection> connectionSupplier;
+    private final String logNamespace;
 
-    private SqlitePaxosStateLog(Supplier<Connection> connectionSupplier) {
+    private SqlitePaxosStateLog(Supplier<Connection> connectionSupplier, String logNamespace) {
         this.connectionSupplier = connectionSupplier;
+        this.logNamespace = logNamespace;
     }
 
     // todo(gmaretic): add support for use cases by using separate tables
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> createInitialized(Supplier<Connection> conn) {
-        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(conn);
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> createInitialized(
+            Supplier<Connection> conn,
+            String logNamespace) {
+        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(conn, logNamespace);
         log.initialize();
         return log;
     }
 
     private void initialize() {
-        executeVoid("CREATE TABLE IF NOT EXISTS paxosLog (seq BIGINT, val BLOB, CONSTRAINT pk_dual PRIMARY KEY (seq))");
+        executeVoid(
+                String.format(
+                        "CREATE TABLE IF NOT EXISTS %s (seq BIGINT, val BLOB, CONSTRAINT pk_%s PRIMARY KEY (seq))",
+                        logNamespace,
+                        logNamespace));
     }
 
     @Override
     public void writeRound(long seq, V round) {
         try {
             PreparedStatement preparedStatement = connectionSupplier.get().prepareStatement(
-                    "INSERT OR REPLACE INTO paxosLog (seq, val) VALUES (?, ?)");
+                    String.format("INSERT OR REPLACE INTO %s (seq, val) VALUES (?, ?)", logNamespace));
             preparedStatement.setLong(1, seq);
             preparedStatement.setBytes(2, round.persistToBytes());
             preparedStatement.execute();
@@ -61,28 +69,28 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
 
     @Override
     public byte[] readRound(long seq) {
-        return executeStatement(String.format("SELECT val FROM paxosLog WHERE seq = %s;", seq))
+        return executeStatement(String.format("SELECT val FROM %s WHERE seq = %s;", logNamespace, seq))
                 .map(SqlitePaxosStateLog::getByteArrayUnchecked)
                 .orElse(null);
     }
 
     @Override
     public long getLeastLogEntry() {
-        return executeStatement("SELECT MIN(seq) FROM paxosLog")
+        return executeStatement(String.format("SELECT MIN(seq) FROM %s", logNamespace))
                 .map(SqlitePaxosStateLog::getLongResultUnchecked)
                 .orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return executeStatement("SELECT MAX(seq) FROM paxosLog")
+        return executeStatement(String.format("SELECT MAX(seq) FROM %s", logNamespace))
                 .map(SqlitePaxosStateLog::getLongResultUnchecked)
                 .orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public void truncate(long toDeleteInclusive) {
-        executeVoid(String.format("DELETE FROM paxosLog WHERE seq <= %s", toDeleteInclusive));
+        executeVoid(String.format("DELETE FROM %s WHERE seq <= %s", logNamespace, toDeleteInclusive));
     }
 
     private void executeVoid(String statement) {
