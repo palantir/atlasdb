@@ -16,29 +16,82 @@
 
 package com.palantir.paxos;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.IOException;
 import java.sql.Connection;
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
-import org.assertj.core.api.Assertions;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
-public class SqlitePaxosStateLogTest {
-    private final Supplier<Connection> connectionSupplier = Sqlites.createDatabaseForTests();
-    private final SqlitePaxosStateLog<PaxosValue> stateLog = new SqlitePaxosStateLog<>(connectionSupplier);
+import com.google.common.base.Suppliers;
 
-    @Test
-    public void readingThrows() {
-        System.out.println(Arrays.toString(stateLog.readRound(32)));
+public class SqlitePaxosStateLogTest {
+    private PaxosStateLog<PaxosValue> stateLog;
+
+    @Before
+    public void setup() {
+        Supplier<Connection> connectionSupplier = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
+        stateLog =  SqlitePaxosStateLog.createInitialized(connectionSupplier);
     }
 
     @Test
-    public void canWriteAValue() {
-        PaxosValue paxosValue = new PaxosValue("leader", 25, new byte[] {0});
-        stateLog.writeRound(12, paxosValue);
-        Assertions.assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(12)))
-                .isEqualTo(paxosValue);
+    public void readingNonExistentRoundReturnsNull() throws IOException {
+        assertThat(stateLog.readRound(10L)).isNull();
+    }
+
+    @Test
+    public void canWriteAndRetrieveAValue() throws IOException {
+        long round = 12L;
+        PaxosValue paxosValue = writeValueForRound(round);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round))).isEqualTo(paxosValue);
+    }
+
+    @Test
+    public void returnsDefaultValueForExtremesWhenNoEntries() {
+        assertThat(stateLog.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+        assertThat(stateLog.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void canGetGreatestLogEntry() {
+        writeValueForRound(15L);
+        writeValueForRound(19L);
+        writeValueForRound(17L);
+
+        assertThat(stateLog.getGreatestLogEntry()).isEqualTo(19L);
+    }
+
+    @Test
+    public void canGetLeastLogEntry() {
+        writeValueForRound(7L);
+        writeValueForRound(5L);
+        writeValueForRound(9L);
+
+        assertThat(stateLog.getLeastLogEntry()).isEqualTo(5L);
+    }
+
+    @Test
+    public void canTruncateInclusive() {
+        writeValueForRound(5L);
+        writeValueForRound(7L);
+        writeValueForRound(9L);
+
+        stateLog.truncate(7L);
+        assertThat(stateLog.getLeastLogEntry()).isEqualTo(9L);
+    }
+
+    private PaxosValue writeValueForRound(long round) {
+        PaxosValue paxosValue = valueForRound(round);
+        stateLog.writeRound(round, paxosValue);
+        return paxosValue;
+    }
+
+    private static PaxosValue valueForRound(long round) {
+        byte[] bytes = new byte[16];
+        ThreadLocalRandom.current().nextBytes(bytes);
+        return new PaxosValue("someLeader", round, bytes);
     }
 }

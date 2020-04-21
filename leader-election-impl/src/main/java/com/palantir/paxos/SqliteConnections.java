@@ -27,17 +27,16 @@ import com.google.common.base.Suppliers;
  * This class is responsible for creating Sqlite connections to an instance.
  * There should be one instance per timelock.
  */
-public class Sqlites {
-    private Sqlites() {
+public class SqliteConnections {
+    private SqliteConnections() {
         // no
     }
 
-    public static Supplier<Connection> createDatabaseForTests() {
-        Supplier<Connection> memoized = Suppliers.memoize(createSqliteDatabase(":memory:")::get);
-        return memoized;
+    public static Supplier<Connection> createDatabaseForTest() {
+        return createSqliteDatabase(":memory:");
     }
 
-    public static Supplier<Connection> createSqliteDatabase(String path) {
+    private static Supplier<Connection> createSqliteDatabase(String path) {
         String target = String.format("jdbc:sqlite:%s", path);
         return () -> {
             try {
