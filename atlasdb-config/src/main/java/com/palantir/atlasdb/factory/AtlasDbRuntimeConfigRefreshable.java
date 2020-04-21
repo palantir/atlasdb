@@ -85,7 +85,7 @@ final class AtlasDbRuntimeConfigRefreshable implements AutoCloseable {
                         refreshable.update(config.get());
                     } catch (Throwable e) {
                         // This should not occur in practice
-                        log.error("Failed to load runtime config", e);
+                        log.error("Failed to reload runtime config", e);
                     }
                 },
                 REFRESH_INTERVAL.toNanos(),
