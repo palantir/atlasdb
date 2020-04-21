@@ -35,6 +35,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
         this.connectionSupplier = connectionSupplier;
     }
 
+    // todo(gmaretic): add support for use cases by using separate tables
     public static <V extends Persistable & Versionable> PaxosStateLog<V> createInitialized(Supplier<Connection> conn) {
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(conn);
         log.initialize();
@@ -49,7 +50,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
     public void writeRound(long seq, V round) {
         try {
             PreparedStatement preparedStatement = connectionSupplier.get().prepareStatement(
-                    "INSERT INTO paxosLog (seq, val) VALUES (?, ?)");
+                    "INSERT OR REPLACE INTO paxosLog (seq, val) VALUES (?, ?)");
             preparedStatement.setLong(1, seq);
             preparedStatement.setBytes(2, round.persistToBytes());
             preparedStatement.execute();

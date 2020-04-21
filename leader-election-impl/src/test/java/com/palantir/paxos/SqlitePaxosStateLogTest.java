@@ -20,8 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +50,13 @@ public class SqlitePaxosStateLogTest {
         long round = 12L;
         PaxosValue paxosValue = writeValueForRound(round);
         assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round))).isEqualTo(paxosValue);
+    }
+
+    @Test
+    public void canOverwriteSequences() throws IOException {
+        writeValueForRound(5L);
+        PaxosValue newEntry = writeValueForRound(5L);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L))).isEqualTo(newEntry);
     }
 
     @Test
