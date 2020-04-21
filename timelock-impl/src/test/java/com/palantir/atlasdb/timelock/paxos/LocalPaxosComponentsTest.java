@@ -94,6 +94,7 @@ public class LocalPaxosComponentsTest {
     public void newClientCannotBeCreatedIfCreatingClientsIsNotPermitted() {
         LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
                 logDirectory,
                 UUID.randomUUID(),
                 false);
@@ -108,6 +109,7 @@ public class LocalPaxosComponentsTest {
         paxosComponents.learner(CLIENT);
         LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
                 logDirectory,
                 UUID.randomUUID(),
                 false);
