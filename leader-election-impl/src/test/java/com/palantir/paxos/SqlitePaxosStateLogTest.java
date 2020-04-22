@@ -19,22 +19,19 @@ package com.palantir.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Supplier;
 
+import org.jdbi.v3.core.Jdbi;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Suppliers;
-
 public class SqlitePaxosStateLogTest {
+    private Jdbi jdbi = Jdbi.create(SqliteConnections.createDatabaseForTest().get());
     private PaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
-        Supplier<Connection> connectionSupplier = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
-        stateLog = SqlitePaxosStateLog.createInitialized(connectionSupplier);
+        stateLog = SqlitePaxosStateLog.create("test", jdbi);
     }
 
     @Test
