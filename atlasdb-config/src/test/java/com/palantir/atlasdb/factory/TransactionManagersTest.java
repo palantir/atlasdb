@@ -120,6 +120,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -218,6 +219,24 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void cannotProvideRuntimeConfigTwice() {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+        assertThatThrownBy(() ->
+                TransactionManagers.builder()
+                        .config(atlasDbConfig)
+                        .userAgent(USER_AGENT)
+                        .globalMetricsRegistry(new MetricRegistry())
+                        .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                        .registrar(environment)
+                        .runtimeConfig(Refreshable.only(Optional.empty()))
+                        .runtimeConfigSupplier(Optional::empty)
+                        .build())
+                .hasMessage("Cannot provide both Refreshable and Supplier of runtime config");
+    }
+
+    @Test
     public void userAgentsPresentOnRequestsToRemoteTimestampAndLockServices() {
         setUpRemoteTimestampAndLockBlocksInConfig();
 
@@ -294,7 +313,7 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        () -> runtimeConfig,
+                        Refreshable.only(runtimeConfig),
                         environment,
                         lockServiceSupplier,
                         () -> ts,
@@ -745,7 +764,7 @@ public class TransactionManagersTest {
         return TransactionManagers.createLockAndTimestampServices(
                 metricsManager,
                 config,
-                () -> runtimeConfig,
+                Refreshable.only(runtimeConfig),
                 environment,
                 LockServiceImpl::create,
                 () -> ts,
@@ -764,7 +783,7 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        () -> runtimeConfig,
+                        Refreshable.only(runtimeConfig),
                         environment,
                         LockServiceImpl::create,
                         () -> ts,
