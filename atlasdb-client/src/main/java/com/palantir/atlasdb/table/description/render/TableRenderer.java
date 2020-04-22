@@ -103,6 +103,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -918,14 +919,27 @@ public class TableRenderer {
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               int concurrencyLevel,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,");
-                line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
+                line("return t.getRanges(ImmutableGetRangesQuery.<T>builder()");
+                line("                    .tableRef(tableRef)");
+                line("                    .rangeRequests(ranges)");
+                line("                    .rangeRequestOptimizer(this::optimizeRangeRequest)");
+                line("                    .concurrencyLevel(concurrencyLevel)");
+                line("                    .visitableProcessor((rangeRequest, visitable) ->");
+                line("                            visitableProcessor.apply(rangeRequest,");
+                line("                                    BatchingVisitables.transform(visitable, ", RowResult, "::of)))");
+                line("                    .build());");
             } line("}");
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, optimizeRangeRequests(ranges),");
-                line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
+                line("return t.getRanges(ImmutableGetRangesQuery.<T>builder()");
+                line("                    .tableRef(tableRef)");
+                line("                    .rangeRequests(ranges)");
+                line("                    .rangeRequestOptimizer(this::optimizeRangeRequest)");
+                line("                    .visitableProcessor((rangeRequest, visitable) ->");
+                line("                            visitableProcessor.apply(rangeRequest,");
+                line("                                    BatchingVisitables.transform(visitable, ", RowResult, "::of)))");
+                line("                    .build());");
             } line("}");
             line();
             line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
@@ -1322,7 +1336,8 @@ public class TableRenderer {
         BatchColumnRangeSelection.class,
         ColumnRangeSelections.class,
         ColumnRangeSelection.class,
-        Iterators.class
+        Iterators.class,
+        ImmutableGetRangesQuery.class,
     };
 }
 
