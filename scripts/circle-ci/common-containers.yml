@@ -1,5 +1,5 @@
 cassandra3:
-  image: palantirtechnologies/cassandra:3.11.6-pt-2.0.0-rc18
+  image: palantirtechnologies/cassandra:3.11.6-pt-2.0.0-rc19
 
 postgres:
   image: postgres:9.6-alpine
