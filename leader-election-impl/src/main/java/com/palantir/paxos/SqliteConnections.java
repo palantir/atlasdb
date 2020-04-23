@@ -34,6 +34,10 @@ public final class SqliteConnections {
         return createSqliteDatabase(":memory:");
     }
 
+    public static Supplier<Connection> createOnDisk() {
+        return createSqliteDatabase("/tmp/test.db");
+    }
+
     private static Supplier<Connection> createSqliteDatabase(String path) {
         String target = String.format("jdbc:sqlite:%s", path);
         return () -> {

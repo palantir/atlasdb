@@ -24,7 +24,6 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -33,9 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Streams;
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
