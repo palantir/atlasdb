@@ -22,21 +22,28 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Streams;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.common.persist.Persistable;
+import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
     private static final String LOG_NAMESPACE_1 = "tom";
     private static final String LOG_NAMESPACE_2 = "two";
 
     private Supplier<Connection> connSupplier;
-    private PaxosStateLog<PaxosValue> stateLog;
+    private SqlitePaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
@@ -45,15 +52,28 @@ public class SqlitePaxosStateLogTest {
     }
 
     @Test
-    public void readingNonExistentRoundReturnsNull() throws IOException {
+    public void readingNonExistentRoundReturnsNull() {
         assertThat(stateLog.readRound(10L)).isNull();
     }
 
     @Test
-    public void canWriteAndRetrieveAValue() throws IOException {
+    public void canWriteAndRetrieveAValue() {
         long round = 12L;
         PaxosValue paxosValue = writeValueForRound(round);
         assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round))).isEqualTo(paxosValue);
+    }
+
+    @Test
+    public void canWriteAndRetrieveBatch() {
+        List<PaxosRound<PaxosValue>> inputs = KeyedStream.of(
+                LongStream.rangeClosed(5L, 10L).boxed())
+                .map(SqlitePaxosStateLogTest::valueForRound)
+                .map((a, b) -> ImmutablePaxosRound.<PaxosValue>builder().sequence(a).value(b).build()).values()
+                .collect(Collectors.toList());
+        stateLog.writeBatchOfRounds(inputs);
+        inputs.forEach(round ->
+                assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round.sequence())))
+                        .isEqualTo(round.value()));
     }
 
     @Test

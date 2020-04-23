@@ -16,6 +16,8 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 import com.palantir.common.persist.Persistable;
 
@@ -32,6 +34,10 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
      * @param round the round in question
      */
     void writeRound(long seq, V round);
+
+    default void writeBatchOfRounds(Collection<PaxosRound<V>> rounds) {
+        rounds.forEach(round -> writeRound(round.sequence(), round.value()));
+    }
 
     /**
      * Retrieves the round corresponding to the given sequence from disk.

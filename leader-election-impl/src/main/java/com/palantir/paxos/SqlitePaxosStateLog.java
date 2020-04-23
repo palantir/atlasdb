@@ -17,15 +17,19 @@
 package com.palantir.paxos;
 
 import java.sql.Connection;
+import java.util.Collection;
 import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SingleValue;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.customizer.Define;
+import org.jdbi.v3.sqlobject.statement.SqlBatch;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
@@ -40,9 +44,10 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
         this.jdbi = jdbi;
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(String namespace,
+    public static <V extends Persistable & Versionable> SqlitePaxosStateLog<V> create(String namespace,
             Supplier<Connection> connectionSupplier) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+        jdbi.getConfig(JdbiImmutables.class).registerImmutable(PaxosRound.class);
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespace, jdbi);
         log.initialize();
         return log;
@@ -55,6 +60,11 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
     @Override
     public void writeRound(long seq, V round) {
         execute(dao -> dao.writeRound(namespace, seq, round.persistToBytes()));
+    }
+
+    @Override
+    public void writeBatchOfRounds(Collection<PaxosRound<V>> rounds) {
+        execute(dao -> dao.writeBatchOfRounds(namespace, rounds));
     }
 
     @Override
@@ -100,5 +110,9 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
 
         @SqlUpdate("DELETE FROM <table> WHERE seq <= :seq")
         boolean truncate(@Define("table") String table, @Bind("seq") long seq);
+
+        @SqlBatch("INSERT OR REPLACE INTO <table> (seq, val) VALUES (:round.sequence, :round.valueBytes)")
+        <V extends Persistable & Versionable> boolean[] writeBatchOfRounds(@Define("table") String table,
+                @BindPojo("round") Collection<PaxosRound<V>> rounds);
     }
 }
