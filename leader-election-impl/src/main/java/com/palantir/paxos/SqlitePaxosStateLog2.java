@@ -95,7 +95,7 @@ public final class SqlitePaxosStateLog2<V extends Persistable & Versionable> imp
         @SqlUpdate("CREATE TABLE IF NOT EXISTS tab (seq BIGINT, sec TEXT, val BLOB, PRIMARY KEY (sec, seq))")
         boolean createTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO tab (seq, val) VALUES (:seq, :sec, :value)")
+        @SqlUpdate("INSERT OR REPLACE INTO tab (seq, sec, val) VALUES (:seq, :sec, :value)")
         boolean writeRound(@Bind("seq") long seq, @Bind("sec") String sec, @Bind("value") byte[] value);
 
         @SqlQuery("SELECT val FROM tab WHERE seq = :seq AND sec = :sec")

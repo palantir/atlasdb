@@ -75,51 +75,61 @@ public class SqliteBenchmarkThrowaway {
 
 
     /**
-     * one table, additional columns 1M * 5 entries
-     * PT0.015S
-     * PT0.165S
-     * PT0.002S
-     * PT0.139S
-     * PT8.952S
-     *
-     * PT0.016S
-     * PT0.188S
-     * PT0.002S
-     * PT0.146S
-     * PT9.704S
-     *
      * one table, additional columns 50M entries
-     * PT0.013S
-     * PT0.145S
-     * PT0.002S
-     * PT0.122S
-     * PT9.304S
+     * 100 min PT0.145S
+     * 100 max PT0.122S
+     * 10K reads PT9.304S
      *
-     * 5 tables, each 1M entries
-     * PT0.014S
-     * PT0.158S
-     * PT0.002S
-     * PT0.171S
-     * PT9.8S
+     * 100 min PT0.152S
+     * 100 max PT0.108S
+     * 10K reads PT9.003S
+     * DB size 3_918_503_936
      *
-     * PT0.022S
-     * PT0.203S
-     * PT0.004S
-     * PT0.167S
-     * PT11.119S
+     * 100 min PT0.141S
+     * 100 max PT0.121S
+     * 10K reads PT9.422S
+     * DB size 3_918_503_936
+     *
+     * 100 min PT0.13S
+     * 100 max PT0.087S
+     * 10K reads PT9.95S
+     * 10K reads PT8.887S
+     * 10K reads PT9.165S
+     * 10K reads PT9.248S
+     * 10K reads PT10.314S
+     * 10K new writes PT17.186S
+     * 10K new writes PT18.015S
+     * 10K new writes PT18.625S
+     * 10K new writes PT18.316S
+     * 10K new writes PT18.546S
+     * 10K overwrites PT19.952S
+     * 10K overwrites PT19.485S
+     * 10K overwrites PT19.658S
+     * 10K overwrites PT19.858S
+     * 10K overwrites PT18.488S
      *
      * 5 tables, each 10M entries
-     * PT0.015S
-     * PT0.148S
-     * PT0.002S
-     * PT0.126S
-     * PT9.417S
+     * 100 min PT0.148S
+     * 100 max PT0.126S
+     * 10K reads PT9.417S
+     *
+     * 100 min PT0.143S
+     * 100 max PT0.127S
+     * 10K reads PT9.836S
+     * DB size 3_113_611_264
+     *
+     * 100 min PT0.179S
+     * 100 max PT0.135S
+     * 10K reads PT8.621S
+     * 20K writes PT53.3S
+     * DB size 3_114_942_464
+     *
      * @throws IOException
      */
     @Test
     public void test2() throws IOException {
         List<PaxosStateLog<PaxosValue>> logs = Stream.of("gera", "ghretwh", "erthw", "btwrhb", "bnrtwhnw")
-                .map(x -> SqlitePaxosStateLog2.<PaxosValue>create(x, connectionSupplier))
+                .map(x -> SqlitePaxosStateLog.<PaxosValue>create(x, connectionSupplier))
                 .collect(Collectors.toList());
 
         for(int i = 0; i < 200; i++) {
@@ -132,26 +142,44 @@ public class SqliteBenchmarkThrowaway {
         }
 
         Instant startTime = Instant.now();
-        stateLog.getLeastLogEntry();
-        System.out.println(Duration.between(startTime, Instant.now()));
-        startTime = Instant.now();
         for (int i = 0; i < 100; i++) {
             logs.get(i % 5).getLeastLogEntry();
         }
-        System.out.println(Duration.between(startTime, Instant.now()));
-        startTime = Instant.now();
-        stateLog.getGreatestLogEntry();
-        System.out.println(Duration.between(startTime, Instant.now()));
+        System.out.println("     * 100 min " + Duration.between(startTime, Instant.now()));
         startTime = Instant.now();
         for (int i = 0; i < 100; i++) {
             logs.get(i % 5).getGreatestLogEntry();
         }
-        System.out.println(Duration.between(startTime, Instant.now()));
-        startTime = Instant.now();
-        for (long i = 9_990_000; i < 10_000_000; i++) {
-            logs.get((int) i % 5).readRound(i);
+        System.out.println("     * 100 max " + Duration.between(startTime, Instant.now()));
+        for (int j = 0; j < 5; j++) {
+            startTime = Instant.now();
+            for (long i = 1_000_000 + j; i < 10_000_000; i += 800) {
+                logs.get((int) i % 5).readRound(i);
+            }
+            System.out.println("     * 10K reads " + Duration.between(startTime, Instant.now()));
         }
-        System.out.println(Duration.between(startTime, Instant.now()));
+        for (int j = 0; j < 5; j++) {
+            List<PaxosRound<PaxosValue>> finalRounds = KeyedStream.of(
+                    LongStream.rangeClosed(10_000_000 + 10_000 * j, 10_010_000 + 10_000 * j).boxed())
+                    .map(SqliteBenchmarkThrowaway::valueForRound)
+                    .map((a, b) -> ImmutablePaxosRound.<PaxosValue>builder().sequence(a).value(b).build()).values()
+                    .collect(Collectors.toList());
+            startTime = Instant.now();
+            finalRounds.forEach(
+                    round -> logs.get((int) round.sequence() % 5).writeRound(round.sequence(), round.value()));
+            System.out.println("     * 10K new writes " + Duration.between(startTime, Instant.now()));
+        }
+        for (int j = 0; j < 5; j++) {
+            List<PaxosRound<PaxosValue>> finalRounds = KeyedStream.of(
+                    LongStream.rangeClosed(1_000_000 + 10_000 * j, 1_010_000 + 10_000 * j).boxed())
+                    .map(SqliteBenchmarkThrowaway::valueForRound)
+                    .map((a, b) -> ImmutablePaxosRound.<PaxosValue>builder().sequence(a).value(b).build()).values()
+                    .collect(Collectors.toList());
+            startTime = Instant.now();
+            finalRounds.forEach(
+                    round -> logs.get((int) round.sequence() % 5).writeRound(round.sequence(), round.value()));
+            System.out.println("     * 10K overwrites " + Duration.between(startTime, Instant.now()));
+        }
     }
 
     @Test
