@@ -74,12 +74,12 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
 
     @Override
     public long getLeastLogEntry() {
-        return execute(x -> x.getLeastLogEntry(namespace)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return execute(dao -> dao.getLeastLogEntry(namespace)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return execute(x -> x.getGreatestLogEntry(namespace)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return execute(dao -> dao.getGreatestLogEntry(namespace)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override

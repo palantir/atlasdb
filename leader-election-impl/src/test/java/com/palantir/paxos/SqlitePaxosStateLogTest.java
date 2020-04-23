@@ -162,6 +162,11 @@ public class SqlitePaxosStateLogTest {
                 connectionSupplier::get);
     }
 
+    /**
+     * JDBI closes the connection after executing a query. This is desired behaviour, but does not play nicely with in
+     * memory sqlite as we cannot recreate a connection to the same in memory instance, so we use this to keep the
+     * connection open instead in tests.
+     */
     private static final class CloseIgnoringInvocationHandler extends AbstractInvocationHandler {
         private final Connection delegate;
 
