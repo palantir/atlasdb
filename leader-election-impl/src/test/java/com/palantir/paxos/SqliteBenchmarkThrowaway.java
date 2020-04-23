@@ -124,6 +124,24 @@ public class SqliteBenchmarkThrowaway {
      * 20K writes PT53.3S
      * DB size 3_114_942_464
      *
+     * 100 min PT0.129S
+     * 100 max PT0.092S
+     * 10K reads PT10.362S
+     * 10K reads PT9.395S
+     * 10K reads PT10.597S
+     * 10K reads PT12.24S
+     * 10K reads PT11.331S
+     * 10K new writes PT17.302S
+     * 10K new writes PT18.475S
+     * 10K new writes PT17.473S
+     * 10K new writes PT17.221S
+     * 10K new writes PT16.158S
+     * 10K overwrites PT18.02S
+     * 10K overwrites PT19.319S
+     * 10K overwrites PT20.462S
+     * 10K overwrites PT18.764S
+     * 10K overwrites PT18.371S
+     *
      * @throws IOException
      */
     @Test
