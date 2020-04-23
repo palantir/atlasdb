@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,15 +37,18 @@ public class SweepStatsKeyValueServiceTest {
     private static final TableReference TABLE = TableReference.createWithEmptyNamespace("table");
 
     private KeyValueService delegate = mock(KeyValueService.class);
+    private AtomicBoolean isSweepEnabled;
 
     private SweepStatsKeyValueService kvs;
 
     @Before
     public void before() {
+        isSweepEnabled = new AtomicBoolean(true);
         TimestampService timestampService = mock(TimestampService.class);
         kvs = SweepStatsKeyValueService.create(delegate, timestampService,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD
+                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD,
+                () -> isSweepEnabled.get()
         );
     }
 
@@ -62,6 +66,13 @@ public class SweepStatsKeyValueServiceTest {
     public void deleteRangeAllCountsAsClearingTheTable() throws Exception {
         kvs.deleteRange(TABLE, RangeRequest.all());
         assertTrue(kvs.hasBeenCleared(TABLE));
+    }
+
+    @Test
+    public void testDisabled() {
+        isSweepEnabled.set(false);
+        kvs.deleteRange(TABLE, RangeRequest.all());
+        assertFalse(kvs.hasBeenCleared(TABLE));
     }
 
     @Test
