@@ -19,19 +19,29 @@ package com.palantir.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
-import org.jdbi.v3.core.Jdbi;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Suppliers;
+import com.google.common.reflect.AbstractInvocationHandler;
+
 public class SqlitePaxosStateLogTest {
-    private Jdbi jdbi = Jdbi.create(SqliteConnections.createDatabaseForTest().get());
+    private static final String LOG_NAMESPACE_1 = "tom";
+    private static final String LOG_NAMESPACE_2 = "two";
+
+    private Supplier<Connection> connSupplier;
     private PaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
-        stateLog = SqlitePaxosStateLog.create("test", jdbi);
+        connSupplier = createReusableMemoizedConnection();
+        stateLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
     }
 
     @Test
@@ -88,6 +98,24 @@ public class SqlitePaxosStateLogTest {
         assertThat(stateLog.getLeastLogEntry()).isEqualTo(9L);
     }
 
+    @Test
+    public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_2, connSupplier);
+        writeValueForRound(1L);
+
+        assertThat(stateLog.readRound(1L)).isNotNull();
+        assertThat(otherLog.readRound(1L)).isNull();
+    }
+
+    @Test
+    public void differentLogsToTheSameNamespaceShareState() throws IOException {
+        PaxosStateLog<PaxosValue> otherLogWithSameNamespace = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
+        writeValueForRound(1L);
+
+        assertThat(stateLog.readRound(1L)).isNotNull();
+        assertThat(otherLogWithSameNamespace.readRound(1L)).isEqualTo(stateLog.readRound(1L));
+    }
+
     private PaxosValue writeValueForRound(long round) {
         PaxosValue paxosValue = valueForRound(round);
         stateLog.writeRound(round, paxosValue);
@@ -98,5 +126,35 @@ public class SqlitePaxosStateLogTest {
         byte[] bytes = new byte[16];
         ThreadLocalRandom.current().nextBytes(bytes);
         return new PaxosValue("someLeader", round, bytes);
+    }
+
+    private static Supplier<Connection> createReusableMemoizedConnection() {
+        Supplier<Connection> baseConnectionSupplier = SqliteConnections.createDatabaseForTest();
+        Supplier<Connection> nonClosingConnectionSupplier = bypassCloseOnConnection(baseConnectionSupplier);
+        return Suppliers.memoize(nonClosingConnectionSupplier::get);
+    }
+
+    private static Supplier<Connection> bypassCloseOnConnection(Supplier<Connection> connectionSupplier) {
+        return Suppliers.compose(conn ->
+                        (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                                new Class<?>[] {Connection.class},
+                                new CloseIgnoringInvocationHandler(conn)),
+                connectionSupplier::get);
+    }
+
+    private static final class CloseIgnoringInvocationHandler extends AbstractInvocationHandler {
+        private final Connection delegate;
+
+        private CloseIgnoringInvocationHandler(Connection delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+            if (method.getName().equals("close")) {
+                return null;
+            }
+            return method.invoke(delegate, args);
+        }
     }
 }

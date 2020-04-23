@@ -42,11 +42,8 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> create(String namespace,
             Supplier<Connection> connectionSupplier) {
-        return create(namespace, Jdbi.create(connectionSupplier::get));
-    }
-
-    static <V extends Persistable & Versionable> PaxosStateLog<V> create(String namespace, Jdbi jdbi) {
-        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespace, jdbi.installPlugin(new SqlObjectPlugin()));
+        Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespace, jdbi);
         log.initialize();
         return log;
     }
