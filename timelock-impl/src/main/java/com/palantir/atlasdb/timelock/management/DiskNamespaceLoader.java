@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.management;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Set;
@@ -46,13 +47,16 @@ final class DiskNamespaceLoader {
     }
 
     private static Stream<String> getNamespacesFromUseCaseResolvedDirectory(Path logDirectory) {
-        if (logDirectory == null) {
+        if (Files.notExists(logDirectory)) {
             return Stream.of();
         }
         File[] directories = logDirectory.toFile().listFiles(File::isDirectory);
         if (directories == null) {
-            logger.error("Could not get file for the directory {}", SafeArg.of("dirName", logDirectory));
-            throw new IllegalStateException("No namespace exists for the directory : " + logDirectory);
+            logger.error("Namespace(s) cannot be read from directory : {}."
+                    + " Either the path does not denote a directory or an I/O error has occurred.",
+                    SafeArg.of("dirName", logDirectory));
+            throw new IllegalStateException("Failed to read directory : " + logDirectory +
+                    ". Either the path is invalid or an I/O error has occurred.");
         }
         return Arrays.stream(directories).map(File::getName);
     }
