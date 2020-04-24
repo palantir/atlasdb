@@ -345,7 +345,9 @@ import com.palantir.timestamp.TimestampService;
             }
 
             shutdownRunner.shutdownSafely(metricsManager::deregisterMetrics);
+            log.info("Close callbacks complete in snapshot transaction manager");
         }
+        log.info("Closed snapshot transaction manager without any errors");
     }
 
     private static void shutdownExecutor(ExecutorService executor) {
