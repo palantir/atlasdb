@@ -24,17 +24,25 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.google.common.base.Suppliers;
+import org.junit.rules.TemporaryFolder;
 
 public class SqlitePaxosStateLogTest {
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    private static final String LOG_NAMESPACE_1 = "tom";
+    private static final String LOG_NAMESPACE_2 = "two";
+
+    private Supplier<Connection> connSupplier;
     private PaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
-        Supplier<Connection> connectionSupplier = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
-        stateLog = SqlitePaxosStateLog.createInitialized(connectionSupplier);
+        connSupplier = SqliteConnections
+                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
+        stateLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
     }
 
     @Test
@@ -89,6 +97,24 @@ public class SqlitePaxosStateLogTest {
 
         stateLog.truncate(7L);
         assertThat(stateLog.getLeastLogEntry()).isEqualTo(9L);
+    }
+
+    @Test
+    public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_2, connSupplier);
+        writeValueForRound(1L);
+
+        assertThat(stateLog.readRound(1L)).isNotNull();
+        assertThat(otherLog.readRound(1L)).isNull();
+    }
+
+    @Test
+    public void differentLogsToTheSameNamespaceShareState() throws IOException {
+        PaxosStateLog<PaxosValue> otherLogWithSameNamespace = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
+        writeValueForRound(1L);
+
+        assertThat(stateLog.readRound(1L)).isNotNull();
+        assertThat(otherLogWithSameNamespace.readRound(1L)).isEqualTo(stateLog.readRound(1L));
     }
 
     private PaxosValue writeValueForRound(long round) {
