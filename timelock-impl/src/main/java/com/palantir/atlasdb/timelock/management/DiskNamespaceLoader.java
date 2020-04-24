@@ -23,12 +23,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.logsafe.SafeArg;
 
 final class DiskNamespaceLoader {
+    private static final Logger logger = LoggerFactory.getLogger(DiskNamespaceLoader.class);
     private final Path rootDataDirectory;
 
     DiskNamespaceLoader(Path rootDataDirectory) {
@@ -44,11 +46,13 @@ final class DiskNamespaceLoader {
     }
 
     private static Stream<String> getNamespacesFromUseCaseResolvedDirectory(Path logDirectory) {
+        if (logDirectory == null) {
+            return Stream.of();
+        }
         File[] directories = logDirectory.toFile().listFiles(File::isDirectory);
         if (directories == null) {
-            LoggerFactory.getLogger(DiskNamespaceLoader.class)
-                    .error("Could not get file for the directory {}", SafeArg.of("dirName", logDirectory));
-            return Stream.of();
+            logger.error("Could not get file for the directory {}", SafeArg.of("dirName", logDirectory));
+            throw new IllegalStateException("No namespace exists for the directory : " + logDirectory);
         }
         return Arrays.stream(directories).map(File::getName);
     }
