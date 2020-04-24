@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Allow timelock to be configured to prohibit new clients from being created (via setting `can-create-new-clients` to false). The operation of extracting all live clients is common in operational workflows.
+
+    Note that this configuration takes place on a node level. Thus, if there are clients where some nodes never participated in any quorum, then these nodes may reject requests made for these clients. The cluster will be able to service clients which a majority of nodes knew about before this configuration option was enabled.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4712

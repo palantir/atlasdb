@@ -11,6 +11,7 @@ dependencies {
 
     compile group: 'jakarta.validation', name: 'jakarta.validation-api'
     compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
+    compile group: 'com.palantir.refreshable', name: 'refreshable'
     compile group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
