@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.management;
 
 import java.io.File;
 import java.nio.file.Files;
-
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Set;
