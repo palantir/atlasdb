@@ -43,6 +43,7 @@ import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserProfileTable;
 import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStreamId;
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
+import com.palantir.refreshable.Refreshable;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -81,7 +82,7 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
                 transactionManagerContext.transactionManager(),
                 TABLE_REFERENCE,
                 transactionManagerContext.install(),
-                transactionManagerContext.runtimeSupplier(),
+                Refreshable.only(transactionManagerContext.runtime()),
                 diagnosticCollector);
     }
 

@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -709,6 +710,7 @@ public final class DataStreamIdxTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -751,5 +753,5 @@ public final class DataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NUj0DmGk8ykbS6AcfKq9gg==";
+    static String __CLASS_HASH = "ati1gIFTu2YisJnkFnewZQ==";
 }

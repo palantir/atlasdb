@@ -29,19 +29,19 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 
     private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
-
 
     public static PaxosLearner newLearner(String logDir) {
         return newLearner(logDir, PaxosKnowledgeEventRecorder.NO_OP);
     }
 
     public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
-        PaxosStateLogImpl<PaxosValue> log = new PaxosStateLogImpl<PaxosValue>(logDir);
-        ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<Long, PaxosValue>();
+        PaxosStateLogImpl<PaxosValue> log = new PaxosStateLogImpl<>(logDir);
+        ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<>();
 
         byte[] greatestValidValue = PaxosStateLogs.getGreatestValidLogEntry(log);
         if (greatestValidValue != null) {
@@ -50,6 +50,13 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         }
 
         return new PaxosLearnerImpl(state, log, eventRecorder);
+    }
+
+    public static PaxosLearner newLearner(
+            PaxosStorageParameters storageParameters, PaxosKnowledgeEventRecorder eventRecorder) {
+        String logDirectory = storageParameters.fileBasedLogDirectory()
+                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
+        return newLearner(logDirectory, eventRecorder);
     }
 
     final SortedMap<Long, PaxosValue> state;

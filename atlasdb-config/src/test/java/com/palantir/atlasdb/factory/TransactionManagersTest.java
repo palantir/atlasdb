@@ -219,6 +219,24 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void cannotProvideRuntimeConfigTwice() {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+        assertThatThrownBy(() ->
+                TransactionManagers.builder()
+                        .config(atlasDbConfig)
+                        .userAgent(USER_AGENT)
+                        .globalMetricsRegistry(new MetricRegistry())
+                        .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                        .registrar(environment)
+                        .runtimeConfig(Refreshable.only(Optional.empty()))
+                        .runtimeConfigSupplier(Optional::empty)
+                        .build())
+                .hasMessage("Cannot provide both Refreshable and Supplier of runtime config");
+    }
+
+    @Test
     public void userAgentsPresentOnRequestsToRemoteTimestampAndLockServices() {
         setUpRemoteTimestampAndLockBlocksInConfig();
 

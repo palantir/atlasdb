@@ -1,0 +1,4 @@
+type: improvement
+improvement:
+  description: Added a flag to SweepStatsKeyValueService to allow online disabling
+    it.
