@@ -18,9 +18,15 @@ package com.palantir.atlasdb.timelock.management;
 
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.timestamp.TimestampService;
 
 public class NamespacedConsensus {
-
+    /**
+     * Gets a fresh timestamp for namespace from {@link TimestampService#getFreshTimestamp()} and fast forwards
+     * the timestamp by 1 million for the given namespace.
+     *
+     * @param namespace namespace for which consensus has to be achieved
+     */
     public static void achieveConsensusForNamespace(TimelockNamespaces timelockNamespaces,
             String namespace) {
         TimeLockServices timeLockServices = timelockNamespaces.get(namespace);
