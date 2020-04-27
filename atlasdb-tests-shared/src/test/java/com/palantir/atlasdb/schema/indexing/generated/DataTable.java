@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -1455,14 +1456,27 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index1IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index1IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .concurrencyLevel(concurrencyLevel)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index1IdxRowResult::of)))
+                                .build());
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index1IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index1IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index1IdxRowResult::of)))
+                                .build());
         }
 
         public Stream<BatchingVisitable<Index1IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -2124,14 +2138,27 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index2IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index2IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .concurrencyLevel(concurrencyLevel)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index2IdxRowResult::of)))
+                                .build());
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index2IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index2IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index2IdxRowResult::of)))
+                                .build());
         }
 
         public Stream<BatchingVisitable<Index2IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -2771,14 +2798,27 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index3IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index3IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .concurrencyLevel(concurrencyLevel)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index3IdxRowResult::of)))
+                                .build());
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index3IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index3IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index3IdxRowResult::of)))
+                                .build());
         }
 
         public Stream<BatchingVisitable<Index3IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -3440,14 +3480,27 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index4IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index4IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .concurrencyLevel(concurrencyLevel)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index4IdxRowResult::of)))
+                                .build());
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index4IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index4IdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, Index4IdxRowResult::of)))
+                                .build());
         }
 
         public Stream<BatchingVisitable<Index4IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -3532,6 +3585,7 @@ public final class DataTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -3574,5 +3628,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "zgTr3cKkOeLOV64n6VEA7w==";
+    static String __CLASS_HASH = "jOkK5nxjeQ7PgeGPcQ2Jlw==";
 }

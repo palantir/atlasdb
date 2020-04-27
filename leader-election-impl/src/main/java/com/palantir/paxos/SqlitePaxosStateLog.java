@@ -16,113 +16,89 @@
 
 package com.palantir.paxos;
 
-import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.google.common.io.ByteStreams;
-import com.palantir.common.base.Throwables;
+import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.sqlobject.SingleValue;
+import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.customizer.Define;
+import org.jdbi.v3.sqlobject.statement.SqlQuery;
+import org.jdbi.v3.sqlobject.statement.SqlUpdate;
+
 import com.palantir.common.persist.Persistable;
 
 public final class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
-    private final Supplier<Connection> connectionSupplier;
-    private final String logNamespace;
+    private final String namespace;
+    private final Jdbi jdbi;
 
-    private SqlitePaxosStateLog(Supplier<Connection> connectionSupplier, String logNamespace) {
-        this.connectionSupplier = connectionSupplier;
-        this.logNamespace = logNamespace;
+    private SqlitePaxosStateLog(String namespace, Jdbi jdbi) {
+        this.namespace = namespace;
+        this.jdbi = jdbi;
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> createInitialized(
-            Supplier<Connection> conn,
-            String logNamespace) {
-        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(conn, logNamespace);
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(String namespace,
+            Supplier<Connection> connectionSupplier) {
+        Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespace, jdbi);
         log.initialize();
         return log;
     }
 
     private void initialize() {
-        executeVoid(
-                String.format(
-                        "CREATE TABLE IF NOT EXISTS %s (seq BIGINT, val BLOB, CONSTRAINT pk_%s PRIMARY KEY (seq))",
-                        logNamespace,
-                        logNamespace));
+        execute(dao -> dao.createTable(namespace));
     }
 
     @Override
     public void writeRound(long seq, V round) {
-        try {
-            PreparedStatement preparedStatement = connectionSupplier.get().prepareStatement(
-                    String.format("INSERT OR REPLACE INTO %s (seq, val) VALUES (?, ?)", logNamespace));
-            preparedStatement.setLong(1, seq);
-            preparedStatement.setBytes(2, round.persistToBytes());
-            preparedStatement.execute();
-        } catch (SQLException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        execute(dao -> dao.writeRound(namespace, seq, round.persistToBytes()));
     }
 
     @Override
     public byte[] readRound(long seq) {
-        return executeStatement(String.format("SELECT val FROM %s WHERE seq = %s;", logNamespace, seq))
-                .map(SqlitePaxosStateLog::getByteArrayUnchecked)
-                .orElse(null);
+        return execute(dao -> dao.readRound(namespace, seq));
     }
 
     @Override
     public long getLeastLogEntry() {
-        return executeStatement(String.format("SELECT MIN(seq) FROM %s", logNamespace))
-                .map(SqlitePaxosStateLog::getLongResultUnchecked)
-                .orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return execute(dao -> dao.getLeastLogEntry(namespace)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return executeStatement(String.format("SELECT MAX(seq) FROM %s", logNamespace))
-                .map(SqlitePaxosStateLog::getLongResultUnchecked)
-                .orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return execute(dao -> dao.getGreatestLogEntry(namespace)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public void truncate(long toDeleteInclusive) {
-        executeVoid(String.format("DELETE FROM %s WHERE seq <= %s", logNamespace, toDeleteInclusive));
+        execute(dao -> dao.truncate(namespace, toDeleteInclusive));
     }
 
-    private void executeVoid(String statement) {
-        try {
-            connectionSupplier.get().prepareStatement(statement).execute();
-        } catch (SQLException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+    private <T> T execute(Function<Queries, T> call) {
+        return jdbi.withExtension(Queries.class, call::apply);
     }
 
-    private Optional<ResultSet> executeStatement(String statement) {
-        try {
-            ResultSet resultSet = connectionSupplier.get().prepareStatement(statement).executeQuery();
-            return resultSet.isClosed() ? Optional.empty() : Optional.of(resultSet);
-        } catch (SQLException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
+    public interface Queries {
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS <table> (seq BIGINT PRIMARY KEY, val BLOB)")
+        boolean createTable(@Define("table") String table);
 
-    private static long getLongResultUnchecked(ResultSet resultSet) {
-        try {
-            long candidate = resultSet.getLong(1);
-            return resultSet.wasNull() ? PaxosAcceptor.NO_LOG_ENTRY : candidate;
-        } catch (SQLException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
+        @SqlUpdate("INSERT OR REPLACE INTO <table> (seq, val) VALUES (:seq, :value)")
+        boolean writeRound(@Define("table") String table, @Bind("seq") long seq, @Bind("value") byte[] value);
 
-    private static byte[] getByteArrayUnchecked(ResultSet resultSet) {
-        try {
-            return ByteStreams.toByteArray(resultSet.getBinaryStream(1));
-        } catch (SQLException | IOException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        @SqlQuery("SELECT val FROM <table> WHERE seq = :seq")
+        @SingleValue
+        byte[] readRound(@Define("table") String table, @Bind("seq") long seq);
+
+        @SqlQuery("SELECT MIN(seq) FROM <table>")
+        OptionalLong getLeastLogEntry(@Define("table") String table);
+
+        @SqlQuery("SELECT MAX(seq) FROM <table>")
+        OptionalLong getGreatestLogEntry(@Define("table") String table);
+
+        @SqlUpdate("DELETE FROM <table> WHERE seq <= :seq")
+        boolean truncate(@Define("table") String table, @Bind("seq") long seq);
     }
 }

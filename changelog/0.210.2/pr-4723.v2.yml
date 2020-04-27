@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Introduced the ability to pass a Refreshable for AtlasDbRuntimeConfig,
+    instead of a Supplier.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4723

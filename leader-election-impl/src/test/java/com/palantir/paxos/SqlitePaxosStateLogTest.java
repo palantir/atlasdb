@@ -24,22 +24,25 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.google.common.base.Suppliers;
+import org.junit.rules.TemporaryFolder;
 
 public class SqlitePaxosStateLogTest {
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     private static final String LOG_NAMESPACE_1 = "tom";
     private static final String LOG_NAMESPACE_2 = "two";
 
-    private final Supplier<Connection> connections = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
-
+    private Supplier<Connection> connSupplier;
     private PaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
-        Supplier<Connection> connectionSupplier = Suppliers.memoize(SqliteConnections.createDatabaseForTest()::get);
-        stateLog = SqlitePaxosStateLog.createInitialized(connections, LOG_NAMESPACE_1);
+        connSupplier = SqliteConnections
+                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
+        stateLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
     }
 
     @Test
@@ -98,7 +101,7 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
-        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.createInitialized(connections, LOG_NAMESPACE_2);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_2, connSupplier);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
@@ -107,8 +110,7 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void differentLogsToTheSameNamespaceShareState() throws IOException {
-        PaxosStateLog<PaxosValue> otherLogWithSameNamespace
-                = SqlitePaxosStateLog.createInitialized(connections, LOG_NAMESPACE_1);
+        PaxosStateLog<PaxosValue> otherLogWithSameNamespace = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();

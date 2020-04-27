@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -2087,6 +2088,7 @@ public final class AllValueTypesTestTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -2129,5 +2131,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "OSZcNk0sMucYPONOidAxGw==";
+    static String __CLASS_HASH = "Xs4qLEuVPW0/NRjHm0n2gA==";
 }
