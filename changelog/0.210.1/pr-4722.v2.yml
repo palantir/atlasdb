@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: |2
+
+    The original range requests in a getRanges call is preserved so that the range requests seen by the provided visitable processor are equal to the ones provided. Previously, the range request were optimized without preserving the original request.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4722

@@ -21,6 +21,8 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import com.palantir.refreshable.Refreshable;
+
 public class ServerListConfigsTest {
     private static final String CLIENT = "client";
 
@@ -69,25 +71,23 @@ public class ServerListConfigsTest {
 
     @Test
     public void prioritisesRuntimeConfigIfAvailable() {
-        ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
-                INSTALL_CONFIG,
-                () -> Optional.of(RUNTIME_CONFIG));
+        ServerListConfig resolvedConfig = getConfig(Optional.of(RUNTIME_CONFIG));
         assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one", "two");
     }
 
     @Test
     public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
-        ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
-                INSTALL_CONFIG,
-                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()));
+        ServerListConfig resolvedConfig = getConfig(Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()));
         assertThat(resolvedConfig.servers()).isEmpty();
     }
 
     @Test
     public void fallsBackToInstallConfigIfRuntimeConfigNotAvailable() {
-        ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
-                INSTALL_CONFIG,
-                Optional::empty);
+        ServerListConfig resolvedConfig = getConfig(Optional.empty());
         assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one");
+    }
+
+    private ServerListConfig getConfig(Optional<TimeLockRuntimeConfig> config) {
+        return ServerListConfigs.parseInstallAndRuntimeConfigs(INSTALL_CONFIG, Refreshable.only(config)).get();
     }
 }

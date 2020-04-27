@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -1799,14 +1800,27 @@ public final class UserProfileTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<CookiesIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .concurrencyLevel(concurrencyLevel)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)))
+                                .build());
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<CookiesIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)))
+                                .build());
         }
 
         public Stream<BatchingVisitable<CookiesIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -2480,14 +2494,27 @@ public final class UserProfileTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<CreatedIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .concurrencyLevel(concurrencyLevel)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)))
+                                .build());
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<CreatedIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)))
+                                .build());
         }
 
         public Stream<BatchingVisitable<CreatedIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -3161,14 +3188,27 @@ public final class UserProfileTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<UserBirthdaysIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .concurrencyLevel(concurrencyLevel)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)))
+                                .build());
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<UserBirthdaysIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)));
+            return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                                .tableRef(tableRef)
+                                .rangeRequests(ranges)
+                                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                                .visitableProcessor((rangeRequest, visitable) ->
+                                        visitableProcessor.apply(rangeRequest,
+                                                BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)))
+                                .build());
         }
 
         public Stream<BatchingVisitable<UserBirthdaysIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -3253,6 +3293,7 @@ public final class UserProfileTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -3295,5 +3336,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CIYorsINbj++wt5/X7OHJA==";
+    static String __CLASS_HASH = "BgObqeWg1QTD69+0+yj1GA==";
 }

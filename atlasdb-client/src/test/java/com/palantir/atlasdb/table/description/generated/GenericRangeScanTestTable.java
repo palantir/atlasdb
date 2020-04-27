@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -658,14 +659,27 @@ public final class GenericRangeScanTestTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<GenericRangeScanTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)));
+        return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                            .tableRef(tableRef)
+                            .rangeRequests(ranges)
+                            .rangeRequestOptimizer(this::optimizeRangeRequest)
+                            .concurrencyLevel(concurrencyLevel)
+                            .visitableProcessor((rangeRequest, visitable) ->
+                                    visitableProcessor.apply(rangeRequest,
+                                            BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)))
+                            .build());
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<GenericRangeScanTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)));
+        return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                            .tableRef(tableRef)
+                            .rangeRequests(ranges)
+                            .rangeRequestOptimizer(this::optimizeRangeRequest)
+                            .visitableProcessor((rangeRequest, visitable) ->
+                                    visitableProcessor.apply(rangeRequest,
+                                            BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)))
+                            .build());
     }
 
     public Stream<BatchingVisitable<GenericRangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -748,6 +762,7 @@ public final class GenericRangeScanTestTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -790,5 +805,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "956J2Sg92BXV1pWQ4ziJHw==";
+    static String __CLASS_HASH = "TfefBeyZ4FkbPXKBGS9baA==";
 }

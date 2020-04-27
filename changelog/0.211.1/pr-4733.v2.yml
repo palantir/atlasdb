@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Remove deprecation on TransactionManagers#runtimeConfigSupplier until
+    downstream services catch up.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4733
