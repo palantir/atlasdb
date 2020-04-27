@@ -439,8 +439,11 @@ public interface TransactionManager extends AutoCloseable {
      * The result is similar to calling {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}, except
      * the code has been specifically optimised with respect to batching and error handling.
      *
-     * @return a list of transactions and their associated immutable timestamp locks for the tasks
+     * @deprecated Similar functionality will exist, but this method is likely to change in the future
+     *
+     * @return a list of transactions and their associated immutable timestamp locks
      */
+    @Deprecated
     @Timed
     List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
             List<PreCommitCondition> condition);

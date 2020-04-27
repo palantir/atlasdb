@@ -33,7 +33,9 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -166,14 +168,8 @@ import com.palantir.util.ExceptionHandlingRunner;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        StartIdentifiedAtlasDbTransactionResponse transactionResponse
-                = timelockService.startIdentifiedAtlasDbTransaction();
-        try {
-            return wrapResponse(condition, transactionResponse);
-        } catch (Throwable e) {
-            timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        // I am reluctant to remove outright
+        return Iterables.getOnlyElement(setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of(condition)));
     }
 
     @Override
@@ -215,7 +211,7 @@ import com.palantir.util.ExceptionHandlingRunner;
 
     @Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
-                                                                           TransactionTask<T, E> task)
+            TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
@@ -299,7 +295,7 @@ import com.palantir.util.ExceptionHandlingRunner;
         }
     }
 
-    private  <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
+    private <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
@@ -345,11 +341,11 @@ import com.palantir.util.ExceptionHandlingRunner;
     /**
      * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
-     *
-     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
-     * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
-     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
-     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
+     * <p>
+     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback may be
+     * called (but is not necessarily called). Callbacks registered before the invocation of close() are guaranteed to
+     * be executed (because we use a synchronized list) as long as no exceptions arise. If an exception arises, then no
+     * guarantees are made with regard to subsequent callbacks being executed.
      */
     @Override
     public void close() {
@@ -428,8 +424,8 @@ import com.palantir.util.ExceptionHandlingRunner;
     /**
      * This will always return a valid ImmutableTimestamp, but it may be slightly out of date.
      * <p>
-     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires
-     * 2 extra remote calls which we can skip.
+     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires 2
+     * extra remote calls which we can skip.
      */
     private long getApproximateImmutableTimestamp() {
         long recentTs = recentImmutableTs.get();

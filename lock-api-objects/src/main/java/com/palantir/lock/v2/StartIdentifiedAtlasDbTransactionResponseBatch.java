@@ -92,8 +92,10 @@ public final class StartIdentifiedAtlasDbTransactionResponseBatch implements Aut
 
         public void safeAddToBatch(
                 Supplier<StartIdentifiedAtlasDbTransactionResponse> supplier) {
-            Optional<StartIdentifiedAtlasDbTransactionResponse> response = runner.supplySafely(supplier);
-            response.ifPresent(responses::add);
+            runner.runSafely(() -> {
+                StartIdentifiedAtlasDbTransactionResponse response = supplier.get();
+                responses.add(response);
+            });
         }
 
         public StartIdentifiedAtlasDbTransactionResponseBatch build() {

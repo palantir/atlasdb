@@ -87,14 +87,14 @@ public final class DisruptorAutobatcher<T, R>
 
     @Override
     public ListenableFuture<R> apply(T argument) {
-        Preconditions.checkState(!closed, "Autobatcher is already shut down");
+        checkClosed();
         DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
         buffer.publishEvent(createTranslator(argument, result));
         return result;
     }
 
     public List<ListenableFuture<R>> applyBatch(List<T> arguments) {
-        Preconditions.checkState(!closed, "Autobatcher is already shut down");
+        checkClosed();
         List<ListenableFuture<R>> results = new ArrayList<>();
 
         EventTranslator<DefaultBatchElement<T, R>>[] translators = arguments.stream().map(argument -> {
@@ -109,13 +109,6 @@ public final class DisruptorAutobatcher<T, R>
         return results;
     }
 
-    private EventTranslator<DefaultBatchElement<T, R>> createTranslator(T argument, DisruptorFuture<R> result) {
-        return (refresh, unused) -> {
-            refresh.result = result;
-            refresh.argument = argument;
-        };
-    }
-
     @Override
     public void close() {
         closed = true;
@@ -125,6 +118,17 @@ public final class DisruptorAutobatcher<T, R>
             log.warn("Disruptor took more than 10 seconds to shutdown. "
                     + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.", e);
         }
+    }
+
+    private void checkClosed() {
+        Preconditions.checkState(!closed, "Autobatcher is already shut down");
+    }
+
+    private EventTranslator<DefaultBatchElement<T, R>> createTranslator(T argument, DisruptorFuture<R> result) {
+        return (refresh, unused) -> {
+            refresh.result = result;
+            refresh.argument = argument;
+        };
     }
 
     private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {
