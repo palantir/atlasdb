@@ -101,6 +101,6 @@ recommendedProductDependencies {
         productGroup = 'com.palantir.cassandra'
         productName = 'sls-cassandra'
         minimumVersion = '3.31.0'
-        maximumVersion = '4.x.x'
+        maximumVersion = '6.x.x'
     }
 }

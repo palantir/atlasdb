@@ -80,6 +80,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private final TimestampService timestampService;
     private final Supplier<Integer> writeThreshold; // number of cells which allows write stats to be flushed
     private final Supplier<Long> writeSizeThreshold; // size of values which allows write stats to be flushed
+    private final Supplier<Boolean> isEnabled; // for toggling legacy sweep enabled/disabled online
 
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
@@ -94,19 +95,22 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             KeyValueService delegate,
             TimestampService timestampService,
             Supplier<Integer> writeThreshold,
-            Supplier<Long> writeSizeThreshold) {
-        return new SweepStatsKeyValueService(delegate, timestampService, writeThreshold, writeSizeThreshold);
+            Supplier<Long> writeSizeThreshold,
+            Supplier<Boolean> isEnabled) {
+        return new SweepStatsKeyValueService(delegate, timestampService, writeThreshold, writeSizeThreshold, isEnabled);
     }
 
     private SweepStatsKeyValueService(
             KeyValueService delegate,
             TimestampService timestampService,
             Supplier<Integer> writeThreshold,
-            Supplier<Long> writeSizeThreshold) {
+            Supplier<Long> writeSizeThreshold,
+            Supplier<Boolean> isEnabled) {
         this.delegate = delegate;
         this.timestampService = timestampService;
         this.writeThreshold = writeThreshold;
         this.writeSizeThreshold = writeSizeThreshold;
+        this.isEnabled = isEnabled;
         this.flushExecutor.scheduleWithFixedDelay(createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS,
                 TimeUnit.SECONDS);
     }
@@ -119,62 +123,76 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         delegate().put(tableRef, values, timestamp);
-        writesByTable.add(tableRef, values.size());
-        recordModifications(values.size());
-        recordModificationsSize(values.entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
-                .sum());
+        if (isEnabled.get()) {
+            writesByTable.add(tableRef, values.size());
+            recordModifications(values.size());
+            recordModificationsSize(values.entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
+                    .sum());
+        }
     }
 
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         delegate().multiPut(valuesByTable, timestamp);
-        int newWrites = 0;
-        long writesSize = 0;
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
-            writesByTable.add(entry.getKey(), entry.getValue().size());
-            newWrites += entry.getValue().size();
-            writesSize += entry.getValue().entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
-                    .sum();
+        if (isEnabled.get()) {
+            int newWrites = 0;
+            long writesSize = 0;
+            for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+                writesByTable.add(entry.getKey(), entry.getValue().size());
+                newWrites += entry.getValue().size();
+                writesSize += entry.getValue().entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
+                        .sum();
+            }
+            recordModifications(newWrites);
+            recordModificationsSize(writesSize);
         }
-        recordModifications(newWrites);
-        recordModificationsSize(writesSize);
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) {
         delegate().putWithTimestamps(tableRef, cellValues);
-        writesByTable.add(tableRef, cellValues.size());
-        recordModifications(cellValues.size());
-        recordModificationsSize(cellValues.entries().stream()
-                .mapToLong(cellEntry -> cellEntry.getValue().getContents().length).sum());
+        if (isEnabled.get()) {
+            writesByTable.add(tableRef, cellValues.size());
+            recordModifications(cellValues.size());
+            recordModificationsSize(cellValues.entries().stream()
+                    .mapToLong(cellEntry -> cellEntry.getValue().getContents().length).sum());
+        }
     }
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         delegate().deleteRange(tableRef, range);
-        if (RangeRequest.all().equals(range)) {
-            // This is equivalent to truncate.
-            recordClear(tableRef);
+        if (isEnabled.get()) {
+            if (RangeRequest.all().equals(range)) {
+                // This is equivalent to truncate.
+                recordClear(tableRef);
+            }
         }
     }
 
     @Override
     public void truncateTable(TableReference tableRef) {
         delegate().truncateTable(tableRef);
-        recordClear(tableRef);
+        if (isEnabled.get()) {
+            recordClear(tableRef);
+        }
     }
 
     @Override
     public void truncateTables(Set<TableReference> tableRefs) {
         delegate().truncateTables(tableRefs);
-        clearedTables.addAll(tableRefs);
-        recordModifications(CLEAR_WEIGHT * tableRefs.size());
+        if (isEnabled.get()) {
+            clearedTables.addAll(tableRefs);
+            recordModifications(CLEAR_WEIGHT * tableRefs.size());
+        }
     }
 
     @Override
     public void dropTable(TableReference tableRef) {
         delegate().dropTable(tableRef);
-        recordClear(tableRef);
+        if (isEnabled.get()) {
+            recordClear(tableRef);
+        }
     }
 
     @Override

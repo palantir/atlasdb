@@ -19,61 +19,61 @@ package com.palantir.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-import com.google.common.base.Suppliers;
-import com.google.common.collect.Streams;
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     private static final String LOG_NAMESPACE_1 = "tom";
     private static final String LOG_NAMESPACE_2 = "two";
 
     private Supplier<Connection> connSupplier;
-    private SqlitePaxosStateLog<PaxosValue> stateLog;
+    private PaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
-        connSupplier = createReusableMemoizedConnection();
+        connSupplier = SqliteConnections
+                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
         stateLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
     }
 
     @Test
-    public void readingNonExistentRoundReturnsNull() {
+    public void readingNonExistentRoundReturnsNull() throws IOException {
         assertThat(stateLog.readRound(10L)).isNull();
     }
 
     @Test
-    public void canWriteAndRetrieveAValue() {
+    public void canWriteAndRetrieveAValue() throws IOException {
         long round = 12L;
         PaxosValue paxosValue = writeValueForRound(round);
         assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round))).isEqualTo(paxosValue);
     }
 
     @Test
-    public void canWriteAndRetrieveBatch() {
-        List<PaxosRound<PaxosValue>> inputs = KeyedStream.of(
-                LongStream.rangeClosed(5L, 10L).boxed())
+    public void canWriteAndRetrieveBatch() throws IOException {
+        List<PaxosRound<PaxosValue>> inputs = KeyedStream.of(LongStream.rangeClosed(5L, 10L).boxed())
                 .map(SqlitePaxosStateLogTest::valueForRound)
-                .map((a, b) -> ImmutablePaxosRound.<PaxosValue>builder().sequence(a).value(b).build()).values()
+                .map((seq, val) -> ImmutablePaxosRound.<PaxosValue>builder().sequence(seq).value(val).build())
+                .values()
                 .collect(Collectors.toList());
         stateLog.writeBatchOfRounds(inputs);
-        inputs.forEach(round ->
-                assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round.sequence())))
-                        .isEqualTo(round.value()));
+        for (PaxosRound<PaxosValue> round : inputs) {
+            assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round.sequence())))
+                    .isEqualTo(round.value());
+        }
     }
 
     @Test
@@ -146,40 +146,5 @@ public class SqlitePaxosStateLogTest {
         byte[] bytes = new byte[16];
         ThreadLocalRandom.current().nextBytes(bytes);
         return new PaxosValue("someLeader", round, bytes);
-    }
-
-    private static Supplier<Connection> createReusableMemoizedConnection() {
-        Supplier<Connection> baseConnectionSupplier = SqliteConnections.createDatabaseForTest();
-        Supplier<Connection> nonClosingConnectionSupplier = bypassCloseOnConnection(baseConnectionSupplier);
-        return Suppliers.memoize(nonClosingConnectionSupplier::get);
-    }
-
-    private static Supplier<Connection> bypassCloseOnConnection(Supplier<Connection> connectionSupplier) {
-        return Suppliers.compose(conn ->
-                        (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-                                new Class<?>[] {Connection.class},
-                                new CloseIgnoringInvocationHandler(conn)),
-                connectionSupplier::get);
-    }
-
-    /**
-     * JDBI closes the connection after executing a query. This is desired behaviour, but does not play nicely with in
-     * memory sqlite as we cannot recreate a connection to the same in memory instance, so we use this to keep the
-     * connection open instead in tests.
-     */
-    private static final class CloseIgnoringInvocationHandler extends AbstractInvocationHandler {
-        private final Connection delegate;
-
-        private CloseIgnoringInvocationHandler(Connection delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-            if (method.getName().equals("close")) {
-                return null;
-            }
-            return method.invoke(delegate, args);
-        }
     }
 }

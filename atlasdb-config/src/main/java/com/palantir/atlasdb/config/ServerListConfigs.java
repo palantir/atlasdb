@@ -17,19 +17,20 @@ package com.palantir.atlasdb.config;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import com.palantir.refreshable.Refreshable;
 
 public final class ServerListConfigs {
     private ServerListConfigs() {
         // utilities
     }
 
-    public static ServerListConfig parseInstallAndRuntimeConfigs(TimeLockClientConfig installClientConfig,
-            Supplier<Optional<TimeLockRuntimeConfig>> runtimeConfig) {
-        return runtimeConfig.get()
-                .map(TimeLockRuntimeConfig::serversList)
-                .orElseGet(installClientConfig::serversList);
+    public static Refreshable<ServerListConfig> parseInstallAndRuntimeConfigs(TimeLockClientConfig installClientConfig,
+            Refreshable<Optional<TimeLockRuntimeConfig>> runtimeConfig) {
+        return runtimeConfig
+                .map(config -> config.map(TimeLockRuntimeConfig::serversList)
+                        .orElseGet(installClientConfig::serversList));
     }
 
     public static ServerListConfig namespaceUris(ServerListConfig config, String namespace) {

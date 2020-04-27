@@ -30,11 +30,7 @@ public final class SqliteConnections {
         // no
     }
 
-    public static Supplier<Connection> createDatabaseForTest() {
-        return createSqliteDatabase(":memory:");
-    }
-
-    private static Supplier<Connection> createSqliteDatabase(String path) {
+    public static Supplier<Connection> createSqliteDatabase(String path) {
         String target = String.format("jdbc:sqlite:%s", path);
         return () -> {
             try {

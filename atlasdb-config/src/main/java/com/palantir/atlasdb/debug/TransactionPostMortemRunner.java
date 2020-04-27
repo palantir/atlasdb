@@ -48,6 +48,7 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
@@ -69,7 +70,7 @@ public class TransactionPostMortemRunner {
             TransactionManager transactionManager,
             TableReference tableReference,
             AtlasDbConfig install,
-            Supplier<AtlasDbRuntimeConfig> runtime,
+            Refreshable<AtlasDbRuntimeConfig> runtime,
             ClientLockDiagnosticCollector clientLockDiagnosticCollector) {
         this.timelockNamespace = timelockNamespace(install);
         this.clientLockDiagnosticCollector = clientLockDiagnosticCollector;
@@ -176,7 +177,7 @@ public class TransactionPostMortemRunner {
 
     private static LockDiagnosticInfoService createRpcClient(
             AtlasDbConfig config,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
@@ -198,13 +199,11 @@ public class TransactionPostMortemRunner {
 
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
-        return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
+        return ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,
-                () -> runtimeConfigSupplier.get().timelockRuntime());
+                runtimeConfigSupplier.map(AtlasDbRuntimeConfig::timelockRuntime));
     }
-
-
 }
