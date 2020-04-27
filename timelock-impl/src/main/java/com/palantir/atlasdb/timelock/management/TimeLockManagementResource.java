@@ -18,10 +18,13 @@ package com.palantir.atlasdb.timelock.management;
 
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
@@ -32,24 +35,32 @@ import com.palantir.tokens.auth.AuthHeader;
 public class TimeLockManagementResource implements UndertowTimeLockManagementService {
     private final DiskNamespaceLoader diskNamespaceLoader;
     private final TimelockNamespaces timelockNamespaces;
+    private final ConjureResourceExceptionHandler exceptionHandler;
+
 
     private TimeLockManagementResource(DiskNamespaceLoader diskNamespaceLoader,
-            TimelockNamespaces timelockNamespaces) {
+            TimelockNamespaces timelockNamespaces,
+            RedirectRetryTargeter redirectRetryTargeter) {
         this.diskNamespaceLoader = diskNamespaceLoader;
         this.timelockNamespaces = timelockNamespaces;
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
     }
 
-    public static TimeLockManagementResource create(Path rootDataDirectory, TimelockNamespaces timelockNamespaces) {
-        return new TimeLockManagementResource(new DiskNamespaceLoader(rootDataDirectory), timelockNamespaces);
+    public static TimeLockManagementResource create(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+            RedirectRetryTargeter redirectRetryTargeter) {
+        return new TimeLockManagementResource(new DiskNamespaceLoader(rootDataDirectory), timelockNamespaces, redirectRetryTargeter);
     }
 
-    public static UndertowService undertow(Path rootDataDirectory, TimelockNamespaces timelockNamespaces) {
+    public static UndertowService undertow(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+            RedirectRetryTargeter redirectRetryTargeter) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(rootDataDirectory,
-                timelockNamespaces));
+                timelockNamespaces, redirectRetryTargeter));
     }
 
-    public static TimeLockManagementService jersey(Path rootDataDirectory, TimelockNamespaces timelockNamespaces) {
-        return new JerseyAdapter(TimeLockManagementResource.create(rootDataDirectory, timelockNamespaces));
+    public static TimeLockManagementService jersey(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+            RedirectRetryTargeter redirectRetryTargeter) {
+        return new JerseyAdapter(TimeLockManagementResource.create(rootDataDirectory, timelockNamespaces,
+                redirectRetryTargeter));
     }
 
     @Override
@@ -60,11 +71,17 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
 
     @Override
     public ListenableFuture<Void> achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
-        for (String namespace : namespaces) {
-            NamespacedConsensus
-                    .achieveConsensusForNamespace(timelockNamespaces, namespace);
-        }
-        return Futures.immediateFuture(null);
+        return handleExceptions(() -> {
+            for (String namespace : namespaces) {
+                NamespacedConsensus
+                        .achieveConsensusForNamespace(timelockNamespaces, namespace);
+            }
+            return Futures.immediateFuture(null);
+        });
+    }
+
+    private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
+        return exceptionHandler.handleExceptions(supplier);
     }
 
     public static final class JerseyAdapter implements TimeLockManagementService {

@@ -23,6 +23,9 @@ public class NamespacedConsensus {
 
     public static void achieveConsensusForNamespace(TimelockNamespaces timelockNamespaces,
             String namespace) {
+        if (local!=leader) {
+
+        }
         TimeLockServices timeLockServices = timelockNamespaces.get(namespace);
         Long timestamp = timeLockServices.getTimelockService().getFreshTimestamp() + 1000000L;
         timeLockServices.getTimestampManagementService().fastForwardTimestamp(timestamp);
