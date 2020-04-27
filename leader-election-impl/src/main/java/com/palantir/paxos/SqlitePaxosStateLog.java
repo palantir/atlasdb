@@ -59,7 +59,6 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
     @Override
     public void writeRound(long seq, V round) {
         execute(dao -> dao.writeRound(namespace, seq, round.persistToBytes()));
-        execute(dao -> dao.writeRound(namespace, seq, round.persistToBytes()));
     }
 
     @Override
