@@ -34,6 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -206,7 +207,7 @@ public class PaxosConsensusFastTest {
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
                 .isEqualTo(StillLeadingStatus.LEADING);
 
-        state.leader(1).hostileTakeover();
+        Awaitility.waitAtMost(5, TimeUnit.SECONDS).until(() -> state.leader(1).hostileTakeover());
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
                 .isEqualTo(StillLeadingStatus.NOT_LEADING);
         assertThat(state.leader(1).getCurrentTokenIfLeading())
