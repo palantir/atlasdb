@@ -16,6 +16,7 @@
 package com.palantir.timelock.paxos;
 
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -40,6 +41,7 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
@@ -168,6 +170,7 @@ public class TimeLockAgent {
     private void createAndRegisterResources() {
         registerPaxosResource();
         registerExceptionMappers();
+        registerManagementResource();
 
         namespaces = new TimelockNamespaces(
                 metricsManager,
@@ -187,6 +190,15 @@ public class TimeLockAgent {
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), creator));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), creator));
+        }
+    }
+
+    private void registerManagementResource() {
+        Path rootDataDirectory = install.paxos().dataDirectory().toPath();
+        if (undertowRegistrar.isPresent()) {
+            undertowRegistrar.get().accept(TimeLockManagementResource.undertow(rootDataDirectory));
+        } else {
+            registrar.accept(TimeLockManagementResource.jersey(rootDataDirectory));
         }
     }
 
