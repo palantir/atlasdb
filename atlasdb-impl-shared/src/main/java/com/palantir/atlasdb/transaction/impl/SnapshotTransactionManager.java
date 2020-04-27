@@ -353,7 +353,9 @@ import com.palantir.util.ExceptionHandlingRunner;
      */
     @Override
     public void close() {
+        log.info("Calling close on snapshot transaction manager");
         if (!isClosed.compareAndSet(false, true)) {
+            log.info("Snapshot transaction manager has already been closed, performing no action");
             return;
         }
 
@@ -370,7 +372,9 @@ import com.palantir.util.ExceptionHandlingRunner;
             }
 
             shutdownRunner.runSafely(metricsManager::deregisterMetrics);
+            log.info("Close callbacks complete in snapshot transaction manager");
         }
+        log.info("Closed snapshot transaction manager without any errors");
     }
 
     private static void shutdownExecutor(ExecutorService executor) {

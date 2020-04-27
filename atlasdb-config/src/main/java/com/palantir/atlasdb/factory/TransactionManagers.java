@@ -205,9 +205,8 @@ public abstract class TransactionManagers {
     abstract Optional<Refreshable<Optional<AtlasDbRuntimeConfig>>> runtimeConfig();
 
     /**
-     * @deprecated use {@link #runtimeConfig} instead.
+     * Use {@link #runtimeConfig} instead.
      */
-    @Deprecated
     abstract Optional<Supplier<Optional<AtlasDbRuntimeConfig>>> runtimeConfigSupplier();
 
     abstract Set<Schema> schemas();
@@ -389,7 +388,8 @@ public abstract class TransactionManagers {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
                         sweepConfig.map(SweepConfig::writeThreshold),
-                        sweepConfig.map(SweepConfig::writeSizeThreshold)
+                        sweepConfig.map(SweepConfig::writeSizeThreshold),
+                        () -> true
                 );
             }
 
