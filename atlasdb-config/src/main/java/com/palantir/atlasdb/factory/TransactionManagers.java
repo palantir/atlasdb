@@ -388,7 +388,8 @@ public abstract class TransactionManagers {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
                         sweepConfig.map(SweepConfig::writeThreshold),
-                        sweepConfig.map(SweepConfig::writeSizeThreshold)
+                        sweepConfig.map(SweepConfig::writeSizeThreshold),
+                        () -> true
                 );
             }
 
