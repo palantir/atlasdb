@@ -59,13 +59,12 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
     }
 
     @Override
-    public ListenableFuture<String> achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
+    public ListenableFuture<Void> achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
         for (String namespace : namespaces) {
-            Futures.immediateFuture(
-                    NamespacedConsensus
-                            .achieveConsensusForNamespace(timelockNamespaces, namespace));
+            NamespacedConsensus
+                    .achieveConsensusForNamespace(timelockNamespaces, namespace);
         }
-        return null;
+        return Futures.immediateFuture(null);
     }
 
     public static final class JerseyAdapter implements TimeLockManagementService {
@@ -81,8 +80,8 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
         }
 
         @Override
-        public String achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
-            return unwrap(resource.achieveConsensus(authHeader, namespaces));
+        public void achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
+            unwrap(resource.achieveConsensus(authHeader, namespaces));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

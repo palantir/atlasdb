@@ -170,13 +170,12 @@ public class TimeLockAgent {
     private void createAndRegisterResources() {
         registerPaxosResource();
         registerExceptionMappers();
-        registerManagementResource();
 
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
-
+        registerManagementResource();
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
@@ -196,9 +195,9 @@ public class TimeLockAgent {
     private void registerManagementResource() {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockManagementResource.undertow(rootDataDirectory));
+            undertowRegistrar.get().accept(TimeLockManagementResource.undertow(rootDataDirectory, namespaces));
         } else {
-            registrar.accept(TimeLockManagementResource.jersey(rootDataDirectory));
+            registrar.accept(TimeLockManagementResource.jersey(rootDataDirectory, namespaces));
         }
     }
 

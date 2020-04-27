@@ -13,4 +13,3 @@ services:
         http: POST /achieveConsensus
         args:
           namespaces: set<string>
-        returns: string
