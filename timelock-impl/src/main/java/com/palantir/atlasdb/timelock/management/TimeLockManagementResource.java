@@ -65,7 +65,7 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
 
     @Override
     public ListenableFuture<Set<String>> getNamespaces(AuthHeader authHeader) {
-        // This endpoint is not used frequently (only called by migration cli), so I'm ok with this NOT being async.
+        // This endpoint is not used frequently (only called by migration cli), so it's okay to NOT make it async.
         return Futures.immediateFuture(diskNamespaceLoader.getNamespaces());
     }
 
