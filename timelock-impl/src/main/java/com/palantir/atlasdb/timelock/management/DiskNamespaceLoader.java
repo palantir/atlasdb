@@ -31,7 +31,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.logsafe.SafeArg;
 
 final class DiskNamespaceLoader {
-    private static final Logger logger = LoggerFactory.getLogger(DiskNamespaceLoader.class);
+    private static final Logger log = LoggerFactory.getLogger(DiskNamespaceLoader.class);
     private final Path rootDataDirectory;
 
     DiskNamespaceLoader(Path rootDataDirectory) {
@@ -48,14 +48,15 @@ final class DiskNamespaceLoader {
 
     private static Stream<String> getNamespacesFromUseCaseResolvedDirectory(Path logDirectory) {
         if (Files.notExists(logDirectory)) {
+            log.info("No namespace directory exists at path: {}", SafeArg.of("dirName", logDirectory));
             return Stream.of();
         }
         File[] directories = logDirectory.toFile().listFiles(File::isDirectory);
         if (directories == null) {
-            logger.error("Namespace(s) cannot be read from directory : {}."
+            log.error("Namespace(s) cannot be read from directory: {}."
                     + " Either the path does not denote a directory or an I/O error has occurred.",
                     SafeArg.of("dirName", logDirectory));
-            throw new IllegalStateException("Failed to read directory : " + logDirectory +
+            throw new IllegalStateException("Failed to read directory: " + logDirectory +
                     ". Either the path is invalid or an I/O error has occurred.");
         }
         return Arrays.stream(directories).map(File::getName);
