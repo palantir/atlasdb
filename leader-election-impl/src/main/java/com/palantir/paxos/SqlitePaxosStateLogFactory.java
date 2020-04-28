@@ -62,7 +62,7 @@ public class SqlitePaxosStateLogFactory<V extends Persistable & Versionable> {
         String physicalTableName();
     }
 
-    public interface Queries {
+    private interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS " + NAMESPACE_TABLE + " (namespace TEXT PRIMARY KEY)")
         boolean createNamespaceTable();
 
