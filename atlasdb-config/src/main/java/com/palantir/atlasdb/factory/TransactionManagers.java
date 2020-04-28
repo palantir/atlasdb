@@ -1062,9 +1062,10 @@ public abstract class TransactionManagers {
             conjureTimelockService = new BlockingSensitiveConjureTimelockService(
                     ImmutableBlockingAndNonBlockingServices.<ConjureTimelockService>builder()
                             .nonBlocking(clientFactory.client(ConjureTimelockService.class))
-                            .blocking(clientFactory.client(ConjureTimelockService.class, StaticClientConfiguration.builder()
-                                    .fastReadTimeOut(true)
-                                    .build()))
+                            .blocking(clientFactory.client(ConjureTimelockService.class,
+                                    StaticClientConfiguration.builder()
+                                            .fastReadTimeOut(true)
+                                            .build()))
                             .build());
         } else {
             conjureTimelockService = new BlockingSensitiveConjureTimelockService(
