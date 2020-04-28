@@ -247,8 +247,8 @@ public abstract class TransactionManagers {
     }
 
     @Value.Default
-    boolean useDialogueFeignShim() {
-        return false;
+    DialogueConfig dialogue() {
+        return DialogueConfig.DEFAULT;
     }
 
     @Value.Default
@@ -387,7 +387,7 @@ public abstract class TransactionManagers {
                 userAgent(),
                 lockDiagnosticInfoCollector(),
                 hostEventsSink(),
-                useDialogueFeignShim());
+                dialogue());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -847,7 +847,7 @@ public abstract class TransactionManagers {
                         UserAgents.tryParse(userAgent),
                         Optional.empty(),
                         NoOpHostEventsSink.INSTANCE,
-                        false);
+                        DialogueConfig.DEFAULT);
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -869,7 +869,7 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
             HostEventsSink hostEventsSink,
-            boolean useDialogue) {
+            DialogueConfig dialogueConfig) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -881,7 +881,7 @@ public abstract class TransactionManagers {
                 userAgent,
                 lockDiagnosticCollector,
                 hostEventsSink,
-                useDialogue);
+                dialogueConfig);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
                         withRefreshingLockService(lockAndTimestampServices)));
@@ -943,7 +943,7 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
             HostEventsSink hostEventsSink,
-            boolean useDialogue) {
+            DialogueConfig dialogueConfig) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -959,7 +959,7 @@ public abstract class TransactionManagers {
                     userAgent,
                     lockDiagnosticCollector,
                     hostEventsSink,
-                    useDialogue);
+                    dialogueConfig);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
         }
@@ -990,7 +990,7 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
             HostEventsSink hostEventsSink,
-            boolean useDialogue) {
+            DialogueConfig dialogueConfig) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
 
@@ -1005,7 +1005,7 @@ public abstract class TransactionManagers {
                         timelockNamespace,
                         lockDiagnosticCollector,
                         hostEventsSink,
-                        useDialogue);
+                        dialogueConfig);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(),
@@ -1037,7 +1037,7 @@ public abstract class TransactionManagers {
             String timelockNamespace,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
             HostEventsSink hostEventsSink,
-            boolean useDialogue) {
+            DialogueConfig dialogueConfig) {
 
         AtlasDialogueServiceCreator clientFactory = new AtlasDialogueServiceCreator(
                 timelockServerListConfig,
@@ -1058,7 +1058,7 @@ public abstract class TransactionManagers {
 
         ConjureTimelockService conjureTimelockService;
         // Janky, but fair
-        if (useDialogue) {
+        if (dialogueConfig.enabled()) {
             conjureTimelockService = new BlockingSensitiveConjureTimelockService(
                     ImmutableBlockingAndNonBlockingServices.<ConjureTimelockService>builder()
                             .nonBlocking(clientFactory.client(ConjureTimelockService.class))

@@ -322,7 +322,7 @@ public class TransactionManagersTest {
                         USER_AGENT,
                         Optional.empty(),
                         NoOpHostEventsSink.INSTANCE,
-                        true);
+                        DialogueConfig.DEFAULT);
 
         LockRequest lockRequest = LockRequest
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
@@ -799,7 +799,7 @@ public class TransactionManagersTest {
                 USER_AGENT,
                 Optional.empty(),
                 NoOpHostEventsSink.INSTANCE,
-                true);
+                DialogueConfig.DEFAULT);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -820,7 +820,7 @@ public class TransactionManagersTest {
                         USER_AGENT,
                         Optional.empty(),
                         NoOpHostEventsSink.INSTANCE,
-                        true);
+                        DialogueConfig.DEFAULT);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
