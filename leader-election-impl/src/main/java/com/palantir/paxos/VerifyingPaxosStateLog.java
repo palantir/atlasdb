@@ -18,6 +18,7 @@ package com.palantir.paxos;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -26,6 +27,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -58,7 +60,14 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         lock.writeLock().lock();
         try {
             currentLog.writeRound(seq, round);
-            experimentalLog.writeRound(seq, round);
+            try {
+                experimentalLog.writeRound(seq, round);
+            } catch (RuntimeException e) {
+                log.warn("Succeeded writing round for sequence number {} to the current log, but failed to write to "
+                        + "experimental. This may cause future verification for this round to fail.",
+                        SafeArg.of("sequence", seq), e);
+                // suppress as failure in experimental service should not degrade the entire service
+            }
         } finally {
             lock.writeLock().unlock();
         }
@@ -69,13 +78,13 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         lock.readLock().lock();
         try {
             byte[] result = currentLog.readRound(seq);
-            byte[] experimentalResult = experimentalLog.readRound(seq);
+            byte[] experimentalResult = safeReadFromExperimental(psl -> psl.readRound(seq));
             if (!Arrays.equals(result, experimentalResult)) {
                 log.error("Mismatch in reading round for sequence number {} between legacy and current "
                         + "implementations. Legacy result {}, current result {}.",
                         SafeArg.of("sequence", seq),
-                        UnsafeArg.of("legacy", hydrator.hydrateFromBytes(result)),
-                        UnsafeArg.of("current", hydrator.hydrateFromBytes(experimentalResult)));
+                        UnsafeArg.of("legacy",hydrateIfNotNull(result)),
+                        UnsafeArg.of("current", hydrateIfNotNull(experimentalResult)));
             }
             return result;
         } finally {
@@ -97,6 +106,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
     public void truncate(long toDeleteInclusive) {
         lock.writeLock().lock();
         try {
+            // it is low risk to allow failure on experimental to propagate here
             experimentalLog.truncate(toDeleteInclusive);
             currentLog.truncate(toDeleteInclusive);
         } finally {
@@ -104,12 +114,30 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         }
     }
 
+    private <T> T safeReadFromExperimental(FunctionCheckedException<PaxosStateLog<V>, T, IOException> operation) {
+        try {
+            return operation.apply(experimentalLog);
+        } catch (RuntimeException | IOException e) {
+            log.warn("Succeeded a read operation on the current log, but failed on experimental. This will likely "
+                    + "cause the subsequent verification to fail.", e);
+            // suppress as failure in experimental service should not degrade the entire service
+        }
+        return null;
+    }
+
+    private V hydrateIfNotNull(byte[] result) {
+        if (result != null) {
+            return hydrator.hydrateFromBytes(result);
+        }
+        return null;
+    }
+
     private long getExtremeLogEntry(Function<PaxosStateLog<V>, Long> extractor) {
         lock.readLock().lock();
         try {
-            long result = extractor.apply(currentLog);
-            long experimentalResult = extractor.apply(experimentalLog);
-            if (result != experimentalResult) {
+            Long result = extractor.apply(currentLog);
+            Long experimentalResult = safeReadFromExperimental(extractor::apply);
+            if (!Objects.equals(result, experimentalResult)) {
                 log.error("Mismatch in getting the extreme log entry between legacy and current implementations."
                                 + " Legacy result {}, current result {}.",
                         SafeArg.of("legacy", result),

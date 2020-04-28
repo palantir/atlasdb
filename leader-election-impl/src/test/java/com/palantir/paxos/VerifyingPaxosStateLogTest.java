@@ -17,8 +17,13 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -71,9 +76,27 @@ public class VerifyingPaxosStateLogTest {
     }
 
     @Test
+    public void writeSuppressesExceptionInExperimental() {
+        doThrow(new RuntimeException()).when(experimental).writeRound(anyLong(), any(PaxosValue.class));
+        long sequence = 15L;
+        assertThatCode(() -> log.writeRound(sequence, valueForRound(sequence))).doesNotThrowAnyException();
+        verify(current).writeRound(sequence, valueForRound(sequence));
+        verify(experimental).writeRound(sequence, valueForRound(sequence));
+    }
+
+    @Test
     public void readFromBothReturnLegacy() throws IOException {
         long sequence = 10L;
         assertThat(log.readRound(sequence)).isEqualTo(CORRECT_VALUE_FOR_ROUND);
+        verify(current).readRound(sequence);
+        verify(experimental).readRound(sequence);
+    }
+
+    @Test
+    public void readSuppressesExceptionInExperimental() throws IOException {
+        when(experimental.readRound(anyLong())).thenThrow(new RuntimeException());
+        long sequence = 10L;
+        assertThatCode(() -> log.readRound(sequence)).doesNotThrowAnyException();
         verify(current).readRound(sequence);
         verify(experimental).readRound(sequence);
     }
@@ -86,8 +109,24 @@ public class VerifyingPaxosStateLogTest {
     }
 
     @Test
+    public void getLeastSuppressesExceptionInExperimental() {
+        when(experimental.getLeastLogEntry()).thenThrow(new RuntimeException());
+        assertThatCode(log::getLeastLogEntry).doesNotThrowAnyException();
+        verify(current).getLeastLogEntry();
+        verify(experimental).getLeastLogEntry();
+    }
+
+    @Test
     public void getGreatestFromBothReturnLegacy() {
         assertThat(log.getGreatestLogEntry()).isEqualTo(GREATEST_LOG_ENTRY);
+        verify(current).getGreatestLogEntry();
+        verify(experimental).getGreatestLogEntry();
+    }
+
+    @Test
+    public void getGreatestSuppressesExceptionInExperimental() {
+        when(experimental.getGreatestLogEntry()).thenThrow(new RuntimeException());
+        assertThatCode(log::getGreatestLogEntry).doesNotThrowAnyException();
         verify(current).getGreatestLogEntry();
         verify(experimental).getGreatestLogEntry();
     }
@@ -97,6 +136,15 @@ public class VerifyingPaxosStateLogTest {
         log.truncate(7L);
         verify(current).truncate(7L);
         verify(experimental).truncate(7L);
+    }
+
+    @Test
+    public void truncateFailsOnExceptionInExperimentalAndIsNotCalledOnCurrent() {
+        doThrow(new RuntimeException()).when(experimental).truncate(anyLong());
+
+        assertThatThrownBy(() -> log.truncate(7L)).isInstanceOf(RuntimeException.class);
+        verify(experimental).truncate(7L);
+        verify(current, never()).truncate(anyLong());
     }
 
     private static PaxosValue valueForRound(long round) {
