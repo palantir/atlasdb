@@ -40,9 +40,13 @@ public class ValueMetadataCleanupTask implements OnCleanupTask {
             rows.add(ValueStreamMetadataTable.ValueStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         ValueStreamIdxTable indexTable = tables.getValueStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
-        Set<Long> toDelete = Sets.newHashSet();
+        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rowsWithNoIndexEntries =
+                        executeUnreferencedStreamDiagnostics(indexTable, rows);
+        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
+                        .map(ValueStreamMetadataTable.ValueStreamMetadataRow::getId)
+                        .collect(Collectors.toSet()));
+        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> currentMetadata =
+                metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));
         for (Map.Entry<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 toDelete.add(e.getKey().getId());
@@ -88,7 +92,7 @@ public class ValueMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(ValueStreamIdxTable indexTable, Set<ValueStreamMetadataTable.ValueStreamMetadataRow> metadataRows) {
+    private static Set<ValueStreamMetadataTable.ValueStreamMetadataRow> executeUnreferencedStreamDiagnostics(ValueStreamIdxTable indexTable, Set<ValueStreamMetadataTable.ValueStreamMetadataRow> metadataRows) {
         Set<ValueStreamIdxTable.ValueStreamIdxRow> indexRows = metadataRows.stream()
                 .map(ValueStreamMetadataTable.ValueStreamMetadataRow::getId)
                 .map(ValueStreamIdxTable.ValueStreamIdxRow::of)
@@ -99,9 +103,11 @@ public class ValueMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+            return Sets.newHashSet();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
+            return unreferencedStreamsByIterator;
         }
     }
 }

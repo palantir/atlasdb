@@ -40,13 +40,11 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
             rows.add(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         SnapshotsStreamIdxTable indexTable = tables.getSnapshotsStreamIdxTable(t);
-
         Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> rowsWithNoIndexEntries =
-                executeUnreferencedStreamDiagnostics(indexTable, rows);
+                        executeUnreferencedStreamDiagnostics(indexTable, rows);
         Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                .map(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow::getId)
-                .collect(Collectors.toSet()));
-
+                        .map(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow::getId)
+                        .collect(Collectors.toSet()));
         Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> currentMetadata =
                 metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));
         for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
