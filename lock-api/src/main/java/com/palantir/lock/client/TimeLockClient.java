@@ -22,8 +22,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -180,10 +180,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private static ScheduledExecutorService createSingleThreadScheduledExecutor(String operation) {
         return PTExecutors.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder()
-                        .setNameFormat(TimeLockClient.class.getSimpleName() + "-" + operation + "-%d")
-                        .setDaemon(true)
-                        .build());
+                new NamedThreadFactory(TimeLockClient.class.getSimpleName() + "-" + operation, true));
     }
 
     private static final class TimelockServiceErrorDecorator implements CloseableTimestampService {

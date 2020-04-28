@@ -27,7 +27,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
@@ -76,10 +76,7 @@ final class TimeLockPaxosExecutors {
                         THREAD_KEEP_ALIVE.toMillis(),
                         TimeUnit.MILLISECONDS,
                         new SynchronousQueue<>(),
-                        new ThreadFactoryBuilder()
-                                .setNameFormat("timelock-executors-" + useCase + "-%d")
-                                .setDaemon(true)
-                                .build()),
+                        new NamedThreadFactory("timelock-executors-" + useCase, true)),
                 metricRegistry,
                 MetricRegistry.name(TimeLockPaxosExecutors.class, useCase, "executor-" + index));
     }
