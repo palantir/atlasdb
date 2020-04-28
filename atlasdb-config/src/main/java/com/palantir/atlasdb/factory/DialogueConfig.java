@@ -16,17 +16,16 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.util.Optional;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface DialogueConfig {
 
-    DialogueConfig DEFAULT = ImmutableDialogueConfig.builder().build();
+    DialogueConfig DEFAULT = ImmutableDialogueConfig.builder()
+            .build();
 
-    boolean enabled();
-
-    // Notionally would support reusing connections between TransactionManager instances.
-    Optional<ServiceFactory> serviceFactory();
+    @Value.Default
+    default boolean enabled() {
+        return false;
+    }
 }
