@@ -710,7 +710,7 @@ public class StreamStoreRenderer {
                     line("                .map(", StreamMetadataRow, "::getId)");
                     line("                .collect(Collectors.toSet()));");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata =");
-                    line(" metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));");
+                    line("        metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
                         line("if (e.getValue().getStatus() != Status.STORED) {"); {
                             line("toDelete.add(e.getKey().getId());");
