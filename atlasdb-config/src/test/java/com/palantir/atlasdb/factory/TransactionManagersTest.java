@@ -104,6 +104,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -320,6 +321,7 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
+                        NoOpHostEventsSink.INSTANCE,
                         true);
 
         LockRequest lockRequest = LockRequest
@@ -796,6 +798,7 @@ public class TransactionManagersTest {
                 invalidator,
                 USER_AGENT,
                 Optional.empty(),
+                NoOpHostEventsSink.INSTANCE,
                 true);
     }
 
@@ -816,6 +819,7 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
+                        NoOpHostEventsSink.INSTANCE,
                         true);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();

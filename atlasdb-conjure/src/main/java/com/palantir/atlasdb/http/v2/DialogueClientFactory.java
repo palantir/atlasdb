@@ -34,6 +34,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.dialogue.serde.DefaultConjureRuntime;
+import com.palantir.conjure.java.okhttp.HostEventsSink;
 import com.palantir.dialogue.Channel;
 import com.palantir.dialogue.ConjureRuntime;
 import com.palantir.dialogue.core.DialogueChannel;
@@ -53,15 +54,18 @@ final class DialogueClientFactory implements AutoCloseable {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Refreshable<Optional<ServerListConfig>> config;
     private final UserAgent userAgent;
+    private final HostEventsSink hostEventsSink;
     private final ConcurrentHashMap<CacheKey, CachedClient> cachedChannels = new ConcurrentHashMap<>();
 
     DialogueClientFactory(
             Refreshable<Optional<ServerListConfig>> config,
             TaggedMetricRegistry taggedMetricRegistry,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            HostEventsSink hostEventsSink) {
         this.taggedMetricRegistry = taggedMetricRegistry;
         this.config = config;
         this.userAgent = userAgent;
+        this.hostEventsSink = hostEventsSink;
     }
 
     <T> T dialogueClient(
@@ -76,6 +80,7 @@ final class DialogueClientFactory implements AutoCloseable {
     <T> T jaxrsClient(Class<T> jaxrsInterface, StaticClientConfiguration staticConfig) {
         Channel liveReloadingChannel = liveReloadableChannel(staticConfig);
 
+        // TODO(1234): Plumb host events sink
         T jaxrsClient = JaxRsClient.create(jaxrsInterface, liveReloadingChannel, DIALOGUE_RUNTIME);
         // Instrument with Tritium to match CJR jaxrs client creation
         T instrumentedJaxrsClient = Tritium.instrument(jaxrsInterface, jaxrsClient, taggedMetricRegistry);

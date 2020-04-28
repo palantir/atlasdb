@@ -13,13 +13,9 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -32,8 +28,7 @@ import com.palantir.refreshable.DefaultRefreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-@RunWith(Parameterized.class)
-public final class AtlasClientFactoryTests {
+public final class AtlasDialogueServiceCreatorTests {
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of("Test", "1.0"));
     public static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(
             Paths.get("../atlasdb-ete-tests/var/security/trustStore.jks"),
@@ -50,26 +45,10 @@ public final class AtlasClientFactoryTests {
 
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
     private final HostMetricsRegistry hostMetrics = new HostMetricsRegistry();
-    private final JaxrsImplementation jaxrsImplementation;
 
-    private AtlasClientFactory factory;
+    private AtlasDialogueServiceCreator factory;
     private DefaultRefreshable<ServerListConfig> serverListConfig;
     private String wireMockUrl;
-
-    public enum JaxrsImplementation {
-        CJR,
-        DIALOGUE
-    }
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] { {JaxrsImplementation.CJR}, {JaxrsImplementation.DIALOGUE} });
-    }
-
-    public AtlasClientFactoryTests(JaxrsImplementation jaxrsImplementation) {
-
-        this.jaxrsImplementation = jaxrsImplementation;
-    }
 
     @Before
     public void before() {
@@ -78,12 +57,11 @@ public final class AtlasClientFactoryTests {
 
         wireMockUrl = "https://localhost:" + wiremock.httpsPort();
         serverListConfig = new DefaultRefreshable<>(toServerList(wireMockUrl));
-        factory = new AtlasClientFactory(
+        factory = new AtlasDialogueServiceCreator(
                 serverListConfig,
                 taggedMetricRegistry,
                 USER_AGENT,
-                hostMetrics,
-                JaxrsImplementation.DIALOGUE == jaxrsImplementation);
+                hostMetrics);
     }
 
     @Test
