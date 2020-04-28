@@ -83,7 +83,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
                 log.error("Mismatch in reading round for sequence number {} between legacy and current "
                         + "implementations. Legacy result {}, current result {}.",
                         SafeArg.of("sequence", seq),
-                        UnsafeArg.of("legacy",hydrateIfNotNull(result)),
+                        UnsafeArg.of("legacy", hydrateIfNotNull(result)),
                         UnsafeArg.of("current", hydrateIfNotNull(experimentalResult)));
             }
             return result;
