@@ -185,7 +185,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 startupChecks,
                 PTExecutors.newScheduledThreadPool(
                         1,
-                        new NamedThreadFactory("CassandraClientPoolRefresh")),
+                        new NamedThreadFactory("CassandraClientPoolRefresh", true)),
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist, metrics),
