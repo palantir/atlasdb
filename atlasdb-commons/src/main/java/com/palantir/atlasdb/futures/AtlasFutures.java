@@ -93,6 +93,10 @@ public final class AtlasFutures {
             return listenableFuture.get();
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            listenableFuture.cancel(true);
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
