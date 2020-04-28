@@ -55,7 +55,6 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
-import com.palantir.atlasdb.transaction.api.TransactionBatchFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -64,7 +63,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -175,38 +173,37 @@ import com.palantir.util.ExceptionHandlingRunner;
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
             List<PreCommitCondition> conditions) {
-        Preconditions.checkArgument(!conditions.isEmpty(), "Trying to start an empty batch");
         try (StartIdentifiedAtlasDbTransactionResponseBatch responses =
                 timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
-            if (responses.size() != conditions.size()) {
-                throw new TransactionBatchFailedRetriableException(
-                        "The number of transactions started does not match the size of the batch.");
-            }
+            List<TransactionAndImmutableTsLock> transactions = wrapResponseBatch(conditions, responses);
 
-            List<TransactionAndImmutableTsLock> transactions = Streams.zip(
-                    responses.getResponses().stream(),
-                    conditions.stream(),
-                    (response, condition) -> wrapResponse(condition, response)).collect(Collectors.toList());
             return responses.successful(transactions);
         }
     }
 
-    private TransactionAndImmutableTsLock wrapResponse(PreCommitCondition condition,
-            StartIdentifiedAtlasDbTransactionResponse transactionResponse) {
-        LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
-        long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
+    private List<TransactionAndImmutableTsLock> wrapResponseBatch(List<PreCommitCondition> conditions,
+            StartIdentifiedAtlasDbTransactionResponseBatch responses) {
+        long immutableTs = responses.getMaxTimestamp();
         recordImmutableTimestamp(immutableTs);
 
-        cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
-        Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                transactionResponse.startTimestampAndPartition().timestamp());
+        return Streams.zip(
+                responses.getResponses().stream(),
+                conditions.stream(),
+                (response, condition) -> {
+                    LockToken immutableTsLock = response.immutableTimestamp().getLock();
+                    cleaner.punch(response.startTimestampAndPartition().timestamp());
+                    Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
+                            response.startTimestampAndPartition().timestamp());
 
-        Transaction transaction = createTransaction(
-                immutableTs,
-                startTimestampSupplier,
-                immutableTsLock,
-                condition);
-        return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+                    Transaction transaction = createTransaction(
+                            immutableTs,
+                            startTimestampSupplier,
+                            immutableTsLock,
+                            condition);
+
+                    return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+                }
+        ).collect(Collectors.toList());
     }
 
     @Override

@@ -30,13 +30,13 @@ import com.palantir.util.ExceptionHandlingRunner;
 public final class StartIdentifiedAtlasDbTransactionResponseBatch implements AutoCloseable {
 
     private final List<StartIdentifiedAtlasDbTransactionResponse> responses;
-    private final Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner;
+    private final Runnable cleaner;
     private boolean closed;
     private final long minTimestamp;
     private final long maxTimestamp;
 
-    private StartIdentifiedAtlasDbTransactionResponseBatch(List<StartIdentifiedAtlasDbTransactionResponse> responses,
-            Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner) {
+    public StartIdentifiedAtlasDbTransactionResponseBatch(List<StartIdentifiedAtlasDbTransactionResponse> responses,
+            Runnable cleaner) {
         // This will only be called if the builder is built without any attempts at adding responses
         Preconditions.checkState(!responses.isEmpty(),
                 "Batch created with no transaction responses - something has gone wrong");
@@ -68,7 +68,7 @@ public final class StartIdentifiedAtlasDbTransactionResponseBatch implements Aut
     public void close() {
         if (!closed) {
             try (ExceptionHandlingRunner closer = new ExceptionHandlingRunner()) {
-                responses.forEach(resource -> closer.runSafely(() -> cleaner.accept(resource)));
+                closer.runSafely(cleaner);
             }
         }
     }
@@ -81,40 +81,40 @@ public final class StartIdentifiedAtlasDbTransactionResponseBatch implements Aut
         return maxTimestamp;
     }
 
-    public static class Builder implements AutoCloseable {
-        private final List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
-        private final ExceptionHandlingRunner runner = new ExceptionHandlingRunner();
-        private final Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner;
-
-        public Builder(Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner) {
-            this.cleaner = cleaner;
-        }
-
-        public void safeAddToBatch(
-                Supplier<StartIdentifiedAtlasDbTransactionResponse> supplier) {
-            runner.runSafely(() -> {
-                StartIdentifiedAtlasDbTransactionResponse response = supplier.get();
-                responses.add(response);
-            });
-        }
-
-        public StartIdentifiedAtlasDbTransactionResponseBatch build() {
-            // This ensures that the errors causing this to be empty propogate up
-            if (responses.isEmpty()) {
-                close();
-            }
-            return new StartIdentifiedAtlasDbTransactionResponseBatch(responses, cleaner);
-        }
-
-        @Override
-        public void close() {
-            try {
-                runner.close();
-            } catch (Throwable t) {
-                try (ExceptionHandlingRunner closer = new ExceptionHandlingRunner(t)) {
-                    responses.forEach(resource -> closer.runSafely(() -> cleaner.accept(resource)));
-                }
-            }
-        }
-    }
+//    public static class Builder implements AutoCloseable {
+//        private final List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
+//        private final ExceptionHandlingRunner runner = new ExceptionHandlingRunner();
+//        private final Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner;
+//
+//        public Builder(Consumer<StartIdentifiedAtlasDbTransactionResponse> cleaner) {
+//            this.cleaner = cleaner;
+//        }
+//
+//        public void safeAddToBatch(
+//                Supplier<StartIdentifiedAtlasDbTransactionResponse> supplier) {
+//            runner.runSafely(() -> {
+//                StartIdentifiedAtlasDbTransactionResponse response = supplier.get();
+//                responses.add(response);
+//            });
+//        }
+//
+//        public StartIdentifiedAtlasDbTransactionResponseBatch build() {
+//            // This ensures that the errors causing this to be empty propogate up
+//            if (responses.isEmpty()) {
+//                close();
+//            }
+//            return new StartIdentifiedAtlasDbTransactionResponseBatch(responses, cleaner);
+//        }
+//
+//        @Override
+//        public void close() {
+//            try {
+//                runner.close();
+//            } catch (Throwable t) {
+//                try (ExceptionHandlingRunner closer = new ExceptionHandlingRunner(t)) {
+//                    responses.forEach(resource -> closer.runSafely(() -> cleaner.accept(resource)));
+//                }
+//            }
+//        }
+//    }
 }

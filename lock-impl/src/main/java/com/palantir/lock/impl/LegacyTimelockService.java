@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.impl;
 
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
@@ -127,17 +128,14 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        // Going to implement this naively for now, and can always revisit it a bit later
-        try (StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
-                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(response ->
-                        unlock(ImmutableSet.of(response.immutableTimestamp().getLock())))) {
-            IntStream.range(0, count).forEach($ -> batchBuilder.safeAddToBatch(() ->
-                    // given that #getFreshTimestamps is a thing, I think we'll want to use that
-                    // if we want this to be properly efficient, but not doing so for now
-                    StartIdentifiedAtlasDbTransactionResponse.of(lockImmutableTimestamp(),
-                            TimestampAndPartition.of(getFreshTimestamp(), 0))));
-            return batchBuilder.build();
-        }
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = IntStream.range(0, count).mapToObj(
+                $ -> StartIdentifiedAtlasDbTransactionResponse.of(
+                        lockImmutableTimestamp(), TimestampAndPartition.of(getFreshTimestamp(), 0))).collect(
+                Collectors.toList());
+
+        return new StartIdentifiedAtlasDbTransactionResponseBatch(responses,
+                () -> unlock(responses.stream().map(response -> response.immutableTimestamp().getLock()).collect(
+                        Collectors.toSet())));
     }
 
     @Override

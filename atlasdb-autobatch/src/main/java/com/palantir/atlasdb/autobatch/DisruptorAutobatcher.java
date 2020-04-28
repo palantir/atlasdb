@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +35,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -89,25 +86,28 @@ public final class DisruptorAutobatcher<T, R>
     public ListenableFuture<R> apply(T argument) {
         checkClosed();
         DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
-        buffer.publishEvent(createTranslator(argument, result));
+        buffer.publishEvent((refresh, sequence) -> {
+            refresh.result = result;
+            refresh.argument = argument;
+        });
         return result;
     }
-
-    public List<ListenableFuture<R>> applyBatch(List<T> arguments) {
-        checkClosed();
-        List<ListenableFuture<R>> results = new ArrayList<>();
-
-        EventTranslator<DefaultBatchElement<T, R>>[] translators = arguments.stream().map(argument -> {
-            DisruptorFuture<R> result = new DisruptorFuture<>(safeLoggablePurpose);
-            EventTranslator<DefaultBatchElement<T, R>> translator = createTranslator(argument, result);
-            results.add(result);
-            return translator;
-        }).toArray(EventTranslator[]::new);
-
-        buffer.publishEvents(translators);
-
-        return results;
-    }
+//
+//    public List<ListenableFuture<R>> applyBatch(List<T> arguments) {
+//        checkClosed();
+//        List<ListenableFuture<R>> results = new ArrayList<>();
+//
+//        EventTranslator<DefaultBatchElement<T, R>>[] translators = arguments.stream().map(argument -> {
+//            DisruptorFuture<R> result = new DisruptorFuture<>(safeLoggablePurpose);
+//            EventTranslator<DefaultBatchElement<T, R>> translator = createTranslator(argument, result);
+//            results.add(result);
+//            return translator;
+//        }).toArray(EventTranslator[]::new);
+//
+//        buffer.publishEvents(translators);
+//
+//        return results;
+//    }
 
     @Override
     public void close() {
@@ -122,13 +122,6 @@ public final class DisruptorAutobatcher<T, R>
 
     private void checkClosed() {
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
-    }
-
-    private EventTranslator<DefaultBatchElement<T, R>> createTranslator(T argument, DisruptorFuture<R> result) {
-        return (refresh, unused) -> {
-            refresh.result = result;
-            refresh.argument = argument;
-        };
     }
 
     private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {
