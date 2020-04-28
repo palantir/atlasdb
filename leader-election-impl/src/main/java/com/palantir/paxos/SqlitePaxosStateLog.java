@@ -86,6 +86,14 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
         execute(dao -> dao.truncate(namespace, toDeleteInclusive));
     }
 
+    public void reinitialize() {
+        execute(dao -> {
+            dao.dropTable(namespace);
+            dao.createTable(namespace);
+            return null;
+        });
+    }
+
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
     }
@@ -93,6 +101,9 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
     public interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS <table> (seq BIGINT PRIMARY KEY, val BLOB)")
         boolean createTable(@Define("table") String table);
+
+        @SqlUpdate("DROP TABLE <table>")
+        boolean dropTable(@Define("table") String table);
 
         @SqlUpdate("INSERT OR REPLACE INTO <table> (seq, val) VALUES (:seq, :value)")
         boolean writeRound(@Define("table") String table, @Bind("seq") long seq, @Bind("value") byte[] value);

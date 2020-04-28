@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -31,6 +32,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
@@ -74,6 +76,11 @@ public class SqlitePaxosStateLogTest {
             assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round.sequence())))
                     .isEqualTo(round.value());
         }
+    }
+
+    @Test
+    public void canWriteEmptyBatch() {
+        assertThatCode(() -> stateLog.writeBatchOfRounds(ImmutableList.of())).doesNotThrowAnyException();
     }
 
     @Test
