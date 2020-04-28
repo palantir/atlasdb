@@ -95,7 +95,6 @@ public class TargetedSweepEteTest {
     }
 
     @Test
-    @Ignore // TODO (jkong): This is obviously not the desired behaviour, but we are doing this for safety.
     public void targetedSweepCleansUpUnmarkedStreamsTest() {
         todoClient.storeUnmarkedSnapshot("snap");
         todoClient.storeUnmarkedSnapshot("crackle");
@@ -106,6 +105,7 @@ public class TargetedSweepEteTest {
     }
 
     @Test
+    @Ignore // TODO (jkong): This is obviously not the desired behaviour, but we are doing this for safety.
     public void targetedSweepCurrentlyDoesNotCleanupUnmarkedStreamsTest() {
         todoClient.storeUnmarkedSnapshot("snap");
         todoClient.storeUnmarkedSnapshot("crackle");
