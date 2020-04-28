@@ -122,7 +122,7 @@ public class AtlasClientFactory implements AutoCloseable {
     private ClientConfiguration toClientConfig(
             StaticClientConfiguration staticClientConfig, ServerListConfig serverListConfig) {
         return ClientConfiguration.builder()
-                .from(StaticClientConfigurations.apply(staticClientConfig, serverListConfig))
+                .from(DialogueStaticClientConfigurations.apply(staticClientConfig, serverListConfig))
                 .taggedMetricRegistry(taggedMetricRegistry)
                 .userAgent(userAgent)
                 .build();

@@ -106,7 +106,7 @@ final class DialogueClientFactory implements AutoCloseable {
     private ClientConfiguration getClientConf(
             StaticClientConfiguration staticClientConfig, ServerListConfig serverListConfig) {
         return ClientConfiguration.builder()
-                .from(StaticClientConfigurations.apply(staticClientConfig, serverListConfig))
+                .from(DialogueStaticClientConfigurations.apply(staticClientConfig, serverListConfig))
                 .taggedMetricRegistry(taggedMetricRegistry)
                 .userAgent(userAgent)
                 .build();

@@ -23,10 +23,11 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfigurations;
+import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public final class StaticClientConfigurations {
+public final class DialogueStaticClientConfigurations {
     private static final Duration CONNECT_TIMEOUT = Duration.ofMillis(500);
 
     @VisibleForTesting
@@ -45,7 +46,8 @@ public final class StaticClientConfigurations {
                 .from(ClientConfigurations.of(toServiceConfiguration(serverConfig)))
                 .connectTimeout(CONNECT_TIMEOUT)
                 .enableGcmCipherSuites(true)
-                .enableHttp2(true);
+                .enableHttp2(true)
+                .nodeSelectionStrategy(NodeSelectionStrategy.PIN_UNTIL_ERROR_WITHOUT_RESHUFFLE);
 
         mixed.readTimeout(staticClientConfig.fastReadTimeOut() ? NON_BLOCKING_READ_TIMEOUT : BLOCKING_READ_TIMEOUT);
         // TODO(forozco): add more config if necessary
@@ -64,6 +66,6 @@ public final class StaticClientConfigurations {
                 .build();
     }
 
-    private StaticClientConfigurations() {
+    private DialogueStaticClientConfigurations() {
     }
 }
