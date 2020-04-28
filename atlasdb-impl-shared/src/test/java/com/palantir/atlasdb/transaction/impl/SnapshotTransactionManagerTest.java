@@ -235,10 +235,10 @@ public class SnapshotTransactionManagerTest {
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
 
         transactionManager.runTaskReadOnly(tx -> "ignored");
-        verify(timelockService).startIdentifiedAtlasDbTransaction();
+        verify(timelockService).startIdentifiedAtlasDbTransactionBatch(1);
 
         transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
-        verify(timelockService, times(2)).startIdentifiedAtlasDbTransaction();
+        verify(timelockService, times(2)).startIdentifiedAtlasDbTransactionBatch(1);
     }
 
     @Test
@@ -249,7 +249,7 @@ public class SnapshotTransactionManagerTest {
 
         transactionManager.runTaskReadOnly(tx -> "ignored");
         transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
-        verify(timelockService, never()).startIdentifiedAtlasDbTransaction();
+        verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(1);
     }
 
     @Test
@@ -269,7 +269,7 @@ public class SnapshotTransactionManagerTest {
 
         batchBuilder.safeAddToBatch(() -> response);
 
-        doReturn(batchBuilder.build()).when(timelockService).startIdentifiedAtlasDbTransactionsBatch(anyInt());
+        doReturn(batchBuilder.build()).when(timelockService).startIdentifiedAtlasDbTransactionBatch(anyInt());
 
         assertThatExceptionOfType(TransactionBatchFailedRetriableException.class)
                 .isThrownBy(() -> transactionManager.setupRunTaskBatchWithConditionThrowOnConflict(

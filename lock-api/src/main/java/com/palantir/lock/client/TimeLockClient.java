@@ -17,6 +17,7 @@ package com.palantir.lock.client;
 
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,7 +33,6 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -95,23 +95,14 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        StartIdentifiedAtlasDbTransactionResponse response = executeOnTimeLock(
-                delegate::startIdentifiedAtlasDbTransaction);
-        lockRefresher.registerLock(response.immutableTimestamp().getLock());
-        return response;
-    }
-
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        try (StartIdentifiedAtlasDbTransactionResponseBatch responses = executeOnTimeLock(() ->
-                delegate.startIdentifiedAtlasDbTransactionsBatch(count))) {
-            lockRefresher.registerLocks(responses.getResponses()
-                    .stream()
-                    .map(response -> response.immutableTimestamp().getLock())
-                    .collect(Collectors.toList()));
-            return responses;
-        }
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = executeOnTimeLock(
+                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
+        lockRefresher.registerLocks(responses
+                .stream()
+                .map(response -> response.immutableTimestamp().getLock())
+                .collect(Collectors.toList()));
+        return responses;
     }
 
     @Override

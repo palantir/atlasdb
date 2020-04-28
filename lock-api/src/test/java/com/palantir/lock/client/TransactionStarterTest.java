@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
@@ -58,7 +59,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -66,7 +66,8 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionStarterTest {
-    @Mock private LockLeaseService lockLeaseService;
+    @Mock
+    private LockLeaseService lockLeaseService;
     private final LockWatchEventCache lockWatchEventCache = spy(NoOpLockWatchEventCache.INSTANCE);
     private TransactionStarter transactionStarter;
 
@@ -101,7 +102,8 @@ public class TransactionStarterTest {
 
         when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 1))
                 .thenReturn(startTransactionResponse);
-        StartIdentifiedAtlasDbTransactionResponse response = transactionStarter.startIdentifiedAtlasDbTransaction();
+        StartIdentifiedAtlasDbTransactionResponse response = transactionStarter.startIdentifiedAtlasDbTransactionBatch(
+                1).get(0);
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
     }
@@ -111,10 +113,10 @@ public class TransactionStarterTest {
         ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(12, 5);
 
         when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 5)).thenReturn(batchResponse);
-        StartIdentifiedAtlasDbTransactionResponseBatch responses =
-                transactionStarter.startIdentifiedAtlasDbTransactionsBatch(5);
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                transactionStarter.startIdentifiedAtlasDbTransactionBatch(5);
 
-        assertThat(responses.getResponses())
+        assertThat(responses)
                 .satisfies(TransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
                 .hasSize(5)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse,
@@ -147,14 +149,17 @@ public class TransactionStarterTest {
     }
 
     private List<StartIdentifiedAtlasDbTransactionResponse> requestBatches(int size) {
-        List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>> elements = IntStream.range(0, size)
+        List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>> elements = IntStream.range(0, size)
                 .mapToObj(unused -> ImmutableTestBatchElement.builder()
-                        .argument(null)
+                        .argument(1)
                         .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                         .build())
                 .collect(toList());
+
         TransactionStarter.consumer(lockLeaseService, lockWatchEventCache).accept(elements);
-        return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
+        //        return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
+        return Futures.getUnchecked(
+                Futures.allAsList(Lists.transform(elements, BatchElement::result))).stream().flatMap(List::stream).collect(Collectors.toList());
     }
 
     private static void assertThatStartTransactionResponsesAreUnique(
@@ -213,9 +218,10 @@ public class TransactionStarterTest {
     }
 
     @Value.Immutable
-    interface TestBatchElement extends BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse> {
+    interface TestBatchElement extends BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> {
         @Override
-        @Nullable Void argument();
+        @Nullable
+        Integer argument();
     }
 
 }

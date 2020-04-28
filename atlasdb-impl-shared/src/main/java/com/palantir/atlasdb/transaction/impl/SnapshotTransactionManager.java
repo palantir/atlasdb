@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -63,7 +64,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
@@ -166,28 +167,34 @@ import com.palantir.util.ExceptionHandlingRunner;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        // I am reluctant to remove outright
         return Iterables.getOnlyElement(setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of(condition)));
     }
 
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
             List<PreCommitCondition> conditions) {
-        try (StartIdentifiedAtlasDbTransactionResponseBatch responses =
-                timelockService.startIdentifiedAtlasDbTransactionsBatch(conditions.size())) {
-            List<TransactionAndImmutableTsLock> transactions = wrapResponseBatch(conditions, responses);
-
-            return responses.successful(transactions);
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
+        try {
+            return wrapResponseBatch(conditions, responses);
+        } catch (Throwable t) {
+            timelockService.tryUnlock(
+                    responses.stream()
+                            .map(response -> response.immutableTimestamp().getLock())
+                            .collect(Collectors.toSet()));
+            throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
 
     private List<TransactionAndImmutableTsLock> wrapResponseBatch(List<PreCommitCondition> conditions,
-            StartIdentifiedAtlasDbTransactionResponseBatch responses) {
-        long immutableTs = responses.getMaxTimestamp();
+            List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+        long immutableTs = Collections.max(responses.stream()
+                .map(response -> response.immutableTimestamp().getImmutableTimestamp())
+                .collect(Collectors.toList()));
         recordImmutableTimestamp(immutableTs);
 
         return Streams.zip(
-                responses.getResponses().stream(),
+                responses.stream(),
                 conditions.stream(),
                 (response, condition) -> {
                     LockToken immutableTsLock = response.immutableTimestamp().getLock();

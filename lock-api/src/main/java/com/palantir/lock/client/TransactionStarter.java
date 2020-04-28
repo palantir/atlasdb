@@ -70,19 +70,19 @@ final class TransactionStarter implements AutoCloseable {
                 lockLeaseService);
     }
 
-    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return Iterables.getOnlyElement(AtlasFutures.getUnchecked(autobatcher.apply(1)));
-        //        return AtlasFutures.getUnchecked(autobatcher.apply(1));
-    }
+//    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+//        return Iterables.getOnlyElement(AtlasFutures.getUnchecked(autobatcher.apply(1)));
+//                return AtlasFutures.getUnchecked(autobatcher.apply(1));
+//    }
 
-    StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = AtlasFutures.getUnchecked(autobatcher.apply(count));
-        Set<LockToken> immutableTimestampLocks = responses
-                .stream()
-                .map(response -> response.immutableTimestamp().getLock())
-                .collect(Collectors.toSet());
+    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return AtlasFutures.getUnchecked(autobatcher.apply(count));
+//        Set<LockToken> immutableTimestampLocks = responses
+//                .stream()
+//                .map(response -> response.immutableTimestamp().getLock())
+//                .collect(Collectors.toSet());
 
-        return new StartIdentifiedAtlasDbTransactionResponseBatch(responses, () -> unlock(immutableTimestampLocks));
+//        return new StartIdentifiedAtlasDbTransactionResponseBatch(responses, () -> unlock(immutableTimestampLocks));
     }
 
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {

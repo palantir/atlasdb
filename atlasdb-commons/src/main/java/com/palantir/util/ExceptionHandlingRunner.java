@@ -18,9 +18,8 @@ package com.palantir.util;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
@@ -29,6 +28,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
  */
 public final class ExceptionHandlingRunner implements AutoCloseable {
     private final List<Throwable> failures = new ArrayList<>();
+    private boolean open = true;
 
     public ExceptionHandlingRunner() {}
 
@@ -40,6 +40,7 @@ public final class ExceptionHandlingRunner implements AutoCloseable {
     }
 
     public void runSafely(Runnable shutdownCallback) {
+        checkOpen();
         try {
             shutdownCallback.run();
         } catch (Throwable throwable) {
@@ -47,26 +48,24 @@ public final class ExceptionHandlingRunner implements AutoCloseable {
         }
     }
 
-    public <T> Optional<T> supplySafely(Supplier<T> shutdownCallback) {
-        try {
-            return Optional.of(shutdownCallback.get());
-        } catch (Throwable throwable) {
-            failures.add(throwable);
-            return Optional.empty();
-        }
+    private void checkOpen() {
+        Preconditions.checkState(open, "exception handling runner is closed.");
     }
 
     /**
-     * Calling close with no failures should be a no-op; equally, calling close multiple times will re-throw a runtime
-     * exception with the same suppressed errors (plus any additional errors suppressed since the last close call).
+     * Calling close with no failures should be a no-op. Calling close more than once is not supported and will throw
+     * a SafeIllegalStateException. This method should only be called as part of a try-with-resources block.
      */
     @Override
     public void close() {
+        checkOpen();
+        open = false;
         if (!failures.isEmpty()) {
             RuntimeException closeFailed = new SafeRuntimeException(
                     "Close failed. Please inspect the code and fix the failures");
             failures.forEach(closeFailed::addSuppressed);
             throw closeFailed;
         }
+
     }
 }

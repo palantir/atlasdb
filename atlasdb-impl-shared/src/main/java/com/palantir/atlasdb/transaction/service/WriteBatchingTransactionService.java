@@ -123,7 +123,7 @@ public final class WriteBatchingTransactionService implements TransactionService
      *
      * Retrying does theoretically mean that in the worst case with N transactions in our batch, we may actually
      * require N calls to the database, though this is extremely unlikely especially because of the semantics of
-     * {@link TimelockService#startIdentifiedAtlasDbTransaction()}.
+     * {@link TimelockService#startIdentifiedAtlasDbTransactionBatch(int)}.
      * Alternatives considered included failing out all requests (which is likely to be inefficient and lead to
      * spurious retries on requests that actually committed), and re-submitting requests other than the failed one
      * for consideration in the next batch (which may achieve higher throughput, but could lead to starvation of old

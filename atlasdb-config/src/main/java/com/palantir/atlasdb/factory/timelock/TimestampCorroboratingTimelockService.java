@@ -16,13 +16,15 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.LongAccumulator;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampRange;
 
@@ -62,17 +64,16 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return checkAndUpdateLowerBound(delegate::startIdentifiedAtlasDbTransaction,
-                r -> r.startTimestampAndPartition().timestamp(),
-                r -> r.startTimestampAndPartition().timestamp());
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return checkAndUpdateLowerBound(() -> delegate.startIdentifiedAtlasDbTransactionBatch(count),
+                responses -> Collections.min(getTimestampsFromResponses(responses)),
+                responses -> Collections.max(getTimestampsFromResponses(responses)));
     }
 
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        return checkAndUpdateLowerBound(() -> delegate.startIdentifiedAtlasDbTransactionsBatch(count),
-                StartIdentifiedAtlasDbTransactionResponseBatch::getMinTimestamp,
-                StartIdentifiedAtlasDbTransactionResponseBatch::getMaxTimestamp);
+    private List<Long> getTimestampsFromResponses(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+        return responses.stream().map(
+                response -> response.immutableTimestamp().getImmutableTimestamp()).collect(
+                Collectors.toList());
     }
 
     private <T> T checkAndUpdateLowerBound(Supplier<T> timestampContainerSupplier,

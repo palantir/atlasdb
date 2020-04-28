@@ -75,10 +75,10 @@ public class TimestampCorroboratingTimelockServiceTest {
         StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
                 makeResponse(1L);
 
-        when(rawTimelockService.startIdentifiedAtlasDbTransaction())
+        when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(1))
                 .thenReturn(startIdentifiedAtlasDbTransactionResponse);
 
-        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransaction());
+        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(1));
     }
 
     @Test
@@ -91,9 +91,9 @@ public class TimestampCorroboratingTimelockServiceTest {
         batchBuilder.safeAddToBatch(() -> makeResponse(3L));
         StartIdentifiedAtlasDbTransactionResponseBatch batch = batchBuilder.build();
 
-        when(rawTimelockService.startIdentifiedAtlasDbTransactionsBatch(eq(3))).thenReturn(batch);
+        when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(eq(3))).thenReturn(batch);
 
-        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionsBatch(3));
+        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(3));
     }
 
     @Test

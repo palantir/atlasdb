@@ -81,11 +81,11 @@ public class ProfilingTimelockServiceTest {
     @Test
     public void doesNotLogIfOperationsAreFast() {
         flushLogsWithCall(SHORT_DURATION, profilingTimelockService::getFreshTimestamp);
-        flushLogsWithCall(SHORT_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
-        flushLogsWithCall(SHORT_DURATION, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionsBatch(999));
+        flushLogsWithCall(SHORT_DURATION, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionBatch(1));
+        flushLogsWithCall(SHORT_DURATION, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionBatch(999));
 
         verify(delegate).getFreshTimestamp();
-        verify(delegate).startIdentifiedAtlasDbTransaction();
+        verify(delegate).startIdentifiedAtlasDbTransactionBatch(1);
         verifyLoggerNeverInvoked();
     }
 
@@ -143,7 +143,7 @@ public class ProfilingTimelockServiceTest {
     @Test
     public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThresholdIfFirst() {
         accumulateLogsWithCall(TWO_CENTURIES, profilingTimelockService::getFreshTimestamp);
-        flushLogsWithCall(LONG_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
+        flushLogsWithCall(LONG_DURATION, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionBatch(1));
 
         verifyLoggerInvokedOnceWithSpecificProfile("getFreshTimestamp", TWO_CENTURIES);
     }
@@ -151,7 +151,7 @@ public class ProfilingTimelockServiceTest {
     @Test
     public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThresholdIfNotFirst() {
         accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp);
-        flushLogsWithCall(TWO_CENTURIES, profilingTimelockService::startIdentifiedAtlasDbTransaction);
+        flushLogsWithCall(TWO_CENTURIES, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionBatch(1));
 
         verifyLoggerInvokedOnceWithSpecificProfile("startIdentifiedAtlasDbTransaction", TWO_CENTURIES);
     }
@@ -173,7 +173,7 @@ public class ProfilingTimelockServiceTest {
             accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::lockImmutableTimestamp);
         }
 
-        flushLogsWithCall(SHORT_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
+        flushLogsWithCall(SHORT_DURATION, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionBatch(1));
 
         verifyLoggerInvokedOnceWithSpecificProfile("lockImmutableTimestamp", LONG_DURATION);
         verifyNoMoreInteractions(logger);

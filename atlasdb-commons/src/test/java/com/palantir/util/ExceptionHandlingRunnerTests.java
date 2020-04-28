@@ -45,20 +45,9 @@ public final class ExceptionHandlingRunnerTests {
     }
 
     @Test
-    public void supplierExceptionNotThrown() {
-        Supplier<?> supplierWithException = () -> {
-            throw new RuntimeException();
-        };
-        assertThatSupplierDoesNotThrow(supplierWithException);
-        assertThatCloseThrows();
-    }
-
-    @Test
     public void closeDoesNotThrowWhenNoExceptionsCaught() {
-        Supplier<Integer> cleanSupplier = () -> 4;
         Runnable cleanRunnable = () -> {
         };
-        assertThatSupplierDoesNotThrow(cleanSupplier);
         assertThatRunnableDoesNotThrow(cleanRunnable);
         assertThatCode(runner::close).doesNotThrowAnyException();
     }
@@ -79,10 +68,6 @@ public final class ExceptionHandlingRunnerTests {
 
     private void assertThatRunnableDoesNotThrow(Runnable runnable) {
         assertThatCode(() -> runner.runSafely(runnable)).doesNotThrowAnyException();
-    }
-
-    private void assertThatSupplierDoesNotThrow(Supplier<?> supplier) {
-        assertThatCode(() -> runner.supplySafely(supplier)).doesNotThrowAnyException();
     }
 
     private void assertThatCloseThrows() {

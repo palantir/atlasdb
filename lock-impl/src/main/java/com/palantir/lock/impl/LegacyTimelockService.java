@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -39,7 +39,6 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -110,32 +109,22 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
         try {
-            return StartIdentifiedAtlasDbTransactionResponse.of(
-                    immutableTimestamp,
-                    TimestampAndPartition.of(getFreshTimestamp(), 0));
+            IntStream.range(0, count).forEach(
+                    $ -> responses.add(StartIdentifiedAtlasDbTransactionResponse.of(lockImmutableTimestamp(),
+                            TimestampAndPartition.of(getFreshTimestamp(), 0))));
+            return responses;
         } catch (RuntimeException | Error throwable) {
             try {
-                unlock(ImmutableSet.of(immutableTimestamp.getLock()));
+                unlock(responses.stream().map(response -> response.immutableTimestamp().getLock()).collect(
+                        Collectors.toSet()));
             } catch (Throwable unlockThrowable) {
                 throwable.addSuppressed(unlockThrowable);
             }
             throw throwable;
         }
-    }
-
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = IntStream.range(0, count).mapToObj(
-                $ -> StartIdentifiedAtlasDbTransactionResponse.of(
-                        lockImmutableTimestamp(), TimestampAndPartition.of(getFreshTimestamp(), 0))).collect(
-                Collectors.toList());
-
-        return new StartIdentifiedAtlasDbTransactionResponseBatch(responses,
-                () -> unlock(responses.stream().map(response -> response.immutableTimestamp().getLock()).collect(
-                        Collectors.toSet())));
     }
 
     @Override

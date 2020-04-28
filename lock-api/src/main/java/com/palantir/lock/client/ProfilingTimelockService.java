@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,7 +37,6 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -113,15 +113,15 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return runTaskTimed("startIdentifiedAtlasDbTransaction", delegate::startIdentifiedAtlasDbTransaction);
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return runTaskTimed("startIdentifiedAtlasDbTransaction", () -> delegate.startIdentifiedAtlasDbTransactionBatch(1));
     }
 
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionsBatch(int count) {
-        return runTaskTimed("startIdentifiedAtlasDbTransactionsBatch",
-                () -> delegate.startIdentifiedAtlasDbTransactionsBatch(count));
-    }
+//    @Override
+//    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionBatch(int count) {
+//        return runTaskTimed("startIdentifiedAtlasDbTransactionBatch",
+//                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
+//    }
 
     @Override
     public long getImmutableTimestamp() {
