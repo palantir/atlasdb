@@ -40,6 +40,29 @@ public interface PaxosInstallConfiguration {
     }
 
     /**
+     * Allows users to select an implementation of how the Paxos logs are persisted on disk. Changing this setting
+     * MAY involve a blocking migration the next time TimeLock starts up.
+     */
+    @JsonProperty("persistence-mode")
+    @Value.Default
+    default PaxosPersistenceMode persistenceMode() {
+        return PaxosPersistenceMode.FILE;
+    }
+
+    @Value.Check
+    default void checkPersistenceModeIsFileBased() {
+        Preconditions.checkArgument(
+                persistenceMode() == PaxosPersistenceMode.FILE,
+                "SQLite for Paxos persistence is not supported yet");
+    }
+
+    enum PaxosPersistenceMode {
+        FILE,
+        FILE_WITH_SQLITE_VALIDATION,
+        SQLITE
+    }
+
+    /**
      * Set to true if this is a new stack. Otherwise, set to false.
      */
     @JsonProperty("is-new-service")
@@ -69,7 +92,7 @@ public interface PaxosInstallConfiguration {
 
     @Value.Check
     default void checkLeaderModeIsNotInAutoMigrationMode() {
-        Preconditions.checkState(
+        Preconditions.checkArgument(
                 leaderMode() != PaxosLeaderMode.AUTO_MIGRATION_MODE,
                 "Auto migration mode is not supported just yet");
     }
