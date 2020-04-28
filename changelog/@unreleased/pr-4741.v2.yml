@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Standardize on NamedThreadFactory for observability. All Executors
+    produce tagged thread-factory instrumentation.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4741
