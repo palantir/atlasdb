@@ -20,13 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
     @Rule
@@ -55,6 +60,20 @@ public class SqlitePaxosStateLogTest {
         long round = 12L;
         PaxosValue paxosValue = writeValueForRound(round);
         assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round))).isEqualTo(paxosValue);
+    }
+
+    @Test
+    public void canWriteAndRetrieveBatch() throws IOException {
+        List<PaxosRound<PaxosValue>> inputs = KeyedStream.of(LongStream.rangeClosed(5L, 10L).boxed())
+                .map(SqlitePaxosStateLogTest::valueForRound)
+                .map((seq, val) -> ImmutablePaxosRound.<PaxosValue>builder().sequence(seq).value(val).build())
+                .values()
+                .collect(Collectors.toList());
+        stateLog.writeBatchOfRounds(inputs);
+        for (PaxosRound<PaxosValue> round : inputs) {
+            assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round.sequence())))
+                    .isEqualTo(round.value());
+        }
     }
 
     @Test

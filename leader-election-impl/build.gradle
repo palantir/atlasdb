@@ -24,8 +24,9 @@ dependencies {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
-  testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.awaitility', name: 'awaitility'
+  testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
 }
 
