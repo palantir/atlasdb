@@ -45,8 +45,8 @@ public class SqlitePaxosStateLogFactoryTest {
 
     @Test
     public void namespacesRegisteredWhenStateLogsAreCreated() {
-        factory.createPaxosStateLog(NAMESPACE_1);
-        factory.createPaxosStateLog(NAMESPACE_2);
+        factory.createPaxosStateLog(getCreationContext(NAMESPACE_1, NAMESPACE_1));
+        factory.createPaxosStateLog(getCreationContext(NAMESPACE_2, NAMESPACE_2));
 
         assertThat(factory.getAllRegisteredNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
     }
@@ -57,10 +57,26 @@ public class SqlitePaxosStateLogFactoryTest {
     }
 
     @Test
-    public void canCreateSameLogTwice() {
-        factory.createPaxosStateLog(NAMESPACE_1);
-        factory.createPaxosStateLog(NAMESPACE_1);
+    public void canCreateLogForSameSequenceTwice() {
+        factory.createPaxosStateLog(getCreationContext(NAMESPACE_1, NAMESPACE_1));
+        factory.createPaxosStateLog(getCreationContext(NAMESPACE_1, NAMESPACE_1));
 
         assertThat(factory.getAllRegisteredNamespaces()).containsExactly(NAMESPACE_1);
+    }
+
+    @Test
+    public void canCreateMultipleLogsForSameAtlasNamespace() {
+        factory.createPaxosStateLog(getCreationContext(NAMESPACE_1, NAMESPACE_1));
+        factory.createPaxosStateLog(getCreationContext(NAMESPACE_1, NAMESPACE_2));
+
+        assertThat(factory.getAllRegisteredNamespaces()).containsExactly(NAMESPACE_1);
+    }
+
+    private static SqlitePaxosStateLogFactory.PaxosStateLogCreationContext getCreationContext(
+            String namespace, String physicalTableName) {
+        return ImmutablePaxosStateLogCreationContext.builder()
+                .atlasNamespace(namespace)
+                .physicalTableName(physicalTableName)
+                .build();
     }
 }

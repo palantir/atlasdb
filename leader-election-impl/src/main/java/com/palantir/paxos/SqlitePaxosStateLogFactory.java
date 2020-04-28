@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.immutables.value.Value;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.jdbi.v3.sqlobject.customizer.Bind;
@@ -46,13 +47,19 @@ public class SqlitePaxosStateLogFactory<V extends Persistable & Versionable> {
         return new SqlitePaxosStateLogFactory<>(connectionSupplier, jdbi);
     }
 
-    public PaxosStateLog<V> createPaxosStateLog(String namespace) {
-        jdbi.withExtension(Queries.class, queries -> queries.registerNamespace(namespace));
-        return SqlitePaxosStateLog.create(namespace, connectionSupplier);
+    public PaxosStateLog<V> createPaxosStateLog(PaxosStateLogCreationContext context) {
+        jdbi.withExtension(Queries.class, queries -> queries.registerNamespace(context.atlasNamespace()));
+        return SqlitePaxosStateLog.create(context.physicalTableName(), connectionSupplier);
     }
 
     public List<String> getAllRegisteredNamespaces() {
         return jdbi.withExtension(Queries.class, Queries::getAllRegisteredNamespaces);
+    }
+
+    @Value.Immutable
+    public interface PaxosStateLogCreationContext {
+        String atlasNamespace();
+        String physicalTableName();
     }
 
     public interface Queries {
