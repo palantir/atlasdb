@@ -19,6 +19,8 @@ package com.palantir.atlasdb.futures;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.concurrent.Future;
+
 import org.junit.Test;
 
 import com.google.common.util.concurrent.SettableFuture;
@@ -33,5 +35,14 @@ public class AtlasFuturesTest {
         assertThat(Thread.interrupted())
                 .as("Expected getUnchecked to retain thread interruption state")
                 .isTrue();
+    }
+
+    @Test
+    public void testAtlasFuturesCancelsDelegateOnInterruption() {
+        Thread.currentThread().interrupt();
+        Future<Object> delegate = SettableFuture.create();
+        assertThatThrownBy(() -> AtlasFutures.getUnchecked(delegate))
+                .hasRootCauseExactlyInstanceOf(InterruptedException.class);
+        assertThat(delegate).isCancelled();
     }
 }
