@@ -30,7 +30,7 @@ public class NamespacedConsensus {
     public static void achieveConsensusForNamespace(TimelockNamespaces timelockNamespaces,
             String namespace) {
         TimeLockServices timeLockServices = timelockNamespaces.get(namespace);
-        Long timestamp = timeLockServices.getTimelockService().getFreshTimestamp() + 1000000L;
+        long timestamp = timeLockServices.getTimelockService().getFreshTimestamp() + 1000000L;
         timeLockServices.getTimestampManagementService().fastForwardTimestamp(timestamp);
     }
 }
