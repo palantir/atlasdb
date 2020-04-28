@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AtlasFutures.getUnchecked no longer destroys thread interruption state
+  links:
+  - https://github.com/palantir/atlasdb/pull/4743
