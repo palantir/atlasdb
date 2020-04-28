@@ -82,7 +82,8 @@ public enum ConflictHandler {
      * on index tables. Read/write conflicts should still need to be checked, since we do not need to read the index
      * table with the main table.
      * <p>
-     * This conflict does not lock, because it's assumed that a semantically equivalent lock is taken out on the base table.
+     * This conflict does not lock, because it's assumed that a semantically equivalent lock is taken out on the base 
+     * table.
      */
     SERIALIZABLE_INDEX(false, false, false, true),
 
