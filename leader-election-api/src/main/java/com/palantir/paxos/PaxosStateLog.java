@@ -33,6 +33,13 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
      */
     void writeRound(long seq, V round);
 
+    /**
+     * Implementations of this method MUST obey the following:
+     * 1) The end state of the log should be equivalent to applying the operations in 
+     *    iteration order.
+     * 2) Implementations need not be atomic. However, if they fail, they should apply only
+     *    prefixes of the input iterable.
+     */
     default void writeBatchOfRounds(Iterable<PaxosRound<V>> rounds) {
         rounds.forEach(round -> writeRound(round.sequence(), round.value()));
     }
