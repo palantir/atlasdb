@@ -419,6 +419,8 @@ public interface TransactionManager extends AutoCloseable {
     void registerClosingCallback(Runnable closingCallback);
 
     /**
+     * TODO(jshah) I need to update javadoc
+     *
      * This method can be used for direct control of a transaction's life cycle. For example, if the work done in
      * the transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method
      * allows for a long lived transaction object. For the any data read or written to the transaction to be valid,
@@ -429,19 +431,6 @@ public interface TransactionManager extends AutoCloseable {
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
      *
      * @return the transaction and associated immutable timestamp lock for the task
-     */
-    @Deprecated
-    @Timed
-    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
-
-    /**
-     * This method exposes the ability to start a batch of transactions with pre-commit conditions in a single call.
-     * The result is similar to calling {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}, except
-     * the code has been specifically optimised with respect to batching and error handling.
-     *
-     * @deprecated Similar functionality will exist, but this method is likely to change in the future
-     *
-     * @return a list of transactions and their associated immutable timestamp locks
      */
     @Deprecated
     @Timed
