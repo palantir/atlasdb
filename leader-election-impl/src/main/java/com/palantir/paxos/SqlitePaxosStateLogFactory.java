@@ -29,7 +29,7 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.common.persist.Persistable;
 
-public class SqlitePaxosStateLogFactory<V extends Persistable & Versionable> {
+public final class SqlitePaxosStateLogFactory<V extends Persistable & Versionable> {
     public static final String NAMESPACE_TABLE = "_paxosNamespaces";
 
     private final Supplier<Connection> connectionSupplier;
