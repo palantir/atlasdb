@@ -114,14 +114,8 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return runTaskTimed("startIdentifiedAtlasDbTransaction", () -> delegate.startIdentifiedAtlasDbTransactionBatch(1));
+        return runTaskTimed("startIdentifiedAtlasDbTransactionBatch", () -> delegate.startIdentifiedAtlasDbTransactionBatch(1));
     }
-
-//    @Override
-//    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionBatch(int count) {
-//        return runTaskTimed("startIdentifiedAtlasDbTransactionBatch",
-//                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
-//    }
 
     @Override
     public long getImmutableTimestamp() {

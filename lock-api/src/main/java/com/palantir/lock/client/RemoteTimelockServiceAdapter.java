@@ -100,11 +100,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         return lockLeaseService.lock(request);
     }
 
-//    @Override
-//    public StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionBatch(int count) {
-//        return transactionStarter.startIdentifiedAtlasDbTransaction();
-//    }
-
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return transactionStarter.startIdentifiedAtlasDbTransactionBatch(count);

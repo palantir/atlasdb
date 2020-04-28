@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -38,7 +37,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponseBatch;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchEventCache;
 
@@ -70,19 +68,8 @@ final class TransactionStarter implements AutoCloseable {
                 lockLeaseService);
     }
 
-//    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-//        return Iterables.getOnlyElement(AtlasFutures.getUnchecked(autobatcher.apply(1)));
-//                return AtlasFutures.getUnchecked(autobatcher.apply(1));
-//    }
-
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return AtlasFutures.getUnchecked(autobatcher.apply(count));
-//        Set<LockToken> immutableTimestampLocks = responses
-//                .stream()
-//                .map(response -> response.immutableTimestamp().getLock())
-//                .collect(Collectors.toSet());
-
-//        return new StartIdentifiedAtlasDbTransactionResponseBatch(responses, () -> unlock(immutableTimestampLocks));
     }
 
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
@@ -125,7 +112,7 @@ final class TransactionStarter implements AutoCloseable {
     /**
      * Calling unlock on a set of LockTokenShares only calls unlock on shared token iff all references to shared token
      * are unlocked.
-     * <p>
+     *
      * {@link com.palantir.lock.v2.TimelockService#unlock(Set)} has a guarantee that returned tokens were valid until
      * calling unlock. To keep that guarantee, we need to check if LockTokenShares were valid (by calling refresh with
      * referenced shared token) even if we don't unlock the underlying shared token.
@@ -144,7 +131,6 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     @VisibleForTesting
-    // TODO - verify that this is correcct
     static Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
             LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         return batch -> {

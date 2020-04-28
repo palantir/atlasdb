@@ -54,8 +54,6 @@ public interface TimelockService {
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
 
-//    StartIdentifiedAtlasDbTransactionResponseBatch startIdentifiedAtlasDbTransactionBatch(int count);
-
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     /**
