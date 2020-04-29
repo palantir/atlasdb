@@ -158,17 +158,13 @@ import com.palantir.timestamp.TimestampService;
         checkOpen();
         try {
             TransactionAndImmutableTsLock txAndLock =
-                    runTimed(() -> setupRunTaskWithConditionThrowOnConflict(condition), "setupTask");
+                    runTimed(() -> Iterables.getOnlyElement(
+                            setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of(condition))), "setupTask");
             return finishRunTaskWithLockThrowOnConflict(txAndLock,
                     transaction -> task.execute(transaction, condition));
         } finally {
             condition.cleanup();
         }
-    }
-
-    @Override
-    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        return Iterables.getOnlyElement(setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of(condition)));
     }
 
     @Override
