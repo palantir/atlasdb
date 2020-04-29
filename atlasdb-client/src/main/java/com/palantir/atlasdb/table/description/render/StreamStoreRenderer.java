@@ -706,13 +706,11 @@ public class StreamStoreRenderer {
                     line(StreamIndexTable, " indexTable = tables.get", StreamIndexTable, "(t);");
                     line("Set<", StreamMetadataRow, "> rowsWithNoIndexEntries =");
                     line("                executeUnreferencedStreamDiagnostics(indexTable, rows);");
-                    line("Set<", StreamId, "> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()");
-                    line("                .map(", StreamMetadataRow, "::getId)");
-                    line("                .collect(Collectors.toSet()));");
+                    line("Set<", StreamId, "> toDelete = Sets.newHashSet();");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata =");
-                    line("        metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));");
+                    line("        metaTable.getMetadatas(rows);");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
-                        line("if (e.getValue().getStatus() != Status.STORED) {"); {
+                        line("if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {"); {
                             line("toDelete.add(e.getKey().getId());");
                         } line("}");
                     } line("}");
