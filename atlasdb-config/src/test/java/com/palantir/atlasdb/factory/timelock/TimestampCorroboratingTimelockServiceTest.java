@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -79,21 +80,16 @@ public class TimestampCorroboratingTimelockServiceTest {
 
         assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(1));
     }
-//
-//    @Test
-//    public void startIdentifiedAtlasDbTransactionBatchShouldFail() {
-//        StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
-//                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder($ -> { });
-//
-//        batchBuilder.safeAddToBatch(() -> makeResponse(1L));
-//        batchBuilder.safeAddToBatch(() -> makeResponse(2L));
-//        batchBuilder.safeAddToBatch(() -> makeResponse(3L));
-//        StartIdentifiedAtlasDbTransactionResponseBatch batch = batchBuilder.build();
-//
-//        when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(eq(3))).thenReturn(batch);
-//
-//        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(3));
-//    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionBatchShouldFail() {
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                ImmutableList.of(makeResponse(1L), makeResponse(2L), makeResponse(3L));
+
+        when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(3)).thenReturn(responses);
+
+        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(3));
+    }
 
     @Test
     public void resilientUnderMultipleThreads() throws InterruptedException {
