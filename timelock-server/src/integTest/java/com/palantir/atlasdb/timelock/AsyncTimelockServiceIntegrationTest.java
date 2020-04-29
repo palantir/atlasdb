@@ -458,46 +458,49 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void startIdentifiedAtlasDbTransactionGivesUsTimestampsInSequence() {
         StartIdentifiedAtlasDbTransactionResponse firstResponse =
-                Iterables.getOnlyElement(namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(1));
+                startSingleTransaction(namespace.timelockService());
         StartIdentifiedAtlasDbTransactionResponse secondResponse =
-                Iterables.getOnlyElement(namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(1));
+                startSingleTransaction(namespace.timelockService());
 
-        // Note that we technically cannot guarantee an ordering between the fresh timestamp on response 1 and the
-        // immutable timestamp on response 2. Most of the time, we will have IT on response 2 = IT on response 1
-        // < FT on response 1, as the lock token on response 1 has not expired yet. However, if we sleep for long
-        // enough between the first and second call that the immutable timestamp lock expires, then
-        // IT on response 2 > FT on response 1.
-        assertThat(ImmutableList.of(
-                firstResponse.immutableTimestamp().getImmutableTimestamp(),
-                firstResponse.startTimestampAndPartition().timestamp(),
-                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
-        assertThat(ImmutableList.of(
-                firstResponse.immutableTimestamp().getImmutableTimestamp(),
-                secondResponse.immutableTimestamp().getImmutableTimestamp(),
-                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+        assertThatStartIdentifiedTransactionResponseTimestampsInSequence(firstResponse, secondResponse);
+    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionBatchGivesUsTimestampsInSequence() {
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(2);
+
+        assertThatStartIdentifiedTransactionResponseTimestampsInSequence(responses.get(0), responses.get(1));
     }
 
     @Test
     public void startIdentifiedAtlasDbTransactionGivesUsStartTimestampsInTheSamePartition() {
         StartIdentifiedAtlasDbTransactionResponse firstResponse =
-                Iterables.getOnlyElement(namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(1));
+                startSingleTransaction(namespace.timelockService());
         StartIdentifiedAtlasDbTransactionResponse secondResponse =
-                Iterables.getOnlyElement(namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(1));
+                startSingleTransaction(namespace.timelockService());
 
-        assertThat(firstResponse.startTimestampAndPartition().partition())
-                .isEqualTo(secondResponse.startTimestampAndPartition().partition());
+        assertThatStartIdentifiedTransactionResponseTimestampsInSamePartition(firstResponse, secondResponse);
+    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionBatchGivesUsStartTimestampsInTheSamePartition() {
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(2);
+
+        assertThatStartIdentifiedTransactionResponseTimestampsInSamePartition(responses.get(0), responses.get(1));
     }
 
     @Test
     public void temporalOrderingIsPreservedWhenMixingStandardTimestampAndIdentifiedTimestampRequests() {
         List<Long> temporalSequence = ImmutableList.of(
                 namespace.getFreshTimestamp(),
-                Iterables.getOnlyElement(namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition()
+                startSingleTransaction(namespace.timelockService())
+                        .startTimestampAndPartition()
                         .timestamp(),
                 namespace.getFreshTimestamp(),
-                Iterables.getOnlyElement(namespace.timelockService().startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition()
+                startSingleTransaction(namespace.timelockService())
+                        .startTimestampAndPartition()
                         .timestamp(),
                 namespace.getFreshTimestamp());
 
@@ -510,20 +513,13 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         TimelockService independentClient2 = cluster.uncachedNamespacedClients(namespace.namespace()).timelockService();
 
         List<Long> temporalSequence = ImmutableList.of(
-                Iterables.getOnlyElement(independentClient1.startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition().timestamp(),
-                Iterables.getOnlyElement(independentClient1.startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition().timestamp(),
-                Iterables.getOnlyElement(independentClient2.startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition().timestamp(),
-                Iterables.getOnlyElement(independentClient2.startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition().timestamp(),
-                Iterables.getOnlyElement(independentClient1.startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition().timestamp(),
-                Iterables.getOnlyElement(independentClient2.startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition().timestamp(),
-                Iterables.getOnlyElement(independentClient1.startIdentifiedAtlasDbTransactionBatch(
-                        1)).startTimestampAndPartition().timestamp());
+                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp(),
+                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp(),
+                startSingleTransaction(independentClient2).startTimestampAndPartition().timestamp(),
+                startSingleTransaction(independentClient2).startTimestampAndPartition().timestamp(),
+                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp(),
+                startSingleTransaction(independentClient2).startTimestampAndPartition().timestamp(),
+                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp());
 
         assertThat(temporalSequence).isSorted();
     }
@@ -565,6 +561,35 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .collect(Collectors.toSet());
 
         assertThat(differences).containsOnly((long) TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+    }
+
+    private StartIdentifiedAtlasDbTransactionResponse startSingleTransaction(TimelockService timelockService) {
+        return Iterables.getOnlyElement(timelockService.startIdentifiedAtlasDbTransactionBatch(1));
+    }
+
+    private static void assertThatStartIdentifiedTransactionResponseTimestampsInSequence(
+            StartIdentifiedAtlasDbTransactionResponse firstResponse,
+            StartIdentifiedAtlasDbTransactionResponse secondResponse) {
+        // Note that we technically cannot guarantee an ordering between the fresh timestamp on response 1 and the
+        // immutable timestamp on response 2. Most of the time, we will have IT on response 2 = IT on response 1
+        // < FT on response 1, as the lock token on response 1 has not expired yet. However, if we sleep for long
+        // enough between the first and second call that the immutable timestamp lock expires, then
+        // IT on response 2 > FT on response 1.
+        assertThat(ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                firstResponse.startTimestampAndPartition().timestamp(),
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+        assertThat(ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+    }
+
+    private void assertThatStartIdentifiedTransactionResponseTimestampsInSamePartition(
+            StartIdentifiedAtlasDbTransactionResponse firstResponse,
+            StartIdentifiedAtlasDbTransactionResponse secondResponse) {
+        assertThat(firstResponse.startTimestampAndPartition().partition())
+                .isEqualTo(secondResponse.startTimestampAndPartition().partition());
     }
 
     private HeldLocksToken lockWithFullResponse(com.palantir.lock.LockRequest request,
