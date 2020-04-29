@@ -255,7 +255,6 @@ public class TransactionStarterTest {
     @Value.Immutable
     interface TestBatchElement extends BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> {
         @Override
-        @Nullable
         Integer argument();
     }
 
