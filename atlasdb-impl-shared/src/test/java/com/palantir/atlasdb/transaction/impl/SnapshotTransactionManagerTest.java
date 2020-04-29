@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -38,6 +40,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -46,6 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -240,31 +244,17 @@ public class SnapshotTransactionManagerTest {
         verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(1);
     }
 
-//    @Test
-//    public void failsToStartTransactionBatchWhenBatchIsNotCorrectSize() {
-//        TimelockService timelockService =
-//                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
-//        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
-//
-//        Consumer<StartIdentifiedAtlasDbTransactionResponse> consumer = mock(Consumer.class);
-//
-//        StartIdentifiedAtlasDbTransactionResponseBatch.Builder batchBuilder =
-//                new StartIdentifiedAtlasDbTransactionResponseBatch.Builder(consumer);
-//
-//        StartIdentifiedAtlasDbTransactionResponse response = StartIdentifiedAtlasDbTransactionResponse.of(
-//                LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID())),
-//                TimestampAndPartition.of(2L, 0));
-//
-//        batchBuilder.safeAddToBatch(() -> response);
-//
-//        doReturn(batchBuilder.build()).when(timelockService).startIdentifiedAtlasDbTransactionBatch(anyInt());
-//
-//        assertThatExceptionOfType(TransactionBatchFailedRetriableException.class)
-//                .isThrownBy(() -> transactionManager.setupRunTaskBatchWithConditionThrowOnConflict(
-//                        ImmutableList.of(PreCommitConditions.NO_OP, PreCommitConditions.NO_OP)));
-//
-//        verify(consumer).accept(response);
-//    }
+    @Test
+    public void startEmptyBatchOfTransactionsDoesNotCallTimelockService() {
+        TimelockService timelockService =
+                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
+        List<TransactionAndImmutableTsLock> transactions =
+                transactionManager.setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of());
+
+        assertThat(transactions).isEmpty();
+        verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(anyInt());
+    }
 
     private SnapshotTransactionManager createSnapshotTransactionManager(
             TimelockService timelockService, boolean grabImmutableTsLockOnReads) {

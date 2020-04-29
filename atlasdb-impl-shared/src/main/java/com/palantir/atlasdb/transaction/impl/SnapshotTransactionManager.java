@@ -170,6 +170,10 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
             List<PreCommitCondition> conditions) {
+        if(conditions.isEmpty()) {
+            return ImmutableList.of();
+        }
+
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
                 timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
         try {
@@ -194,8 +198,7 @@ import com.palantir.timestamp.TimestampService;
                                 condition);
 
                         return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
-                    }
-            ).collect(Collectors.toList());
+                    }).collect(Collectors.toList());
         } catch (Throwable t) {
             timelockService.tryUnlock(
                     responses.stream()
