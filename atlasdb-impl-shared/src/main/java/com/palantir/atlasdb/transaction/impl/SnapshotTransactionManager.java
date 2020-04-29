@@ -173,7 +173,29 @@ import com.palantir.timestamp.TimestampService;
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
                 timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
         try {
-            return wrapResponseBatch(conditions, responses);
+            long immutableTs = Collections.max(responses.stream()
+                    .map(response -> response.immutableTimestamp().getImmutableTimestamp())
+                    .collect(Collectors.toList()));
+            recordImmutableTimestamp(immutableTs);
+
+            return Streams.zip(
+                    responses.stream(),
+                    conditions.stream(),
+                    (response, condition) -> {
+                        LockToken immutableTsLock = response.immutableTimestamp().getLock();
+                        cleaner.punch(response.startTimestampAndPartition().timestamp());
+                        Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
+                                response.startTimestampAndPartition().timestamp());
+
+                        Transaction transaction = createTransaction(
+                                immutableTs,
+                                startTimestampSupplier,
+                                immutableTsLock,
+                                condition);
+
+                        return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+                    }
+            ).collect(Collectors.toList());
         } catch (Throwable t) {
             timelockService.tryUnlock(
                     responses.stream()
@@ -181,33 +203,6 @@ import com.palantir.timestamp.TimestampService;
                             .collect(Collectors.toSet()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
-    }
-
-    private List<TransactionAndImmutableTsLock> wrapResponseBatch(List<PreCommitCondition> conditions,
-            List<StartIdentifiedAtlasDbTransactionResponse> responses) {
-        long immutableTs = Collections.max(responses.stream()
-                .map(response -> response.immutableTimestamp().getImmutableTimestamp())
-                .collect(Collectors.toList()));
-        recordImmutableTimestamp(immutableTs);
-
-        return Streams.zip(
-                responses.stream(),
-                conditions.stream(),
-                (response, condition) -> {
-                    LockToken immutableTsLock = response.immutableTimestamp().getLock();
-                    cleaner.punch(response.startTimestampAndPartition().timestamp());
-                    Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                            response.startTimestampAndPartition().timestamp());
-
-                    Transaction transaction = createTransaction(
-                            immutableTs,
-                            startTimestampSupplier,
-                            immutableTsLock,
-                            condition);
-
-                    return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
-                }
-        ).collect(Collectors.toList());
     }
 
     @Override
