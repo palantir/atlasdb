@@ -80,7 +80,7 @@ public class TimeLockClientTest {
         when(delegate.lockImmutableTimestamp()).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
         timelock.lockImmutableTimestamp();
 
-        verify(refresher).registerLock(TOKEN_1);
+        verify(refresher).registerLocks(ImmutableSet.of(TOKEN_1));
     }
 
     @Test
@@ -90,7 +90,7 @@ public class TimeLockClientTest {
 
         timelock.lock(request);
 
-        verify(refresher).registerLock(TOKEN_1);
+        verify(refresher).registerLocks(ImmutableSet.of(TOKEN_1));
     }
 
     @Test
