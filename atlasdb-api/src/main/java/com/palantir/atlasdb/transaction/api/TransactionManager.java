@@ -419,18 +419,15 @@ public interface TransactionManager extends AutoCloseable {
     void registerClosingCallback(Runnable closingCallback);
 
     /**
-     * TODO(jshah) I need to update javadoc
-     *
-     * This method can be used for direct control of a transaction's life cycle. For example, if the work done in
-     * the transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method
-     * allows for a long lived transaction object. For the any data read or written to the transaction to be valid,
-     * the transaction must be committed, preferably by calling
+     * This method can be used for direct control over the lifecycle of a batch of transactions. For example, if the
+     * work done in each given transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of
+     * time, this method allows for a long lived transaction object. For any data read or written to the transaction to
+     * be vvalid, the transaction must be committed, preferably by calling
      * {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock, TransactionTask)} to also perform
-     * additional cleanup.
+     * additional cleanup. Note that this does not clean up the pre commit condition associated with that task.
      *
+     * @return a batch of transactions with associated immutable timestamp locks
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
-     *
-     * @return the transaction and associated immutable timestamp lock for the task
      */
     @Deprecated
     @Timed
@@ -439,7 +436,7 @@ public interface TransactionManager extends AutoCloseable {
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
-     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}. If no further work needs to be done with
+     * {@link #setupRunTaskBatchWithConditionThrowOnConflict(List)}. If no further work needs to be done with
      * the transaction, a no-op task can be passed in.
      *
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
