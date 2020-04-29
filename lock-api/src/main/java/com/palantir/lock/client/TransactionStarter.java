@@ -140,10 +140,9 @@ final class TransactionStarter implements AutoCloseable {
                     getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
 
             int start = 0;
-            int end;
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement
                     : batch) {
-                end = start + batchElement.argument();
+                int end = start + batchElement.argument();
                 batchElement.result().set(startTransactionResponses.subList(start, end));
                 start = end;
             }

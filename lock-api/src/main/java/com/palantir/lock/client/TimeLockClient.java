@@ -24,6 +24,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -90,7 +91,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         LockImmutableTimestampResponse response = executeOnTimeLock(delegate::lockImmutableTimestamp);
-        lockRefresher.registerLock(response.getLock());
+        lockRefresher.registerLocks(ImmutableList.of(response.getLock()));
         return response;
     }
 
@@ -114,7 +115,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public LockResponse lock(LockRequest request) {
         LockResponse response = executeOnTimeLock(() -> delegate.lock(request));
         if (response.wasSuccessful()) {
-            lockRefresher.registerLock(response.getToken());
+            lockRefresher.registerLocks(ImmutableList.of(response.getToken()));
         }
         return response;
     }
