@@ -42,13 +42,11 @@ public class StreamTestWithHashMetadataCleanupTask implements OnCleanupTask {
         StreamTestWithHashStreamIdxTable indexTable = tables.getStreamTestWithHashStreamIdxTable(t);
         Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> rowsWithNoIndexEntries =
                         executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                        .map(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow::getId)
-                        .collect(Collectors.toSet()));
+        Set<Long> toDelete = Sets.newHashSet();
         Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> currentMetadata =
-                metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));
+                metaTable.getMetadatas(rows);
         for (Map.Entry<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

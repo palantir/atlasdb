@@ -42,13 +42,11 @@ public class ValueMetadataCleanupTask implements OnCleanupTask {
         ValueStreamIdxTable indexTable = tables.getValueStreamIdxTable(t);
         Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rowsWithNoIndexEntries =
                         executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                        .map(ValueStreamMetadataTable.ValueStreamMetadataRow::getId)
-                        .collect(Collectors.toSet()));
+        Set<Long> toDelete = Sets.newHashSet();
         Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> currentMetadata =
-                metaTable.getMetadatas(Sets.difference(rows, rowsWithNoIndexEntries));
+                metaTable.getMetadatas(rows);
         for (Map.Entry<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
