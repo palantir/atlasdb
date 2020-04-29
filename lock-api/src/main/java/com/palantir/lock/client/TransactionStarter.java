@@ -39,6 +39,7 @@ import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
@@ -69,6 +70,7 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        Preconditions.checkArgument(count > 0, "Cannot start 0 or fewer transactions");
         return AtlasFutures.getUnchecked(autobatcher.apply(count));
     }
 
