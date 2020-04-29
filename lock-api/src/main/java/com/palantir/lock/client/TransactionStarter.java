@@ -45,7 +45,7 @@ import com.palantir.logsafe.Preconditions;
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
  * service also handles creating {@link LockTokenShare}'s to enable multiple transactions sharing a single immutable
  * timestamp.
- * <p>
+ *
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
