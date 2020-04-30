@@ -71,8 +71,7 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     }
 
     private List<Long> getTimestampsFromResponses(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
-        return responses.stream().map(
-                response -> response.immutableTimestamp().getImmutableTimestamp()).collect(
+        return responses.stream().map(response -> response.startTimestampAndPartition().timestamp()).collect(
                 Collectors.toList());
     }
 
