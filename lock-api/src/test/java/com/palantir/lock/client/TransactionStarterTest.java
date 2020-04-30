@@ -121,8 +121,7 @@ public class TransactionStarterTest {
         assertThat(responses)
                 .satisfies(TransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
                 .hasSize(5)
-                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse,
-                        batchResponse));
+                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchResponse));
     }
 
     @Test
