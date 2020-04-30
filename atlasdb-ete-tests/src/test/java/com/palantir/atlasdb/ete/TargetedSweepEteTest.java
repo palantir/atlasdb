@@ -104,17 +104,6 @@ public class TargetedSweepEteTest {
         assertDeleted(0, 3, 3, 3);
     }
 
-    @Test
-    @Ignore // TODO (jkong): This is obviously not the desired behaviour, but we are doing this for safety.
-    public void targetedSweepCurrentlyDoesNotCleanupUnmarkedStreamsTest() {
-        todoClient.storeUnmarkedSnapshot("snap");
-        todoClient.storeUnmarkedSnapshot("crackle");
-        todoClient.storeUnmarkedSnapshot("pop");
-        todoClient.runIterationOfTargetedSweep();
-
-        assertDeleted(0, 0, 0, 0);
-    }
-
     private void assertDeleted(long idx, long hash, long meta, long val) {
         Assert.assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE), equalTo(idx));
         Assert.assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE), equalTo(hash));
