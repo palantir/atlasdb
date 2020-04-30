@@ -106,7 +106,7 @@ public interface PaxosInstallConfiguration {
     default boolean doesDirectoryAlreadyExist() {
         return dataDirectory().isDirectory() || sqlitePersistence()
                 .map(SqlitePaxosPersistenceConfiguration::dataDirectory)
-                .map(File::exists).orElse(false);
+                .map(File::isDirectory).orElse(false);
     }
 
     @Value.Check
