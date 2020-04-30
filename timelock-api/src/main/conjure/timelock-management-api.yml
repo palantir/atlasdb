@@ -1,0 +1,18 @@
+services:
+  TimeLockManagementService:
+    name: TimeLock Management Service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.api.management
+    base-path: /tl/management
+    endpoints:
+      getNamespaces:
+        http: POST /getNamespaces
+        returns: set<string>
+
+      achieveConsensus:
+        http: POST /achieveConsensus
+        args:
+          namespaces: set<string>
+        docs: |
+          The operation of achieving consensus on all namespaces is NOT atomic. In the case of failures, it can
+          be assumed that consensus was achieved on some namespaces.

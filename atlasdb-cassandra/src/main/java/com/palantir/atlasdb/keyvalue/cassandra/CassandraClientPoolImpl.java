@@ -39,7 +39,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -49,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -183,10 +183,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraClientPoolMetrics metrics) {
         this(config,
                 startupChecks,
-                PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setNameFormat("CassandraClientPoolRefresh-%d")
-                        .build()),
+                PTExecutors.newScheduledThreadPool(
+                        1,
+                        new NamedThreadFactory("CassandraClientPoolRefresh", true)),
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist, metrics),
