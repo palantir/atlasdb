@@ -70,20 +70,6 @@ public class PaxosInstallConfigurationTest {
                 .isNewService(false));
     }
 
-    @Test
-    public void throwsIfUsingSqlitePersistenceModes() {
-        File mockFile = getMockFileWith(true, false);
-
-        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
-                .dataDirectory(mockFile)
-                .isNewService(false)
-                .persistenceMode(PaxosInstallConfiguration.PaxosPersistenceMode.FILE_WITH_SQLITE_VALIDATION));
-        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
-                .dataDirectory(mockFile)
-                .isNewService(false)
-                .persistenceMode(PaxosInstallConfiguration.PaxosPersistenceMode.SQLITE));
-    }
-
     private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) {
         File mockFile = mock(File.class);
         when(mockFile.mkdirs()).thenReturn(canCreateDirectory);
