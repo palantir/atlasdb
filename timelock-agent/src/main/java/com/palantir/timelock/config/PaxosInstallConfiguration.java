@@ -17,8 +17,6 @@ package com.palantir.timelock.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
 import java.util.Optional;
 
 import org.immutables.value.Value;
