@@ -21,12 +21,9 @@ import java.io.File;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
-@JsonDeserialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
+// TODO (jkong): Allow serialization/deserialization, once we want this to actually be configurable
 public interface SqlitePaxosPersistenceConfiguration {
     /**
      * Indicates where the SQLite paxos state log files should be stored.

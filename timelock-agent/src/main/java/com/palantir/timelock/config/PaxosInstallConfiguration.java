@@ -18,6 +18,7 @@ package com.palantir.timelock.config;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
 import java.util.Optional;
 
 import org.immutables.value.Value;
@@ -112,6 +113,8 @@ public interface PaxosInstallConfiguration {
     default void checkSqliteAndFileDataDirectoriesAreNotPossiblyShared() {
         sqlitePersistence().ifPresent(sqlite -> {
             try {
+                Preconditions.checkArgument(!sqlite.dataDirectory().equals(dataDirectory()),
+                        "SQLite and file-based data directories must be different!");
                 Preconditions.checkArgument(!sqlite.dataDirectory().getCanonicalPath().startsWith(
                         dataDirectory().getCanonicalPath() + File.separator),
                         "SQLite data directory can't be a subdirectory of the file-based data directory!"
