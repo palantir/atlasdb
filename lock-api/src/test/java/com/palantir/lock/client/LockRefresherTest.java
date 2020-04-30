@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
