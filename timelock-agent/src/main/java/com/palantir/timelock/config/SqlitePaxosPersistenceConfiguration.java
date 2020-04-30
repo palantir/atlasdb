@@ -24,11 +24,14 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableFilePaxosPersistenceConfiguration.class)
-@JsonDeserialize(as = ImmutableFilePaxosPersistenceConfiguration.class)
-interface FilePaxosPersistenceConfiguration extends PaxosPersistenceConfiguration {
-    String TYPE = "file";
+@JsonSerialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
+@JsonDeserialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
+interface SqlitePaxosPersistenceConfiguration extends PaxosPersistenceConfiguration {
+    String TYPE = "sqlite";
 
+    /**
+     * Directory where the SQLite database and related persistence information should be stored.
+     */
     File dataDirectory();
 
     default <T> T visit(Visitor<T> visitor) {

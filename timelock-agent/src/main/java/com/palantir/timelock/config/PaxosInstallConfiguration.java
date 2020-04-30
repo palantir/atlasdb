@@ -23,12 +23,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
 @Value.Immutable
 public interface PaxosInstallConfiguration {
+    /**
+     * Data directory for file based Paxos.
+     * This does not affect the location where data for other persistence mechanisms is stored.
+     */
     @JsonProperty("data-directory")
     @Value.Default
     default File dataDirectory() {
@@ -46,7 +51,9 @@ public interface PaxosInstallConfiguration {
     @JsonProperty("persistence")
     @Value.Default
     default PaxosPersistenceConfiguration persistence() {
-        return ImmutableFilePaxosPersistenceConfiguration.builder().build();
+        return ImmutableFilePaxosPersistenceConfiguration.builder()
+                .dataDirectory(dataDirectory())
+                .build();
     }
 
     /**
@@ -85,21 +92,18 @@ public interface PaxosInstallConfiguration {
     }
 
     @Value.Check
-    default void separatelySpecifiedDataDirectoriesMustBeConsistent() {
-    }
-
-    @Value.Check
     default void check() {
-        if (isNewService() && dataDirectory().isDirectory()) {
+        boolean hasExistingDirectory = doDataDirectoriesAlreadyExist();
+        if (isNewService() && hasExistingDirectory) {
             throw new SafeIllegalArgumentException(
                     "This timelock server has been configured as a new stack (the 'is-new-service' property is set to "
-                            + "true), but the Paxos data directory already exists. Almost surely this is because it "
+                            + "true), but a Paxos data directory already exists. Almost surely this is because it "
                             + "has already been turned on at least once, and thus the 'is-new-service' property should "
                             + "be set to false for safety reasons.");
         }
 
-        if (!isNewService() && !dataDirectory().isDirectory()) {
-            throw new SafeIllegalArgumentException("The timelock data directory does not appear to exist. If you are "
+        if (!isNewService() && !hasExistingDirectory) {
+            throw new SafeIllegalArgumentException("The timelock data directories do not appear to exist. If you are "
                     + "trying to move the nodes on your timelock cluster or add new nodes, you have likely already "
                     + "made a mistake by this point. This is a non-trivial operation and risks service corruption, "
                     + "so contact support for assistance. Otherwise, if this is a new timelock service, please "
@@ -107,4 +111,44 @@ public interface PaxosInstallConfiguration {
         }
     }
 
+    default boolean doDataDirectoriesAlreadyExist() {
+        if (dataDirectory().isDirectory()) {
+            return true;
+        }
+        return persistence().visit(new PaxosPersistenceConfiguration.Visitor<Boolean>() {
+            @Override
+            public Boolean visit(FilePaxosPersistenceConfiguration file) {
+                return false; // implicit because this must equal dataDirectory()
+            }
+
+            @Override
+            public Boolean visit(SqlitePaxosPersistenceConfiguration sqlite) {
+                return sqlite.dataDirectory().isDirectory();
+            }
+        });
+    }
+
+    @Value.Check
+    default void checkDataDirectoryAndPersistenceConfigsDoNotMutuallyInterfere() {
+        persistence().visit(new PaxosPersistenceConfiguration.Visitor<Void>() {
+            @Override
+            public Void visit(FilePaxosPersistenceConfiguration persistenceConfiguration) {
+                Preconditions.checkArgument(dataDirectory().equals(persistenceConfiguration.dataDirectory()),
+                        "If using file based persistence, data directories must match.",
+                        SafeArg.of("topLevelDataDirectory", dataDirectory()),
+                        SafeArg.of("persistenceConfigDataDirectory", persistenceConfiguration.dataDirectory()));
+                return null;
+            }
+
+            @Override
+            public Void visit(SqlitePaxosPersistenceConfiguration persistenceConfiguration) {
+                Preconditions.checkArgument(!dataDirectory().equals(persistenceConfiguration.dataDirectory()),
+                        "If using SQLite based persistence, the SQLite data directory must NOT equal the file based"
+                                + " directory.",
+                        SafeArg.of("topLevelDataDirectory", dataDirectory()),
+                        SafeArg.of("persistenceConfigDataDirectory", persistenceConfiguration.dataDirectory()));
+                return null;
+            }
+        });
+    }
 }

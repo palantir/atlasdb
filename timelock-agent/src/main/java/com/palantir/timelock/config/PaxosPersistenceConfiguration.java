@@ -16,10 +16,6 @@
 
 package com.palantir.timelock.config;
 
-import java.io.File;
-import java.util.Optional;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
@@ -32,4 +28,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 name = FilePaxosPersistenceConfiguration.TYPE)})
 interface PaxosPersistenceConfiguration {
     // Marker interface
+
+    <T> T visit(Visitor<T> visitor);
+
+    interface Visitor<T> {
+        T visit(FilePaxosPersistenceConfiguration file);
+        T visit(SqlitePaxosPersistenceConfiguration sqlite);
+    }
 }
