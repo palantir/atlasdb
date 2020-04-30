@@ -110,15 +110,21 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        // Track these separately in the case that getFreshTimestamp fails but lockImmutableTimestamp succeeds
+        List<LockImmutableTimestampResponse> immutableTimestampLocks = new ArrayList<>();
         List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
         try {
             IntStream.range(0, count).forEach(
-                    $ -> responses.add(StartIdentifiedAtlasDbTransactionResponse.of(lockImmutableTimestamp(),
-                            TimestampAndPartition.of(getFreshTimestamp(), 0))));
+                    $ -> {
+                        LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
+                        immutableTimestampLocks.add(immutableTimestamp);
+                        responses.add(StartIdentifiedAtlasDbTransactionResponse.of(immutableTimestamp,
+                                TimestampAndPartition.of(getFreshTimestamp(), 0)));
+                    });
             return responses;
         } catch (RuntimeException | Error throwable) {
             try {
-                unlock(responses.stream().map(response -> response.immutableTimestamp().getLock()).collect(
+                unlock(immutableTimestampLocks.stream().map(LockImmutableTimestampResponse::getLock).collect(
                         Collectors.toSet()));
             } catch (Throwable unlockThrowable) {
                 throwable.addSuppressed(unlockThrowable);

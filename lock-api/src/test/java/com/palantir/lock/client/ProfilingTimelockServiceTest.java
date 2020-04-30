@@ -153,7 +153,7 @@ public class ProfilingTimelockServiceTest {
         accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp);
         flushLogsWithCall(TWO_CENTURIES, () -> profilingTimelockService.startIdentifiedAtlasDbTransactionBatch(1));
 
-        verifyLoggerInvokedOnceWithSpecificProfile("startIdentifiedAtlasDbTransaction", TWO_CENTURIES);
+        verifyLoggerInvokedOnceWithSpecificProfile("startIdentifiedAtlasDbTransactionBatch", TWO_CENTURIES);
     }
 
     @Test
