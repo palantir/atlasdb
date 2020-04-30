@@ -119,6 +119,12 @@ public class SnapshotTransactionManagerTest {
     }
 
     @Test
+    public void closesDeleteExecutorOnClosingTransactionManager() {
+        snapshotTransactionManager.close();
+        assertThat(executorService.isTerminated()).isTrue();
+    }
+
+    @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
