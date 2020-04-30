@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
@@ -30,10 +28,8 @@ import com.google.common.collect.Maps;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
-import com.palantir.leader.PaxosLeaderElectionEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutablePaxosStorageParameters;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;

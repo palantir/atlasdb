@@ -33,6 +33,7 @@ import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 @Value.Immutable

@@ -37,8 +37,11 @@ public class SqlitePaxosStateLogTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final String LOG_NAMESPACE_1 = "tom";
-    private static final String LOG_NAMESPACE_2 = "two";
+    private static final Client CLIENT_1 = Client.of("tom");
+    private static final Client CLIENT_2 = Client.of("two");
+
+    private static final String SEQUENCE_1 = "seq1";
+    private static final String SEQUENCE_2 = "seq2";
 
     private Supplier<Connection> connSupplier;
     private PaxosStateLog<PaxosValue> stateLog;
@@ -47,7 +50,7 @@ public class SqlitePaxosStateLogTest {
     public void setup() {
         connSupplier = SqliteConnections
                 .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
-        stateLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
+        stateLog = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_1, connSupplier);
     }
 
     @Test
@@ -120,7 +123,16 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
-        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(LOG_NAMESPACE_2, connSupplier);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_2, SEQUENCE_1, connSupplier);
+        writeValueForRound(1L);
+
+        assertThat(stateLog.readRound(1L)).isNotNull();
+        assertThat(otherLog.readRound(1L)).isNull();
+    }
+
+    @Test
+    public void valuesAreDistinguishedAcrossSequenceIdentifiers() throws IOException {
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_2, connSupplier);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
@@ -129,7 +141,8 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void differentLogsToTheSameNamespaceShareState() throws IOException {
-        PaxosStateLog<PaxosValue> otherLogWithSameNamespace = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, connSupplier);
+        PaxosStateLog<PaxosValue> otherLogWithSameNamespace
+                = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_1, connSupplier);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();

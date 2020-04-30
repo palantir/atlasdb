@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
-import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.timelock.paxos.WithDedicatedExecutor;

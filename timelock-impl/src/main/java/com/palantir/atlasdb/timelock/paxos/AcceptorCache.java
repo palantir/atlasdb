@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.Optional;
 import java.util.Set;
 
+import com.palantir.paxos.Client;
+
 /**
  * An {@link AcceptorCache} tracks the latest sequence numbers for each client it has seen so far.
  * Each {@code prepare} or {@code accept} call should call through to {@link AcceptorCache#updateSequenceNumbers}.

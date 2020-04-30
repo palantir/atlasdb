@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
 

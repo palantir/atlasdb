@@ -31,6 +31,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
 
 @RunWith(MockitoJUnitRunner.class)

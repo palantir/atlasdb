@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.paxos.Client;
 
 public enum PaxosUseCase {
 
