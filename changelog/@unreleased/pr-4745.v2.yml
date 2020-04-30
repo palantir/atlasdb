@@ -1,0 +1,26 @@
+type: improvement
+improvement:
+  description: |-
+    Log an error if it takes >10 seconds to close executors when shutting down STM
+
+    **Goals (and why)**:
+    * Executors are closed when `SnapshotTransactionManager` is closed;
+    * The `shutdownExecutor` method awaits termination but doesn't do anything in the case that termination is slow.
+    * Now log an error if the executor was not shutdown in under 10 seconds - this may indicate a leak or other error.
+
+    **Implementation Description (bullets)**:
+    * Log on slow shutdown of executors during closing
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+    There is no testing that these executors (specifically, the `deleteExecutor` and the `getRangesExecutor`) close when `SnapshotTransactionManager` is closed. I have added a test to verify that the `deleteExecutor` is closed (the other one is created in the constructor and therefore harder to test).
+
+    **Concerns (what feedback would you like?)**:
+    Will this catch any meaningful information? A similar thing is done in other places throughout the codebase so I would expect so.
+
+    **Where should we start reviewing?**:
+    `SnapshotTransactionManager`
+
+    **Priority (whenever / two weeks / yesterday)**:
+    This week.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4745
