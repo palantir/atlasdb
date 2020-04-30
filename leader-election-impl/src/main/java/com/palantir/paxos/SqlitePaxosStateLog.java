@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import java.sql.Connection;
+import java.util.List;
 import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -128,5 +129,8 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
                 @BindPojo("namespace") Client namespace,
                 @Bind("seqId") String seqId,
                 @BindPojo("round") Iterable<PaxosRound<V>> rounds);
+
+        @SqlQuery("SELECT DISTINCT(namespace) FROM paxosLog")
+        List<String> getAllNamespaces();
     }
 }
