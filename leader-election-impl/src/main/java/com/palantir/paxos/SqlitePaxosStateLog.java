@@ -19,6 +19,7 @@ package com.palantir.paxos;
 import java.sql.Connection;
 import java.util.List;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -36,21 +37,21 @@ import com.palantir.common.persist.Persistable;
 
 public final class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private final Client namespace;
-    private final String seqId;
+    private final String useCase;
     private final Jdbi jdbi;
 
-    private SqlitePaxosStateLog(Client namespace, String seqId, Jdbi jdbi) {
+    private SqlitePaxosStateLog(Client namespace, String useCase, Jdbi jdbi) {
         this.namespace = namespace;
-        this.seqId = seqId;
+        this.useCase = useCase;
         this.jdbi = jdbi;
     }
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> create(Client namespace,
-            String sequenceId,
+            String useCase,
             Supplier<Connection> connectionSupplier) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
-        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespace, sequenceId, jdbi);
+        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespace, useCase, jdbi);
         log.initialize();
         return log;
     }
@@ -61,32 +62,32 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
 
     @Override
     public void writeRound(long seq, V round) {
-        execute(dao -> dao.writeRound(namespace, seqId, seq, round.persistToBytes()));
+        execute(dao -> dao.writeRound(namespace, useCase, seq, round.persistToBytes()));
     }
 
     @Override
     public void writeBatchOfRounds(Iterable<PaxosRound<V>> rounds) {
-        execute(dao -> dao.writeBatchOfRounds(namespace, seqId, rounds));
+        execute(dao -> dao.writeBatchOfRounds(namespace, useCase, rounds));
     }
 
     @Override
     public byte[] readRound(long seq) {
-        return execute(dao -> dao.readRound(namespace, seqId, seq));
+        return execute(dao -> dao.readRound(namespace, useCase, seq));
     }
 
     @Override
     public long getLeastLogEntry() {
-        return execute(dao -> dao.getLeastLogEntry(namespace, seqId)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return execute(dao -> dao.getLeastLogEntry(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return execute(dao -> dao.getGreatestLogEntry(namespace, seqId)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return execute(dao -> dao.getGreatestLogEntry(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public void truncate(long toDeleteInclusive) {
-        execute(dao -> dao.truncate(namespace, seqId, toDeleteInclusive));
+        execute(dao -> dao.truncate(namespace, useCase, toDeleteInclusive));
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -96,41 +97,47 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
     public interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS paxosLog ("
                 + "namespace TEXT,"
-                + "seqId TEXT,"
+                + "useCase TEXT,"
                 + "seq BIGINT, "
                 + "val BLOB,"
-                + "PRIMARY KEY(namespace, seqId, seq))")
+                + "PRIMARY KEY(namespace, useCase, seq))")
         boolean createTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO paxosLog (namespace, seqId, seq, val) VALUES ("
-                + ":namespace.value, :seqId, :seq, :value)")
+        @SqlUpdate("INSERT OR REPLACE INTO paxosLog (namespace, useCase, seq, val) VALUES ("
+                + ":namespace.value, :useCase, :seq, :value)")
         boolean writeRound(
                 @BindPojo("namespace") Client namespace,
-                @Bind("seqId") String seqId,
+                @Bind("useCase") String useCase,
                 @Bind("seq") long seq,
                 @Bind("value") byte[] value);
 
-        @SqlQuery("SELECT val FROM paxosLog WHERE namespace = :namespace.value AND seqId = :seqId AND seq = :seq")
+        @SqlQuery("SELECT val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq = :seq")
         @SingleValue
-        byte[] readRound(@BindPojo("namespace") Client namespace, @Bind("seqId") String seqId, @Bind("seq") long seq);
+        byte[] readRound(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("seq") long seq);
 
-        @SqlQuery("SELECT MIN(seq) FROM paxosLog WHERE namespace = :namespace.value AND seqId = :seqId")
-        OptionalLong getLeastLogEntry(@BindPojo("namespace") Client namespace, @Bind("seqId") String seqId);
+        @SqlQuery("SELECT MIN(seq) FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase")
+        OptionalLong getLeastLogEntry(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
 
-        @SqlQuery("SELECT MAX(seq) FROM paxosLog WHERE namespace = :namespace.value AND seqId = :seqId")
-        OptionalLong getGreatestLogEntry(@BindPojo("namespace") Client namespace, @Bind("seqId") String seqId);
+        @SqlQuery("SELECT MAX(seq) FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase")
+        OptionalLong getGreatestLogEntry(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
 
-        @SqlUpdate("DELETE FROM paxosLog WHERE namespace = :namespace.value AND seqId = :seqId AND seq <= :seq")
-        boolean truncate(@BindPojo("namespace") Client namespace, @Bind("seqId") String seqId, @Bind("seq") long seq);
+        @SqlUpdate("DELETE FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq <= :seq")
+        boolean truncate(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("seq") long seq);
 
-        @SqlBatch("INSERT OR REPLACE INTO paxosLog (namespace, seqId, seq, val) VALUES ("
-                + ":namespace.value, :seqId, :round.sequence, :round.valueBytes)")
+        @SqlBatch("INSERT OR REPLACE INTO paxosLog (namespace, useCase, seq, val) VALUES ("
+                + ":namespace.value, :useCase, :round.sequence, :round.valueBytes)")
         <V extends Persistable & Versionable> boolean[] writeBatchOfRounds(
                 @BindPojo("namespace") Client namespace,
-                @Bind("seqId") String seqId,
+                @Bind("useCase") String useCase,
                 @BindPojo("round") Iterable<PaxosRound<V>> rounds);
 
         @SqlQuery("SELECT DISTINCT(namespace) FROM paxosLog")
-        List<String> getAllNamespaces();
+        Set<String> getAllNamespaces();
     }
 }

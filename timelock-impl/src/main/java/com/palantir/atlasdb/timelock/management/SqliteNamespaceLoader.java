@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.management;
 
 import java.sql.Connection;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -40,10 +41,10 @@ public final class SqliteNamespaceLoader {
         return new SqliteNamespaceLoader(jdbi);
     }
 
-    public List<Client> getAllRegisteredNamespaces() {
+    public Set<Client> getAllRegisteredNamespaces() {
         return jdbi.withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::getAllNamespaces)
                 .stream()
                 .map(Client::of)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 }

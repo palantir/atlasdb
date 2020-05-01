@@ -75,7 +75,7 @@ public class SqliteNamespaceLoaderTest {
         assertThat(namespaceLoader.getAllRegisteredNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
     }
 
-    public void initializeLog(Client namespace, String sequenceId) {
+    private void initializeLog(Client namespace, String sequenceId) {
         SqlitePaxosStateLog.create(namespace, sequenceId, connectionSupplier)
                 .writeRound(1, PAXOS_VALUE);
     }
