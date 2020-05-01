@@ -268,10 +268,15 @@ public class KvTableMappingService implements TableMappingService {
         return kvs.getRange(AtlasDbConstants.NAMESPACE_TABLE, RangeRequest.builder().build(), Long.MAX_VALUE);
     }
 
-    public static TableReference getTableRefFromBytes(byte[] encodedTableRef) {
+    protected TableReference getTableRefFromBytes(byte[] encodedTableRef) {
         String nameSpace = EncodingUtils.decodeVarString(encodedTableRef);
         int offset = EncodingUtils.sizeOfVarString(nameSpace);
         String tableName = PtBytes.toString(encodedTableRef, offset, encodedTableRef.length - offset);
-        return TableReference.create(Namespace.create(nameSpace), tableName);
+        return TableReference.create(createNamespace(nameSpace), tableName);
+    }
+
+    // overrideable to allow using less strict validation patterns.
+    protected Namespace createNamespace(String namespace) {
+        return Namespace.create(namespace);
     }
 }
