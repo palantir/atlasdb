@@ -87,9 +87,38 @@ public class SqlitePaxosStateLogTest {
     }
 
     @Test
+    public void writesToSameSeqNumberInDifferentSequenceAreDistinct() throws IOException {
+        PaxosValue v1 = writeValueForRound(5L);
+        PaxosValue v2 = valueForRound(5L);
+
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_2, SEQUENCE_1, connSupplier);
+        otherLog.writeRound(5L, v2);
+
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L))).isEqualTo(v1);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(otherLog.readRound(5L))).isEqualTo(v2);
+    }
+
+    @Test
     public void returnsDefaultValueForExtremesWhenNoEntries() {
         assertThat(stateLog.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(stateLog.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void extremeQueriesIgnoreEntriesFromOtherSequences() {
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_2, SEQUENCE_1, connSupplier);
+        PaxosStateLog<PaxosValue> anotherLog = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_2, connSupplier);
+        otherLog.writeRound(1L, valueForRound(1L));
+        otherLog.writeRound(5L, valueForRound(5L));
+        anotherLog.writeRound(2L, valueForRound(2L));
+        anotherLog.writeRound(21L, valueForRound(21L));
+
+        assertThat(stateLog.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+        assertThat(stateLog.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+        assertThat(otherLog.getLeastLogEntry()).isEqualTo(1L);
+        assertThat(otherLog.getGreatestLogEntry()).isEqualTo(5L);
+        assertThat(anotherLog.getLeastLogEntry()).isEqualTo(2L);
+        assertThat(anotherLog.getGreatestLogEntry()).isEqualTo(21L);
     }
 
     @Test
