@@ -45,6 +45,13 @@ public interface ClusterConfiguration {
 
     List<String> clusterMembers();
 
+    /**
+     * Used as part of automated TimeLock migrations.
+     * This flag should ONLY be used if you know what you are doing.
+     */
+    @JsonProperty("known-new-servers-I-know-what-I-am-doing")
+    List<String> knownNewServers();
+
     @Value.Default
     default boolean enableNonstandardAndPossiblyDangerousTopology() {
         return false;

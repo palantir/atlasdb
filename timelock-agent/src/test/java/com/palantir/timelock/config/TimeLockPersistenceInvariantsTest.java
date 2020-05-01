@@ -23,19 +23,28 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.Optional;
 
 import org.junit.Test;
 
-public class PaxosInstallConfigurationTest {
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+
+public class TimeLockPersistenceInvariantsTest {
+
+    private static final String SERVER_A = "a";
+    private static final ClusterConfiguration CLUSTER_CONFIG = ImmutableDefaultClusterConfiguration.builder()
+            .localServer(SERVER_A)
+            .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
+            .build();
 
     @Test
     public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() {
         File mockFile = getMockFileWith(false, true);
 
-        ImmutablePaxosInstallConfiguration.builder()
+        assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
-                .isNewService(true)
-                .build();
+                .isNewService(true));
 
         verify(mockFile, times(0)).mkdirs();
     }
@@ -44,10 +53,9 @@ public class PaxosInstallConfigurationTest {
     public void canUseExistingDirectoryAsPaxosDirectory() {
         File mockFile = getMockFileWith(true, false);
 
-        ImmutablePaxosInstallConfiguration.builder()
+        assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
-                .isNewService(false)
-                .build();
+                .isNewService(false));
 
         verify(mockFile, atLeastOnce()).isDirectory();
     }
@@ -70,6 +78,25 @@ public class PaxosInstallConfigurationTest {
                 .isNewService(false));
     }
 
+    @Test
+    public void serviceIsTreatedAsNewWithMatchingLocalServer() {
+        File mockFile = getMockFileWith(true, true);
+
+        ClusterConfiguration differentClusterConfig = ImmutableDefaultClusterConfiguration.builder()
+                .localServer(SERVER_A)
+                .addKnownNewServers(SERVER_A)
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
+                .build();
+        
+        assertThatThrownBy(ImmutableTimeLockInstallConfiguration.builder()
+                .cluster(differentClusterConfig)
+                .paxos(ImmutablePaxosInstallConfiguration.builder()
+                        .dataDirectory(mockFile)
+                        .isNewService(false)
+                        .build())::build)
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) {
         File mockFile = mock(File.class);
         when(mockFile.mkdirs()).thenReturn(canCreateDirectory);
@@ -77,7 +104,15 @@ public class PaxosInstallConfigurationTest {
         return mockFile;
     }
 
+    private void assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
+        PaxosInstallConfiguration installConfiguration = configBuilder.build();
+        ImmutableTimeLockInstallConfiguration.builder().cluster(CLUSTER_CONFIG).paxos(installConfiguration).build();
+    }
+
     private void assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
-        assertThatThrownBy(configBuilder::build).isInstanceOf(IllegalArgumentException.class);
+        PaxosInstallConfiguration installConfiguration = configBuilder.build();
+        assertThatThrownBy(ImmutableTimeLockInstallConfiguration.builder()
+                .cluster(CLUSTER_CONFIG)
+                .paxos(installConfiguration)::build).isInstanceOf(IllegalArgumentException.class);
     }
 }
