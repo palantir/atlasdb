@@ -87,7 +87,7 @@ public class TimeLockPersistenceInvariantsTest {
                 .addKnownNewServers(SERVER_A)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
                 .build();
-        
+
         assertThatThrownBy(ImmutableTimeLockInstallConfiguration.builder()
                 .cluster(differentClusterConfig)
                 .paxos(ImmutablePaxosInstallConfiguration.builder()

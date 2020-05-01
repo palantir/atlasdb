@@ -46,8 +46,9 @@ public interface ClusterConfiguration {
     List<String> clusterMembers();
 
     /**
-     * Used as part of automated TimeLock migrations.
-     * This flag should ONLY be used if you know what you are doing.
+     * Used as part of automated TimeLock migrations to override is-new-service checks for nodes that are about to
+     * be bootstrapped in a cluster while still allowing the rest of the cluster to recognise that it is old. This flag
+     * should ONLY be used if you know what you are doing.
      */
     @JsonProperty("known-new-servers-I-know-what-I-am-doing")
     List<String> knownNewServers();
