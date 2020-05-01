@@ -25,6 +25,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Value.Immutable
 // TODO (jkong): Allow serialization/deserialization, once we want this to actually be configurable
 public interface SqlitePaxosPersistenceConfiguration {
+    SqlitePaxosPersistenceConfiguration DEFAULT = ImmutableSqlitePaxosPersistenceConfiguration.builder()
+            .dataDirectory(new File("var/data/sqlitePaxos"))
+            .build();
+
     /**
      * Indicates where the SQLite paxos state log files should be stored.
      * Should not conflict with any other data directories that may be used by TimeLock to store Paxos state logs.

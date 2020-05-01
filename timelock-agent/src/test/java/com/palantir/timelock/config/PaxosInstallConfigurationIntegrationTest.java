@@ -31,37 +31,34 @@ public class PaxosInstallConfigurationIntegrationTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private File fileSubdirectory;
-    private File sqliteSubdirectory;
+    private File nonexistentFileDirectory;
+    private File nonexistentSqliteDirectory;
 
     @Before
     public void setUp() {
-        fileSubdirectory = temporaryFolder.getRoot().toPath().resolve("file").toFile();
-        sqliteSubdirectory = temporaryFolder.getRoot().toPath().resolve("sqlite").toFile();
+        nonexistentFileDirectory = temporaryFolder.getRoot().toPath().resolve("file").toFile();
+        nonexistentSqliteDirectory = temporaryFolder.getRoot().toPath().resolve("sqlite").toFile();
     }
 
     @Test
     public void serviceIsNewIfNoDataDirectoriesPresent() {
         ImmutablePaxosInstallConfiguration.Builder partialConfiguration = createPartialConfiguration(
-                fileSubdirectory, sqliteSubdirectory);
-        assertThatCode(() -> partialConfiguration.isNewService(true).build()).doesNotThrowAnyException();
-        assertThatThrownBy(() -> partialConfiguration.isNewService(false).build())
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("The timelock data directories do not appear to exist.");
+                nonexistentFileDirectory, nonexistentSqliteDirectory);
+        assertIsNewService(partialConfiguration);
     }
 
     @Test
     public void serviceIsNotNewIfBaseDataDirectoryIsPresent() {
         ImmutablePaxosInstallConfiguration.Builder partialConfiguration = createPartialConfiguration(
-                getAndCreateRandomSubdirectory(), sqliteSubdirectory);
+                getAndCreateRandomSubdirectory(), nonexistentSqliteDirectory);
         assertIsNotNewService(partialConfiguration);
     }
 
     @Test
-    public void serviceIsNotNewIfSqliteDataDirectoryIsPresent() {
+    public void serviceIsNewIfSqliteDataDirectoryIsPresentButNotBaseDirectory() {
         ImmutablePaxosInstallConfiguration.Builder partialConfiguration = createPartialConfiguration(
-                fileSubdirectory, getAndCreateRandomSubdirectory());
-        assertIsNotNewService(partialConfiguration);
+                nonexistentFileDirectory, getAndCreateRandomSubdirectory());
+        assertIsNewService(partialConfiguration);
     }
 
     @Test
@@ -129,6 +126,13 @@ public class PaxosInstallConfigurationIntegrationTest {
         assertThatThrownBy(() -> partialConfiguration.isNewService(true).build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("This timelock server has been configured as a new stack");
+    }
+
+    private void assertIsNewService(ImmutablePaxosInstallConfiguration.Builder partialConfiguration) {
+        assertThatCode(() -> partialConfiguration.isNewService(true).build()).doesNotThrowAnyException();
+        assertThatThrownBy(() -> partialConfiguration.isNewService(false).build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("The timelock data directories do not appear to exist.");
     }
 
     private static File getAndCreateSubdirectory(File base, String subdirectoryName) {

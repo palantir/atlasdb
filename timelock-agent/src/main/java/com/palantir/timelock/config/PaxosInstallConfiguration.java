@@ -17,13 +17,13 @@ package com.palantir.timelock.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.Beta;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
@@ -44,8 +44,12 @@ public interface PaxosInstallConfiguration {
         return new File("var/data/paxos");
     }
 
+    @Beta
     @JsonProperty("sqlite-persistence")
-    Optional<SqlitePaxosPersistenceConfiguration> sqlitePersistence();
+    @Value.Default
+    default SqlitePaxosPersistenceConfiguration sqlitePersistence() {
+        return SqlitePaxosPersistenceConfiguration.DEFAULT;
+    }
 
     /**
      * Set to true if this is a new stack. Otherwise, set to false.
@@ -102,28 +106,24 @@ public interface PaxosInstallConfiguration {
         }
     }
     default boolean doesDirectoryAlreadyExist() {
-        return dataDirectory().isDirectory() || sqlitePersistence()
-                .map(SqlitePaxosPersistenceConfiguration::dataDirectory)
-                .map(File::isDirectory).orElse(false);
+        return dataDirectory().isDirectory();
     }
 
     @Value.Check
     default void checkSqliteAndFileDataDirectoriesAreNotPossiblyShared() {
-        sqlitePersistence().ifPresent(sqlite -> {
-            try {
-                Preconditions.checkArgument(!sqlite.dataDirectory().equals(dataDirectory()),
-                        "SQLite and file-based data directories must be different!");
-                Preconditions.checkArgument(!sqlite.dataDirectory().getCanonicalPath().startsWith(
-                        dataDirectory().getCanonicalPath() + File.separator),
-                        "SQLite data directory can't be a subdirectory of the file-based data directory!"
-                );
-                Preconditions.checkArgument(!dataDirectory().getCanonicalPath().startsWith(
-                        sqlite.dataDirectory().getCanonicalPath() + File.separator),
-                        "File-based data directory can't be a subdirectory of the SQLite data directory!"
-                );
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        try {
+            Preconditions.checkArgument(!sqlitePersistence().dataDirectory().equals(dataDirectory()),
+                    "SQLite and file-based data directories must be different!");
+            Preconditions.checkArgument(!sqlitePersistence().dataDirectory().getCanonicalPath().startsWith(
+                    dataDirectory().getCanonicalPath() + File.separator),
+                    "SQLite data directory can't be a subdirectory of the file-based data directory!"
+            );
+            Preconditions.checkArgument(!dataDirectory().getCanonicalPath().startsWith(
+                    sqlitePersistence().dataDirectory().getCanonicalPath() + File.separator),
+                    "File-based data directory can't be a subdirectory of the SQLite data directory!"
+            );
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
