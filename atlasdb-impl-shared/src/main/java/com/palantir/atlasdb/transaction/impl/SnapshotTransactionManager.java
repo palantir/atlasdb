@@ -353,7 +353,7 @@ import com.palantir.timestamp.TimestampService;
     private static void shutdownExecutor(ExecutorService executor) {
         executor.shutdown();
         try {
-            if(!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 log.error("Failed to shutdown the executor after 10 seconds.");
             }
         } catch (InterruptedException ex) {
