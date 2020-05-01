@@ -53,20 +53,16 @@ final class TransactionStarter implements AutoCloseable {
     private final DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher;
     private final LockLeaseService lockLeaseService;
 
-    private TransactionStarter(
-            DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher,
-            LockLeaseService lockLeaseService) {
-        this.autobatcher = autobatcher;
+    private TransactionStarter(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
+        this.autobatcher = Autobatchers
+                .independent(consumer(lockLeaseService, lockWatchEventCache))
+                .safeLoggablePurpose("transaction-starter")
+                .build();
         this.lockLeaseService = lockLeaseService;
     }
 
     static TransactionStarter create(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
-        DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher = Autobatchers
-                .independent(consumer(lockLeaseService, lockWatchEventCache))
-                .safeLoggablePurpose("transaction-starter")
-                .build();
-        return new TransactionStarter(autobatcher,
-                lockLeaseService);
+        return new TransactionStarter(lockLeaseService, lockWatchEventCache);
     }
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
@@ -138,7 +134,7 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
+    Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
             LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         return batch -> {
             int numTransactions = batch.size();
@@ -152,18 +148,25 @@ final class TransactionStarter implements AutoCloseable {
         };
     }
 
-    private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
+    private List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
             LockLeaseService lockLeaseService,
             LockWatchEventCache lockWatchEventCache,
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
-            ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
-                    lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
-            lockWatchEventCache.processStartTransactionsUpdate(
-                    response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
-                    response.getLockWatchUpdate());
-            result.addAll(split(response));
+            try {
+                ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
+                        lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
+                lockWatchEventCache.processStartTransactionsUpdate(
+                        response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
+                        response.getLockWatchUpdate());
+                result.addAll(split(response));
+            } catch (Throwable t) {
+                unlock(result.stream()
+                        .map(response -> response.immutableTimestamp().getLock())
+                        .collect(Collectors.toSet()));
+                throw Throwables.throwUncheckedException(t);
+            }
         }
         return result;
     }
