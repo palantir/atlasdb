@@ -17,7 +17,6 @@
 package com.palantir.paxos;
 
 import java.sql.Connection;
-import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
