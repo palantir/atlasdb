@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.Beta;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
@@ -87,29 +86,6 @@ public interface PaxosInstallConfiguration {
     }
 
     @Value.Check
-    default void check() {
-        boolean hasExistingDirectory = doesDirectoryAlreadyExist();
-        if (isNewService() && hasExistingDirectory) {
-            throw new SafeIllegalArgumentException(
-                    "This timelock server has been configured as a new stack (the 'is-new-service' property is set to "
-                            + "true), but a Paxos data directory already exists. Almost surely this is because it "
-                            + "has already been turned on at least once, and thus the 'is-new-service' property should "
-                            + "be set to false for safety reasons.");
-        }
-
-        if (!isNewService() && !hasExistingDirectory) {
-            throw new SafeIllegalArgumentException("The timelock data directories do not appear to exist. If you are "
-                    + "trying to move the nodes on your timelock cluster or add new nodes, you have likely already "
-                    + "made a mistake by this point. This is a non-trivial operation and risks service corruption, "
-                    + "so contact support for assistance. Otherwise, if this is a new timelock service, please "
-                    + "configure paxos.is-new-service to true for the first startup only of each node.");
-        }
-    }
-    default boolean doesDirectoryAlreadyExist() {
-        return dataDirectory().isDirectory();
-    }
-
-    @Value.Check
     default void checkSqliteAndFileDataDirectoriesAreNotPossiblyShared() {
         try {
             Preconditions.checkArgument(!sqlitePersistence().dataDirectory().equals(dataDirectory()),
@@ -125,5 +101,10 @@ public interface PaxosInstallConfiguration {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Value.Derived
+    default boolean doDataDirectoriesExist() {
+        return dataDirectory().isDirectory();
     }
 }
