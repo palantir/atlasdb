@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
@@ -74,23 +73,8 @@ public interface PaxosInstallConfiguration {
                 "Auto migration mode is not supported just yet");
     }
 
-    @Value.Check
-    default void check() {
-        if (isNewService() && dataDirectory().isDirectory()) {
-            throw new SafeIllegalArgumentException(
-                    "This timelock server has been configured as a new stack (the 'is-new-service' property is set to "
-                            + "true), but the Paxos data directory already exists. Almost surely this is because it "
-                            + "has already been turned on at least once, and thus the 'is-new-service' property should "
-                            + "be set to false for safety reasons.");
-        }
-
-        if (!isNewService() && !dataDirectory().isDirectory()) {
-            throw new SafeIllegalArgumentException("The timelock data directory does not appear to exist. If you are "
-                    + "trying to move the nodes on your timelock cluster or add new nodes, you have likely already "
-                    + "made a mistake by this point. This is a non-trivial operation and risks service corruption, "
-                    + "so contact support for assistance. Otherwise, if this is a new timelock service, please "
-                    + "configure paxos.is-new-service to true for the first startup only of each node.");
-        }
+    @Value.Derived
+    default boolean doDataDirectoriesExist() {
+        return dataDirectory().isDirectory();
     }
-
 }

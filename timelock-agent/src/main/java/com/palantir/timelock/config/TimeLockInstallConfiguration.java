@@ -51,4 +51,11 @@ public interface TimeLockInstallConfiguration {
     default TsBoundPersisterConfiguration timestampBoundPersistence() {
         return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
     }
+
+    @Value.Check
+    default void check() {
+        TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
+                paxos().isNewService() || cluster().knownNewServers().contains(cluster().localServer()),
+                paxos().doDataDirectoriesExist());
+    }
 }
