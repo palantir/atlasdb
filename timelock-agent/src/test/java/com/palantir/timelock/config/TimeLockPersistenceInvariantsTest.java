@@ -15,6 +15,7 @@
  */
 package com.palantir.timelock.config;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -79,7 +80,7 @@ public class TimeLockPersistenceInvariantsTest {
     }
 
     @Test
-    public void serviceIsTreatedAsNewWithMatchingLocalServer() {
+    public void newServiceByClusterBootstrapConfigurationFailsIfDirectoryExists() {
         File mockFile = getMockFileWith(true, true);
 
         ClusterConfiguration differentClusterConfig = ImmutableDefaultClusterConfiguration.builder()
@@ -95,6 +96,25 @@ public class TimeLockPersistenceInvariantsTest {
                         .isNewService(false)
                         .build())::build)
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void newServiceByClusterBootstrapConfigurationSucceedsIfDirectoryDoesNotExist() {
+        File mockFile = getMockFileWith(false, true);
+
+        ClusterConfiguration differentClusterConfig = ImmutableDefaultClusterConfiguration.builder()
+                .localServer(SERVER_A)
+                .addKnownNewServers(SERVER_A)
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
+                .build();
+
+        assertThatCode(ImmutableTimeLockInstallConfiguration.builder()
+                .cluster(differentClusterConfig)
+                .paxos(ImmutablePaxosInstallConfiguration.builder()
+                        .dataDirectory(mockFile)
+                        .isNewService(false)
+                        .build())::build)
+                .doesNotThrowAnyException();
     }
 
     private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) {
