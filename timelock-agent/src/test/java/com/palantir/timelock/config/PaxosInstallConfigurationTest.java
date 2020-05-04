@@ -23,13 +23,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.junit.Test;
 
 public class PaxosInstallConfigurationTest {
 
     @Test
-    public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() {
+    public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() throws IOException {
         File mockFile = getMockFileWith(false, true);
 
         ImmutablePaxosInstallConfiguration.builder()
@@ -41,7 +42,7 @@ public class PaxosInstallConfigurationTest {
     }
 
     @Test
-    public void canUseExistingDirectoryAsPaxosDirectory() {
+    public void canUseExistingDirectoryAsPaxosDirectory() throws IOException {
         File mockFile = getMockFileWith(true, false);
 
         ImmutablePaxosInstallConfiguration.builder()
@@ -53,7 +54,7 @@ public class PaxosInstallConfigurationTest {
     }
 
     @Test
-    public void throwsIfConfiguredToBeNewServiceWithExistingDirectory() {
+    public void throwsIfConfiguredToBeNewServiceWithExistingDirectory() throws IOException {
         File mockFile = getMockFileWith(true, true);
 
         assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
@@ -62,7 +63,7 @@ public class PaxosInstallConfigurationTest {
     }
 
     @Test
-    public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() {
+    public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() throws IOException {
         File mockFile = getMockFileWith(false, true);
 
         assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
@@ -70,10 +71,12 @@ public class PaxosInstallConfigurationTest {
                 .isNewService(false));
     }
 
-    private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) {
+    private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) throws IOException {
         File mockFile = mock(File.class);
         when(mockFile.mkdirs()).thenReturn(canCreateDirectory);
         when(mockFile.isDirectory()).thenReturn(isDirectory);
+        when(mockFile.getPath()).thenReturn("var/data/paxos");
+        when(mockFile.getCanonicalPath()).thenReturn("/var/data/paxos");
         return mockFile;
     }
 
