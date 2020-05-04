@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -96,7 +97,12 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         StartIdentifiedAtlasDbTransactionResponse response = executeOnTimeLock(
                 delegate::startIdentifiedAtlasDbTransaction);
-        lockRefresher.registerLock(response.immutableTimestamp().getLock());
+        try {
+            lockRefresher.registerLock(response.immutableTimestamp().getLock());
+        } catch (Throwable t) {
+            unlock(ImmutableSet.of(response.immutableTimestamp().getLock()));
+            throw Throwables.throwUncheckedException(t);
+        }
         return response;
     }
 
