@@ -45,7 +45,7 @@ public class SqliteNamespaceLoaderTest {
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     private Supplier<Connection> connectionSupplier;
-    private SqliteNamespaceLoader namespaceLoader;
+    private PersistentNamespaceLoader namespaceLoader;
 
     @Before
     public void setup() {
