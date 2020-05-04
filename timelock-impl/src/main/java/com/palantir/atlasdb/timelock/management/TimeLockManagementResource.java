@@ -19,7 +19,9 @@ package com.palantir.atlasdb.timelock.management;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -30,43 +32,55 @@ import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockManagementResource implements UndertowTimeLockManagementService {
-    private final DiskNamespaceLoader diskNamespaceLoader;
+    private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
 
-    private TimeLockManagementResource(DiskNamespaceLoader diskNamespaceLoader,
+    private TimeLockManagementResource(Set<PersistentNamespaceLoader> namespaceLoaders,
             TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter) {
-        this.diskNamespaceLoader = diskNamespaceLoader;
+        this.namespaceLoaders = namespaceLoaders;
         this.timelockNamespaces = timelockNamespaces;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
     }
 
-    public static TimeLockManagementResource create(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+    public static TimeLockManagementResource create(
+            PersistentNamespaceContext persistentNamespaceContext,
+            TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter) {
-        return new TimeLockManagementResource(new DiskNamespaceLoader(rootDataDirectory), timelockNamespaces, redirectRetryTargeter);
+        return new TimeLockManagementResource(
+                createNamespaceLoaders(persistentNamespaceContext), timelockNamespaces, redirectRetryTargeter);
     }
 
-    public static UndertowService undertow(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+    public static UndertowService undertow(
+            PersistentNamespaceContext persistentNamespaceContext,
+            TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter) {
-        return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(rootDataDirectory,
-                timelockNamespaces, redirectRetryTargeter));
+        return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter));
     }
 
-    public static TimeLockManagementService jersey(Path rootDataDirectory, TimelockNamespaces timelockNamespaces,
+    public static TimeLockManagementService jersey(
+            PersistentNamespaceContext persistentNamespaceContext,
+            TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter) {
-        return new JerseyAdapter(TimeLockManagementResource.create(rootDataDirectory, timelockNamespaces,
-                redirectRetryTargeter));
+        return new JerseyAdapter(TimeLockManagementResource.create(
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter));
     }
 
     @Override
     public ListenableFuture<Set<String>> getNamespaces(AuthHeader authHeader) {
         // This endpoint is not used frequently (only called by migration cli), so it's okay to NOT make it async.
-        return Futures.immediateFuture(diskNamespaceLoader.getNamespaces());
+        return Futures.immediateFuture(namespaceLoaders.stream()
+                .map(PersistentNamespaceLoader::getAllPersistedNamespaces)
+                .flatMap(Set::stream)
+                .map(Client::value)
+                .collect(Collectors.toSet()));
     }
 
     @Override
@@ -82,6 +96,14 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
         return exceptionHandler.handleExceptions(supplier);
+    }
+
+    private static Set<PersistentNamespaceLoader> createNamespaceLoaders(
+            PersistentNamespaceContext persistentNamespaceContext) {
+        PersistentNamespaceLoader diskLoader = new DiskNamespaceLoader(persistentNamespaceContext.fileDataDirectory());
+        PersistentNamespaceLoader sqliteLoader = SqliteNamespaceLoader.create(
+                persistentNamespaceContext.sqliteConnectionSupplier());
+        return ImmutableSet.of(diskLoader, sqliteLoader);
     }
 
     public static final class JerseyAdapter implements TimeLockManagementService {

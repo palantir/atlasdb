@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;

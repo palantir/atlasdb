@@ -28,7 +28,7 @@ import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqlitePaxosStateLog;
 
-public final class SqliteNamespaceLoader {
+final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
     private final Jdbi jdbi;
 
     private SqliteNamespaceLoader(Jdbi jdbi) {
@@ -41,7 +41,8 @@ public final class SqliteNamespaceLoader {
         return new SqliteNamespaceLoader(jdbi);
     }
 
-    public Set<Client> getAllRegisteredNamespaces() {
+    @Override
+    public Set<Client> getAllPersistedNamespaces() {
         return jdbi.withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::getAllNamespaces)
                 .stream()
                 .map(Client::of)

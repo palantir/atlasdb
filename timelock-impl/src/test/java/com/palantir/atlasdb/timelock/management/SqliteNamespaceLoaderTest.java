@@ -56,14 +56,14 @@ public class SqliteNamespaceLoaderTest {
 
     @Test
     public void canReturnZeroNamespaces() {
-        assertThat(namespaceLoader.getAllRegisteredNamespaces()).isEmpty();
+        assertThat(namespaceLoader.getAllPersistedNamespaces()).isEmpty();
     }
 
     @Test
     public void returnsOneNamespaceEvenIfMultipleSequencesPresent() {
         initializeLog(NAMESPACE_1, SEQUENCE_ID_1);
         initializeLog(NAMESPACE_1, SEQUENCE_ID_2);
-        assertThat(namespaceLoader.getAllRegisteredNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1);
+        assertThat(namespaceLoader.getAllPersistedNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1);
     }
 
     @Test
@@ -72,7 +72,7 @@ public class SqliteNamespaceLoaderTest {
         initializeLog(NAMESPACE_1, SEQUENCE_ID_2);
         initializeLog(NAMESPACE_2, SEQUENCE_ID_1);
         initializeLog(NAMESPACE_2, SEQUENCE_ID_2);
-        assertThat(namespaceLoader.getAllRegisteredNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
+        assertThat(namespaceLoader.getAllPersistedNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
     }
 
     private void initializeLog(Client namespace, String sequenceId) {
