@@ -191,7 +191,7 @@ public class TimeLockClientTest {
         when(delegate.currentTimeMillis()).thenThrow(new RuntimeException("something else happened"));
 
         assertThatThrownBy(timelock::currentTimeMillis).isInstanceOf(RuntimeException.class)
-                .isNotInstanceOf(AtlasDbDependencyException.class);
+            .isNotInstanceOf(AtlasDbDependencyException.class);
     }
 
     @Test
