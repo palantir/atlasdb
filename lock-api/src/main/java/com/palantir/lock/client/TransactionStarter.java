@@ -34,6 +34,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
@@ -54,20 +55,16 @@ final class TransactionStarter implements AutoCloseable {
     private final DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher;
     private final LockLeaseService lockLeaseService;
 
-    private TransactionStarter(
-            DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher,
-            LockLeaseService lockLeaseService) {
-        this.autobatcher = autobatcher;
+    private TransactionStarter(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
+        this.autobatcher = Autobatchers
+                .independent(consumer(lockWatchEventCache))
+                .safeLoggablePurpose("transaction-starter")
+                .build();
         this.lockLeaseService = lockLeaseService;
     }
 
     static TransactionStarter create(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
-        DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher = Autobatchers
-                .independent(consumer(lockLeaseService, lockWatchEventCache))
-                .safeLoggablePurpose("transaction-starter")
-                .build();
-        return new TransactionStarter(autobatcher,
-                lockLeaseService);
+        return new TransactionStarter(lockLeaseService, lockWatchEventCache);
     }
 
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
@@ -134,13 +131,13 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
-            LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
+    Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
+            LockWatchEventCache lockWatchEventCache) {
         return batch -> {
             int numTransactions = batch.stream().mapToInt(BatchElement::argument).reduce(0, Integer::sum);
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
+                    getStartTransactionResponses(lockWatchEventCache, numTransactions);
 
             int start = 0;
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement
@@ -152,18 +149,24 @@ final class TransactionStarter implements AutoCloseable {
         };
     }
 
-    private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService lockLeaseService,
+    private List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
             LockWatchEventCache lockWatchEventCache,
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
-            ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
-                    lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
-            lockWatchEventCache.processStartTransactionsUpdate(
-                    response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
-                    response.getLockWatchUpdate());
-            result.addAll(split(response));
+            try {
+                ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
+                        lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
+                lockWatchEventCache.processStartTransactionsUpdate(
+                        response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
+                        response.getLockWatchUpdate());
+                result.addAll(split(response));
+            } catch (Throwable t) {
+                unlock(result.stream()
+                        .map(response -> response.immutableTimestamp().getLock())
+                        .collect(Collectors.toSet()));
+                throw Throwables.throwUncheckedException(t);
+            }
         }
         return result;
     }

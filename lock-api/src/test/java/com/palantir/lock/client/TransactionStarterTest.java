@@ -180,8 +180,7 @@ public class TransactionStarterTest {
                                 .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                                 .build())
                 .collect(toList());
-
-        TransactionStarter.consumer(lockLeaseService, lockWatchEventCache).accept(elements);
+        transactionStarter.consumer(lockWatchEventCache).accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 
