@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -136,7 +137,7 @@ final class TransactionStarter implements AutoCloseable {
     static Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
             LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         return batch -> {
-            int numTransactions = batch.stream().map(BatchElement::argument).reduce(0, Integer::sum);
+            int numTransactions = batch.stream().mapToInt(BatchElement::argument).reduce(0, Integer::sum);
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
                     getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
@@ -145,7 +146,7 @@ final class TransactionStarter implements AutoCloseable {
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement
                     : batch) {
                 int end = start + batchElement.argument();
-                batchElement.result().set(startTransactionResponses.subList(start, end));
+                batchElement.result().set(ImmutableList.copyOf(startTransactionResponses.subList(start, end)));
                 start = end;
             }
         };

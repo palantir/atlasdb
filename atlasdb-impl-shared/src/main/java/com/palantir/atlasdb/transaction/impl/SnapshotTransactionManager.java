@@ -176,18 +176,19 @@ import com.palantir.timestamp.TimestampService;
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
                 timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
+        Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
             long immutableTs = Collections.max(responses.stream()
                     .map(response -> response.immutableTimestamp().getImmutableTimestamp())
                     .collect(Collectors.toList()));
             recordImmutableTimestamp(immutableTs);
+            cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
             return Streams.zip(
                     responses.stream(),
                     conditions.stream(),
                     (response, condition) -> {
                         LockToken immutableTsLock = response.immutableTimestamp().getLock();
-                        cleaner.punch(response.startTimestampAndPartition().timestamp());
                         Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
                                 response.startTimestampAndPartition().timestamp());
 
