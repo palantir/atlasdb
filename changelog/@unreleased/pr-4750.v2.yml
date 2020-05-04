@@ -1,6 +1,6 @@
 type: fix
 fix:
-  description: Fix case when TimeLockClient fails to register lock after starting
-    transaction and drops the immutableTs lock.
+  description: Fixes the bug where TimeLockClient started a transaction but threw
+    when registering a lock, and so would not unlock the immutableTs lock.
   links:
   - https://github.com/palantir/atlasdb/pull/4750
