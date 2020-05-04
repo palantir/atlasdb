@@ -32,6 +32,7 @@ import javax.ws.rs.core.MediaType;
 import com.google.common.collect.SetMultimap;
 import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.paxos.BooleanPaxosResponse;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;

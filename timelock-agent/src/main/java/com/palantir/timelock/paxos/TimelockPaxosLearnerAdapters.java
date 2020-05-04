@@ -22,11 +22,11 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosLearnerRpcClient;
-import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
 
 public final class TimelockPaxosLearnerAdapters {

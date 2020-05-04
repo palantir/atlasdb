@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingerContext;
 

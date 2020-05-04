@@ -31,12 +31,12 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");

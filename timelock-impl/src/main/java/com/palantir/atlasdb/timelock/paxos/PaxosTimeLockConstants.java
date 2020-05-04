@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.paxos.Client;
+
 public final class PaxosTimeLockConstants {
     public static final String LEARNER_SUBDIRECTORY_PATH = "learner";
     public static final String ACCEPTOR_SUBDIRECTORY_PATH = "acceptor";

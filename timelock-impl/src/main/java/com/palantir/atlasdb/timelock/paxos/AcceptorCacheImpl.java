@@ -35,6 +35,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 
 public class AcceptorCacheImpl implements AcceptorCache {
 
