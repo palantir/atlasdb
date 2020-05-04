@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -40,7 +41,7 @@ public class TimeLockPersistenceInvariantsTest {
             .build();
 
     @Test
-    public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() {
+    public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() throws IOException {
         File mockFile = getMockFileWith(false, true);
 
         assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
@@ -51,7 +52,7 @@ public class TimeLockPersistenceInvariantsTest {
     }
 
     @Test
-    public void canUseExistingDirectoryAsPaxosDirectory() {
+    public void canUseExistingDirectoryAsPaxosDirectory() throws IOException {
         File mockFile = getMockFileWith(true, false);
 
         assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
@@ -62,7 +63,7 @@ public class TimeLockPersistenceInvariantsTest {
     }
 
     @Test
-    public void throwsIfConfiguredToBeNewServiceWithExistingDirectory() {
+    public void throwsIfConfiguredToBeNewServiceWithExistingDirectory() throws IOException {
         File mockFile = getMockFileWith(true, true);
 
         assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
@@ -71,7 +72,7 @@ public class TimeLockPersistenceInvariantsTest {
     }
 
     @Test
-    public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() {
+    public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() throws IOException {
         File mockFile = getMockFileWith(false, true);
 
         assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
@@ -80,7 +81,7 @@ public class TimeLockPersistenceInvariantsTest {
     }
 
     @Test
-    public void newServiceByClusterBootstrapConfigurationFailsIfDirectoryExists() {
+    public void newServiceByClusterBootstrapConfigurationFailsIfDirectoryExists() throws IOException {
         File mockFile = getMockFileWith(true, true);
 
         ClusterConfiguration differentClusterConfig = ImmutableDefaultClusterConfiguration.builder()
@@ -99,7 +100,7 @@ public class TimeLockPersistenceInvariantsTest {
     }
 
     @Test
-    public void newServiceByClusterBootstrapConfigurationSucceedsIfDirectoryDoesNotExist() {
+    public void newServiceByClusterBootstrapConfigurationSucceedsIfDirectoryDoesNotExist() throws IOException {
         File mockFile = getMockFileWith(false, true);
 
         ClusterConfiguration differentClusterConfig = ImmutableDefaultClusterConfiguration.builder()
@@ -117,10 +118,12 @@ public class TimeLockPersistenceInvariantsTest {
                 .doesNotThrowAnyException();
     }
 
-    private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) {
+    private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) throws IOException {
         File mockFile = mock(File.class);
         when(mockFile.mkdirs()).thenReturn(canCreateDirectory);
         when(mockFile.isDirectory()).thenReturn(isDirectory);
+        when(mockFile.getPath()).thenReturn("var/data/paxos");
+        when(mockFile.getCanonicalPath()).thenReturn("/var/data/paxos");
         return mockFile;
     }
 
