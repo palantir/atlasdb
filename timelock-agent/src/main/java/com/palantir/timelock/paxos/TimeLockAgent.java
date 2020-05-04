@@ -173,8 +173,8 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
 
-        Supplier<Connection> sqliteConnectionSupplier = SqliteConnections.createSqliteDatabase(
-                install.paxos().sqlitePersistence().dataDirectory().toString());
+        Supplier<Connection> sqliteConnectionSupplier = SqliteConnections.createDefaultNamedSqliteDatabaseAtPath(
+                install.paxos().sqlitePersistence().dataDirectory().toPath());
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,

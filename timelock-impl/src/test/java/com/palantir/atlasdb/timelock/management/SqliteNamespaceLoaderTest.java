@@ -50,7 +50,7 @@ public class SqliteNamespaceLoaderTest {
     @Before
     public void setup() {
         connectionSupplier = SqliteConnections
-                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
+                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
         namespaceLoader = SqliteNamespaceLoader.create(connectionSupplier);
     }
 
