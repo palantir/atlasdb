@@ -55,7 +55,7 @@ final class TransactionStarter implements AutoCloseable {
 
     private TransactionStarter(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         this.autobatcher = Autobatchers
-                .independent(consumer(lockLeaseService, lockWatchEventCache))
+                .independent(consumer(lockWatchEventCache))
                 .safeLoggablePurpose("transaction-starter")
                 .build();
         this.lockLeaseService = lockLeaseService;
@@ -135,12 +135,12 @@ final class TransactionStarter implements AutoCloseable {
 
     @VisibleForTesting
     Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
-            LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
+            LockWatchEventCache lockWatchEventCache) {
         return batch -> {
             int numTransactions = batch.size();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
+                    getStartTransactionResponses(lockWatchEventCache, numTransactions);
 
             for (int i = 0; i < numTransactions; i++) {
                 batch.get(i).result().set(startTransactionResponses.get(i));
@@ -149,7 +149,6 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     private List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService lockLeaseService,
             LockWatchEventCache lockWatchEventCache,
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
