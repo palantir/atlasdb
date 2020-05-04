@@ -21,13 +21,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+
 public class PaxosInstallConfigurationIntegrationTest {
+    private static final String SERVER_A = "a";
+    private static final ClusterConfiguration CLUSTER_CONFIG = ImmutableDefaultClusterConfiguration.builder()
+            .localServer(SERVER_A)
+            .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
+            .build();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -122,15 +132,21 @@ public class PaxosInstallConfigurationIntegrationTest {
     }
 
     private static void assertIsNotNewService(ImmutablePaxosInstallConfiguration.Builder partialConfiguration) {
-        assertThatCode(() -> partialConfiguration.isNewService(false).build()).doesNotThrowAnyException();
-        assertThatThrownBy(() -> partialConfiguration.isNewService(true).build())
+        assertThatCode(
+                () -> attemptConstructTopLevelConfigWithoutOverrides(partialConfiguration.isNewService(false).build()))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(
+                () -> attemptConstructTopLevelConfigWithoutOverrides(partialConfiguration.isNewService(true).build()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("This timelock server has been configured as a new stack");
     }
 
     private void assertIsNewService(ImmutablePaxosInstallConfiguration.Builder partialConfiguration) {
-        assertThatCode(() -> partialConfiguration.isNewService(true).build()).doesNotThrowAnyException();
-        assertThatThrownBy(() -> partialConfiguration.isNewService(false).build())
+        assertThatCode(
+                () -> attemptConstructTopLevelConfigWithoutOverrides(partialConfiguration.isNewService(true).build()))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(
+                () -> attemptConstructTopLevelConfigWithoutOverrides(partialConfiguration.isNewService(false).build()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The timelock data directories do not appear to exist.");
     }
@@ -141,5 +157,13 @@ public class PaxosInstallConfigurationIntegrationTest {
             return file;
         }
         throw new RuntimeException("Unexpected error when creating a subdirectory");
+    }
+
+    private static void attemptConstructTopLevelConfigWithoutOverrides(
+            PaxosInstallConfiguration paxosInstallConfiguration) {
+        ImmutableTimeLockInstallConfiguration.builder()
+                .paxos(paxosInstallConfiguration)
+                .cluster(CLUSTER_CONFIG)
+                .build();
     }
 }
