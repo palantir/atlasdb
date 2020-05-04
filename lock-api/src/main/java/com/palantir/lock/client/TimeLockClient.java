@@ -99,10 +99,16 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         List<StartIdentifiedAtlasDbTransactionResponse> responses = executeOnTimeLock(
                 () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
-        lockRefresher.registerLocks(responses
+        Set<LockToken> immutableTsLocks = responses
                 .stream()
                 .map(response -> response.immutableTimestamp().getLock())
-                .collect(Collectors.toList()));
+                .collect(Collectors.toSet());
+        try {
+            lockRefresher.registerLocks(immutableTsLocks);
+        } catch (Throwable t) {
+            unlock(immutableTsLocks);
+            throw Throwables.throwUncheckedException(t);
+        }
         return responses;
     }
 

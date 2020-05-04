@@ -40,11 +40,13 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
             rows.add(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         HotspottyDataStreamIdxTable indexTable = tables.getHotspottyDataStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rowsWithNoIndexEntries =
+                        executeUnreferencedStreamDiagnostics(indexTable, rows);
         Set<Long> toDelete = Sets.newHashSet();
+        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata =
+                metaTable.getMetadatas(rows);
         for (Map.Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
@@ -88,7 +90,7 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(HotspottyDataStreamIdxTable indexTable, Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> metadataRows) {
+    private static Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> executeUnreferencedStreamDiagnostics(HotspottyDataStreamIdxTable indexTable, Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> metadataRows) {
         Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> indexRows = metadataRows.stream()
                 .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
                 .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::of)
@@ -99,9 +101,11 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+            return Sets.newHashSet();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
+            return unreferencedStreamsByIterator;
         }
     }
 }
