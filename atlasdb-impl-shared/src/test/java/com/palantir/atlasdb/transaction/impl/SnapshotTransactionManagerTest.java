@@ -69,7 +69,7 @@ public class SnapshotTransactionManagerTest {
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
@@ -90,7 +90,7 @@ public class SnapshotTransactionManagerTest {
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
             DefaultTimestampCache.createForTests(),
             MultiTableSweepQueueWriter.NO_OP,
-            executorService,
+            deleteExecutor,
             true,
             () -> ImmutableTransactionConfig.builder().build(),
             ConflictTracer.NO_OP);
@@ -119,6 +119,12 @@ public class SnapshotTransactionManagerTest {
     }
 
     @Test
+    public void closesDeleteExecutorOnClosingTransactionManager() {
+        snapshotTransactionManager.close();
+        assertThat(deleteExecutor.isTerminated()).isTrue();
+    }
+
+    @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
@@ -139,7 +145,7 @@ public class SnapshotTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                executorService,
+                deleteExecutor,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP);
@@ -259,7 +265,7 @@ public class SnapshotTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                executorService,
+                deleteExecutor,
                 true,
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
