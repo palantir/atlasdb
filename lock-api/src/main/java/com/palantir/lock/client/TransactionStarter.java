@@ -98,6 +98,10 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     Set<LockToken> unlock(Set<LockToken> tokens) {
+        return unlock(tokens, lockLeaseService);
+    }
+
+    private static Set<LockToken> unlock(Set<LockToken> tokens, LockLeaseService lockLeaseService) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
@@ -158,12 +162,20 @@ final class TransactionStarter implements AutoCloseable {
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
-            ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
-                    lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
-            lockWatchEventCache.processStartTransactionsUpdate(
-                    response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
-                    response.getLockWatchUpdate());
-            result.addAll(split(response));
+            try {
+                ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
+                        lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
+                lockWatchEventCache.processStartTransactionsUpdate(
+                        response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
+                        response.getLockWatchUpdate());
+                result.addAll(split(response));
+            } catch (Throwable t) {
+                unlock(result.stream()
+                        .map(response -> response.immutableTimestamp().getLock())
+                        .collect(Collectors.toSet()),
+                        lockLeaseService);
+                throw Throwables.throwUncheckedException(t);
+            }
         }
         return result;
     }
