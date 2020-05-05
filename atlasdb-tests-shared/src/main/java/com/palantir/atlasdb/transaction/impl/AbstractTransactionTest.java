@@ -95,6 +95,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -102,6 +103,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    private static final BatchColumnRangeSelection ALL_COLUMNS = BatchColumnRangeSelection.create(
+            PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 3);
 
     public AbstractTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
@@ -699,7 +702,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(PtBytes.toBytes("row1")), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 1));
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
@@ -1313,10 +1316,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void getRows() {
         Transaction t = startTransaction();
-        byte[] rowKey = PtBytes.toBytes("row");
-        byte[] value = PtBytes.toBytes("value");
+        byte[] rowKey = row(0);
+        byte[] value = value(0);
         t.put(TEST_TABLE, ImmutableMap.of(
-                Cell.create(rowKey, PtBytes.toBytes("col")), value));
+                Cell.create(rowKey, column(0)), value));
         t.commit();
 
         t = startTransaction();
@@ -1328,12 +1331,37 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .satisfies(rowResult ->
                         assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
 
-        byte[] rowKeyCopy = PtBytes.toBytes("row");
+        byte[] rowKeyCopy = row(0);
+        assertThat(rowKeyCopy).isNotSameAs(rowKey);
         assertThat(result.get(rowKeyCopy))
                 .as("it should be possible to get a row from getRows with a copy of a passed-in byte array")
                 .isNotNull()
                 .satisfies(rowResult ->
                         assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
+    }
+
+    @Test
+    public void lookupFromGetRowsColumnRangeIterator() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] row1 = row(1);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0), Cell.create(row1, col0), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRangeIterator(
+                TEST_TABLE, ImmutableList.of(row0, row1), ALL_COLUMNS);
+
+        Map<Cell, byte[]> directLookupResults = Maps.newHashMap();
+        result.get(row0).forEachRemaining(entry -> directLookupResults.put(entry.getKey(), entry.getValue()));
+        assertThat(directLookupResults).hasSize(1);
+        assertThat(Arrays.equals(directLookupResults.get(Cell.create(row0, col0)), value(0))).isTrue();
+
+        Map<Cell, byte[]> indirectLookupResults = Maps.newHashMap();
+        result.get(row(1)).forEachRemaining(entry -> indirectLookupResults.put(entry.getKey(), entry.getValue()));
+        assertThat(indirectLookupResults).hasSize(1);
+        assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row(1), col0)), value(1))).isTrue();
     }
 
     @Test
@@ -1402,5 +1430,21 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .transform(RowResult::getOnlyColumnValue)
                 .transform(bytes -> new String(bytes, StandardCharsets.UTF_8))
                 .immutableCopy();
+    }
+
+    private static byte[] row(int index) {
+        return toBytes("row" + index);
+    }
+
+    private static byte[] column(int index) {
+        return toBytes("col" + index);
+    }
+
+    private static byte[] value(int index) {
+        return toBytes("value" + index);
+    }
+
+    private static byte[] toBytes(String string) {
+        return PtBytes.toBytes(string);
     }
 }

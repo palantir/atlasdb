@@ -37,6 +37,11 @@ import com.palantir.common.base.BatchingVisitable;
 
 /**
  * Provides the methods for a transaction with the key-value store.
+ *
+ * In general: users may assume that if maps (including sorted maps) keyed on byte[] are returned to the user,
+ * they may be accessed, including via random access, via any byte array that is equivalent in terms of
+ * {@link java.util.Arrays#equals(byte[], byte[])}.
+ *
  * @see TransactionManager
  */
 public interface Transaction {
@@ -46,8 +51,7 @@ public interface Transaction {
      * columns according to the provided {@link ColumnSelection}.
      *
      * The returned {@link SortedMap} is sorted on the byte order of row keys; the ordering of the input parameter
-     * {@code rows} is irrelevant. Access to the returned {@link SortedMap} is permitted both with the original byte
-     * array, as well as with byte arrays that are equal in terms of {@link java.util.Arrays#equals(byte[], byte[])}.
+     * {@code rows} is irrelevant.
      *
      * If there are rows with no cells matching the provided {@link ColumnSelection}, they will not be present in the
      * {@link Map#keySet()} of the output map at all.
@@ -69,12 +73,11 @@ public interface Transaction {
      * {@link BatchColumnRangeSelection}. The single provided {@link BatchColumnRangeSelection} applies to all of the
      * rows.
      *
-     * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate, sorted on
-     * (ascending) byte ordering.
+     * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
+     * by column, with ascending byte ordering.
      *
-     * It is guaranteed that the {@link Map#keySet()} of the returned map has the same elements as {@code rows} by
-     * identity, even if there are rows where no columns match the predicate. Random access for the returned map
-     * should ONLY be performed through the original byte arrays that were passed in.
+     * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
+     * input {@code rows}, even if there are rows where no columns match the predicate.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
@@ -117,12 +120,11 @@ public interface Transaction {
      * {@code rows}, where the columns fall within the provided {@link BatchColumnRangeSelection}. The single provided
      * {@link BatchColumnRangeSelection} applies to all of the rows.
      *
-     * The returned {@link Iterator}s are guaranteed to return cells matching the predicate, sorted on (ascending) byte
-     * ordering.
+     * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
+     * by column, with ascending byte ordering.
      *
-     * It is guaranteed that the {@link Map#keySet()} of the returned map has the same elements as {@code rows} by
-     * identity, even if there are rows where no columns match the predicate. Random access for the returned map
-     * should ONLY be performed through the original byte arrays that were passed in.
+     * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
+     * input {@code rows}, even if there are rows where no columns match the predicate.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
@@ -136,12 +138,19 @@ public interface Transaction {
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection);
 
+    /**
+     * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}.
+     *
+     * @param tableRef the table from which to get the values
+     * @param cells the cells for which we want to get the values
+     * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
+     */
     @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
-     * Gets the values associated for each {@code cells} from table specified by {@code tableRef}. It is not guaranteed
-     * that the actual implementations are in fact asynchronous.
+     * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not
+     * guaranteed that the actual implementations are in fact asynchronous.
      *
      * @param tableRef the table from which to get the values
      * @param cells the cells for which we want to get the values
