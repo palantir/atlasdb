@@ -23,6 +23,7 @@ import java.util.Set;
 
 import com.google.common.collect.SetMultimap;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
 
 public class LocalBatchPaxosLearner implements BatchPaxosLearner {

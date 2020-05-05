@@ -35,7 +35,6 @@ import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.debug.TransactionPostMortemRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.timelock.TimeLockTestUtils.TransactionManagerContext;
-import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.example.profile.schema.ProfileSchema;
@@ -43,6 +42,7 @@ import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserProfileTable;
 import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStreamId;
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
+import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 
 /**
