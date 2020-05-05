@@ -707,7 +707,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 101));
-        verifyMatchingResult(expected, row, columnRange);
+        verifyMatchingResult(expected, PtBytes.toBytes("row1"), columnRange);
 
         columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
