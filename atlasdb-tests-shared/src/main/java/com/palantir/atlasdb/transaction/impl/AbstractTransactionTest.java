@@ -32,14 +32,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -1365,6 +1370,52 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
+    public void resilientToUnstableRowOrderingsForGetRowsColumnRange() {
+        Assume.assumeTrue(canGetRowsColumnRangeOnTestTable());
+        Transaction t = startTransaction();
+
+        Map<Cell, byte[]> valuesToPut = KeyedStream.of(IntStream.range(0, 100).boxed())
+                .flatMapKeys(index ->
+                        Stream.of(Cell.create(row(index), column(0)), Cell.create(row(index), column(1))))
+                .map(AbstractTransactionTest::value)
+                .collectToMap();
+
+        t.put(TEST_TABLE, valuesToPut);
+        t.commit();
+
+        t = startTransaction();
+        Set<byte[]> rowNames = valuesToPut.keySet().stream().map(Cell::getRowName).collect(Collectors.toCollection(
+                () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator())));
+        Iterator<Map.Entry<Cell, byte[]>> result = t.getRowsColumnRange(
+                TEST_TABLE,
+                new UnstableOrderedIterable<>(rowNames),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                5);
+
+        List<Map.Entry<Cell, byte[]>> resultAsList = Lists.newArrayList(result);
+        assertThat(resultAsList).hasSize(200);
+        for (int index = 0; index < 200; index += 2) {
+            Map.Entry<Cell, byte[]> first = resultAsList.get(index);
+            Map.Entry<Cell, byte[]> second = resultAsList.get(index + 1);
+            assertMatchingRowAndInColumnOrder(first, second);
+        }
+    }
+
+    private boolean canGetRowsColumnRangeOnTestTable() {
+        try {
+            Transaction t = startTransaction();
+            t.getRowsColumnRange(
+                    TEST_TABLE,
+                    ImmutableList.of(row(0)),
+                    new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                    42);
+            return true;
+        } catch (UnsupportedOperationException e) {
+            return false;
+        }
+    }
+
+    @Test
     public void testTableMetadata() {
         keyValueService.dropTable(TEST_TABLE);
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -1446,5 +1497,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     private static byte[] toBytes(String string) {
         return PtBytes.toBytes(string);
+    }
+
+    private static void assertMatchingRowAndInColumnOrder(Map.Entry<Cell, byte[]> fst, Map.Entry<Cell, byte[]> snd) {
+        assertThat(Arrays.equals(fst.getKey().getRowName(), snd.getKey().getRowName())).isTrue();
+        assertThat(UnsignedBytes.lexicographicalComparator().compare(
+                fst.getKey().getColumnName(), snd.getKey().getColumnName())).isLessThan(0);
     }
 }

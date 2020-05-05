@@ -99,7 +99,9 @@ public interface Transaction {
      * If the provided {@link Iterable} of {@code rows} has a stable ordering, the returned iterator is guaranteed
      * to return cell-value pairs in a lexicographic ordering over rows and columns, where rows are sorted according to
      * the stable ordering of {@code rows}, and columns are sorted on byte ordering. If {@code rows} does not have a
-     * stable ordering, behaviour is undefined.
+     * stable ordering, the returned iterator will return cell-value pairs that are ordered within a row - that is,
+     * columns from the same row are always grouped together and are always sorted on byte ordering, but there are no
+     * guarantees on the ordering of rows.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
