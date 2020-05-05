@@ -159,7 +159,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
-            List<PreCommitCondition> condition) {
+            List<? extends PreCommitCondition> condition) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 

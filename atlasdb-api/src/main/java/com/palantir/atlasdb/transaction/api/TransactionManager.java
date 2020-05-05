@@ -434,7 +434,7 @@ public interface TransactionManager extends AutoCloseable {
     @Deprecated
     @Timed
     List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
-            List<PreCommitCondition> condition);
+            List<? extends PreCommitCondition> condition);
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by

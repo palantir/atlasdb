@@ -169,7 +169,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
-            List<PreCommitCondition> conditions) {
+            List<? extends PreCommitCondition> conditions) {
         if (conditions.isEmpty()) {
             return ImmutableList.of();
         }
