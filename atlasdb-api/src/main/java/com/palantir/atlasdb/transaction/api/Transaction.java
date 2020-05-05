@@ -54,7 +54,9 @@ public interface Transaction {
      * {@code rows} is irrelevant.
      *
      * If there are rows with no cells matching the provided {@link ColumnSelection}, they will not be present in the
-     * {@link Map#keySet()} of the output map at all.
+     * {@link Map#keySet()} of the output map at all. This accounts for local writes and deletes: a row written
+     * to locally (even if not persisted) will be present, and a row which is completely deleted locally (even if
+     * existing in the key value service) will be absent.
      *
      * @param tableRef table to load rows from
      * @param rows rows to be loaded

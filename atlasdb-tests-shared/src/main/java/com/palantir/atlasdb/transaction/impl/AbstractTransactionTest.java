@@ -1319,7 +1319,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void getRows() {
+    public void getRowsAccessibleThroughCopies() {
         Transaction t = startTransaction();
         byte[] rowKey = row(0);
         byte[] value = value(0);
@@ -1343,6 +1343,52 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .isNotNull()
                 .satisfies(rowResult ->
                         assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
+    }
+
+    @Test
+    public void getRowsIncludesLocalWrites() {
+        Transaction t = startTransaction();
+        byte[] rowKey = row(0);
+        byte[] value = value(0);
+        SortedMap<byte[], RowResult<byte[]>> prePut =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0)), ColumnSelection.all());
+        assertThat(prePut).isEmpty();
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(rowKey, column(0)), value));
+        SortedMap<byte[], RowResult<byte[]>> postPut =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0)), ColumnSelection.all());
+        assertThat(postPut)
+                .hasSize(1)
+                .containsKey(row(0));
+    }
+
+    @Test
+    public void getRowsDoesNotIncludePersistedRowsWithLocalDeletes() {
+        Transaction t = startTransaction();
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(row(0), column(0)), value(0),
+                Cell.create(row(1), column(0)), value(1),
+                Cell.create(row(1), column(1)), value(2)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> preDelete =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0), row(1)), ColumnSelection.all());
+        // cannot use containsOnlyKeys because that internally uses a LinkedHashSet
+        assertThat(preDelete)
+                .hasSize(2)
+                .containsKey(row(0))
+                .containsKey(row(1));
+        t.delete(TEST_TABLE, ImmutableSet.of(Cell.create(row(0), column(0)), Cell.create(row(1), column(0))));
+        SortedMap<byte[], RowResult<byte[]>> postDelete =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0), row(1)), ColumnSelection.all());
+        assertThat(postDelete)
+                .hasSize(1)
+                .containsKey(row(1));
+        assertThat(postDelete.get(row(1)))
+                .isNotNull()
+                .satisfies(rowResult -> assertThat(
+                        Arrays.equals(rowResult.getColumns().get(column(1)), value(2))).isTrue());
     }
 
     @Test
