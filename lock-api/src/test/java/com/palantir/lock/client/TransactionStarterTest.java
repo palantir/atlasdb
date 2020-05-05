@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import static java.util.stream.Collectors.toList;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.spy;
@@ -31,8 +32,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Before;
@@ -43,7 +42,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -62,10 +63,12 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionStarterTest {
-    @Mock private LockLeaseService lockLeaseService;
+    @Mock
+    private LockLeaseService lockLeaseService;
     private final LockWatchEventCache lockWatchEventCache = spy(NoOpLockWatchEventCache.INSTANCE);
     private TransactionStarter transactionStarter;
 
@@ -98,11 +101,32 @@ public class TransactionStarterTest {
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
         ConjureStartTransactionsResponse startTransactionResponse = getStartTransactionResponse(12, 1);
 
-        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 1))
-                .thenReturn(startTransactionResponse);
-        StartIdentifiedAtlasDbTransactionResponse response = transactionStarter.startIdentifiedAtlasDbTransaction();
+        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 1)).thenReturn(startTransactionResponse);
+        StartIdentifiedAtlasDbTransactionResponse response =
+                Iterables.getOnlyElement(transactionStarter.startIdentifiedAtlasDbTransactionBatch(1));
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
+    }
+
+    @Test
+    public void shouldDeriveStartTransactionResponseBatchFromBatchedResponse_multipleTransactions() {
+        ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(12, 5);
+
+        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 5)).thenReturn(batchResponse);
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                transactionStarter.startIdentifiedAtlasDbTransactionBatch(5);
+
+        assertThat(responses)
+                .satisfies(TransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
+                .hasSize(5)
+                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchResponse));
+    }
+
+    @Test
+    public void shouldThrowWhenTryingToStartIllegalNumberOfTransactions() {
+        assertThatThrownBy(() -> transactionStarter.startIdentifiedAtlasDbTransactionBatch(0))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Cannot start 0 or fewer transactions");
     }
 
     @Test
@@ -111,11 +135,29 @@ public class TransactionStarterTest {
         when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 3))
                 .thenReturn(batchResponse);
 
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(3);
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = requestSingularBatches(3);
         assertThat(responses)
                 .satisfies(TransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
                 .hasSize(3)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchResponse));
+    }
+
+    @Test
+    public void shouldDeriveStartTransactionResponseFromBatchedResponse_nonTrivialBatchSize() {
+        ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(40, 10);
+        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 10))
+                .thenReturn(batchResponse);
+
+        ImmutableList<Integer> sizes = ImmutableList.of(2, 3, 4, 1);
+        List<List<StartIdentifiedAtlasDbTransactionResponse>> responses = requestBatches(sizes);
+        Streams.forEachPair(responses.stream(), sizes.stream(),
+                (response, size) -> assertThat(response)
+                        .hasSize(size)
+                        .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse,
+                                batchResponse)));
+
+        assertThat(flattenResponses(responses)).satisfies(
+                TransactionStarterTest::assertThatStartTransactionResponsesAreUnique);
     }
 
     @Test
@@ -124,21 +166,31 @@ public class TransactionStarterTest {
                 .thenReturn(getStartTransactionResponse(40, 2))
                 .thenReturn(getStartTransactionResponse(100, 1));
 
-        requestBatches(3);
+        requestSingularBatches(3);
         verify(lockLeaseService).startTransactionsWithWatches(Optional.empty(), 3);
         verify(lockLeaseService).startTransactionsWithWatches(Optional.empty(), 1);
         verify(lockWatchEventCache).processStartTransactionsUpdate(ImmutableSet.of(40L, 56L), UPDATE);
     }
 
-    private List<StartIdentifiedAtlasDbTransactionResponse> requestBatches(int size) {
-        List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>> elements = IntStream.range(0, size)
-                .mapToObj(unused -> ImmutableTestBatchElement.builder()
-                        .argument(null)
-                        .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
-                        .build())
+    private List<List<StartIdentifiedAtlasDbTransactionResponse>> requestBatches(List<Integer> counts) {
+        List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>> elements = counts.stream()
+                .map(count ->
+                        ImmutableTestBatchElement.builder()
+                                .argument(count)
+                                .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
+                                .build())
                 .collect(toList());
         TransactionStarter.consumer(lockLeaseService, lockWatchEventCache).accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
+    }
+
+    private List<StartIdentifiedAtlasDbTransactionResponse> requestSingularBatches(int size) {
+        return flattenResponses(requestBatches(IntStream.range(0, size).mapToObj($ -> 1).collect(toList())));
+    }
+
+    private List<StartIdentifiedAtlasDbTransactionResponse> flattenResponses(
+            List<List<StartIdentifiedAtlasDbTransactionResponse>> responses) {
+        return responses.stream().flatMap(List::stream).collect(toList());
     }
 
     private static void assertThatStartTransactionResponsesAreUnique(
@@ -197,9 +249,9 @@ public class TransactionStarterTest {
     }
 
     @Value.Immutable
-    interface TestBatchElement extends BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse> {
+    interface TestBatchElement extends BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> {
         @Override
-        @Nullable Void argument();
+        Integer argument();
     }
 
 }

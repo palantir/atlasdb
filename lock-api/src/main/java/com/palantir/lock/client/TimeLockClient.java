@@ -17,9 +17,11 @@ package com.palantir.lock.client;
 
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -89,21 +91,25 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         LockImmutableTimestampResponse response = executeOnTimeLock(delegate::lockImmutableTimestamp);
-        lockRefresher.registerLock(response.getLock());
+        lockRefresher.registerLocks(ImmutableSet.of(response.getLock()));
         return response;
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        StartIdentifiedAtlasDbTransactionResponse response = executeOnTimeLock(
-                delegate::startIdentifiedAtlasDbTransaction);
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = executeOnTimeLock(
+                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
+        Set<LockToken> immutableTsLocks = responses
+                .stream()
+                .map(response -> response.immutableTimestamp().getLock())
+                .collect(Collectors.toSet());
         try {
-            lockRefresher.registerLock(response.immutableTimestamp().getLock());
+            lockRefresher.registerLocks(immutableTsLocks);
         } catch (Throwable t) {
-            unlock(ImmutableSet.of(response.immutableTimestamp().getLock()));
+            unlock(immutableTsLocks);
             throw Throwables.throwUncheckedException(t);
         }
-        return response;
+        return responses;
     }
 
     @Override
@@ -115,7 +121,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public LockResponse lock(LockRequest request) {
         LockResponse response = executeOnTimeLock(() -> delegate.lock(request));
         if (response.wasSuccessful()) {
-            lockRefresher.registerLock(response.getToken());
+            lockRefresher.registerLocks(ImmutableSet.of(response.getToken()));
         }
         return response;
     }

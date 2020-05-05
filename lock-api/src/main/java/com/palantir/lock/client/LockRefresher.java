@@ -81,8 +81,8 @@ public class LockRefresher implements AutoCloseable {
         }
     }
 
-    public void registerLock(LockToken token) {
-        tokensToRefresh.add(token);
+    public void registerLocks(Collection<LockToken> tokens) {
+        tokensToRefresh.addAll(tokens);
     }
 
     public void unregisterLocks(Collection<LockToken> tokens) {

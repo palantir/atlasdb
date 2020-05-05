@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Replaced the singular `setupRunTaskWithConditionThrowOnConflict` with
+    a batched method `setupRunTaskBatchWithConditionThrowOnConflict`, and changed
+    underlying methods to accommodate starting a batch of transactions.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4711

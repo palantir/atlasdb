@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -36,6 +35,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -88,7 +88,7 @@ public class TimeLockClientTest {
         when(delegate.lockImmutableTimestamp()).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
         timelock.lockImmutableTimestamp();
 
-        verify(refresher).registerLock(TOKEN_1);
+        verify(refresher).registerLocks(ImmutableSet.of(TOKEN_1));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class TimeLockClientTest {
 
         timelock.lock(request);
 
-        verify(refresher).registerLock(TOKEN_1);
+        verify(refresher).registerLocks(ImmutableSet.of(TOKEN_1));
     }
 
     @Test
@@ -206,12 +206,13 @@ public class TimeLockClientTest {
     @Test
     public void unlocksWhenFailedToRegisterLockAfterStartingTransaction() {
         when(response.immutableTimestamp()).thenReturn(immutableTimestampResponse);
-        when(delegate.startIdentifiedAtlasDbTransaction()).thenReturn(response);
+        when(delegate.startIdentifiedAtlasDbTransactionBatch(1)).thenReturn(ImmutableList.of(response));
 
-        doThrow(new RuntimeException()).when(refresher).registerLock(any());
-        assertThatThrownBy(timelock::startIdentifiedAtlasDbTransaction)
+        ImmutableSet<LockToken> locks = ImmutableSet.of(immutableTsLock);
+        doThrow(new RuntimeException()).when(refresher).registerLocks(locks);
+        assertThatThrownBy(() -> timelock.startIdentifiedAtlasDbTransactionBatch(1))
                 .isInstanceOf(RuntimeException.class);
 
-        verify(refresher).unregisterLocks(ImmutableSet.of(immutableTsLock));
+        verify(refresher).unregisterLocks(locks);
     }
 }

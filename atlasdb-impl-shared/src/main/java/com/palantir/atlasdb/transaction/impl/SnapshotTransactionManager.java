@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -33,8 +35,11 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -153,7 +158,8 @@ import com.palantir.timestamp.TimestampService;
         checkOpen();
         try {
             TransactionAndImmutableTsLock txAndLock =
-                    runTimed(() -> setupRunTaskWithConditionThrowOnConflict(condition), "setupTask");
+                    runTimed(() -> Iterables.getOnlyElement(
+                            setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of(condition))), "setupTask");
             return finishRunTaskWithLockThrowOnConflict(txAndLock,
                     transaction -> task.execute(transaction, condition));
         } finally {
@@ -162,27 +168,44 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        StartIdentifiedAtlasDbTransactionResponse transactionResponse
-                = timelockService.startIdentifiedAtlasDbTransaction();
+    public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
+            List<PreCommitCondition> conditions) {
+        if (conditions.isEmpty()) {
+            return ImmutableList.of();
+        }
+
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
+        Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
-            LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
-            long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
+            long immutableTs = Collections.max(responses.stream()
+                    .map(response -> response.immutableTimestamp().getImmutableTimestamp())
+                    .collect(Collectors.toList()));
             recordImmutableTimestamp(immutableTs);
+            cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
-            cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
-            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                    transactionResponse.startTimestampAndPartition().timestamp());
+            return Streams.zip(
+                    responses.stream(),
+                    conditions.stream(),
+                    (response, condition) -> {
+                        LockToken immutableTsLock = response.immutableTimestamp().getLock();
+                        Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
+                                response.startTimestampAndPartition().timestamp());
 
-            Transaction transaction = createTransaction(
-                    immutableTs,
-                    startTimestampSupplier,
-                    immutableTsLock,
-                    condition);
-            return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
-        } catch (Throwable e) {
-            timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+                        Transaction transaction = createTransaction(
+                                immutableTs,
+                                startTimestampSupplier,
+                                immutableTsLock,
+                                condition);
+
+                        return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+                    }).collect(Collectors.toList());
+        } catch (Throwable t) {
+            timelockService.tryUnlock(
+                    responses.stream()
+                            .map(response -> response.immutableTimestamp().getLock())
+                            .collect(Collectors.toSet()));
+            throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
 

@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -261,11 +262,11 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp()).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-        when(timelock.startIdentifiedAtlasDbTransaction()).thenReturn(
-                StartIdentifiedAtlasDbTransactionResponse.of(
+        when(timelock.startIdentifiedAtlasDbTransactionBatch(1)).thenReturn(
+                ImmutableList.of(StartIdentifiedAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
                         TimestampAndPartition.of(1L, 1)
-                ));
+                )));
         TRM.registerTransactionManager(txnManagerWithMocks);
         return txnManagerWithMocks;
     }
