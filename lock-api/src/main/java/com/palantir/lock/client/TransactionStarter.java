@@ -53,16 +53,20 @@ final class TransactionStarter implements AutoCloseable {
     private final DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher;
     private final LockLeaseService lockLeaseService;
 
-    private TransactionStarter(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
-        this.autobatcher = Autobatchers
-                .independent(consumer(lockWatchEventCache))
-                .safeLoggablePurpose("transaction-starter")
-                .build();
+    private TransactionStarter(
+            DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher,
+            LockLeaseService lockLeaseService) {
+        this.autobatcher = autobatcher;
         this.lockLeaseService = lockLeaseService;
     }
 
     static TransactionStarter create(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
-        return new TransactionStarter(lockLeaseService, lockWatchEventCache);
+        DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher = Autobatchers
+                .independent(consumer(lockLeaseService, lockWatchEventCache))
+                .safeLoggablePurpose("transaction-starter")
+                .build();
+        return new TransactionStarter(autobatcher,
+                lockLeaseService);
     }
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
@@ -94,6 +98,10 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     Set<LockToken> unlock(Set<LockToken> tokens) {
+        return unlock(tokens, lockLeaseService);
+    }
+
+    private static Set<LockToken> unlock(Set<LockToken> tokens, LockLeaseService lockLeaseService) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
@@ -134,13 +142,13 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     @VisibleForTesting
-    Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
-            LockWatchEventCache lockWatchEventCache) {
+    static Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
+            LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         return batch -> {
             int numTransactions = batch.size();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockWatchEventCache, numTransactions);
+                    getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
 
             for (int i = 0; i < numTransactions; i++) {
                 batch.get(i).result().set(startTransactionResponses.get(i));
@@ -148,7 +156,8 @@ final class TransactionStarter implements AutoCloseable {
         };
     }
 
-    private List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
+    private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
+            LockLeaseService lockLeaseService,
             LockWatchEventCache lockWatchEventCache,
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
@@ -163,7 +172,8 @@ final class TransactionStarter implements AutoCloseable {
             } catch (Throwable t) {
                 unlock(result.stream()
                         .map(response -> response.immutableTimestamp().getLock())
-                        .collect(Collectors.toSet()));
+                        .collect(Collectors.toSet()),
+                        lockLeaseService);
                 throw Throwables.throwUncheckedException(t);
             }
         }
