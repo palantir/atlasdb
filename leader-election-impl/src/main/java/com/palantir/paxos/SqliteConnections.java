@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import org.apache.commons.io.FileUtils;
 
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
