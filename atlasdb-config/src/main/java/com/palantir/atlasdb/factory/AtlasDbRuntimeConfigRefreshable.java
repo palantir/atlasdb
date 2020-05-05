@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.factory;
 
-
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,8 +29,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 
 final class AtlasDbRuntimeConfigRefreshable implements AutoCloseable {
 
