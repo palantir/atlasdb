@@ -425,7 +425,8 @@ public interface TransactionManager extends AutoCloseable {
      * be valid, the transaction must be committed, preferably by calling
      * {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock, TransactionTask)} to also perform
      * additional cleanup. Note that this does not clean up the pre commit condition associated with that task.
-     * The order of transactions returned corresponds with the pre commit conditions passed in.
+     * The order of transactions returned corresponds with the pre commit conditions passed in, however there are
+     * no guarantees on the ordering of transactions returned with respect to their start timestamp.
      *
      * @return a batch of transactions with associated immutable timestamp locks
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
