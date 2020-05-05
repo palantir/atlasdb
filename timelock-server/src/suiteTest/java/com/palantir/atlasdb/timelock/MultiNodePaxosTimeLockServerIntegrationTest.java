@@ -290,7 +290,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void canGetAllNamespaces() {
         String randomNamespace = UUID.randomUUID().toString();
-        cluster.client(randomNamespace).getFreshTimestamp();
+        cluster.client(randomNamespace).throughWireMockProxy().getFreshTimestamp();
 
         Set<String> knownNamespaces = getKnownNamespaces();
         assertThat(knownNamespaces).contains(randomNamespace);
