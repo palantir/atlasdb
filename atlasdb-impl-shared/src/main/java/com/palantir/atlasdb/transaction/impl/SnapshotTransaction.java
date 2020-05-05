@@ -381,11 +381,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
-        rows = ImmutableList.copyOf(rows);
+        Iterable<byte[]> stableRows = ImmutableList.copyOf(rows);
         hasReads = true;
         RowColumnRangeIterator rawResults =
                 keyValueService.getRowsColumnRange(tableRef,
-                                                   rows,
+                                                   stableRows,
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
