@@ -25,16 +25,16 @@ import org.immutables.value.Value;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
-public class ToSqlitePaxosStateLogMigrator<V extends Persistable & Versionable> {
-    private static final int BATCH_SIZE = 10_000;
+public class PaxosStateLogMigrator<V extends Persistable & Versionable> {
+    static final int BATCH_SIZE = 10_000;
 
     private final PaxosStateLog<V> sourceLog;
-    private final SqlitePaxosStateLog<V> destinationLog;
+    private final PaxosStateLog<V> destinationLog;
     private final Persistable.Hydrator<V> hydrator;
     private final SqlitePaxosStateLogMigrationState migrationState;
 
-    public ToSqlitePaxosStateLogMigrator(PaxosStateLog<V> sourceLog,
-            SqlitePaxosStateLog<V> destinationLog,
+    private PaxosStateLogMigrator(PaxosStateLog<V> sourceLog,
+            PaxosStateLog<V> destinationLog,
             Persistable.Hydrator<V> hydrator,
             SqlitePaxosStateLogMigrationState migrationState) {
         this.sourceLog = sourceLog;
@@ -43,8 +43,8 @@ public class ToSqlitePaxosStateLogMigrator<V extends Persistable & Versionable> 
         this.migrationState = migrationState;
     }
 
-    public static <V extends Persistable & Versionable> void migrateToSqlite(MigrationContext<V> migrationContext) {
-        ToSqlitePaxosStateLogMigrator<V> migrator = new ToSqlitePaxosStateLogMigrator<>(
+    public static <V extends Persistable & Versionable> void migrate(MigrationContext<V> migrationContext) {
+        PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(
                 migrationContext.sourceLog(),
                 migrationContext.destinationLog(),
                 migrationContext.hydrator(),
@@ -60,7 +60,7 @@ public class ToSqlitePaxosStateLogMigrator<V extends Persistable & Versionable> 
         if (migrationState.hasAlreadyMigrated()) {
             return;
         }
-        destinationLog.reinitialize();
+        destinationLog.truncate(destinationLog.getGreatestLogEntry());
         long lowerBound = sourceLog.getLeastLogEntry();
         long upperBound = sourceLog.getGreatestLogEntry();
         List<PaxosRound<V>> buffer = new ArrayList<>();
@@ -79,12 +79,13 @@ public class ToSqlitePaxosStateLogMigrator<V extends Persistable & Versionable> 
             }
         }
         destinationLog.writeBatchOfRounds(buffer);
+        migrationState.finishMigration();
     }
 
     @Value.Immutable
     interface MigrationContext<V extends Persistable & Versionable> {
         PaxosStateLog<V> sourceLog();
-        SqlitePaxosStateLog<V> destinationLog();
+        PaxosStateLog<V> destinationLog();
         Persistable.Hydrator<V> hydrator();
         SqlitePaxosStateLogMigrationState migrationState();
     }

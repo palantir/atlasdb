@@ -29,4 +29,8 @@ public abstract class PaxosRound<V extends Persistable & Versionable> {
     public byte[] valueBytes() {
         return value().persistToBytes();
     }
+
+    public static <V extends Persistable & Versionable> PaxosRound<V> of(long sequence, V value) {
+        return ImmutablePaxosRound.<V>builder().sequence(sequence).value(value).build();
+    }
 }

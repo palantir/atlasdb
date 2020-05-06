@@ -43,7 +43,7 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
         this.jdbi = jdbi;
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(String namespace,
+    public static <V extends Persistable & Versionable> SqlitePaxosStateLog<V> create(String namespace,
             Supplier<Connection> connectionSupplier) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(PaxosRound.class);

@@ -61,7 +61,7 @@ public class SqlitePaxosStateLogMigrationState {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS migration_state (namespace TEXT PRIMARY KEY, version INT)")
         boolean createTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace) VALUES (?)")
+        @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, version) VALUES (?, 0)")
         boolean finishMigration(String namespace);
 
         @SqlQuery("SELECT EXISTS (SELECT 1 FROM migration_state WHERE namespace = ?)")
