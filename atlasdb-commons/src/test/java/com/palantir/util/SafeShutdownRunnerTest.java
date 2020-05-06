@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -35,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class SafeShutdownRunnerTest {
     private static final RuntimeException EXCEPTION = new RuntimeException("test");
@@ -68,7 +68,7 @@ public class SafeShutdownRunnerTest {
 
         assertThatCode(() -> runner.shutdownSafely(throwingRunnable)).doesNotThrowAnyException();
         assertThatThrownBy(runner::close)
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(SafeRuntimeException.class)
                 .hasSuppressedException(EXCEPTION);
     }
 
@@ -85,35 +85,20 @@ public class SafeShutdownRunnerTest {
     }
 
     @Test
-    public void otherTasksStillRunAfterSlowTasksThatTimeOut() {
+    public void otherTasksStillRunInPresenceOfSlowTasksThatTimeOut() {
         SafeShutdownRunner runner = new SafeShutdownRunner(Duration.ofMillis(50));
 
         runner.shutdownSafely(verySlowUninterruptibleRunnable);
         runner.shutdownSafely(verySlowUninterruptibleRunnable);
         runner.shutdownSafely(mockRunnable);
-
-        verify(verySlowUninterruptibleRunnable, times(2)).run();
-        verify(mockRunnable, times(1)).run();
-
-        closeAndAssertNumberOfTimeouts(runner, 2);
-    }
-
-    @Test
-    public void neverRunsRemainingTasksIfExecutorFillsUpWithUninteruptibleTasks() {
-        SafeShutdownRunner runner = new SafeShutdownRunner(Duration.ofMillis(50));
-
-        runner.shutdownSafely(verySlowUninterruptibleRunnable);
-        runner.shutdownSafely(verySlowUninterruptibleRunnable);
-        runner.shutdownSafely(verySlowUninterruptibleRunnable);
-        runner.shutdownSafely(verySlowUninterruptibleRunnable);
         runner.shutdownSafely(verySlowUninterruptibleRunnable);
         runner.shutdownSafely(verySlowUninterruptibleRunnable);
         runner.shutdownSafely(mockRunnable);
 
-        verify(verySlowUninterruptibleRunnable, times(5)).run();
-        verify(mockRunnable, never()).run();
+        verify(verySlowUninterruptibleRunnable, times(4)).run();
+        verify(mockRunnable, times(2)).run();
 
-        closeAndAssertNumberOfTimeouts(runner, 7);
+        closeAndAssertNumberOfTimeouts(runner, 4);
     }
 
     private void closeAndAssertNumberOfTimeouts(SafeShutdownRunner runner, int number) {

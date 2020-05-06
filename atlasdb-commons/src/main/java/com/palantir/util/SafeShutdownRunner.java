@@ -25,13 +25,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class SafeShutdownRunner implements AutoCloseable {
-    private final ExecutorService executor = PTExecutors
-            .newFixedThreadPool(5, new NamedThreadFactory("safe-shutdown-runner", true));
+    private final ExecutorService executor = PTExecutors.newCachedThreadPool("safe-shutdown-runner");
     private final List<Throwable> failures = new ArrayList<>();
     private final Duration timeoutDuration;
 
