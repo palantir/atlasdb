@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -68,9 +68,9 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.SafeShutdownRunner;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransactionManager.class);
@@ -355,7 +355,7 @@ import com.palantir.timestamp.TimestampService;
             return;
         }
 
-        try (ShutdownRunner shutdownRunner = new ShutdownRunner()) {
+        try (SafeShutdownRunner shutdownRunner = new SafeShutdownRunner(Duration.ofSeconds(20))) {
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
             shutdownRunner.shutdownSafely(keyValueService::close);
@@ -519,27 +519,5 @@ import com.palantir.timestamp.TimestampService;
         }
         throw new IllegalArgumentException("Can't use a transaction which is not SnapshotTransaction in "
                 + "SnapshotTransactionManager");
-    }
-
-    private static final class ShutdownRunner implements AutoCloseable {
-        private final List<Throwable> failures = new ArrayList<>();
-
-        void shutdownSafely(Runnable shutdownCallback) {
-            try {
-                shutdownCallback.run();
-            } catch (Throwable throwable) {
-                failures.add(throwable);
-            }
-        }
-
-        @Override
-        public void close() {
-            if (!failures.isEmpty()) {
-                RuntimeException closeFailed = new SafeRuntimeException(
-                        "Close failed. Please inspect the code and fix the failures");
-                failures.forEach(closeFailed::addSuppressed);
-                throw closeFailed;
-            }
-        }
     }
 }
