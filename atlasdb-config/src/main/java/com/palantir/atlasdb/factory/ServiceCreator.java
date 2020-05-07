@@ -104,7 +104,7 @@ public final class ServiceCreator {
         AuxiliaryRemotingParameters blockingUnsupportedParameters
                 = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldSupportBlockingOperations(false);
         return create(serviceClass, httpServiceCreationStrategy, blockingUnsupportedParameters,
-                serviceClass.getSimpleName());
+                serviceClass.getSimpleName() + "-blocking");
     }
 
     /**
