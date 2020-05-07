@@ -121,18 +121,6 @@ final class AtlasDbDialogueServiceProvider {
                 .build();
     }
 
-    //    public <T> T createService(
-//            Class<T> type,
-//            AuxiliaryRemotingParameters clientParameters,
-//            String serviceName) {
-//        Preconditions.checkState(isDialogue(type),
-//                "Attempted to create a Dialogue service where Dialogue is not supported");
-//        T rawProxy = AtlasDbDialogueFactories.decorateForFailoverServices(
-//                reloadingFactory, serverListConfigRefreshable, serviceName, clientParameters)
-//                .get(type, serviceName);
-//        return FastFailoverProxy.newProxyInstance(type, () -> rawProxy); // Dialogue does its own instrumentation.
-//    }
-
     private static boolean isDialogue(Class<?> serviceInterface) {
         return getStaticOfMethod(serviceInterface).isPresent();
     }
