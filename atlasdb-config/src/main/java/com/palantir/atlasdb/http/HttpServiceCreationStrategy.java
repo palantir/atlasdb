@@ -26,36 +26,21 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 /**
- * Defines how HTTP clients are created.
+ * Defines how an HTTP service is created. A service is defined as a cluster of zero or more nodes, where contacting
+ * any of the nodes is legitimate (subject to redirects via 308s and 503s). If working with heterogeneous nodes and/or
+ * broadcast is important (e.g. for Paxos Acceptor use cases), you should be very careful when using this class.
+ *
+ * Proxies must be resilient to servers repeatedly returning 308s that are large in number, but persist for only a short
+ * duration. Furthermore, proxies should include in their {@link com.palantir.conjure.java.api.config.service.UserAgent}
+ * information to allow client services to identify the protocol they are using to talk, via
+ * {@link AtlasDbHttpProtocolVersion}.
  *
  * Proxies returned here should already be instrumented, if the user desires. Clients should not add direct
  * instrumentation to proxies returned by this class via {@link com.palantir.atlasdb.util.AtlasDbMetrics}.
  */
-public interface HttpClientCreationStrategy extends AutoCloseable {
-    <T> T createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters);
-
-    <T> T createProxyWithFailover(
-            MetricsManager metricsManager,
-            ServerListConfig serverListConfig,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters);
-
+public interface HttpServiceCreationStrategy {
     <T> T createLiveReloadingProxyWithFailover(
-            MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
-            AuxiliaryRemotingParameters clientParameters);
-
-    <T> T createProxyWithQuickFailoverForTesting(
-            MetricsManager metricsManager,
-            ServerListConfig serverListConfig,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters);
-
-    @Override
-    void close();
+            AuxiliaryRemotingParameters clientParameters,
+            String serviceName);
 }

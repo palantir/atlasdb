@@ -33,8 +33,4 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
         "enableLegacyClientFallback"})
 @Value.Immutable
 public interface RemotingClientConfig {
-    @Value.Default
-    default boolean useDialogue() {
-        return false;
-    }
 }

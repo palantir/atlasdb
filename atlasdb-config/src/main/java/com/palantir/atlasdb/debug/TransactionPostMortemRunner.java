@@ -178,7 +178,7 @@ public class TransactionPostMortemRunner {
     private static LockDiagnosticInfoService createRpcClient(
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Supplier<ServerListConfig> serverListConfigSupplier =
+        Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
         timelockNamespace(config);
@@ -197,7 +197,7 @@ public class TransactionPostMortemRunner {
                 config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
     }
 
-    private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
+    private static Refreshable<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         TimeLockClientConfig clientConfig = config.timelock()

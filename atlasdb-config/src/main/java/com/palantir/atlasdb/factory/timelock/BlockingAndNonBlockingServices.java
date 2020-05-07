@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import java.util.function.Function;
+
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.factory.ServiceCreator;
@@ -24,6 +26,13 @@ import com.palantir.atlasdb.factory.ServiceCreator;
 public interface BlockingAndNonBlockingServices<T> {
     T blocking();
     T nonBlocking();
+
+    default <U> BlockingAndNonBlockingServices<U> map(Function<T, U> mapper) {
+        return ImmutableBlockingAndNonBlockingServices.<U>builder()
+                .blocking(mapper.apply(blocking()))
+                .nonBlocking(mapper.apply(nonBlocking()))
+                .build();
+    }
 
     static <T> BlockingAndNonBlockingServices<T> create(ServiceCreator serviceCreator, Class<T> clazz) {
         return ImmutableBlockingAndNonBlockingServices.<T>builder()

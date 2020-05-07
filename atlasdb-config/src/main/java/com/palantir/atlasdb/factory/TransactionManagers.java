@@ -127,6 +127,7 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -149,10 +150,13 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.common.time.Clock;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -164,6 +168,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.ProfilingTimelockService;
@@ -1005,8 +1010,16 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             String timelockNamespace,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+        // TODO (jkong): Needs to be passed in to support multitenant services
+        DialogueClients.ReloadingFactory dummyBaseReloadingFactory = DialogueClients.create(
+                Refreshable.only(ServicesConfigBlock.builder().build()));
+
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
-                metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
+                metricsManager,
+                timelockServerListConfig,
+                userAgent,
+                remotingConfigSupplier,
+                Optional.of(dummyBaseReloadingFactory));
 
         LockRpcClient lockRpcClient = new BlockingSensitiveLockRpcClient(
                 BlockingAndNonBlockingServices.create(creator, LockRpcClient.class));
@@ -1016,8 +1029,16 @@ public abstract class TransactionManagers {
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
-                BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class));
+        // TODO (jkong): Actually do something reasonable
+        boolean useDialogue = true;
+        ConjureTimelockService conjureTimelockService = PredicateSwitchedProxy.newProxyInstance(
+                new BlockingSensitiveConjureTimelockService(
+                        BlockingAndNonBlockingServices.create(creator, ConjureTimelockServiceBlocking.class)
+                                .map(DialogueAdaptingConjureTimelockService::new)),
+                new BlockingSensitiveConjureTimelockService(
+                        BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class)),
+                () -> useDialogue,
+                ConjureTimelockService.class);
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 

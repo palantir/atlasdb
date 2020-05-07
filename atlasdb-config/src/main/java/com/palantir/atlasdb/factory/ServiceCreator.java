@@ -23,29 +23,27 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.HttpClientCreationStrategy;
-import com.palantir.atlasdb.http.LegacyStaticHttpClientCreationStrategy;
+import com.palantir.atlasdb.http.AtlasDbHttpProtocolVersion;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.http.DialogueHttpServiceCreationStrategy;
+import com.palantir.atlasdb.http.HttpServiceCreationStrategy;
+import com.palantir.atlasdb.http.LegacyHttpServiceCreationStrategy;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.refreshable.Refreshable;
 
 public final class ServiceCreator {
-    private final MetricsManager metricsManager;
-    private final Supplier<ServerListConfig> servers;
-    private final HttpClientCreationStrategy httpClientCreationStrategy;
+    private final HttpServiceCreationStrategy httpServiceCreationStrategy;
     private final AuxiliaryRemotingParameters parameters;
 
-    private ServiceCreator(MetricsManager metricsManager,
-            Supplier<ServerListConfig> servers,
-            HttpClientCreationStrategy httpClientCreationStrategy,
+    private ServiceCreator(HttpServiceCreationStrategy httpServiceCreationStrategy,
             AuxiliaryRemotingParameters parameters) {
-        this.metricsManager = metricsManager;
-        this.servers = servers;
-        this.httpClientCreationStrategy = httpClientCreationStrategy;
+        this.httpServiceCreationStrategy = httpServiceCreationStrategy;
         this.parameters = parameters;
     }
 
@@ -58,10 +56,8 @@ public final class ServiceCreator {
             UserAgent userAgent,
             Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
         return new ServiceCreator(
-                metrics,
-                serverList,
                 // TODO(jkong): Consider plumbing this through. We're not supporting other strategies here yet though.
-                LegacyStaticHttpClientCreationStrategy.INSTANCE,
+                new LegacyHttpServiceCreationStrategy(metrics, serverList),
                 toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, false));
     }
 
@@ -72,23 +68,43 @@ public final class ServiceCreator {
      */
     public static ServiceCreator withPayloadLimiter(
             MetricsManager metrics,
-            Supplier<ServerListConfig> serverList,
+            Refreshable<ServerListConfig> serverList,
             UserAgent userAgent,
             Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
-        return new ServiceCreator(
-                metrics,
-                serverList,
-                toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, true));
+        return withPayloadLimiter(metrics, serverList, userAgent, remotingClientConfigSupplier, Optional.empty());
+    }
+
+    public static ServiceCreator withPayloadLimiter(
+            MetricsManager metrics,
+            Refreshable<ServerListConfig> serverList,
+            UserAgent userAgent,
+            Supplier<RemotingClientConfig> remotingClientConfigSupplier,
+            Optional<DialogueClients.ReloadingFactory> reloadingFactory) {
+        HttpServiceCreationStrategy legacyCreationStrategy = new LegacyHttpServiceCreationStrategy(metrics, serverList);
+        AuxiliaryRemotingParameters parameters = toAuxiliaryRemotingParameters(
+                userAgent, remotingClientConfigSupplier, true);
+
+        HttpServiceCreationStrategy creationStrategyToUse = reloadingFactory
+                .map(factory -> {
+                    UserAgent agentWithHttpHeader
+                            = userAgent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
+                    return factory.withUserAgent(agentWithHttpHeader);
+                })
+                .<HttpServiceCreationStrategy>map(factory ->
+                        new DialogueHttpServiceCreationStrategy(serverList, factory, legacyCreationStrategy))
+                .orElse(legacyCreationStrategy);
+        return new ServiceCreator(creationStrategyToUse, parameters);
     }
 
     public <T> T createService(Class<T> serviceClass) {
-        return create(metricsManager, servers, serviceClass, httpClientCreationStrategy, parameters);
+        return create(serviceClass, httpServiceCreationStrategy, parameters, serviceClass.getSimpleName());
     }
 
     public <T> T createServiceWithoutBlockingOperations(Class<T> serviceClass) {
         AuxiliaryRemotingParameters blockingUnsupportedParameters
                 = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldSupportBlockingOperations(false);
-        return create(metricsManager, servers, serviceClass, httpClientCreationStrategy, blockingUnsupportedParameters);
+        return create(serviceClass, httpServiceCreationStrategy, blockingUnsupportedParameters,
+                serviceClass.getSimpleName());
     }
 
     /**
@@ -100,16 +116,11 @@ public final class ServiceCreator {
     }
 
     private static <T> T create(
-            MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
-            HttpClientCreationStrategy clientCreationStrategy,
-            AuxiliaryRemotingParameters parameters) {
-        return clientCreationStrategy.createLiveReloadingProxyWithFailover(
-                metricsManager,
-                serverListConfigSupplier,
-                type,
-                parameters);
+            HttpServiceCreationStrategy clientCreationStrategy,
+            AuxiliaryRemotingParameters parameters,
+            String serviceName) {
+        return clientCreationStrategy.createLiveReloadingProxyWithFailover(type, parameters, serviceName);
     }
 
     public static <T> T instrumentService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
