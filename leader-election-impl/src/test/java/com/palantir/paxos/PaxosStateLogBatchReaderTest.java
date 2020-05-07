@@ -37,7 +37,8 @@ import com.google.common.util.concurrent.Uninterruptibles;
 public class PaxosStateLogBatchReaderTest {
     private static final int START_SEQUENCE = 123;
     private static final int BATCH_SIZE = 250;
-    private static final List<PaxosRound<PaxosValue>> EXPECTED_ROUNDS = LongStream.range(123, 123 + 250)
+    private static final List<PaxosRound<PaxosValue>> EXPECTED_ROUNDS = LongStream
+            .range(START_SEQUENCE, START_SEQUENCE + BATCH_SIZE)
             .mapToObj(PaxosStateLogBatchReaderTest::valueForRound)
             .map(value -> PaxosRound.of(value.seq, value))
             .collect(Collectors.toList());
@@ -108,7 +109,7 @@ public class PaxosStateLogBatchReaderTest {
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
             Instant startInstant = Instant.now();
-            reader.readBatch(123, 250);
+            reader.readBatch(START_SEQUENCE, BATCH_SIZE);
             assertThat(Duration.between(Instant.now(), startInstant)).isLessThan(Duration.ofSeconds(1));
         }
     }
