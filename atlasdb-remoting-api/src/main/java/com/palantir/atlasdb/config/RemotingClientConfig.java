@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
- * Client configuration options for how an AtlasDB client connects to remote services (e.g. TimeLock) that are
- * intended to be exposed directly to users for configuration.
+ * Live-reloadable client configuration options for how an AtlasDB client connects to remote services (e.g. TimeLock)
+ * that are intended to be exposed directly to users for configuration.
  */
 @JsonSerialize(as = ImmutableRemotingClientConfig.class)
 @JsonDeserialize(as = ImmutableRemotingClientConfig.class)
@@ -34,7 +34,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Immutable
 public interface RemotingClientConfig {
     @Value.Default
-    default boolean enableDialogue() {
+    default boolean useDialogue() {
         return false;
     }
 }

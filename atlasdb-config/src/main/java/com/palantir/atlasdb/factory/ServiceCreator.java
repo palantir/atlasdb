@@ -74,12 +74,10 @@ public final class ServiceCreator {
             MetricsManager metrics,
             Supplier<ServerListConfig> serverList,
             UserAgent userAgent,
-            HttpClientCreationStrategy clientCreationStrategy,
             Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
         return new ServiceCreator(
                 metrics,
                 serverList,
-                clientCreationStrategy,
                 toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, true));
     }
 

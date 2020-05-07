@@ -31,7 +31,7 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
  * Proxies returned here should already be instrumented, if the user desires. Clients should not add direct
  * instrumentation to proxies returned by this class via {@link com.palantir.atlasdb.util.AtlasDbMetrics}.
  */
-public interface HttpClientCreationStrategy extends Closeable {
+public interface HttpClientCreationStrategy extends AutoCloseable {
     <T> T createProxy(
             Optional<TrustContext> trustContext,
             String uri,
@@ -55,4 +55,7 @@ public interface HttpClientCreationStrategy extends Closeable {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
+
+    @Override
+    void close();
 }
