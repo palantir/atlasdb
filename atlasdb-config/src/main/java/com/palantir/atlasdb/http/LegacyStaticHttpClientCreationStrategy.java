@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -25,7 +24,9 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
-public class LegacyStaticHttpClientCreationStrategy implements HttpClientCreationStrategy {
+public enum LegacyStaticHttpClientCreationStrategy implements HttpClientCreationStrategy {
+    INSTANCE;
+
     @Override
     public <T> T createProxy(Optional<TrustContext> trustContext, String uri, Class<T> type,
             AuxiliaryRemotingParameters parameters) {

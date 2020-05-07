@@ -24,6 +24,8 @@ import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.HttpClientCreationStrategy;
+import com.palantir.atlasdb.http.LegacyStaticHttpClientCreationStrategy;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -34,13 +36,16 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
     private final Supplier<ServerListConfig> servers;
+    private final HttpClientCreationStrategy httpClientCreationStrategy;
     private final AuxiliaryRemotingParameters parameters;
 
     private ServiceCreator(MetricsManager metricsManager,
             Supplier<ServerListConfig> servers,
+            HttpClientCreationStrategy httpClientCreationStrategy,
             AuxiliaryRemotingParameters parameters) {
         this.metricsManager = metricsManager;
         this.servers = servers;
+        this.httpClientCreationStrategy = httpClientCreationStrategy;
         this.parameters = parameters;
     }
 
@@ -53,7 +58,11 @@ public final class ServiceCreator {
             UserAgent userAgent,
             Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
         return new ServiceCreator(
-                metrics, serverList, toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, false));
+                metrics,
+                serverList,
+                // TODO(jkong): Consider plumbing this through. We're not supporting other strategies here yet though.
+                LegacyStaticHttpClientCreationStrategy.INSTANCE,
+                toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, false));
     }
 
     /**
@@ -65,19 +74,23 @@ public final class ServiceCreator {
             MetricsManager metrics,
             Supplier<ServerListConfig> serverList,
             UserAgent userAgent,
+            HttpClientCreationStrategy clientCreationStrategy,
             Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
         return new ServiceCreator(
-                metrics, serverList, toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, true));
+                metrics,
+                serverList,
+                clientCreationStrategy,
+                toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, true));
     }
 
     public <T> T createService(Class<T> serviceClass) {
-        return create(metricsManager, servers, serviceClass, parameters);
+        return create(metricsManager, servers, serviceClass, httpClientCreationStrategy, parameters);
     }
 
     public <T> T createServiceWithoutBlockingOperations(Class<T> serviceClass) {
         AuxiliaryRemotingParameters blockingUnsupportedParameters
                 = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldSupportBlockingOperations(false);
-        return create(metricsManager, servers, serviceClass, blockingUnsupportedParameters);
+        return create(metricsManager, servers, serviceClass, httpClientCreationStrategy, blockingUnsupportedParameters);
     }
 
     /**
@@ -92,8 +105,9 @@ public final class ServiceCreator {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
+            HttpClientCreationStrategy clientCreationStrategy,
             AuxiliaryRemotingParameters parameters) {
-        return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
+        return clientCreationStrategy.createLiveReloadingProxyWithFailover(
                 metricsManager,
                 serverListConfigSupplier,
                 type,
