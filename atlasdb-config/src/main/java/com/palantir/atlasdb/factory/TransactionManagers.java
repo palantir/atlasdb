@@ -149,10 +149,13 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.common.time.Clock;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -1005,6 +1008,12 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             String timelockNamespace,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+        // TODO (jkong): Allow passing in from outside, for multitenant services
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
+                Refreshable.only(ServicesConfigBlock.builder().build()));
+        AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
+                timelockServerListConfig, reloadingFactory, userAgent);
+
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
 
@@ -1016,16 +1025,25 @@ public abstract class TransactionManagers {
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
+        ConjureTimelockService cjrConjureTimelockService = new BlockingSensitiveConjureTimelockService(
                 BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class));
+        ConjureTimelockService dialogueConjureTimelockService = serviceProvider.getConjureTimelockService();
+
+        // TODO(jkong): Actually do something reasonable
+        boolean useDialogue = true;
+        ConjureTimelockService switchableService = PredicateSwitchedProxy.newProxyInstance(
+                dialogueConjureTimelockService,
+                cjrConjureTimelockService,
+                () -> useDialogue,
+                ConjureTimelockService.class);
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
                 .<ConjureTimelockService>map(collector ->
-                        new LockDiagnosticConjureTimelockService(conjureTimelockService, collector))
-                .orElse(conjureTimelockService);
+                        new LockDiagnosticConjureTimelockService(switchableService, collector))
+                .orElse(switchableService);
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
