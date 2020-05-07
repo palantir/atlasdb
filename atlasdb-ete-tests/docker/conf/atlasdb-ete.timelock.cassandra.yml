@@ -11,7 +11,19 @@ server:
 
 atlasdb:
   keyValueService:
-    type: memory
+    type: cassandra
+    servers:
+      - cassandra:9160
+    poolSize: 20
+    credentials:
+      username: cassandra
+      password: cassandra
+    ssl: false
+    replicationFactor: 1
+    mutationBatchCount: 10000
+    mutationBatchSizeBytes: 10000000
+    fetchBatchCount: 1000
+    autoRefreshNodes: false
   targetedSweep:
     enableSweepQueueWrites: true
   namespace: atlasete
