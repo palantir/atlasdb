@@ -53,7 +53,7 @@ import com.palantir.refreshable.Refreshable;
  * information to allow client services to identify the protocol they are using to talk, via
  * {@link AtlasDbHttpProtocolVersion}.
  */
-final class AtlasDbDialogueServiceProvider {
+public final class AtlasDbDialogueServiceProvider {
     private static final String TIMELOCK_NON_BLOCKING = "timelock-non-blocking";
     private static final String TIMELOCK_BLOCKING = "timelock-blocking";
     private final DialogueClients.ReloadingFactory dialogueClientFactory;
@@ -62,7 +62,7 @@ final class AtlasDbDialogueServiceProvider {
         this.dialogueClientFactory = dialogueClientFactory;
     }
 
-    static AtlasDbDialogueServiceProvider create(
+    public static AtlasDbDialogueServiceProvider create(
             Refreshable<ServerListConfig> timeLockServerListConfig,
             DialogueClients.ReloadingFactory baseFactory,
             UserAgent userAgent) {
