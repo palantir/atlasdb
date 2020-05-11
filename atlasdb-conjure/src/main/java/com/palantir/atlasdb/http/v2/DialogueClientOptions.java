@@ -33,7 +33,7 @@ public final class DialogueClientOptions {
         // No
     }
 
-    static ServicesConfigBlock toServicesConfigBlock(
+    public static ServicesConfigBlock toServicesConfigBlock(
             Map<String, RemoteServiceConfiguration> serviceNameToRemoteConfiguration) {
         Map<String, PartialServiceConfiguration> configMap = KeyedStream.stream(serviceNameToRemoteConfiguration)
                 .map(remoteServiceConfiguration -> toPartialServiceConfiguration(
