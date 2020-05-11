@@ -42,6 +42,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.http.v2.ClientOptions;
+import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
@@ -82,7 +83,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
     private static final int LONG_LOCK_TIMEOUT_MS =
-            Ints.saturatedCast(ClientOptions.SHORT_READ_TIMEOUT.plus(Duration.ofSeconds(1)).toMillis());
+            Ints.saturatedCast(ClientOptionsConstants.SHORT_READ_TIMEOUT
+                    .toJavaDuration()
+                    .plus(Duration.ofSeconds(1)).toMillis());
 
     private NamespacedClients client;
 

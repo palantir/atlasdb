@@ -19,7 +19,7 @@ package com.palantir.atlasdb.http.v2;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 
-final class ClientOptionsConstants {
+public final class ClientOptionsConstants {
     static final HumanReadableDuration CONNECT_TIMEOUT = HumanReadableDuration.milliseconds(500);
 
     @VisibleForTesting
