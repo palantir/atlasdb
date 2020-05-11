@@ -138,8 +138,8 @@ public class AtlasDbDialogueServiceProviderTest {
     }
 
     @Test
-    @Ignore // Ongoing issue in Dialogue layer
-    // TODO (jkong): Merge the above tests once this actually works
+    @Ignore // dialogue#728
+    // TODO (jkong): Combine this test and the one above, once the above issue is resolved.
     public void recoversQuicklyOnceServerCeasesToSpam308s() {
         server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
                 .withStatus(308)
