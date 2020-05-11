@@ -37,58 +37,58 @@ import com.palantir.tokens.auth.AuthHeader;
  * Given two proxies to the same set of underlying TimeLock servers, one configured to expect longer-running operations
  * on the server and one configured not to, routes calls appropriately.
  */
-public final class BlockingSensitiveConjureTimelockService implements ConjureTimelockService {
-    private final ConjureTimelockService blocking;
-    private final ConjureTimelockService nonBlocking;
+public final class TimeoutSensitiveConjureTimelockService implements ConjureTimelockService {
+    private final ConjureTimelockService longTimeoutProxy;
+    private final ConjureTimelockService shortTimeoutProxy;
 
-    public BlockingSensitiveConjureTimelockService(
-            BlockingAndNonBlockingServices<ConjureTimelockService> conjureTimelockServices) {
-        this.blocking = conjureTimelockServices.blocking();
-        this.nonBlocking = conjureTimelockServices.nonBlocking();
+    public TimeoutSensitiveConjureTimelockService(
+            ShortAndLongTimeoutServices<ConjureTimelockService> conjureTimelockServices) {
+        this.longTimeoutProxy = conjureTimelockServices.longTimeout();
+        this.shortTimeoutProxy = conjureTimelockServices.shortTimeout();
     }
 
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        return nonBlocking.startTransactions(authHeader, namespace, request);
+        return shortTimeoutProxy.startTransactions(authHeader, namespace, request);
     }
 
     @Override
     public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
             ConjureGetFreshTimestampsRequest request) {
-        return nonBlocking.getFreshTimestamps(authHeader, namespace, request);
+        return shortTimeoutProxy.getFreshTimestamps(authHeader, namespace, request);
     }
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return nonBlocking.leaderTime(authHeader, namespace);
+        return shortTimeoutProxy.leaderTime(authHeader, namespace);
     }
 
     @Override
     public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
-        return blocking.lock(authHeader, namespace, request);
+        return longTimeoutProxy.lock(authHeader, namespace, request);
     }
 
     @Override
     public ConjureWaitForLocksResponse waitForLocks(AuthHeader authHeader, String namespace,
             ConjureLockRequest request) {
-        return blocking.waitForLocks(authHeader, namespace, request);
+        return longTimeoutProxy.waitForLocks(authHeader, namespace, request);
     }
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
             ConjureRefreshLocksRequest request) {
-        return nonBlocking.refreshLocks(authHeader, namespace, request);
+        return shortTimeoutProxy.refreshLocks(authHeader, namespace, request);
     }
 
     @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
-        return nonBlocking.unlock(authHeader, namespace, request);
+        return shortTimeoutProxy.unlock(authHeader, namespace, request);
     }
 
     @Override
     public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
-        return nonBlocking.getCommitTimestamps(authHeader, namespace, request);
+        return shortTimeoutProxy.getCommitTimestamps(authHeader, namespace, request);
     }
 }

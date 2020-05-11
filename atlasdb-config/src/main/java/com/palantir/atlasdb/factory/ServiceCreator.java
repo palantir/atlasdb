@@ -74,7 +74,7 @@ public final class ServiceCreator {
         return create(metricsManager, servers, serviceClass, parameters);
     }
 
-    public <T> T createServiceWithoutBlockingOperations(Class<T> serviceClass) {
+    public <T> T createServiceWithShortTimeout(Class<T> serviceClass) {
         AuxiliaryRemotingParameters blockingUnsupportedParameters
                 = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldSupportBlockingOperations(false);
         return create(metricsManager, servers, serviceClass, blockingUnsupportedParameters);
