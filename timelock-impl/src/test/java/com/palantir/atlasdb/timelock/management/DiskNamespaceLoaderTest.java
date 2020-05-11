@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -48,7 +49,8 @@ public class DiskNamespaceLoaderTest {
 
     @Test
     public void doesNotLoadLeaderPaxosAsNamespace() {
-        Set<String> namespaces = diskNamespaceLoader.getNamespaces();
+        Set<String> namespaces = diskNamespaceLoader.getAllPersistedNamespaces().stream().map(client -> client.value()).collect(
+                Collectors.toSet());
         assertThat(namespaces).containsExactly(NAMESPACE_1);
     }
 
