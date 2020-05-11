@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -74,10 +75,11 @@ public class PaxosStateLogBatchReaderTest {
 
     @Test
     public void readBatchFiltersOutNulls() throws IOException {
+        Predicate<Long> isOdd = num -> num % 2 != 0;
         when(mockLog.readRound(anyLong()))
                 .thenAnswer(invocation -> {
                     long sequence = (long) invocation.getArguments()[0];
-                    if (sequence % 2 == 0) {
+                    if (!isOdd.test(sequence)) {
                         return null;
                     }
                     return valueForRound(sequence).persistToBytes();
@@ -86,7 +88,7 @@ public class PaxosStateLogBatchReaderTest {
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
             assertThat(reader.readBatch(START_SEQUENCE, BATCH_SIZE))
                     .isEqualTo(EXPECTED_ROUNDS.stream()
-                            .filter(round -> round.sequence() % 2 != 0)
+                            .filter(round -> isOdd.test(round.sequence()))
                             .collect(Collectors.toList()));
         }
     }
