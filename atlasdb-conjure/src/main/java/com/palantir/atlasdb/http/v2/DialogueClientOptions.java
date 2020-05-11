@@ -16,14 +16,11 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.time.Duration;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;

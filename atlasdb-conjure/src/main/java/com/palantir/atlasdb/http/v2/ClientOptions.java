@@ -23,7 +23,6 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
