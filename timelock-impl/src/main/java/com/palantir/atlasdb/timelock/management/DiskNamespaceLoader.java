@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +44,7 @@ final class DiskNamespaceLoader {
                 .filter(useCase -> useCase != PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .map(useCase -> useCase.logDirectoryRelativeToDataDirectory(rootDataDirectory))
                 .flatMap(DiskNamespaceLoader::getNamespacesFromUseCaseResolvedDirectory)
+                .filter(namespace -> !namespace.equals(LEADER_PAXOS_NAMESPACE))
                 .collect(Collectors.toSet());
     }
 
