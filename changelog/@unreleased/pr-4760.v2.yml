@@ -1,7 +1,6 @@
 type: fix
 fix:
-  description: |+
-    `leaderPaxos` will not be returned as a namespace. Previously, `leaderPaxos` was incorrectly considered as a namespace.
-
+  description: '`leaderPaxos` will not be returned as a namespace. Previously, `leaderPaxos`
+    was incorrectly considered as a namespace.'
   links:
   - https://github.com/palantir/atlasdb/pull/4760
