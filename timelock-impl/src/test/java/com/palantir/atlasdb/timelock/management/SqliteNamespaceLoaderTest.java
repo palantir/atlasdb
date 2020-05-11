@@ -45,25 +45,25 @@ public class SqliteNamespaceLoaderTest {
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     private Supplier<Connection> connectionSupplier;
-    private SqliteNamespaceLoader namespaceLoader;
+    private PersistentNamespaceLoader namespaceLoader;
 
     @Before
     public void setup() {
         connectionSupplier = SqliteConnections
-                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
+                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
         namespaceLoader = SqliteNamespaceLoader.create(connectionSupplier);
     }
 
     @Test
     public void canReturnZeroNamespaces() {
-        assertThat(namespaceLoader.getAllRegisteredNamespaces()).isEmpty();
+        assertThat(namespaceLoader.getAllPersistedNamespaces()).isEmpty();
     }
 
     @Test
     public void returnsOneNamespaceEvenIfMultipleSequencesPresent() {
         initializeLog(NAMESPACE_1, SEQUENCE_ID_1);
         initializeLog(NAMESPACE_1, SEQUENCE_ID_2);
-        assertThat(namespaceLoader.getAllRegisteredNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1);
+        assertThat(namespaceLoader.getAllPersistedNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1);
     }
 
     @Test
@@ -72,7 +72,7 @@ public class SqliteNamespaceLoaderTest {
         initializeLog(NAMESPACE_1, SEQUENCE_ID_2);
         initializeLog(NAMESPACE_2, SEQUENCE_ID_1);
         initializeLog(NAMESPACE_2, SEQUENCE_ID_2);
-        assertThat(namespaceLoader.getAllRegisteredNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
+        assertThat(namespaceLoader.getAllPersistedNamespaces()).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
     }
 
     private void initializeLog(Client namespace, String sequenceId) {

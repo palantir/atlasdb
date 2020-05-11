@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,6 +39,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.http.v2.ClientOptions;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -58,6 +60,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.tokens.auth.AuthHeader;
 
 @RunWith(Parameterized.class)
 public class MultiNodePaxosTimeLockServerIntegrationTest {
@@ -282,6 +285,36 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .collect(Collectors.toSet());
             client.namespacedConjureTimelockService().unlock(ConjureUnlockRequest.of(tokens));
         }
+    }
+
+    @Test
+    public void canGetAllNamespaces() {
+        String randomNamespace = UUID.randomUUID().toString();
+        cluster.client(randomNamespace).throughWireMockProxy().getFreshTimestamp();
+
+        Set<String> knownNamespaces = getKnownNamespaces();
+        assertThat(knownNamespaces).contains(randomNamespace);
+
+        for (TestableTimelockServer server : cluster.servers()) {
+            server.killSync();
+            server.start();
+        }
+
+        cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(
+                ImmutableList.of(cluster.clientForRandomNamespace().namespace()));
+
+        Set<String> namespacesAfterRestart = getKnownNamespaces();
+        assertThat(namespacesAfterRestart).contains(randomNamespace);
+        assertThat(Sets.difference(knownNamespaces, namespacesAfterRestart)).isEmpty();
+    }
+
+    private Set<String> getKnownNamespaces() {
+        return cluster.servers()
+                .stream()
+                .map(TestableTimelockServer::timeLockManagementService)
+                .map(resource -> resource.getNamespaces(AuthHeader.valueOf("Bearer omitted")))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
     }
 
     @Test

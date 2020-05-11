@@ -34,6 +34,7 @@ import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
@@ -181,6 +182,10 @@ public class TestableTimelockServer {
     public boolean takeOverLeadershipForNamespace(String namespace) {
         return proxies.singleNode(serverHolder, NamespaceLeadershipTakeoverService.class, ProxyMode.DIRECT)
                 .takeover(AuthHeader.valueOf("omitted"), namespace);
+    }
+
+    public TimeLockManagementService timeLockManagementService() {
+        return proxies.singleNode(serverHolder, TimeLockManagementService.class, ProxyMode.WIREMOCK);
     }
 
     private static final class SingleNodeProxyFactory implements ProxyFactory {
