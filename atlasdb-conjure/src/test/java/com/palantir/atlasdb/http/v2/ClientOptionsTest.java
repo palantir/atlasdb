@@ -56,7 +56,7 @@ public class ClientOptionsTest {
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.BLOCKING_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.LONG_READ_TIMEOUT);
     }
 
     @Test
@@ -68,7 +68,7 @@ public class ClientOptionsTest {
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.BLOCKING_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.LONG_READ_TIMEOUT);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class ClientOptionsTest {
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.NON_BLOCKING_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.SHORT_READ_TIMEOUT);
     }
 
     @Test
