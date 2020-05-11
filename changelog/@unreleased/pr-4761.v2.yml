@@ -1,0 +1,10 @@
+type: break
+break:
+  description: '`AuxiliaryRemotingParameters#shouldSupportBlockingOperations` is now
+    changed to `AuxiliaryRemotingParameters#shouldUseExtendedTimeout`. This is done
+    to avoid confusion with Dialogue generated code where blocking indicates that
+    client requests should wait till competion. You should only be affected if you
+    provide these parameters and construct HTTP clients through AtlasDbHttpClients
+    directly.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4761
