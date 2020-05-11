@@ -16,22 +16,32 @@
 
 package com.palantir.paxos;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.function.Supplier;
+
+import org.apache.commons.io.FileUtils;
+
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
  * This class is responsible for creating Sqlite connections to an instance.
  * There should be one instance per timelock.
  */
 public final class SqliteConnections {
+    private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
+
     private SqliteConnections() {
         // no
     }
 
-    public static Supplier<Connection> createSqliteDatabase(String path) {
-        String target = String.format("jdbc:sqlite:%s", path);
+    public static Supplier<Connection> createDefaultNamedSqliteDatabaseAtPath(Path path) {
+        createDirectoryIfNotExists(path);
+        String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
         return () -> {
             try {
                 return DriverManager.getConnection(target);
@@ -39,5 +49,13 @@ public final class SqliteConnections {
                 throw new RuntimeException(e);
             }
         };
+    }
+
+    private static void createDirectoryIfNotExists(Path path) {
+        try {
+            FileUtils.forceMkdir(path.toFile());
+        } catch (IOException e) {
+            throw new SafeRuntimeException("Could not create directory at path", e, SafeArg.of("path", path));
+        }
     }
 }

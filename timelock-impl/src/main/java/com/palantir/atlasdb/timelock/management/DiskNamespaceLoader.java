@@ -29,8 +29,9 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
 
-final class DiskNamespaceLoader {
+final class DiskNamespaceLoader implements PersistentNamespaceLoader {
     private static final Logger log = LoggerFactory.getLogger(DiskNamespaceLoader.class);
     private final Path rootDataDirectory;
 
@@ -38,12 +39,14 @@ final class DiskNamespaceLoader {
         this.rootDataDirectory = rootDataDirectory;
     }
 
-    Set<String> getNamespaces() {
+    @Override
+    public Set<Client> getAllPersistedNamespaces() {
         return Arrays.stream(PaxosUseCase.values())
                 .filter(useCase -> useCase != PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .map(useCase -> useCase.logDirectoryRelativeToDataDirectory(rootDataDirectory))
                 .flatMap(DiskNamespaceLoader::getNamespacesFromUseCaseResolvedDirectory)
                 .filter(namespace -> !namespace.equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
+                .map(Client::of)
                 .collect(Collectors.toSet());
     }
 

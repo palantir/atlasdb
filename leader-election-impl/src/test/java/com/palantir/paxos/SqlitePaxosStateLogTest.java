@@ -49,7 +49,7 @@ public class SqlitePaxosStateLogTest {
     @Before
     public void setup() {
         connSupplier = SqliteConnections
-                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
+                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
         stateLog = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_1, connSupplier);
     }
 
