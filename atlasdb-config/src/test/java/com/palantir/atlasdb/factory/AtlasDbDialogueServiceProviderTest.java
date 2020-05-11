@@ -77,10 +77,7 @@ public class AtlasDbDialogueServiceProviderTest {
 
     @Before
     public void setup() {
-        server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
-                .withStatus(200)
-                .withHeader("Content-Type", "application/json")
-                .withBody("{\"inclusiveLower\": 58, \"inclusiveUpper\": 70}")));
+        setupServerToGiveOutTimestamps();
 
         serverPort = server.port();
         ServerListConfig serverListConfig = ImmutableServerListConfig.builder()
@@ -130,44 +127,11 @@ public class AtlasDbDialogueServiceProviderTest {
                 .withStatus(308)
                 .withHeader("Location", getUriForPort(serverPort))));
 
+        Instant start = Instant.now();
         ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
         ex.submit(this::scheduleServerRecoveryAfterTenSeconds);
 
         assertThatCode(this::makeTimestampsRequest).doesNotThrowAnyException();
-        ex.shutdown();
-    }
-
-    @Test
-    @Ignore // dialogue#728
-    // TODO (jkong): Combine this test and the one above, once the above issue is resolved.
-    public void recoversQuicklyOnceServerCeasesToSpam308s() {
-        server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
-                .withStatus(308)
-                .withHeader("Location", getUriForPort(serverPort))));
-
-        Instant start = Instant.now();
-        ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
-        ex.submit(this::scheduleServerRecoveryAfterTenSeconds);
-
-        makeTimestampsRequest();
-        assertThat(Instant.now())
-                .as("should recover in a second after things are good again")
-                .isBefore(start.plus(Duration.ofSeconds(11)));
-        ex.shutdown();
-    }
-
-    @Test
-    // TODO (jkong): Documentation of existing behaviour to avoid regression
-    public void legacyClientRecoversQuicklyOnceServerCeasesToSpam308s() {
-        server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
-                .withStatus(308)
-                .withHeader("Location", getUriForPort(serverPort))));
-
-        Instant start = Instant.now();
-        ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
-        ex.submit(this::scheduleServerRecoveryAfterTenSeconds);
-
-        makeLegacyTimestampsRequest();
         assertThat(Instant.now())
                 .as("should recover in a second after things are good again")
                 .isBefore(start.plus(Duration.ofSeconds(11)));
@@ -176,6 +140,10 @@ public class AtlasDbDialogueServiceProviderTest {
 
     private void scheduleServerRecoveryAfterTenSeconds() {
         Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+        setupServerToGiveOutTimestamps();
+    }
+
+    private void setupServerToGiveOutTimestamps() {
         server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
@@ -184,25 +152,6 @@ public class AtlasDbDialogueServiceProviderTest {
 
     private ConjureGetFreshTimestampsResponse makeTimestampsRequest() {
         return conjureTimelockService.getFreshTimestamps(
-                AuthHeader.valueOf("Bearer unused"), CLIENT, ConjureGetFreshTimestampsRequest.of(10));
-    }
-
-    // Convenience method to evaluate legacy behaviour
-    private ConjureGetFreshTimestampsResponse makeLegacyTimestampsRequest() {
-        ConjureTimelockService cjrConjureTimelockService = AtlasDbHttpClients.createProxyWithFailover(
-                MetricsManagers.createForTests(),
-                ImmutableServerListConfig.builder()
-                        .addServers(getUriForPort(serverPort))
-                        .sslConfiguration(SSL_CONFIGURATION)
-                        .build(),
-                ConjureTimelockService.class,
-                AuxiliaryRemotingParameters.builder()
-                        .userAgent(USER_USER_AGENT)
-                        .shouldLimitPayload(true)
-                        .shouldRetry(true)
-                        .shouldUseExtendedTimeout(false)
-                        .build());
-        return cjrConjureTimelockService.getFreshTimestamps(
                 AuthHeader.valueOf("Bearer unused"), CLIENT, ConjureGetFreshTimestampsRequest.of(10));
     }
 
