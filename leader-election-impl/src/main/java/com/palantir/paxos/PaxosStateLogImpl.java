@@ -52,7 +52,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final Map<Long, Long> seqToVersionMap = Maps.newHashMap();
+    private final Map<Long, Long> seqToVersionMap = Maps.newConcurrentMap();
 
     private static final String TMP_FILE_SUFFIX = ".tmp";
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
