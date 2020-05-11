@@ -272,7 +272,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldLimitPayload(false)
                                 .shouldRetry(true)
-                                .shouldSupportBlockingOperations(false)
+                                .shouldUseExtendedTimeout(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .collect(Collectors.toList());
@@ -296,7 +296,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldLimitPayload(false) // Guaranteed to be small, no need to limit.
                                 .shouldRetry(false)
-                                .shouldSupportBlockingOperations(false)
+                                .shouldUseExtendedTimeout(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .map(Leaders::convertAddressToHostAndPort)

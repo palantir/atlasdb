@@ -76,7 +76,7 @@ public final class ServiceCreator {
 
     public <T> T createServiceWithShortTimeout(Class<T> serviceClass) {
         AuxiliaryRemotingParameters blockingUnsupportedParameters
-                = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldSupportBlockingOperations(false);
+                = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldUseExtendedTimeout(false);
         return create(metricsManager, servers, serviceClass, blockingUnsupportedParameters);
     }
 
@@ -116,7 +116,7 @@ public final class ServiceCreator {
                 .remotingClientConfig(remotingClientConfigSupplier)
                 .userAgent(userAgent)
                 .shouldLimitPayload(shouldLimitPayload)
-                .shouldSupportBlockingOperations(true) // TODO (jkong): Figure out when to migrate safely
+                .shouldUseExtendedTimeout(true) // TODO (jkong): Figure out when to migrate safely
                 .shouldRetry(true)
                 .build();
     }

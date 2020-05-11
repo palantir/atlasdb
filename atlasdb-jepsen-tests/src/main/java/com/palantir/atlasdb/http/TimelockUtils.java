@@ -55,7 +55,7 @@ public final class TimelockUtils {
         AuxiliaryRemotingParameters parameters = AuxiliaryRemotingParameters.builder()
                 .shouldRetry(false)
                 .shouldLimitPayload(false)
-                .shouldSupportBlockingOperations(true) // Run with longer timeout to be safe.
+                .shouldUseExtendedTimeout(true) // Run with longer timeout to be safe.
                 .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", UserAgent.Agent.DEFAULT_VERSION)))
                 .build();
 
