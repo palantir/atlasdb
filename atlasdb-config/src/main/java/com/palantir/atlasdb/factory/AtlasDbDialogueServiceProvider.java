@@ -90,21 +90,18 @@ public final class AtlasDbDialogueServiceProvider {
         ConjureTimelockServiceBlocking shortTimeoutService
                 = dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
 
-        // Blocking here is overloaded, sigh: the inner one means that we wait for a response, the outer one
-        // means that requests on the server side might block waiting for resources to be available...
-        ShortAndLongTimeoutServices<ConjureTimelockService> blockingAndNonBlockingServices
+        ShortAndLongTimeoutServices<ConjureTimelockService> shortAndLongTimeoutServices
                 = ImmutableShortAndLongTimeoutServices.<ConjureTimelockServiceBlocking>builder()
                 .longTimeout(longTimeoutService)
                 .shortTimeout(shortTimeoutService)
                 .build()
-                .map(proxy -> FastFailoverProxy.newProxyInstance(
-                        ConjureTimelockServiceBlocking.class, () -> proxy))
+                .map(proxy -> FastFailoverProxy.newProxyInstance(ConjureTimelockServiceBlocking.class, () -> proxy))
                 .map(DialogueAdaptingConjureTimelockService::new);
 
-        return new TimeoutSensitiveConjureTimelockService(blockingAndNonBlockingServices);
+        return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
     }
 
-    private static ImmutableRemoteServiceConfiguration createRemoteServiceConfiguration(
+    private static RemoteServiceConfiguration createRemoteServiceConfiguration(
             UserAgent userAgent, ServerListConfig serverListConfig, boolean shouldUseExtendedTimeout) {
         return ImmutableRemoteServiceConfiguration.builder()
                 .remotingParameters(getFailoverRemotingParameters(shouldUseExtendedTimeout, userAgent))

@@ -52,8 +52,8 @@ public final class DialogueClientOptions {
                         .orElseThrow(() -> new SafeIllegalStateException(
                                 "Dialogue must be configured with SSL.")))
                 .maxNumRetries(remotingParameters.shouldRetry()
-                        ? ClientOptionsConstants.NO_RETRIES
-                        : ClientOptionsConstants.STANDARD_MAX_RETRIES)
+                        ? ClientOptionsConstants.STANDARD_MAX_RETRIES
+                        : ClientOptionsConstants.NO_RETRIES)
                 .readTimeout(remotingParameters.shouldUseExtendedTimeout()
                         ? ClientOptionsConstants.LONG_READ_TIMEOUT
                         : ClientOptionsConstants.SHORT_READ_TIMEOUT)
