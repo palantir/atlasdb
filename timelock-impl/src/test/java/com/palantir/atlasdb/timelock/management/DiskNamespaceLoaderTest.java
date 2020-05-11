@@ -18,12 +18,10 @@ package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.nio.file.Paths;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,17 +34,15 @@ public class DiskNamespaceLoaderTest {
     private static final String NAMESPACE_2 = "namespace_2";
 
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    public final @Rule TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private DiskNamespaceLoader diskNamespaceLoader;
+    public DiskNamespaceLoader diskNamespaceLoader;
 
     @Before
     public void setup() {
-        createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
-        createDirectoryTimestampUseCase(NAMESPACE_2);
-        createDirectoryTimestampUseCase(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
         diskNamespaceLoader = new DiskNamespaceLoader(tempFolder.getRoot().toPath());
+        createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
+        createDirectoryInRootDataDirectory(NAMESPACE_2);
     }
 
     @Test
@@ -57,19 +53,19 @@ public class DiskNamespaceLoaderTest {
     }
 
     private void createDirectoryForLeaderForEachClientUseCase(String namespace) {
-        new File(tempFolder.getRoot().toPath() + "/" +
-                Paths.get(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
-                        PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE).toString() + "/" +
-                namespace).mkdirs();
+        if (Paths.get(tempFolder.getRoot().toPath().toString(),
+                PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
+                PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE,
+                namespace).toFile().mkdirs()) {
+            return;
+        }
+        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 
-    private void createDirectoryTimestampUseCase(String namespace) {
-        new File(tempFolder.getRoot().toPath() + "/" +
-                namespace).mkdirs();
-    }
-
-    @After
-    public void cleanup() {
-        tempFolder.delete();
+    private void createDirectoryInRootDataDirectory(String namespace) {
+        if (Paths.get(tempFolder.getRoot().toPath().toString(), namespace).toFile().mkdirs()) {
+            return;
+        }
+        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }
