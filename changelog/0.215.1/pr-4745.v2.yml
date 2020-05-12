@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Log an error if it takes >10 seconds to close executors when shutting
+    down a `SnapshotTransactionManager`
+  links:
+  - https://github.com/palantir/atlasdb/pull/4745

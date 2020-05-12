@@ -15,12 +15,14 @@
  */
 package com.palantir.lock.impl;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -107,15 +109,23 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        // Track these separately in the case that getFreshTimestamp fails but lockImmutableTimestamp succeeds
+        List<LockImmutableTimestampResponse> immutableTimestampLocks = new ArrayList<>();
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
         try {
-            return StartIdentifiedAtlasDbTransactionResponse.of(
-                    immutableTimestamp,
-                    TimestampAndPartition.of(getFreshTimestamp(), 0));
+            IntStream.range(0, count).forEach(
+                    $ -> {
+                        LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
+                        immutableTimestampLocks.add(immutableTimestamp);
+                        responses.add(StartIdentifiedAtlasDbTransactionResponse.of(immutableTimestamp,
+                                TimestampAndPartition.of(getFreshTimestamp(), 0)));
+                    });
+            return responses;
         } catch (RuntimeException | Error throwable) {
             try {
-                unlock(ImmutableSet.of(immutableTimestamp.getLock()));
+                unlock(immutableTimestampLocks.stream().map(LockImmutableTimestampResponse::getLock).collect(
+                        Collectors.toSet()));
             } catch (Throwable unlockThrowable) {
                 throwable.addSuppressed(unlockThrowable);
             }

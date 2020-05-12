@@ -33,6 +33,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingPingableLeaderFactory.PingRequest;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 
 @RunWith(MockitoJUnitRunner.class)

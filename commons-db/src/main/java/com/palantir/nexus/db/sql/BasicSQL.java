@@ -65,7 +65,6 @@ import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
@@ -661,9 +660,7 @@ public abstract class BasicSQL {
             SqlLoggers.LOGGER.trace("SQL light result set selection query: {}", sql.getQuery());
         }
 
-        final ResourceCreationLocation alrsCreationException = new ResourceCreationLocation("This is where the AgnosticLightResultSet wrapper was created"); //$NON-NLS-1$
         PreparedStatementVisitor<AgnosticLightResultSet> preparedStatementVisitor = ps -> {
-            final ResourceCreationLocation creationException = new ResourceCreationLocation("This is where the ResultsSet was created", alrsCreationException); //$NON-NLS-1$
             final ResultSetVisitor<AgnosticLightResultSet> resultSetVisitor = rs -> {
                 try {
                     return new AgnosticLightResultSetImpl(
@@ -673,8 +670,7 @@ public abstract class BasicSQL {
                             ps,
                             "selectList", //$NON-NLS-1$
                             sql,
-                            getSqlTimer(),
-                            creationException);
+                            getSqlTimer());
                 } catch (Exception e) {
                     closeSilently(rs);
                     BasicSQLUtils.throwUncheckedIfSQLException(e);

@@ -77,9 +77,9 @@ import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timelock.BlockingAndNonBlockingServices;
-import com.palantir.atlasdb.factory.timelock.BlockingSensitiveConjureTimelockService;
-import com.palantir.atlasdb.factory.timelock.BlockingSensitiveLockRpcClient;
+import com.palantir.atlasdb.factory.timelock.ShortAndLongTimeoutServices;
+import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveConjureTimelockService;
+import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -1008,16 +1008,16 @@ public abstract class TransactionManagers {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
 
-        LockRpcClient lockRpcClient = new BlockingSensitiveLockRpcClient(
-                BlockingAndNonBlockingServices.create(creator, LockRpcClient.class));
+        LockRpcClient lockRpcClient = new TimeoutSensitiveLockRpcClient(
+                ShortAndLongTimeoutServices.create(creator, LockRpcClient.class));
 
         LockService lockService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
-                BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class));
+        ConjureTimelockService conjureTimelockService = new TimeoutSensitiveConjureTimelockService(
+                ShortAndLongTimeoutServices.create(creator, ConjureTimelockService.class));
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
@@ -1040,7 +1040,7 @@ public abstract class TransactionManagers {
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
-                creator.createServiceWithoutBlockingOperations(TimestampManagementRpcClient.class), timelockNamespace);
+                creator.createServiceWithShortTimeout(TimestampManagementRpcClient.class), timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -1118,7 +1118,7 @@ public abstract class TransactionManagers {
                             .userAgent(userAgent)
                             .shouldRetry(true)
                             .shouldLimitPayload(true)
-                            .shouldSupportBlockingOperations(false)
+                            .shouldUseExtendedTimeout(false)
                             .build());
 
             // Determine asynchronously whether the remote services are talking to our local services.

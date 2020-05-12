@@ -17,6 +17,6 @@
 package com.palantir.timelock.paxos;
 
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
-import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.paxos.Client;
 
 public interface HealthCheckPinger extends CoalescingRequestFunction<Client, HealthCheckResponse> { }

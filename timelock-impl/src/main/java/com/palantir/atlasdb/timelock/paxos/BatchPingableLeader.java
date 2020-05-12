@@ -27,6 +27,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.Client;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE

@@ -28,6 +28,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
+import com.palantir.paxos.Client;
 
 public final class AutobatchingLeadershipObserverFactory implements Closeable {
 

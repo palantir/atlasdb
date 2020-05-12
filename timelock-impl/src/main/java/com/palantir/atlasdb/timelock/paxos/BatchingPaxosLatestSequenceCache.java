@@ -40,6 +40,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLong;
 
 @ThreadSafe

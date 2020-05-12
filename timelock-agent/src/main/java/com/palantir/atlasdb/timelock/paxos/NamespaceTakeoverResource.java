@@ -31,6 +31,7 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeoverService {

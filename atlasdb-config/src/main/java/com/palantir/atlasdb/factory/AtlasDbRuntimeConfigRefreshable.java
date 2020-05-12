@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.factory;
 
-
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,8 +29,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.refreshable.DefaultRefreshable;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 
 final class AtlasDbRuntimeConfigRefreshable implements AutoCloseable {
 
@@ -76,7 +75,7 @@ final class AtlasDbRuntimeConfigRefreshable implements AutoCloseable {
 
     @SuppressWarnings("FutureReturnValueIgnored")
     private static AtlasDbRuntimeConfigRefreshable createPolling(Supplier<Optional<AtlasDbRuntimeConfig>> config) {
-        DefaultRefreshable<Optional<AtlasDbRuntimeConfig>> refreshable = new DefaultRefreshable<>(call(config));
+        SettableRefreshable<Optional<AtlasDbRuntimeConfig>> refreshable = Refreshable.create(call(config));
 
         ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
         executor.scheduleWithFixedDelay(

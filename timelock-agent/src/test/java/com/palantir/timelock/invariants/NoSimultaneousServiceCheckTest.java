@@ -33,7 +33,7 @@ import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.paxos.HealthCheckDigest;
 import com.palantir.timelock.paxos.ImmutableHealthCheckDigest;

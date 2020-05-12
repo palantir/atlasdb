@@ -16,19 +16,28 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import java.util.function.Function;
+
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.factory.ServiceCreator;
 
 @Value.Immutable
-public interface BlockingAndNonBlockingServices<T> {
-    T blocking();
-    T nonBlocking();
+public interface ShortAndLongTimeoutServices<T> {
+    T longTimeout();
+    T shortTimeout();
 
-    static <T> BlockingAndNonBlockingServices<T> create(ServiceCreator serviceCreator, Class<T> clazz) {
-        return ImmutableBlockingAndNonBlockingServices.<T>builder()
-                .blocking(serviceCreator.createService(clazz))
-                .nonBlocking(serviceCreator.createServiceWithoutBlockingOperations(clazz))
+    static <T> ShortAndLongTimeoutServices<T> create(ServiceCreator serviceCreator, Class<T> clazz) {
+        return ImmutableShortAndLongTimeoutServices.<T>builder()
+                .longTimeout(serviceCreator.createService(clazz))
+                .shortTimeout(serviceCreator.createServiceWithShortTimeout(clazz))
+                .build();
+    }
+
+    default <U> ShortAndLongTimeoutServices<U> map(Function<T, U> mapper) {
+        return ImmutableShortAndLongTimeoutServices.<U>builder()
+                .longTimeout(mapper.apply(longTimeout()))
+                .shortTimeout(mapper.apply(shortTimeout()))
                 .build();
     }
 }

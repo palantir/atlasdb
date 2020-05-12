@@ -53,6 +53,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
@@ -62,7 +63,6 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 @RunWith(Parameterized.class)
 public class PaxosTimestampBoundStoreTest {

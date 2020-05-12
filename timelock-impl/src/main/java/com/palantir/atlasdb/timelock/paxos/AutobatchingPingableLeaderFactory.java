@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;

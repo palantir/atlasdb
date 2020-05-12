@@ -31,11 +31,9 @@ import com.palantir.common.visitor.Visitor;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.sql.ResultSets;
-import com.palantir.util.AssertUtils;
 
 /**
  * This result set only loads one row at a time, and thus provides a
@@ -57,22 +55,18 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
     private SqlTimer.Handle timerKey;
     private final String timingModule;
     private final FinalSQLString sqlString;
-    private final ResourceCreationLocation creationLocation;
-    private final String creationThreadName;
     private int maxFetchSize = DEFAULT_MAX_FETCH_SIZE;
     private final SqlTimer sqlTimerFactory;
 
     public AgnosticLightResultSetImpl(ResultSet rs, DBType type, ResultSetMetaData meta, PreparedStatement s,
-                                      String timingModule, FinalSQLString sqlString, SqlTimer sqlTimerFactory,
-                                      ResourceCreationLocation creationLocation) throws PalantirSqlException {
+                                      String timingModule, FinalSQLString sqlString, SqlTimer sqlTimerFactory)
+            throws PalantirSqlException {
         results = rs;
         dbType = type;
         stmt = s;
 
         columnMap = ResultSets.buildJdbcColumnMap(meta, type);
         singletonResultRow = new AgnosticLightResultRowImpl(dbType, columnMap, results);
-        creationThreadName = Thread.currentThread().getName();
-        this.creationLocation = creationLocation;
 
         this.timingModule = timingModule;
         this.sqlString = sqlString;
@@ -89,25 +83,9 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
             stmt.close();
             results.close();
             hasBeenClosed = true;
-            long elapsed = System.currentTimeMillis() - creationLocation.getCreatingThreadInfo().getTimestamp();
-            log.debug("Closed {} after {}ms", this, elapsed);
+            log.debug("Closed {}", this);
         } catch(SQLException sqlex) {
             log.error("Caught SQLException", sqlex); //$NON-NLS-1$
-        }
-    }
-
-    @Override
-    public void finalize() throws Throwable {
-        try {
-            if (!hasBeenClosed) {
-                close();
-                AssertUtils.assertAndLogWithException(log, false, String.format(
-                        "This AgnosticLightResultSet is being finalized, but it has not been closed.  " + //$NON-NLS-1$
-                                "This is a programming error and can lead to cursor leaks. Thread: %s", creationThreadName), //$NON-NLS-1$
-                        creationLocation);
-            }
-        } finally {
-            super.finalize();
         }
     }
 

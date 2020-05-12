@@ -26,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.SetMultimap;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
 
 @Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE

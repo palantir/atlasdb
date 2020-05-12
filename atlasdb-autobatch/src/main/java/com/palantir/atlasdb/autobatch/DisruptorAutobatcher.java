@@ -33,11 +33,11 @@ import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 
@@ -61,11 +61,7 @@ public final class DisruptorAutobatcher<T, R>
     }
 
     private static ThreadFactory createThreadFactory(String safeLoggablePurpose) {
-        String namePrefix = String.format("autobatcher.%s-", safeLoggablePurpose);
-        return new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat(namePrefix + "%d")
-                .build();
+        return new NamedThreadFactory("autobatcher." + safeLoggablePurpose, true);
     }
 
     private final Disruptor<DefaultBatchElement<T, R>> disruptor;

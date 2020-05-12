@@ -29,7 +29,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
 
-public class BlockingSensitiveLockRpcClientTest {
+public class TimeoutSensitiveLockRpcClientTest {
     private static final String NAMESPACE = "namespace";
     private static final String LOCK_CLIENT_STRING = "client";
     private static final LockClient LOCK_CLIENT = LockClient.of(LOCK_CLIENT_STRING);
@@ -37,44 +37,44 @@ public class BlockingSensitiveLockRpcClientTest {
             ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
             .build();
 
-    private final LockRpcClient blocking = mock(LockRpcClient.class);
-    private final LockRpcClient nonBlocking = mock(LockRpcClient.class);
-    private final LockRpcClient sensitiveClient = new BlockingSensitiveLockRpcClient(
-            ImmutableBlockingAndNonBlockingServices.<LockRpcClient>builder()
-                    .blocking(blocking)
-                    .nonBlocking(nonBlocking)
+    private final LockRpcClient longTimeout = mock(LockRpcClient.class);
+    private final LockRpcClient shortTimeout = mock(LockRpcClient.class);
+    private final LockRpcClient sensitiveClient = new TimeoutSensitiveLockRpcClient(
+            ImmutableShortAndLongTimeoutServices.<LockRpcClient>builder()
+                    .longTimeout(longTimeout)
+                    .shortTimeout(shortTimeout)
                     .build());
 
     @Test
-    public void lockUsesBlockingClient() throws InterruptedException {
+    public void lockHasLongTimeout() throws InterruptedException {
         sensitiveClient.lock(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
 
-        verify(blocking).lock(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
-        verify(nonBlocking, never()).lock(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
+        verify(longTimeout).lock(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
+        verify(shortTimeout, never()).lock(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
     }
 
     @Test
-    public void lockWithFullLockResponseUsesBlockingClient() throws InterruptedException {
+    public void lockWithFullLockResponseHasLongTimeout() throws InterruptedException {
         sensitiveClient.lockWithFullLockResponse(NAMESPACE, LOCK_CLIENT, LOCK_REQUEST);
 
-        verify(blocking).lockWithFullLockResponse(NAMESPACE, LOCK_CLIENT, LOCK_REQUEST);
-        verify(nonBlocking, never()).lockWithFullLockResponse(NAMESPACE, LOCK_CLIENT, LOCK_REQUEST);
+        verify(longTimeout).lockWithFullLockResponse(NAMESPACE, LOCK_CLIENT, LOCK_REQUEST);
+        verify(shortTimeout, never()).lockWithFullLockResponse(NAMESPACE, LOCK_CLIENT, LOCK_REQUEST);
     }
 
     @Test
-    public void lockAndGetHeldLocksUsesBlockingClient() throws InterruptedException {
+    public void lockAndGetHeldLocksHasLongTimeout() throws InterruptedException {
         sensitiveClient.lockAndGetHeldLocks(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
 
-        verify(blocking).lockAndGetHeldLocks(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
-        verify(nonBlocking, never()).lockAndGetHeldLocks(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
+        verify(longTimeout).lockAndGetHeldLocks(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
+        verify(shortTimeout, never()).lockAndGetHeldLocks(NAMESPACE, LOCK_CLIENT_STRING, LOCK_REQUEST);
     }
 
     @Test
-    public void currentTimeMillisUsesNonBlockingClient() {
+    public void currentTimeMillisHasShortTimeout() {
         sensitiveClient.currentTimeMillis(NAMESPACE);
 
-        verify(nonBlocking).currentTimeMillis(NAMESPACE);
-        verify(blocking, never()).currentTimeMillis(NAMESPACE);
+        verify(shortTimeout).currentTimeMillis(NAMESPACE);
+        verify(longTimeout, never()).currentTimeMillis(NAMESPACE);
 
     }
 }

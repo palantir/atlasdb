@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -43,6 +45,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.CloseableTimestampService;
@@ -61,6 +64,11 @@ public class TimeLockClientTest {
     private final TimelockService delegate = mock(TimelockService.class);
     private final TimeLockUnlocker unlocker = mock(TimeLockUnlocker.class);
     private final TimelockService timelock = spy(new TimeLockClient(delegate, timestampService, refresher, unlocker));
+    private final StartIdentifiedAtlasDbTransactionResponse response = mock(
+            StartIdentifiedAtlasDbTransactionResponse.class);
+    private final LockToken immutableTsLock = mock(LockToken.class);
+    private final LockImmutableTimestampResponse immutableTimestampResponse = LockImmutableTimestampResponse.of(6,
+            immutableTsLock);
 
     private static final long TIMEOUT = 10_000;
 
@@ -80,7 +88,7 @@ public class TimeLockClientTest {
         when(delegate.lockImmutableTimestamp()).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
         timelock.lockImmutableTimestamp();
 
-        verify(refresher).registerLock(TOKEN_1);
+        verify(refresher).registerLocks(ImmutableSet.of(TOKEN_1));
     }
 
     @Test
@@ -90,7 +98,7 @@ public class TimeLockClientTest {
 
         timelock.lock(request);
 
-        verify(refresher).registerLock(TOKEN_1);
+        verify(refresher).registerLocks(ImmutableSet.of(TOKEN_1));
     }
 
     @Test
@@ -193,5 +201,18 @@ public class TimeLockClientTest {
             client.tryUnlock(ImmutableSet.of(LockToken.of(uuid)));
             verify(timelock, times(1)).unlock(ImmutableSet.of(LockToken.of(uuid)));
         }
+    }
+
+    @Test
+    public void unlocksWhenFailedToRegisterLockAfterStartingTransaction() {
+        when(response.immutableTimestamp()).thenReturn(immutableTimestampResponse);
+        when(delegate.startIdentifiedAtlasDbTransactionBatch(1)).thenReturn(ImmutableList.of(response));
+
+        ImmutableSet<LockToken> locks = ImmutableSet.of(immutableTsLock);
+        doThrow(new RuntimeException()).when(refresher).registerLocks(locks);
+        assertThatThrownBy(() -> timelock.startIdentifiedAtlasDbTransactionBatch(1))
+                .isInstanceOf(RuntimeException.class);
+
+        verify(refresher).unregisterLocks(locks);
     }
 }

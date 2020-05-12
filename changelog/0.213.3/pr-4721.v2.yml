@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Optimize serializable_index locking strategy to avoid taking out redundant
+    locks.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4721
