@@ -66,7 +66,7 @@ public class TimeoutSensitiveLockRpcClient implements LockRpcClient {
 
     @Override
     public boolean unlockAndFreeze(String namespace, HeldLocksToken token) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
         return longTimeoutProxy.unlockAndFreeze(namespace, token);
     }
 
@@ -92,19 +92,19 @@ public class TimeoutSensitiveLockRpcClient implements LockRpcClient {
 
     @Override
     public HeldLocksGrant convertToGrant(String namespace, HeldLocksToken token) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
         return longTimeoutProxy.convertToGrant(namespace, token);
     }
 
     @Override
     public HeldLocksToken useGrant(String namespace, LockClient client, HeldLocksGrant grant) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
         return longTimeoutProxy.useGrant(namespace, client, grant);
     }
 
     @Override
     public HeldLocksToken useGrant(String namespace, LockClient client, BigInteger grantId) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
         return longTimeoutProxy.useGrant(namespace, client, grantId);
     }
 
@@ -152,7 +152,7 @@ public class TimeoutSensitiveLockRpcClient implements LockRpcClient {
 
     @Override
     public void logCurrentState(String namespace) {
-        // Even if this does take more than the non-blocking timeout, the request will fail while the server will
+        // Even if this does take more than the short timeout, the request will fail while the server will
         // dump its logs out.
         shortTimeoutProxy.logCurrentState(namespace);
     }
