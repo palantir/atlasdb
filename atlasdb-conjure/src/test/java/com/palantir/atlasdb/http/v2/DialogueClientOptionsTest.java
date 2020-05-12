@@ -46,7 +46,8 @@ public class DialogueClientOptionsTest {
             .shouldLimitPayload(true)
             .shouldUseExtendedTimeout(true)
             .build();
-    private static final AuxiliaryRemotingParameters REMOTING_PARAMETERS = AuxiliaryRemotingParameters.builder()
+    private static final AuxiliaryRemotingParameters REMOTING_PARAMETERS_SHORT_TIMEOUT
+            = AuxiliaryRemotingParameters.builder()
             .userAgent(USER_AGENT)
             .shouldRetry(true)
             .shouldLimitPayload(true)
@@ -63,10 +64,10 @@ public class DialogueClientOptionsTest {
             .serverList(SERVER_LIST_CONFIG)
             .remotingParameters(REMOTING_PARAMETERS_EXTENDED_TIMEOUT)
             .build();
-    private static final RemoteServiceConfiguration REMOTE_SERVICE_CONFIGURATION
+    private static final RemoteServiceConfiguration REMOTE_SERVICE_CONFIGURATION_SHORT_TIMEOUT
             = ImmutableRemoteServiceConfiguration.builder()
             .serverList(SERVER_LIST_CONFIG)
-            .remotingParameters(REMOTING_PARAMETERS)
+            .remotingParameters(REMOTING_PARAMETERS_SHORT_TIMEOUT)
             .build();
 
     @Test
@@ -79,6 +80,7 @@ public class DialogueClientOptionsTest {
         PartialServiceConfiguration partialServiceConfiguration = servicesConfigBlock.services().get(SERVICE_NAME);
         assertThat(partialServiceConfiguration.uris()).hasSameElementsAs(SERVERS);
         assertThat(partialServiceConfiguration.security()).contains(SSL_CONFIGURATION);
+        assertThat(partialServiceConfiguration.proxyConfiguration()).isEmpty();
         assertThat(partialServiceConfiguration.backoffSlotSize())
                 .contains(ClientOptionsConstants.STANDARD_BACKOFF_SLOT_SIZE);
         assertThat(partialServiceConfiguration.connectTimeout()).contains(ClientOptionsConstants.CONNECT_TIMEOUT);
@@ -92,7 +94,7 @@ public class DialogueClientOptionsTest {
         ServicesConfigBlock servicesConfigBlock = DialogueClientOptions.toServicesConfigBlock(
                 ImmutableMap.of(
                         SERVICE_NAME, REMOTE_SERVICE_CONFIGURATION_EXTENDED_TIMEOUT,
-                        otherServiceName, REMOTE_SERVICE_CONFIGURATION));
+                        otherServiceName, REMOTE_SERVICE_CONFIGURATION_SHORT_TIMEOUT));
 
         assertThat(servicesConfigBlock.services()).containsOnlyKeys(SERVICE_NAME, otherServiceName);
 
