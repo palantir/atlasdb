@@ -22,7 +22,7 @@ import org.immutables.value.Value;
 
 import com.palantir.common.persist.Persistable;
 
-public class PaxosStateLogMigrator<V extends Persistable & Versionable> {
+public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     static final int BATCH_SIZE = 10_000;
 
     private final PaxosStateLog<V> sourceLog;

@@ -16,9 +16,6 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import com.palantir.common.persist.Persistable;
 
@@ -55,14 +52,6 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
      *         disk
      */
     byte[] readRound(long seq) throws IOException;
-
-//    /**
-//     * Reads a batch of rounds and returns a map of sequence -> round for all the sequences where the round is present.
-//     *
-//     * @param sequences sequence numbers to read rounds for
-//     * @throws CorruptLogFileException if any round for the given sequences is corrupted on disk
-//     */
-//    Map<Long, byte[]> readBatchOfRounds(Set<Long> sequences) throws IOException;
 
     /**
      * Returns the sequence number of the least known log entry or {@value PaxosAcceptor#NO_LOG_ENTRY}

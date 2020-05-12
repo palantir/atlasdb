@@ -28,7 +28,7 @@ import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-public class SqlitePaxosStateLogMigrationState {
+public final class SqlitePaxosStateLogMigrationState {
     private final Client namespace;
     private final String useCase;
     private final Jdbi jdbi;
