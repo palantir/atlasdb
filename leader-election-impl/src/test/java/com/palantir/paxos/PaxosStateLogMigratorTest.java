@@ -17,13 +17,15 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import static com.palantir.paxos.PaxosStateLogMigrator.BATCH_SIZE;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -33,29 +35,29 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.palantir.common.base.Throwables;
+
 public class PaxosStateLogMigratorTest {
+    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase
+            .of(Client.of("client"), "tom");
+
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final String LOG_NAMESPACE_1 = "tom";
-
-    private Supplier<Connection> sourceConnSupplier;
-    private Supplier<Connection> targetConnSupplier;
-
     private PaxosStateLog<PaxosValue> source;
-    private SqlitePaxosStateLog<PaxosValue> target;
+    private PaxosStateLog<PaxosValue> target;
 
     private SqlitePaxosStateLogMigrationState migrationState;
 
     @Before
     public void setup() throws IOException {
-        sourceConnSupplier = SqliteConnections
-                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
-        targetConnSupplier = SqliteConnections
-                .createSqliteDatabase(tempFolder.newFolder("subfolder").toPath().resolve("test.db").toString());
-        source = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, sourceConnSupplier);
-        target = SqlitePaxosStateLog.create(LOG_NAMESPACE_1, targetConnSupplier);
-        migrationState = SqlitePaxosStateLogMigrationState.create(LOG_NAMESPACE_1, targetConnSupplier);
+        Supplier<Connection> sourceConnSupplier = SqliteConnections
+                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("source").toPath());
+        Supplier<Connection> targetConnSupplier = SqliteConnections
+                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("target").toPath());
+        source = SqlitePaxosStateLog.create(NAMESPACE_AND_USE_CASE, sourceConnSupplier);
+        target = SqlitePaxosStateLog.create(NAMESPACE_AND_USE_CASE, targetConnSupplier);
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, targetConnSupplier);
     }
 
     @Test
@@ -89,7 +91,7 @@ public class PaxosStateLogMigratorTest {
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
 
         valuesWritten.forEach(value ->
-                assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(target.readRound(value.seq))).isEqualTo(value));
+                assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(readRoundUnchecked(value.seq))).isEqualTo(value));
     }
 
     @Test
@@ -110,7 +112,7 @@ public class PaxosStateLogMigratorTest {
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
-        valuesWritten.forEach(value -> assertThat(target.readRound(value.seq)).isNull());
+        valuesWritten.forEach(value -> assertThat(readRoundUnchecked(value.seq)).isNull());
     }
 
     @Test
@@ -134,23 +136,28 @@ public class PaxosStateLogMigratorTest {
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
-        valuesWritten.forEach(value -> assertThat(target.readRound(value.seq)).isNull());
+        valuesWritten.forEach(value -> assertThat(readRoundUnchecked(value.seq)).isNull());
     }
 
     @Test
-    public void logMigrationSuccessfullyMigratesManyEntries() {
+    public void logMigrationSuccessfullyMigratesManyEntries() throws IOException {
         long lowerBound = 10;
         long upperBound = lowerBound + BATCH_SIZE * 10;
-        List<PaxosValue> valuesWritten = LongStream.rangeClosed(lowerBound, upperBound)
-                .mapToObj(PaxosStateLogMigratorTest::valueForRound)
-                .collect(Collectors.toList());
-        List<PaxosRound<PaxosValue>> asBatch = valuesWritten.stream()
-                .map(value -> ImmutablePaxosRound.<PaxosValue>builder().value(value).sequence(value.seq).build())
-                .collect(Collectors.toList());
-        source.writeBatchOfRounds(asBatch);
+
+        PaxosStateLog<PaxosValue> mockLog = mock(PaxosStateLog.class);
+
+        when(mockLog.getLeastLogEntry()).thenReturn(lowerBound);
+        when(mockLog.getGreatestLogEntry()).thenReturn(upperBound);
+        when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
+            long sequence = (long) invocation.getArguments()[0];
+            if (sequence > upperBound || sequence < lowerBound) {
+                return null;
+            }
+            return valueForRound(sequence).persistToBytes();
+        });
 
         PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
-                .sourceLog(source)
+                .sourceLog(mockLog)
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
                 .migrationState(migrationState)
@@ -159,13 +166,21 @@ public class PaxosStateLogMigratorTest {
         assertThat(target.getLeastLogEntry()).isEqualTo(lowerBound);
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
 
-        valuesWritten.forEach(value ->
-                assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(target.readRound(value.seq))).isEqualTo(value));
+        for (long counter = lowerBound; counter <= upperBound; counter += BATCH_SIZE) {
+            assertThat(readRoundUnchecked(counter)).containsExactly(valueForRound(counter).persistToBytes());
+        }
+    }
+
+    private byte[] readRoundUnchecked(long seq) {
+        try {
+            return target.readRound(seq);
+        } catch (IOException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
     }
 
     private static PaxosValue valueForRound(long round) {
-        byte[] bytes = new byte[16];
-        ThreadLocalRandom.current().nextBytes(bytes);
+        byte[] bytes = new byte[] { 1 };
         return new PaxosValue("someLeader", round, bytes);
     }
 }

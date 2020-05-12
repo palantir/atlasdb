@@ -30,7 +30,8 @@ public class SqlitePaxosStateLogMigrationStateTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final String LOG_NAMESPACE_1 = "test_namespace";
+    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase
+            .of(Client.of("namespace"), "useCase");
 
     private Supplier<Connection> connSupplier;
     private SqlitePaxosStateLogMigrationState migrationState;
@@ -38,8 +39,8 @@ public class SqlitePaxosStateLogMigrationStateTest {
     @Before
     public void setup() {
         connSupplier = SqliteConnections
-                .createSqliteDatabase(tempFolder.getRoot().toPath().resolve("test.db").toString());
-        migrationState = SqlitePaxosStateLogMigrationState.create(LOG_NAMESPACE_1, connSupplier);
+                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, connSupplier);
     }
 
     @Test
@@ -66,7 +67,18 @@ public class SqlitePaxosStateLogMigrationStateTest {
         migrationState.finishMigration();
 
         SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
-                .create("other", connSupplier);
+                .create(ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), connSupplier);
+        assertThat(otherState.hasAlreadyMigrated()).isFalse();
+        otherState.finishMigration();
+        assertThat(otherState.hasAlreadyMigrated()).isTrue();
+    }
+
+    @Test
+    public void finishingMigrationForOneUseCaseDoesNotSetFlagForOthers() {
+        migrationState.finishMigration();
+
+        SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
+                .create(ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), connSupplier);
         assertThat(otherState.hasAlreadyMigrated()).isFalse();
         otherState.finishMigration();
         assertThat(otherState.hasAlreadyMigrated()).isTrue();

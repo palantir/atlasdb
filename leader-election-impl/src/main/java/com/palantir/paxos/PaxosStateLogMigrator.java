@@ -16,13 +16,10 @@
 
 package com.palantir.paxos;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.stream.LongStream;
 
 import org.immutables.value.Value;
 
-import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
 public class PaxosStateLogMigrator<V extends Persistable & Versionable> {
@@ -49,37 +46,29 @@ public class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 migrationContext.destinationLog(),
                 migrationContext.hydrator(),
                 migrationContext.migrationState());
-        try {
-            migrator.runMigration();
-        } catch (IOException e) {
-            Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        migrator.runMigration();
     }
 
-    private void runMigration() throws IOException {
+    private void runMigration() {
         if (migrationState.hasAlreadyMigrated()) {
             return;
         }
         destinationLog.truncate(destinationLog.getGreatestLogEntry());
-        long lowerBound = sourceLog.getLeastLogEntry();
+        long lowerBound = lowestSequenceToMigrate();
         long upperBound = sourceLog.getGreatestLogEntry();
-        List<PaxosRound<V>> buffer = new ArrayList<>();
-        for (long currentSequence = lowerBound; currentSequence <= upperBound; currentSequence++) {
-            byte[] valueForRound = sourceLog.readRound(currentSequence);
-            if (valueForRound == null) {
-                continue;
-            }
-            buffer.add(ImmutablePaxosRound.<V>builder()
-                    .sequence(currentSequence)
-                    .value(hydrator.hydrateFromBytes(valueForRound))
-                    .build());
-            if (buffer.size() >= BATCH_SIZE) {
-                destinationLog.writeBatchOfRounds(buffer);
-                buffer.clear();
-            }
+        try (PaxosStateLogBatchReader<V> reader = new PaxosStateLogBatchReader<>(sourceLog, hydrator, 100)) {
+            long numberOfBatches = (upperBound - lowerBound) / BATCH_SIZE + 1;
+            LongStream.iterate(lowerBound, x -> x + BATCH_SIZE)
+                    .limit(numberOfBatches)
+                    .mapToObj(sequence -> reader.readBatch(sequence, BATCH_SIZE))
+                    .forEach(destinationLog::writeBatchOfRounds);
         }
-        destinationLog.writeBatchOfRounds(buffer);
         migrationState.finishMigration();
+    }
+
+    private long lowestSequenceToMigrate() {
+        long leastLogEntry = sourceLog.getLeastLogEntry();
+        return leastLogEntry == PaxosAcceptor.NO_LOG_ENTRY ? 0L : leastLogEntry;
     }
 
     @Value.Immutable

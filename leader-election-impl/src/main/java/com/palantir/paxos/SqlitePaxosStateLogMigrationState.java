@@ -21,22 +21,29 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 public class SqlitePaxosStateLogMigrationState {
-    private final String namespace;
+    private final Client namespace;
+    private final String useCase;
     private final Jdbi jdbi;
 
-    private SqlitePaxosStateLogMigrationState(String namespace, Jdbi jdbi) {
-        this.namespace = namespace;
+    private SqlitePaxosStateLogMigrationState(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi) {
+        this.namespace = namespaceAndUseCase.namespace();
+        this.useCase = namespaceAndUseCase.useCase();
         this.jdbi = jdbi;
     }
 
-    public static SqlitePaxosStateLogMigrationState create(String namespace, Supplier<Connection> connectionSupplier) {
+    public static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase,
+            Supplier<Connection> connectionSupplier) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
-        SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespace, jdbi);
+        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
+        SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespaceAndUseCase, jdbi);
         state.initialize();
         return state;
     }
@@ -46,11 +53,11 @@ public class SqlitePaxosStateLogMigrationState {
     }
 
     public void finishMigration() {
-        execute(dao -> dao.finishMigration(namespace));
+        execute(dao -> dao.finishMigration(namespace, useCase));
     }
 
     public boolean hasAlreadyMigrated() {
-        return execute(dao -> dao.hasFinishedMigrating(namespace));
+        return execute(dao -> dao.hasFinishedMigrating(namespace, useCase));
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -58,13 +65,16 @@ public class SqlitePaxosStateLogMigrationState {
     }
 
     public interface Queries {
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS migration_state (namespace TEXT PRIMARY KEY, version INT)")
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS migration_state (namespace TEXT, useCase TEXT, version INT,"
+                + "PRIMARY KEY(namespace, useCase))")
         boolean createTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, version) VALUES (?, 0)")
-        boolean finishMigration(String namespace);
+        @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, useCase, version) VALUES"
+                + " (:namespace.value, :useCase, 0)")
+        boolean finishMigration(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
 
-        @SqlQuery("SELECT EXISTS (SELECT 1 FROM migration_state WHERE namespace = ?)")
-        boolean hasFinishedMigrating(String namespace);
+        @SqlQuery("SELECT EXISTS (SELECT 1 FROM migration_state WHERE"
+                + " namespace = :namespace.value AND useCase = :useCase)")
+        boolean hasFinishedMigrating(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 }
