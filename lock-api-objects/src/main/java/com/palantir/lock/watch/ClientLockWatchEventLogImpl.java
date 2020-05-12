@@ -29,6 +29,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
     private volatile IdentifiedVersion identifiedVersion; // todo - is this sufficient for concurrency?
     private ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
+    private volatile LockWatchStateUpdate.Snapshot seed = null;
 
     private ClientLockWatchEventLogImpl() {
         // todo - determine how to init version
@@ -56,21 +57,25 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, Long> timestampToVersion,
             IdentifiedVersion version) {
-        if(!version.id().equals(getLatestKnownVersion().id())) {
+        if (!version.id().equals(identifiedVersion.id())) {
             // todo - we need to indicate that we cannot do this,
             //      and return a forced snapshot
             //      need to determine how we can actually get a forced snapshot out from this, if it makes sense
-            return TransactionsLockWatchEvents.failure(LockWatchStateUpdate.snapshot(null, 0L, null, null));
+            return TransactionsLockWatchEvents.failure(seed);
         }
 
         Long oldestVersion = version.version().orElseGet(() -> eventLog.firstKey());
         Long latestVersion = Collections.max(timestampToVersion.values());
 
-        Long firstKey = eventLog.ceilingKey(oldestVersion);
-        Long lastKey = eventLog.floorKey(latestVersion);
+        return TransactionsLockWatchEvents.success(
+                getEventsBetweenVersions(oldestVersion, latestVersion),
+                timestampToVersion);
+    }
 
-        List<LockWatchEvent> events = new ArrayList<>(eventLog.subMap(firstKey, lastKey).values());
-        return TransactionsLockWatchEvents.success(events, timestampToVersion);
+    private List<LockWatchEvent> getEventsBetweenVersions(long startVersion, long endVersion) {
+        long startKey = eventLog.ceilingKey(startVersion);
+        long endKey = eventLog.floorKey(endVersion);
+        return new ArrayList<>(eventLog.subMap(startKey, endKey).values());
     }
 
     private void processSuccess(LockWatchStateUpdate.Success success) {
@@ -81,7 +86,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             // this ensures that we are only putting events if we have not lost leader
             // i.e. no case where we succeed, then immediately fail, clearing the cache
             // but then are still putting updates
-            if(localVersion.id().equals(identifiedVersion.id())) {
+            if (localVersion.id().equals(identifiedVersion.id())) {
                 eventLog.put(event.sequence(), event);
             }
         });
@@ -91,9 +96,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         // Nuke, then treat as a created event of everything
         identifiedVersion = IdentifiedVersion.of(snapshot.logId(), Optional.of(snapshot.lastKnownVersion()));
         eventLog.clear();
-        LockWatchEvent recreatedEvent = LockWatchCreatedEvent.builder(snapshot.lockWatches(), snapshot.locked())
-                .build(snapshot.lastKnownVersion());
-        eventLog.put(recreatedEvent.sequence(), recreatedEvent);
+        seed = snapshot;
+//        LockWatchEvent recreatedEvent = LockWatchCreatedEvent.builder(snapshot.lockWatches(), snapshot.locked())
+//                .build(snapshot.lastKnownVersion());
+//        eventLog.put(recreatedEvent.sequence(), recreatedEvent);
     }
 
     private void processFailed(LockWatchStateUpdate.Failed failed) {
@@ -101,6 +107,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         // todo - is this thread safe? what happens mid-way through a clear? or if multiple try to clear?
         identifiedVersion = IdentifiedVersion.of(failed.logId(), Optional.empty());
         eventLog.clear();
+        seed = null;
     }
 
 
