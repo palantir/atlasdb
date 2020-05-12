@@ -32,7 +32,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private volatile LockWatchStateUpdate.Snapshot seed = null;
 
     private ClientLockWatchEventLogImpl() {
-        // todo - determine how to init version
         identifiedVersion = IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
         eventLog = new ConcurrentSkipListMap<>();
     }
@@ -45,10 +44,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     // todo - Consideration - concurrency
     @Override
     public void processUpdate(LockWatchStateUpdate update) {
-        if (!update.logId().equals(identifiedVersion.id())) {
-            update.accept(newLeaderVisitor);
-        } else {
+        if (update.logId().equals(identifiedVersion.id())) {
             update.accept(processingVisitor);
+        } else {
+            update.accept(newLeaderVisitor);
         }
     }
 
@@ -58,9 +57,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             Map<Long, Long> timestampToVersion,
             IdentifiedVersion version) {
         if (!version.id().equals(identifiedVersion.id())) {
-            // todo - we need to indicate that we cannot do this,
-            //      and return a forced snapshot
-            //      need to determine how we can actually get a forced snapshot out from this, if it makes sense
             return TransactionsLockWatchEvents.failure(seed);
         }
 
@@ -72,16 +68,22 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
                 timestampToVersion);
     }
 
+    // This does not need to be synchronised... does it?
+    // Consider the case where a processSuccess is going from a while ago, and putting things before endVersion -
+    // this would be a bad case.
     private List<LockWatchEvent> getEventsBetweenVersions(long startVersion, long endVersion) {
         long startKey = eventLog.ceilingKey(startVersion);
         long endKey = eventLog.floorKey(endVersion);
         return new ArrayList<>(eventLog.subMap(startKey, endKey).values());
     }
 
+    // This does not need to be synchronised, as we can have new updates happen while this is still putting in,
+    // but we know that events are put by their version (and sorted accordingly),
+    // and we know that if a snapshot or failure occurs, we stop immediately
     private void processSuccess(LockWatchStateUpdate.Success success) {
         // Just add events
-        identifiedVersion = IdentifiedVersion.of(success.logId(), Optional.of(success.lastKnownVersion()));
-        IdentifiedVersion localVersion = identifiedVersion;
+        IdentifiedVersion localVersion = IdentifiedVersion.of(success.logId(), Optional.of(success.lastKnownVersion()));
+        identifiedVersion = localVersion;
         success.events().forEach(event -> {
             // this ensures that we are only putting events if we have not lost leader
             // i.e. no case where we succeed, then immediately fail, clearing the cache
@@ -92,19 +94,20 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         });
     }
 
-    private void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
+    // Race condition:
+    // thread 1 processes snapshot, sets iV = iV1
+    // thread 2 processes snapshot, does everything (i.e iV = iV2, seed = snapshot2)
+    // thread 1 sets seed = snapshot1, but iV = iV2. This is a bad state
+    private synchronized void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         // Nuke, then treat as a created event of everything
         identifiedVersion = IdentifiedVersion.of(snapshot.logId(), Optional.of(snapshot.lastKnownVersion()));
         eventLog.clear();
         seed = snapshot;
-//        LockWatchEvent recreatedEvent = LockWatchCreatedEvent.builder(snapshot.lockWatches(), snapshot.locked())
-//                .build(snapshot.lastKnownVersion());
-//        eventLog.put(recreatedEvent.sequence(), recreatedEvent);
     }
 
-    private void processFailed(LockWatchStateUpdate.Failed failed) {
+    // By extension of the above, this must also be the case.
+    private synchronized void processFailed(LockWatchStateUpdate.Failed failed) {
         // Nuke
-        // todo - is this thread safe? what happens mid-way through a clear? or if multiple try to clear?
         identifiedVersion = IdentifiedVersion.of(failed.logId(), Optional.empty());
         eventLog.clear();
         seed = null;
@@ -141,8 +144,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
         @Override
         public Void visit(LockWatchStateUpdate.Success success) {
-            // throw may be heavy handed, but do it for now - that or treat as if it failed
-            throw new RuntimeException();
+            // We process failed as we actually have failed in this case
+            // and we discard all new info
+            processFailed(LockWatchStateUpdate.failed(success.logId()));
+            return null;
         }
 
         @Override
