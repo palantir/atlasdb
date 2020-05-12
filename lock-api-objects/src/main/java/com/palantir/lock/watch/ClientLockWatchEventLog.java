@@ -24,5 +24,5 @@ public interface ClientLockWatchEventLog {
             Map<Long, Long> timestampToVersion,
             IdentifiedVersion version);
     IdentifiedVersion getLatestKnownVersion();
-    void processUpdate(LockWatchStateUpdate update);
+    boolean processUpdate(LockWatchStateUpdate update);
 }
