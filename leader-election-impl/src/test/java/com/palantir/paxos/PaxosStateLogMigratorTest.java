@@ -140,7 +140,7 @@ public class PaxosStateLogMigratorTest {
     }
 
     @Test
-    public void logMigrationSuccessfullyMigratesManyEntries() throws IOException {
+    public void logMigrationSuccessfullyMigratesManyEntriesIncludingSingleEntryInLastBatch() throws IOException {
         long lowerBound = 10;
         long upperBound = lowerBound + BATCH_SIZE * 10;
 
