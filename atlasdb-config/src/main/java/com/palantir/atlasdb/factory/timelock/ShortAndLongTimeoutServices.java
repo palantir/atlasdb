@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import java.util.function.Function;
+
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.factory.ServiceCreator;
@@ -29,6 +31,13 @@ public interface ShortAndLongTimeoutServices<T> {
         return ImmutableShortAndLongTimeoutServices.<T>builder()
                 .longTimeout(serviceCreator.createService(clazz))
                 .shortTimeout(serviceCreator.createServiceWithShortTimeout(clazz))
+                .build();
+    }
+
+    default <U> ShortAndLongTimeoutServices<U> map(Function<T, U> mapper) {
+        return ImmutableShortAndLongTimeoutServices.<U>builder()
+                .longTimeout(mapper.apply(longTimeout()))
+                .shortTimeout(mapper.apply(shortTimeout()))
                 .build();
     }
 }

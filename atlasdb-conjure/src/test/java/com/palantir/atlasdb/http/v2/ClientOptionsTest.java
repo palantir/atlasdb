@@ -56,7 +56,7 @@ public class ClientOptionsTest {
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.LONG_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptionsConstants.LONG_READ_TIMEOUT.toJavaDuration());
     }
 
     @Test
@@ -68,7 +68,7 @@ public class ClientOptionsTest {
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.LONG_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptionsConstants.LONG_READ_TIMEOUT.toJavaDuration());
     }
 
     @Test
@@ -80,7 +80,7 @@ public class ClientOptionsTest {
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.SHORT_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptionsConstants.SHORT_READ_TIMEOUT.toJavaDuration());
     }
 
     @Test

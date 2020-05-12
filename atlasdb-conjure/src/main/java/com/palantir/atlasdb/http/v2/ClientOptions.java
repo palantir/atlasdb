@@ -23,7 +23,6 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
@@ -35,27 +34,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @Value.Immutable
 public abstract class ClientOptions {
-    private static final Duration CONNECT_TIMEOUT = Duration.ofMillis(500);
-
-    @VisibleForTesting
-    // The read timeout controls how long the client waits to receive the first byte from the server before giving up,
-    // so in general read timeouts should not be set to less than what is considered an acceptable time for the server
-    // to give a suitable response.
-    // In the context of TimeLock, this timeout must be longer than how long an AwaitingLeadershipProxy takes to
-    // decide whether a node is the leader and still has a quorum.
-    public static final Duration SHORT_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
-
-    // Should not be reduced below 65 seconds to support workflows involving locking.
-    static final Duration LONG_READ_TIMEOUT = Duration.ofSeconds(65);
-
-    // Under standard settings, throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
-    private static final Duration STANDARD_BACKOFF_SLOT_SIZE = Duration.ofMillis(10);
-    private static final int STANDARD_MAX_RETRIES = 13;
-    private static final int NO_RETRIES = 0;
-
-    private static final Duration STANDARD_FAILED_URL_COOLDOWN = Duration.ofMillis(100);
-    private static final Duration NON_RETRY_FAILED_URL_COOLDOWN = Duration.ofMillis(1);
-
     static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofMillis(100))
             .readTimeout(Duration.ofSeconds(65))
@@ -145,14 +123,19 @@ public abstract class ClientOptions {
     }
 
     private static void setupTimeouts(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
-        builder.connectTimeout(CONNECT_TIMEOUT)
-                .readTimeout(parameters.shouldUseExtendedTimeout() ? LONG_READ_TIMEOUT : SHORT_READ_TIMEOUT);
+        builder.connectTimeout(ClientOptionsConstants.CONNECT_TIMEOUT.toJavaDuration())
+                .readTimeout(parameters.shouldUseExtendedTimeout()
+                        ? ClientOptionsConstants.LONG_READ_TIMEOUT.toJavaDuration()
+                        : ClientOptionsConstants.SHORT_READ_TIMEOUT.toJavaDuration());
     }
 
     private static void setupRetrying(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
-        builder.backoffSlotSize(STANDARD_BACKOFF_SLOT_SIZE)
-                .maxNumRetries(parameters.shouldRetry() ? STANDARD_MAX_RETRIES : NO_RETRIES)
-                .failedUrlCooldown(parameters.shouldRetry() ? STANDARD_FAILED_URL_COOLDOWN
-                        : NON_RETRY_FAILED_URL_COOLDOWN);
+        builder.backoffSlotSize(ClientOptionsConstants.STANDARD_BACKOFF_SLOT_SIZE.toJavaDuration())
+                .maxNumRetries(parameters.shouldRetry()
+                        ? ClientOptionsConstants.STANDARD_MAX_RETRIES
+                        : ClientOptionsConstants.NO_RETRIES)
+                .failedUrlCooldown(parameters.shouldRetry()
+                        ? ClientOptionsConstants.STANDARD_FAILED_URL_COOLDOWN.toJavaDuration()
+                        : ClientOptionsConstants.NON_RETRY_FAILED_URL_COOLDOWN.toJavaDuration());
     }
 }
