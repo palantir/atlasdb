@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -37,11 +35,8 @@ import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
-import com.palantir.dialogue.Channel;
-import com.palantir.dialogue.ConjureRuntime;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.refreshable.Refreshable;
 
 /**
@@ -70,11 +65,7 @@ public final class AtlasDbDialogueServiceProvider {
             UserAgent userAgent) {
         UserAgent versionedAgent = userAgent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
         Refreshable<Map<String, RemoteServiceConfiguration>> timeLockRemoteConfigurations = timeLockServerListConfig
-                .map(serverListConfig -> ImmutableMap.of(
-                        TIMELOCK_SHORT_TIMEOUT,
-                        createRemoteServiceConfiguration(versionedAgent, serverListConfig, false),
-                        TIMELOCK_LONG_TIMEOUT,
-                        createRemoteServiceConfiguration(versionedAgent, serverListConfig, true)));
+                .map(serverListConfig -> getServiceConfigurations(versionedAgent, serverListConfig));
         DialogueClients.ReloadingFactory reloadingFactory
                 = decorateForFailoverServices(baseFactory, timeLockRemoteConfigurations).withUserAgent(versionedAgent);
 
@@ -82,9 +73,6 @@ public final class AtlasDbDialogueServiceProvider {
     }
 
     ConjureTimelockService getConjureTimelockService() {
-        Preconditions.checkState(isDialogue(ConjureTimelockServiceBlocking.class),
-                "Dialogue service provider attempted to provide a non-Dialogue class."
-                        + " This is an AtlasDB bug.");
         ConjureTimelockServiceBlocking longTimeoutService
                 = dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
         ConjureTimelockServiceBlocking shortTimeoutService
@@ -101,6 +89,16 @@ public final class AtlasDbDialogueServiceProvider {
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
     }
 
+    private static ImmutableMap<String, RemoteServiceConfiguration> getServiceConfigurations(
+            UserAgent versionedAgent,
+            ServerListConfig serverListConfig) {
+        return ImmutableMap.of(
+                TIMELOCK_SHORT_TIMEOUT,
+                createRemoteServiceConfiguration(versionedAgent, serverListConfig, false),
+                TIMELOCK_LONG_TIMEOUT,
+                createRemoteServiceConfiguration(versionedAgent, serverListConfig, true));
+    }
+
     private static RemoteServiceConfiguration createRemoteServiceConfiguration(
             UserAgent userAgent, ServerListConfig serverListConfig, boolean shouldUseExtendedTimeout) {
         return ImmutableRemoteServiceConfiguration.builder()
@@ -110,25 +108,13 @@ public final class AtlasDbDialogueServiceProvider {
     }
 
     private static AuxiliaryRemotingParameters getFailoverRemotingParameters(
-            boolean shouldSupportBlockingOperations, UserAgent userAgent) {
+            boolean shouldUseExtendedTimeout, UserAgent userAgent) {
         return AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
                 .shouldRetry(true)
-                .shouldUseExtendedTimeout(shouldSupportBlockingOperations)
+                .shouldUseExtendedTimeout(shouldUseExtendedTimeout)
                 .userAgent(userAgent)
                 .build();
-    }
-
-    private static boolean isDialogue(Class<?> serviceInterface) {
-        return getStaticOfMethod(serviceInterface).isPresent();
-    }
-
-    private static Optional<Method> getStaticOfMethod(Class<?> dialogueInterface) {
-        try {
-            return Optional.ofNullable(dialogueInterface.getMethod("of", Channel.class, ConjureRuntime.class));
-        } catch (NoSuchMethodException e) {
-            return Optional.empty();
-        }
     }
 
     private static DialogueClients.ReloadingFactory decorateForFailoverServices(

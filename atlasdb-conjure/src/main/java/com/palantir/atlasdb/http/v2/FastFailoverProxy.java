@@ -26,8 +26,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -42,7 +40,6 @@ import com.palantir.conjure.java.api.errors.UnknownRemoteException;
  * leader election is still taking place.
  */
 public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(FastFailoverProxy.class);
     private static final Duration TIME_LIMIT = Duration.ofSeconds(10);
 
     private final Supplier<T> delegate;
@@ -101,7 +98,6 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
         if (!isCausedByRetryOther(cause)) {
-            log.info("not caused by retry other!", throwable);
             return ResultOrThrowable.failure(cause);
         }
         return ResultOrThrowable.success(null);

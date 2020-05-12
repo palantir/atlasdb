@@ -28,29 +28,45 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import javax.ws.rs.core.MediaType;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.google.common.net.HttpHeaders;
+import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.lib.Bytes;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.lock.LockResponse;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -61,6 +77,9 @@ public class AtlasDbDialogueServiceProviderTest {
     private static final String CLIENT = "tom";
     private static final String TIMESTAMP_PATH = "/tl/ts/" + CLIENT;
     private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
+    private static final String LOCK_PATH = "/tl/l/" + CLIENT;
+    private static final MappingBuilder LOCK_MAPPING = post(urlEqualTo(LOCK_PATH));
+
     private static final DialogueClients.ReloadingFactory DIALOGUE_BASE_FACTORY
             = DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
     private static final UserAgent USER_USER_AGENT = UserAgent.of(UserAgent.Agent.of("jeremy", "77.79.12"));
@@ -82,9 +101,7 @@ public class AtlasDbDialogueServiceProviderTest {
                 .build();
 
         AtlasDbDialogueServiceProvider provider = AtlasDbDialogueServiceProvider.create(
-                Refreshable.only(serverListConfig),
-                DIALOGUE_BASE_FACTORY,
-                USER_USER_AGENT);
+                Refreshable.only(serverListConfig), DIALOGUE_BASE_FACTORY, USER_USER_AGENT);
         conjureTimelockService = provider.getConjureTimelockService();
     }
 
@@ -101,9 +118,10 @@ public class AtlasDbDialogueServiceProviderTest {
         makeTimestampsRequest();
 
         server.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader("User-Agent", WireMock.containing(USER_USER_AGENT.primary().name())));
-        server.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader("User-Agent", WireMock.containing(USER_USER_AGENT.primary().version())));
+                .withHeader(HttpHeaders.USER_AGENT, WireMock.containing(
+                        String.format("%s/%s",
+                                USER_USER_AGENT.primary().name(),
+                                USER_USER_AGENT.primary().version()))));
     }
 
     @Test
@@ -111,7 +129,7 @@ public class AtlasDbDialogueServiceProviderTest {
         makeTimestampsRequest();
 
         server.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader("User-Agent", WireMock.containing(
+                .withHeader(HttpHeaders.USER_AGENT, WireMock.containing(
                         String.format("%s/%s",
                                 AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT,
                                 AtlasDbRemotingConstants.CURRENT_CLIENT_PROTOCOL_VERSION.getProtocolVersionString()))));
@@ -121,7 +139,7 @@ public class AtlasDbDialogueServiceProviderTest {
     public void resilientToRepeatedRedirects() {
         server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
                 .withStatus(308)
-                .withHeader("Location", getUriForPort(serverPort))));
+                .withHeader(HttpHeaders.LOCATION, getUriForPort(serverPort))));
 
         Instant start = Instant.now();
         ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
@@ -134,6 +152,26 @@ public class AtlasDbDialogueServiceProviderTest {
         ex.shutdown();
     }
 
+    @Test
+    public void lockRequestsBlockingLongerThanShortReadTimeoutAllowed() {
+        int lockBlockingMillis = Ints.checkedCast(
+                ClientOptionsConstants.SHORT_READ_TIMEOUT.toJavaDuration().plusSeconds(1).toMillis());
+        server.stubFor(LOCK_MAPPING.willReturn(aResponse()
+                .withFixedDelay(lockBlockingMillis)
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+                .withBody("{\"type\":\"unsuccessful\",\"unsuccessful\":{}}")));
+        ConjureLockResponse lockResponse = conjureTimelockService.lock(
+                AuthHeader.valueOf("Bearer unused"),
+                CLIENT,
+                ConjureLockRequest.builder()
+                        .acquireTimeoutMs(0) // Doesn't really matter: point is server takes a long time to return
+                        .clientDescription("I am a client")
+                        .lockDescriptors(ConjureLockDescriptor.of(Bytes.from(PtBytes.toBytes("lock/lock"))))
+                        .requestId(UUID.randomUUID())
+                        .build());
+        assertThat(lockResponse).isEqualTo(ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()));
+    }
+
     private void scheduleServerRecoveryAfterFiveSeconds() {
         Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
         setupServerToGiveOutTimestamps();
@@ -142,13 +180,13 @@ public class AtlasDbDialogueServiceProviderTest {
     private void setupServerToGiveOutTimestamps() {
         server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
                 .withStatus(200)
-                .withHeader("Content-Type", "application/json")
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
                 .withBody("{\"inclusiveLower\": 58, \"inclusiveUpper\": 70}")));
     }
 
     private ConjureGetFreshTimestampsResponse makeTimestampsRequest() {
         return conjureTimelockService.getFreshTimestamps(
-                AuthHeader.valueOf("Bearer unused"), CLIENT, ConjureGetFreshTimestampsRequest.of(10));
+                AuthHeader.valueOf("Bearer unused"), CLIENT, ConjureGetFreshTimestampsRequest.of(96));
     }
 
     private static String getUriForPort(int port) {
