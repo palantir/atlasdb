@@ -130,7 +130,7 @@ public class AtlasDbDialogueServiceProviderTest {
         assertThatCode(this::makeTimestampsRequest).doesNotThrowAnyException();
         assertThat(Instant.now())
                 .as("should recover in a second after things are good again")
-                .isBefore(start.plus(Duration.ofSeconds(11)));
+                .isBefore(start.plus(Duration.ofSeconds(6)));
         ex.shutdown();
     }
 
