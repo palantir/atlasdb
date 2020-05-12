@@ -25,8 +25,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
-    private final ProcessingVisitor visitor = new ProcessingVisitor();
-    private volatile IdentifiedVersion identifiedVersion; // todo - is this sufficient?
+    private final ProcessingVisitor processingVisitor = new ProcessingVisitor();
+    private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
+    private volatile IdentifiedVersion identifiedVersion; // todo - is this sufficient for concurrency?
     private ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
 
     private ClientLockWatchEventLogImpl() {
@@ -44,20 +45,36 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     @Override
     public void processUpdate(LockWatchStateUpdate update) {
         if (!update.logId().equals(identifiedVersion.id())) {
-            // This is the case where we have changed leader
-            // In case of fail, reset version;
-            identifiedVersion = IdentifiedVersion.of(update.logId(), Optional.empty());
-            // todo - is this thread safe? what happens mid-way through a clear? or if multiple try to clear?
-            eventLog.clear();
-            // In case of snapshot, we need to reset the cache
-            // in case of success, probably shouldn't have that here.
+            update.accept(newLeaderVisitor);
+        } else {
+            update.accept(processingVisitor);
+        }
+    }
+
+    // todo - consider concurrency
+    @Override
+    public TransactionsLockWatchEvents getEventsForTransactions(
+            Map<Long, Long> timestampToVersion,
+            IdentifiedVersion version) {
+        if(!version.id().equals(getLatestKnownVersion().id())) {
+            // todo - we need to indicate that we cannot do this,
+            //      and return a forced snapshot
+            //      need to determine how we can actually get a forced snapshot out from this, if it makes sense
+            return TransactionsLockWatchEvents.failure(LockWatchStateUpdate.snapshot(null, 0L, null, null));
         }
 
-        // processes in case of snapshot or success
-        update.accept(visitor);
+        Long oldestVersion = version.version().orElseGet(() -> eventLog.firstKey());
+        Long latestVersion = Collections.max(timestampToVersion.values());
+
+        Long firstKey = eventLog.ceilingKey(oldestVersion);
+        Long lastKey = eventLog.floorKey(latestVersion);
+
+        List<LockWatchEvent> events = new ArrayList<>(eventLog.subMap(firstKey, lastKey).values());
+        return TransactionsLockWatchEvents.success(events, timestampToVersion);
     }
 
     private void processSuccess(LockWatchStateUpdate.Success success) {
+        // Just add events
         identifiedVersion = IdentifiedVersion.of(success.logId(), Optional.of(success.lastKnownVersion()));
         IdentifiedVersion localVersion = identifiedVersion;
         success.events().forEach(event -> {
@@ -71,31 +88,19 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     private void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
-
+        // Nuke, then treat as a created event of everything
+        identifiedVersion = IdentifiedVersion.of(snapshot.logId(), Optional.of(snapshot.lastKnownVersion()));
+        eventLog.clear();
+        LockWatchEvent recreatedEvent = LockWatchCreatedEvent.builder(snapshot.lockWatches(), snapshot.locked())
+                .build(snapshot.lastKnownVersion());
+        eventLog.put(recreatedEvent.sequence(), recreatedEvent);
     }
 
     private void processFailed(LockWatchStateUpdate.Failed failed) {
-    }
-
-    // todo - consider concurrency
-    @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(
-            Map<Long, Long> timestampToVersion,
-            IdentifiedVersion version) {
-        if(!version.id().equals(getLatestKnownVersion().id())) {
-            // todo - we need to indicate that we cannot do this,
-            //      and return a forced snapshot
-            return null;
-        }
-
-        Long oldestVersion = version.version().orElseGet(() -> eventLog.firstKey());
-        Long latestVersion = Collections.max(timestampToVersion.values());
-
-        Long firstKey = eventLog.ceilingKey(oldestVersion);
-        Long lastKey = eventLog.floorKey(latestVersion);
-
-        List<LockWatchEvent> events = new ArrayList<>(eventLog.subMap(firstKey, lastKey).values());
-        return TransactionsLockWatchEvents.success(events, timestampToVersion);
+        // Nuke
+        // todo - is this thread safe? what happens mid-way through a clear? or if multiple try to clear?
+        identifiedVersion = IdentifiedVersion.of(failed.logId(), Optional.empty());
+        eventLog.clear();
     }
 
 
@@ -119,42 +124,24 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
     }
 
-    private static class AssertSuccessVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
+    private class NewLeaderVisitor implements LockWatchStateUpdate.Visitor<Void> {
+
         @Override
-        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Failed failed) {
-            throw fail("Failed update");
+        public Void visit(LockWatchStateUpdate.Failed failed) {
+            processFailed(failed);
+            return null;
         }
 
         @Override
-        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Success success) {
-            return success;
+        public Void visit(LockWatchStateUpdate.Success success) {
+            // throw may be heavy handed, but do it for now - that or treat as if it failed
+            throw new RuntimeException();
         }
 
         @Override
-        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Snapshot snapshot) {
-            throw fail("Unexpected snapshot");
+        public Void visit(LockWatchStateUpdate.Snapshot snapshot) {
+            processSnapshot(snapshot);
+            return null;
         }
-
-    }
-
-    public static class AssertSnapshotVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Snapshot> {
-        @Override
-        public LockWatchStateUpdate.Snapshot visit(LockWatchStateUpdate.Failed failed) {
-            throw fail("Failed update");
-        }
-
-        @Override
-        public LockWatchStateUpdate.Snapshot visit(LockWatchStateUpdate.Success success) {
-            throw fail("Unexpected success");
-        }
-
-        @Override
-        public LockWatchStateUpdate.Snapshot visit(LockWatchStateUpdate.Snapshot snapshot) {
-            return snapshot;
-        }
-    }
-
-    private static RuntimeException fail(String message) {
-        return new RuntimeException(message);
     }
 }
