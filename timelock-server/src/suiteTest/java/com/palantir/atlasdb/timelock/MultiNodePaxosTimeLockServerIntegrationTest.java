@@ -82,7 +82,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
     private static final int LONG_LOCK_TIMEOUT_MS =
-            Ints.saturatedCast(ClientOptions.NON_BLOCKING_READ_TIMEOUT.plus(Duration.ofSeconds(1)).toMillis());
+            Ints.saturatedCast(ClientOptions.SHORT_READ_TIMEOUT.plus(Duration.ofSeconds(1)).toMillis());
 
     private NamespacedClients client;
 

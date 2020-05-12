@@ -27,7 +27,7 @@ public final class TestProxyUtils {
                     .shouldLimitPayload(false)
                     .userAgent(UserAgent.of(UserAgent.Agent.of("bla", "0.1.2")))
                     .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
-                    .shouldSupportBlockingOperations(false)
+                    .shouldUseExtendedTimeout(false)
                     .shouldRetry(true)
                     .build();
 

@@ -34,126 +34,126 @@ import com.palantir.lock.SimpleHeldLocksToken;
  * Given two proxies to the same set of underlying remote lock servers, one configured to expect longer-running
  * operations on the server and one not to, routes calls appropriately.
  */
-public class BlockingSensitiveLockRpcClient implements LockRpcClient {
-    private final LockRpcClient blocking;
-    private final LockRpcClient nonBlocking;
+public class TimeoutSensitiveLockRpcClient implements LockRpcClient {
+    private final LockRpcClient longTimeoutProxy;
+    private final LockRpcClient shortTimeoutProxy;
 
-    public BlockingSensitiveLockRpcClient(BlockingAndNonBlockingServices<LockRpcClient> services) {
-        this.blocking = services.blocking();
-        this.nonBlocking = services.nonBlocking();
+    public TimeoutSensitiveLockRpcClient(ShortAndLongTimeoutServices<LockRpcClient> services) {
+        this.longTimeoutProxy = services.longTimeout();
+        this.shortTimeoutProxy = services.shortTimeout();
     }
 
     @Override
     public Optional<LockResponse> lockWithFullLockResponse(String namespace, LockClient client, LockRequest request)
             throws InterruptedException {
-        return blocking.lockWithFullLockResponse(namespace, client, request);
+        return longTimeoutProxy.lockWithFullLockResponse(namespace, client, request);
     }
 
     @Override
     public boolean unlock(String namespace, HeldLocksToken token) {
-        return nonBlocking.unlock(namespace, token);
+        return shortTimeoutProxy.unlock(namespace, token);
     }
 
     @Override
     public boolean unlock(String namespace, LockRefreshToken token) {
-        return nonBlocking.unlock(namespace, token);
+        return shortTimeoutProxy.unlock(namespace, token);
     }
 
     @Override
     public boolean unlockSimple(String namespace, SimpleHeldLocksToken token) {
-        return nonBlocking.unlockSimple(namespace, token);
+        return shortTimeoutProxy.unlockSimple(namespace, token);
     }
 
     @Override
     public boolean unlockAndFreeze(String namespace, HeldLocksToken token) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blocking.unlockAndFreeze(namespace, token);
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
+        return longTimeoutProxy.unlockAndFreeze(namespace, token);
     }
 
     @Override
     public Set<HeldLocksToken> getTokens(String namespace, LockClient client) {
-        return nonBlocking.getTokens(namespace, client);
+        return shortTimeoutProxy.getTokens(namespace, client);
     }
 
     @Override
     public Set<HeldLocksToken> refreshTokens(String namespace, Iterable<HeldLocksToken> tokens) {
-        return nonBlocking.refreshTokens(namespace, tokens);
+        return shortTimeoutProxy.refreshTokens(namespace, tokens);
     }
 
     @Override
     public Optional<HeldLocksGrant> refreshGrant(String namespace, HeldLocksGrant grant) {
-        return nonBlocking.refreshGrant(namespace, grant);
+        return shortTimeoutProxy.refreshGrant(namespace, grant);
     }
 
     @Override
     public Optional<HeldLocksGrant> refreshGrant(String namespace, BigInteger grantId) {
-        return nonBlocking.refreshGrant(namespace, grantId);
+        return shortTimeoutProxy.refreshGrant(namespace, grantId);
     }
 
     @Override
     public HeldLocksGrant convertToGrant(String namespace, HeldLocksToken token) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blocking.convertToGrant(namespace, token);
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
+        return longTimeoutProxy.convertToGrant(namespace, token);
     }
 
     @Override
     public HeldLocksToken useGrant(String namespace, LockClient client, HeldLocksGrant grant) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blocking.useGrant(namespace, client, grant);
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
+        return longTimeoutProxy.useGrant(namespace, client, grant);
     }
 
     @Override
     public HeldLocksToken useGrant(String namespace, LockClient client, BigInteger grantId) {
-        // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blocking.useGrant(namespace, client, grantId);
+        // It feels like this could have a short timeout but not 100% sure so going for the safe option.
+        return longTimeoutProxy.useGrant(namespace, client, grantId);
     }
 
     @Override
     public Optional<Long> getMinLockedInVersionId(String namespace) {
-        return nonBlocking.getMinLockedInVersionId(namespace);
+        return shortTimeoutProxy.getMinLockedInVersionId(namespace);
     }
 
     @Override
     public Optional<Long> getMinLockedInVersionId(String namespace, LockClient client) {
-        return nonBlocking.getMinLockedInVersionId(namespace, client);
+        return shortTimeoutProxy.getMinLockedInVersionId(namespace, client);
     }
 
     @Override
     public Optional<Long> getMinLockedInVersionId(String namespace, String client) {
-        return nonBlocking.getMinLockedInVersionId(namespace, client);
+        return shortTimeoutProxy.getMinLockedInVersionId(namespace, client);
     }
 
     @Override
     public LockServerOptions getLockServerOptions(String namespace) {
-        return nonBlocking.getLockServerOptions(namespace);
+        return shortTimeoutProxy.getLockServerOptions(namespace);
     }
 
     @Override
     public Optional<LockRefreshToken> lock(String namespace, String client, LockRequest request)
             throws InterruptedException {
-        return blocking.lock(namespace, client, request);
+        return longTimeoutProxy.lock(namespace, client, request);
     }
 
     @Override
     public Optional<HeldLocksToken> lockAndGetHeldLocks(String namespace, String client, LockRequest request)
             throws InterruptedException {
-        return blocking.lockAndGetHeldLocks(namespace, client, request);
+        return longTimeoutProxy.lockAndGetHeldLocks(namespace, client, request);
     }
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(String namespace, Iterable<LockRefreshToken> tokens) {
-        return nonBlocking.refreshLockRefreshTokens(namespace, tokens);
+        return shortTimeoutProxy.refreshLockRefreshTokens(namespace, tokens);
     }
 
     @Override
     public long currentTimeMillis(String namespace) {
-        return nonBlocking.currentTimeMillis(namespace);
+        return shortTimeoutProxy.currentTimeMillis(namespace);
     }
 
     @Override
     public void logCurrentState(String namespace) {
-        // Even if this does take more than the non-blocking timeout, the request will fail while the server will
+        // Even if this does take more than the short timeout, the request will fail while the server will
         // dump its logs out.
-        nonBlocking.logCurrentState(namespace);
+        shortTimeoutProxy.logCurrentState(namespace);
     }
 }

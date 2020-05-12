@@ -43,10 +43,10 @@ public abstract class ClientOptions {
     // to give a suitable response.
     // In the context of TimeLock, this timeout must be longer than how long an AwaitingLeadershipProxy takes to
     // decide whether a node is the leader and still has a quorum.
-    public static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
+    public static final Duration SHORT_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
 
     // Should not be reduced below 65 seconds to support workflows involving locking.
-    static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);
+    static final Duration LONG_READ_TIMEOUT = Duration.ofSeconds(65);
 
     // Under standard settings, throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
     private static final Duration STANDARD_BACKOFF_SLOT_SIZE = Duration.ofMillis(10);
@@ -146,8 +146,7 @@ public abstract class ClientOptions {
 
     private static void setupTimeouts(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
         builder.connectTimeout(CONNECT_TIMEOUT)
-                .readTimeout(parameters.shouldSupportBlockingOperations()
-                        ? BLOCKING_READ_TIMEOUT : NON_BLOCKING_READ_TIMEOUT);
+                .readTimeout(parameters.shouldUseExtendedTimeout() ? LONG_READ_TIMEOUT : SHORT_READ_TIMEOUT);
     }
 
     private static void setupRetrying(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
