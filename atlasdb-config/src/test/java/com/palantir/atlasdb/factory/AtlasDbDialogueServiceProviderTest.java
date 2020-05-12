@@ -125,7 +125,7 @@ public class AtlasDbDialogueServiceProviderTest {
 
         Instant start = Instant.now();
         ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
-        ex.submit(this::scheduleServerRecoveryAfterTenSeconds);
+        ex.submit(this::scheduleServerRecoveryAfterFiveSeconds);
 
         assertThatCode(this::makeTimestampsRequest).doesNotThrowAnyException();
         assertThat(Instant.now())
@@ -134,8 +134,8 @@ public class AtlasDbDialogueServiceProviderTest {
         ex.shutdown();
     }
 
-    private void scheduleServerRecoveryAfterTenSeconds() {
-        Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+    private void scheduleServerRecoveryAfterFiveSeconds() {
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
         setupServerToGiveOutTimestamps();
     }
 

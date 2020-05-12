@@ -111,7 +111,6 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
     static boolean isCausedByRetryOther(Throwable throwable) {
         Throwable cause = throwable;
         while (cause != null) {
-            log.error("checking causation:", cause);
             if (cause instanceof QosException.RetryOther) {
                 return true;
             }
