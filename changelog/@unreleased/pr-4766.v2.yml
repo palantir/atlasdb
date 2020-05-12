@@ -1,7 +1,12 @@
 type: feature
 feature:
-  description: |-
-    AtlasDB now allows Dialogue to be enabled when communicating with TimeLock. Importantly, note that this is limited to AtlasDB's communication with TimeLock - internode communication between TimeLock nodes, or services using leader blocks or remote timestamp and lock services, still takes place over Conjure-Java-Runtime. Furthermore, AtlasDB currently will not share its client pools or Dialogue factories with its users.
-    This feature is in *beta* and APIs are unlikely to be stable at this time: please talk to the AtlasDB team should you wish to use this feature in production.
+  description: "AtlasDB now allows Dialogue to be enabled when communicating with
+    TimeLock. \n\nImportantly, note that this is limited to AtlasDB's communication
+    with TimeLock - internode communication between TimeLock nodes, or services using
+    leader blocks or remote timestamp and lock services, still takes place over Conjure-Java-Runtime.
+    Furthermore, AtlasDB currently will not share its client pools or Dialogue factories
+    with its users.\n\nThis feature is in *beta* and APIs are unlikely to be stable
+    at this time: please talk to the AtlasDB team should you wish to use this feature
+    in production."
   links:
   - https://github.com/palantir/atlasdb/pull/4766
