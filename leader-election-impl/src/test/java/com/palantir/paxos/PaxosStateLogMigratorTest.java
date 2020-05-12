@@ -38,15 +38,13 @@ import org.junit.rules.TemporaryFolder;
 import com.palantir.common.base.Throwables;
 
 public class PaxosStateLogMigratorTest {
-    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase
-            .of(Client.of("client"), "tom");
+    private static final NamespaceAndUseCase NAMESPACE = ImmutableNamespaceAndUseCase.of(Client.of("client"), "tom");
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     private PaxosStateLog<PaxosValue> source;
     private PaxosStateLog<PaxosValue> target;
-
     private SqlitePaxosStateLogMigrationState migrationState;
 
     @Before
@@ -55,19 +53,14 @@ public class PaxosStateLogMigratorTest {
                 .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("source").toPath());
         Supplier<Connection> targetConnSupplier = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("target").toPath());
-        source = SqlitePaxosStateLog.create(NAMESPACE_AND_USE_CASE, sourceConnSupplier);
-        target = SqlitePaxosStateLog.create(NAMESPACE_AND_USE_CASE, targetConnSupplier);
-        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, targetConnSupplier);
+        source = SqlitePaxosStateLog.create(NAMESPACE, sourceConnSupplier);
+        target = SqlitePaxosStateLog.create(NAMESPACE, targetConnSupplier);
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConnSupplier);
     }
 
     @Test
     public void emptyLogMigrationSuccessfullyMarksAsMigrated() {
-        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
-                .sourceLog(source)
-                .destinationLog(target)
-                .hydrator(PaxosValue.BYTES_HYDRATOR)
-                .migrationState(migrationState)
-                .build());
+        migrateFrom(source);
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
     }
 
@@ -75,17 +68,9 @@ public class PaxosStateLogMigratorTest {
     public void logMigrationSuccessfullyMigratesEntries() {
         long lowerBound = 10;
         long upperBound = 25;
-        List<PaxosValue> valuesWritten = LongStream.rangeClosed(lowerBound, upperBound)
-                .mapToObj(PaxosStateLogMigratorTest::valueForRound)
-                .collect(Collectors.toList());
-        valuesWritten.forEach(value -> source.writeRound(value.seq, value));
+        List<PaxosValue> valuesWritten = insertValuesWithinBounds(lowerBound, upperBound, source);
 
-        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
-                .sourceLog(source)
-                .destinationLog(target)
-                .hydrator(PaxosValue.BYTES_HYDRATOR)
-                .migrationState(migrationState)
-                .build());
+        migrateFrom(source);
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(lowerBound);
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
@@ -96,19 +81,11 @@ public class PaxosStateLogMigratorTest {
 
     @Test
     public void migrationDeletesExistingState() {
-        long lowerBound = 10;
-        long upperBound = 25;
-        List<PaxosValue> valuesWritten = LongStream.rangeClosed(lowerBound, upperBound)
-                .mapToObj(PaxosStateLogMigratorTest::valueForRound)
-                .collect(Collectors.toList());
-        valuesWritten.forEach(value -> target.writeRound(value.seq, value));
+        long lowerBound = 13;
+        long upperBound = 35;
+        List<PaxosValue> valuesWritten = insertValuesWithinBounds(lowerBound, upperBound, target);
 
-        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
-                .sourceLog(source)
-                .destinationLog(target)
-                .hydrator(PaxosValue.BYTES_HYDRATOR)
-                .migrationState(migrationState)
-                .build());
+        migrateFrom(source);
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
@@ -119,19 +96,11 @@ public class PaxosStateLogMigratorTest {
     public void doNotMigrateIfAlreadyMigrated() {
         migrationState.finishMigration();
 
-        long lowerBound = 10;
-        long upperBound = 25;
-        List<PaxosValue> valuesWritten = LongStream.rangeClosed(lowerBound, upperBound)
-                .mapToObj(PaxosStateLogMigratorTest::valueForRound)
-                .collect(Collectors.toList());
-        valuesWritten.forEach(value -> source.writeRound(value.seq, value));
+        long lowerBound = 1;
+        long upperBound = 22;
+        List<PaxosValue> valuesWritten = insertValuesWithinBounds(lowerBound, upperBound, source);
 
-        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
-                .sourceLog(source)
-                .destinationLog(target)
-                .hydrator(PaxosValue.BYTES_HYDRATOR)
-                .migrationState(migrationState)
-                .build());
+        migrateFrom(source);
 
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
@@ -156,12 +125,7 @@ public class PaxosStateLogMigratorTest {
             return valueForRound(sequence).persistToBytes();
         });
 
-        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
-                .sourceLog(mockLog)
-                .destinationLog(target)
-                .hydrator(PaxosValue.BYTES_HYDRATOR)
-                .migrationState(migrationState)
-                .build());
+        migrateFrom(mockLog);
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(lowerBound);
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
@@ -169,6 +133,23 @@ public class PaxosStateLogMigratorTest {
         for (long counter = lowerBound; counter <= upperBound; counter += BATCH_SIZE) {
             assertThat(readRoundUnchecked(counter)).containsExactly(valueForRound(counter).persistToBytes());
         }
+    }
+
+    private void migrateFrom(PaxosStateLog<PaxosValue> sourceLog) {
+        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
+                .sourceLog(sourceLog)
+                .destinationLog(target)
+                .hydrator(PaxosValue.BYTES_HYDRATOR)
+                .migrationState(migrationState)
+                .build());
+    }
+
+    private List<PaxosValue> insertValuesWithinBounds(long from, long to, PaxosStateLog<PaxosValue> targetLog) {
+        List<PaxosValue> valuesWritten = LongStream.rangeClosed(from, to)
+                .mapToObj(PaxosStateLogMigratorTest::valueForRound)
+                .collect(Collectors.toList());
+        valuesWritten.forEach(value -> targetLog.writeRound(value.seq, value));
+        return valuesWritten;
     }
 
     private byte[] readRoundUnchecked(long seq) {

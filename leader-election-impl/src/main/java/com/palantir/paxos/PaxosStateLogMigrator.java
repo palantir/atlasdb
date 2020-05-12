@@ -20,9 +20,11 @@ import java.util.stream.LongStream;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.persist.Persistable;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
+    @VisibleForTesting
     static final int BATCH_SIZE = 10_000;
 
     private final PaxosStateLog<V> sourceLog;
