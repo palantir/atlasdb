@@ -32,4 +32,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
         "maximumConjureRemotingProbability",
         "enableLegacyClientFallback"})
 @Value.Immutable
-public interface RemotingClientConfig {}
+public interface RemotingClientConfig {
+    @Value.Default
+    default boolean enableDialogue() {
+        return false;
+    }
+}
