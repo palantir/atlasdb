@@ -16,20 +16,13 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.Map;
 
-import org.immutables.value.Value;
-
-
-@Value.Immutable
-public interface IdentifiedVersion {
-    @Value.Parameter
-    UUID id();
-    @Value.Parameter
-    Optional<Long> version();
-
-    static IdentifiedVersion of(UUID id, Optional<Long> version) {
-        return ImmutableIdentifiedVersion.of(id, version);
-    }
+public interface ClientLockWatchEventLog {
+    // todo - consider concurrency
+    TransactionsLockWatchEvents getEventsForTransactions(
+            Map<Long, Long> timestampToVersion,
+            IdentifiedVersion version);
+    IdentifiedVersion getLatestKnownVersion();
+    void processUpdate(LockWatchStateUpdate update);
 }

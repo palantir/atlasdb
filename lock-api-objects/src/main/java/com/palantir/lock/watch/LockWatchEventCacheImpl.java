@@ -16,40 +16,39 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
-import com.google.common.collect.ImmutableSet;
+public final class LockWatchEventCacheImpl implements LockWatchEventCache {
+    private final ClientLockWatchEventLog lockWatchEventLog;
 
-@SuppressWarnings("FinalClass") // mocks
-public class NoOpLockWatchEventCache implements LockWatchEventCache {
-    public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
-    private static final IdentifiedVersion FAKE = IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
-    private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
-
-    private NoOpLockWatchEventCache() {
-        // singleton
+    public LockWatchEventCacheImpl(
+            ClientLockWatchEventLog lockWatchEventLog) {
+        this.lockWatchEventLog = lockWatchEventLog;
     }
 
     @Override
     public IdentifiedVersion lastKnownVersion() {
-        return FAKE;
+        return lockWatchEventLog.getLatestKnownVersion();
     }
 
     @Override
     public IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
-        return FAKE;
+        // todo - do some processing to store the timestamps
+        // note that we will need to also know the leader, lest it change and we also need to invalidate all
+        processUpdate(update);
+        // todo - determine whether we need to return anything
+        return lastKnownVersion();
     }
 
     @Override
     public void processUpdate(LockWatchStateUpdate update) {
-        // noop;
+        lockWatchEventLog.processUpdate(update);
     }
 
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
-        return NONE;
+        // todo - implement the piece where we cache timestamp -> version mappings
+        return lockWatchEventLog.getEventsForTransactions(null, version);
     }
 }
