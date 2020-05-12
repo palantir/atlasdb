@@ -25,13 +25,18 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
+
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
+    private static final LockWatchStateUpdate.Snapshot FAILED_SNAPSHOT =
+            LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of());
+
     private final ProcessingVisitor processingVisitor = new ProcessingVisitor();
     private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
     private final ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
-//    private final ConcurrentSkipListSet<Long> processingTime = new ConcurrentSkipListSet<>();
+    //    private final ConcurrentSkipListSet<Long> processingTime = new ConcurrentSkipListSet<>();
     private volatile IdentifiedVersion identifiedVersion; // todo - is this sufficient for concurrency?
-    private volatile LockWatchStateUpdate.Snapshot seed = null;
+    private volatile LockWatchStateUpdate.Snapshot seed = FAILED_SNAPSHOT;
 
     private ClientLockWatchEventLogImpl() {
         identifiedVersion = IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
@@ -73,10 +78,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     // This needs to make sure successes are not being processed at a time before the start version
     private List<LockWatchEvent> getEventsBetweenVersions(long startVersion, long endVersion) {
-//        if (processingTime.ceiling(startVersion) != null) {
-            // we can't do anything as we are still waiting for processing to happen...
-            // could either wait, or throw, or do something I guess
-//        }
+        //        if (processingTime.ceiling(startVersion) != null) {
+        // we can't do anything as we are still waiting for processing to happen...
+        // could either wait, or throw, or do something I guess
+        //        }
         long startKey = eventLog.ceilingKey(startVersion);
         long endKey = eventLog.floorKey(endVersion);
         return new ArrayList<>(eventLog.subMap(startKey, endKey).values());
@@ -91,7 +96,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         identifiedVersion = localVersion;
         Long minVersion = Collections.min(
                 success.events().stream().map(LockWatchEvent::sequence).collect(Collectors.toList()));
-//        processingTime.add(minVersion);
+        //        processingTime.add(minVersion);
 
         // using filter is super hacky way of exiting early, e.g. breaking
         success.events().stream().filter(event -> {
@@ -106,7 +111,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             }
         }).findFirst();
 
-//        processingTime.remove(minVersion);
+        //        processingTime.remove(minVersion);
     }
 
     // Race condition:
@@ -118,7 +123,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         // Nuke, then treat as a created event of everything
         identifiedVersion = IdentifiedVersion.of(snapshot.logId(), Optional.of(snapshot.lastKnownVersion()));
         eventLog.clear();
-//        processingTime.clear();
+        //        processingTime.clear();
         seed = snapshot;
     }
 
@@ -127,8 +132,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         // Nuke
         identifiedVersion = IdentifiedVersion.of(failed.logId(), Optional.empty());
         eventLog.clear();
-//        processingTime.clear();
-        seed = null;
+        //        processingTime.clear();
+        seed = FAILED_SNAPSHOT;
     }
 
 
