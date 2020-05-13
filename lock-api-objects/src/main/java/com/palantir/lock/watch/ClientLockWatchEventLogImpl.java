@@ -70,7 +70,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
         Long latestVersion = Collections.max(timestampToVersion.values());
 
-        if (eventsBeforeTimestampAreImmutable(latestVersion)) {
+        if (!eventsBeforeTimestampAreImmutable(latestVersion)) {
             // case 1: we wait (processing, but our version is in the future);
             // case 2: we throw / fail (but in a retryable way)
         }
