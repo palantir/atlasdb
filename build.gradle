@@ -13,7 +13,7 @@ buildscript {
 
     dependencies {
         classpath 'com.netflix.nebula:gradle-info-plugin:5.2.0'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
         classpath 'com.palantir.baseline:gradle-baseline-java:1.8.2'
