@@ -57,12 +57,20 @@ public final class SqlitePaxosStateLogMigrationState {
         execute(dao -> dao.migrateToVersion(namespace, useCase, States.VALIDATION.schemaVersion));
     }
 
+    public void migrateToMigratedState() {
+        execute(dao -> dao.migrateToVersion(namespace, useCase, States.MIGRATED.schemaVersion));
+    }
+
     public boolean hasMigratedFromInitialState() {
         return !Objects.equals(States.NONE.getSchemaVersion(), execute(dao -> dao.getVersion(namespace, useCase)));
     }
 
     public boolean isInValidationState() {
         return States.VALIDATION.getSchemaVersion().equals(execute(dao -> dao.getVersion(namespace, useCase)));
+    }
+
+    public boolean isInMigratedState() {
+        return States.MIGRATED.getSchemaVersion().equals(execute(dao -> dao.getVersion(namespace, useCase)));
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -86,7 +94,7 @@ public final class SqlitePaxosStateLogMigrationState {
     }
 
     private enum States {
-        NONE(null), VALIDATION(0);
+        NONE(null), VALIDATION(0), MIGRATED(1);
 
         Integer schemaVersion;
         States(Integer schemaVersion) {

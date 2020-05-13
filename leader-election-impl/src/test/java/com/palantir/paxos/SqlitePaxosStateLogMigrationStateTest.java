@@ -44,25 +44,41 @@ public class SqlitePaxosStateLogMigrationStateTest {
     }
 
     @Test
-    public void initialStateIsNotMigrated() {
+    public void initialStateTest() {
         assertThat(migrationState.hasMigratedFromInitialState()).isFalse();
         assertThat(migrationState.isInValidationState()).isFalse();
+        assertThat(migrationState.isInMigratedState()).isFalse();
+    }
+
+    @Test
+    public void canSetStateToValidation() {
+        migrationState.migrateToValidationState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isFalse();
     }
 
     @Test
     public void canSetStateToMigrated() {
-        migrationState.migrateToValidationState();
+        migrationState.migrateToMigratedState();
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
-        assertThat(migrationState.isInValidationState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isFalse();
+        assertThat(migrationState.isInMigratedState()).isTrue();
     }
 
     @Test
-    public void canSetStateToMigratedMultipleTimes() {
+    public void canChangeStates() {
         migrationState.migrateToValidationState();
-        migrationState.migrateToValidationState();
+        migrationState.migrateToMigratedState();
+        migrationState.migrateToMigratedState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isFalse();
+        assertThat(migrationState.isInMigratedState()).isTrue();
+
         migrationState.migrateToValidationState();
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(migrationState.isInValidationState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isFalse();
     }
 
     @Test
