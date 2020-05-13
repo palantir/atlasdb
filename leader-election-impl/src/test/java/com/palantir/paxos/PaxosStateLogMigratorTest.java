@@ -60,7 +60,7 @@ public class PaxosStateLogMigratorTest {
     @Test
     public void emptyLogMigrationSuccessfullyMarksAsMigrated() {
         migrateFrom(source);
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
     }
 
     @Test
@@ -70,7 +70,7 @@ public class PaxosStateLogMigratorTest {
         List<PaxosValue> valuesWritten = insertValuesWithinBounds(lowerBound, upperBound, source);
 
         migrateFrom(source);
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(lowerBound);
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
 
@@ -86,7 +86,7 @@ public class PaxosStateLogMigratorTest {
         List<PaxosValue> valuesWritten = insertValuesWithinBounds(lowerBound, upperBound, target);
 
         migrateFrom(source);
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         valuesWritten.forEach(value -> assertThat(readRoundUnchecked(target, value.seq)).isNull());
@@ -94,7 +94,7 @@ public class PaxosStateLogMigratorTest {
 
     @Test
     public void doNotMigrateIfAlreadyMigrated() {
-        migrationState.finishMigration();
+        migrationState.migrateToValidationState();
 
         long lowerBound = 1;
         long upperBound = 22;
@@ -102,7 +102,7 @@ public class PaxosStateLogMigratorTest {
 
         migrateFrom(source);
 
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         valuesWritten.forEach(value -> assertThat(readRoundUnchecked(target, value.seq)).isNull());
@@ -126,7 +126,7 @@ public class PaxosStateLogMigratorTest {
         });
 
         migrateFrom(mockLog);
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(lowerBound);
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
 

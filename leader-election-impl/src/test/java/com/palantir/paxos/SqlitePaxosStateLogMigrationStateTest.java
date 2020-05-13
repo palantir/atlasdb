@@ -45,42 +45,45 @@ public class SqlitePaxosStateLogMigrationStateTest {
 
     @Test
     public void initialStateIsNotMigrated() {
-        assertThat(migrationState.hasAlreadyMigrated()).isFalse();
+        assertThat(migrationState.hasMigratedFromInitialState()).isFalse();
+        assertThat(migrationState.isInValidationState()).isFalse();
     }
 
     @Test
     public void canSetStateToMigrated() {
-        migrationState.finishMigration();
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        migrationState.migrateToValidationState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isTrue();
     }
 
     @Test
     public void canSetStateToMigratedMultipleTimes() {
-        migrationState.finishMigration();
-        migrationState.finishMigration();
-        migrationState.finishMigration();
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        migrationState.migrateToValidationState();
+        migrationState.migrateToValidationState();
+        migrationState.migrateToValidationState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isTrue();
     }
 
     @Test
     public void finishingMigrationForOneNamespaceDoesNotSetFlagForOthers() {
-        migrationState.finishMigration();
+        migrationState.migrateToValidationState();
 
         SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
                 .create(ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), connSupplier);
-        assertThat(otherState.hasAlreadyMigrated()).isFalse();
-        otherState.finishMigration();
-        assertThat(otherState.hasAlreadyMigrated()).isTrue();
+        assertThat(otherState.hasMigratedFromInitialState()).isFalse();
+        otherState.migrateToValidationState();
+        assertThat(otherState.hasMigratedFromInitialState()).isTrue();
     }
 
     @Test
     public void finishingMigrationForOneUseCaseDoesNotSetFlagForOthers() {
-        migrationState.finishMigration();
+        migrationState.migrateToValidationState();
 
         SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
                 .create(ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), connSupplier);
-        assertThat(otherState.hasAlreadyMigrated()).isFalse();
-        otherState.finishMigration();
-        assertThat(otherState.hasAlreadyMigrated()).isTrue();
+        assertThat(otherState.hasMigratedFromInitialState()).isFalse();
+        otherState.migrateToValidationState();
+        assertThat(otherState.hasMigratedFromInitialState()).isTrue();
     }
 }

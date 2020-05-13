@@ -52,7 +52,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     }
 
     private void runMigration() {
-        if (migrationState.hasAlreadyMigrated()) {
+        if (migrationState.hasMigratedFromInitialState()) {
             return;
         }
 
@@ -60,7 +60,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         long lowerBound = lowestSequenceToMigrate();
         long upperBound = sourceLog.getGreatestLogEntry();
         if (upperBound == PaxosAcceptor.NO_LOG_ENTRY) {
-            migrationState.finishMigration();
+            migrationState.migrateToValidationState();
             return;
         }
 
@@ -71,7 +71,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                     .mapToObj(sequence -> reader.readBatch(sequence, BATCH_SIZE))
                     .forEach(destinationLog::writeBatchOfRounds);
         }
-        migrationState.finishMigration();
+        migrationState.migrateToValidationState();
     }
 
     private long lowestSequenceToMigrate() {
