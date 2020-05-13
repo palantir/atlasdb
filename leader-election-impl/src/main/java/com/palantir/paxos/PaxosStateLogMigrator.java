@@ -63,7 +63,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             migrationState.finishMigration();
             return;
         }
-        
+
         try (PaxosStateLogBatchReader<V> reader = new PaxosStateLogBatchReader<>(sourceLog, hydrator, 100)) {
             long numberOfBatches = (upperBound - lowerBound) / BATCH_SIZE + 1;
             LongStream.iterate(lowerBound, x -> x + BATCH_SIZE)
