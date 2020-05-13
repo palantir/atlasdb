@@ -22,6 +22,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,11 +41,8 @@ import com.google.common.util.concurrent.Uninterruptibles;
 public class PaxosStateLogBatchReaderTest {
     private static final int START_SEQUENCE = 123;
     private static final int BATCH_SIZE = 250;
-    private static final List<PaxosRound<PaxosValue>> EXPECTED_ROUNDS = LongStream
-            .range(START_SEQUENCE, START_SEQUENCE + BATCH_SIZE)
-            .mapToObj(PaxosStateLogBatchReaderTest::valueForRound)
-            .map(value -> PaxosRound.of(value.seq, value))
-            .collect(Collectors.toList());
+    private static final List<PaxosRound<PaxosValue>> EXPECTED_ROUNDS = generateRounds(
+            LongStream.range(START_SEQUENCE, START_SEQUENCE + BATCH_SIZE));
 
     private PaxosStateLog<PaxosValue> mockLog = mock(PaxosStateLog.class);
 
@@ -118,10 +118,5 @@ public class PaxosStateLogBatchReaderTest {
 
     private PaxosStateLogBatchReader<PaxosValue> createReader() {
         return new PaxosStateLogBatchReader<>(mockLog, PaxosValue.BYTES_HYDRATOR, 100);
-    }
-
-    private static PaxosValue valueForRound(long round) {
-        byte[] bytes = new byte[] { 1, 2, 3 };
-        return new PaxosValue("someLeader", round, bytes);
     }
 }

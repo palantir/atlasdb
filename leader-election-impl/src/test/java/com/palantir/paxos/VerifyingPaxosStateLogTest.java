@@ -28,8 +28,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
+
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.junit.After;
 import org.junit.Before;
@@ -145,15 +146,5 @@ public class VerifyingPaxosStateLogTest {
         assertThatThrownBy(() -> log.truncate(7L)).isInstanceOf(RuntimeException.class);
         verify(experimental).truncate(7L);
         verify(current, never()).truncate(anyLong());
-    }
-
-    private static PaxosValue valueForRound(long round) {
-        return new PaxosValue("someLeader", round, longToBytes(round));
-    }
-
-    private static byte[] longToBytes(long value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(value);
-        return buffer.array();
     }
 }

@@ -22,6 +22,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import static com.palantir.paxos.PaxosStateLogMigrator.BATCH_SIZE;
+import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
+import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -35,11 +38,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.common.base.Throwables;
-
 public class PaxosStateLogMigratorTest {
-    private static final NamespaceAndUseCase NAMESPACE = ImmutableNamespaceAndUseCase.of(Client.of("client"), "tom");
-
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -76,7 +75,8 @@ public class PaxosStateLogMigratorTest {
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
 
         valuesWritten.forEach(value ->
-                assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(readRoundUnchecked(value.seq))).isEqualTo(value));
+                assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(readRoundUnchecked(target, value.seq)))
+                        .isEqualTo(value));
     }
 
     @Test
@@ -89,7 +89,7 @@ public class PaxosStateLogMigratorTest {
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
-        valuesWritten.forEach(value -> assertThat(readRoundUnchecked(value.seq)).isNull());
+        valuesWritten.forEach(value -> assertThat(readRoundUnchecked(target, value.seq)).isNull());
     }
 
     @Test
@@ -105,7 +105,7 @@ public class PaxosStateLogMigratorTest {
         assertThat(migrationState.hasAlreadyMigrated()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
-        valuesWritten.forEach(value -> assertThat(readRoundUnchecked(value.seq)).isNull());
+        valuesWritten.forEach(value -> assertThat(readRoundUnchecked(target, value.seq)).isNull());
     }
 
     @Test
@@ -131,7 +131,7 @@ public class PaxosStateLogMigratorTest {
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
 
         for (long counter = lowerBound; counter <= upperBound; counter += BATCH_SIZE) {
-            assertThat(readRoundUnchecked(counter)).containsExactly(valueForRound(counter).persistToBytes());
+            assertThat(readRoundUnchecked(target, counter)).containsExactly(valueForRound(counter).persistToBytes());
         }
     }
 
@@ -146,22 +146,9 @@ public class PaxosStateLogMigratorTest {
 
     private List<PaxosValue> insertValuesWithinBounds(long from, long to, PaxosStateLog<PaxosValue> targetLog) {
         List<PaxosValue> valuesWritten = LongStream.rangeClosed(from, to)
-                .mapToObj(PaxosStateLogMigratorTest::valueForRound)
+                .mapToObj(PaxosStateLogTestUtils::valueForRound)
                 .collect(Collectors.toList());
         valuesWritten.forEach(value -> targetLog.writeRound(value.seq, value));
         return valuesWritten;
-    }
-
-    private byte[] readRoundUnchecked(long seq) {
-        try {
-            return target.readRound(seq);
-        } catch (IOException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
-
-    private static PaxosValue valueForRound(long round) {
-        byte[] bytes = new byte[] { 1 };
-        return new PaxosValue("someLeader", round, bytes);
     }
 }
