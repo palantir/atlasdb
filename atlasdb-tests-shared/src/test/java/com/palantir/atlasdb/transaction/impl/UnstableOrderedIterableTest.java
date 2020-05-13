@@ -18,31 +18,23 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 public class UnstableOrderedIterableTest {
     @Test
     public void orderingIsUnstable() {
-        // Strobes once in 1000000! times. We can live with that.
-        List<Integer> numbers = IntStream.range(0, 1000000).boxed().collect(Collectors.toList());
-        Iterable<Integer> numbersIterable = new UnstableOrderedIterable<>(numbers);
-
-        List<Integer> iterationOrder = Lists.newArrayList();
-        numbersIterable.iterator().forEachRemaining(iterationOrder::add);
-
-        List<Integer> secondIterationOrder = Lists.newArrayList();
-        numbersIterable.iterator().forEachRemaining(secondIterationOrder::add);
-
-        assertThat(iterationOrder).isNotEqualTo(secondIterationOrder);
-
-        // hasSameElementsAs() etc. seem to be inefficient
-        assertThat(ImmutableSet.copyOf(iterationOrder)).isEqualTo(ImmutableSet.copyOf(numbers));
+        Iterable<Integer> numbers = UnstableOrderedIterable.create(ImmutableList.of(1, 2), Comparator.naturalOrder());
+        assertThat(ImmutableList.copyOf(numbers)).containsExactly(1, 2);
+        assertThat(ImmutableList.copyOf(numbers)).containsExactly(2, 1);
+        assertThat(ImmutableList.copyOf(numbers)).containsExactly(1, 2);
     }
 }

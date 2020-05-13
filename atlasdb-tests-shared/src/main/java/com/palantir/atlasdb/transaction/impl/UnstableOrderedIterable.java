@@ -17,24 +17,27 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 
 public class UnstableOrderedIterable<T> implements Iterable<T> {
-    private final List<T> underlying;
+    private final Iterator<List<T>> orderingIterator;
 
-    public UnstableOrderedIterable(Collection<T> underlying) {
-        this.underlying = ImmutableList.copyOf(underlying);
+    private UnstableOrderedIterable(Iterator<List<T>> orderingIterator) {
+        this.orderingIterator = orderingIterator;
+    }
+
+    public static <T> Iterable<T> create(Collection<T> underlying, Comparator<T> comparator) {
+        return new UnstableOrderedIterable<T>(
+                Iterables.cycle(Collections2.orderedPermutations(underlying, comparator)).iterator());
     }
 
     @Override
     public Iterator<T> iterator() {
-        List<T> copy = Lists.newArrayList(underlying);
-        Collections.shuffle(copy);
-        return copy.iterator();
+        return orderingIterator.next().iterator();
     }
 }

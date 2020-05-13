@@ -1336,7 +1336,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .satisfies(rowResult ->
                         assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
 
-        byte[] rowKeyCopy = row(0);
+        byte[] rowKeyCopy = rowKey.clone();
         assertThat(rowKeyCopy).isNotSameAs(rowKey);
         assertThat(result.get(rowKeyCopy))
                 .as("it should be possible to get a row from getRows with a copy of a passed-in byte array")
@@ -1410,9 +1410,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThat(Arrays.equals(directLookupResults.get(Cell.create(row0, col0)), value(0))).isTrue();
 
         Map<Cell, byte[]> indirectLookupResults = Maps.newHashMap();
-        result.get(row(1)).forEachRemaining(entry -> indirectLookupResults.put(entry.getKey(), entry.getValue()));
+        result.get(row1.clone()).forEachRemaining(entry -> indirectLookupResults.put(entry.getKey(), entry.getValue()));
         assertThat(indirectLookupResults).hasSize(1);
-        assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row(1), col0)), value(1))).isTrue();
+        assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row1.clone(), col0)), value(1))).isTrue();
     }
 
     @Test
@@ -1434,7 +1434,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator())));
         Iterator<Map.Entry<Cell, byte[]>> result = t.getRowsColumnRange(
                 TEST_TABLE,
-                new UnstableOrderedIterable<>(rowNames),
+                UnstableOrderedIterable.create(rowNames, UnsignedBytes.lexicographicalComparator()),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
                 5);
 
