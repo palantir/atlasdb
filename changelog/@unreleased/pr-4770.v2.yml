@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Expose a new method on SweepStrategyManager to allow invalidating the
+    table metadata cache on specific tables. Useful for clients that want to change
+    the sweep strategy on an existing table without bouncing the service.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4770
