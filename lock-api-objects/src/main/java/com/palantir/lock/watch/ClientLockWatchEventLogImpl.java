@@ -25,7 +25,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private static final LockWatchStateUpdate.Snapshot FAILED_SNAPSHOT =
@@ -35,7 +37,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
     private final ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
     //    private final ConcurrentSkipListSet<Long> processingTime = new ConcurrentSkipListSet<>();
-    private volatile IdentifiedVersion identifiedVersion; // todo - is this sufficient for concurrency?
+    private volatile IdentifiedVersion identifiedVersion;
     private volatile LockWatchStateUpdate.Snapshot seed = FAILED_SNAPSHOT;
 
     private ClientLockWatchEventLogImpl() {
@@ -68,6 +70,11 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             return TransactionsLockWatchEvents.failure(seed);
         }
 
+        if (eventLog.isEmpty()) {
+            return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
+        }
+
+        // There is NO guarantee that this is not empty at this current point
         Long oldestVersion = version.version().orElseGet(eventLog::firstKey);
         Long latestVersion = Collections.max(timestampToVersion.values());
 
@@ -78,6 +85,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     // This needs to make sure successes are not being processed at a time before the start version
     private List<LockWatchEvent> getEventsBetweenVersions(long startVersion, long endVersion) {
+        Preconditions.checkArgument(startVersion <= endVersion, "startVersion should be before endVersion");
         //        if (processingTime.ceiling(startVersion) != null) {
         // we can't do anything as we are still waiting for processing to happen...
         // could either wait, or throw, or do something I guess
