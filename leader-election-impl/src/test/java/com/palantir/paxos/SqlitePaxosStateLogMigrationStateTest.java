@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.util.function.Supplier;
@@ -67,18 +68,21 @@ public class SqlitePaxosStateLogMigrationStateTest {
     }
 
     @Test
-    public void canChangeStates() {
+    public void canProgressThroughAndRepeatMigrationStates() {
+        migrationState.migrateToValidationState();
         migrationState.migrateToValidationState();
         migrationState.migrateToMigratedState();
         migrationState.migrateToMigratedState();
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(migrationState.isInValidationState()).isFalse();
         assertThat(migrationState.isInMigratedState()).isTrue();
+    }
 
+    @Test
+    public void cannotRegressToLowerMigrationState() {
         migrationState.migrateToValidationState();
-        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
-        assertThat(migrationState.isInValidationState()).isTrue();
-        assertThat(migrationState.isInMigratedState()).isFalse();
+        migrationState.migrateToMigratedState();
+        assertThatThrownBy(migrationState::migrateToValidationState).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
