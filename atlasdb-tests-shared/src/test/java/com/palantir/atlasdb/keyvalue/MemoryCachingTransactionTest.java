@@ -20,9 +20,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.CachingTransaction;
 
 public class MemoryCachingTransactionTest extends MemoryTransactionTest {
-    public MemoryCachingTransactionTest() {
-        super();
-    }
+    public MemoryCachingTransactionTest() {}
 
     @Override
     protected Transaction startTransaction() {

@@ -24,7 +24,7 @@ import java.util.List;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 
-public class UnstableOrderedIterable<T> implements Iterable<T> {
+public final class UnstableOrderedIterable<T> implements Iterable<T> {
     private final Iterator<List<T>> orderingIterator;
 
     private UnstableOrderedIterable(Iterator<List<T>> orderingIterator) {
