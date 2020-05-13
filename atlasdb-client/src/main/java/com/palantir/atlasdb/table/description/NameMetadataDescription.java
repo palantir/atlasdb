@@ -20,21 +20,14 @@ import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 
 @Immutable
@@ -179,55 +172,6 @@ public class NameMetadataDescription {
         }
         sb.append("}");
         return sb.toString();
-    }
-
-    public byte[] parseFromJson(String json, boolean allowPrefix) {
-        try {
-            JSONObject obj = (JSONObject) new JSONParser().parse(json);
-            int numDefinedFields = countNumDefinedFields(obj);
-            byte[][] bytes = new byte[numDefinedFields][];
-
-            Preconditions.checkArgument(numDefinedFields > 0,
-                    "JSON object needs a field named: %s.  Passed json was: %s",
-                    rowParts.get(0).getComponentName(),
-                    json);
-            Preconditions.checkArgument(allowPrefix || numDefinedFields == rowParts.size(),
-                    "JSON object has %s defined fields, but the number of row components is %s.  Passed json was: %s",
-                    numDefinedFields,
-                    rowParts.size(),
-                    json);
-
-            for (int i = 0; i < numDefinedFields; ++i) {
-                NameComponentDescription desc = rowParts.get(i);
-                String str = String.valueOf(obj.get(desc.getComponentName()));
-                bytes[i] = desc.getType().convertFromString(str);
-                if (desc.isReverseOrder()) {
-                    EncodingUtils.flipAllBitsInPlace(bytes[i]);
-                }
-            }
-
-            return Bytes.concat(bytes);
-        } catch (ParseException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
-    private int countNumDefinedFields(JSONObject obj) {
-        int numFields = 0;
-        for (; numFields < rowParts.size(); ++numFields) {
-            if (!obj.containsKey(rowParts.get(numFields).getComponentName())) {
-                break;
-            }
-        }
-
-        for (int i = numFields + 1; i < rowParts.size(); ++i) {
-            String componentName = rowParts.get(i).getComponentName();
-            if (obj.containsKey(componentName)) {
-                throw new IllegalArgumentException("JSON object is missing field: "
-                        + rowParts.get(i - 1).getComponentName());
-            }
-        }
-        return numFields;
     }
 
     public TableMetadataPersistence.NameMetadataDescription.Builder persistToProto() {

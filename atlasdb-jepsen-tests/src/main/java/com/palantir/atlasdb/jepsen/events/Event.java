@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -26,9 +25,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
+import com.palantir.common.streams.KeyedStream;
 
 import clojure.lang.Keyword;
-import one.util.streamex.EntryStream;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
@@ -44,21 +43,20 @@ public interface Event {
 
     static Event fromKeywordMap(Map<Keyword, ?> map) {
         Map<Keyword, ?> encodedMap = EventUtils.encodeNemesis(map);
-        Map<String, Object> convertedMap = new HashMap<>();
-        EntryStream.of(encodedMap)
+        Map<String, Object> convertedMap = KeyedStream.stream(encodedMap)
                 .mapKeys(Keyword::getName)
-                .mapValues(value -> value != null && value instanceof Keyword ? ((Keyword) value).getName() : value)
-                .forKeyValue(convertedMap::put);
+                .map(value -> value != null & value instanceof Keyword ? ((Keyword) value).getName() : value)
+                .collectToMap();
         return OBJECT_MAPPER.convertValue(convertedMap, Event.class);
     }
 
     static Map<Keyword, Object> toKeywordMap(Event event) {
         Map<String, Object> rawStringMap =
                 OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, Object>>() {});
-        return EntryStream.of(rawStringMap)
-                .filterValues(Objects::nonNull)
-                .mapKeys(Keyword::intern)
-                .toMap();
+        return KeyedStream.stream(rawStringMap)
+                .filter(Objects::nonNull)
+                .mapKeys(key -> Keyword.intern(key))
+                .collectToMap();
     }
 
     long time();
