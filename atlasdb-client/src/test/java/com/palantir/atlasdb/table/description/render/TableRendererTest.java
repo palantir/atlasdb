@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -41,27 +38,25 @@ public class TableRendererTest {
     @Test
     public void testCanRenderGuavaOptionals() {
         TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
-        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
-                allOf(
-                        containsString("import com.google.common.base.Optional"),
-                        not(containsString("import java.util.Optional")),
-                        containsString("{@link Optional}"),
-                        containsString("Optional<TestTableRowResult> getRow("),
-                        containsString("Optional.absent"),
-                        not(containsString("Optional.empty"))));
+        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES))
+                .contains("import com.google.common.base.Optional")
+                .doesNotContain("import java.util.Optional")
+                .contains("{@link Optional}")
+                .contains("Optional<TestTableRowResult> getRow(")
+                .contains("Optional.absent")
+                .doesNotContain("Optional.empty");
     }
 
     @Test
     public void testCanRenderJava8Optionals() {
         TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
-        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
-                allOf(
-                        not(containsString("import com.google.common.base.Optional")),
-                        containsString("import java.util.Optional"),
-                        containsString("{@link Optional}"),
-                        containsString("Optional<TestTableRowResult> getRow("),
-                        not(containsString("Optional.absent")),
-                        containsString("Optional.empty")));
+        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES))
+                .doesNotContain("import com.google.common.base.Optional")
+                .contains("import java.util.Optional")
+                .contains("{@link Optional}")
+                .contains("Optional<TestTableRowResult> getRow(")
+                .doesNotContain("Optional.absent")
+                .contains("Optional.empty");
     }
 
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
@@ -78,11 +73,8 @@ public class TableRendererTest {
     public void testReusablePersisters() {
         TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
         String renderedTableDefinition = renderer.render("table", getTableWithUserSpecifiedPersister(TABLE_REF), NO_INDICES);
-        assertThat(renderedTableDefinition,
-                allOf(
-                        containsString("REUSABLE_PERSISTER.hydrateFromBytes"),
-                        containsString("private final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =")
-        ));
+        assertThat(renderedTableDefinition).contains("REUSABLE_PERSISTER.hydrateFromBytes")
+                .contains("private final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =");
     }
 
     private TableDefinition getTableWithUserSpecifiedPersister(TableReference tableRef) {
