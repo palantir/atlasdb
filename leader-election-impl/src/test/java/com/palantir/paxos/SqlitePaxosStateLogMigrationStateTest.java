@@ -70,7 +70,6 @@ public class SqlitePaxosStateLogMigrationStateTest {
     @Test
     public void canProgressThroughAndRepeatMigrationStates() {
         migrationState.migrateToValidationState();
-        migrationState.migrateToValidationState();
         migrationState.migrateToMigratedState();
         migrationState.migrateToMigratedState();
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
