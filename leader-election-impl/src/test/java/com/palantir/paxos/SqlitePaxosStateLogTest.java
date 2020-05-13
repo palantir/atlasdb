@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -31,6 +32,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
@@ -50,7 +52,7 @@ public class SqlitePaxosStateLogTest {
     public void setup() {
         connSupplier = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
-        stateLog = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_1, connSupplier);
+        stateLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, SEQUENCE_1), connSupplier);
     }
 
     @Test
@@ -80,6 +82,11 @@ public class SqlitePaxosStateLogTest {
     }
 
     @Test
+    public void canWriteEmptyBatch() {
+        assertThatCode(() -> stateLog.writeBatchOfRounds(ImmutableList.of())).doesNotThrowAnyException();
+    }
+
+    @Test
     public void canOverwriteSequences() throws IOException {
         writeValueForRound(5L);
         PaxosValue newEntry = writeValueForRound(5L);
@@ -91,7 +98,7 @@ public class SqlitePaxosStateLogTest {
         PaxosValue v1 = writeValueForRound(5L);
         PaxosValue v2 = valueForRound(5L);
 
-        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_2, SEQUENCE_1, connSupplier);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, SEQUENCE_1), connSupplier);
         otherLog.writeRound(5L, v2);
 
         assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L))).isEqualTo(v1);
@@ -106,8 +113,8 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void extremeQueriesIgnoreEntriesFromOtherSequences() {
-        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_2, SEQUENCE_1, connSupplier);
-        PaxosStateLog<PaxosValue> anotherLog = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_2, connSupplier);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, SEQUENCE_1), connSupplier);
+        PaxosStateLog<PaxosValue> anotherLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, SEQUENCE_2), connSupplier);
         otherLog.writeRound(1L, valueForRound(1L));
         otherLog.writeRound(5L, valueForRound(5L));
         anotherLog.writeRound(2L, valueForRound(2L));
@@ -152,7 +159,7 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
-        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_2, SEQUENCE_1, connSupplier);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, SEQUENCE_1), connSupplier);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
@@ -161,7 +168,7 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void valuesAreDistinguishedAcrossSequenceIdentifiers() throws IOException {
-        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_2, connSupplier);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, SEQUENCE_2), connSupplier);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
@@ -171,11 +178,15 @@ public class SqlitePaxosStateLogTest {
     @Test
     public void differentLogsToTheSameNamespaceShareState() throws IOException {
         PaxosStateLog<PaxosValue> otherLogWithSameNamespace
-                = SqlitePaxosStateLog.create(CLIENT_1, SEQUENCE_1, connSupplier);
+                = SqlitePaxosStateLog.create(wrap(CLIENT_1, SEQUENCE_1), connSupplier);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
         assertThat(otherLogWithSameNamespace.readRound(1L)).isEqualTo(stateLog.readRound(1L));
+    }
+
+    private static NamespaceAndUseCase wrap(Client namespace, String useCase) {
+        return ImmutableNamespaceAndUseCase.of(namespace, useCase);
     }
 
     private PaxosValue writeValueForRound(long round) {

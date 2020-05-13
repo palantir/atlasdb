@@ -39,18 +39,17 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
     private final String useCase;
     private final Jdbi jdbi;
 
-    private SqlitePaxosStateLog(Client namespace, String useCase, Jdbi jdbi) {
-        this.namespace = namespace;
-        this.useCase = useCase;
+    private SqlitePaxosStateLog(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi) {
+        this.namespace = namespaceAndUseCase.namespace();
+        this.useCase = namespaceAndUseCase.useCase();
         this.jdbi = jdbi;
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(Client namespace,
-            String useCase,
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(NamespaceAndUseCase namespaceAndUseCase,
             Supplier<Connection> connectionSupplier) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
-        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespace, useCase, jdbi);
+        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
         log.initialize();
         return log;
     }
@@ -97,7 +96,7 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
         @SqlUpdate("CREATE TABLE IF NOT EXISTS paxosLog ("
                 + "namespace TEXT,"
                 + "useCase TEXT,"
-                + "seq BIGINT, "
+                + "seq BIGINT,"
                 + "val BLOB,"
                 + "PRIMARY KEY(namespace, useCase, seq))")
         boolean createTable();
