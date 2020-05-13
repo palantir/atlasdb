@@ -96,7 +96,7 @@ public class CassandraSchemaLockTest {
         executorService.submit(callable);
     }
 
-    private static Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
+    private static Matcher<File> containsFiles(Matcher<Iterable<? extends File>> fileMatcher) {
         return new FeatureMatcher<File, List<File>>(
                 fileMatcher,
                 "Directory with files such that",
