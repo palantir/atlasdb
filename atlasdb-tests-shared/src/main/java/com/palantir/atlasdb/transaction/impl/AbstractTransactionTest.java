@@ -1346,6 +1346,22 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
+    public void getRowsSortedByByteOrder() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] row1 = row(1);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0), Cell.create(row1, col0), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                t.getRows(TEST_TABLE, ImmutableList.of(row0, row1), ColumnSelection.all());
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows.lastKey()).containsExactly(row1);
+    }
+
+    @Test
     public void getRowsIncludesLocalWrites() {
         Transaction t = startTransaction();
         byte[] rowKey = row(0);
