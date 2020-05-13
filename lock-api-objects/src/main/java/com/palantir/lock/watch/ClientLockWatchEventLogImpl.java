@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -30,15 +31,12 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
-    private static final LockWatchStateUpdate.Snapshot FAILED_SNAPSHOT =
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of());
-
     private final ProcessingVisitor processingVisitor = new ProcessingVisitor();
     private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
     private final ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
-    //    private final ConcurrentSkipListSet<Long> processingTime = new ConcurrentSkipListSet<>();
+    private final ConcurrentSkipListSet<Long> processingUpTo = new ConcurrentSkipListSet<>();
     private volatile IdentifiedVersion identifiedVersion;
-    private volatile LockWatchStateUpdate.Snapshot seed = FAILED_SNAPSHOT;
+    private volatile LockWatchStateUpdate.Snapshot seed = failedSnapshot(UUID.randomUUID());
 
     private ClientLockWatchEventLogImpl() {
         identifiedVersion = IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
@@ -61,7 +59,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
     }
 
-    // todo - consider concurrency
+    // this gets complicated if it is not synchronised (of course...)
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, Long> timestampToVersion,
@@ -70,56 +68,60 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             return TransactionsLockWatchEvents.failure(seed);
         }
 
+        Long latestVersion = Collections.max(timestampToVersion.values());
+
+        if (eventsBeforeTimestampAreImmutable(latestVersion)) {
+            // case 1: we wait (processing, but our version is in the future);
+            // case 2: we throw / fail (but in a retryable way)
+        }
+
         if (eventLog.isEmpty()) {
             return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
         }
 
-        // There is NO guarantee that this is not empty at this current point
+        // The clearing of the event log can race - we could just take a snapshot of it,
+        // but unsure how performant that is.
+
+        // could have been cleared in between, so we need to verify the outcome is not null
         Long oldestVersion = version.version().orElseGet(eventLog::firstKey);
-        Long latestVersion = Collections.max(timestampToVersion.values());
+
+        if (oldestVersion == null) {
+            return TransactionsLockWatchEvents.failure(seed);
+        }
 
         return TransactionsLockWatchEvents.success(
                 getEventsBetweenVersions(oldestVersion, latestVersion),
                 timestampToVersion);
     }
 
-    // This needs to make sure successes are not being processed at a time before the start version
+    private boolean eventsBeforeTimestampAreImmutable(Long latestVersion) {
+        if (identifiedVersion.version().isPresent() && latestVersion <= identifiedVersion.version().get()) {
+            return processingUpTo.floor(latestVersion) == null;
+        }
+
+        return false;
+    }
+
     private List<LockWatchEvent> getEventsBetweenVersions(long startVersion, long endVersion) {
         Preconditions.checkArgument(startVersion <= endVersion, "startVersion should be before endVersion");
-        //        if (processingTime.ceiling(startVersion) != null) {
-        // we can't do anything as we are still waiting for processing to happen...
-        // could either wait, or throw, or do something I guess
-        //        }
-        long startKey = eventLog.ceilingKey(startVersion);
-        long endKey = eventLog.floorKey(endVersion);
+        Long startKey = eventLog.ceilingKey(startVersion);
+        Long endKey = eventLog.floorKey(endVersion);
+        // race condition - event log cleared while calling this.
+        if (startKey == null || endKey == null) {
+            return ImmutableList.of();
+        }
         return new ArrayList<>(eventLog.subMap(startKey, endKey).values());
     }
 
-    // This does not need to be synchronised, as we can have new updates happen while this is still putting in,
-    // but we know that events are put by their version (and sorted accordingly),
-    // and we know that if a snapshot or failure occurs, we stop immediately
-    private void processSuccess(LockWatchStateUpdate.Success success) {
+    private synchronized void processSuccess(LockWatchStateUpdate.Success success) {
         // Just add events
         IdentifiedVersion localVersion = IdentifiedVersion.of(success.logId(), Optional.of(success.lastKnownVersion()));
         identifiedVersion = localVersion;
         Long minVersion = Collections.min(
                 success.events().stream().map(LockWatchEvent::sequence).collect(Collectors.toList()));
-        //        processingTime.add(minVersion);
-
-        // using filter is super hacky way of exiting early, e.g. breaking
-        success.events().stream().filter(event -> {
-            // this ensures that we are only putting events if we have not lost leader
-            // i.e. no case where we succeed, then immediately fail, clearing the cache
-            // but then are still putting updates
-            if (localVersion.id().equals(identifiedVersion.id())) {
-                eventLog.put(event.sequence(), event);
-                return false;
-            } else {
-                return true;
-            }
-        }).findFirst();
-
-        //        processingTime.remove(minVersion);
+        processingUpTo.add(minVersion);
+        success.events().forEach(event -> eventLog.put(event.sequence(), event));
+        processingUpTo.remove(minVersion);
     }
 
     // Race condition:
@@ -128,22 +130,24 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     // thread 1 sets seed = snapshot1, but iV = iV2. This is a bad state
     // This is why it needs to be synchronised, or at least have some form of concurrency control.
     private synchronized void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
-        // Nuke, then treat as a created event of everything
         identifiedVersion = IdentifiedVersion.of(snapshot.logId(), Optional.of(snapshot.lastKnownVersion()));
         eventLog.clear();
-        //        processingTime.clear();
         seed = snapshot;
     }
 
     // By extension of the above, this must also be the case.
     private synchronized void processFailed(LockWatchStateUpdate.Failed failed) {
-        // Nuke
+        // an empty version means that the next request to TL will give us a snapshot to re-seed.
         identifiedVersion = IdentifiedVersion.of(failed.logId(), Optional.empty());
         eventLog.clear();
-        //        processingTime.clear();
-        seed = FAILED_SNAPSHOT;
+        seed = failedSnapshot(failed.logId());
     }
 
+    // a failed snapshot - i.e. we failed to get an update, or even a snapshot, so essentially
+    // resets the state of everything without needing a special third response.
+    private static LockWatchStateUpdate.Snapshot failedSnapshot(UUID uuid) {
+        return LockWatchStateUpdate.snapshot(uuid, -1L, ImmutableSet.of(), ImmutableSet.of());
+    }
 
     private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<Void> {
         @Override
@@ -168,8 +172,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private class NewLeaderVisitor extends ProcessingVisitor {
         @Override
         public Void visit(LockWatchStateUpdate.Success success) {
-            // We process failed as we actually have failed in this case
-            // and we discard all new info
+            // We process success as a fail as we actually have failed in this case as the leader has changed but
+            // we have not got a snapshot, and we discard all info.
             processFailed(LockWatchStateUpdate.failed(success.logId()));
             return null;
         }
