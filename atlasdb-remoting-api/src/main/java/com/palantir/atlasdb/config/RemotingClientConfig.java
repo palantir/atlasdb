@@ -37,4 +37,10 @@ public interface RemotingClientConfig {
     default boolean enableDialogue() {
         return false;
     }
+
+    // Not actually live-reloadable
+    @Value.Default
+    default boolean conjureEnableHttp2() {
+        return true;
+    }
 }

@@ -56,6 +56,10 @@ public abstract class ClientOptions {
     public ClientConfiguration.ServerQoS serverQoS() {
         return ClientConfiguration.ServerQoS.AUTOMATIC_RETRY;
     }
+    @Value.Default
+    public boolean enableHttp2() {
+        return true;
+    }
 
     public ClientConfiguration serverListToClient(ServerListConfig serverConfig) {
         ServiceConfiguration partialConfig = ServiceConfiguration.builder()
@@ -73,7 +77,7 @@ public abstract class ClientOptions {
                 .from(ClientConfigurations.of(partialConfig))
                 .failedUrlCooldown(failedUrlCooldown())
                 .enableGcmCipherSuites(true)
-                .enableHttp2(true)
+                .enableHttp2(enableHttp2())
                 .fallbackToCommonNameVerification(true)
                 .clientQoS(clientQoS())
                 .build();
@@ -93,7 +97,7 @@ public abstract class ClientOptions {
                 .failedUrlCooldown(failedUrlCooldown())
                 .maxNumRetries(maxNumRetries())
                 .enableGcmCipherSuites(true)
-                .enableHttp2(true)
+                .enableHttp2(enableHttp2())
                 .fallbackToCommonNameVerification(true)
                 .clientQoS(clientQoS())
                 .serverQoS(serverQoS());
@@ -117,6 +121,7 @@ public abstract class ClientOptions {
 
         setupTimeouts(builder, parameters);
         setupRetrying(builder, parameters);
+        setupHttp2(builder, parameters);
 
         return builder.clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
                 .build();
@@ -137,5 +142,9 @@ public abstract class ClientOptions {
                 .failedUrlCooldown(parameters.shouldRetry()
                         ? ClientOptionsConstants.STANDARD_FAILED_URL_COOLDOWN.toJavaDuration()
                         : ClientOptionsConstants.NON_RETRY_FAILED_URL_COOLDOWN.toJavaDuration());
+    }
+
+    private static void setupHttp2(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
+        builder.enableHttp2(parameters.remotingClientConfig().get().conjureEnableHttp2());
     }
 }
