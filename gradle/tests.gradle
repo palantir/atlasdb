@@ -1,0 +1,5 @@
+configurations.all {
+    resolutionStrategy {
+        force 'io.dropwizard.metrics:metrics-core:4.1.7'
+    }
+}
