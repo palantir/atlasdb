@@ -48,8 +48,8 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
         try {
             return handleAndUnwrap(proxy, method, args);
         } catch (Throwable e) {
-            boolean triggerred = replaceIfNecessary(e);
-            if (triggerred) {
+            boolean triggered = replaceIfNecessary(e);
+            if (triggered) {
                return handleAndUnwrap(proxy, method, args);
             }
             throw e;
