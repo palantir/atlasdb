@@ -36,6 +36,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -141,8 +142,8 @@ public class NextTableToSweepProviderTest {
 
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
         Assert.assertTrue(tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get().getTableRef(),
-                anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
+        assertThat(ImmutableSet.of(table("table2"), table("table3"), table("table4")))
+                .contains(tableToSweep.get().getTableRef());
     }
 
     @Test
