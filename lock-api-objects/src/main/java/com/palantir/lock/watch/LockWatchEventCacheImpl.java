@@ -17,17 +17,22 @@
 package com.palantir.lock.watch;
 
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.palantir.logsafe.Preconditions;
 
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
+    // todo here - do we need a fancy cache, or just roll with a map (some concurrent form)?
+    //  Need to decide how to make sure it doesn't grow unboundedly if we miss removing transactions
+    //  (and for that matter - we don't have a way to remove transactions from this cache at the moment)
     private Cache<Long, Long> timestampCache = Caffeine.newBuilder()
-            .expireAfterWrite(1, TimeUnit.HOURS) // this is a random time - we want some expiry but should be based
-            // on a relevant constant
+            .expireAfterWrite(1, TimeUnit.HOURS) // Need to consider what happens if a transaction
+            // exits without being cleared from the cache properly
             .build();
 
     public LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
@@ -39,18 +44,19 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return lockWatchEventLog.getLatestKnownVersion();
     }
 
+    // todo - main thing here is to think about the concurrent accesses to this class
     @Override
     public IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
         if (lockWatchEventLog.processUpdate(update)) {
             timestampCache.invalidateAll();
         } else {
-            Long version = update.accept(new Visitor());
-            if (version != null) {
-                // this should fail midway through if we invalidate
-                startTimestamps.forEach(startTs -> timestampCache.put(startTs, version));
+            OptionalLong version = update.accept(new UpdateVisitor());
+            if (version.isPresent()) {
+                // Need to consider concurrent calls to this method
+                startTimestamps.forEach(startTs -> timestampCache.put(startTs, version.getAsLong()));
             }
         }
-        // todo - determine whether we need to return anything
+        // This could have been updated in a bad order - need to perhaps take a snapshot at beginning of method
         return lastKnownVersion();
     }
 
@@ -63,27 +69,26 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
         // If any are missing, we need to do something about it
         Map<Long, Long> timestampToVersion = timestampCache.getAllPresent(startTimestamps);
-        if(timestampToVersion.size() != startTimestamps.size()) {
-            // do something bad
-        }
+        Preconditions.checkState(timestampToVersion.size() == startTimestamps.size(),
+                "Some timestamps are not in the cache");
 
         return lockWatchEventLog.getEventsForTransactions(timestampToVersion, version);
     }
 
-    private static class Visitor implements LockWatchStateUpdate.Visitor<Long> {
+    private static class UpdateVisitor implements LockWatchStateUpdate.Visitor<OptionalLong> {
         @Override
-        public Long visit(LockWatchStateUpdate.Failed failed) {
-            return null;
+        public OptionalLong visit(LockWatchStateUpdate.Failed failed) {
+            return OptionalLong.empty();
         }
 
         @Override
-        public Long visit(LockWatchStateUpdate.Success success) {
-            return success.lastKnownVersion();
+        public OptionalLong visit(LockWatchStateUpdate.Success success) {
+            return OptionalLong.of(success.lastKnownVersion());
         }
 
         @Override
-        public Long visit(LockWatchStateUpdate.Snapshot snapshot) {
-            return snapshot.lastKnownVersion();
+        public OptionalLong visit(LockWatchStateUpdate.Snapshot snapshot) {
+            return OptionalLong.of(snapshot.lastKnownVersion());
         }
     }
 }

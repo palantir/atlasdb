@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -34,7 +33,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private final ProcessingVisitor processingVisitor = new ProcessingVisitor();
     private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
     private final ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
-    private final ConcurrentSkipListSet<Long> processingUpTo = new ConcurrentSkipListSet<>();
+    //    private final ConcurrentSkipListSet<Long> processingUpTo = new ConcurrentSkipListSet<>();
     private volatile IdentifiedVersion identifiedVersion;
     private volatile LockWatchStateUpdate.Snapshot seed = failedSnapshot(UUID.randomUUID());
 
@@ -70,10 +69,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
         Long latestVersion = Collections.max(timestampToVersion.values());
 
-        if (!eventsBeforeTimestampAreImmutable(latestVersion)) {
-            // case 1: we wait (processing, but our version is in the future);
-            // case 2: we throw / fail (but in a retryable way)
-        }
+        //        if (!eventsBeforeTimestampAreImmutable(latestVersion)) {
+        // case 1: we wait (processing, but our version is in the future);
+        // case 2: we throw / fail (but in a retryable way)
+        //        }
 
         if (eventLog.isEmpty()) {
             return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
@@ -85,43 +84,41 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         // could have been cleared in between, so we need to verify the outcome is not null
         Long oldestVersion = version.version().orElseGet(eventLog::firstKey);
 
+        // this can only happen if the log was cleared since we checked it
         if (oldestVersion == null) {
             return TransactionsLockWatchEvents.failure(seed);
         }
 
-        return TransactionsLockWatchEvents.success(
-                getEventsBetweenVersions(oldestVersion, latestVersion),
-                timestampToVersion);
-    }
-
-    private boolean eventsBeforeTimestampAreImmutable(Long latestVersion) {
-        if (identifiedVersion.version().isPresent() && latestVersion <= identifiedVersion.version().get()) {
-            return processingUpTo.floor(latestVersion) == null;
-        }
-
-        return false;
-    }
-
-    private List<LockWatchEvent> getEventsBetweenVersions(long startVersion, long endVersion) {
-        Preconditions.checkArgument(startVersion <= endVersion, "startVersion should be before endVersion");
-        Long startKey = eventLog.ceilingKey(startVersion);
-        Long endKey = eventLog.floorKey(endVersion);
+        Preconditions.checkArgument(oldestVersion <= latestVersion, "startVersion should be before endVersion");
+        Long startKey = eventLog.ceilingKey(oldestVersion);
+        Long endKey = eventLog.floorKey(latestVersion);
         // race condition - event log cleared while calling this.
         if (startKey == null || endKey == null) {
-            return ImmutableList.of();
+            return TransactionsLockWatchEvents.failure(seed);
+        } else {
+            return TransactionsLockWatchEvents.success(new ArrayList<>(eventLog.subMap(startKey, endKey).values()),
+                    timestampToVersion);
         }
-        return new ArrayList<>(eventLog.subMap(startKey, endKey).values());
     }
 
+    //    private boolean eventsBeforeTimestampAreImmutable(Long latestVersion) {
+    //        if (identifiedVersion.version().isPresent() && latestVersion <= identifiedVersion.version().get()) {
+    //            return processingUpTo.floor(latestVersion) == null;
+    //        }
+    //
+    //        return false;
+    //    }
+
+    // todo - consider a way to make this not synchronised
     private synchronized void processSuccess(LockWatchStateUpdate.Success success) {
         // Just add events
         IdentifiedVersion localVersion = IdentifiedVersion.of(success.logId(), Optional.of(success.lastKnownVersion()));
         identifiedVersion = localVersion;
         Long minVersion = Collections.min(
                 success.events().stream().map(LockWatchEvent::sequence).collect(Collectors.toList()));
-        processingUpTo.add(minVersion);
+        //        processingUpTo.add(minVersion);
         success.events().forEach(event -> eventLog.put(event.sequence(), event));
-        processingUpTo.remove(minVersion);
+        //        processingUpTo.remove(minVersion);
     }
 
     // Race condition:

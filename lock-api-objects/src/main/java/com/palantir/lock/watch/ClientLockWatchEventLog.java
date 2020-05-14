@@ -19,7 +19,6 @@ package com.palantir.lock.watch;
 import java.util.Map;
 
 public interface ClientLockWatchEventLog {
-    // todo - consider concurrency
     TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, Long> timestampToVersion,
             IdentifiedVersion version);
