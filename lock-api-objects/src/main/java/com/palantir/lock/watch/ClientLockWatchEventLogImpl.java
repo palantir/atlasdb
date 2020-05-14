@@ -31,7 +31,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private final ProcessingVisitor processingVisitor = new ProcessingVisitor();
     private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
     private final ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
-    private IdentifiedVersion identifiedVersion;
+    private volatile IdentifiedVersion identifiedVersion;
     private LockWatchStateUpdate.Snapshot seed = failedSnapshot(UUID.randomUUID());
 
     public ClientLockWatchEventLogImpl() {
@@ -69,6 +69,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         if (logSnapshot.isEmpty()) {
             return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
         }
+
+        // if version is old / empty, you need snapshot
 
         long oldestVersion = version.version().orElseGet(logSnapshot::firstKey);
         Preconditions.checkArgument(oldestVersion <= latestVersion, "startVersion should be before endVersion");
