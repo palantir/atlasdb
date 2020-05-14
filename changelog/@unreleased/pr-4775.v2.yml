@@ -1,0 +1,9 @@
+type: feature
+feature:
+  description: 'Timelock paxos state logs are now persisted both to the file system
+    and into a sqlite implementation on disk. This has been enabled to verify the
+    correctness of the new implementation in preparation for replacing the file system
+    implementation. This includes a one time migration per client that should not
+    affect users.  '
+  links:
+  - https://github.com/palantir/atlasdb/pull/4775
