@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -273,7 +272,7 @@ public class NextTableToSweepProviderTest {
     private void thenTableChosenIs(TableReference table) {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
         Assert.assertTrue("expected to have chosen a table!", tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get().getTableRef(), is(table));
+        assertThat(tableToSweep.get().getTableRef()).isEqualTo(table);
     }
 
     private void thenTableIsChosenAtLeastOnce(TableReference table) {

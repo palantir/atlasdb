@@ -22,6 +22,10 @@ import java.util.Map;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricSet;
 
+/**
+ * We need to use Dropwizard metrics 3.x internally - this is the class that's needed to get
+ * Dropwizard 2.0 working with metrics 3.x.
+ */
 public final class JvmAttributeGaugeSet implements MetricSet {
     @Override
     public Map<String, Metric> getMetrics() {
