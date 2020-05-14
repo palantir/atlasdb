@@ -19,6 +19,7 @@ package com.palantir.lock.watch;
 import java.util.Set;
 
 public interface LockWatchEventCache {
+    void removeTimestampFromCache(Long timestamp);
     IdentifiedVersion lastKnownVersion();
     IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
     void processUpdate(LockWatchStateUpdate update);

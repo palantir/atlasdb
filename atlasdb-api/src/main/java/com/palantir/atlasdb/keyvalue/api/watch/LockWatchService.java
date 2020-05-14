@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.management;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Set;
-
-import com.palantir.paxos.Client;
-
-public interface PersistentNamespaceLoader {
-    /**
-     * Gets all namespaces that have been persisted (via the persistence method under question).
-     */
-    Set<Client> getAllPersistedNamespaces();
+public interface LockWatchService extends LockWatchManager {
+    void removeTimestampFromCache(long startTimestamp);
 }

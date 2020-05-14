@@ -18,7 +18,6 @@ package com.palantir.lock.watch;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,17 +47,16 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     @Override
-    public boolean processUpdate(LockWatchStateUpdate update) {
+    public IdentifiedVersion processUpdate(LockWatchStateUpdate update) {
         if (update.logId().equals(identifiedVersion.id())) {
             update.accept(processingVisitor);
-            return false;
+            return identifiedVersion;
         } else {
             update.accept(newLeaderVisitor);
-            return true;
+            return identifiedVersion;
         }
     }
 
-    // this gets complicated if it is not synchronised (of course...)
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, Long> timestampToVersion,
@@ -68,12 +66,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
 
         Long latestVersion = Collections.max(timestampToVersion.values());
-
-        //        if (!eventsBeforeTimestampAreImmutable(latestVersion)) {
-        // case 1: we wait (processing, but our version is in the future);
-        // case 2: we throw / fail (but in a retryable way)
-        //        }
-
         if (eventLog.isEmpty()) {
             return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
         }

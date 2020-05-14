@@ -17,7 +17,7 @@
 package com.palantir.lock.watch;
 
 import java.util.Map;
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -28,11 +28,10 @@ import com.palantir.logsafe.Preconditions;
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
     // todo here - do we need a fancy cache, or just roll with a map (some concurrent form)?
-    //  Need to decide how to make sure it doesn't grow unboundedly if we miss removing transactions
-    //  (and for that matter - we don't have a way to remove transactions from this cache at the moment)
+    //  Need to decide how to make sure it doesn't grow unbounded if we miss removing transactions
     private Cache<Long, Long> timestampCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS) // Need to consider what happens if a transaction
-            // exits without being cleared from the cache properly
+            // exits without being cleared from the cache properly, this value is temp
             .build();
 
     public LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
@@ -47,17 +46,18 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     // todo - main thing here is to think about the concurrent accesses to this class
     @Override
     public IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
-        if (lockWatchEventLog.processUpdate(update)) {
+        IdentifiedVersion currentVersion = lastKnownVersion();
+        IdentifiedVersion newVersion = lockWatchEventLog.processUpdate(update);
+        Optional<LockWatchStateUpdate.Success> successUpdate = update.accept(SuccessfulVisitor.INSTANCE);
+
+        if (!successUpdate.isPresent() || !currentVersion.id().equals(newVersion.id())) {
             timestampCache.invalidateAll();
         } else {
-            OptionalLong version = update.accept(new UpdateVisitor());
-            if (version.isPresent()) {
-                // Need to consider concurrent calls to this method
-                startTimestamps.forEach(startTs -> timestampCache.put(startTs, version.getAsLong()));
-            }
+            Long version = successUpdate.get().lastKnownVersion();
+            startTimestamps.forEach(startTs -> timestampCache.put(startTs, version));
         }
         // This could have been updated in a bad order - need to perhaps take a snapshot at beginning of method
-        return lastKnownVersion();
+        return newVersion;
     }
 
     @Override
@@ -75,20 +75,27 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return lockWatchEventLog.getEventsForTransactions(timestampToVersion, version);
     }
 
-    private static class UpdateVisitor implements LockWatchStateUpdate.Visitor<OptionalLong> {
+    @Override
+    public void removeTimestampFromCache(Long timestamp) {
+        timestampCache.invalidate(timestamp);
+    }
+
+    private enum SuccessfulVisitor implements LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>> {
+        INSTANCE;
+
         @Override
-        public OptionalLong visit(LockWatchStateUpdate.Failed failed) {
-            return OptionalLong.empty();
+        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Failed failed) {
+            return Optional.empty();
         }
 
         @Override
-        public OptionalLong visit(LockWatchStateUpdate.Success success) {
-            return OptionalLong.of(success.lastKnownVersion());
+        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Success success) {
+            return Optional.of(success);
         }
 
         @Override
-        public OptionalLong visit(LockWatchStateUpdate.Snapshot snapshot) {
-            return OptionalLong.of(snapshot.lastKnownVersion());
+        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Snapshot snapshot) {
+            return Optional.empty();
         }
     }
 }
