@@ -1012,7 +1012,6 @@ public abstract class TransactionManagers {
             String timelockNamespace,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
             DialogueClients.ReloadingFactory reloadingFactory) {
-        // TODO (jkong): Allow passing in from outside, for multitenant services
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent);
 
