@@ -57,6 +57,7 @@ public abstract class LeadershipContextFactory implements
                 metrics(),
                 useCase(),
                 install().dataDirectory(),
+                install().sqliteDataDirectory(),
                 leaderUuid(),
                 install().install().paxos().canCreateNewClients());
     }
