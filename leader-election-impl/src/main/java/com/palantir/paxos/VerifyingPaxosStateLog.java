@@ -67,33 +67,21 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
                 .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
         NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
 
-        PaxosStateLog<V> file = new PaxosStateLogImpl<>(logDirectory);
-        PaxosStateLog<V> sqlite = SqlitePaxosStateLog.create(namespaceUseCase, conn);
-        SqlitePaxosStateLogMigrationState migration = SqlitePaxosStateLogMigrationState.create(namespaceUseCase, conn);
-
         Settings<V> settings = ImmutableSettings.<V>builder()
-                .currentLog(file)
-                .experimentalLog(sqlite)
+                .currentLog(new PaxosStateLogImpl<>(logDirectory))
+                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, conn))
                 .hydrator(hydrator)
                 .build();
 
-        migrateIfNecessary(migration, settings);
-        return new VerifyingPaxosStateLog<>(settings);
-    }
+        PaxosStateLogMigrator.MigrationContext<V> migrationContext = ImmutableMigrationContext.<V>builder()
+                .sourceLog(settings.currentLog())
+                .destinationLog(settings.experimentalLog())
+                .hydrator(settings.hydrator())
+                .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, conn))
+                .build();
+        PaxosStateLogMigrator.migrateToValidation(migrationContext);
 
-    private static <V extends Persistable & Versionable> void migrateIfNecessary(
-            SqlitePaxosStateLogMigrationState migration,
-            Settings<V> settings) {
-        if (!migration.hasMigratedFromInitialState()
-                || settings.currentLog().getLeastLogEntry() != settings.experimentalLog().getLeastLogEntry()) {
-            PaxosStateLogMigrator.MigrationContext<V> migrationContext = ImmutableMigrationContext.<V>builder()
-                    .sourceLog(settings.currentLog())
-                    .destinationLog(settings.experimentalLog())
-                    .hydrator(settings.hydrator())
-                    .migrationState(migration)
-                    .build();
-            PaxosStateLogMigrator.migrateToValidation(migrationContext);
-        }
+        return new VerifyingPaxosStateLog<>(settings);
     }
 
     @Override
