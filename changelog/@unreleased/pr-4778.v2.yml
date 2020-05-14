@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: AtlasDB now allows users to pass in a `DialogueClients.ReloadingFactory`
+    in install configuration. This is likely to be useful for multitenant users of
+    AtlasDB who wish to share their Dialogue connection pools across `TransactionManager`s.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4778
