@@ -90,11 +90,11 @@ public final class AtlasDbDialogueServiceProvider {
                 .longTimeout(longTimeoutService)
                 .shortTimeout(shortTimeoutService)
                 .build()
+                .map(proxy -> FastFailoverProxy.newProxyInstance(ConjureTimelockServiceBlocking.class, () -> proxy))
                 .map(service -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         taggedMetricRegistry,
                         ConjureTimelockServiceBlocking.class,
                         service))
-                .map(proxy -> FastFailoverProxy.newProxyInstance(ConjureTimelockServiceBlocking.class, () -> proxy))
                 .map(DialogueAdaptingConjureTimelockService::new);
 
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
