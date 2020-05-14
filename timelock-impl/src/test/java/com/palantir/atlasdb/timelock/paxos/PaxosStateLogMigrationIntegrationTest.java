@@ -66,7 +66,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         PaxosStateLog<PaxosValue> fileBasedLog = createFileSystemLog(CLIENT);
         fileBasedLog.writeRound(round, valueForRound(round));
 
-        PaxosStorageParameters parameters = getParametersForClient(CLIENT);
+        PaxosStorageParameters parameters = paxosComponents.getLearnerParameters(CLIENT);
         PaxosLearner learner = paxosComponents.learner(CLIENT);
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(parameters);
 
@@ -81,7 +81,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         PaxosStateLog<PaxosValue> fileBasedLog = createFileSystemLog(CLIENT);
         fileBasedLog.writeRound(migratedRound, valueForRound(migratedRound));
 
-        PaxosStorageParameters parameters = getParametersForClient(CLIENT);
+        PaxosStorageParameters parameters = paxosComponents.getLearnerParameters(CLIENT);
         PaxosLearner learner = paxosComponents.learner(CLIENT);
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(parameters);
 
@@ -99,7 +99,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         PaxosStateLog<PaxosValue> fileBasedLog = createFileSystemLog(CLIENT);
         fileBasedLog.writeRound(migratedRound, valueForRound(migratedRound));
 
-        PaxosStorageParameters parameters = getParametersForClient(CLIENT);
+        PaxosStorageParameters parameters = paxosComponents.getLearnerParameters(CLIENT);
         PaxosLearner learner = paxosComponents.learner(CLIENT);
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(parameters);
 
@@ -119,7 +119,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         fileBasedLog.writeRound(firstRound, valueForRound(firstRound));
         fileBasedLog.writeRound(secondRound, valueForRound(secondRound));
 
-        PaxosStorageParameters parameters = getParametersForClient(CLIENT);
+        PaxosStorageParameters parameters = paxosComponents.getLearnerParameters(CLIENT);
         paxosComponents.learner(CLIENT);
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(parameters);
 
@@ -141,7 +141,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         PaxosStateLog<PaxosValue> fileBasedLog = createFileSystemLog(CLIENT);
         fileBasedLog.writeRound(firstRound, valueForRound(firstRound));
 
-        PaxosStorageParameters parameters = getParametersForClient(CLIENT);
+        PaxosStorageParameters parameters = paxosComponents.getLearnerParameters(CLIENT);
         paxosComponents.learner(CLIENT);
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(parameters);
 
@@ -166,10 +166,9 @@ public class PaxosStateLogMigrationIntegrationTest {
         Client otherClient = Client.of("other");
         PaxosStateLog<PaxosValue> otherFileBasedLog = createFileSystemLog(otherClient);
         otherFileBasedLog.writeRound(otherRound, valueForRound(otherRound));
-        fileBasedLog.writeRound(round, valueForRound(round));
 
         PaxosLearner otherLearner = paxosComponents.learner(otherClient);
-        PaxosStorageParameters otherParameters = getParametersForClient(otherClient);
+        PaxosStorageParameters otherParameters = paxosComponents.getLearnerParameters(otherClient);
         PaxosStateLog<PaxosValue> otherSqliteLog = createSqliteLog(otherParameters);
 
         assertValueAbsent(round, otherSqliteLog);
@@ -180,22 +179,21 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(otherRound, otherLearner);
     }
 
-    private void assertValueLearned(int secondRound, PaxosLearner learner) {
-        assertThat(learner.getLearnedValue(secondRound)).hasValue(valueForRound(secondRound));
+    private void assertValueLearned(int round, PaxosLearner learner) {
+        assertThat(learner.getLearnedValue(round)).hasValue(valueForRound(round));
     }
 
-    private void assertValueNotLearned(int rogueValue, PaxosLearner learner) {
-        assertThat(learner.getLearnedValue(rogueValue)).isEmpty();
+    private void assertValueNotLearned(int round, PaxosLearner learner) {
+        assertThat(learner.getLearnedValue(round)).isEmpty();
     }
 
-    private void assertValuePresent(int rogueValue, PaxosStateLog<PaxosValue> sqliteLog) throws IOException {
-        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(sqliteLog.readRound(rogueValue)))
-                .isEqualTo(valueForRound(rogueValue));
+    private void assertValuePresent(int round, PaxosStateLog<PaxosValue> sqliteLog) throws IOException {
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(sqliteLog.readRound(round)))
+                .isEqualTo(valueForRound(round));
     }
 
-    private void assertValueAbsent(int nonMigratedRound, PaxosStateLog<PaxosValue> sqliteLog)
-            throws IOException {
-        assertThat(sqliteLog.readRound(nonMigratedRound)).isNull();
+    private void assertValueAbsent(int round, PaxosStateLog<PaxosValue> sqliteLog) throws IOException {
+        assertThat(sqliteLog.readRound(round)).isNull();
     }
 
     private void resetPaxosComponents() {
@@ -206,13 +204,13 @@ public class PaxosStateLogMigrationIntegrationTest {
                 sqliteDirectory, UUID.randomUUID(), true);
     }
 
-    private PaxosValue valueForRound(int i) {
-        return new PaxosValue("value", i, new byte[] {1});
+    private PaxosValue valueForRound(int num) {
+        return new PaxosValue("value", num, new byte[] { 1 });
     }
 
     private PaxosStateLog<PaxosValue> createFileSystemLog(Client client) {
         Path dir = useCase.logDirectoryRelativeToDataDirectory(legacyDirectory).resolve(client.value());
-        String learnerLogDir = Paths.get(dir.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString();
+        String learnerLogDir = dir.resolve(PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString();
         return new PaxosStateLogImpl<>(learnerLogDir);
     }
 
@@ -220,17 +218,5 @@ public class PaxosStateLogMigrationIntegrationTest {
         Supplier<Connection> conn = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
         return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), conn);
-    }
-
-    private PaxosStorageParameters getParametersForClient(Client client) {
-        Path dir = useCase.logDirectoryRelativeToDataDirectory(legacyDirectory).resolve(client.value());
-        String learnerLogDir = Paths.get(dir.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString();
-        Path sqlite = useCase.logDirectoryRelativeToDataDirectory(sqliteDirectory).toAbsolutePath();
-        return ImmutablePaxosStorageParameters.builder()
-                .fileBasedLogDirectory(learnerLogDir)
-                .sqliteBasedLogDirectory(sqlite)
-                .namespaceAndUseCase(ImmutableNamespaceAndUseCase
-                        .of(client, String.format("%s!learner", useCase.toString())))
-                .build();
     }
 }

@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.palantir.common.remoting.ServiceNotAvailableException;
@@ -36,6 +37,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
+import com.palantir.paxos.PaxosStorageParameters;
 
 public class LocalPaxosComponents {
 
@@ -59,7 +61,7 @@ public class LocalPaxosComponents {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
         this.baseLogDirectory = legacyLogDirectory;
-        this.sqliteLogDirectory = paxosUseCase.logDirectoryRelativeToDataDirectory(sqliteLogDirectory).toAbsolutePath();
+        this.sqliteLogDirectory = sqliteLogDirectory;
         this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
@@ -106,33 +108,38 @@ public class LocalPaxosComponents {
                     + " time, and the client " + client + " provided is novel for this TimeLock server.");
         }
 
-        Path learnerLogDir = Paths.get(legacyClientDir.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
-        String learnerUseCase = String.format("%s!learner", paxosUseCase.toString());
-
-        PaxosLearner learner = PaxosLearnerImpl.newVerifyingLearner(
-                ImmutablePaxosStorageParameters.builder()
-                        .fileBasedLogDirectory(learnerLogDir.toString())
-                        .sqliteBasedLogDirectory(sqliteLogDirectory)
-                        .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, learnerUseCase))
-                        .build(),
+        PaxosLearner learner = PaxosLearnerImpl.newVerifyingLearner(getLearnerParameters(client),
                 PaxosKnowledgeEventRecorder.NO_OP);
-
-        Path acceptorLogDir = Paths.get(legacyClientDir.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
-        String acceptorUseCase = String.format("%s!acceptor", paxosUseCase.toString());
-
-        PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(
-                ImmutablePaxosStorageParameters.builder()
-                        .fileBasedLogDirectory(acceptorLogDir.toString())
-                        .sqliteBasedLogDirectory(sqliteLogDirectory)
-                        .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, acceptorUseCase))
-                        .build());
-
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorParameters(client));
         PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
 
         return ImmutableComponents.builder()
                 .acceptor(acceptor)
                 .learner(learner)
                 .pingableLeader(localPingableLeader)
+                .build();
+    }
+
+    @VisibleForTesting
+    PaxosStorageParameters getLearnerParameters(Client client) {
+        Path legacyDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory).resolve(client.value());
+        Path learnerLogDir = Paths.get(legacyDir.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
+        String learnerUseCase = String.format("%s!learner", paxosUseCase.toString());
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(learnerLogDir.toString())
+                .sqliteBasedLogDirectory(sqliteLogDirectory)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, learnerUseCase))
+                .build();
+    }
+
+    private PaxosStorageParameters getAcceptorParameters(Client client) {
+        Path legacyDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory).resolve(client.value());
+        Path acceptorLogDir = Paths.get(legacyDir.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
+        String acceptorUseCase = String.format("%s!acceptor", paxosUseCase.toString());
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(acceptorLogDir.toString())
+                .sqliteBasedLogDirectory(sqliteLogDirectory)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, acceptorUseCase))
                 .build();
     }
 
