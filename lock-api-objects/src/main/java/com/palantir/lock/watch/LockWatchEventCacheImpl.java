@@ -26,8 +26,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
     private final Map<Long, Long> timestampMap = new ConcurrentHashMap<>();
 
-    public LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
+    private LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
         this.lockWatchEventLog = lockWatchEventLog;
+    }
+
+    public static LockWatchEventCacheImpl create() {
+        return new LockWatchEventCacheImpl(new ClientLockWatchEventLogImpl());
     }
 
     @Override

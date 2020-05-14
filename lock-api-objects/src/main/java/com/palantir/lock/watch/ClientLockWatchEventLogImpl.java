@@ -34,7 +34,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private IdentifiedVersion identifiedVersion;
     private LockWatchStateUpdate.Snapshot seed = failedSnapshot(UUID.randomUUID());
 
-    private ClientLockWatchEventLogImpl() {
+    public ClientLockWatchEventLogImpl() {
         identifiedVersion = IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
         eventLog = new ConcurrentSkipListMap<>();
     }
@@ -97,7 +97,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         eventLog.clear();
         seed = failedSnapshot(failed.logId());
     }
-    
+
     private static LockWatchStateUpdate.Snapshot failedSnapshot(UUID uuid) {
         return LockWatchStateUpdate.snapshot(uuid, -1L, ImmutableSet.of(), ImmutableSet.of());
     }

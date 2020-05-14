@@ -21,6 +21,7 @@ import java.util.Set;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchEventCacheImpl;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
@@ -34,9 +35,8 @@ public final class LockWatchServiceImpl implements LockWatchService {
         this.cache = cache;
     }
 
-    public static LockWatchService create(
-            NamespacedConjureLockWatchingService lockWatcher,
-            LockWatchEventCache cache) {
+    public static LockWatchService create(NamespacedConjureLockWatchingService lockWatcher) {
+        LockWatchEventCache cache = LockWatchEventCacheImpl.create();
         LockWatchManager lockWatchManager = new LockWatchManagerImpl(lockWatcher, cache);
         return new LockWatchServiceImpl(lockWatchManager, cache);
     }
