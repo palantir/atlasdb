@@ -970,6 +970,8 @@ public abstract class TransactionManagers {
 
         String timelockNamespace = OptionalResolver.resolve(
                 config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
+        DialogueClients.ReloadingFactory reloadingFactory = config.reloadingFactory()
+                .orElseGet(() -> DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build())));
         LockAndTimestampServices lockAndTimestampServices =
                 getLockAndTimestampServices(
                         metricsManager,
@@ -977,7 +979,8 @@ public abstract class TransactionManagers {
                         runtimeConfig.map(AtlasDbRuntimeConfig::remotingClient),
                         userAgent,
                         timelockNamespace,
-                        lockDiagnosticCollector);
+                        lockDiagnosticCollector,
+                        reloadingFactory);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(),
@@ -1007,10 +1010,9 @@ public abstract class TransactionManagers {
             Refreshable<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             String timelockNamespace,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            DialogueClients.ReloadingFactory reloadingFactory) {
         // TODO (jkong): Allow passing in from outside, for multitenant services
-        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
-                Refreshable.only(ServicesConfigBlock.builder().build()));
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent);
 

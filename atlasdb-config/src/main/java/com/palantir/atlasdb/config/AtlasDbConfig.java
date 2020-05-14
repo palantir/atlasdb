@@ -31,9 +31,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -270,6 +272,16 @@ public abstract class AtlasDbConfig {
      * is ignored.
      */
     public abstract Optional<TimestampCache> timestampCache();
+
+    /**
+     * If set, a {@link com.palantir.dialogue.clients.DialogueClients.ReloadingFactory} that a
+     * {@link com.palantir.atlasdb.transaction.api.TransactionManager} based on this configuration should use.
+     * This may be useful for ensuring that connection pools are shared between multitenant services, for instance.
+     *
+     * WARNING: Providing reloading factories to multiple distinct TimeLock servers may result in undefined
+     * behaviour.
+     */
+    public abstract Optional<DialogueClients.ReloadingFactory> reloadingFactory();
 
     @Value.Check
     protected final void check() {
