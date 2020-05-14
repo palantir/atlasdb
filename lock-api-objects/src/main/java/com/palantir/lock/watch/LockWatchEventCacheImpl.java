@@ -16,23 +16,15 @@
 
 package com.palantir.lock.watch;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.palantir.logsafe.Preconditions;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
-    // todo here - do we need a fancy cache, or just roll with a map (some concurrent form)?
-    //  Need to decide how to make sure it doesn't grow unbounded if we miss removing transactions
-    private Cache<Long, Long> timestampCache = Caffeine.newBuilder()
-            .expireAfterWrite(1, TimeUnit.HOURS) // Need to consider what happens if a transaction
-            // exits without being cleared from the cache properly, this value is temp
-            .build();
+    private final Map<Long, Long> timestampMap = new ConcurrentHashMap<>();
 
     public LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
         this.lockWatchEventLog = lockWatchEventLog;
@@ -43,20 +35,19 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return lockWatchEventLog.getLatestKnownVersion();
     }
 
-    // todo - main thing here is to think about the concurrent accesses to this class
     @Override
     public IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
         IdentifiedVersion currentVersion = lastKnownVersion();
         IdentifiedVersion newVersion = lockWatchEventLog.processUpdate(update);
         Optional<LockWatchStateUpdate.Success> successUpdate = update.accept(SuccessfulVisitor.INSTANCE);
 
+        // clear for snapshot or failure, or leader change.
         if (!successUpdate.isPresent() || !currentVersion.id().equals(newVersion.id())) {
-            timestampCache.invalidateAll();
+            timestampMap.clear();
         } else {
-            Long version = successUpdate.get().lastKnownVersion();
-            startTimestamps.forEach(startTs -> timestampCache.put(startTs, version));
+            long version = successUpdate.get().lastKnownVersion();
+            startTimestamps.forEach(startTs -> timestampMap.put(startTs, version));
         }
-        // This could have been updated in a bad order - need to perhaps take a snapshot at beginning of method
         return newVersion;
     }
 
@@ -67,17 +58,20 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
-        // If any are missing, we need to do something about it
-        Map<Long, Long> timestampToVersion = timestampCache.getAllPresent(startTimestamps);
-        Preconditions.checkState(timestampToVersion.size() == startTimestamps.size(),
-                "Some timestamps are not in the cache");
-
+        Map<Long, Long> timestampToVersion = new HashMap<>();
+        startTimestamps.forEach(startTs -> {
+            Long value = timestampMap.get(startTs);
+            // for now, skip entries not there.
+            if (value != null) {
+                timestampToVersion.put(startTs, value);
+            }
+        });
         return lockWatchEventLog.getEventsForTransactions(timestampToVersion, version);
     }
 
     @Override
     public void removeTimestampFromCache(Long timestamp) {
-        timestampCache.invalidate(timestamp);
+        timestampMap.remove(timestamp);
     }
 
     private enum SuccessfulVisitor implements LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>> {
