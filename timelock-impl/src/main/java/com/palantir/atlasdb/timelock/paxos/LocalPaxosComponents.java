@@ -95,10 +95,6 @@ public class LocalPaxosComponents {
         return componentsByClient.computeIfAbsent(client, this::createComponents);
     }
 
-    public static void main(String[] args) {
-        System.out.println();
-    }
-
     private Components createComponents(Client client) {
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory)
                 .resolve(client.value());
