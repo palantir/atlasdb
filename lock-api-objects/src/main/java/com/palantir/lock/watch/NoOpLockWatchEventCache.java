@@ -34,6 +34,11 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
+    public void removeTimestampFromCache(Long timestamp) {
+
+    }
+
+    @Override
     public IdentifiedVersion lastKnownVersion() {
         return FAKE;
     }

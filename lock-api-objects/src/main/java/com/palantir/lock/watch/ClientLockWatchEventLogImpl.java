@@ -97,6 +97,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         eventLog.clear();
         seed = failedSnapshot(failed.logId());
     }
+    
     private static LockWatchStateUpdate.Snapshot failedSnapshot(UUID uuid) {
         return LockWatchStateUpdate.snapshot(uuid, -1L, ImmutableSet.of(), ImmutableSet.of());
     }
