@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import java.sql.Connection;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -52,12 +53,24 @@ public final class SqlitePaxosStateLogMigrationState {
         execute(Queries::createTable);
     }
 
-    public void finishMigration() {
-        execute(dao -> dao.finishMigration(namespace, useCase));
+    public void migrateToValidationState() {
+        execute(dao -> dao.migrateToVersion(namespace, useCase, States.VALIDATION.schemaVersion));
     }
 
-    public boolean hasAlreadyMigrated() {
-        return execute(dao -> dao.hasFinishedMigrating(namespace, useCase));
+    public void migrateToMigratedState() {
+        execute(dao -> dao.migrateToVersion(namespace, useCase, States.MIGRATED.schemaVersion));
+    }
+
+    public boolean hasMigratedFromInitialState() {
+        return !Objects.equals(States.NONE.getSchemaVersion(), execute(dao -> dao.getVersion(namespace, useCase)));
+    }
+
+    public boolean isInValidationState() {
+        return States.VALIDATION.getSchemaVersion().equals(execute(dao -> dao.getVersion(namespace, useCase)));
+    }
+
+    public boolean isInMigratedState() {
+        return States.MIGRATED.getSchemaVersion().equals(execute(dao -> dao.getVersion(namespace, useCase)));
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -70,11 +83,26 @@ public final class SqlitePaxosStateLogMigrationState {
         boolean createTable();
 
         @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, useCase, version) VALUES"
-                + " (:namespace.value, :useCase, 0)")
-        boolean finishMigration(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+                + " (:namespace.value, :useCase, :version)")
+        boolean migrateToVersion(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("version") int version);
 
-        @SqlQuery("SELECT EXISTS (SELECT 1 FROM migration_state WHERE"
-                + " namespace = :namespace.value AND useCase = :useCase)")
-        boolean hasFinishedMigrating(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+        @SqlQuery("SELECT version FROM migration_state WHERE namespace = :namespace.value AND useCase = :useCase")
+        Integer getVersion(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+    }
+
+    private enum States {
+        NONE(null), VALIDATION(0), MIGRATED(1);
+
+        Integer schemaVersion;
+        States(Integer schemaVersion) {
+            this.schemaVersion = schemaVersion;
+        }
+
+        Integer getSchemaVersion() {
+            return schemaVersion;
+        }
     }
 }

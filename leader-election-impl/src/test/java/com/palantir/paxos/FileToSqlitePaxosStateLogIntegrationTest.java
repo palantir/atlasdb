@@ -54,7 +54,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     @Test
     public void emptyMigrationSucceeds() {
         migrate();
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
     }
 
     @Test
@@ -82,7 +82,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
         List<PaxosValue> migratedValues = readMigratedValuesFor(expectedValues);
 
         assertThat(migratedValues).isEqualTo(roundsToValues(rounds));
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
     }
 
     private List<PaxosValue> roundsToValues(List<PaxosRound<PaxosValue>> rounds) {

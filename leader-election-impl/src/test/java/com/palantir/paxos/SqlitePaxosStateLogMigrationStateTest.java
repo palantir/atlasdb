@@ -44,43 +44,62 @@ public class SqlitePaxosStateLogMigrationStateTest {
     }
 
     @Test
-    public void initialStateIsNotMigrated() {
-        assertThat(migrationState.hasAlreadyMigrated()).isFalse();
+    public void initialStateTest() {
+        assertThat(migrationState.hasMigratedFromInitialState()).isFalse();
+        assertThat(migrationState.isInValidationState()).isFalse();
+        assertThat(migrationState.isInMigratedState()).isFalse();
+    }
+
+    @Test
+    public void canSetStateToValidation() {
+        migrationState.migrateToValidationState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isFalse();
     }
 
     @Test
     public void canSetStateToMigrated() {
-        migrationState.finishMigration();
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        migrationState.migrateToMigratedState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isFalse();
+        assertThat(migrationState.isInMigratedState()).isTrue();
     }
 
     @Test
-    public void canSetStateToMigratedMultipleTimes() {
-        migrationState.finishMigration();
-        migrationState.finishMigration();
-        migrationState.finishMigration();
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+    public void canChangeStates() {
+        migrationState.migrateToValidationState();
+        migrationState.migrateToMigratedState();
+        migrationState.migrateToMigratedState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isFalse();
+        assertThat(migrationState.isInMigratedState()).isTrue();
+
+        migrationState.migrateToValidationState();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInValidationState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isFalse();
     }
 
     @Test
     public void finishingMigrationForOneNamespaceDoesNotSetFlagForOthers() {
-        migrationState.finishMigration();
+        migrationState.migrateToValidationState();
 
         SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
                 .create(ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), connSupplier);
-        assertThat(otherState.hasAlreadyMigrated()).isFalse();
-        otherState.finishMigration();
-        assertThat(otherState.hasAlreadyMigrated()).isTrue();
+        assertThat(otherState.hasMigratedFromInitialState()).isFalse();
+        otherState.migrateToValidationState();
+        assertThat(otherState.hasMigratedFromInitialState()).isTrue();
     }
 
     @Test
     public void finishingMigrationForOneUseCaseDoesNotSetFlagForOthers() {
-        migrationState.finishMigration();
+        migrationState.migrateToValidationState();
 
         SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
                 .create(ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), connSupplier);
-        assertThat(otherState.hasAlreadyMigrated()).isFalse();
-        otherState.finishMigration();
-        assertThat(otherState.hasAlreadyMigrated()).isTrue();
+        assertThat(otherState.hasMigratedFromInitialState()).isFalse();
+        otherState.migrateToValidationState();
+        assertThat(otherState.hasMigratedFromInitialState()).isTrue();
     }
 }
