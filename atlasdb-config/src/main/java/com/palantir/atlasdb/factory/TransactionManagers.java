@@ -77,9 +77,9 @@ import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timelock.BlockingAndNonBlockingServices;
-import com.palantir.atlasdb.factory.timelock.BlockingSensitiveConjureTimelockService;
-import com.palantir.atlasdb.factory.timelock.BlockingSensitiveLockRpcClient;
+import com.palantir.atlasdb.factory.timelock.ShortAndLongTimeoutServices;
+import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveConjureTimelockService;
+import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -149,10 +149,13 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.common.time.Clock;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -1001,31 +1004,43 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices getLockAndTimestampServices(
             MetricsManager metricsManager,
             Refreshable<ServerListConfig> timelockServerListConfig,
-            Supplier<RemotingClientConfig> remotingConfigSupplier,
+            Refreshable<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             String timelockNamespace,
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
-        ServiceCreator creator = ServiceCreator.withPayloadLimiter(
-                metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
+        // TODO (jkong): Allow passing in from outside, for multitenant services
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
+                Refreshable.only(ServicesConfigBlock.builder().build()));
+        AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
+                timelockServerListConfig, reloadingFactory, userAgent);
 
-        LockRpcClient lockRpcClient = new BlockingSensitiveLockRpcClient(
-                BlockingAndNonBlockingServices.create(creator, LockRpcClient.class));
+        ServiceCreator creator = ServiceCreator.withPayloadLimiter(
+                metricsManager, timelockServerListConfig, userAgent, remotingClientConfig);
+
+        LockRpcClient lockRpcClient = new TimeoutSensitiveLockRpcClient(
+                ShortAndLongTimeoutServices.create(creator, LockRpcClient.class));
 
         LockService lockService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
-                BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class));
+        ConjureTimelockService cjrTimelockService = new TimeoutSensitiveConjureTimelockService(
+                ShortAndLongTimeoutServices.create(creator, ConjureTimelockService.class));
+        ConjureTimelockService dialogueTimelockService = serviceProvider.getConjureTimelockService();
+        ConjureTimelockService switchableService = PredicateSwitchedProxy.newProxyInstance(
+                dialogueTimelockService,
+                cjrTimelockService,
+                remotingClientConfig.map(RemotingClientConfig::enableDialogue),
+                ConjureTimelockService.class);
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
                 .<ConjureTimelockService>map(collector ->
-                        new LockDiagnosticConjureTimelockService(conjureTimelockService, collector))
-                .orElse(conjureTimelockService);
+                        new LockDiagnosticConjureTimelockService(switchableService, collector))
+                .orElse(switchableService);
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
@@ -1040,7 +1055,7 @@ public abstract class TransactionManagers {
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
-                creator.createServiceWithoutBlockingOperations(TimestampManagementRpcClient.class), timelockNamespace);
+                creator.createServiceWithShortTimeout(TimestampManagementRpcClient.class), timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -1118,7 +1133,7 @@ public abstract class TransactionManagers {
                             .userAgent(userAgent)
                             .shouldRetry(true)
                             .shouldLimitPayload(true)
-                            .shouldSupportBlockingOperations(false)
+                            .shouldUseExtendedTimeout(false)
                             .build());
 
             // Determine asynchronously whether the remote services are talking to our local services.

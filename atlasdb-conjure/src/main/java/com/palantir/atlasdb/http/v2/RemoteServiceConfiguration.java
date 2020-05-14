@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos;
+package com.palantir.atlasdb.http.v2;
 
 import org.immutables.value.Value;
 
-import com.palantir.common.persist.Persistable;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ServerListConfig;
 
 @Value.Immutable
-public abstract class PaxosRound<V extends Persistable & Versionable> {
-    public abstract long sequence();
-    public abstract V value();
-
-    @Value.Lazy
-    public byte[] valueBytes() {
-        return value().persistToBytes();
-    }
-
-    public static <V extends Persistable & Versionable> PaxosRound<V> of(long sequence, V value) {
-        return ImmutablePaxosRound.<V>builder().sequence(sequence).value(value).build();
-    }
+public interface RemoteServiceConfiguration {
+    ServerListConfig serverList();
+    AuxiliaryRemotingParameters remotingParameters();
 }

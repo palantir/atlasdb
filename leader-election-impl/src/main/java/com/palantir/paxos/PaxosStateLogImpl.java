@@ -27,7 +27,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -50,8 +51,8 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
-    private final ReentrantLock lock = new ReentrantLock();
-    private final Map<Long, Long> seqToVersionMap = Maps.newHashMap();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Map<Long, Long> seqToVersionMap = Maps.newConcurrentMap();
 
     private static final String TMP_FILE_SUFFIX = ".tmp";
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
@@ -99,7 +100,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
 
     @Override
     public void writeRound(long seq, V round) {
-        lock.lock();
+        lock.writeLock().lock();
         try {
             // reject old state
             Long latestVersion = seqToVersionMap.get(seq);
@@ -110,7 +111,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             // do write
             writeRoundInternal(seq, round);
         } finally {
-            lock.unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -150,12 +151,12 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
 
     @Override
     public byte[] readRound(long seq) throws IOException {
-        lock.lock();
+        lock.readLock().lock();
         try {
             File file = new File(path, getFilenameFromSeq(seq));
             return getBytesAndCheckChecksum(file);
         } finally {
-            lock.unlock();
+            lock.readLock().unlock();
         }
     }
 
@@ -178,7 +179,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     }
 
     public long getExtremeLogEntry(Extreme extreme) {
-        lock.lock();
+        lock.readLock().lock();
         try {
             File dir = new File(path);
             List<File> files = getLogEntries(dir);
@@ -196,14 +197,14 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 return PaxosAcceptor.NO_LOG_ENTRY;
             }
         } finally {
-            lock.unlock();
+            lock.readLock().unlock();
         }
     }
 
     @SuppressWarnings("ParameterAssignment")
     @Override
     public void truncate(long toDeleteInclusive) {
-        lock.lock();
+        lock.writeLock().lock();
         try {
             long greatestLogEntry = getGreatestLogEntry();
             if (greatestLogEntry >= 0) {
@@ -224,7 +225,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 }
             }
         } finally {
-            lock.unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -244,7 +245,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
      * @throws IOException when the data checksum fails or there is another problem reading from disk
      */
     private byte[] getBytesAndCheckChecksum(File file) throws IOException {
-        lock.lock();
+        lock.readLock().lock();
         try {
             InputStream fileIn = null;
             PaxosPersistence.PaxosHeader.Builder headerBuilder =
@@ -273,7 +274,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 IOUtils.closeQuietly(fileIn);
             }
         } finally {
-            lock.unlock();
+            lock.readLock().unlock();
         }
         return null;
     }

@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
@@ -44,6 +45,7 @@ final class DiskNamespaceLoader implements PersistentNamespaceLoader {
                 .filter(useCase -> useCase != PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .map(useCase -> useCase.logDirectoryRelativeToDataDirectory(rootDataDirectory))
                 .flatMap(DiskNamespaceLoader::getNamespacesFromUseCaseResolvedDirectory)
+                .filter(namespace -> !namespace.equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
                 .map(Client::of)
                 .collect(Collectors.toSet());
     }

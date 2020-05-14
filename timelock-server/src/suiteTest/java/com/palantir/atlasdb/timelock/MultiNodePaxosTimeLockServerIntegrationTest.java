@@ -41,7 +41,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.http.v2.ClientOptions;
+import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
@@ -81,8 +81,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
-    private static final int LONG_LOCK_TIMEOUT_MS =
-            Ints.saturatedCast(ClientOptions.NON_BLOCKING_READ_TIMEOUT.plus(Duration.ofSeconds(1)).toMillis());
+    private static final int LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS =
+            Ints.saturatedCast(ClientOptionsConstants.SHORT_READ_TIMEOUT
+                    .toJavaDuration()
+                    .plus(Duration.ofSeconds(1)).toMillis());
 
     private NamespacedClients client;
 
@@ -245,7 +247,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            LockResponse response = client.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            LockResponse response = client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);
@@ -257,7 +259,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS,
+                    LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);

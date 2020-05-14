@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.factory.timelock;
+package com.palantir.paxos;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.factory.ServiceCreator;
-
 @Value.Immutable
-public interface BlockingAndNonBlockingServices<T> {
-    T blocking();
-    T nonBlocking();
+public interface NamespaceAndUseCase {
+    @Value.Parameter
+    Client namespace();
 
-    static <T> BlockingAndNonBlockingServices<T> create(ServiceCreator serviceCreator, Class<T> clazz) {
-        return ImmutableBlockingAndNonBlockingServices.<T>builder()
-                .blocking(serviceCreator.createService(clazz))
-                .nonBlocking(serviceCreator.createServiceWithoutBlockingOperations(clazz))
-                .build();
-    }
+    @Value.Parameter
+    String useCase();
 }
