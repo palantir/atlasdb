@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Set;
+package com.palantir.paxos;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.SweepStrategy;
+import org.immutables.value.Value;
 
-public interface SweepStrategyManager {
-    SweepStrategy get(TableReference tableRef);
+@Value.Immutable
+public interface NamespaceAndUseCase {
+    @Value.Parameter
+    Client namespace();
 
-    default void invalidateCaches(Set<TableReference> tableRefs) {
-        // No-op. Assume no cache if not implemented.
-    }
+    @Value.Parameter
+    String useCase();
 }

@@ -29,6 +29,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.paxos.Client;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
@@ -76,7 +77,7 @@ public class SqliteNamespaceLoaderTest {
     }
 
     private void initializeLog(Client namespace, String sequenceId) {
-        SqlitePaxosStateLog.create(namespace, sequenceId, connectionSupplier)
+        SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), connectionSupplier)
                 .writeRound(1, PAXOS_VALUE);
     }
 }
