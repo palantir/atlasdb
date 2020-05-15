@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
 import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
-import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
+import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -90,7 +90,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     }
 
     private void migrate() {
-        PaxosStateLogMigrator.migrateToValidation(ImmutableMigrationContext.<PaxosValue>builder()
+        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
                 .sourceLog(source)
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
@@ -100,7 +100,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
 
     private List<PaxosValue> readMigratedValuesFor(List<PaxosValue> values) {
         return values.stream()
-                .map(value -> getPaxosValue(target, value.seq))
+                .map(value -> PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(readRoundUnchecked(target, value.seq)))
                 .collect(Collectors.toList());
     }
 }

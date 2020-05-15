@@ -42,24 +42,25 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         this.migrationState = migrationState;
     }
 
-    public static <V extends Persistable & Versionable> void migrateToValidation(MigrationContext<V> context) {
+    public static <V extends Persistable & Versionable> void migrate(MigrationContext<V> migrationContext) {
         PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(
-                context.sourceLog(),
-                context.destinationLog(),
-                context.hydrator(),
-                context.migrationState());
-        if (!context.migrationState().hasMigratedFromInitialState()
-                || context.destinationLog().getGreatestLogEntry() != context.sourceLog().getGreatestLogEntry()) {
-            migrator.runMigration();
-            context.migrationState().migrateToValidationState();
-        }
+                migrationContext.sourceLog(),
+                migrationContext.destinationLog(),
+                migrationContext.hydrator(),
+                migrationContext.migrationState());
+        migrator.runMigration();
     }
 
     private void runMigration() {
+        if (migrationState.hasMigratedFromInitialState()) {
+            return;
+        }
+
         destinationLog.truncate(destinationLog.getGreatestLogEntry());
         long lowerBound = lowestSequenceToMigrate();
         long upperBound = sourceLog.getGreatestLogEntry();
         if (upperBound == PaxosAcceptor.NO_LOG_ENTRY) {
+            migrationState.migrateToValidationState();
             return;
         }
 
@@ -70,6 +71,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                     .mapToObj(sequence -> reader.readBatch(sequence, BATCH_SIZE))
                     .forEach(destinationLog::writeBatchOfRounds);
         }
+        migrationState.migrateToValidationState();
     }
 
     private long lowestSequenceToMigrate() {

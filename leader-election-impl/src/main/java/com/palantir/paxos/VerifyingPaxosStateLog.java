@@ -17,13 +17,11 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -33,7 +31,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * This implementation of {@link PaxosStateLog} uses one delegate as the source of truth, but also delegates all calls
@@ -56,32 +53,6 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         this.currentLog = settings.currentLog();
         this.experimentalLog = settings.experimentalLog();
         this.hydrator = settings.hydrator();
-    }
-
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithMigration(
-            PaxosStorageParameters parameters,
-            Persistable.Hydrator<V> hydrator) {
-        String logDirectory = parameters.fileBasedLogDirectory()
-                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
-        NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
-
-        Settings<V> settings = ImmutableSettings.<V>builder()
-                .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, conn))
-                .hydrator(hydrator)
-                .build();
-
-        PaxosStateLogMigrator.MigrationContext<V> migrationContext = ImmutableMigrationContext.<V>builder()
-                .sourceLog(settings.currentLog())
-                .destinationLog(settings.experimentalLog())
-                .hydrator(settings.hydrator())
-                .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, conn))
-                .build();
-        PaxosStateLogMigrator.migrateToValidation(migrationContext);
-
-        return new VerifyingPaxosStateLog<>(settings);
     }
 
     @Override
@@ -166,7 +137,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         try {
             Long result = extractor.apply(currentLog);
             Long experimentalResult = safeReadFromExperimental(extractor::apply);
-            if (!Objects.equals(result, experimentalResult) && result != PaxosAcceptor.NO_LOG_ENTRY) {
+            if (!Objects.equals(result, experimentalResult)) {
                 log.error("Mismatch in getting the extreme log entry between legacy and current implementations."
                                 + " Legacy result {}, current result {}.",
                         SafeArg.of("legacy", result),
