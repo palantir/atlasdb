@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import java.sql.Connection;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -27,6 +28,9 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
+
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 public final class SqlitePaxosStateLogMigrationState {
     private final Client namespace;
@@ -52,16 +56,48 @@ public final class SqlitePaxosStateLogMigrationState {
         execute(Queries::createTable);
     }
 
-    public void finishMigration() {
-        execute(dao -> dao.finishMigration(namespace, useCase));
+    public void migrateToValidationState() {
+        execute(migrateToState(States.VALIDATION));
     }
 
-    public boolean hasAlreadyMigrated() {
-        return execute(dao -> dao.hasFinishedMigrating(namespace, useCase));
+    public void migrateToMigratedState() {
+        execute(migrateToState(States.MIGRATED));
+    }
+
+    public boolean hasMigratedFromInitialState() {
+        return execute(dao -> dao.getVersion(namespace, useCase).isPresent());
+    }
+
+    public boolean isInValidationState() {
+        return execute(dao -> dao.getVersion(namespace, useCase)
+                .map(States.VALIDATION.getSchemaVersion()::equals)
+                .orElse(false));
+    }
+
+    public boolean isInMigratedState() {
+        return execute(dao -> dao.getVersion(namespace, useCase)
+                .map(States.MIGRATED.getSchemaVersion()::equals)
+                .orElse(false));
     }
 
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
+    }
+
+    private Function<Queries, Boolean> migrateToState(States state) {
+        return dao -> {
+            assertCurrentStateAtMost(dao, state);
+            return dao.migrateToVersion(namespace, useCase, state.getSchemaVersion());
+        };
+    }
+
+    private void assertCurrentStateAtMost(Queries dao, States state) {
+        dao.getVersion(namespace, useCase).ifPresent(currentVersion ->
+                Preconditions.checkState(currentVersion <= state.getSchemaVersion(),
+                        "Could not update migration state because it would cause us to go back in state version.",
+                        SafeArg.of("currentVersion", currentVersion),
+                        SafeArg.of("migrationState", state),
+                        SafeArg.of("migrationVersion", state.getSchemaVersion())));
     }
 
     public interface Queries {
@@ -70,11 +106,27 @@ public final class SqlitePaxosStateLogMigrationState {
         boolean createTable();
 
         @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, useCase, version) VALUES"
-                + " (:namespace.value, :useCase, 0)")
-        boolean finishMigration(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+                + " (:namespace.value, :useCase, :version)")
+        boolean migrateToVersion(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("version") int version);
 
-        @SqlQuery("SELECT EXISTS (SELECT 1 FROM migration_state WHERE"
-                + " namespace = :namespace.value AND useCase = :useCase)")
-        boolean hasFinishedMigrating(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+        @SqlQuery("SELECT version FROM migration_state WHERE namespace = :namespace.value AND useCase = :useCase")
+        Optional<Integer> getVersion(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+    }
+
+    private enum States {
+        NONE(null), VALIDATION(0), MIGRATED(1);
+
+        private final Integer schemaVersion;
+
+        States(Integer schemaVersion) {
+            this.schemaVersion = schemaVersion;
+        }
+
+        Integer getSchemaVersion() {
+            return schemaVersion;
+        }
     }
 }

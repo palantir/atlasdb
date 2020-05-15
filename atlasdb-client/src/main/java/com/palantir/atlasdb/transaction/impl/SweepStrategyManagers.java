@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -51,7 +52,17 @@ public class SweepStrategyManagers {
                     return cache;
                 });
 
-        return tableRef -> sweepStrategySupplierLoadingCache.get().get(tableRef);
+        return new SweepStrategyManager() {
+            @Override
+            public SweepStrategy get(TableReference tableRef) {
+                return sweepStrategySupplierLoadingCache.get().get(tableRef);
+            }
+
+            @Override
+            public void invalidateCaches(Set<TableReference> tableRefs) {
+                sweepStrategySupplierLoadingCache.get().invalidateAll(tableRefs);
+            }
+        };
     }
 
     public static SweepStrategyManager createFromSchema(Schema schema) {

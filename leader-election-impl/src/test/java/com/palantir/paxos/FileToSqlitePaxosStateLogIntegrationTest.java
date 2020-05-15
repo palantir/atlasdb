@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
 import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
-import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
+import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -54,7 +54,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     @Test
     public void emptyMigrationSucceeds() {
         migrate();
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
     }
 
     @Test
@@ -82,7 +82,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
         List<PaxosValue> migratedValues = readMigratedValuesFor(expectedValues);
 
         assertThat(migratedValues).isEqualTo(roundsToValues(rounds));
-        assertThat(migrationState.hasAlreadyMigrated()).isTrue();
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
     }
 
     private List<PaxosValue> roundsToValues(List<PaxosRound<PaxosValue>> rounds) {
@@ -90,7 +90,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     }
 
     private void migrate() {
-        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
+        PaxosStateLogMigrator.migrateToValidation(ImmutableMigrationContext.<PaxosValue>builder()
                 .sourceLog(source)
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
@@ -100,7 +100,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
 
     private List<PaxosValue> readMigratedValuesFor(List<PaxosValue> values) {
         return values.stream()
-                .map(value -> PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(readRoundUnchecked(target, value.seq)))
+                .map(value -> getPaxosValue(target, value.seq))
                 .collect(Collectors.toList());
     }
 }

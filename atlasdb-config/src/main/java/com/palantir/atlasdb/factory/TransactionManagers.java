@@ -1012,7 +1012,7 @@ public abstract class TransactionManagers {
         DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
                 Refreshable.only(ServicesConfigBlock.builder().build()));
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
-                timelockServerListConfig, reloadingFactory, userAgent);
+                timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingClientConfig);
