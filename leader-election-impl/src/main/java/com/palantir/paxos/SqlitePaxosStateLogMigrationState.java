@@ -30,6 +30,7 @@ import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 public final class SqlitePaxosStateLogMigrationState {
     private final Client namespace;
@@ -92,7 +93,11 @@ public final class SqlitePaxosStateLogMigrationState {
 
     private void assertCurrentStateAtMost(Queries dao, States state) {
         dao.getVersion(namespace, useCase).ifPresent(currentVersion ->
-                Preconditions.checkState(currentVersion <= state.getSchemaVersion()));
+                Preconditions.checkState(currentVersion <= state.getSchemaVersion(),
+                        "Could not update migration state because it would cause us to go back in state version.",
+                        SafeArg.of("currentVersion", currentVersion),
+                        SafeArg.of("migrationState", state),
+                        SafeArg.of("migrationVersion", state.getSchemaVersion())));
     }
 
     public interface Queries {

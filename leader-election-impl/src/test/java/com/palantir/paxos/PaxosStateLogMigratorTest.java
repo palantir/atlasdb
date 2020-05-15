@@ -93,7 +93,7 @@ public class PaxosStateLogMigratorTest {
     }
 
     @Test
-    public void doNotMigrateIfAlreadyMigratedAndNoMismatchDetected() throws IOException {
+    public void doNotMigrateIfAlreadyMigratedAndNoMismatchDetected() {
         long lowerBound = 10;
         long upperBound = 25;
         List<PaxosValue> expectedValues = insertValuesWithinBounds(lowerBound, upperBound, source);
@@ -112,7 +112,7 @@ public class PaxosStateLogMigratorTest {
     }
 
     @Test
-    public void migirateAgainIfMismatchDetected() throws IOException {
+    public void migrateAgainIfMismatchDetected() {
         long lowerBound = 10;
         long upperBound = 25;
         List<PaxosValue> valuesWritten = new ArrayList<>();
