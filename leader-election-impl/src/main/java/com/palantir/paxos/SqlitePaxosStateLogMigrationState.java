@@ -119,7 +119,8 @@ public final class SqlitePaxosStateLogMigrationState {
     private enum States {
         NONE(null), VALIDATION(0), MIGRATED(1);
 
-        Integer schemaVersion;
+        private final Integer schemaVersion;
+
         States(Integer schemaVersion) {
             this.schemaVersion = schemaVersion;
         }
