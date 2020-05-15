@@ -101,9 +101,11 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -159,6 +161,8 @@ public class TransactionManagersTest {
     private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
             TransactionManagers.LockAndTimestampServices.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final DialogueClients.ReloadingFactory reloadingFactory
+            = DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
 
     private int availablePort;
     private TimeLockClientConfig mockClientConfig;
@@ -319,7 +323,8 @@ public class TransactionManagersTest {
                         () -> ts,
                         invalidator,
                         USER_AGENT,
-                        Optional.empty());
+                        Optional.empty(),
+                        reloadingFactory);
 
         LockRequest lockRequest = LockRequest
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
@@ -770,7 +775,8 @@ public class TransactionManagersTest {
                 () -> ts,
                 invalidator,
                 USER_AGENT,
-                Optional.empty());
+                Optional.empty(),
+                reloadingFactory);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -789,7 +795,8 @@ public class TransactionManagersTest {
                         () -> ts,
                         invalidator,
                         USER_AGENT,
-                        Optional.empty());
+                        Optional.empty(),
+                        reloadingFactory);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 

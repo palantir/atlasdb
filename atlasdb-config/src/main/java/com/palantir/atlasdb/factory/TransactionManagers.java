@@ -273,6 +273,17 @@ public abstract class TransactionManagers {
         return NoOpLockWatchingCache.INSTANCE;
     }
 
+    /**
+     * If set, a {@link com.palantir.dialogue.clients.DialogueClients.ReloadingFactory} that a
+     * {@link com.palantir.atlasdb.transaction.api.TransactionManager} based on this configuration should use.
+     * This may be useful for ensuring that connection pools are shared between multiple TransactionManagers in
+     * the same JVM.
+     */
+    @Value.Default
+    DialogueClients.ReloadingFactory reloadingFactory() {
+        return DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
+    }
+
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
         return ImmutableTransactionManagers.builder();
     }
@@ -373,7 +384,8 @@ public abstract class TransactionManagers {
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent(),
-                lockDiagnosticInfoCollector());
+                lockDiagnosticInfoCollector(),
+                reloadingFactory());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -831,7 +843,8 @@ public abstract class TransactionManagers {
                         time,
                         invalidator,
                         UserAgents.tryParse(userAgent),
-                        Optional.empty());
+                        Optional.empty(),
+                        DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build())));
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -851,7 +864,8 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            DialogueClients.ReloadingFactory reloadingFactory) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -861,7 +875,8 @@ public abstract class TransactionManagers {
                 time,
                 invalidator,
                 userAgent,
-                lockDiagnosticCollector);
+                lockDiagnosticCollector,
+                reloadingFactory);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
                         withRefreshingLockService(lockAndTimestampServices)));
@@ -921,7 +936,8 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            DialogueClients.ReloadingFactory reloadingFactory) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -935,7 +951,8 @@ public abstract class TransactionManagers {
                     runtimeConfig,
                     invalidator,
                     userAgent,
-                    lockDiagnosticCollector);
+                    lockDiagnosticCollector,
+                    reloadingFactory);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
         }
@@ -964,14 +981,13 @@ public abstract class TransactionManagers {
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            DialogueClients.ReloadingFactory reloadingFactory) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
 
         String timelockNamespace = OptionalResolver.resolve(
                 config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
-        DialogueClients.ReloadingFactory reloadingFactory = config.reloadingFactory()
-                .orElseGet(() -> DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build())));
         LockAndTimestampServices lockAndTimestampServices =
                 getLockAndTimestampServices(
                         metricsManager,

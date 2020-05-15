@@ -272,16 +272,6 @@ public abstract class AtlasDbConfig {
      */
     public abstract Optional<TimestampCache> timestampCache();
 
-    /**
-     * If set, a {@link com.palantir.dialogue.clients.DialogueClients.ReloadingFactory} that a
-     * {@link com.palantir.atlasdb.transaction.api.TransactionManager} based on this configuration should use.
-     * This may be useful for ensuring that connection pools are shared between multitenant services, for instance.
-     *
-     * WARNING: Providing reloading factories to multiple distinct TimeLock servers may result in undefined
-     * behaviour.
-     */
-    public abstract Optional<DialogueClients.ReloadingFactory> reloadingFactory();
-
     @Value.Check
     protected final void check() {
         checkLeaderAndTimelockBlocks();
