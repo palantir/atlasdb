@@ -57,6 +57,7 @@ import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -108,8 +109,7 @@ public class AtlasDbDialogueServiceProviderTest {
                 .build();
         secondServerPort = secondServer.port();
 
-        provider = AtlasDbDialogueServiceProvider.create(
-                Refreshable.only(serverListConfig), DIALOGUE_BASE_FACTORY, USER_USER_AGENT);
+        provider = getAtlasDbDialogueServiceProvider(serverPort);
         conjureTimelockService = provider.getConjureTimelockService();
     }
 
@@ -202,7 +202,8 @@ public class AtlasDbDialogueServiceProviderTest {
                         .addServers(getUriForPort(port))
                         .build()),
                 DIALOGUE_BASE_FACTORY,
-                USER_USER_AGENT);
+                USER_USER_AGENT,
+                MetricsManagers.createForTests().getTaggedRegistry());
     }
 
     private void scheduleServerRecoveryAfterFiveSeconds() {

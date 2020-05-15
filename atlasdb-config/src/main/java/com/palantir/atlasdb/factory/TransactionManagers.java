@@ -1029,7 +1029,7 @@ public abstract class TransactionManagers {
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
             DialogueClients.ReloadingFactory reloadingFactory) {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
-                timelockServerListConfig, reloadingFactory, userAgent);
+                timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingClientConfig);
