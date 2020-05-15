@@ -47,7 +47,6 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -82,7 +81,7 @@ import com.palantir.util.SafeShutdownRunner;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
-    final LockWatchService lockWatchService;
+    final LockWatchManager lockWatchManager;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -105,7 +104,7 @@ import com.palantir.util.SafeShutdownRunner;
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchService lockWatchService,
+            LockWatchManager lockWatchManager,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -123,7 +122,7 @@ import com.palantir.util.SafeShutdownRunner;
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
-        this.lockWatchService = lockWatchService;
+        this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -226,7 +225,6 @@ import com.palantir.util.SafeShutdownRunner;
         } finally {
             postTaskContext = postTaskTimer.time();
             timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
-            lockWatchService.removeTimestampFromCache(tx.getTimestamp());
         }
         scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
         postTaskContext.stop();
@@ -264,7 +262,7 @@ import com.palantir.util.SafeShutdownRunner;
                 metricsManager,
                 keyValueService,
                 timelockService,
-                lockWatchService,
+                lockWatchManager,
                 transactionService,
                 cleaner,
                 startTimestampSupplier,
@@ -305,7 +303,7 @@ import com.palantir.util.SafeShutdownRunner;
                 metricsManager,
                 keyValueService,
                 timelockService,
-                lockWatchService,
+                lockWatchManager,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),
@@ -422,7 +420,7 @@ import com.palantir.util.SafeShutdownRunner;
 
     @Override
     public LockWatchManager getLockWatchManager() {
-        return lockWatchService;
+        return lockWatchManager;
     }
 
     /**
