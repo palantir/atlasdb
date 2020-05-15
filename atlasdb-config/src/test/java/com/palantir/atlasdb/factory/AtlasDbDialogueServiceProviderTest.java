@@ -103,10 +103,6 @@ public class AtlasDbDialogueServiceProviderTest {
         setupServersToGiveOutTimestamps();
 
         serverPort = server.port();
-        ServerListConfig serverListConfig = ImmutableServerListConfig.builder()
-                .addServers(getUriForPort(serverPort))
-                .sslConfiguration(SSL_CONFIGURATION)
-                .build();
         secondServerPort = secondServer.port();
 
         provider = getAtlasDbDialogueServiceProvider(serverPort);
