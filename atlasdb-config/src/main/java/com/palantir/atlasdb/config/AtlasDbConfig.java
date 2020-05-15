@@ -34,7 +34,6 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
-import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 

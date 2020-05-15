@@ -46,7 +46,6 @@ import com.google.common.net.HttpHeaders;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
