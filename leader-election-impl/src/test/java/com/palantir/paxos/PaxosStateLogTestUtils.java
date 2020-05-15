@@ -52,10 +52,6 @@ public final class PaxosStateLogTestUtils {
         return buffer.array();
     }
 
-    public static PaxosValue getPaxosValue(PaxosStateLog<PaxosValue> log, long seq) {
-        return PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(readRoundUnchecked(log, seq));
-    }
-
     public static byte[] readRoundUnchecked(PaxosStateLog<?> log, long seq) {
         try {
             return log.readRound(seq);
