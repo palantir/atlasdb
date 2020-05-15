@@ -18,10 +18,13 @@ package com.palantir.lock.watch;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -31,12 +34,15 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private final ProcessingVisitor processingVisitor = new ProcessingVisitor();
     private final NewLeaderVisitor newLeaderVisitor = new NewLeaderVisitor();
     private final ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
+    private final ClientLockWatchSnapshotUpdater snapshotUpdater;
+    private final int maxSize = 2000;
     private volatile IdentifiedVersion identifiedVersion;
     private LockWatchStateUpdate.Snapshot seed = failedSnapshot(UUID.randomUUID());
 
     public ClientLockWatchEventLogImpl() {
         identifiedVersion = IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
         eventLog = new ConcurrentSkipListMap<>();
+        snapshotUpdater = null;
     }
 
     @Override
@@ -86,7 +92,24 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private synchronized void processSuccess(LockWatchStateUpdate.Success success) {
         setToLatestVersion(IdentifiedVersion.of(success.logId(), Optional.of(success.lastKnownVersion())));
         success.events().forEach(event -> eventLog.put(event.sequence(), event));
+
+        evictIfFull();
     }
+
+    private void evictIfFull() {
+        int excess = eventLog.size() - maxSize;
+        if (excess > 0) {
+            evict(excess);
+        }
+    }
+
+    private void evict(int count) {
+        List<LockWatchEvent> y = eventLog.entrySet().stream().limit(count).map(Map.Entry::getValue).collect(
+                Collectors.toList());
+        snapshotUpdater.processEvents(y);
+        y.forEach(eventLog::remove); // this is wrong.
+    }
+
 
     private synchronized void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         setToLatestVersion(IdentifiedVersion.of(snapshot.logId(), Optional.of(snapshot.lastKnownVersion())));
