@@ -217,6 +217,6 @@ public class PaxosStateLogMigrationIntegrationTest {
     private PaxosStateLog<PaxosValue> createSqliteLog(PaxosStorageParameters parameters) {
         Supplier<Connection> conn = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
-        return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), conn);
+        return SqlitePaxosStateLog.createFactory().create(parameters.namespaceAndUseCase(), conn);
     }
 }

@@ -60,6 +60,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithMigration(
             PaxosStorageParameters parameters,
+            SqlitePaxosStateLog.SqlitePaxosStateLogFactory sqliteFactory,
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
@@ -69,7 +70,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
         Settings<V> settings = ImmutableSettings.<V>builder()
                 .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, conn))
+                .experimentalLog(sqliteFactory.create(namespaceUseCase, conn))
                 .hydrator(hydrator)
                 .build();
 

@@ -50,8 +50,11 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         return new PaxosLearnerImpl(state, log, eventRecorder);
     }
 
-    public static PaxosLearner newVerifyingLearner(PaxosStorageParameters params, PaxosKnowledgeEventRecorder event) {
-        PaxosStateLog<PaxosValue> log = VerifyingPaxosStateLog.createWithMigration(params, PaxosValue.BYTES_HYDRATOR);
+    public static PaxosLearner newVerifyingLearner(PaxosStorageParameters params,
+            SqlitePaxosStateLog.SqlitePaxosStateLogFactory sqliteFactory,
+            PaxosKnowledgeEventRecorder event) {
+        PaxosStateLog<PaxosValue> log = VerifyingPaxosStateLog
+                .createWithMigration(params, sqliteFactory, PaxosValue.BYTES_HYDRATOR);
         return newLearner(log, event);
     }
 

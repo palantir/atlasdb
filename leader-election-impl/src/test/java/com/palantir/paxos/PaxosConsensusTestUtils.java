@@ -59,18 +59,20 @@ public final class PaxosConsensusTestUtils {
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
         RuntimeException exception = new SafeRuntimeException("mock server failure");
+        SqlitePaxosStateLog.SqlitePaxosStateLogFactory factory = SqlitePaxosStateLog.createFactory();
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
             PaxosLearner learner = PaxosLearnerImpl
-                    .newVerifyingLearner(getLearnerStorageParameters(i), PaxosKnowledgeEventRecorder.NO_OP);
+                    .newVerifyingLearner(getLearnerStorageParameters(i), factory, PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class,
                     learner,
                     failureToggles.get(i),
                     exception));
 
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorStorageParameters(i));
+            PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorStorageParameters(i),
+                    factory);
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class,
                     acceptor,
