@@ -72,6 +72,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         // otherwise, we assume that actually you are in a good state.
 
         long timestampLatestVersion = Collections.max(timestampToVersion.values());
+        // likely don't want to clone - figure out a better way to deal with this concurrency
         ConcurrentSkipListMap<Long, LockWatchEvent> logSnapshot = eventLog.clone();
 
         if (logSnapshot.isEmpty()) {
@@ -117,6 +118,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return newVersion;
     }
 
+    // need to think about the concurrent effects of this
     private void evictIfFull() {
         int excess = eventLog.size() - maxSize;
         if (excess > 0) {
