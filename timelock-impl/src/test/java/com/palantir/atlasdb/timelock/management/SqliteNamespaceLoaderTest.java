@@ -77,7 +77,8 @@ public class SqliteNamespaceLoaderTest {
     }
 
     private void initializeLog(Client namespace, String sequenceId) {
-        SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), connectionSupplier)
+        SqlitePaxosStateLog.createFactory()
+                .create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), connectionSupplier)
                 .writeRound(1, PAXOS_VALUE);
     }
 }

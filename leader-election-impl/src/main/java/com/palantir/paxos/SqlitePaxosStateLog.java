@@ -19,6 +19,8 @@ package com.palantir.paxos;
 import java.sql.Connection;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -38,58 +40,93 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
     private final Client namespace;
     private final String useCase;
     private final Jdbi jdbi;
+    private final ReadWriteLock sharedLock;
 
-    private SqlitePaxosStateLog(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi) {
+    private SqlitePaxosStateLog(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi, ReadWriteLock sharedLock) {
         this.namespace = namespaceAndUseCase.namespace();
         this.useCase = namespaceAndUseCase.useCase();
         this.jdbi = jdbi;
+        this.sharedLock = sharedLock;
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(NamespaceAndUseCase namespaceAndUseCase,
-            Supplier<Connection> connectionSupplier) {
+    private static <V extends Persistable & Versionable> PaxosStateLog<V> create(
+            NamespaceAndUseCase namespaceAndUseCase,
+            Supplier<Connection> connectionSupplier, ReadWriteLock sharedLock) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
-        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
+        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi, sharedLock);
         log.initialize();
         return log;
     }
 
+    public static SqlitePaxosStateLogFactory createFactory() {
+        return new SqlitePaxosStateLogFactory();
+    }
+
     private void initialize() {
-        execute(Queries::createTable);
+        executeWrite(Queries::createTable);
     }
 
     @Override
     public void writeRound(long seq, V round) {
-        execute(dao -> dao.writeRound(namespace, useCase, seq, round.persistToBytes()));
+        executeWrite(dao -> dao.writeRound(namespace, useCase, seq, round.persistToBytes()));
     }
 
     @Override
     public void writeBatchOfRounds(Iterable<PaxosRound<V>> rounds) {
-        execute(dao -> dao.writeBatchOfRounds(namespace, useCase, rounds));
+        executeWrite(dao -> dao.writeBatchOfRounds(namespace, useCase, rounds));
     }
 
     @Override
     public byte[] readRound(long seq) {
-        return execute(dao -> dao.readRound(namespace, useCase, seq));
+        return executeRead(dao -> dao.readRound(namespace, useCase, seq));
     }
 
     @Override
     public long getLeastLogEntry() {
-        return execute(dao -> dao.getLeastLogEntry(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return executeRead(dao -> dao.getLeastLogEntry(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return execute(dao -> dao.getGreatestLogEntry(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return executeRead(dao -> dao.getGreatestLogEntry(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
     public void truncate(long toDeleteInclusive) {
-        execute(dao -> dao.truncate(namespace, useCase, toDeleteInclusive));
+        executeWrite(dao -> dao.truncate(namespace, useCase, toDeleteInclusive));
+    }
+
+    private <T> T executeWrite(Function<Queries, T> call) {
+        sharedLock.writeLock().lock();
+        try {
+            return execute(call);
+        } finally {
+            sharedLock.writeLock().unlock();
+        }
+    }
+
+    private <T> T executeRead(Function<Queries, T> call) {
+        sharedLock.readLock().lock();
+        try {
+            return execute(call);
+        } finally {
+            sharedLock.readLock().unlock();
+        }
     }
 
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
+    }
+
+    public static class SqlitePaxosStateLogFactory {
+        private final ReadWriteLock sharedLock = new ReentrantReadWriteLock();
+
+        public <V extends Persistable & Versionable> PaxosStateLog<V> create(
+                NamespaceAndUseCase namespaceAndUseCase,
+                Supplier<Connection> connectionSupplier) {
+            return SqlitePaxosStateLog.create(namespaceAndUseCase, connectionSupplier, sharedLock);
+        }
     }
 
     public interface Queries {

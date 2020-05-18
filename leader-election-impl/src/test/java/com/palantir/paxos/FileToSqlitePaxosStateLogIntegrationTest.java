@@ -47,7 +47,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
         source = new PaxosStateLogImpl<>(tempFolder.newFolder("source").getPath());
         Supplier<Connection> targetConnSupplier = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("target").toPath());
-        target = SqlitePaxosStateLog.create(NAMESPACE, targetConnSupplier);
+        target = SqlitePaxosStateLog.createFactory().create(NAMESPACE, targetConnSupplier);
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConnSupplier);
     }
 
