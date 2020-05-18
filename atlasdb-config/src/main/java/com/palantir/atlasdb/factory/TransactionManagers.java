@@ -278,6 +278,7 @@ public abstract class TransactionManagers {
      * {@link com.palantir.atlasdb.transaction.api.TransactionManager} based on this configuration should use.
      * This may be useful for ensuring that connection pools are shared between multiple TransactionManagers in
      * the same JVM.
+     * We intend this to be used in exactly one place - do not use this without discussing with the AtlasDB team.
      */
     @Value.Default
     DialogueClients.ReloadingFactory reloadingFactory() {
