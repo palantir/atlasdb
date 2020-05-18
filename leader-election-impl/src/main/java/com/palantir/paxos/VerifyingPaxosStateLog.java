@@ -18,6 +18,8 @@ package com.palantir.paxos;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -80,7 +82,14 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
                 .hydrator(settings.hydrator())
                 .migrationState(sqliteFactory.createMigrationState(namespaceUseCase, conn))
                 .build();
+
+        Instant start = Instant.now();
+        log.info("Starting migration for namespace and use case {}.",
+                SafeArg.of("namespaceAndUseCase", parameters.namespaceAndUseCase()));
         PaxosStateLogMigrator.migrateToValidation(migrationContext);
+        log.info("Migration for namespace and use case {} took {}.",
+                SafeArg.of("namespaceAndUseCase", parameters.namespaceAndUseCase()),
+                SafeArg.of("duration", Duration.between(start, Instant.now())));
 
         return new VerifyingPaxosStateLog<>(settings);
     }
