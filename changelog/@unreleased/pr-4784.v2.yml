@@ -1,6 +1,6 @@
 type: fix
 fix:
   description: Dialogue users no longer need to explicitly declare a dependency on
-    dialogue-clients.
+    dialogue-clients; previously they had to.
   links:
   - https://github.com/palantir/atlasdb/pull/4784
