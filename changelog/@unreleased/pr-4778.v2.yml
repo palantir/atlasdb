@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: AtlasDB now allows users to pass in a `DialogueClients.ReloadingFactory`
+    to the builder of `TransactionManagers`. This is likely to be useful for AtlasDB-Proxy,
+    which wishes to share its Dialogue connection pools across `TransactionManager`s.
+    If not provided, AtlasDB will create its own factory.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4778
