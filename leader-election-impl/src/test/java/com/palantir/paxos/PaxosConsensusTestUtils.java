@@ -16,6 +16,8 @@
 package com.palantir.paxos;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +34,7 @@ import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -59,14 +62,15 @@ public final class PaxosConsensusTestUtils {
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
-            PaxosLearner learner = PaxosLearnerImpl.newLearner(getLearnerLogDir(i));
+            PaxosLearner learner = PaxosLearnerImpl
+                    .newVerifyingLearner(getLearnerStorageParameters(i), PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class,
                     learner,
                     failureToggles.get(i),
                     exception));
 
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(getAcceptorLogDir(i));
+            PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorStorageParameters(i));
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class,
                     acceptor,
@@ -124,11 +128,31 @@ public final class PaxosConsensusTestUtils {
         }
     }
 
+    private static PaxosStorageParameters getLearnerStorageParameters(int num) {
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(getLearnerLogDir(num))
+                .sqliteBasedLogDirectory(getSqlitePath())
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "learner"))
+                .build();
+    }
+
+    private static PaxosStorageParameters getAcceptorStorageParameters(int num) {
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(getAcceptorLogDir(num))
+                .sqliteBasedLogDirectory(getSqlitePath())
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "acceptor"))
+                .build();
+    }
+
     private static String getLearnerLogDir(int dir) {
         return LEARNER_DIR_PREFIX + dir;
     }
 
     private static String getAcceptorLogDir(int dir) {
         return ACCEPTOR_DIR_PREFIX + dir;
+    }
+
+    private static Path getSqlitePath() {
+        return Paths.get(LOG_DIR, "sqlite");
     }
 }
