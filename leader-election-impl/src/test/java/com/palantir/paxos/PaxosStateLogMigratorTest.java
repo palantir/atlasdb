@@ -54,9 +54,10 @@ public class PaxosStateLogMigratorTest {
                 .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("source").toPath());
         Supplier<Connection> targetConnSupplier = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("target").toPath());
-        source = SqlitePaxosStateLog.createFactory().create(NAMESPACE, sourceConnSupplier);
-        target = SqlitePaxosStateLog.createFactory().create(NAMESPACE, targetConnSupplier);
-        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConnSupplier);
+        SqlitePaxosStateLogFactory factory = new SqlitePaxosStateLogFactory();
+        source = factory.create(NAMESPACE, sourceConnSupplier);
+        target = factory.create(NAMESPACE, targetConnSupplier);
+        migrationState = factory.createMigrationState(NAMESPACE, targetConnSupplier);
     }
 
     @Test

@@ -38,7 +38,7 @@ import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosStorageParameters;
-import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.paxos.SqlitePaxosStateLogFactory;
 
 public class LocalPaxosComponents {
 
@@ -52,7 +52,7 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
-    private final SqlitePaxosStateLog.SqlitePaxosStateLogFactory sqliteFactory = SqlitePaxosStateLog.createFactory();
+    private final SqlitePaxosStateLogFactory sqliteFactory = new SqlitePaxosStateLogFactory();
 
     LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,

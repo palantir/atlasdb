@@ -41,6 +41,7 @@ import com.palantir.paxos.PaxosStorageParameters;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.paxos.SqlitePaxosStateLogFactory;
 
 public class PaxosStateLogMigrationIntegrationTest {
     private static final Client CLIENT = Client.of("test");
@@ -217,6 +218,6 @@ public class PaxosStateLogMigrationIntegrationTest {
     private PaxosStateLog<PaxosValue> createSqliteLog(PaxosStorageParameters parameters) {
         Supplier<Connection> conn = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
-        return SqlitePaxosStateLog.createFactory().create(parameters.namespaceAndUseCase(), conn);
+        return new SqlitePaxosStateLogFactory().create(parameters.namespaceAndUseCase(), conn);
     }
 }

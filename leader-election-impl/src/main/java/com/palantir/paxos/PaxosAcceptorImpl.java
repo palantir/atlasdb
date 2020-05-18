@@ -35,7 +35,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
     }
 
     public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters,
-            SqlitePaxosStateLog.SqlitePaxosStateLogFactory sqliteFactory) {
+            SqlitePaxosStateLogFactory sqliteFactory) {
         PaxosStateLog<PaxosAcceptorState> log = VerifyingPaxosStateLog
                 .createWithMigration(storageParameters, sqliteFactory, PaxosAcceptorState.BYTES_HYDRATOR);
         return new PaxosAcceptorImpl(

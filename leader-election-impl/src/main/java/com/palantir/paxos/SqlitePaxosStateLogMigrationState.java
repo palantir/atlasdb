@@ -18,6 +18,7 @@ package com.palantir.paxos;
 
 import java.sql.Connection;
 import java.util.Optional;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -36,48 +37,70 @@ public final class SqlitePaxosStateLogMigrationState {
     private final Client namespace;
     private final String useCase;
     private final Jdbi jdbi;
+    private final ReadWriteLock sharedLock;
 
-    private SqlitePaxosStateLogMigrationState(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi) {
+    private SqlitePaxosStateLogMigrationState(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi,
+            ReadWriteLock sharedLock) {
         this.namespace = namespaceAndUseCase.namespace();
         this.useCase = namespaceAndUseCase.useCase();
         this.jdbi = jdbi;
+        this.sharedLock = sharedLock;
     }
 
-    public static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase,
-            Supplier<Connection> connectionSupplier) {
+    static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase,
+            Supplier<Connection> connectionSupplier, ReadWriteLock sharedLock) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
-        SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespaceAndUseCase, jdbi);
+        SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespaceAndUseCase, jdbi,
+                sharedLock);
         state.initialize();
         return state;
     }
 
     private void initialize() {
-        execute(Queries::createTable);
+        executeWrite(Queries::createTable);
     }
 
     public void migrateToValidationState() {
-        execute(migrateToState(States.VALIDATION));
+        executeWrite(migrateToState(States.VALIDATION));
     }
 
     public void migrateToMigratedState() {
-        execute(migrateToState(States.MIGRATED));
+        executeWrite(migrateToState(States.MIGRATED));
     }
 
     public boolean hasMigratedFromInitialState() {
-        return execute(dao -> dao.getVersion(namespace, useCase).isPresent());
+        return executeRead(dao -> dao.getVersion(namespace, useCase).isPresent());
     }
 
     public boolean isInValidationState() {
-        return execute(dao -> dao.getVersion(namespace, useCase)
+        return executeRead(dao -> dao.getVersion(namespace, useCase)
                 .map(States.VALIDATION.getSchemaVersion()::equals)
                 .orElse(false));
     }
 
     public boolean isInMigratedState() {
-        return execute(dao -> dao.getVersion(namespace, useCase)
+        return executeRead(dao -> dao.getVersion(namespace, useCase)
                 .map(States.MIGRATED.getSchemaVersion()::equals)
                 .orElse(false));
+    }
+
+    private <T> T executeWrite(Function<Queries, T> call) {
+        sharedLock.writeLock().lock();
+        try {
+            return execute(call);
+        } finally {
+            sharedLock.writeLock().unlock();
+        }
+    }
+
+    private <T> T executeRead(Function<Queries, T> call) {
+        sharedLock.readLock().lock();
+        try {
+            return execute(call);
+        } finally {
+            sharedLock.readLock().unlock();
+        }
     }
 
     private <T> T execute(Function<Queries, T> call) {
