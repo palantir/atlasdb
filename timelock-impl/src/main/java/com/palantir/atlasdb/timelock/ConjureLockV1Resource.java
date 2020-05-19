@@ -55,7 +55,7 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
         return ConjureLockV1ServiceEndpoints.of(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
     }
 
-    public static ConjureLockV1Service jersey(
+    public static ConjureLockV1ShimService jersey(
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, LockService> lockServices) {
         return new ConjureLockV1Resource.JerseyAdapter(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
@@ -98,7 +98,7 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
                 .collect(Collectors.toSet());
     }
 
-    public static final class JerseyAdapter implements ConjureLockV1Service {
+    public static final class JerseyAdapter implements ConjureLockV1ShimService {
         private final ConjureLockV1Resource resource;
 
         private JerseyAdapter(ConjureLockV1Resource resource) {
