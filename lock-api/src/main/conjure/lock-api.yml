@@ -1,0 +1,41 @@
+types:
+  imports:
+    Long:
+      base-type: any
+      external:
+        java: java.lang.Long
+    BigInteger:
+      base-type: any
+      external:
+        java: java.math.BigInteger
+
+  definitions:
+    default-package: com.palantir.lock
+    objects:
+      ConjureLockRefreshToken:
+        fields:
+          tokenId: BigInteger
+          expirationDateMs: Long
+      ConjureSimpleHeldLocksToken:
+        fields:
+          tokenId: BigInteger
+          creationDateMs: Long
+
+
+services:
+  ConjureLockV1Service:
+    name: Lock V1 service
+    default-auth: header
+    package: com.palantir.lock
+    base-path: /lk
+    endpoints:
+      refreshLockRefreshTokens:
+        http: POST /rlrt/{namespace}
+        args:
+          namespace: string
+          request: list<ConjureLockRefreshToken>
+      unlockSimple:
+        http: POST /us/{namespace}
+        args:
+          namespace: string
+          request: ConjureSimpleHeldLocksToken
