@@ -110,9 +110,9 @@ public class LocalPaxosComponents {
                     + " time, and the client " + client + " provided is novel for this TimeLock server.");
         }
 
-        PaxosLearner learner = PaxosLearnerImpl.newFileSystemLearner(getLearnerParameters(client),
+        PaxosLearner learner = PaxosLearnerImpl.newVerifyingLearner(getLearnerParameters(client), sqliteFactory,
                 PaxosKnowledgeEventRecorder.NO_OP);
-        PaxosAcceptor acceptor = PaxosAcceptorImpl.newFileSystemAcceptor(getAcceptorParameters(client));
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorParameters(client), sqliteFactory);
         PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
 
         return ImmutableComponents.builder()

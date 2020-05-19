@@ -62,7 +62,7 @@ public final class PaxosLearnerImpl implements PaxosLearner {
             SqlitePaxosStateLogFactory sqliteFactory,
             PaxosKnowledgeEventRecorder event) {
         PaxosStateLog<PaxosValue> log = VerifyingPaxosStateLog
-                .createWithMigration(params, sqliteFactory, PaxosValue.BYTES_HYDRATOR);
+                .createWithoutMigration(params, sqliteFactory, PaxosValue.BYTES_HYDRATOR);
         return newLearner(log, event);
     }
 

@@ -22,6 +22,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -31,6 +33,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.Futures;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
@@ -53,6 +56,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
     private final PaxosStateLog<V> currentLog;
     private final PaxosStateLog<V> experimentalLog;
     private final Persistable.Hydrator<V> hydrator;
+    private final CompletableFuture<Long> firstEntry = new CompletableFuture<>();
 
     public VerifyingPaxosStateLog(Settings<V> settings) {
         this.currentLog = settings.currentLog();
@@ -94,6 +98,25 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         return new VerifyingPaxosStateLog<>(settings);
     }
 
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithoutMigration(
+            PaxosStorageParameters parameters,
+            SqlitePaxosStateLogFactory sqliteFactory,
+            Persistable.Hydrator<V> hydrator) {
+        String logDirectory = parameters.fileBasedLogDirectory()
+                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
+        Supplier<Connection> conn = SqliteConnections
+                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
+        NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
+
+        Settings<V> settings = ImmutableSettings.<V>builder()
+                .currentLog(new PaxosStateLogImpl<>(logDirectory))
+                .experimentalLog(sqliteFactory.create(namespaceUseCase, conn))
+                .hydrator(hydrator)
+                .build();
+
+        return new VerifyingPaxosStateLog<>(settings);
+    }
+
     @Override
     public void writeRound(long seq, V round) {
         lock.writeLock().lock();
@@ -101,6 +124,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
             currentLog.writeRound(seq, round);
             try {
                 experimentalLog.writeRound(seq, round);
+                firstEntry.complete(seq);
             } catch (RuntimeException e) {
                 log.warn("Succeeded writing round for sequence number {} to the current log, but failed to write to "
                         + "experimental. This may cause future verification for this round to fail.",
@@ -117,13 +141,15 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         lock.readLock().lock();
         try {
             byte[] result = currentLog.readRound(seq);
-            byte[] experimentalResult = safeReadFromExperimental(psl -> psl.readRound(seq));
-            if (!Arrays.equals(result, experimentalResult)) {
-                log.error("Mismatch in reading round for sequence number {} between legacy and current "
-                        + "implementations. Legacy result {}, current result {}.",
-                        SafeArg.of("sequence", seq),
-                        UnsafeArg.of("legacy", hydrateIfNotNull(result)),
-                        UnsafeArg.of("current", hydrateIfNotNull(experimentalResult)));
+            if (firstEntry.isDone() && Futures.getUnchecked(firstEntry) <= seq) {
+                byte[] experimentalResult = safeReadFromExperimental(psl -> psl.readRound(seq));
+                if (!Arrays.equals(result, experimentalResult)) {
+                    log.error("Mismatch in reading round for sequence number {} between legacy and current "
+                                    + "implementations. Legacy result {}, current result {}.",
+                            SafeArg.of("sequence", seq),
+                            UnsafeArg.of("legacy", hydrateIfNotNull(result)),
+                            UnsafeArg.of("current", hydrateIfNotNull(experimentalResult)));
+                }
             }
             return result;
         } finally {
@@ -175,12 +201,15 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         lock.readLock().lock();
         try {
             Long result = extractor.apply(currentLog);
-            Long experimentalResult = safeReadFromExperimental(extractor::apply);
-            if (!Objects.equals(result, experimentalResult) && result != PaxosAcceptor.NO_LOG_ENTRY) {
-                log.error("Mismatch in getting the extreme log entry between legacy and current implementations."
-                                + " Legacy result {}, current result {}.",
-                        SafeArg.of("legacy", result),
-                        SafeArg.of("current", experimentalResult));
+            if (firstEntry.isDone()) {
+
+                Long experimentalResult = safeReadFromExperimental(extractor::apply);
+                if (!Objects.equals(result, experimentalResult) && result != PaxosAcceptor.NO_LOG_ENTRY) {
+                    log.error("Mismatch in getting the extreme log entry between legacy and current implementations."
+                                    + " Legacy result {}, current result {}.",
+                            SafeArg.of("legacy", result),
+                            SafeArg.of("current", experimentalResult));
+                }
             }
             return result;
         } finally {
