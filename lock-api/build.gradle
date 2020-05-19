@@ -1,15 +1,6 @@
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
-apply plugin: 'com.palantir.conjure'
-
-conjure {
-    java {
-        undertowServicePrefixes = true
-        undertowListenableFutures = true
-        useImmutableBytes = true
-    }
-}
 
 repositories {
     mavenCentral()
@@ -35,9 +26,6 @@ dependencies {
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
 
-    conjureCompiler 'com.palantir.conjure:conjure'
-    conjureJava 'com.palantir.conjure.java:conjure-java'
-
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
 
@@ -60,13 +48,4 @@ recommendedProductDependencies {
         minimumVersion = '0.144.0'
         maximumVersion = '0.x.x'
     }
-}
-
-subprojects {
-    apply from: "../../gradle/shared.gradle"
-    dependencies {
-        compile project(':lock-api-objects')
-        compile 'com.palantir.conjure.java:conjure-lib'
-    }
-    tasks.licenseMain.enabled = false
 }

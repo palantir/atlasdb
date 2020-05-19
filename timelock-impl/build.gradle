@@ -5,6 +5,8 @@ apply from: "../gradle/tests.gradle"
 
 dependencies {
     compile project(":timestamp-impl")
+    compile project(":lock-conjure-api:lock-conjure-api-undertow")
+    compile project(":lock-conjure-api:lock-conjure-api-jersey")
     compile project(":lock-impl")
     compile project(':timelock-api:timelock-api-undertow')
     compile project(':timelock-api:timelock-api-jersey')

@@ -34,8 +34,10 @@ services:
         args:
           namespace: string
           request: list<ConjureLockRefreshToken>
+        returns: set<ConjureLockRefreshToken>
       unlockSimple:
         http: POST /us/{namespace}
         args:
           namespace: string
           request: ConjureSimpleHeldLocksToken
+        returns: boolean
