@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -61,6 +62,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         resetPaxosComponents();
     }
 
+    @Ignore
     @Test
     public void learnerMigratesLogStateCorrectly() throws IOException {
         int round = 100;
@@ -75,6 +77,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(round, learner);
     }
 
+    @Ignore
     @Test
     public void legacyLogIsTheSourceOfTruthWhenValueOnlyInLegacy() throws IOException {
         int migratedRound = 100;
@@ -93,6 +96,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(nonMigratedRound, learner);
     }
 
+    @Ignore
     @Test
     public void legacyLogIsTheSourceOfTruthWhenValueAbsentFromLegacy() throws IOException {
         int migratedRound = 100;
@@ -111,6 +115,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueNotLearned(rogueValue, learner);
     }
 
+    @Ignore
     @Test
     public void doesNotMigrateAgainIfGreatestSequencesMatch() throws IOException {
         int firstRound = 100;
@@ -135,6 +140,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(nonMigratedRound, learner);
     }
 
+    @Ignore
     @Test
     public void migratesAgainIfOutOfSyncDetected() throws IOException {
         int firstRound = 100;
@@ -155,6 +161,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(secondRound, learner);
     }
 
+    @Ignore
     @Test
     public void noCrossClientPollution() throws IOException {
         int round = 200;

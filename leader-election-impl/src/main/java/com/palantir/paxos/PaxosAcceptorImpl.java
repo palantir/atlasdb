@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
@@ -32,6 +33,12 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
                 new ConcurrentSkipListMap<>(),
                 log,
                 log.getGreatestLogEntry());
+    }
+
+    public static PaxosAcceptor newFileSystemAcceptor(PaxosStorageParameters storageParameters) {
+        String logDirectory = storageParameters.fileBasedLogDirectory()
+                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
+        return newAcceptor(logDirectory);
     }
 
     public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters,
