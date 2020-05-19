@@ -38,6 +38,7 @@ import org.junit.runners.Parameterized;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -51,7 +52,10 @@ import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
+import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.ConjureLockRequests;
 import com.palantir.lock.v2.LeaderTime;
@@ -67,7 +71,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_TIMESTAMP_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.NON_BATCHED_TIMESTAMP_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -318,6 +322,22 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .map(resource -> resource.getNamespaces(AuthHeader.valueOf("Bearer omitted")))
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
+    }
+
+    @Test
+    public void directLegacyAndConjureLockServicesInteractCorrectly() throws InterruptedException {
+        LockRefreshToken token = client.legacyLockService().lock("tom", com.palantir.lock.LockRequest.builder(
+                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                .build())
+                .build());
+        ConjureLockRefreshToken conjureAnalogue = ConjureLockRefreshToken.of(
+                token.getTokenId(), token.getExpirationDateMs());
+
+        assertThat(client.legacyLockService().refreshLockRefreshTokens(ImmutableList.of(token))).containsExactly(token);
+        assertThat(client.conjureLegacyLockService().refreshLockRefreshTokens(
+                AuthHeader.valueOf("Bearer unused"), client.namespace(), ImmutableList.of(conjureAnalogue)))
+                .containsExactly(conjureAnalogue);
     }
 
     @Test
