@@ -16,20 +16,14 @@
 
 package com.palantir.paxos;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.palantir.logsafe.Preconditions;
-
 @Value.Immutable
 public interface PaxosStorageParameters {
+    NamespaceAndUseCase namespaceAndUseCase();
+    Path sqliteBasedLogDirectory();
     Optional<String> fileBasedLogDirectory();
-    Optional<String> databaseNamespace();
-
-    @Value.Check
-    default void check() {
-        Preconditions.checkState(fileBasedLogDirectory().isPresent() || databaseNamespace().isPresent(),
-                "At least one of 'fileBasedLogDirectory' and 'databaseNamespace' must be present.");
-    }
 }

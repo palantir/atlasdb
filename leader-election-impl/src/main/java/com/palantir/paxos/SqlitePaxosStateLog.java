@@ -20,7 +20,6 @@ import java.sql.Connection;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -49,7 +48,7 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
         this.sharedLock = sharedLock;
     }
 
-    private static <V extends Persistable & Versionable> PaxosStateLog<V> create(
+    static <V extends Persistable & Versionable> PaxosStateLog<V> create(
             NamespaceAndUseCase namespaceAndUseCase,
             Supplier<Connection> connectionSupplier, ReadWriteLock sharedLock) {
         Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
@@ -57,10 +56,6 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi, sharedLock);
         log.initialize();
         return log;
-    }
-
-    public static SqlitePaxosStateLogFactory createFactory() {
-        return new SqlitePaxosStateLogFactory();
     }
 
     private void initialize() {
@@ -117,16 +112,6 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
 
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
-    }
-
-    public static class SqlitePaxosStateLogFactory {
-        private final ReadWriteLock sharedLock = new ReentrantReadWriteLock();
-
-        public <V extends Persistable & Versionable> PaxosStateLog<V> create(
-                NamespaceAndUseCase namespaceAndUseCase,
-                Supplier<Connection> connectionSupplier) {
-            return SqlitePaxosStateLog.create(namespaceAndUseCase, connectionSupplier, sharedLock);
-        }
     }
 
     public interface Queries {

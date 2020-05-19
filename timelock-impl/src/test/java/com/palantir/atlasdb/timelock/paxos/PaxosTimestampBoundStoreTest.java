@@ -112,7 +112,8 @@ public class PaxosTimestampBoundStoreTest {
             LocalPaxosComponents components = new LocalPaxosComponents(
                     TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                     PaxosUseCase.TIMESTAMP,
-                    Paths.get(root, Integer.toString(i)),
+                    Paths.get(root, i + "legacy"),
+                    Paths.get(root, i + "sqlite"),
                     UUID.randomUUID(),
                     true);
 

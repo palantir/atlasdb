@@ -186,6 +186,7 @@ public final class PaxosResourcesFactory {
                 timelockMetrics,
                 PaxosUseCase.TIMESTAMP,
                 install.dataDirectory(),
+                install.sqliteDataDirectory(),
                 install.nodeUuid(),
                 install.install().paxos().canCreateNewClients());
 
@@ -289,6 +290,11 @@ public final class PaxosResourcesFactory {
         @Value.Derived
         default Path dataDirectory() {
             return install().paxos().dataDirectory().toPath();
+        }
+
+        @Value.Derived
+        default Path sqliteDataDirectory() {
+            return install().paxos().sqlitePersistence().dataDirectory().toPath();
         }
 
         @Value.Derived

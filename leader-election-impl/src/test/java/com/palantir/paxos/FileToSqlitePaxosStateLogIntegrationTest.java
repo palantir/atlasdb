@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
 import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
-import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
+import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -47,8 +47,8 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
         source = new PaxosStateLogImpl<>(tempFolder.newFolder("source").getPath());
         Supplier<Connection> targetConnSupplier = SqliteConnections
                 .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("target").toPath());
-        target = SqlitePaxosStateLog.createFactory().create(NAMESPACE, targetConnSupplier);
-        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConnSupplier);
+        target = new SqlitePaxosStateLogFactory().create(NAMESPACE, targetConnSupplier);
+        migrationState = new SqlitePaxosStateLogFactory().createMigrationState(NAMESPACE, targetConnSupplier);
     }
 
     @Test
@@ -90,7 +90,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     }
 
     private void migrate() {
-        PaxosStateLogMigrator.migrate(ImmutableMigrationContext.<PaxosValue>builder()
+        PaxosStateLogMigrator.migrateToValidation(ImmutableMigrationContext.<PaxosValue>builder()
                 .sourceLog(source)
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
@@ -100,7 +100,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
 
     private List<PaxosValue> readMigratedValuesFor(List<PaxosValue> values) {
         return values.stream()
-                .map(value -> PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(readRoundUnchecked(target, value.seq)))
+                .map(value -> getPaxosValue(target, value.seq))
                 .collect(Collectors.toList());
     }
 }

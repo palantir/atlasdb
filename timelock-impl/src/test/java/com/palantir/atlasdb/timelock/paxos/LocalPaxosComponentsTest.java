@@ -53,15 +53,18 @@ public class LocalPaxosComponentsTest {
     public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
     private LocalPaxosComponents paxosComponents;
-    private Path logDirectory;
+    private Path legacyDirectory;
+    private Path sqliteDirectory;
 
     @Before
     public void setUp() throws IOException {
-        logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
+        legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
+        sqliteDirectory = TEMPORARY_FOLDER.newFolder("sqlite").toPath();
         paxosComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
-                logDirectory,
+                legacyDirectory,
+                sqliteDirectory,
                 UUID.randomUUID(),
                 true);
     }
@@ -82,10 +85,10 @@ public class LocalPaxosComponentsTest {
     @Test
     public void addsClientsInSubdirectory() {
         paxosComponents.learner(CLIENT);
-        File expectedAcceptorLogDir = logDirectory.resolve(
+        File expectedAcceptorLogDir = legacyDirectory.resolve(
                 Paths.get(CLIENT.value(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH)).toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
-        File expectedLearnerLogDir = logDirectory.resolve(
+        File expectedLearnerLogDir = legacyDirectory.resolve(
                 Paths.get(CLIENT.value(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)).toFile();
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
@@ -95,7 +98,8 @@ public class LocalPaxosComponentsTest {
         LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
-                logDirectory,
+                legacyDirectory,
+                sqliteDirectory,
                 UUID.randomUUID(),
                 false);
         assertThatThrownBy(() -> rejectingComponents.learner(CLIENT))
@@ -110,7 +114,8 @@ public class LocalPaxosComponentsTest {
         LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
-                logDirectory,
+                legacyDirectory,
+                sqliteDirectory,
                 UUID.randomUUID(),
                 false);
         assertThat(rejectingComponents.learner(CLIENT)).isNotNull();

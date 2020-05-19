@@ -43,7 +43,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
-    private static final SqlitePaxosStateLog.SqlitePaxosStateLogFactory FACTORY = SqlitePaxosStateLog.createFactory();
+    private static final SqlitePaxosStateLogFactory FACTORY = new SqlitePaxosStateLogFactory();
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
