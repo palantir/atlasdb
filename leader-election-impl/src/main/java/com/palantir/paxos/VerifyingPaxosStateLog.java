@@ -202,9 +202,9 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         try {
             Long result = extractor.apply(currentLog);
             if (firstEntry.isDone()) {
-
                 Long experimentalResult = safeReadFromExperimental(extractor::apply);
-                if (!Objects.equals(result, experimentalResult) && result != PaxosAcceptor.NO_LOG_ENTRY) {
+                if (!Objects.equals(result, experimentalResult) && result != PaxosAcceptor.NO_LOG_ENTRY
+                        && result >= Futures.getUnchecked(firstEntry)) {
                     log.error("Mismatch in getting the extreme log entry between legacy and current implementations."
                                     + " Legacy result {}, current result {}.",
                             SafeArg.of("legacy", result),
