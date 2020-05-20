@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.lock.v1;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -63,14 +64,14 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     }
 
     @Override
-    public ListenableFuture<HeldLocksToken> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
+    public ListenableFuture<Optional<HeldLocksToken>> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
             ConjureLockV1Request request) {
         return exceptionHandler.handleExceptions(() -> {
             try {
-                return Futures.immediateFuture(
+                return Futures.immediateFuture(Optional.ofNullable(
                         lockServices.apply(namespace)
                                 .lockAndGetHeldLocks(request.getLockClient(), request.getLockRequest())
-                );
+                ));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
@@ -110,7 +111,7 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
         }
 
         @Override
-        public HeldLocksToken lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
+        public Optional<HeldLocksToken> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
                 ConjureLockV1Request request) {
             return unwrap(resource.lockAndGetHeldLocks(authHeader, namespace, request));
         }

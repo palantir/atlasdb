@@ -8,10 +8,6 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.HeldLocksToken
-    LockWithMode:
-      base-type: any
-      external:
-        java: com.palantir.lock.LockWithMode
     LockRequest:
       base-type: any
       external:
@@ -20,10 +16,6 @@ types:
       base-type: any
       external:
         java: java.lang.Long
-    TimeDuration:
-      base-type: any
-      external:
-        java: com.palantir.lock.TimeDuration
   definitions:
     default-package: com.palantir.lock
     objects:
@@ -35,11 +27,6 @@ types:
         fields:
           lockClient: string
           lockRequest: LockRequest
-#          locks: list<LockWithMode>
-#          lockTimeout: TimeDuration
-#          blockingDuration: TimeDuration
-#          versionId: Long
-#          creatingThreadName: string
       ConjureSimpleHeldLocksToken:
         fields:
           tokenId: BigInteger
@@ -58,7 +45,7 @@ services:
         args:
           namespace: string
           request: ConjureLockV1Request
-        returns: HeldLocksToken
+        returns: optional<HeldLocksToken>
       refreshLockRefreshTokens:
         http: POST /rlrt/{namespace}
         args:

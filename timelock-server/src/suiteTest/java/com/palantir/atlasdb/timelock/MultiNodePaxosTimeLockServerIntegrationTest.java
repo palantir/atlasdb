@@ -56,6 +56,7 @@ import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -372,17 +373,31 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                         .build())
                 .doNotBlock()
                 .build();
+        String anonymousId = LockClient.ANONYMOUS.getClientId();
+        ConjureLockV1Request conjureLockRequest = ConjureLockV1Request.builder()
+                .lockClient(anonymousId)
+                .lockRequest(lockRequest)
+                .build();
+
         HeldLocksToken token = client.conjureLegacyLockService().lockAndGetHeldLocks(
                 AuthHeader.valueOf("Bearer unused"),
                 client.namespace(),
-                ConjureLockV1Request.builder()
-                        .lockClient("")
-                        .lockRequest(lockRequest)
-                        .build());
+                conjureLockRequest)
+                .orElseThrow(() -> new RuntimeException("We should have been able to get the lock"));
 
-        assertThat(client.legacyLockService().lockAndGetHeldLocks("", lockRequest)).isNull();
+        assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
+                .as("if the conjure impl has taken a lock, the legacy impl mustn't be able to take it")
+                .isNull();
         assertThat(client.legacyLockService().unlock(token.getLockRefreshToken())).isTrue();
-        assertThat(client.legacyLockService().lockAndGetHeldLocks("", lockRequest)).isNotNull();
+        assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
+                .as("a lock once unlocked by conjure impl can be acquired by legacy impl")
+                .isNotNull();
+        assertThat(client.conjureLegacyLockService().lockAndGetHeldLocks(
+                AuthHeader.valueOf("Bearer unused"),
+                client.namespace(),
+                conjureLockRequest))
+                .as("if the legacy impl has taken a lock, the conjure impl mustn't be able to take it")
+                .isEmpty();
     }
 
     @Test

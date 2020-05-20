@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.lock.v1;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
@@ -43,7 +44,7 @@ import com.palantir.tokens.auth.AuthHeader;
 public interface ConjureLockV1ShimService {
     @POST
     @Path("laghl/{namespace}")
-    HeldLocksToken lockAndGetHeldLocks(
+    Optional<HeldLocksToken> lockAndGetHeldLocks(
             @HeaderParam("Authorization") AuthHeader authHeader,
             @PathParam("namespace") String namespace,
             ConjureLockV1Request request);
