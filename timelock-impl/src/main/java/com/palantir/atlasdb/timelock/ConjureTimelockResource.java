@@ -291,7 +291,6 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     private IdentifiedVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
-        return ImmutableIdentifiedVersion.of(conjureIdentifiedVersion.getId(),
-                conjureIdentifiedVersion.getVersion().longValue());
+        return ImmutableIdentifiedVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
     }
 }

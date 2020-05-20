@@ -25,5 +25,5 @@ public interface IdentifiedVersion {
     @Value.Parameter
     UUID id();
     @Value.Parameter
-    Long version();
+    long version();
 }
