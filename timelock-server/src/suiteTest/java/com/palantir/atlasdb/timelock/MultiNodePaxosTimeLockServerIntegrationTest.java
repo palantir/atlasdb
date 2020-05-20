@@ -53,7 +53,9 @@ import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -360,6 +362,25 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(client.legacyLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token)))
                 .as("a token unlocked through the conjure API stays unlocked even in the legacy API")
                 .isFalse();
+    }
+
+    @Test
+    public void lockAcquiredByConjureLockServiceIsAlsoAcquiredInLegacy() throws InterruptedException {
+        com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
+                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                        .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                        .build())
+                .doNotBlock()
+                .build();
+        client.conjureLegacyLockService().lockAndGetHeldLocks(
+                AuthHeader.valueOf("Bearer unused"),
+                client.namespace(),
+                ConjureLockV1Request.builder()
+                        .lockClient("")
+                        .lockRequest(lockRequest)
+                        .build());
+
+        assertThat(client.legacyLockService().lockAndGetHeldLocks("", lockRequest)).isNull();
     }
 
     @Test
