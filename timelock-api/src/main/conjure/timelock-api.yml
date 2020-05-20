@@ -39,7 +39,7 @@ types:
       ConjureIdentifiedVersion:
         fields:
           id: uuid
-          version: safelong
+          version: Long
         docs: |
           ``version`` is always an inclusive number. If the event log is empty, ``-1`` is returned.
       ConjureStartTransactionsRequest:

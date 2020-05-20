@@ -31,7 +31,6 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.common.concurrent.CoalescingSupplier;
-import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -100,7 +99,7 @@ class LockLeaseService {
                 .numTransactions(batchSize)
                 .lastKnownVersion(maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
                         .id(identifiedVersion.id())
-                        .version(SafeLong.of(identifiedVersion.version()))
+                        .version(identifiedVersion.version())
                         .build()))
                 .build();
         ConjureStartTransactionsResponse response = delegate.startTransactions(request);
