@@ -36,12 +36,18 @@ types:
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
+      ConjureIdentifiedVersion:
+        fields:
+          id: uuid
+          version: safelong
+        docs: |
+          ``version`` is always an inclusive number. If the event log is empty, ``-1`` is returned.
       ConjureStartTransactionsRequest:
         fields:
           requestId: uuid
           requestorId: uuid
           numTransactions: integer
-          lastKnownVersion: optional<Long>
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
       ConjureStartTransactionsResponse:
         fields:
           immutableTimestamp: LockImmutableTimestampResponse
@@ -95,7 +101,7 @@ types:
       GetCommitTimestampsRequest:
         fields:
           numTimestamps: integer
-          lastKnownVersion: optional<Long>
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
       GetCommitTimestampsResponse:
         fields:
           inclusiveLower: Long

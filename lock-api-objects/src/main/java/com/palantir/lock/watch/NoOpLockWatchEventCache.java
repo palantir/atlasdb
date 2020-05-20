@@ -25,18 +25,17 @@ import com.google.common.collect.ImmutableSet;
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
-    private static final IdentifiedVersion FAKE = ImmutableIdentifiedVersion
-            .of(UUID.randomUUID(), Optional.empty());
+    private static final IdentifiedVersion FAKE = ImmutableIdentifiedVersion.of(UUID.randomUUID(), 0L);
     private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
+            LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of()));
 
     private NoOpLockWatchEventCache() {
         // singleton
     }
 
     @Override
-    public IdentifiedVersion lastKnownVersion() {
-        return FAKE;
+    public Optional<IdentifiedVersion> lastKnownVersion() {
+        return Optional.empty();
     }
 
     @Override
@@ -50,7 +49,8 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
+    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> version) {
         return NONE;
     }
 }

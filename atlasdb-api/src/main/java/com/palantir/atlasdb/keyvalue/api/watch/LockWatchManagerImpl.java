@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
@@ -40,7 +41,8 @@ public final class LockWatchManagerImpl implements LockWatchManager {
     }
 
     @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
+    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> version) {
         return cache.getEventsForTransactions(startTimestamps, version);
     }
 }
