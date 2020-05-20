@@ -29,9 +29,11 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
@@ -59,6 +61,22 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, LockService> lockServices) {
         return new ConjureLockV1Resource.JerseyAdapter(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
+    }
+
+    @Override
+    public ListenableFuture<HeldLocksToken> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
+            ConjureLockV1Request request) {
+        return exceptionHandler.handleExceptions(() -> {
+            try {
+                return Futures.immediateFuture(
+                        lockServices.apply(namespace)
+                                .lockAndGetHeldLocks(request.getLockClient(), request.getLockRequest())
+                );
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
@@ -103,6 +121,12 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
 
         private JerseyAdapter(ConjureLockV1Resource resource) {
             this.resource = resource;
+        }
+
+        @Override
+        public HeldLocksToken lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
+                ConjureLockV1Request request) {
+            return unwrap(resource.lockAndGetHeldLocks(authHeader, namespace, request));
         }
 
         @Override

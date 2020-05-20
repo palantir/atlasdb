@@ -1,14 +1,29 @@
 types:
   imports:
-    Long:
-      base-type: any
-      external:
-        java: java.lang.Long
     BigInteger:
       base-type: any
       external:
         java: java.math.BigInteger
-
+    HeldLocksToken:
+      base-type: any
+      external:
+        java: com.palantir.lock.HeldLocksToken
+    LockWithMode:
+      base-type: any
+      external:
+        java: com.palantir.lock.LockWithMode
+    LockRequest:
+      base-type: any
+      external:
+        java: com.palantir.lock.LockRequest
+    Long:
+      base-type: any
+      external:
+        java: java.lang.Long
+    TimeDuration:
+      base-type: any
+      external:
+        java: com.palantir.lock.TimeDuration
   definitions:
     default-package: com.palantir.lock
     objects:
@@ -16,6 +31,15 @@ types:
         fields:
           tokenId: BigInteger
           expirationDateMs: Long
+      ConjureLockV1Request:
+        fields:
+          lockClient: string
+          lockRequest: LockRequest
+#          locks: list<LockWithMode>
+#          lockTimeout: TimeDuration
+#          blockingDuration: TimeDuration
+#          versionId: Long
+#          creatingThreadName: string
       ConjureSimpleHeldLocksToken:
         fields:
           tokenId: BigInteger
@@ -29,6 +53,12 @@ services:
     package: com.palantir.lock
     base-path: /lk
     endpoints:
+      lockAndGetHeldLocks:
+        http: POST /laghl/{namespace}
+        args:
+          namespace: string
+          request: ConjureLockV1Request
+        returns: HeldLocksToken
       refreshLockRefreshTokens:
         http: POST /rlrt/{namespace}
         args:
