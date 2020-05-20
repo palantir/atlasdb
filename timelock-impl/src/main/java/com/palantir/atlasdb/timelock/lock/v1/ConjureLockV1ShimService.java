@@ -28,7 +28,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.tokens.auth.AuthHeader;
 
 /*
@@ -39,6 +41,13 @@ import com.palantir.tokens.auth.AuthHeader;
 @Produces(MediaType.APPLICATION_JSON)
 @Path("/lk/")
 public interface ConjureLockV1ShimService {
+    @POST
+    @Path("laghl/{namespace}")
+    HeldLocksToken lockAndGetHeldLocks(
+            @HeaderParam("Authorization") AuthHeader authHeader,
+            @PathParam("namespace") String namespace,
+            ConjureLockV1Request request);
+
     @POST
     @Path("rlrt/{namespace}")
     Set<ConjureLockRefreshToken> refreshLockRefreshTokens(
