@@ -372,7 +372,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                         .build())
                 .doNotBlock()
                 .build();
-        client.conjureLegacyLockService().lockAndGetHeldLocks(
+        HeldLocksToken token = client.conjureLegacyLockService().lockAndGetHeldLocks(
                 AuthHeader.valueOf("Bearer unused"),
                 client.namespace(),
                 ConjureLockV1Request.builder()
@@ -381,6 +381,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                         .build());
 
         assertThat(client.legacyLockService().lockAndGetHeldLocks("", lockRequest)).isNull();
+        assertThat(client.legacyLockService().unlock(token.getLockRefreshToken())).isTrue();
+        assertThat(client.legacyLockService().lockAndGetHeldLocks("", lockRequest)).isNotNull();
     }
 
     @Test
