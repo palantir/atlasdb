@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
@@ -39,6 +40,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
@@ -89,12 +91,16 @@ class LockLeaseService {
                 lease);
     }
 
-    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<Long> version, int batchSize) {
+    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<IdentifiedVersion> maybeVersion,
+            int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
-                .lastKnownVersion(version)
+                .lastKnownVersion(maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
+                        .id(identifiedVersion.id())
+                        .version(identifiedVersion.version())
+                        .build()))
                 .build();
         ConjureStartTransactionsResponse response = delegate.startTransactions(request);
         Lease lease = response.getLease();

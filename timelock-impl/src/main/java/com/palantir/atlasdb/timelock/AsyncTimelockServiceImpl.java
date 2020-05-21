@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -52,6 +52,7 @@ import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
@@ -220,7 +221,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
-            int numTimestamps, OptionalLong lastKnownVersion) {
+            int numTimestamps, Optional<IdentifiedVersion> lastKnownVersion) {
         TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
         return Futures.immediateFuture(GetCommitTimestampsResponse.of(
                 freshTimestamps.getLowerBound(),
@@ -264,12 +265,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
+    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion) {
         return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion);
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion, long endVersion) {
+    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion, long endVersion) {
         return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion, endVersion);
     }
 

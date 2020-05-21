@@ -164,7 +164,7 @@ final class TransactionStarter implements AutoCloseable {
         while (result.size() < numberOfTransactions) {
             try {
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
-                        lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
+                        lockWatchEventCache.lastKnownVersion(), numberOfTransactions - result.size());
                 lockWatchEventCache.processStartTransactionsUpdate(
                         response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
                         response.getLockWatchUpdate());

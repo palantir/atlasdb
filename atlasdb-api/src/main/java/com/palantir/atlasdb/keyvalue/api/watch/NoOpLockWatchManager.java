@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -37,7 +38,7 @@ public final class NoOpLockWatchManager implements LockWatchManager {
 
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
-            IdentifiedVersion lastKnownVersion) {
+            Optional<IdentifiedVersion> lastKnownVersion) {
         return NoOpLockWatchEventCache.INSTANCE.getEventsForTransactions(startTimestamps, lastKnownVersion);
     }
 }
