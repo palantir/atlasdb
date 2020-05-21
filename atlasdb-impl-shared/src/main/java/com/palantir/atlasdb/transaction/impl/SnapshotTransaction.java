@@ -485,7 +485,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             batch.forEach(rawBuilder::put);
             Map<Cell, Value> raw = rawBuilder.build();
 
-            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef);
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
