@@ -30,7 +30,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.conjure.java.dialogue.serde.DefaultConjureRuntime;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
+import com.palantir.dialogue.Channel;
 import com.palantir.util.CachedTransformingSupplier;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {

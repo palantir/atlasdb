@@ -24,6 +24,8 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.timelock.ImmutableShortAndLongTimeoutServices;
 import com.palantir.atlasdb.factory.timelock.ShortAndLongTimeoutServices;
 import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveConjureTimelockService;
+import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.AtlasDbHttpProtocolVersion;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.v2.DialogueClientOptions;
@@ -36,9 +38,15 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
+import com.palantir.dialogue.Channel;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.lock.LockRpcClient;
+import com.palantir.lock.LockService;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
+import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.timestamp.TimestampManagementRpcClient;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 /**
@@ -98,6 +106,36 @@ public final class AtlasDbDialogueServiceProvider {
                 .map(DialogueAdaptingConjureTimelockService::new);
 
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
+    }
+
+    TimestampManagementRpcClient getTimestampManagementRpcClient() {
+        return createDialogueProxyWithShortTimeout(TimestampManagementRpcClient.class);
+    }
+
+    LockRpcClient getLockRpcClient() {
+        LockRpcClient shortTimeoutService = createDialogueProxyWithShortTimeout(LockRpcClient.class);
+        LockRpcClient longTimeoutService = createDialogueProxyWithLongTimeout(LockRpcClient.class);
+
+        return new TimeoutSensitiveLockRpcClient(ImmutableShortAndLongTimeoutServices.<LockRpcClient>builder()
+                .shortTimeout(shortTimeoutService)
+                .longTimeout(longTimeoutService)
+                .build());
+    }
+
+    TimelockRpcClient getTimelockRpcClient() {
+        return createDialogueProxyWithShortTimeout(TimelockRpcClient.class);
+    }
+
+    private <T> T createDialogueProxyWithShortTimeout(Class<T> type) {
+        return createDialogueProxy(type, dialogueClientFactory.getChannel(TIMELOCK_SHORT_TIMEOUT));
+    }
+
+    private <T> T createDialogueProxyWithLongTimeout(Class<T> type) {
+        return createDialogueProxy(type, dialogueClientFactory.getChannel(TIMELOCK_LONG_TIMEOUT));
+    }
+
+    private <T> T createDialogueProxy(Class<T> type, Channel channel) {
+        return AtlasDbHttpClients.createDialogueProxy(taggedMetricRegistry, type, channel);
     }
 
     private static ImmutableMap<String, RemoteServiceConfiguration> getServiceConfigurations(
