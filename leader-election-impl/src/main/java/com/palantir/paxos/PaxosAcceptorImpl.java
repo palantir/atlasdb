@@ -35,16 +35,10 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
                 log.getGreatestLogEntry());
     }
 
-    public static PaxosAcceptor newFileSystemAcceptor(PaxosStorageParameters storageParameters) {
-        String logDirectory = storageParameters.fileBasedLogDirectory()
-                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        return newAcceptor(logDirectory);
-    }
-
     public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters,
             SqlitePaxosStateLogFactory sqliteFactory) {
         PaxosStateLog<PaxosAcceptorState> log = VerifyingPaxosStateLog
-                .createWithoutMigration(storageParameters, sqliteFactory, PaxosAcceptorState.BYTES_HYDRATOR);
+                .createWithMigration(storageParameters, sqliteFactory, PaxosAcceptorState.BYTES_HYDRATOR);
         return new PaxosAcceptorImpl(
                 new ConcurrentSkipListMap<>(),
                 log,

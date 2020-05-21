@@ -26,6 +26,8 @@ import org.immutables.value.Value;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
+import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
@@ -69,6 +71,22 @@ public class LocalPaxosComponents {
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
         this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
         this.canCreateNewClients = canCreateNewClients;
+    }
+
+    public static LocalPaxosComponents createWithBlockingMigration(TimelockPaxosMetrics metrics,
+            PaxosUseCase paxosUseCase,
+            Path legacyLogDirectory,
+            Path sqliteLogDirectory,
+            UUID leaderUuid,
+            boolean canCreateNewClients) {
+        LocalPaxosComponents components = new LocalPaxosComponents(metrics, paxosUseCase, legacyLogDirectory,
+                sqliteLogDirectory, leaderUuid, canCreateNewClients);
+
+        Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
+        PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
+        namespaceLoader.getAllPersistedNamespaces().forEach(components::getOrCreateComponents);
+        components.getOrCreateComponents(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
+        return components;
     }
 
     public PaxosAcceptor acceptor(Client client) {

@@ -51,18 +51,11 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         return new PaxosLearnerImpl(state, log, eventRecorder);
     }
 
-    public static PaxosLearner newFileSystemLearner(PaxosStorageParameters params,
-            PaxosKnowledgeEventRecorder event) {
-        String logDirectory = params.fileBasedLogDirectory()
-                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        return newLearner(logDirectory, event);
-    }
-
     public static PaxosLearner newVerifyingLearner(PaxosStorageParameters params,
             SqlitePaxosStateLogFactory sqliteFactory,
             PaxosKnowledgeEventRecorder event) {
         PaxosStateLog<PaxosValue> log = VerifyingPaxosStateLog
-                .createWithoutMigration(params, sqliteFactory, PaxosValue.BYTES_HYDRATOR);
+                .createWithMigration(params, sqliteFactory, PaxosValue.BYTES_HYDRATOR);
         return newLearner(log, event);
     }
 

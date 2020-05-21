@@ -182,7 +182,7 @@ public final class PaxosResourcesFactory {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 
-        LocalPaxosComponents paxosComponents = new LocalPaxosComponents(
+        LocalPaxosComponents paxosComponents = LocalPaxosComponents.createWithBlockingMigration(
                 timelockMetrics,
                 PaxosUseCase.TIMESTAMP,
                 install.dataDirectory(),

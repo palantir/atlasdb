@@ -31,11 +31,11 @@ import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 
-final class DiskNamespaceLoader implements PersistentNamespaceLoader {
+public final class DiskNamespaceLoader implements PersistentNamespaceLoader {
     private static final Logger log = LoggerFactory.getLogger(DiskNamespaceLoader.class);
     private final Path rootDataDirectory;
 
-    DiskNamespaceLoader(Path rootDataDirectory) {
+    public DiskNamespaceLoader(Path rootDataDirectory) {
         this.rootDataDirectory = rootDataDirectory;
     }
 

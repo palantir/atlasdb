@@ -64,14 +64,14 @@ public final class PaxosConsensusTestUtils {
             failureToggles.add(new AtomicBoolean(false));
 
             PaxosLearner learner = PaxosLearnerImpl
-                    .newFileSystemLearner(getLearnerStorageParameters(i), PaxosKnowledgeEventRecorder.NO_OP);
+                    .newVerifyingLearner(getLearnerStorageParameters(i), factory,PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class,
                     learner,
                     failureToggles.get(i),
                     exception));
 
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newFileSystemAcceptor(getAcceptorStorageParameters(i));
+            PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorStorageParameters(i), factory);
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class,
                     acceptor,

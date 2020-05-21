@@ -98,25 +98,6 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         return new VerifyingPaxosStateLog<>(settings);
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithoutMigration(
-            PaxosStorageParameters parameters,
-            SqlitePaxosStateLogFactory sqliteFactory,
-            Persistable.Hydrator<V> hydrator) {
-        String logDirectory = parameters.fileBasedLogDirectory()
-                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
-        NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
-
-        Settings<V> settings = ImmutableSettings.<V>builder()
-                .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(sqliteFactory.create(namespaceUseCase, conn))
-                .hydrator(hydrator)
-                .build();
-
-        return new VerifyingPaxosStateLog<>(settings);
-    }
-
     @Override
     public void writeRound(long seq, V round) {
         lock.writeLock().lock();
