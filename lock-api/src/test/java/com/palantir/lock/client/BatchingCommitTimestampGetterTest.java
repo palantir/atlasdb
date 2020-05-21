@@ -66,7 +66,7 @@ public class BatchingCommitTimestampGetterTest {
                     .lockWatchUpdate(LockWatchStateUpdate.failed(UUID.randomUUID()))
                     .build();
         });
-        when(cache.lastKnownVersion()).thenReturn(ImmutableIdentifiedVersion.of(UUID.randomUUID(), Optional.empty()));
+        when(cache.lastKnownVersion()).thenReturn(Optional.empty());
         getter = BatchingCommitTimestampGetter.create(timelock, cache);
     }
 
