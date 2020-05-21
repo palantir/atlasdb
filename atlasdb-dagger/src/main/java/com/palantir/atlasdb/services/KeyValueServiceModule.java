@@ -72,7 +72,8 @@ public class KeyValueServiceModule {
                 kvs,
                 tss,
                 sweepConfig::writeThreshold,
-                sweepConfig::writeSizeThreshold);
+                sweepConfig::writeSizeThreshold,
+                () -> true);
 
         TransactionTables.createTables(kvs);
         ImmutableSet<Schema> schemas =

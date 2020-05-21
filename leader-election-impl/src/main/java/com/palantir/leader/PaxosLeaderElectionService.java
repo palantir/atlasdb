@@ -34,13 +34,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosAcceptorNetworkClient;
-import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
+import com.palantir.paxos.PaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -59,8 +57,11 @@ import com.palantir.paxos.PaxosValue;
 public class PaxosLeaderElectionService implements LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
 
+    // stored here to be consistent when proposing to take over leadership
+    private static final byte[] LEADERSHIP_PROPOSAL_VALUE = null;
+
     private final ReentrantLock lock = new ReentrantLock();
-    private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
+    private final PaxosLatestRoundVerifier latestRoundVerifier;
 
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
@@ -82,7 +83,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             PaxosProposer proposer,
             PaxosLearner knowledge,
             LeaderPinger leaderPinger,
-            PaxosAcceptorNetworkClient acceptorClient,
+            PaxosLatestRoundVerifier latestRoundVerifier,
             PaxosLearnerNetworkClient learnerClient,
             Duration updatePollingWait,
             Duration randomWaitBeforeProposingLeadership,
@@ -91,12 +92,11 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.leaderPinger = leaderPinger;
+        this.latestRoundVerifier = latestRoundVerifier;
         this.learnerClient = learnerClient;
         this.updatePollingRate = updatePollingWait;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.eventRecorder = eventRecorder;
-        this.latestRoundVerifier =
-                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
         this.leaderAddressCache = Caffeine.newBuilder()
                 .expireAfterWrite(leaderAddressCacheTtl)
                 .build();
@@ -199,7 +199,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             long seq = getNextSequenceNumber(value);
 
             eventRecorder.recordProposalAttempt(seq);
-            proposer.propose(seq, null);
+            proposer.propose(seq, LEADERSHIP_PROPOSAL_VALUE);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
             eventRecorder.recordProposalFailure(e);
@@ -300,7 +300,9 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         StillLeadingStatus status = leadershipState.status();
         if (status == StillLeadingStatus.LEADING) {
             try {
-                proposer.proposeAnonymously(getNextSequenceNumber(leadershipState.greatestLearnedValue()), null);
+                proposer.proposeAnonymously(
+                        getNextSequenceNumber(leadershipState.greatestLearnedValue()),
+                        LEADERSHIP_PROPOSAL_VALUE);
                 return true;
             } catch (PaxosRoundFailureException e) {
                 log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
@@ -310,6 +312,39 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean hostileTakeover() {
+        LeadershipState leadershipState = determineLeadershipState();
+        StillLeadingStatus status = leadershipState.status();
+        switch (status) {
+            case LEADING:
+                return true;
+            case NOT_LEADING:
+                try {
+                    proposer.propose(
+                            getNextSequenceNumber(leadershipState.greatestLearnedValue()),
+                            LEADERSHIP_PROPOSAL_VALUE);
+                    StillLeadingStatus newStatus = determineLeadershipState().status();
+                    if (newStatus == StillLeadingStatus.LEADING) {
+                        log.info("Successfully took over", SafeArg.of("newStatus", newStatus));
+                        return true;
+                    } else {
+                        log.info("Failed to take over", SafeArg.of("newStatus", newStatus));
+                        return false;
+                    }
+                } catch (PaxosRoundFailureException e) {
+                    log.info("Couldn't takeover leadership because a quorum could not be obtained.",
+                            SafeArg.of("lastObservedState", leadershipState));
+                    return false;
+                }
+            case NO_QUORUM:
+                log.info("Couldn't takeover leadership because a quorum could not be obtained: NO_QUORUM");
+                return false;
+            default:
+                throw new IllegalStateException("Unexpected value: " + status);
+        }
     }
 
     @Override

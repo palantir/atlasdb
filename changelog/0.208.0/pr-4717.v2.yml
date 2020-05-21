@@ -1,0 +1,8 @@
+type: break
+break:
+  description: "Conjure Java Runtime is upgraded to 5.7.0. \n\nServers which still
+    run using jdk8 and do not use an external implementation (e.g. Conscrypt) are
+    expected to incur a performance penalty due to a software GCM implementation and
+    are recommended to upgrade as soon as possible."
+  links:
+  - https://github.com/palantir/atlasdb/pull/4717

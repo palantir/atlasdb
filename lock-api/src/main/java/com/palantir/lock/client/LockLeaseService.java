@@ -23,15 +23,13 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
-import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
@@ -40,14 +38,16 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 class LockLeaseService {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
+    private final BlockEnforcingLockService lockService;
 
     @VisibleForTesting
     LockLeaseService(
@@ -56,6 +56,7 @@ class LockLeaseService {
         this.delegate = delegate;
         this.clientId = clientId;
         this.time = new CoalescingSupplier<>(delegate::leaderTime);
+        this.lockService = BlockEnforcingLockService.create(delegate);
     }
 
     static LockLeaseService create(NamespacedConjureTimelockService conjureTimelock) {
@@ -90,12 +91,16 @@ class LockLeaseService {
                 lease);
     }
 
-    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<Long> version, int batchSize) {
+    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<IdentifiedVersion> maybeVersion,
+            int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
-                .lastKnownVersion(version)
+                .lastKnownVersion(maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
+                        .id(identifiedVersion.id())
+                        .version(identifiedVersion.version())
+                        .build()))
                 .build();
         ConjureStartTransactionsResponse response = delegate.startTransactions(request);
         Lease lease = response.getLease();
@@ -111,26 +116,11 @@ class LockLeaseService {
     }
 
     LockResponse lock(LockRequest request) {
-        return delegate.lock(ConjureLockRequests.toConjure(request)).accept(ToLeasedLockResponse.INSTANCE);
+        return lockService.lock(request);
     }
 
-    private enum ToLeasedLockResponse implements ConjureLockResponse.Visitor<LockResponse> {
-        INSTANCE;
-
-        @Override
-        public LockResponse visitSuccessful(SuccessfulLockResponse value) {
-            return LockResponse.successful(LeasedLockToken.of(value.getLockToken(), value.getLease()));
-        }
-
-        @Override
-        public LockResponse visitUnsuccessful(UnsuccessfulLockResponse value) {
-            return LockResponse.timedOut();
-        }
-
-        @Override
-        public LockResponse visitUnknown(String unknownType) {
-            throw new SafeIllegalStateException("Unknown response type", SafeArg.of("type", unknownType));
-        }
+    WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
+        return lockService.waitForLocks(request);
     }
 
     Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {

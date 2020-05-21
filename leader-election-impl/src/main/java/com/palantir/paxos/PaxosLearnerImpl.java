@@ -29,19 +29,18 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 
     private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
 
-
-    public static PaxosLearner newLearner(String logDir) {
-        return newLearner(logDir, PaxosKnowledgeEventRecorder.NO_OP);
+    public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
+        return newLearner(new PaxosStateLogImpl<>(logDir), eventRecorder);
     }
 
-    public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
-        PaxosStateLogImpl<PaxosValue> log = new PaxosStateLogImpl<PaxosValue>(logDir);
-        ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<Long, PaxosValue>();
+    private static PaxosLearner newLearner(PaxosStateLog<PaxosValue> log, PaxosKnowledgeEventRecorder eventRecorder) {
+        ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<>();
 
         byte[] greatestValidValue = PaxosStateLogs.getGreatestValidLogEntry(log);
         if (greatestValidValue != null) {
@@ -50,6 +49,21 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         }
 
         return new PaxosLearnerImpl(state, log, eventRecorder);
+    }
+
+    public static PaxosLearner newFileSystemLearner(PaxosStorageParameters params,
+            PaxosKnowledgeEventRecorder event) {
+        String logDirectory = params.fileBasedLogDirectory()
+                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
+        return newLearner(logDirectory, event);
+    }
+
+    public static PaxosLearner newVerifyingLearner(PaxosStorageParameters params,
+            SqlitePaxosStateLogFactory sqliteFactory,
+            PaxosKnowledgeEventRecorder event) {
+        PaxosStateLog<PaxosValue> log = VerifyingPaxosStateLog
+                .createWithoutMigration(params, sqliteFactory, PaxosValue.BYTES_HYDRATOR);
+        return newLearner(log, event);
     }
 
     final SortedMap<Long, PaxosValue> state;

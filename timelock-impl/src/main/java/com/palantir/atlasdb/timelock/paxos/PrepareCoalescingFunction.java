@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposalId;
 

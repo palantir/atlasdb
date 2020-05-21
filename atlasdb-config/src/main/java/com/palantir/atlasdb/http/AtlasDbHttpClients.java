@@ -15,22 +15,22 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.http.VersionSelectingClients.VersionSelectingConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
-    private static final Logger log = LoggerFactory.getLogger(AtlasDbHttpClients.class);
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -41,7 +41,9 @@ public final class AtlasDbHttpClients {
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters).instance();
+        return wrapWithOkHttpBugHandling(type,
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(
+                        trustContext, uri, type, parameters).instance());
     }
 
     /**
@@ -56,13 +58,11 @@ public final class AtlasDbHttpClients {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return createExperimentallyWithFallback(
-                metricsManager,
-                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithFailover(
-                        serverListConfig, type, parameters),
-                () -> AtlasDbFeignTargetFactory.DEFAULT.createProxyWithFailover(serverListConfig, type, parameters),
-                type,
-                parameters);
+        Supplier<T> clientFactory = () -> instrument(
+                metricsManager.getTaggedRegistry(),
+                ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithFailover(serverListConfig, type, parameters),
+                type);
+        return wrapWithOkHttpBugHandling(type, clientFactory);
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
@@ -70,40 +70,14 @@ public final class AtlasDbHttpClients {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
-        return createExperimentallyWithFallback(
-                metricsManager,
-                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
+        Supplier<T> clientFactory = () -> instrument(
+                metricsManager.getTaggedRegistry(),
+                ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
-                () -> AtlasDbFeignTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier,
-                        type,
-                        clientParameters),
-                type,
-                clientParameters);
-    }
-
-    private static <T> T createExperimentallyWithFallback(
-            MetricsManager metricsManager,
-            Supplier<TargetFactory.InstanceAndVersion<T>> experimentalProxySupplier,
-            Supplier<TargetFactory.InstanceAndVersion<T>> fallbackProxySupplier,
-            Class<T> type,
-            AuxiliaryRemotingParameters clientParameters) {
-        TargetFactory.InstanceAndVersion<T> fallbackProxy = fallbackProxySupplier.get();
-        try {
-            return VersionSelectingClients.createVersionSelectingClientWithRefreshingNewClient(
-                    metricsManager,
-                    experimentalProxySupplier,
-                    fallbackProxy,
-                    VersionSelectingConfig.fromRemotingConfigSupplier(clientParameters.remotingClientConfig()),
-                    type);
-        } catch (Exception e) {
-            log.warn("Error occurred in creating an experimental proxy. Possible causes include"
-                    + " not running with SSL, which is deprecated and expected to be removed in a future release."
-                    + " Creating a legacy client.", e);
-            return fallbackProxy.instance();
-        }
+                type);
+        return wrapWithOkHttpBugHandling(type, clientFactory);
     }
 
     @VisibleForTesting
@@ -112,10 +86,40 @@ public final class AtlasDbHttpClients {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        TargetFactory.InstanceAndVersion<T> instanceAndVersion =
+        Supplier<T> clientFactory = () -> instrument(
+                metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithQuickFailoverForTesting(
-                        serverListConfig, type, parameters);
-        return VersionSelectingClients.instrumentWithClientVersionTag(
-                metricsManager.getTaggedRegistry(), instanceAndVersion, type);
+                        serverListConfig, type, parameters),
+                type);
+        return wrapWithOkHttpBugHandling(type, clientFactory);
+    }
+
+    private static <T> T instrument(
+            TaggedMetricRegistry taggedMetricRegistry,
+            TargetFactory.InstanceAndVersion<T> client,
+            Class<T> clazz) {
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetricRegistry, clazz, client.instance());
+    }
+
+    /**
+     * Returns a proxy which replaces the underlying proxy if:
+     * 1. We see a SocketTimeoutException
+     * 2. At most once every 20 minutes
+     */
+    private static <T> T wrapWithOkHttpBugHandling(Class<T> type, Supplier<T> supplier) {
+        return ReplaceIfExceptionMatchingProxy.create(
+                type,
+                supplier,
+                Duration.ofMinutes(20),
+                AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
+    }
+
+    @VisibleForTesting
+    static boolean isPossiblyOkHttpTimeoutBug(Throwable throwable) {
+        if (throwable instanceof SocketTimeoutException) {
+            return true;
+        }
+        Throwable cause = throwable.getCause();
+        return cause != null && isPossiblyOkHttpTimeoutBug(cause);
     }
 }

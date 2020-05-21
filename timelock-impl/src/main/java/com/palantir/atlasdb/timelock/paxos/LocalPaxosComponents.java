@@ -23,32 +23,52 @@ import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.ImmutablePaxosStorageParameters;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
+import com.palantir.paxos.PaxosStorageParameters;
+import com.palantir.paxos.SqlitePaxosStateLogFactory;
 
 public class LocalPaxosComponents {
 
     private final TimelockPaxosMetrics metrics;
-    private final Path logDirectory;
+    private final PaxosUseCase paxosUseCase;
+    private final Path baseLogDirectory;
+    private final Path sqliteLogDirectory;
     private final UUID leaderUuid;
     private final Map<Client, Components> componentsByClient = Maps.newConcurrentMap();
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
+    private final boolean canCreateNewClients;
+    private final SqlitePaxosStateLogFactory sqliteFactory = new SqlitePaxosStateLogFactory();
 
-    LocalPaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory, UUID leaderUuid) {
+    LocalPaxosComponents(TimelockPaxosMetrics metrics,
+            PaxosUseCase paxosUseCase,
+            Path legacyLogDirectory,
+            Path sqliteLogDirectory,
+            UUID leaderUuid,
+            boolean canCreateNewClients) {
         this.metrics = metrics;
-        this.logDirectory = logDirectory;
+        this.paxosUseCase = paxosUseCase;
+        this.baseLogDirectory = legacyLogDirectory;
+        this.sqliteLogDirectory = sqliteLogDirectory;
         this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
         this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
+        this.canCreateNewClients = canCreateNewClients;
     }
 
     public PaxosAcceptor acceptor(Client client) {
@@ -80,14 +100,19 @@ public class LocalPaxosComponents {
     }
 
     private Components createComponents(Client client) {
-        Path clientDirectory = logDirectory.resolve(client.value());
-        Path learnerLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
+        Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory)
+                .resolve(client.value());
 
-        PaxosLearner learner = PaxosLearnerImpl.newLearner(learnerLogDir.toString());
+        // TODO (jkong): This test is no longer valid with the new implementation, it needs to be fixed before
+        // the migration.
+        if (!canCreateNewClients && clientDirectoryDoesNotExist(legacyClientDir)) {
+            throw new ServiceNotAvailableException("This TimeLock server is not allowed to create new clients at this"
+                    + " time, and the client " + client + " provided is novel for this TimeLock server.");
+        }
 
-        Path acceptorLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
-        PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(acceptorLogDir.toString());
-
+        PaxosLearner learner = PaxosLearnerImpl.newVerifyingLearner(getLearnerParameters(client), sqliteFactory,
+                PaxosKnowledgeEventRecorder.NO_OP);
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorParameters(client), sqliteFactory);
         PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
 
         return ImmutableComponents.builder()
@@ -95,6 +120,33 @@ public class LocalPaxosComponents {
                 .learner(learner)
                 .pingableLeader(localPingableLeader)
                 .build();
+    }
+
+    @VisibleForTesting
+    PaxosStorageParameters getLearnerParameters(Client client) {
+        Path legacyDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory).resolve(client.value());
+        Path learnerLogDir = Paths.get(legacyDir.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
+        String learnerUseCase = String.format("%s!learner", paxosUseCase.toString());
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(learnerLogDir.toString())
+                .sqliteBasedLogDirectory(sqliteLogDirectory)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, learnerUseCase))
+                .build();
+    }
+
+    private PaxosStorageParameters getAcceptorParameters(Client client) {
+        Path legacyDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory).resolve(client.value());
+        Path acceptorLogDir = Paths.get(legacyDir.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
+        String acceptorUseCase = String.format("%s!acceptor", paxosUseCase.toString());
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(acceptorLogDir.toString())
+                .sqliteBasedLogDirectory(sqliteLogDirectory)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, acceptorUseCase))
+                .build();
+    }
+
+    private boolean clientDirectoryDoesNotExist(Path clientDirectory) {
+        return !clientDirectory.toFile().exists();
     }
 
     private BatchPaxosAcceptor createBatchAcceptor() {

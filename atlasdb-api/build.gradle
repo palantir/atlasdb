@@ -8,8 +8,8 @@ dependencies {
   compile group: 'org.apache.commons', name: 'commons-lang3'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  compile group: 'javax.annotation', name: 'javax.annotation-api'
-  compile group: 'javax.validation', name: 'validation-api'
+  compile group: 'jakarta.annotation', name: 'jakarta.annotation-api'
+  compile group: 'jakarta.validation', name: 'jakarta.validation-api'
 
   compile 'com.github.ben-manes.caffeine:caffeine'
   compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'

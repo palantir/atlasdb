@@ -18,30 +18,23 @@ package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
+/**
+ * Client configuration options for how an AtlasDB client connects to remote services (e.g. TimeLock) that are
+ * intended to be exposed directly to users for configuration.
+ */
 @JsonSerialize(as = ImmutableRemotingClientConfig.class)
 @JsonDeserialize(as = ImmutableRemotingClientConfig.class)
+@JsonIgnoreProperties({
+        "maximumConjureRemotingProbability",
+        "enableLegacyClientFallback"})
 @Value.Immutable
 public interface RemotingClientConfig {
     @Value.Default
-    default double maximumConjureRemotingProbability() {
-        return 1.0;
-    }
-
-    @Value.Default
-    default boolean enableLegacyClientFallback() {
+    default boolean enableDialogue() {
         return false;
-    }
-
-    @Value.Check
-    default void check() {
-        Preconditions.checkState(0.0 <= maximumConjureRemotingProbability()
-                        && maximumConjureRemotingProbability() <= 1.0,
-                "Maximum probability of choosing v2 must be between 0.0 and 1.0 inclusive",
-                SafeArg.of("probability", maximumConjureRemotingProbability()));
     }
 }

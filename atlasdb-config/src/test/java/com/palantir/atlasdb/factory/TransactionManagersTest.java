@@ -78,11 +78,11 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
-import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -101,9 +101,11 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -120,6 +122,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -143,7 +146,6 @@ public class TransactionManagersTest {
             MetricRegistry.name(NamespaceAgnosticLockRpcClient.class, CURRENT_TIME_MILLIS);
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
-    private static final Map<String, String> CLIENT_TAGS = ImmutableMap.of("clientVersion", "Conjure-Java-Runtime");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -159,6 +161,8 @@ public class TransactionManagersTest {
     private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
             TransactionManagers.LockAndTimestampServices.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final DialogueClients.ReloadingFactory reloadingFactory
+            = DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
 
     private int availablePort;
     private TimeLockClientConfig mockClientConfig;
@@ -198,10 +202,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
         when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
-        when(runtimeConfig.remotingClient()).thenReturn(ImmutableRemotingClientConfig.builder()
-                .enableLegacyClientFallback(false)
-                .maximumConjureRemotingProbability(1.0)
-                .build());
+        when(runtimeConfig.remotingClient()).thenReturn(RemotingClientConfigs.DEFAULT);
 
         environment = mock(Consumer.class);
 
@@ -219,6 +220,24 @@ public class TransactionManagersTest {
     @After
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
+    }
+
+    @Test
+    public void cannotProvideRuntimeConfigTwice() {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+        assertThatThrownBy(() ->
+                TransactionManagers.builder()
+                        .config(atlasDbConfig)
+                        .userAgent(USER_AGENT)
+                        .globalMetricsRegistry(new MetricRegistry())
+                        .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                        .registrar(environment)
+                        .runtimeConfig(Refreshable.only(Optional.empty()))
+                        .runtimeConfigSupplier(Optional::empty)
+                        .build())
+                .hasMessage("Cannot provide both Refreshable and Supplier of runtime config");
     }
 
     @Test
@@ -298,13 +317,14 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        () -> runtimeConfig,
+                        Refreshable.only(runtimeConfig),
                         environment,
                         lockServiceSupplier,
                         () -> ts,
                         invalidator,
                         USER_AGENT,
-                        Optional.empty());
+                        Optional.empty(),
+                        reloadingFactory);
 
         LockRequest lockRequest = LockRequest
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
@@ -517,7 +537,7 @@ public class TransactionManagersTest {
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 NAMESPACE_AGNOSTIC_LOCK_RPC_CLIENT_CURRENT_TIME_METRIC,
-                CLIENT_TAGS);
+                ImmutableMap.of());
     }
 
     @Test
@@ -717,10 +737,6 @@ public class TransactionManagersTest {
         setUpLeaderBlockInConfig();
     }
 
-    private void setUpTimeLockBlockInInstallConfig() {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
-    }
-
     private void setUpTimeLockBlockInRuntimeConfig() {
         when(runtimeConfig.timelockRuntime())
                 .thenReturn(Optional.of(ImmutableTimeLockRuntimeConfig.builder()
@@ -753,13 +769,14 @@ public class TransactionManagersTest {
         return TransactionManagers.createLockAndTimestampServices(
                 metricsManager,
                 config,
-                () -> runtimeConfig,
+                Refreshable.only(runtimeConfig),
                 environment,
                 LockServiceImpl::create,
                 () -> ts,
                 invalidator,
                 USER_AGENT,
-                Optional.empty());
+                Optional.empty(),
+                reloadingFactory);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -772,13 +789,14 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        () -> runtimeConfig,
+                        Refreshable.only(runtimeConfig),
                         environment,
                         LockServiceImpl::create,
                         () -> ts,
                         invalidator,
                         USER_AGENT,
-                        Optional.empty());
+                        Optional.empty(),
+                        reloadingFactory);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 

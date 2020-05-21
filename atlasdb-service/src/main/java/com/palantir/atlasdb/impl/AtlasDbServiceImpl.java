@@ -27,7 +27,9 @@ import javax.inject.Inject;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TableCell;
@@ -186,8 +188,9 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public TransactionToken startTransaction() {
         String id = UUID.randomUUID().toString();
         TransactionToken token = new TransactionToken(id);
-        TransactionAndImmutableTsLock txAndLock =
-                txManager.setupRunTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP);
+        TransactionAndImmutableTsLock txAndLock = Iterables.getOnlyElement(
+                txManager.setupRunTaskBatchWithConditionThrowOnConflict(
+                        ImmutableList.of(PreCommitConditions.NO_OP)));
         transactions.put(token, txAndLock);
         return token;
     }

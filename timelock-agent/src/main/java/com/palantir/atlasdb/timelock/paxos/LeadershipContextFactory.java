@@ -27,6 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 
@@ -42,6 +43,7 @@ public abstract class LeadershipContextFactory implements
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
+    public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
 
     @Value.Derived
     @Override
@@ -53,8 +55,11 @@ public abstract class LeadershipContextFactory implements
     public LocalPaxosComponents components() {
         return new LocalPaxosComponents(
                 metrics(),
-                useCase().logDirectoryRelativeToDataDirectory(install().dataDirectory()),
-                leaderUuid());
+                useCase(),
+                install().dataDirectory(),
+                install().sqliteDataDirectory(),
+                leaderUuid(),
+                install().install().paxos().canCreateNewClients());
     }
 
     @Value.Derived

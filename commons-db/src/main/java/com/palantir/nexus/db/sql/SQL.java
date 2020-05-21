@@ -35,7 +35,6 @@ import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 import com.palantir.db.oracle.JdbcHandler.BlobHandler;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
@@ -179,7 +178,6 @@ public abstract class SQL extends BasicSQL {
         String timingModule = "visitResultSet";
         ResultSetMetaData metaData = ResultSets.getMetaData(resultSet);
         SqlTimer sqlTimer = getSqlTimer();
-        ResourceCreationLocation creationException = new ResourceCreationLocation("This is where the ResultsSet was created"); //$NON-NLS-1$
         return new AgnosticLightResultSetImpl(
                 resultSet,
                 dbType,
@@ -187,7 +185,6 @@ public abstract class SQL extends BasicSQL {
                 preparedStatement,
                 timingModule,
                 sqlString,
-                sqlTimer,
-                creationException);
+                sqlTimer);
     }
 }

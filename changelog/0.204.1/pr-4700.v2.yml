@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: TimeLock rolling bounces should be more stable - previously if there
+    were a number of inflight requests at the time of the rolling bounce there would
+    be an outage owing to thread saturation on a thread pool. We have relaxed the
+    bounds on that pool; metrics for the pool's size should continue to be monitored.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4700

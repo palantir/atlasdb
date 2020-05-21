@@ -21,8 +21,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -55,8 +58,12 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class KvTableMappingService implements TableMappingService {
+    private static final Logger log = LoggerFactory.getLogger(KvTableMappingService.class);
+
     public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.internal()
             .rowMetadata(NameMetadataDescription.create(ImmutableList.of(
                     NameComponentDescription.of("namespace", ValueType.VAR_STRING),
@@ -67,16 +74,25 @@ public class KvTableMappingService implements TableMappingService {
     protected final AtomicReference<BiMap<TableReference, TableReference>> tableMap = new AtomicReference<>();
     private final KeyValueService kvs;
     private final LongSupplier uniqueLongSupplier;
+    private final Pattern namespaceValidation;
     private final Set<TableReference> unmappedTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    protected KvTableMappingService(KeyValueService kvs, LongSupplier uniqueLongSupplier) {
+    protected KvTableMappingService(KeyValueService kvs, LongSupplier uniqueLongSupplier, Pattern namespaceValidation) {
         this.kvs = Preconditions.checkNotNull(kvs, "kvs must not be null");
         this.uniqueLongSupplier = Preconditions.checkNotNull(uniqueLongSupplier, "uniqueLongSupplier must not be null");
+        this.namespaceValidation = namespaceValidation;
     }
 
     public static KvTableMappingService create(KeyValueService kvs, LongSupplier uniqueLongSupplier) {
+        return createWithCustomNamespaceValidation(kvs, uniqueLongSupplier, Namespace.STRICTLY_CHECKED_NAME);
+    }
+
+    public static KvTableMappingService createWithCustomNamespaceValidation(
+            KeyValueService kvs,
+            LongSupplier uniqueLongSupplier,
+            Pattern namespaceValidation) {
         createNamespaceTable(kvs);
-        KvTableMappingService ret = new KvTableMappingService(kvs, uniqueLongSupplier);
+        KvTableMappingService ret = new KvTableMappingService(kvs, uniqueLongSupplier, namespaceValidation);
         ret.updateTableMap();
         return ret;
     }
@@ -234,6 +250,11 @@ public class KvTableMappingService implements TableMappingService {
     }
 
     protected BiMap<TableReference, TableReference> readTableMap() {
+        // TODO (jkong) Remove after PDS-117310 is resolved.
+        if (log.isTraceEnabled()) {
+            log.trace("Attempting to read the table mapping from the namespace table.",
+                    new SafeRuntimeException("I exist to show you the stack trace"));
+        }
         BiMap<TableReference, TableReference> ret = HashBiMap.create();
         try (ClosableIterator<RowResult<Value>> range = rangeScanNamespaceTable()) {
             while (range.hasNext()) {
@@ -244,6 +265,12 @@ public class KvTableMappingService implements TableMappingService {
                 ret.put(ref, TableReference.createWithEmptyNamespace(shortName));
             }
         }
+        // TODO (jkong) Remove after PDS-117310 is resolved.
+        if (log.isTraceEnabled()) {
+            log.trace("Successfully read {} entries from the namespace table, to refresh the table map.",
+                    SafeArg.of("entriesRead", ret.size()),
+                    new SafeRuntimeException("I exist to show you the stack trace"));
+        }
         return ret;
     }
 
@@ -251,10 +278,10 @@ public class KvTableMappingService implements TableMappingService {
         return kvs.getRange(AtlasDbConstants.NAMESPACE_TABLE, RangeRequest.builder().build(), Long.MAX_VALUE);
     }
 
-    public static TableReference getTableRefFromBytes(byte[] encodedTableRef) {
+    private TableReference getTableRefFromBytes(byte[] encodedTableRef) {
         String nameSpace = EncodingUtils.decodeVarString(encodedTableRef);
         int offset = EncodingUtils.sizeOfVarString(nameSpace);
         String tableName = PtBytes.toString(encodedTableRef, offset, encodedTableRef.length - offset);
-        return TableReference.create(Namespace.create(nameSpace), tableName);
+        return TableReference.create(Namespace.create(nameSpace, namespaceValidation), tableName);
     }
 }

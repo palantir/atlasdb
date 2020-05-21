@@ -19,7 +19,7 @@ package com.palantir.timelock.paxos;
 import org.immutables.value.Value;
 
 import com.google.common.collect.SetMultimap;
-import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
 
 @Value.Immutable

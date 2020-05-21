@@ -77,6 +77,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -883,6 +884,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void handleTransactionConflict(TableReference tableRef) {
         transactionOutcomeMetrics.markReadWriteConflict(tableRef);
+        log.info("Serializable conflict", LoggingArgs.tableRef(tableRef));
         throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
                 System.currentTimeMillis() - timeCreated);
     }

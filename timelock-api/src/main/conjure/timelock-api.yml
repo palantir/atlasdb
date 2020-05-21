@@ -28,16 +28,26 @@ types:
       base-type: any
       external:
         java: java.lang.Long
+    LockWatchReference:
+      base-type: any
+      external:
+        java: com.palantir.lock.watch.LockWatchReferences.LockWatchReference
 
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
+      ConjureIdentifiedVersion:
+        fields:
+          id: uuid
+          version: Long
+        docs: |
+          ``version`` is always an inclusive number. If the event log is empty, ``-1`` is returned.
       ConjureStartTransactionsRequest:
         fields:
           requestId: uuid
           requestorId: uuid
           numTransactions: integer
-          lastKnownVersion: optional<Long>
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
       ConjureStartTransactionsResponse:
         fields:
           immutableTimestamp: LockImmutableTimestampResponse
@@ -91,12 +101,16 @@ types:
       GetCommitTimestampsRequest:
         fields:
           numTimestamps: integer
-          lastKnownVersion: optional<Long>
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
       GetCommitTimestampsResponse:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
           lockWatchUpdate: LockWatchStateUpdate
+      LockWatchRequest:
+        fields:
+          references: set<LockWatchReference>
+
 
 
 services:
@@ -156,3 +170,14 @@ services:
         docs: |
           Batched endpoint for acquiring commit timestamps (a list of fresh timestamps) and the list of all lock watch
           events since the last known version up to after the commit timestamps have been issued.
+  ConjureLockWatchingService:
+    name: Lock Watching service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.lock.watch
+    base-path: /lw
+    endpoints:
+      startWatching:
+        http: POST /sw/{namespace}
+        args:
+          namespace: string
+          request: LockWatchRequest

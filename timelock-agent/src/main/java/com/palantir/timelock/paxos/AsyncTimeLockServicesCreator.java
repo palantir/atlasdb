@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.google.common.base.Suppliers;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -34,13 +33,13 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
-import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
@@ -78,7 +77,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
-        LockWatchingResource lockWatchingResource = new LockWatchingResource(asyncTimelockService);
 
         LockService lockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
@@ -90,7 +88,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 lockService,
                 asyncTimelockService,
                 asyncTimelockResource,
-                lockWatchingResource,
                 asyncTimelockService);
     }
 
@@ -99,15 +96,13 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<ManagedTimestampService> timestampServiceSupplier,
             LockLog maybeEnhancedLockLog) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
-                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                        .setNameFormat("async-lock-reaper-" + client + "-%d")
-                        .setDaemon(true)
-                        .build()), metricsManager.getRegistry(), "async-lock-reaper");
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("async-lock-reaper-" + client, true)),
+                metricsManager.getRegistry(), "async-lock-reaper");
         ScheduledExecutorService timeoutExecutor = new InstrumentedScheduledExecutorService(
-                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                        .setNameFormat("async-lock-timeouts-" + client + "-%d")
-                        .setDaemon(true)
-                        .build()), metricsManager.getRegistry(), "async-lock-timeouts");
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("async-lock-timeouts-" + client, true)),
+                metricsManager.getRegistry(), "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(
                         maybeEnhancedLockLog,

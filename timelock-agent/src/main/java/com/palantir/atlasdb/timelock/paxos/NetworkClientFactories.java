@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 

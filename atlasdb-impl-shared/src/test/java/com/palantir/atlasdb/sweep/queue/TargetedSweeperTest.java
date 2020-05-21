@@ -30,8 +30,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
-import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.BATCH_SIZE_KVS;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
@@ -42,6 +40,8 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFineParti
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForCoarsePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
+import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.THOROUGH;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -212,6 +212,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
+    }
+
+    @Test
+    public void sweepsThoroughMigrationAsConservative() {
+        enqueueWriteCommitted(TABLE_THOR_MIGRATION, LOW_TS);
+        assertReadAtTimestampReturnsNothing(TABLE_THOR_MIGRATION, LOW_TS);
+
+        sweepNextBatch(ShardAndStrategy.conservative(THOR_MIGRATION_SHARD));
+        assertReadAtTimestampReturnsSentinel(TABLE_THOR_MIGRATION, LOW_TS);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR_MIGRATION, LOW_TS);
     }
 
     @Test

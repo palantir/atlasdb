@@ -37,9 +37,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +64,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.Assertions;
 import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -83,7 +87,9 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -290,6 +296,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table3");
     static final TableReference TABLE_SWEPT_CONSERVATIVE =
             TableReference.createFromFullyQualifiedName("default.table4");
+    static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
+            TableReference.createFromFullyQualifiedName("default.table5");
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
@@ -309,6 +317,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         keyValueService.createTable(
                 TABLE_SWEPT_CONSERVATIVE,
                 getTableMetadataForSweepStrategy(SweepStrategy.CONSERVATIVE).persistToBytes());
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH_MIGRATION,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH_MIGRATION).persistToBytes());
     }
 
     @Override
@@ -754,34 +765,35 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @SuppressWarnings("CheckReturnValue")
-    private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks() {
+    private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks(
+            TableReference thoroughTable) {
         ImmutableList.Builder<Pair<String, LockAwareTransactionTask<Void, Exception>>> tasks = ImmutableList.builder();
         final int batchHint = 1;
 
         tasks.add(Pair.of("get", (t, heldLocks) -> {
-            t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
+            t.get(thoroughTable, ImmutableSet.of(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
             return null;
         }));
 
         tasks.add(Pair.of("getRange", (t, heldLocks) -> {
-            t.getRange(TABLE_SWEPT_THOROUGH, RangeRequest.all()).batchAccept(batchHint, AbortingVisitors.alwaysTrue());
+            t.getRange(thoroughTable, RangeRequest.all()).batchAccept(batchHint, AbortingVisitors.alwaysTrue());
             return null;
         }));
 
         tasks.add(Pair.of("getRanges", (t, heldLocks) -> {
-            Iterables.getLast(t.getRanges(TABLE_SWEPT_THOROUGH, Collections.singleton(RangeRequest.all())));
+            Iterables.getLast(t.getRanges(thoroughTable, Collections.singleton(RangeRequest.all())));
             return null;
         }));
 
         tasks.add(Pair.of("getRows", (t, heldLocks) -> {
-            t.getRows(TABLE_SWEPT_THOROUGH, ImmutableSet.of(PtBytes.toBytes("row1")), ColumnSelection.all());
+            t.getRows(thoroughTable, ImmutableSet.of(PtBytes.toBytes("row1")), ColumnSelection.all());
             return null;
         }));
 
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, BatchColumnRangeSelection)",
                 (t, heldLocks) -> {
                     Collection<BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
-                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                            t.getRowsColumnRange(thoroughTable, Collections.singleton(PtBytes.toBytes("row1")),
                                     BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
                                     .values();
                     results.forEach(result -> result.batchAccept(batchHint, AbortingVisitors.alwaysTrue()));
@@ -791,7 +803,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, ColumnRangeSelection, int)",
                 (t, heldLocks) -> {
                     Iterators.getLast(
-                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                            t.getRowsColumnRange(thoroughTable, Collections.singleton(PtBytes.toBytes("row1")),
                                     new ColumnRangeSelection(null, null), batchHint));
                     return null;
                 }));
@@ -799,7 +811,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         tasks.add(Pair.of("getRowsColumnRangeIterator",
                 (t, heldLocks) -> {
                     Collection<Iterator<Map.Entry<Cell, byte[]>>> results =
-                            t.getRowsColumnRangeIterator(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                            t.getRowsColumnRangeIterator(thoroughTable, Collections.singleton(PtBytes.toBytes("row1")),
                                     BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
                                     .values();
                     results.forEach(Iterators::getLast);
@@ -810,7 +822,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 (t, heldLocks) -> {
                     SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
                     snapshotTx.getRowsIgnoringLocalWrites(
-                            TABLE_SWEPT_THOROUGH,
+                            thoroughTable,
                             Collections.singleton(PtBytes.toBytes("row1")));
                     return null;
                 }));
@@ -818,12 +830,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         tasks.add(Pair.of("getIgnoringLocalWrites",
                 (t, heldLocks) -> {
                     SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
-                    snapshotTx.getIgnoringLocalWrites(TABLE_SWEPT_THOROUGH,
+                    snapshotTx.getIgnoringLocalWrites(thoroughTable,
                             Collections.singleton(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
                     return null;
                 }));
 
         return tasks.build();
+    }
+
+    @SuppressWarnings("CheckReturnValue")
+    private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks() {
+        List<Pair<String, LockAwareTransactionTask<Void, Exception>>> tasks = new ArrayList<>();
+        tasks.addAll(getThoroughTableReadTasks(TABLE_SWEPT_THOROUGH));
+        tasks.addAll(getThoroughTableReadTasks(TABLE_SWEPT_THOROUGH_MIGRATION));
+        return tasks;
     }
 
     @Test
@@ -1155,6 +1175,108 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         .transform(Map.Entry::getKey)
                         .immutableCopy());
         assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
+    @Test
+    public void getOtherRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
+        byte[] row = "foo".getBytes();
+        Cell firstCell = Cell.create(row, "a".getBytes());
+        Cell secondCell = Cell.create(row, "b".getBytes());
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
+            return null;
+        });
+
+        // this will write into the DB, because the protocol demands we write before we get a commit timestamp
+        RuntimeException conditionFailure = new RuntimeException();
+        assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(() ->
+                new PreCommitCondition() {
+                    @Override
+                    public void throwIfConditionInvalid(long timestamp) {
+                        throw conditionFailure;
+                    }
+
+                    @Override
+                    public void cleanup() {}
+                }, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+            return null;
+        })).isSameAs(conditionFailure);
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
+                Lists.transform(
+                        Lists.newArrayList(tx.getRowsColumnRange(
+                                TABLE,
+                                ImmutableList.of(row),
+                                new ColumnRangeSelection(null, null),
+                                10)),
+                        Map.Entry::getKey));
+        assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
+    @Test
+    public void testRowsColumnRangesSingleIteratorVersion() {
+        runTestForGetRowsColumnRangeSingleIteratorVersion(1, 1, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(1, 10, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(1, 100, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 1, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(100, 1, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 5);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 10);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(100, 100, 99);
+        // Add a test where neither the numCellsPerRow and the batch size (10) are divisible by each other.
+        // This tests what happens when a row's cells are spread across multiple batches.
+        runTestForGetRowsColumnRangeSingleIteratorVersion(101, 11, 0);
+    }
+
+    private void runTestForGetRowsColumnRangeSingleIteratorVersion(
+            int numRows,
+            int numCellsPerRow,
+            int numDeletedCellsPerRow) {
+        List<byte[]> expectedRows = new ArrayList<>(numRows);
+        List<Cell> expectedCells = new ArrayList<>(numRows * numCellsPerRow);
+        List<Cell> expectedDeletedCells = new ArrayList<>(numRows * numCellsPerRow);
+        for (int iRow = 0; iRow < numRows; iRow++) {
+            String row = String.format("row%02d", iRow);
+            expectedRows.add(row.getBytes());
+            for (int iCell = 0; iCell < numCellsPerRow; iCell++) {
+                String cell = String.format("cell%02d", iCell);
+                if (iCell < numDeletedCellsPerRow) {
+                    expectedDeletedCells.add(Cell.create(row.getBytes(), cell.getBytes()));
+                } else {
+                    expectedCells.add(Cell.create(row.getBytes(), cell.getBytes()));
+                }
+            }
+        }
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, Maps.toMap(expectedCells, ignored -> value));
+            return null;
+        });
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, expectedDeletedCells);
+
+        List<byte[]> shuffledRows = expectedRows;
+        Collections.shuffle(shuffledRows);
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
+                ImmutableList.copyOf(Iterators.transform(
+                        tx.getRowsColumnRange(
+                                TABLE,
+                                shuffledRows,
+                                new ColumnRangeSelection(null, null),
+                                10),
+                        Map.Entry::getKey)));
+        expectedCells.sort(Comparator
+                .comparing(
+                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                        Ordering.explicit(Lists.transform(shuffledRows, ByteBuffer::wrap)))
+                .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR));
+        Assertions.assertThat(cells).isEqualTo(expectedCells);
+
+        keyValueService.truncateTable(TABLE);
     }
 
     @Test

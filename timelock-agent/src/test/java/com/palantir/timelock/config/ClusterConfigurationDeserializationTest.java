@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableSet;
 
 public class ClusterConfigurationDeserializationTest {
@@ -44,7 +45,8 @@ public class ClusterConfigurationDeserializationTest {
     private static final File CLUSTER_CONFIG_KUBERNETES = getClusterConfigFile("kubernetes");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
+            .registerModule(new GuavaModule());
 
     @BeforeClass
     public static void setUp() {

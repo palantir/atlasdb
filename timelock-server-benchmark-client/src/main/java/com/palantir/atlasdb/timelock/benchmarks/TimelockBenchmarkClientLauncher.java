@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.benchmarks;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarkClientConfig;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
@@ -44,8 +43,6 @@ public class TimelockBenchmarkClientLauncher extends Application<TimelockBenchma
 
     @Override
     public void run(TimelockBenchmarkClientConfig configuration, Environment environment) throws Exception {
-        FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
-
         environment.jersey().register(new BenchmarksResource(configuration.getAtlas()));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
     }

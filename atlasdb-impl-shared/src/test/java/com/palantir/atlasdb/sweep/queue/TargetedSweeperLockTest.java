@@ -29,7 +29,7 @@ import java.util.UUID;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
@@ -42,7 +42,7 @@ public class TargetedSweeperLockTest {
         when(mockLockService.lock(any()))
                 .thenReturn(() -> Optional.of(lockToken));
         Optional<TargetedSweeperLock> maybeLock = TargetedSweeperLock
-                .tryAcquire(1, TableMetadataPersistence.SweepStrategy.CONSERVATIVE, mockLockService);
+                .tryAcquire(1, SweeperStrategy.CONSERVATIVE, mockLockService);
 
         assertThat(maybeLock).isPresent();
         TargetedSweeperLock lock = maybeLock.get();
@@ -58,7 +58,7 @@ public class TargetedSweeperLockTest {
     public void unsuccessfulLock() throws InterruptedException {
         when(mockLockService.lock(any())).thenReturn(() -> Optional.empty());
         Optional<TargetedSweeperLock> maybeLock = TargetedSweeperLock
-                .tryAcquire(2, TableMetadataPersistence.SweepStrategy.THOROUGH, mockLockService);
+                .tryAcquire(2, SweeperStrategy.THOROUGH, mockLockService);
 
         assertThat(maybeLock).isNotPresent();
         verify(mockLockService, times(1)).lock(any());

@@ -40,11 +40,13 @@ public class StreamTestMetadataCleanupTask implements OnCleanupTask {
             rows.add(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         StreamTestStreamIdxTable indexTable = tables.getStreamTestStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> rowsWithNoIndexEntries =
+                        executeUnreferencedStreamDiagnostics(indexTable, rows);
         Set<Long> toDelete = Sets.newHashSet();
+        Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> currentMetadata =
+                metaTable.getMetadatas(rows);
         for (Map.Entry<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
@@ -88,7 +90,7 @@ public class StreamTestMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(StreamTestStreamIdxTable indexTable, Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> metadataRows) {
+    private static Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> executeUnreferencedStreamDiagnostics(StreamTestStreamIdxTable indexTable, Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> metadataRows) {
         Set<StreamTestStreamIdxTable.StreamTestStreamIdxRow> indexRows = metadataRows.stream()
                 .map(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow::getId)
                 .map(StreamTestStreamIdxTable.StreamTestStreamIdxRow::of)
@@ -99,9 +101,11 @@ public class StreamTestMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+            return Sets.newHashSet();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
+            return unreferencedStreamsByIterator;
         }
     }
 }

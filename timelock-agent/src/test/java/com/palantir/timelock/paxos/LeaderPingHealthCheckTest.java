@@ -30,8 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
-import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
 
 public class LeaderPingHealthCheckTest {
@@ -188,7 +187,7 @@ public class LeaderPingHealthCheckTest {
 
     private static HealthCheckPinger getMockOfPingableLeaderWherePingThrows() {
         HealthCheckPinger mockLeader = mock(HealthCheckPinger.class);
-        when(mockLeader.apply(ALL_CLIENTS)).thenThrow(mock(AtlasDbRemoteException.class));
+        when(mockLeader.apply(ALL_CLIENTS)).thenThrow(new IllegalStateException());
         return mockLeader;
     }
 }

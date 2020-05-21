@@ -39,6 +39,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;

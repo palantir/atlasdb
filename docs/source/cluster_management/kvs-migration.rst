@@ -119,6 +119,12 @@ may contain unrelated YAML objects. For example:
 
 Running the migration is typically done by invoking the CLI three times, one for each main stage of the migration.
 
+.. danger::
+
+    **ALL** three steps (Setup, Migrate, Validate) must be run before the migration can be considered finished, and the
+    new KVS used. Failure to do so may result in **SEVERE DATA CORRUPTION**. Please ensure this is the case before
+    you restart your service with the new KVS.
+
 Setup
 -----
 

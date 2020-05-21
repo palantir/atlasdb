@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Conjure Java Runtime is upgraded to `4.70.1`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4677

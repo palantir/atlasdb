@@ -4,14 +4,14 @@ apply from: "../gradle/shared.gradle"
 dependencies {
     compile project(':atlasdb-api')
     compile project(':atlasdb-conjure')
-    compile project(path: ':atlasdb-feign', configuration: 'shadow')
     compile project(':atlasdb-impl-shared')
     compile project(':leader-election-impl')
     compile project(':lock-impl')
     compile project(':timestamp-client')
 
-    compile group: 'javax.validation', name: 'validation-api'
+    compile group: 'jakarta.validation', name: 'jakarta.validation-api'
     compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
+    compile group: 'com.palantir.refreshable', name: 'refreshable'
     compile group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
@@ -24,6 +24,8 @@ dependencies {
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
+
+    api 'com.palantir.dialogue:dialogue-clients'
 
     // This is added so that AtlasDB clients can specify the javaAgent as a JVM argument to load jars needed for HTTP/2
     // in the boot classpath
@@ -44,7 +46,7 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'com.github.tomakehurst', name: 'wiremock'
+    testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.awaitility', name: 'awaitility'
     testCompile group: 'com.github.stefanbirkner', name: 'system-rules'

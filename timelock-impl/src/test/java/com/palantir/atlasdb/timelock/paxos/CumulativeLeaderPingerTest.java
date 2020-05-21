@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.paxos.CumulativeLeaderPinger.LastSuccessfulResult;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;

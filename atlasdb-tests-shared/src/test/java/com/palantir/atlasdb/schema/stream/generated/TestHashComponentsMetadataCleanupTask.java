@@ -40,11 +40,13 @@ public class TestHashComponentsMetadataCleanupTask implements OnCleanupTask {
             rows.add(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         TestHashComponentsStreamIdxTable indexTable = tables.getTestHashComponentsStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> rowsWithNoIndexEntries =
+                        executeUnreferencedStreamDiagnostics(indexTable, rows);
         Set<Long> toDelete = Sets.newHashSet();
+        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> currentMetadata =
+                metaTable.getMetadatas(rows);
         for (Map.Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
@@ -88,7 +90,7 @@ public class TestHashComponentsMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(TestHashComponentsStreamIdxTable indexTable, Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> metadataRows) {
+    private static Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> executeUnreferencedStreamDiagnostics(TestHashComponentsStreamIdxTable indexTable, Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> metadataRows) {
         Set<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow> indexRows = metadataRows.stream()
                 .map(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow::getId)
                 .map(TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow::of)
@@ -99,9 +101,11 @@ public class TestHashComponentsMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+            return Sets.newHashSet();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
+            return unreferencedStreamsByIterator;
         }
     }
 }

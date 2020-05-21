@@ -11,8 +11,6 @@ dependencies {
 
   testCompile project(":commons-api")
 
-  compile project(path: ":atlasdb-feign", configuration: "shadow")
-
   compile group: 'com.palantir.tracing', name: 'tracing'
   compile group: 'com.palantir.tritium', name: 'tritium-lib'
 

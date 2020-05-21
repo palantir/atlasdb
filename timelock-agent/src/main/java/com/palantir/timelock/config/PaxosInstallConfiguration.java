@@ -16,19 +16,23 @@
 package com.palantir.timelock.config;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.Beta;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
 @Value.Immutable
 public interface PaxosInstallConfiguration {
+    /**
+     * Data directory used to store file-backed Paxos log state.
+     */
     @JsonProperty("data-directory")
     @Value.Default
     default File dataDirectory() {
@@ -39,11 +43,28 @@ public interface PaxosInstallConfiguration {
         return new File("var/data/paxos");
     }
 
+    @Beta
+    @JsonProperty("sqlite-persistence")
+    @Value.Default
+    default SqlitePaxosPersistenceConfiguration sqlitePersistence() {
+        return SqlitePaxosPersistenceConfiguration.DEFAULT;
+    }
+
     /**
      * Set to true if this is a new stack. Otherwise, set to false.
      */
     @JsonProperty("is-new-service")
     boolean isNewService();
+
+    /**
+     * If true, TimeLock is allowed to create clients that it has never seen before.
+     * If false, then TimeLock will continue to serve requests for clients that it already knows about (across the
+     * history of its persistent state, not just the life of the current JVM), but it will not accept any new clients.
+     */
+    @JsonProperty("can-create-new-clients")
+    default boolean canCreateNewClients() {
+        return true;
+    }
 
     enum PaxosLeaderMode {
         SINGLE_LEADER,
@@ -65,22 +86,25 @@ public interface PaxosInstallConfiguration {
     }
 
     @Value.Check
-    default void check() {
-        if (isNewService() && dataDirectory().isDirectory()) {
-            throw new SafeIllegalArgumentException(
-                    "This timelock server has been configured as a new stack (the 'is-new-service' property is set to "
-                            + "true), but the Paxos data directory already exists. Almost surely this is because it "
-                            + "has already been turned on at least once, and thus the 'is-new-service' property should "
-                            + "be set to false for safety reasons.");
-        }
-
-        if (!isNewService() && !dataDirectory().isDirectory()) {
-            throw new SafeIllegalArgumentException("The timelock data directory does not appear to exist. If you are "
-                    + "trying to move the nodes on your timelock cluster or add new nodes, you have likely already "
-                    + "made a mistake by this point. This is a non-trivial operation and risks service corruption, "
-                    + "so contact support for assistance. Otherwise, if this is a new timelock service, please "
-                    + "configure paxos.is-new-service to true for the first startup only of each node.");
+    default void checkSqliteAndFileDataDirectoriesAreNotPossiblyShared() {
+        try {
+            Preconditions.checkArgument(!sqlitePersistence().dataDirectory().equals(dataDirectory()),
+                    "SQLite and file-based data directories must be different!");
+            Preconditions.checkArgument(!sqlitePersistence().dataDirectory().getCanonicalPath().startsWith(
+                    dataDirectory().getCanonicalPath() + File.separator),
+                    "SQLite data directory can't be a subdirectory of the file-based data directory!"
+            );
+            Preconditions.checkArgument(!dataDirectory().getCanonicalPath().startsWith(
+                    sqlitePersistence().dataDirectory().getCanonicalPath() + File.separator),
+                    "File-based data directory can't be a subdirectory of the SQLite data directory!"
+            );
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
+    @Value.Derived
+    default boolean doDataDirectoriesExist() {
+        return dataDirectory().isDirectory();
+    }
 }

@@ -41,8 +41,9 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class ReadTransactionShould {
 
@@ -69,9 +70,9 @@ public class ReadTransactionShould {
         delegateTransaction = Mockito.mock(AbstractTransaction.class);
         SweepStrategyManager sweepStrategies = Mockito.mock(SweepStrategyManager.class);
         when(sweepStrategies.get(DUMMY_CONSERVATIVE_TABLE))
-                .thenReturn(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+                .thenReturn(SweepStrategy.CONSERVATIVE);
         when(sweepStrategies.get(DUMMY_THOROUGH_TABLE))
-                .thenReturn(TableMetadataPersistence.SweepStrategy.THOROUGH);
+                .thenReturn(SweepStrategy.THOROUGH);
         readTransaction = new ReadTransaction(delegateTransaction, sweepStrategies);
     }
 
@@ -116,8 +117,8 @@ public class ReadTransactionShould {
                                 Throwables.throwUncheckedException(e);
                             }
                         },
-                        IllegalStateException.class,
-                        "Cannot read");
+                        SafeIllegalStateException.class,
+                        "cannot be read");
             }
         }
     }
@@ -128,14 +129,14 @@ public class ReadTransactionShould {
                 DUMMY_THOROUGH_TABLE,
                 ImmutableList.of(EMPTY_BYTES),
                 BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
-                IllegalStateException.class,
-                "Cannot read");
+                SafeIllegalStateException.class,
+                "cannot be read");
         checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRangeIterator(
                 DUMMY_THOROUGH_TABLE,
                 ImmutableList.of(EMPTY_BYTES),
                 BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
-                IllegalStateException.class,
-                "Cannot read");
+                SafeIllegalStateException.class,
+                "cannot be read");
     }
 
     @Test
@@ -145,8 +146,8 @@ public class ReadTransactionShould {
                 ImmutableList.of(EMPTY_BYTES),
                 new ColumnRangeSelection(EMPTY_BYTES, EMPTY_BYTES),
                 1),
-                IllegalStateException.class,
-                "Cannot read");
+                SafeIllegalStateException.class,
+                "cannot be read");
     }
 
     private void checkThrowsAndNoInteraction(Runnable thrower,

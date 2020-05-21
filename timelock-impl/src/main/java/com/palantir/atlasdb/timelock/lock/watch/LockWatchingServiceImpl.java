@@ -18,23 +18,25 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.HashSet;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 /**
@@ -57,7 +59,12 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
 
     public LockWatchingServiceImpl(HeldLocksCollection heldLocksCollection) {
-        this.lockEventLog = new LockEventLogImpl(watches::get, heldLocksCollection);
+        this(UUID.randomUUID(), heldLocksCollection);
+    }
+
+    @VisibleForTesting
+    LockWatchingServiceImpl(UUID logId, HeldLocksCollection heldLocksCollection) {
+        this.lockEventLog = new LockEventLogImpl(logId, watches::get, heldLocksCollection);
     }
 
     @Override
@@ -67,12 +74,12 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
+    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion) {
         return lockEventLog.getLogDiff(lastKnownVersion);
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion, long endVersion) {
+    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion, long endVersion) {
         return lockEventLog.getLogDiff(lastKnownVersion, endVersion);
     }
 
@@ -123,7 +130,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     private Optional<LockWatches> filterNewWatches(LockWatchRequest request, LockWatches oldWatches) {
         Set<LockWatchReference> newRefs = new HashSet<>();
         RangeSet<LockDescriptor> newRanges = TreeRangeSet.create();
-        for (LockWatchReference singleReference : request.references()) {
+        for (LockWatchReference singleReference : request.getReferences()) {
             Range<LockDescriptor> referenceAsRange = singleReference.accept(LockWatchReferences.TO_RANGES_VISITOR);
             if (!oldWatches.ranges().encloses(referenceAsRange)) {
                 newRefs.add(singleReference);

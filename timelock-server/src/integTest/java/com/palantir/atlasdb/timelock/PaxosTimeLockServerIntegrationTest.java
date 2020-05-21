@@ -30,6 +30,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
@@ -46,6 +47,9 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 
 public class PaxosTimeLockServerIntegrationTest {
+
+    private static final Logger log = LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class);
+
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
@@ -67,7 +71,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
             new TemporaryConfigurationHolder(TEMPORARY_FOLDER, "paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
-            new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
+            new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation, DEFAULT_SINGLE_SERVER);
     private static final TestableTimelockServer TIMELOCK =
             new TestableTimelockServer("https://localhost", TIMELOCK_SERVER_HOLDER);
 
@@ -94,7 +98,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).legacyLockService().currentTimeMillis());
                         return TIMELOCK.pinger().ping(NAMESPACES).containsAll(NAMESPACES);
                     } catch (Throwable t) {
-                        LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class).error("erreur!", t);
+                        log.error("erreur!", t);
                         return false;
                     }
                 });

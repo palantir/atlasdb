@@ -56,7 +56,7 @@ public class TimeLockActivityCheckerFactory {
                 metricsManager,
                 () -> getServerListConfig(remoteUrl),
                 userAgent,
-                () -> RemotingClientConfigs.ALWAYS_USE_CONJURE);
+                () -> RemotingClientConfigs.DEFAULT);
     }
 
     private ServerListConfig getServerListConfig(String remoteUrl) {

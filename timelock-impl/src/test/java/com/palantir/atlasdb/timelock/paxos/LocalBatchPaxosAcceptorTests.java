@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.BooleanPaxosResponse;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
@@ -145,6 +146,7 @@ public class LocalBatchPaxosAcceptorTests {
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 1L)
                 .putUpdates(CLIENT_2, 2L)
+                .cacheTimestamp(5)
                 .build();
 
         when(cache.getAllUpdates()).thenReturn(digest);
@@ -167,6 +169,7 @@ public class LocalBatchPaxosAcceptorTests {
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_2, 2L)
+                .cacheTimestamp(5)
                 .build();
 
         when(cache.updatesSinceCacheKey(cacheKey))
@@ -206,6 +209,7 @@ public class LocalBatchPaxosAcceptorTests {
         return ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 50L)
+                .cacheTimestamp(1L)
                 .build();
     }
 }

@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -661,6 +662,7 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -703,5 +705,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AyoODRlVCqAsyv/ryhK6gg==";
+    static String __CLASS_HASH = "jqJ9MbJSHQtHT3oo1Qu+qg==";
 }

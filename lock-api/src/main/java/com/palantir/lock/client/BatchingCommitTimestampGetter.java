@@ -26,6 +26,7 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -59,7 +60,11 @@ public final class BatchingCommitTimestampGetter implements AutoCloseable, Commi
             while (commitTimestamps.size() < count) {
                 GetCommitTimestampsRequest request = GetCommitTimestampsRequest.builder()
                         .numTimestamps(count - commitTimestamps.size())
-                        .lastKnownVersion(cache.lastKnownVersion().version())
+                        .lastKnownVersion(
+                                cache.lastKnownVersion().map(identifiedVersion -> ConjureIdentifiedVersion.builder()
+                                        .id(identifiedVersion.id())
+                                        .version(identifiedVersion.version())
+                                        .build()))
                         .build();
                 GetCommitTimestampsResponse response = timelock.getCommitTimestamps(request);
                 commitTimestamps.addAll(process(response, cache));

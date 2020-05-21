@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
@@ -43,6 +42,7 @@ import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConf
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -79,9 +79,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler = new BackgroundSweepScheduler(install.conservativeThreads(),
-                TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+                SweeperStrategy.CONSERVATIVE);
         this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(),
-                TableMetadataPersistence.SweepStrategy.THOROUGH);
+                SweeperStrategy.THOROUGH);
         this.followers = followers;
     }
 
@@ -229,12 +229,12 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private class BackgroundSweepScheduler implements AutoCloseable {
         private final int numThreads;
-        private final TableMetadataPersistence.SweepStrategy sweepStrategy;
+        private final SweeperStrategy sweepStrategy;
         private final AtomicLong counter = new AtomicLong(0);
 
         private ScheduledExecutorService executorService;
 
-        private BackgroundSweepScheduler(int numThreads, TableMetadataPersistence.SweepStrategy sweepStrategy) {
+        private BackgroundSweepScheduler(int numThreads, SweeperStrategy sweepStrategy) {
             this.numThreads = numThreads;
             this.sweepStrategy = sweepStrategy;
         }

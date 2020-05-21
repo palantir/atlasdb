@@ -45,7 +45,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private static final TemplateVariables SINGLE_NODE = ImmutableTemplateVariables.builder()
             .localServerPort(9060)
-            .clientPaxos(TimestampPaxos.builder().isUseBatchPaxos(false).build())
+            .clientPaxos(TimestampPaxos.builder().isUseBatchPaxosTimestamp(false).build())
             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
             .build();
 

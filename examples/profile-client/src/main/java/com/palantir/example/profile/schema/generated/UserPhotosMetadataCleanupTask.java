@@ -40,11 +40,13 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
             rows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         UserPhotosStreamIdxTable indexTable = tables.getUserPhotosStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rowsWithNoIndexEntries =
+                        executeUnreferencedStreamDiagnostics(indexTable, rows);
         Set<Long> toDelete = Sets.newHashSet();
+        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata =
+                metaTable.getMetadatas(rows);
         for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
@@ -88,7 +90,7 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> metadataRows) {
+    private static Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> executeUnreferencedStreamDiagnostics(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> metadataRows) {
         Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows = metadataRows.stream()
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::getId)
                 .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::of)
@@ -99,9 +101,11 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+            return Sets.newHashSet();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
+            return unreferencedStreamsByIterator;
         }
     }
 }

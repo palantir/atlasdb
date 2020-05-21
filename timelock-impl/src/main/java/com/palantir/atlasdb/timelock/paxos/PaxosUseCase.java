@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.paxos.Client;
 
 public enum PaxosUseCase {
 
@@ -58,7 +59,7 @@ public enum PaxosUseCase {
         this.relativeLogDirectory = relativeLogDirectory;
     }
 
-    static final Client PSEUDO_LEADERSHIP_CLIENT = Client.of(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+    public static final Client PSEUDO_LEADERSHIP_CLIENT = Client.of(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
 
     private final String useCasePath;
     private final Path relativeLogDirectory;

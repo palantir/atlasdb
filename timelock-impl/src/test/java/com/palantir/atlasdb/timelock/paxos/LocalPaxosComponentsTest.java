@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,12 +29,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");
@@ -50,15 +53,20 @@ public class LocalPaxosComponentsTest {
     public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
     private LocalPaxosComponents paxosComponents;
-    private Path logDirectory;
+    private Path legacyDirectory;
+    private Path sqliteDirectory;
 
     @Before
     public void setUp() throws IOException {
-        logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
+        legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
+        sqliteDirectory = TEMPORARY_FOLDER.newFolder("sqlite").toPath();
         paxosComponents = new LocalPaxosComponents(
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, new DefaultTaggedMetricRegistry()),
-                logDirectory,
-                UUID.randomUUID());
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
+                legacyDirectory,
+                sqliteDirectory,
+                UUID.randomUUID(),
+                true);
     }
 
     @Test
@@ -77,12 +85,39 @@ public class LocalPaxosComponentsTest {
     @Test
     public void addsClientsInSubdirectory() {
         paxosComponents.learner(CLIENT);
-        File expectedAcceptorLogDir = logDirectory.resolve(
+        File expectedAcceptorLogDir = legacyDirectory.resolve(
                 Paths.get(CLIENT.value(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH)).toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
-        File expectedLearnerLogDir = logDirectory.resolve(
+        File expectedLearnerLogDir = legacyDirectory.resolve(
                 Paths.get(CLIENT.value(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)).toFile();
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 
+    @Test
+    public void newClientCannotBeCreatedIfCreatingClientsIsNotPermitted() {
+        LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
+                legacyDirectory,
+                sqliteDirectory,
+                UUID.randomUUID(),
+                false);
+        assertThatThrownBy(() -> rejectingComponents.learner(CLIENT))
+                .isInstanceOf(ServiceNotAvailableException.class)
+                .hasMessageContaining("not allowed to create new clients at this time")
+                .hasMessageContaining(CLIENT.value());
+    }
+
+    @Test
+    public void newClientCanBeCreatedIfItAlreadyExistsInTheDirectory() {
+        paxosComponents.learner(CLIENT);
+        LocalPaxosComponents rejectingComponents = new LocalPaxosComponents(
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
+                legacyDirectory,
+                sqliteDirectory,
+                UUID.randomUUID(),
+                false);
+        assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
+    }
 }

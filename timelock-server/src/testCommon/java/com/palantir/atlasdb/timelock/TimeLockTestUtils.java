@@ -19,7 +19,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
@@ -82,7 +81,7 @@ public final class TimeLockTestUtils {
 
         AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig
                 .copyOf(runtimeConfigTemplate)
-                .withRemotingClient(RemotingClientConfigs.ALWAYS_USE_CONJURE);
+                .withRemotingClient(RemotingClientConfigs.DEFAULT);
 
         TransactionManager transactionManager = TransactionManagers.builder()
                 .config(config)
@@ -107,10 +106,6 @@ public final class TimeLockTestUtils {
         AtlasDbConfig install();
         AtlasDbRuntimeConfig runtime();
         TransactionManager transactionManager();
-
-        default Supplier<AtlasDbRuntimeConfig> runtimeSupplier() {
-            return this::runtime;
-        }
     }
 
 }

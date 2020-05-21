@@ -68,6 +68,7 @@ dependencies {
         exclude group: 'org.ow2.asm'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     testCommonAnnotationProcessor group: 'org.immutables', name: 'value'

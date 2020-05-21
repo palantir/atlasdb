@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.lock.client.BatchingCommitTimestampGetter;
 import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.CommitUpdateGetter;
+import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -28,7 +30,6 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
@@ -42,7 +43,7 @@ public final class LockWatchServiceImpl implements LockWatchService {
     }
 
     public static LockWatchService create(
-            NamespacedLockWatchingRpcClient lockWatcher,
+            NamespacedConjureLockWatchingService lockWatcher,
             NamespacedConjureTimelockService timelock,
             LockWatchEventCache cache) {
         LockWatchManager lockWatchManager = new LockWatchManagerImpl(lockWatcher, cache);
@@ -64,7 +65,8 @@ public final class LockWatchServiceImpl implements LockWatchService {
     }
 
     @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
+    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> version) {
         return lockWatchManager.getEventsForTransactions(startTimestamps, version);
     }
 

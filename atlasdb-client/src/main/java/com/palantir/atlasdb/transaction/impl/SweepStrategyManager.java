@@ -15,9 +15,15 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Set;
+
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy;
 
 public interface SweepStrategyManager {
     SweepStrategy get(TableReference tableRef);
+
+    default void invalidateCaches(Set<TableReference> tableRefs) {
+        // No-op. Assume no cache if not implemented.
+    }
 }

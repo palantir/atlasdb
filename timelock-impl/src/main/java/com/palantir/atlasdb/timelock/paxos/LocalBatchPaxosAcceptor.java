@@ -27,6 +27,7 @@ import javax.ws.rs.core.HttpHeaders;
 import com.google.common.collect.SetMultimap;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.BooleanPaxosResponse;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
@@ -95,6 +96,9 @@ public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
     private static AcceptorCacheDigest emptyDigest(AcceptorCacheKey cacheKey) {
         return ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(cacheKey)
+                // HACK: this is okay, the digest is empty so doesn't do anything, Long.MIN_VALUE means it will never
+                // accepted as the latest cache key
+                .cacheTimestamp(Long.MIN_VALUE)
                 .build();
     }
 

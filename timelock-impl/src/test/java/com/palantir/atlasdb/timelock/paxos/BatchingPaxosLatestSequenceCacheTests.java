@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +35,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosLong;
 
@@ -49,6 +51,8 @@ public class BatchingPaxosLatestSequenceCacheTests {
             .put(CLIENT_3, PaxosLong.of(15L))
             .build();
 
+    private final AtomicLong cacheTimestamp = new AtomicLong();
+
     @Mock
     private BatchPaxosAcceptor remote;
 
@@ -58,6 +62,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 5)
                 .putUpdates(CLIENT_2, 10)
+                .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
 
         when(remote.latestSequencesPreparedOrAccepted(Optional.empty(), ImmutableSet.of(CLIENT_1, CLIENT_2)))
@@ -79,7 +84,6 @@ public class BatchingPaxosLatestSequenceCacheTests {
 
         assertThat(cache.apply(ImmutableSet.of(CLIENT_1)))
                 .containsEntry(CLIENT_1, INITIAL_UPDATES.get(CLIENT_1));
-
     }
 
     @Test
@@ -126,6 +130,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
         AcceptorCacheDigest newDigest = ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putAllUpdates(newMap)
+                .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
 
         doReturn(newDigest).when(remote)
@@ -143,6 +148,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putAllUpdates(asLong)
+                .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
 
         when(remote.latestSequencesPreparedOrAccepted(Optional.empty(), ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3)))
@@ -153,10 +159,11 @@ public class BatchingPaxosLatestSequenceCacheTests {
         return cache;
     }
 
-    private static AcceptorCacheDigest digestWithUpdates(Map.Entry<Client, Long>... entries) {
+    private AcceptorCacheDigest digestWithUpdates(Map.Entry<Client, Long>... entries) {
         return ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .updates(ImmutableMap.copyOf(ImmutableSet.copyOf(entries)))
+                .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
     }
 }

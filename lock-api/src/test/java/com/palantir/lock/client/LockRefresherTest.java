@@ -47,8 +47,7 @@ public class LockRefresherTest {
     @Test
     public void continuesRefreshingLocksThatAreReturned() {
         when(timelock.refreshLockLeases(TOKENS)).thenReturn(TOKENS);
-        refresher.registerLock(TOKEN_1);
-        refresher.registerLock(TOKEN_2);
+        registerLocks();
 
         tick();
         tick();
@@ -57,8 +56,7 @@ public class LockRefresherTest {
 
     @Test
     public void stopsRefreshingLockAfterItIsUnregistered() {
-        refresher.registerLock(TOKEN_1);
-        refresher.registerLock(TOKEN_2);
+        registerLocks();
 
         refresher.unregisterLocks(ImmutableSet.of(TOKEN_2));
 
@@ -68,16 +66,15 @@ public class LockRefresherTest {
 
     @Test
     public void stopsRefreshingLockIfItIsNotRefreshed() {
-        when(timelock.refreshLockLeases(TOKENS)).thenReturn(ImmutableSet.of(TOKEN_1));
-
-        refresher.registerLock(TOKEN_1);
-        refresher.registerLock(TOKEN_2);
+        ImmutableSet<LockToken> lockTokensToRefresh = ImmutableSet.of(TOKEN_1);
+        when(timelock.refreshLockLeases(TOKENS)).thenReturn(lockTokensToRefresh);
+        registerLocks();
 
         tick();
         verify(timelock).refreshLockLeases(TOKENS);
 
         tick();
-        verify(timelock).refreshLockLeases(ImmutableSet.of(TOKEN_1));
+        verify(timelock).refreshLockLeases(lockTokensToRefresh);
     }
 
     @Test
@@ -89,14 +86,19 @@ public class LockRefresherTest {
 
     @Test
     public void doesNotFailIfDelegateThrows() {
+        ImmutableSet<LockToken> lockTokensToRefresh = ImmutableSet.of(TOKEN_1);
         when(timelock.refreshLockLeases(any()))
                 .thenThrow(new RuntimeException("test"))
-                .thenReturn(ImmutableSet.of(TOKEN_1));
-        refresher.registerLock(TOKEN_1);
+                .thenReturn(lockTokensToRefresh);
+        refresher.registerLocks(lockTokensToRefresh);
 
         tick();
         tick();
-        verify(timelock, times(2)).refreshLockLeases(ImmutableSet.of(TOKEN_1));
+        verify(timelock, times(2)).refreshLockLeases(lockTokensToRefresh);
+    }
+
+    private void registerLocks() {
+        refresher.registerLocks(TOKENS);
     }
 
     private void tick() {

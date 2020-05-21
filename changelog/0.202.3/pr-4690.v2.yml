@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: TimeLock Server (and leaders in embedded configurations) should now
+    be much more resilient to a slowly responding individual cluster node. Previously,
+    the number of threads involved in validating consensus could potentially grow
+    unbounded.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4690

@@ -11,10 +11,11 @@
 | [guava, v. 18.0](https://github.com/google/guava) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [jackson, v. 2.5.0](https://github.com/FasterXML/jackson) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [javax.ws.rs, v. 2.0.1](https://jax-rs-spec.java.net/) | [Common Development and Distribution License Version 1.0](http://opensource.org/licenses/cddl1.php) |
+| [jakarta.ws.rs, v. 2.1.6](https://github.com/eclipse-ee4j/jakartaee-platform) | [Eclipse Public License, Version 2.0](https://github.com/eclipse-ee4j/jakartaee-platform/blob/master/LICENSE) |
 | [jmock](http://www.jmock.org/) | [New BSD License](http://opensource.org/licenses/BSD-3-Clause) |
 | [jruby, v. 1.6.7.2](http://jruby.org/) | [Lesser General Public License, Version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) |
 | [json-simple, v. 1.1.1](https://github.com/fangyidong/json-simple) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
-| [jsr305, v. 1.3.9](https://code.google.com/p/jsr-305/) | [New BSD License](https://code.google.com/p/jsr-305/source/ browse/trunk/ri/LICENSE) |
+| [jsr305, v. 1.3.9](https://code.google.com/p/jsr-305/) | [New BSD License](https://code.google.com/p/jsr-305/source/browse/trunk/ri/LICENSE) |
 | [junit, v. 4.10](https://github.com/junit-team/junit) | [Eclipse Public License](https://github.com/junit-team/junit/blob/master/LICENSE-junit.txt) |
 | [okjson](https://github.com/kr/okjson) | [MIT License](https://github.com/kr/okjson/blob/master/okjson.rb) |
 | [Palantir Cinch](https://github.com/palantir/Cinch) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |

@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -91,6 +92,11 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return runTaskTimed("getFreshTimestamp", delegate::getFreshTimestamp);
     }
@@ -107,8 +113,9 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return runTaskTimed("startIdentifiedAtlasDbTransaction", delegate::startIdentifiedAtlasDbTransaction);
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return runTaskTimed("startIdentifiedAtlasDbTransactionBatch",
+                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
     }
 
     @Override

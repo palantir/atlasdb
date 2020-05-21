@@ -23,7 +23,6 @@ import java.util.function.Predicate;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
@@ -34,6 +33,7 @@ import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 @Value.Immutable
@@ -65,7 +65,6 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 metrics().clientScopedMetrics().metricRegistryForClient(proxyClient()),
                 clazz,
                 instance,
-                MetricRegistry.name(clazz),
                 _context -> ImmutableMap.of(
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }

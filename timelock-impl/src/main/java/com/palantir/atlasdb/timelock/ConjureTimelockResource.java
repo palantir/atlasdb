@@ -16,15 +16,12 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.time.Duration;
 import java.util.HashSet;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -32,6 +29,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
@@ -50,15 +48,11 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
-import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.ByteArrayLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
-import com.palantir.lock.impl.TooManyRequestsException;
-import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LeaderTime;
@@ -69,18 +63,20 @@ import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.ImmutableIdentifiedVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
-    private final RedirectRetryTargeter redirectRetryTargeter;
+    private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
 
     @VisibleForTesting
     ConjureTimelockResource(
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
-        this.redirectRetryTargeter = redirectRetryTargeter;
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
@@ -104,9 +100,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestId(request.getRequestId())
                     .requestorId(request.getRequestorId())
                     .numTransactions(request.getNumTransactions())
-                    .lastKnownLockLogVersion(request.getLastKnownVersion()
-                            .map(OptionalLong::of)
-                            .orElseGet(OptionalLong::empty))
+                    .lastKnownLockLogVersion(request.getLastKnownVersion().map(this::toIdentifiedVersion))
                     .build();
             ListenableFuture<StartTransactionResponseV5> responseFuture =
                     forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
@@ -224,7 +218,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return handleExceptions(() -> forNamespace(namespace).getCommitTimestamps(
                 request.getNumTimestamps(),
-                request.getLastKnownVersion().map(OptionalLong::of).orElseGet(OptionalLong::empty)));
+                request.getLastKnownVersion().map(this::toIdentifiedVersion)));
     }
 
     private AsyncTimelockService forNamespace(String namespace) {
@@ -232,22 +226,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
-        return handleExceptions(Futures.submitAsync(supplier::get, MoreExecutors.directExecutor()));
-    }
-
-    private <T> ListenableFuture<T> handleExceptions(ListenableFuture<T> future) {
-        return FluentFuture.from(future)
-                .catching(BlockingTimeoutException.class, timeout -> {
-                    throw QosException.throttle(Duration.ZERO);
-                }, MoreExecutors.directExecutor())
-                .catching(NotCurrentLeaderException.class, notCurrentLeader -> {
-                    throw redirectRetryTargeter.redirectRequest(notCurrentLeader.getServiceHint())
-                            .<QosException>map(QosException::retryOther)
-                            .orElseGet(QosException::unavailable);
-                }, MoreExecutors.directExecutor())
-                .catching(TooManyRequestsException.class, tooManyRequests -> {
-                    throw QosException.throttle();
-                }, MoreExecutors.directExecutor());
+        return exceptionHandler.handleExceptions(supplier);
     }
 
     public static final class JerseyAdapter implements ConjureTimelockService {
@@ -309,5 +288,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         private static <T> T unwrap(ListenableFuture<T> future) {
             return AtlasFutures.getUnchecked(future);
         }
+    }
+
+    private IdentifiedVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
+        return ImmutableIdentifiedVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
     }
 }

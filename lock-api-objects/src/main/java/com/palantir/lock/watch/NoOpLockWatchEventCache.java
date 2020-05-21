@@ -27,23 +27,23 @@ import com.palantir.lock.v2.LockToken;
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
-    private static final IdentifiedVersion FAKE = ImmutableIdentifiedVersion
-            .of(UUID.randomUUID(), Optional.empty());
+    private static final IdentifiedVersion FAKE = ImmutableIdentifiedVersion.of(UUID.randomUUID(), 0L);
+    private static final Optional<IdentifiedVersion> FAKE_OPTIONAL_VERSION = Optional.of(FAKE);
     private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
+            LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of()));
 
     private NoOpLockWatchEventCache() {
         // singleton
     }
 
     @Override
-    public IdentifiedVersion lastKnownVersion() {
-        return FAKE;
+    public Optional<IdentifiedVersion> lastKnownVersion() {
+        return FAKE_OPTIONAL_VERSION;
     }
 
     @Override
-    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
-        // noop
+    public IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+        return FAKE;
     }
 
     @Override
@@ -57,7 +57,8 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
+    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> version) {
         return NONE;
     }
 }

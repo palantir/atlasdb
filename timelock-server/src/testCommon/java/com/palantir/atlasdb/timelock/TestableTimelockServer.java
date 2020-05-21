@@ -15,10 +15,18 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.matching.UrlPattern;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -26,22 +34,31 @@ import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
-import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
+import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
 
+    private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET = ImmutableSet.of(
+            PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
     private final TimeLockServerHolder serverHolder;
     private final TestProxies proxies;
     private final ProxyFactory proxyFactory;
 
     private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
+    private volatile boolean switchToBatched = false;
 
     TestableTimelockServer(String baseUri, TimeLockServerHolder serverHolder) {
         this.serverHolder = serverHolder;
@@ -65,12 +82,28 @@ public class TestableTimelockServer {
         serverHolder.start();
     }
 
+    void startUsingBatchedSingleLeader() {
+        switchToBatched = true;
+    }
+
+    void stopUsingBatchedSingleLeader() {
+        switchToBatched = false;
+    }
+
     TestableLeaderPinger pinger() {
         PaxosLeaderMode mode = serverHolder.installConfig().paxos().leaderMode();
 
+        if (switchToBatched) {
+            BatchPingableLeader batchPingableLeader =
+                    proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
+            return namespaces -> batchPingableLeader.ping(PSEUDO_LEADERSHIP_CLIENT_SET).isEmpty()
+                    ? ImmutableSet.of() : ImmutableSet.copyOf(namespaces);
+        }
+
         switch (mode) {
             case SINGLE_LEADER:
-                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class, false);
+                PingableLeader pingableLeader =
+                        proxies.singleNode(serverHolder, PingableLeader.class, false, ProxyMode.DIRECT);
                 return namespaces -> {
                     if (pingableLeader.ping()) {
                         return ImmutableSet.copyOf(namespaces);
@@ -80,7 +113,7 @@ public class TestableTimelockServer {
                 };
             case LEADER_PER_CLIENT:
                 BatchPingableLeader batchPingableLeader =
-                        proxies.singleNode(serverHolder, BatchPingableLeader.class, false);
+                        proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
                 return namespaces -> {
                     Set<Client> typedNamespaces = Streams.stream(namespaces)
                             .map(Client::of)
@@ -105,6 +138,56 @@ public class TestableTimelockServer {
         return serverHolder.getTaggedMetricsRegistry();
     }
 
+    @Override
+    public String toString() {
+        return "TestableTimelockServer{url='" + serverHolder.getTimelockUri() + "'}";
+    }
+
+    void rejectAllNamespacesOtherThan(Iterable<String> namespacesToAccept) {
+        StubMapping failEverything = any(urlMatching(TimeLockServerHolder.ALL_NAMESPACES))
+                .willReturn(aResponse().withStatus(503))
+                .atPriority(Integer.MAX_VALUE - 1)
+                .build();
+        serverHolder.wireMock().register(failEverything);
+
+        Streams.stream(namespacesToAccept)
+                .flatMap(namespace -> Stream.of(
+                        any(namespaceEqualTo(namespace)),
+                        any(conjureUrlNamespaceEqualTo(namespace))))
+                .map(this::namespacesIsProxiedToTimelock)
+                .forEach(serverHolder.wireMock()::register);
+    }
+
+    void allowAllNamespaces() {
+        serverHolder.resetWireMock();
+    }
+
+    private static UrlPattern namespaceEqualTo(String namespace) {
+        return urlMatching(String.format("/%s/.*", namespace));
+    }
+
+    private static UrlPattern conjureUrlNamespaceEqualTo(String namespace) {
+        return urlMatching(String.format("/tl/.*/%s", namespace));
+    }
+
+    private StubMapping namespacesIsProxiedToTimelock(MappingBuilder mappingBuilder) {
+        return mappingBuilder
+                .willReturn(aResponse().proxiedFrom(serverHolder.getTimelockUri())
+                        .withAdditionalRequestHeader(
+                                "User-Agent", UserAgents.format(TimeLockServerHolder.WIREMOCK_USER_AGENT)))
+                .atPriority(1)
+                .build();
+    }
+
+    public boolean takeOverLeadershipForNamespace(String namespace) {
+        return proxies.singleNode(serverHolder, NamespaceLeadershipTakeoverService.class, ProxyMode.DIRECT)
+                .takeover(AuthHeader.valueOf("omitted"), namespace);
+    }
+
+    public TimeLockManagementService timeLockManagementService() {
+        return proxies.singleNode(serverHolder, TimeLockManagementService.class, ProxyMode.WIREMOCK);
+    }
+
     private static final class SingleNodeProxyFactory implements ProxyFactory {
 
         private final TestProxies proxies;
@@ -116,9 +199,10 @@ public class TestableTimelockServer {
         }
 
         @Override
-        public <T> T createProxy(Class<T> clazz) {
-            return proxies.singleNode(serverHolder, clazz);
+        public <T> T createProxy(Class<T> clazz, ProxyMode proxyMode) {
+            return proxies.singleNode(serverHolder, clazz, proxyMode);
         }
+
     }
 
 }

@@ -25,10 +25,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.BooleanPaxosResponse;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLong;
 import com.palantir.paxos.PaxosPromise;
@@ -53,23 +55,23 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
 
     public static AutobatchingPaxosAcceptorNetworkClientFactory create(
             List<BatchPaxosAcceptor> acceptors,
-            ExecutorService executor,
+            Map<BatchPaxosAcceptor, ExecutorService> executors,
             int quorumSize) {
 
         DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare =
                 Autobatchers.coalescing(
-                        wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new))
+                        wrap(acceptors, executors, quorumSize, PrepareCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.prepare")
                         .build();
 
         DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept =
                 Autobatchers.coalescing(
-                        wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new))
+                        wrap(acceptors, executors, quorumSize, AcceptCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.accept")
                         .build();
 
         DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequenceAutobatcher =
-                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, BatchingPaxosLatestSequenceCache::new))
+                Autobatchers.coalescing(wrap(acceptors, executors, quorumSize, BatchingPaxosLatestSequenceCache::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.latest-sequence-cache")
                         .build();
 
@@ -121,6 +123,11 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
             } catch (ExecutionException | InterruptedException e) {
                 throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
+        }
+
+        @Override
+        public ListenableFuture<PaxosResponses<PaxosLong>> getLatestSequencePreparedOrAcceptedAsync() {
+            return latestSequence.apply(client);
         }
     }
 

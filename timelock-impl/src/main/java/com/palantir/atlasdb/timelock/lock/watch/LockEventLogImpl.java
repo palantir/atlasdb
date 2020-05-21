@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -30,6 +29,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -38,32 +38,37 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 
 public class LockEventLogImpl implements LockEventLog {
-    private final UUID logId = UUID.randomUUID();
+    private final UUID logId;
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(1000);
     private final Supplier<LockWatches> watchesSupplier;
     private final HeldLocksCollection heldLocksCollection;
 
-    public LockEventLogImpl(Supplier<LockWatches> watchesSupplier, HeldLocksCollection heldLocksCollection) {
+    LockEventLogImpl(UUID logId, Supplier<LockWatches> watchesSupplier, HeldLocksCollection heldLocksCollection) {
+        this.logId = logId;
         this.watchesSupplier = watchesSupplier;
         this.heldLocksCollection = heldLocksCollection;
     }
 
     @Override
-    public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {
+    public LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion) {
         return getLogDiff(fromVersion, slidingWindow.lastVersion());
     }
 
     @Override
-    public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion, long toVersion) {
-        if (!fromVersion.isPresent()) {
+    public LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion, long toVersion) {
+        if (isVersionStale(fromVersion)) {
             return attemptToCalculateSnapshot();
         }
-        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromTo(fromVersion.getAsLong(), toVersion);
+        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromTo(fromVersion.get().version(), toVersion);
         if (!maybeEvents.isPresent()) {
             return attemptToCalculateSnapshot();
         }
         List<LockWatchEvent> events = maybeEvents.get();
         return LockWatchStateUpdate.success(logId, toVersion, events);
+    }
+
+    private boolean isVersionStale(Optional<IdentifiedVersion> fromVersion) {
+        return !fromVersion.isPresent() || !fromVersion.get().id().equals(logId);
     }
 
     /**

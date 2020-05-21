@@ -9,6 +9,9 @@ dependencies {
   compile group: "com.google.protobuf", name: "protobuf-java"
   compile group: "commons-io", name: "commons-io"
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  compile group: "org.jdbi", name: 'jdbi3-core'
+  compile group: "org.jdbi", name: 'jdbi3-sqlobject'
+  compile group: 'org.xerial', name: 'sqlite-jdbc'
 
   implementation group: 'com.palantir.common', name: 'streams'
 
@@ -21,8 +24,10 @@ dependencies {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
-  testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.awaitility', name: 'awaitility'
+  testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
 }
 
 configurations {

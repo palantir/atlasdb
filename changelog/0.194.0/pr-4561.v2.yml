@@ -1,0 +1,8 @@
+type: break
+break:
+  description: The `atlasdb-feign` project is no longer published. Remoting within
+    AtlasDB has already been going through Conjure Java Runtime for multiple versions.
+    Direct users of classes in this project will need to find suitable alternatives
+    - please contact the AtlasDB team if this is an issue.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4561

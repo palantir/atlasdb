@@ -1,0 +1,6 @@
+type: break
+break:
+  description: Exceptions are now thrown if `LockRequest` and `WaitForLocksRequest` are created with negative acquire
+    timeouts. Timeouts of zero are still supported for both types. Please contact the AtlasDB team if this is an issue.
+  links:
+    - https://github.com/palantir/atlasdb/pull/4564
