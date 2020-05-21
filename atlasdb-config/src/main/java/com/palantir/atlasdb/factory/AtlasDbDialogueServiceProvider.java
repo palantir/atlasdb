@@ -41,12 +41,10 @@ import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.dialogue.Channel;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.lock.LockRpcClient;
-import com.palantir.lock.LockService;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementRpcClient;
-import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 /**

@@ -29,7 +29,6 @@ import com.palantir.atlasdb.http.v2.FastFailoverProxy;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
-import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.dialogue.Channel;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
