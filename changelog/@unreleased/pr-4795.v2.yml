@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Fix deserialization issue.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4795
