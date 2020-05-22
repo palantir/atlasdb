@@ -16,11 +16,18 @@
 
 package com.palantir.paxos;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
@@ -29,52 +36,38 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
 
     private final PaxosStateLog<V> sourceLog;
     private final PaxosStateLog<V> destinationLog;
-    private final Persistable.Hydrator<V> hydrator;
-    private final SqlitePaxosStateLogMigrationState migrationState;
 
-    private PaxosStateLogMigrator(PaxosStateLog<V> sourceLog,
-            PaxosStateLog<V> destinationLog,
-            Persistable.Hydrator<V> hydrator,
-            SqlitePaxosStateLogMigrationState migrationState) {
+    private PaxosStateLogMigrator(PaxosStateLog<V> sourceLog, PaxosStateLog<V> destinationLog) {
         this.sourceLog = sourceLog;
         this.destinationLog = destinationLog;
-        this.hydrator = hydrator;
-        this.migrationState = migrationState;
     }
 
-    public static <V extends Persistable & Versionable> void migrateToValidation(MigrationContext<V> context) {
-        PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(
-                context.sourceLog(),
-                context.destinationLog(),
-                context.hydrator(),
-                context.migrationState());
-        if (!context.migrationState().hasMigratedFromInitialState()
-                || context.destinationLog().getGreatestLogEntry() != context.sourceLog().getGreatestLogEntry()) {
-            migrator.runMigration();
-            context.migrationState().migrateToValidationState();
+    public static <V extends Persistable & Versionable> long migrateAndReturnCutoff(MigrationContext<V> context) {
+        PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(context.sourceLog(), context.destinationLog());
+        if (!context.migrationState().isInMigratedState()) {
+            long migrationLowerBound = context.migrateFrom().orElse(context.sourceLog().getGreatestLogEntry());
+            migrator.runMigration(migrationLowerBound, context.hydrator());
+            context.migrationState().setCutoff(migrationLowerBound);
+            context.migrationState().migrateToMigratedState();
+            return migrationLowerBound;
         }
+        return context.migrationState().getCutoff();
     }
 
-    private void runMigration() {
+    private void runMigration(long lowerBound, Persistable.Hydrator<V> hydrator) {
         destinationLog.truncate(destinationLog.getGreatestLogEntry());
-        long lowerBound = lowestSequenceToMigrate();
         long upperBound = sourceLog.getGreatestLogEntry();
         if (upperBound == PaxosAcceptor.NO_LOG_ENTRY) {
             return;
         }
 
-        try (PaxosStateLogBatchReader<V> reader = new PaxosStateLogBatchReader<>(sourceLog, hydrator, 100)) {
-            long numberOfBatches = (upperBound - lowerBound) / BATCH_SIZE + 1;
-            LongStream.iterate(lowerBound, x -> x + BATCH_SIZE)
-                    .limit(numberOfBatches)
-                    .mapToObj(sequence -> reader.readBatch(sequence, BATCH_SIZE))
-                    .forEach(destinationLog::writeBatchOfRounds);
-        }
-    }
-
-    private long lowestSequenceToMigrate() {
-        long leastLogEntry = sourceLog.getLeastLogEntry();
-        return leastLogEntry == PaxosAcceptor.NO_LOG_ENTRY ? 0L : leastLogEntry;
+        LogReader<V> reader = new LogReader<>(sourceLog, hydrator);
+        List<PaxosRound<V>> roundsToMigrate = LongStream.rangeClosed(lowerBound, upperBound)
+                .mapToObj(reader::read)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+        Iterables.partition(roundsToMigrate, BATCH_SIZE).forEach(destinationLog::writeBatchOfRounds);
     }
 
     @Value.Immutable
@@ -83,5 +76,25 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         PaxosStateLog<V> destinationLog();
         Persistable.Hydrator<V> hydrator();
         SqlitePaxosStateLogMigrationState migrationState();
+        OptionalLong migrateFrom();
+    }
+
+    private static final class LogReader<V extends Persistable & Versionable> {
+        private final PaxosStateLog<V> delegate;
+        private final Persistable.Hydrator<V> hydrator;
+
+        private LogReader(PaxosStateLog<V> delegate, Persistable.Hydrator<V> hydrator) {
+            this.delegate = delegate;
+            this.hydrator = hydrator;
+        }
+
+        private Optional<PaxosRound<V>> read(long sequence) {
+            try {
+                return Optional.ofNullable(delegate.readRound(sequence))
+                        .map(bytes -> PaxosRound.of(sequence, hydrator.hydrateFromBytes(bytes)));
+            } catch (IOException e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e);
+            }
+        }
     }
 }
