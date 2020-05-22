@@ -19,11 +19,12 @@ package com.palantir.paxos;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.function.Supplier;
 
 import org.apache.commons.io.FileUtils;
+import org.sqlite.SQLiteConfig;
+import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -35,6 +36,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 public final class SqliteConnections {
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
 
+
     private SqliteConnections() {
         // no
     }
@@ -42,9 +44,17 @@ public final class SqliteConnections {
     public static Supplier<Connection> createDefaultNamedSqliteDatabaseAtPath(Path path) {
         createDirectoryIfNotExists(path);
         String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
+
+        SQLiteConfig config = new SQLiteConfig();
+        config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
+        config.setBusyTimeout(5000);
+        SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
+        dataSource.setUrl(target);
+        dataSource.setConfig(config);
+
         return () -> {
             try {
-                return DriverManager.getConnection(target);
+                return dataSource.getConnection();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
