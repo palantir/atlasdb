@@ -20,18 +20,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
-    private final Map<Long, Long> timestampMap = new ConcurrentHashMap<>();
+    private final Cache<Long, Long> timestampCache = Caffeine.newBuilder()
+            .build();
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
         this.lockWatchEventLog = lockWatchEventLog;
     }
 
     public static LockWatchEventCacheImpl create() {
-        return new LockWatchEventCacheImpl(NoOpLockWatchEventCache.INSTANCE);
+        return new LockWatchEventCacheImpl(NoOpClientLockWatchEventLog.INSTANCE);
     }
 
     @Override
@@ -47,10 +50,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         // clear for snapshot or failure, or leader change.
         if (!successUpdate.isPresent() || !currentVersion.id().equals(newVersion.id())) {
-            timestampMap.clear();
+            timestampCache.invalidateAll();
         } else {
             long version = successUpdate.get().lastKnownVersion();
-            startTimestamps.forEach(startTs -> timestampMap.put(startTs, version));
+            startTimestamps.forEach(startTs -> timestampCache.put(startTs, version));
         }
         return newVersion;
     }
@@ -64,7 +67,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
         Map<Long, Long> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(startTs -> {
-            Long value = timestampMap.get(startTs);
+            Long value = timestampCache.getIfPresent(startTs);
             // for now, skip entries not there.
             if (value != null) {
                 timestampToVersion.put(startTs, value);
@@ -75,7 +78,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public void removeTimestampFromCache(Long timestamp) {
-        timestampMap.remove(timestamp);
+        timestampCache.invalidate(timestamp);
     }
 
     private enum SuccessfulVisitor implements LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>> {
