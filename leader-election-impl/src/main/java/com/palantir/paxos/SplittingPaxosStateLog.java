@@ -17,31 +17,50 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.immutables.value.Value;
+
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.common.persist.Persistable;
 
 /**
  * This implementation of {@link PaxosStateLog} delegates all reads and writes of rounds to one of two delegates, as
  * determined by the cutoff point. If a read or write does occur prior to the cutoff point, i.e., to the legacy delegate
- * e update the appropriate metric. Remaining methods are delegated only to the current delegate.
+ * we update the appropriate metric. Remaining methods are delegated only to the current delegate.
  */
-public class SplittingPaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
+public final class SplittingPaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private final PaxosStateLog<V> legacyLog;
     private final PaxosStateLog<V> currentLog;
     private final Runnable markLegacyWrite;
     private final Runnable markLegacyRead;
     private final long cutoffInclusive;
+    private final AtomicLong leastLogEntry;
 
-    public SplittingPaxosStateLog(PaxosStateLog<V> legacyLog,
+    private SplittingPaxosStateLog(PaxosStateLog<V> legacyLog,
             PaxosStateLog<V> currentLog,
             Runnable markLegacyWrite,
             Runnable markLegacyRead,
-            long cutoffInclusive) {
+            long cutoffInclusive,
+            AtomicLong leastLogEntry) {
         this.legacyLog = legacyLog;
         this.currentLog = currentLog;
         this.markLegacyWrite = markLegacyWrite;
         this.markLegacyRead = markLegacyRead;
         this.cutoffInclusive = cutoffInclusive;
+        this.leastLogEntry = leastLogEntry;
+    }
+
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(SplittingParameters<V> parameters) {
+        return new SplittingPaxosStateLog<>(
+                parameters.legacyLog(),
+                parameters.currentLog(),
+                parameters.markLegacyWrite(),
+                parameters.markLegacyRead(),
+                parameters.cutoffInclusive(),
+                new AtomicLong(parameters.legacyLog().getLeastLogEntry()));
     }
 
     @Override
@@ -51,6 +70,7 @@ public class SplittingPaxosStateLog<V extends Persistable & Versionable> impleme
         } else {
             markLegacyWrite.run();
             legacyLog.writeRound(seq, round);
+            leastLogEntry.accumulateAndGet(seq, Math::min);
         }
     }
 
@@ -66,7 +86,7 @@ public class SplittingPaxosStateLog<V extends Persistable & Versionable> impleme
 
     @Override
     public long getLeastLogEntry() {
-        return currentLog.getLeastLogEntry();
+        return leastLogEntry.get();
     }
 
     @Override
@@ -74,8 +94,20 @@ public class SplittingPaxosStateLog<V extends Persistable & Versionable> impleme
         return currentLog.getGreatestLogEntry();
     }
 
+    /**
+     * This implementation is a noop to ensure correctness of {@link #getLeastLogEntry()}.
+     */
     @Override
     public void truncate(long toDeleteInclusive) {
-        currentLog.truncate(toDeleteInclusive);
+        // noop
+    }
+
+    @Value.Immutable
+    static abstract class SplittingParameters<V extends Persistable & Versionable> {
+        abstract PaxosStateLog<V> legacyLog();
+        abstract PaxosStateLog<V> currentLog();
+        abstract Runnable markLegacyWrite();
+        abstract Runnable markLegacyRead();
+        abstract long cutoffInclusive();
     }
 }
