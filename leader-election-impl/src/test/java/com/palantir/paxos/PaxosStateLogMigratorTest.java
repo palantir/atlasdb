@@ -126,14 +126,29 @@ public class PaxosStateLogMigratorTest {
     public void migrationDeletesExistingState() {
         long lowerBound = 13;
         long upperBound = 35;
-        List<PaxosValue> valuesWritten = insertValuesWithinBounds(lowerBound, upperBound, target);
+        insertValuesWithinBounds(lowerBound, upperBound, target);
 
         long cutoff = migrateFrom(source);
         assertThat(cutoff).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(target.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertThat(target.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
-        valuesWritten.forEach(value -> assertThat(readRoundUnchecked(target, value.seq)).isNull());
+        verify(target, times(1)).truncate(upperBound);
+    }
+
+    @Test
+    public void migrateIfInValidationState() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+        migrationState.migrateToValidationState();
+
+        long cutoff = migrateFrom(source);
+        assertThat(cutoff).isEqualTo(upperBound);
+        assertThat(migrationState.isInMigratedState()).isTrue();
+        assertThat(target.getLeastLogEntry()).isEqualTo(upperBound);
+        assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
+        verify(target, times(1)).truncate(anyLong());
     }
 
     @Test
