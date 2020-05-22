@@ -25,6 +25,7 @@ import org.immutables.value.Value;
 
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * This implementation of {@link PaxosStateLog} delegates all reads and writes of rounds to one of two delegates, as
@@ -60,7 +61,7 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
                 parameters.markLegacyWrite(),
                 parameters.markLegacyRead(),
                 parameters.cutoffInclusive(),
-                new AtomicLong(parameters.legacyLog().getLeastLogEntry()));
+                new AtomicLong(Math.min(parameters.legacyLog().getLeastLogEntry(), parameters.cutoffInclusive())));
     }
 
     @Override
@@ -109,5 +110,12 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
         abstract Runnable markLegacyWrite();
         abstract Runnable markLegacyRead();
         abstract long cutoffInclusive();
+
+        @Value.Check
+        void cutoffEntryMustBeInCurrentLogOrEqualToNoEntry() throws IOException {
+            Preconditions.checkState(cutoffInclusive() == PaxosAcceptor.NO_LOG_ENTRY
+            || currentLog().readRound(cutoffInclusive()) != null,
+                    "Cutoff value must either be -1, or the log has to contain en entry for that sequence.");
+        }
     }
 }
