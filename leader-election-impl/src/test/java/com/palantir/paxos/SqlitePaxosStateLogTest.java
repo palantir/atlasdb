@@ -199,7 +199,7 @@ public class SqlitePaxosStateLogTest {
         List<Future<?>> futures = IntStream.range(0, numThreads)
                 .mapToObj(ignore -> executor.submit(() -> {
                     PaxosStateLog<PaxosValue> log = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), conn);
-                    for (int i = 0; i < 100; i++) {
+                    for (int i = 0; i < 50; i++) {
                         log.writeRound(i, valueForRound(i));
                     }
                 })).collect(Collectors.toList());
