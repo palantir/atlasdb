@@ -17,13 +17,10 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.immutables.value.Value;
 
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 
@@ -104,7 +101,7 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
     }
 
     @Value.Immutable
-    static abstract class SplittingParameters<V extends Persistable & Versionable> {
+    abstract static class SplittingParameters<V extends Persistable & Versionable> {
         abstract PaxosStateLog<V> legacyLog();
         abstract PaxosStateLog<V> currentLog();
         abstract Runnable markLegacyWrite();
@@ -112,10 +109,14 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
         abstract long cutoffInclusive();
 
         @Value.Check
-        void cutoffEntryMustBeInCurrentLogOrEqualToNoEntry() throws IOException {
-            Preconditions.checkState(cutoffInclusive() == PaxosAcceptor.NO_LOG_ENTRY
-            || currentLog().readRound(cutoffInclusive()) != null,
-                    "Cutoff value must either be -1, or the log has to contain en entry for that sequence.");
+        void cutoffEntryMustBeInCurrentLogOrEqualToNoEntry() {
+            try {
+                Preconditions.checkState(cutoffInclusive() == PaxosAcceptor.NO_LOG_ENTRY
+                                || currentLog().readRound(cutoffInclusive()) != null,
+                        "Cutoff value must either be -1, or the log has to contain en entry for it.");
+            } catch (IOException e) {
+                throw new RuntimeException("Failed reading from paxos state log.", e);
+            }
         }
     }
 }
