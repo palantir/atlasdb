@@ -35,7 +35,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
  */
 public final class SqliteConnections {
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
-    
+
     private SqliteConnections() {
         // no
     }
