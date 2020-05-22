@@ -28,7 +28,6 @@ import com.palantir.lock.v2.LockToken;
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
     private static final IdentifiedVersion FAKE = ImmutableIdentifiedVersion.of(UUID.randomUUID(), 0L);
-    private static final Optional<IdentifiedVersion> FAKE_OPTIONAL_VERSION = Optional.of(FAKE);
     private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
             LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of()));
 
@@ -38,7 +37,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
 
     @Override
     public Optional<IdentifiedVersion> lastKnownVersion() {
-        return FAKE_OPTIONAL_VERSION;
+        return Optional.empty();
     }
 
     @Override
