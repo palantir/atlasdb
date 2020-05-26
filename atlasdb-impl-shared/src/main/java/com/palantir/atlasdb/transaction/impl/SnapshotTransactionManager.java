@@ -226,7 +226,7 @@ import com.palantir.util.SafeShutdownRunner;
         //        }
     };
 
-    final class DefaultOpenTransactions implements OpenTransactions {
+    private final class DefaultOpenTransactions implements OpenTransactions {
 
 
 
@@ -249,7 +249,7 @@ import com.palantir.util.SafeShutdownRunner;
         //    }
     }
 
-    private class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
+    private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
 
         private final Transaction delegate;
         private final LockToken immutableTsLock;
