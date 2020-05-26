@@ -16,7 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -28,30 +27,13 @@ public interface IdentifiedVersion extends Comparable<IdentifiedVersion> {
     @Value.Parameter
     long version();
 
-    static IdentifiedVersion of(UUID id, Optional<Long> version) {
+    static IdentifiedVersion of(UUID id, long version) {
         return ImmutableIdentifiedVersion.of(id, version);
     }
 
-    /**
-     * Sorting on the version only
-     */
     @Override
     default int compareTo(IdentifiedVersion otherVersion) {
-        if (!version().isPresent()) {
-            if (!otherVersion.version().isPresent()) {
-                return 0;
-            } else {
-                return -1;
-            }
-        } else {
-            if (!otherVersion.version().isPresent()) {
-                return 1;
-            }
-        }
-
-        long thisVersion = version().get();
-        long theirVersion = otherVersion.version().get();
-        return Long.compare(thisVersion, theirVersion);
-
+        // sorting on version only; should not be used for equality checks
+        return Long.compare(version(), otherVersion.version());
     }
 }

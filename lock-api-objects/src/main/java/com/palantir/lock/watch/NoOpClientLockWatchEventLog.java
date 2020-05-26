@@ -27,19 +27,19 @@ public enum NoOpClientLockWatchEventLog implements ClientLockWatchEventLog {
 
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Map<Long, IdentifiedVersion> timestampToVersion,
-            IdentifiedVersion version) {
+            Optional<IdentifiedVersion> version) {
         return TransactionsLockWatchEvents.failure(
                 LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
     }
 
     @Override
-    public IdentifiedVersion getLatestKnownVersion() {
-        return IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
+    public Optional<IdentifiedVersion> getLatestKnownVersion() {
+        return Optional.empty();
     }
 
     @Override
-    public IdentifiedVersion processUpdate(LockWatchStateUpdate update,
-            IdentifiedVersion earliestVersion) {
-        return IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
+    public Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update,
+            Optional<IdentifiedVersion> earliestVersion) {
+        return Optional.empty();
     }
 }

@@ -22,8 +22,7 @@ import java.util.Set;
 public interface LockWatchEventCache {
     Optional<IdentifiedVersion> lastKnownVersion();
     void removeTimestampFromCache(Long timestamp);
-    IdentifiedVersion lastKnownVersion();
-    IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    Optional<IdentifiedVersion> processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
     void processUpdate(LockWatchStateUpdate update);
     TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version);
