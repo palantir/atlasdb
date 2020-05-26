@@ -21,15 +21,12 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
-import com.sun.istack.internal.NotNull;
-
-
 @Value.Immutable
 public interface IdentifiedVersion extends Comparable<IdentifiedVersion> {
     @Value.Parameter
     UUID id();
     @Value.Parameter
-    Optional<Long> version();
+    long version();
 
     static IdentifiedVersion of(UUID id, Optional<Long> version) {
         return ImmutableIdentifiedVersion.of(id, version);

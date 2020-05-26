@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.HashSet;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -30,6 +29,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
@@ -63,6 +63,8 @@ import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.ImmutableIdentifiedVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -98,9 +100,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestId(request.getRequestId())
                     .requestorId(request.getRequestorId())
                     .numTransactions(request.getNumTransactions())
-                    .lastKnownLockLogVersion(request.getLastKnownVersion()
-                            .map(OptionalLong::of)
-                            .orElseGet(OptionalLong::empty))
+                    .lastKnownLockLogVersion(request.getLastKnownVersion().map(this::toIdentifiedVersion))
                     .build();
             ListenableFuture<StartTransactionResponseV5> responseFuture =
                     forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
@@ -218,7 +218,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return handleExceptions(() -> forNamespace(namespace).getCommitTimestamps(
                 request.getNumTimestamps(),
-                request.getLastKnownVersion().map(OptionalLong::of).orElseGet(OptionalLong::empty)));
+                request.getLastKnownVersion().map(this::toIdentifiedVersion)));
     }
 
     private AsyncTimelockService forNamespace(String namespace) {
@@ -288,5 +288,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         private static <T> T unwrap(ListenableFuture<T> future) {
             return AtlasFutures.getUnchecked(future);
         }
+    }
+
+    private IdentifiedVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
+        return ImmutableIdentifiedVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
     }
 }
