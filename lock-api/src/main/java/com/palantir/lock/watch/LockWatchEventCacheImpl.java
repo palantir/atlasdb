@@ -16,25 +16,25 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
-    private final Cache<Long, IdentifiedVersion> timestampCache = Caffeine.newBuilder()
-            .build();
-    private final ConcurrentSkipListMap<IdentifiedVersion, Long> markedForDelete = new ConcurrentSkipListMap<>();
+    private final ConcurrentSkipListMap<Long, IdentifiedVersion> timestampMap = new ConcurrentSkipListMap<>();
+    private final Set<Long> markedForDelete = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private volatile Optional<IdentifiedVersion> earliestVersion;
     private volatile Optional<IdentifiedVersion> currentVersion;
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
         this.lockWatchEventLog = lockWatchEventLog;
         this.earliestVersion = Optional.empty();
+        this.currentVersion = Optional.empty();
     }
 
     public static LockWatchEventCacheImpl create(ClientLockWatchEventLog eventLog) {
@@ -61,9 +61,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
         if (!markedForDelete.isEmpty()) {
-            earliestVersion = Optional.of(markedForDelete.lastKey());
-            markedForDelete.forEach((version, timestamp) -> timestampCache.invalidate(timestamp));
+            markedForDelete.forEach(timestampMap::remove);
             markedForDelete.clear();
+            earliestVersion = Optional.of(timestampMap.firstEntry().getValue());
         }
 
         Optional<IdentifiedVersion> latestVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
@@ -71,12 +71,19 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         if (!(latestVersion.isPresent()
                 && currentVersion.isPresent()
                 && latestVersion.get().id().equals(currentVersion.get().id()))) {
-            timestampCache.invalidateAll();
+            timestampMap.clear();
+            earliestVersion = Optional.empty();
         }
+
         currentVersion = latestVersion;
 
         currentVersion.ifPresent(
-                version -> startTimestamps.forEach(timestamp -> timestampCache.put(timestamp, version)));
+                version -> startTimestamps.forEach(timestamp -> timestampMap.put(timestamp, version)));
+
+        if (!earliestVersion.isPresent()) {
+            earliestVersion = currentVersion;
+        }
+
         return currentVersion;
     }
 
@@ -94,16 +101,18 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
-        Map<Long, IdentifiedVersion> timestampToVersion = timestampCache.getAllPresent(startTimestamps);
+        Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
+        // This may be bad in the case that some timestamps are not there;
+        // we don't expect that to happen, but perhaps worth documenting anyway.
+        startTimestamps.forEach(timestamp -> timestampToVersion.put(timestamp, timestampMap.get(timestamp)));
         return lockWatchEventLog.getEventsForTransactions(timestampToVersion, version);
     }
 
     @Override
     public void removeTimestampFromCache(Long timestamp) {
-        IdentifiedVersion versionToRemove = timestampCache.getIfPresent(timestamp);
-        timestampCache.invalidate(timestamp);
+        IdentifiedVersion versionToRemove = timestampMap.get(timestamp);
         if (versionToRemove != null) {
-            markedForDelete.put(versionToRemove, timestamp);
+            markedForDelete.add(timestamp);
         }
     }
 }
