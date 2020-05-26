@@ -57,7 +57,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
         earliestVersion = Optional.of(markedForDelete.lastKey());
-        markedForDelete.forEach((version, $) -> timestampCache.invalidate(version));
+        markedForDelete.forEach((version, timestamp) -> timestampCache.invalidate(timestamp));
         markedForDelete.clear();
 
         Optional<IdentifiedVersion> latestVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
