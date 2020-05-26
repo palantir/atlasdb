@@ -27,7 +27,6 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -52,13 +51,13 @@ public class SqlitePaxosStateLogTest {
     private static final String USE_CASE_1 = "useCase1";
     private static final String USE_CASE_2 = "useCase2";
 
-    private Supplier<Connection> conn;
+    private Connection conn;
     private PaxosStateLog<PaxosValue> stateLog;
 
     @Before
     public void setup() {
         conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
+                .getOrCreateDefaultSqliteConnection(tempFolder.getRoot().toPath());
         stateLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), conn);
     }
 
@@ -199,7 +198,21 @@ public class SqlitePaxosStateLogTest {
         List<Future<?>> futures = IntStream.range(0, numThreads)
                 .mapToObj(ignore -> executor.submit(() -> {
                     PaxosStateLog<PaxosValue> log = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), conn);
-                    for (int i = 0; i < 50; i++) {
+                    for (int i = 0; i < 200; i++) {
+                        log.writeRound(i, valueForRound(i));
+                    }
+                })).collect(Collectors.toList());
+        futures.forEach(future -> assertThatCode(() -> Futures.getUnchecked(future)).doesNotThrowAnyException());
+    }
+
+    @Test
+    public void burstIsSurvivable() {
+        int numThreads = 2000;
+        ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
+        List<Future<?>> futures = IntStream.range(0, numThreads)
+                .mapToObj(ignore -> executor.submit(() -> {
+                    PaxosStateLog<PaxosValue> log = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), conn);
+                    for (int i = 0; i < 2; i++) {
                         log.writeRound(i, valueForRound(i));
                     }
                 })).collect(Collectors.toList());

@@ -43,9 +43,8 @@ public final class SqlitePaxosStateLogMigrationState {
         this.jdbi = jdbi;
     }
 
-    static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase,
-            Supplier<Connection> connectionSupplier) {
-        Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+    static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase, Connection connection) {
+        Jdbi jdbi = Jdbi.create(connection).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
         SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespaceAndUseCase, jdbi);
         state.initialize();

@@ -35,8 +35,8 @@ final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
         this.jdbi = jdbi;
     }
 
-    public static PersistentNamespaceLoader create(Supplier<Connection> connectionSupplier) {
-        Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+    public static PersistentNamespaceLoader create(Connection connection) {
+        Jdbi jdbi = Jdbi.create(connection).installPlugin(new SqlObjectPlugin());
         jdbi.withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::createTable);
         return new SqliteNamespaceLoader(jdbi);
     }

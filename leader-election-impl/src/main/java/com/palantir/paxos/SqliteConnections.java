@@ -26,6 +26,8 @@ import org.apache.commons.io.FileUtils;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
@@ -36,28 +38,42 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 public final class SqliteConnections {
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
 
+    private static LoadingCache<Path, Connection> CONNECTION_CACHE = Caffeine.newBuilder()
+            .<Path, Connection>removalListener((unused, connection, unusedCause) -> {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            })
+            .build(SqliteConnections::createConnection);
+
     private SqliteConnections() {
         // no
     }
 
-    public static Supplier<Connection> createDefaultNamedSqliteDatabaseAtPath(Path path) {
+    public static Connection getOrCreateDefaultSqliteConnection(Path path) {
+        return CONNECTION_CACHE.get(path);
+    }
+
+    private static Connection createConnection(Path path) {
         createDirectoryIfNotExists(path);
         String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
 
         SQLiteConfig config = new SQLiteConfig();
         config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
+        config.setPragma(SQLiteConfig.Pragma.LOCKING_MODE, SQLiteConfig.LockingMode.EXCLUSIVE.getValue());
+        config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, SQLiteConfig.SynchronousMode.FULL.getValue());
         config.setBusyTimeout(5000);
         SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
         dataSource.setUrl(target);
         dataSource.setConfig(config);
 
-        return () -> {
-            try {
-                return dataSource.getConnection();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        };
+        try {
+            return dataSource.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void createDirectoryIfNotExists(Path path) {

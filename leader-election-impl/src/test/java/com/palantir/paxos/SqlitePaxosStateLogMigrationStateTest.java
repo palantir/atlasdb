@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
-import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,14 +33,14 @@ public class SqlitePaxosStateLogMigrationStateTest {
     private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase
             .of(Client.of("namespace"), "useCase");
 
-    private Supplier<Connection> connSupplier;
+    private Connection connection;
     private SqlitePaxosStateLogMigrationState migrationState;
 
     @Before
     public void setup() {
-        connSupplier = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
-        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, connSupplier);
+        connection = SqliteConnections
+                .getOrCreateDefaultSqliteConnection(tempFolder.getRoot().toPath());
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, connection);
     }
 
     @Test
@@ -89,7 +88,7 @@ public class SqlitePaxosStateLogMigrationStateTest {
         migrationState.migrateToValidationState();
 
         SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState.create(
-                ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), connSupplier);
+                ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), connection);
         assertThat(otherState.hasMigratedFromInitialState()).isFalse();
         otherState.migrateToValidationState();
         assertThat(otherState.hasMigratedFromInitialState()).isTrue();
@@ -100,7 +99,7 @@ public class SqlitePaxosStateLogMigrationStateTest {
         migrationState.migrateToValidationState();
 
         SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState.create(
-                ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), connSupplier);
+                ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), connection);
         assertThat(otherState.hasMigratedFromInitialState()).isFalse();
         otherState.migrateToValidationState();
         assertThat(otherState.hasMigratedFromInitialState()).isTrue();

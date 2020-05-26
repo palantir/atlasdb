@@ -26,12 +26,12 @@ import org.immutables.value.Value;
 public interface PersistentNamespaceContext {
     Path fileDataDirectory();
 
-    Supplier<Connection> sqliteConnectionSupplier();
+    Connection sqliteConnection();
 
-    static PersistentNamespaceContext of(Path fileDataDirectory, Supplier<Connection> sqliteConnectionSupplier) {
+    static PersistentNamespaceContext of(Path fileDataDirectory, Connection sqliteConnection) {
         return ImmutablePersistentNamespaceContext.builder()
                 .fileDataDirectory(fileDataDirectory)
-                .sqliteConnectionSupplier(sqliteConnectionSupplier)
+                .sqliteConnection(sqliteConnection)
                 .build();
     }
 }

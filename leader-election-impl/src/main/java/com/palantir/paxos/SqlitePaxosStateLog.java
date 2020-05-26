@@ -17,11 +17,15 @@
 package com.palantir.paxos;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.sql.DataSource;
+
+import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SingleValue;
@@ -47,8 +51,8 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> create(
             NamespaceAndUseCase namespaceAndUseCase,
-            Supplier<Connection> connectionSupplier) {
-        Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+            Connection connection) {
+        Jdbi jdbi = Jdbi.create(connection).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
         log.initialize();

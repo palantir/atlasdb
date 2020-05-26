@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.sql.Connection;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,14 +44,14 @@ public class SqliteNamespaceLoaderTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private Supplier<Connection> connectionSupplier;
+    private Connection connection;
     private PersistentNamespaceLoader namespaceLoader;
 
     @Before
     public void setup() {
-        connectionSupplier = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
-        namespaceLoader = SqliteNamespaceLoader.create(connectionSupplier);
+        connection = SqliteConnections
+                .getOrCreateDefaultSqliteConnection(tempFolder.getRoot().toPath());
+        namespaceLoader = SqliteNamespaceLoader.create(connection);
     }
 
     @Test
@@ -77,7 +76,7 @@ public class SqliteNamespaceLoaderTest {
     }
 
     private void initializeLog(Client namespace, String sequenceId) {
-        SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), connectionSupplier)
+        SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), connection)
                 .writeRound(1, PAXOS_VALUE);
     }
 }

@@ -173,13 +173,13 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
 
-        Supplier<Connection> sqliteConnectionSupplier = SqliteConnections.createDefaultNamedSqliteDatabaseAtPath(
+        Connection sqliteConnection = SqliteConnections.getOrCreateDefaultSqliteConnection(
                 install.paxos().sqlitePersistence().dataDirectory().toPath());
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
-        registerManagementResource(sqliteConnectionSupplier);
+        registerManagementResource(sqliteConnection);
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
@@ -196,16 +196,16 @@ public class TimeLockAgent {
         }
     }
 
-    private void registerManagementResource(Supplier<Connection> sqliteConnectionSupplier) {
+    private void registerManagementResource(Connection sqliteConnection) {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
             undertowRegistrar.get().accept(TimeLockManagementResource.undertow(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnectionSupplier),
+                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnection),
                     namespaces,
                     redirectRetryTargeter()));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnectionSupplier),
+                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnection),
                     namespaces,
                     redirectRetryTargeter()));
         }

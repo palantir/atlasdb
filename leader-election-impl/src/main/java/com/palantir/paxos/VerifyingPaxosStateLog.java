@@ -27,7 +27,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -69,8 +68,8 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
+        Connection conn = SqliteConnections
+                .getOrCreateDefaultSqliteConnection(parameters.sqliteBasedLogDirectory());
         NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
 
         Settings<V> settings = ImmutableSettings.<V>builder()
@@ -102,8 +101,8 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
+        Connection conn = SqliteConnections
+                .getOrCreateDefaultSqliteConnection(parameters.sqliteBasedLogDirectory());
         NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
 
         Settings<V> settings = ImmutableSettings.<V>builder()
