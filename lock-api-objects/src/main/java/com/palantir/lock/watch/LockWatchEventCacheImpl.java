@@ -47,12 +47,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     /**
-     * Notes on Concurrency: This should only be called in a single-threaded manner, on the transaction starting flow.
+     * Notes on concurrency: This should only be called in a single-threaded manner, on the transaction starting flow.
      * Therefore, we force it to be synchronized so that changes to the cache do not cause a race condition. Deletes
      * from the cache and underlying log are handled in this method; there is no concern that they will grow large
      * between calls of this method as they are never added to elsewhere.
-     *
-     * @return
      */
     @Override
     public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
