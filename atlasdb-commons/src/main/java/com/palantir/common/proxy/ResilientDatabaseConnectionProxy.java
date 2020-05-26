@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos;
+package com.palantir.common.proxy;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -37,8 +37,7 @@ public class ResilientDatabaseConnectionProxy extends AbstractInvocationHandler 
     private final Supplier<Connection> connectionFactory;
     private volatile Connection currentConnection;
 
-    public ResilientDatabaseConnectionProxy(
-            Supplier<Connection> connectionFactory) {
+    public ResilientDatabaseConnectionProxy(Supplier<Connection> connectionFactory) {
         this.connectionFactory = connectionFactory;
         this.currentConnection = connectionFactory.get();
     }
@@ -75,17 +74,18 @@ public class ResilientDatabaseConnectionProxy extends AbstractInvocationHandler 
     }
 
     private <T> T runOperationExpectingLiveConnection(DatabaseConnectionOperation<T> operation) throws SQLException {
-        int numAttempts = 10;
-        for (int attempt = 1; attempt <= numAttempts; attempt++) {
+        int maxAttempts = 10;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             Connection connection = currentConnection;
             if (isCurrentConnectionLive(connection)) {
+                // we can live with the race condition here
                 return operation.apply(connection);
             }
             // the connection is known to be non-live
             maybeCreateNewConnection(connection);
         }
         throw new SafeRuntimeException("Attempted a database operation repeatedly and failed",
-                SafeArg.of("numAttempts", numAttempts));
+                SafeArg.of("numAttempts", maxAttempts));
     }
 
     private synchronized void maybeCreateNewConnection(Connection knownDeadConnection) {
@@ -98,7 +98,7 @@ public class ResilientDatabaseConnectionProxy extends AbstractInvocationHandler 
         try {
             return !connection.isClosed();
         } catch (SQLException e) {
-            log.warn("SQL exception", e);
+            log.warn("Encountered an SQL exception", e);
             return false;
         }
     }

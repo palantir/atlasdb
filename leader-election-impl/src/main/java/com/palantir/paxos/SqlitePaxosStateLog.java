@@ -17,15 +17,10 @@
 package com.palantir.paxos;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-import javax.sql.DataSource;
-
-import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SingleValue;

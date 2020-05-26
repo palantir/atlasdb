@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.function.Supplier;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -30,6 +29,7 @@ import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.palantir.common.proxy.ResilientDatabaseConnectionProxy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
@@ -39,13 +39,13 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
  */
 public final class SqliteConnections {
     private static final Logger log = LoggerFactory.getLogger(SqliteConnections.class);
-
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
-
-    private static LoadingCache<Path, Connection> CONNECTION_CACHE = Caffeine.newBuilder()
+    private static final LoadingCache<Path, Connection> CONNECTION_CACHE = Caffeine.newBuilder()
             .<Path, Connection>removalListener((unused, connection, unusedCause) -> {
                 try {
-                    connection.close();
+                    if (connection != null) {
+                        connection.close();
+                    }
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }

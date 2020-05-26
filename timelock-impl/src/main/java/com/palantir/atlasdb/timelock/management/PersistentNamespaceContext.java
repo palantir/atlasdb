@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.management;
 
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 

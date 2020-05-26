@@ -17,9 +17,7 @@
 package com.palantir.atlasdb.timelock.management;
 
 import java.sql.Connection;
-import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.jdbi.v3.core.Jdbi;

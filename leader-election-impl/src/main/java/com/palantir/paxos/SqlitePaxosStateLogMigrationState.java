@@ -19,7 +19,6 @@ package com.palantir.paxos;
 import java.sql.Connection;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
