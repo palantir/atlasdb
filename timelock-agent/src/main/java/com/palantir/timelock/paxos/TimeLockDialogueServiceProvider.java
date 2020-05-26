@@ -36,8 +36,6 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TimeLockDialogueServiceProvider {
-    private static final String TIMELOCK = "timelock";
-
     private final DialogueClients.ReloadingFactory reloadingFactory;
     private final TaggedMetricRegistry taggedMetricRegistry;
 
