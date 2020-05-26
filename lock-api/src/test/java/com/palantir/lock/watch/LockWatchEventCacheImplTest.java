@@ -84,25 +84,21 @@ public final class LockWatchEventCacheImplTest {
         Map<Long, IdentifiedVersion> expectedMap = new HashMap<>();
         TIMESTAMPS.forEach(timestamp -> expectedMap.put(timestamp, VERSION_1));
 
-        when(eventLog.processUpdate(any(), any())).thenReturn(Optional.of(VERSION_1));
+        when(eventLog.processUpdate(SUCCESS, Optional.empty())).thenReturn(Optional.of(VERSION_1));
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SUCCESS);
-        eventCache.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
+        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
 
-        // now, delete
-        eventCache.removeTimestampFromCache(7L);
-        eventCache.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
-        verify(eventLog, times(2)).getEventsForTransactions(expectedMap, Optional.of(VERSION_1));
+        eventCache.removeTimestampFromCache(3L);
+        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
 
-        // now, confirm that it is gone
+        when(eventLog.processUpdate(SUCCESS, Optional.of(VERSION_1))).thenReturn(Optional.of(VERSION_2));
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
-        eventCache.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
-        Map<Long, IdentifiedVersion> reducedMap = new HashMap<>(expectedMap);
-        reducedMap.remove(7L);
-        verify(eventLog).getEventsForTransactions(reducedMap, Optional.of(VERSION_1));
+        expectedMap.put(3L, null);
+        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
     }
 
     @Test
-    public void timestampsRemovedOnSnapshot() {
+    public void timestampsClearedOnSnapshot() {
         Map<Long, IdentifiedVersion> expectedMap = new HashMap<>();
         TIMESTAMPS.forEach(timestamp -> expectedMap.put(timestamp, VERSION_1));
 
