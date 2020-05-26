@@ -17,38 +17,52 @@
 package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.nio.file.Path;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.paxos.Client;
+import com.palantir.paxos.SqliteConnections;
+import com.palantir.tokens.auth.AuthHeader;
 
 public class DiskNamespaceLoaderTest {
     private static final String NAMESPACE_1 = "namespace_1";
     private static final String NAMESPACE_2 = "namespace_2";
+    public static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
+    private static final PersistentNamespaceContext persistentNamespaceContext = mock(PersistentNamespaceContext.class);
+    private static final TimelockNamespaces timelockNamespaces = mock(TimelockNamespaces.class);
+    private static final RedirectRetryTargeter redirectRetryTargeter = mock(RedirectRetryTargeter.class);
+    private TimeLockManagementResource timeLockManagementResource;
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
-    public DiskNamespaceLoader diskNamespaceLoader;
-
     @Before
     public void setup() {
-        diskNamespaceLoader = new DiskNamespaceLoader(tempFolder.getRoot().toPath());
+        Path rootFolderPath = tempFolder.getRoot().toPath();
+        when(persistentNamespaceContext.fileDataDirectory()).thenReturn(rootFolderPath);
+        when(persistentNamespaceContext.sqliteConnectionSupplier()).thenReturn(SqliteConnections
+                .createDefaultNamedSqliteDatabaseAtPath(rootFolderPath));
+        timeLockManagementResource = TimeLockManagementResource.create(persistentNamespaceContext,
+                timelockNamespaces,
+                redirectRetryTargeter);
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);
     }
 
     @Test
-    public void doesNotLoadLeaderPaxosAsNamespace() {
-        Set<String> namespaces = diskNamespaceLoader.getAllPersistedNamespaces().stream().map(Client::value).collect(
-                Collectors.toSet());
+    public void doesNotLoadLeaderPaxosAsNamespace() throws ExecutionException, InterruptedException {
+        Set<String> namespaces = timeLockManagementResource.getNamespaces(AUTH_HEADER).get();
         assertThat(namespaces).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
     }
 

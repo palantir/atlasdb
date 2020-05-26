@@ -79,7 +79,7 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
         return Futures.immediateFuture(namespaceLoaders.stream()
                 .map(PersistentNamespaceLoader::getAllPersistedNamespaces)
                 .flatMap(Set::stream)
-                .filter(namespace -> !namespace.equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
+                .filter(namespace -> !namespace.value().equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
                 .map(Client::value)
                 .collect(Collectors.toSet()));
     }
