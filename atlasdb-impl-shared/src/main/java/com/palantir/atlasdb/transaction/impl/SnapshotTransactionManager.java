@@ -52,11 +52,14 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.ImmutableStartTransactionRequest;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.OpenTransaction;
+import com.palantir.atlasdb.transaction.api.OpenTransactions;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.StartTransactionRequest;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
-import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -157,26 +160,27 @@ import com.palantir.util.SafeShutdownRunner;
             throws E, TransactionFailedRetriableException {
         checkOpen();
         try {
-            TransactionAndImmutableTsLock txAndLock =
-                    runTimed(() -> Iterables.getOnlyElement(
-                            setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of(condition))), "setupTask");
-            return finishRunTaskWithLockThrowOnConflict(txAndLock,
-                    transaction -> task.execute(transaction, condition));
+            List<StartTransactionRequest> request = ImmutableList.of(ImmutableStartTransactionRequest.builder()
+                            .preCommitCondition(condition)
+                            .build());
+
+            OpenTransaction openTransaction =
+                    runTimed(() -> Iterables.getOnlyElement(startTransactions(request).getTransactions()), "setupTask");
+            return openTransaction.finish(transaction -> task.execute(transaction, condition));
         } finally {
             condition.cleanup();
         }
     }
 
     @Override
-    public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
-            List<? extends PreCommitCondition> conditions) {
-        if (conditions.isEmpty()) {
-            return ImmutableList.of();
+    public OpenTransactions startTransactions(List<StartTransactionRequest> requests) {
+        if (requests.isEmpty()) {
+            return EMPTY;
         }
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
-                timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
-        Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
+                timelockService.startIdentifiedAtlasDbTransactionBatch(requests.size());
+        Preconditions.checkState(requests.size() == responses.size(), "Different number of responses and conditions");
         try {
             long immutableTs = Collections.max(responses.stream()
                     .map(response -> response.immutableTimestamp().getImmutableTimestamp())
@@ -184,10 +188,10 @@ import com.palantir.util.SafeShutdownRunner;
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
-            return Streams.zip(
+            List<OpenTransaction> transactions = Streams.zip(
                     responses.stream(),
-                    conditions.stream(),
-                    (response, condition) -> {
+                    requests.stream(),
+                    (response, request) -> {
                         LockToken immutableTsLock = response.immutableTimestamp().getLock();
                         Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
                                 response.startTimestampAndPartition().timestamp());
@@ -196,10 +200,11 @@ import com.palantir.util.SafeShutdownRunner;
                                 immutableTs,
                                 startTimestampSupplier,
                                 immutableTsLock,
-                                condition);
-
-                        return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+                                request.preCommitCondition());
+                        return new OpenTransactionImpl(transaction, immutableTsLock);
                     }).collect(Collectors.toList());
+
+            return new DefaultOpenTransactions(transactions);
         } catch (Throwable t) {
             timelockService.tryUnlock(
                     responses.stream()
@@ -209,26 +214,76 @@ import com.palantir.util.SafeShutdownRunner;
         }
     }
 
-    @Override
-    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
-                                                                           TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        Timer postTaskTimer = getTimer("finishTask");
-        Timer.Context postTaskContext;
-
-        TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
-
-        Transaction tx = txAndLock.transaction();
-        T result;
-        try {
-            result = runTaskThrowOnConflict(wrappedTask, tx);
-        } finally {
-            postTaskContext = postTaskTimer.time();
-            timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
+    static final OpenTransactions EMPTY = new OpenTransactions() {
+        @Override
+        public List<OpenTransaction> getTransactions() {
+            return ImmutableList.of();
         }
-        scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
-        postTaskContext.stop();
-        return result;
+
+        //        @Override
+        //        public TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion) {
+        //            throw new SafeIllegalArgumentException("Empty batch");
+        //        }
+    };
+
+    final class DefaultOpenTransactions implements OpenTransactions {
+
+
+
+        private final List<OpenTransaction> transactions;
+
+        DefaultOpenTransactions(
+                List<OpenTransaction> transactions) {
+            this.transactions = transactions;
+        }
+
+
+        @Override
+        public List<OpenTransaction> getTransactions() {
+            return transactions;
+        }
+
+        //    @Override
+        //    public TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion) {
+        //        return null;
+        //    }
+    }
+
+    private class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
+
+        private final Transaction delegate;
+        private final LockToken immutableTsLock;
+
+        private OpenTransactionImpl(Transaction delegate, LockToken immutableTsLock) {
+            this.delegate = delegate;
+            this.immutableTsLock = immutableTsLock;
+        }
+
+        @Override
+        public Transaction delegate() {
+            return delegate;
+        }
+
+        @Override
+        public <T, E extends Exception> T finish(TransactionTask<T, E> task)
+                throws E, TransactionFailedRetriableException {
+            Timer postTaskTimer = getTimer("finishTask");
+            Timer.Context postTaskContext;
+
+            TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, immutableTsLock);
+
+            Transaction tx = delegate;
+            T result;
+            try {
+                result = runTaskThrowOnConflict(wrappedTask, tx);
+            } finally {
+                postTaskContext = postTaskTimer.time();
+                timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
+            }
+            scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
+            postTaskContext.stop();
+            return result;
+        }
     }
 
     private void scrubForAggressiveHardDelete(SnapshotTransaction tx) {
