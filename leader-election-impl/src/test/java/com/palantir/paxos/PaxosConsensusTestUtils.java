@@ -59,7 +59,6 @@ public final class PaxosConsensusTestUtils {
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
         RuntimeException exception = new SafeRuntimeException("mock server failure");
-        SqlitePaxosStateLogFactory factory = new SqlitePaxosStateLogFactory();
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 

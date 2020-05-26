@@ -38,7 +38,6 @@ import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosStorageParameters;
-import com.palantir.paxos.SqlitePaxosStateLogFactory;
 
 public class LocalPaxosComponents {
 
@@ -52,7 +51,6 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
-    private final SqlitePaxosStateLogFactory sqliteFactory = new SqlitePaxosStateLogFactory();
 
     LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
@@ -110,9 +108,9 @@ public class LocalPaxosComponents {
                     + " time, and the client " + client + " provided is novel for this TimeLock server.");
         }
 
-        PaxosLearner learner = PaxosLearnerImpl.newVerifyingLearner(getLearnerParameters(client), sqliteFactory,
+        PaxosLearner learner = PaxosLearnerImpl.newVerifyingLearner(getLearnerParameters(client),
                 PaxosKnowledgeEventRecorder.NO_OP);
-        PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorParameters(client), sqliteFactory);
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorParameters(client));
         PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
 
         return ImmutableComponents.builder()
