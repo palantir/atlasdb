@@ -42,19 +42,24 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
         // case 1: their version has no version: tell them to go and get a snapshot.
-        // case 2: our version has no version: tell them to get a snapshot, somehow.
-        // case 2: their version has a different uuid to yours (leader election): tell them to get a snapshot.
-        // case 3: their version is too far behind our log
+        // case 2: our version has no version: throw?
+        // case 3: their version has a different uuid to yours (leader election): tell them to get a snapshot.
+        // case 4: their version is too far behind our log
+        if(!latestVersion.isPresent()) {
+            // not sure what to do now
+            throw new RuntimeException();
+        }
+
+        IdentifiedVersion currentVersion = latestVersion.get();
         if (!version.isPresent()
-                || !latestVersion.isPresent()
-                || !version.get().id().equals(latestVersion.get().id())
+                || !version.get().id().equals(currentVersion.id())
                 || eventLog.floorKey(version.get()) == null) {
-            return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot());
+            return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot(currentVersion));
         }
 
         IdentifiedVersion mostRecentVersion = Collections.max(timestampToVersion.values());
 
-        Preconditions.checkArgument(mostRecentVersion.compareTo(latestVersion.get()) > 0,
+        Preconditions.checkArgument(mostRecentVersion.compareTo(currentVersion) > 0,
                 "Transactions' view of the world is more up-to-date than the log");
 
         if (eventLog.isEmpty()) {
