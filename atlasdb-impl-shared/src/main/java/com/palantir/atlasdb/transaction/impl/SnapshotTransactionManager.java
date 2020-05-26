@@ -228,8 +228,6 @@ import com.palantir.util.SafeShutdownRunner;
 
     private final class DefaultOpenTransactions implements OpenTransactions {
 
-
-
         private final List<OpenTransaction> transactions;
 
         DefaultOpenTransactions(
