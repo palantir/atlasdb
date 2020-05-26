@@ -28,17 +28,17 @@ public final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatch
     private final EventVisitor visitor = new EventVisitor();
 
     @Override
-    public LockWatchStateUpdate.Snapshot getSnapshot(IdentifiedVersion identifiedVersion) {
+    public synchronized LockWatchStateUpdate.Snapshot getSnapshot(IdentifiedVersion identifiedVersion) {
         return LockWatchStateUpdate.snapshot(identifiedVersion.id(), identifiedVersion.version(), locked, watches);
     }
 
     @Override
-    public void processEvents(List<LockWatchEvent> events) {
+    public synchronized void processEvents(List<LockWatchEvent> events) {
         events.forEach(event -> event.accept(visitor));
     }
 
     @Override
-    public void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
+    public synchronized void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         watches.clear();
         watches.addAll(snapshot.lockWatches());
         locked.clear();
@@ -46,7 +46,7 @@ public final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatch
     }
 
     @Override
-    public void reset() {
+    public synchronized void reset() {
         watches.clear();
         locked.clear();
     }
