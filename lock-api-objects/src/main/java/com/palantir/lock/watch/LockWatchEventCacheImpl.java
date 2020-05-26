@@ -48,9 +48,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     /**
      * Notes on concurrency: This should only be called in a single-threaded manner, on the transaction starting flow.
-     * Therefore, we force it to be synchronized so that changes to the cache do not cause a race condition. Deletes
-     * from the cache and underlying log are handled in this method; there is no concern that they will grow large
-     * between calls of this method as they are never added to elsewhere.
+     * Therefore, forcing it to be synchronised does not incur a performance hit but guarantees that changes to the
+     * cache do not cause a race condition. Deletes from the cache and underlying log are handled in this method; there
+     * is no concern that they will grow large between calls of this method as they are never added to elsewhere.
      */
     @Override
     public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
@@ -80,8 +80,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     /**
-     * This is synchronised for the call to getAllPresent. This will also be called in a single-threaded way - once
-     * per batch on the start transaction codepath.
+     * This is synchronised for the call to getAllPresent. This will also be called in a single-threaded way - once per
+     * batch on the start transaction codepath, and since that is the same codepath as the other processing method,
+     * should not cause bad performance.
      */
     @Override
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
