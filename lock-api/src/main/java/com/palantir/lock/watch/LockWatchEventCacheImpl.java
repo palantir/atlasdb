@@ -37,7 +37,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         this.earliestVersion = Optional.empty();
     }
 
-    public static LockWatchEventCacheImpl create() {
+    public static LockWatchEventCacheImpl create(ClientLockWatchEventLog eventLog) {
+        return new LockWatchEventCacheImpl(eventLog);
+    }
+
+    public static LockWatchEventCacheImpl createWithoutCache() {
         return new LockWatchEventCacheImpl(NoOpClientLockWatchEventLog.INSTANCE);
     }
 
@@ -56,9 +60,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
-        earliestVersion = Optional.of(markedForDelete.lastKey());
-        markedForDelete.forEach((version, timestamp) -> timestampCache.invalidate(timestamp));
-        markedForDelete.clear();
+        if (!markedForDelete.isEmpty()) {
+            earliestVersion = Optional.of(markedForDelete.lastKey());
+            markedForDelete.forEach((version, timestamp) -> timestampCache.invalidate(timestamp));
+            markedForDelete.clear();
+        }
 
         Optional<IdentifiedVersion> latestVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
 
@@ -76,7 +82,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public void processUpdate(LockWatchStateUpdate update) {
-        lockWatchEventLog.processUpdate(update, earliestVersion);
+        currentVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
     }
 
     /**
