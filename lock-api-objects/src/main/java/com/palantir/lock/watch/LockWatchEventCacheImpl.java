@@ -80,7 +80,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     /**
-     * This is also synchronised for the call to getAllPresent. This will also be called in a single-threaded way - once
+     * This is synchronised for the call to getAllPresent. This will also be called in a single-threaded way - once
      * per batch on the start transaction codepath.
      */
     @Override
