@@ -19,7 +19,7 @@ package com.palantir.lock.watch;
 import java.util.List;
 
 public interface ClientLockWatchSnapshotUpdater {
-    LockWatchStateUpdate.Snapshot getSnapshot();
+    LockWatchStateUpdate.Snapshot getSnapshot(IdentifiedVersion identifiedVersion);
     void processEvents(List<LockWatchEvent> events);
     void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot);
     void reset();
