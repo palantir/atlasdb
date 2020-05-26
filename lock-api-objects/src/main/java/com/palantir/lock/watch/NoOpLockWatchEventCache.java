@@ -44,7 +44,9 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public Optional<IdentifiedVersion> processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+    public Optional<IdentifiedVersion> processStartTransactionsUpdate(
+            Set<Long> startTimestamps,
+            LockWatchStateUpdate update) {
         return Optional.of(FAKE);
     }
 
