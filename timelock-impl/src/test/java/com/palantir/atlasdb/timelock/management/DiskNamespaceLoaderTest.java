@@ -20,42 +20,63 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mock;
 
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.tokens.auth.AuthHeader;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class DiskNamespaceLoaderTest {
     private static final String NAMESPACE_1 = "namespace_1";
     private static final String NAMESPACE_2 = "namespace_2";
-    public static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-    private static final PersistentNamespaceContext persistentNamespaceContext = mock(PersistentNamespaceContext.class);
-    private static final TimelockNamespaces timelockNamespaces = mock(TimelockNamespaces.class);
-    private static final RedirectRetryTargeter redirectRetryTargeter = mock(RedirectRetryTargeter.class);
+    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
+    @Mock private Function<String, TimeLockServices> serviceFactory;
+    @Mock private Supplier<Integer> maxNumberOfClientsSupplier;
+
+    private final MetricsManager metricsManager = new MetricsManager(
+            new MetricRegistry(),
+            DefaultTaggedMetricRegistry.getDefault(),
+            unused -> false);
     private TimeLockManagementResource timeLockManagementResource;
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
-    public void setup() {
+    public void setup() throws MalformedURLException {
+        URL testUrl = new URL("http", "host", "file");
+        RedirectRetryTargeter redirectRetryTargeter = RedirectRetryTargeter
+                .create(testUrl, ImmutableList.of(testUrl));
+
         Path rootFolderPath = tempFolder.getRoot().toPath();
-        when(persistentNamespaceContext.fileDataDirectory()).thenReturn(rootFolderPath);
-        when(persistentNamespaceContext.sqliteConnectionSupplier()).thenReturn(SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(rootFolderPath));
+        PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContext.of(rootFolderPath, SqliteConnections
+                        .createDefaultNamedSqliteDatabaseAtPath(rootFolderPath));
+
+        TimelockNamespaces namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
+
         timeLockManagementResource = TimeLockManagementResource.create(persistentNamespaceContext,
-                timelockNamespaces,
+                namespaces,
                 redirectRetryTargeter);
+
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);
     }
