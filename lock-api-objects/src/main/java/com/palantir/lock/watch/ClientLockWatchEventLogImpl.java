@@ -47,7 +47,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
                 || !latestVersion.isPresent()
                 || !version.get().id().equals(latestVersion.get().id())
                 || eventLog.floorKey(version.get()) == null) {
-            return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot());
+            return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot(latestVersion));
         }
 
         IdentifiedVersion mostRecentVersion = Collections.max(timestampToVersion.values());
