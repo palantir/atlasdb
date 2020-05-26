@@ -80,10 +80,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         currentVersion.ifPresent(
                 version -> startTimestamps.forEach(timestamp -> timestampMap.put(timestamp, version)));
 
-        if (!earliestVersion.isPresent()) {
-            earliestVersion = currentVersion;
-        }
-
         return currentVersion;
     }
 
