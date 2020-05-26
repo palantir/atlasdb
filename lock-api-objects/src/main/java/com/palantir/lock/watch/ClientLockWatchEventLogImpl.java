@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Preconditions;
@@ -94,7 +96,11 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
                         event -> eventLog.put(IdentifiedVersion.of(success.logId(), event.sequence()), event));
                 latestVersion = Optional.of(eventLog.lastKey());
             }
-            eventLog.headMap(earliestVersion.get()).entrySet().clear();
+            Set<Map.Entry<IdentifiedVersion, LockWatchEvent>> eventsToBeRemoved =
+                    eventLog.headMap(earliestVersion.get()).entrySet();
+            snapshotUpdater.processEvents(
+                    eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
+            eventsToBeRemoved.clear();
         }
     }
 
