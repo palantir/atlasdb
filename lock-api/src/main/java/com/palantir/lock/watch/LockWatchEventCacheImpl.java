@@ -24,6 +24,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
     private final ConcurrentSkipListMap<Long, IdentifiedVersion> timestampMap = new ConcurrentSkipListMap<>();
@@ -60,11 +62,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
-        if (!markedForDelete.isEmpty()) {
-            markedForDelete.forEach(timestampMap::remove);
-            markedForDelete.clear();
-            earliestVersion = Optional.of(timestampMap.firstEntry().getValue());
-        }
+        deleteMarkedEntries();
 
         Optional<IdentifiedVersion> latestVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
 
@@ -97,11 +95,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
-        Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
-        // This may be bad in the case that some timestamps are not there;
-        // we don't expect that to happen, but perhaps worth documenting anyway.
-        startTimestamps.forEach(timestamp -> timestampToVersion.put(timestamp, timestampMap.get(timestamp)));
-        return lockWatchEventLog.getEventsForTransactions(timestampToVersion, version);
+        return lockWatchEventLog.getEventsForTransactions(getTimestampToVersionMap(startTimestamps), version);
     }
 
     @Override
@@ -110,5 +104,28 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         if (versionToRemove != null) {
             markedForDelete.add(timestamp);
         }
+    }
+
+    @VisibleForTesting
+    void deleteMarkedEntries() {
+        if (!markedForDelete.isEmpty()) {
+            markedForDelete.forEach(timestampMap::remove);
+            markedForDelete.clear();
+            earliestVersion = Optional.of(timestampMap.firstEntry().getValue());
+        }
+    }
+
+    @VisibleForTesting
+    Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
+        Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
+        // This may be bad in the case that some timestamps are not there;
+        // we don't expect that to happen, but perhaps worth documenting anyway.
+        startTimestamps.forEach(timestamp -> timestampToVersion.put(timestamp, timestampMap.get(timestamp)));
+        return timestampToVersion;
+    }
+
+    @VisibleForTesting
+    Optional<IdentifiedVersion> getEarliestVersion() {
+        return earliestVersion;
     }
 }
