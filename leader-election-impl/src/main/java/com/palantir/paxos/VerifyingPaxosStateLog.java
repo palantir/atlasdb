@@ -66,7 +66,6 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithMigration(
             PaxosStorageParameters parameters,
-            SqlitePaxosStateLogFactory sqliteFactory,
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
@@ -76,7 +75,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
         Settings<V> settings = ImmutableSettings.<V>builder()
                 .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(sqliteFactory.create(namespaceUseCase, conn))
+                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, conn))
                 .hydrator(hydrator)
                 .build();
 
@@ -84,7 +83,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
                 .sourceLog(settings.currentLog())
                 .destinationLog(settings.experimentalLog())
                 .hydrator(settings.hydrator())
-                .migrationState(sqliteFactory.createMigrationState(namespaceUseCase, conn))
+                .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, conn))
                 .build();
 
         Instant start = Instant.now();
@@ -100,7 +99,6 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithoutMigration(
             PaxosStorageParameters parameters,
-            SqlitePaxosStateLogFactory sqliteFactory,
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
@@ -110,7 +108,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
         Settings<V> settings = ImmutableSettings.<V>builder()
                 .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(sqliteFactory.create(namespaceUseCase, conn))
+                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, conn))
                 .hydrator(hydrator)
                 .build();
 
