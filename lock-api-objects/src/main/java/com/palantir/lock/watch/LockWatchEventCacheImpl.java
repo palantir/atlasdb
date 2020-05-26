@@ -16,21 +16,28 @@
 
 package com.palantir.lock.watch;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentSkipListSet;
+
+import org.immutables.value.Value;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
-    private final Cache<Long, Long> timestampCache = Caffeine.newBuilder()
+    private final Cache<Long, IdentifiedVersion> timestampCache = Caffeine.newBuilder()
             .build();
+    private final ConcurrentSkipListSet<CacheKey> markedForDelete = new ConcurrentSkipListSet<>();
+    private volatile IdentifiedVersion earliestVersion;
+    private volatile IdentifiedVersion currentVersion;
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
         this.lockWatchEventLog = lockWatchEventLog;
+        this.earliestVersion = IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
     }
 
     public static LockWatchEventCacheImpl create() {
@@ -39,64 +46,73 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public IdentifiedVersion lastKnownVersion() {
-        return lockWatchEventLog.getLatestKnownVersion();
+        return currentVersion;
     }
 
+    /**
+     * Notes on Concurrency: This should only be called in a single-threaded manner, on the transaction starting flow.
+     * Therefore, we force it to be synchronized so that changes to the cache do not cause a race condition.
+     * Deletes from the cache and underlying log are handled in this method; there is no concern that they will grow
+     * large between calls of this method as they are never added to elsewhere.
+     */
     @Override
-    public IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
-        IdentifiedVersion currentVersion = lastKnownVersion();
-        IdentifiedVersion newVersion = lockWatchEventLog.processUpdate(update);
-        Optional<LockWatchStateUpdate.Success> successUpdate = update.accept(SuccessfulVisitor.INSTANCE);
+    public synchronized IdentifiedVersion processStartTransactionsUpdate(
+            Set<Long> startTimestamps,
+            LockWatchStateUpdate update) {
+        earliestVersion = markedForDelete.last().version();
+        markedForDelete.forEach(cacheKey -> timestampCache.invalidate(cacheKey.timestamp()));
+        markedForDelete.clear();
 
-        // clear for snapshot or failure, or leader change.
-        if (!successUpdate.isPresent() || !currentVersion.id().equals(newVersion.id())) {
+        IdentifiedVersion latestVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
+        if (!latestVersion.id().equals(currentVersion.id())) {
             timestampCache.invalidateAll();
-        } else {
-            long version = successUpdate.get().lastKnownVersion();
-            startTimestamps.forEach(startTs -> timestampCache.put(startTs, version));
         }
-        return newVersion;
+        currentVersion = latestVersion;
+
+        startTimestamps.forEach(timestamp -> timestampCache.put(timestamp, latestVersion));
+        return latestVersion;
     }
 
     @Override
     public void processUpdate(LockWatchStateUpdate update) {
-        lockWatchEventLog.processUpdate(update);
+        lockWatchEventLog.processUpdate(update, earliestVersion);
     }
 
+    /**
+     * This is also synchronised for the call to getAllPresent. This will also be called in a single-threaded way -
+     * once per batch on the start transaction codepath.
+     */
     @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
-        Map<Long, Long> timestampToVersion = new HashMap<>();
-        startTimestamps.forEach(startTs -> {
-            Long value = timestampCache.getIfPresent(startTs);
-            // for now, skip entries not there.
-            if (value != null) {
-                timestampToVersion.put(startTs, value);
-            }
-        });
+    public synchronized TransactionsLockWatchEvents getEventsForTransactions(
+            Set<Long> startTimestamps,
+            IdentifiedVersion version) {
+        Map<Long, IdentifiedVersion> timestampToVersion = timestampCache.getAllPresent(startTimestamps);
         return lockWatchEventLog.getEventsForTransactions(timestampToVersion, version);
     }
 
     @Override
     public void removeTimestampFromCache(Long timestamp) {
+        IdentifiedVersion versionToRemove = timestampCache.getIfPresent(timestamp);
         timestampCache.invalidate(timestamp);
+        if (versionToRemove != null) {
+            markedForDelete.add(CacheKey.of(timestamp, versionToRemove));
+        }
     }
 
-    private enum SuccessfulVisitor implements LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>> {
-        INSTANCE;
+    @Value.Immutable
+    interface CacheKey extends Comparable<CacheKey> {
+        @Value.Parameter
+        long timestamp();
 
-        @Override
-        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Failed failed) {
-            return Optional.empty();
+        @Value.Parameter
+        IdentifiedVersion version();
+
+        static CacheKey of(long timestamp, IdentifiedVersion version) {
+            return ImmutableCacheKey.of(timestamp, version);
         }
 
-        @Override
-        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Success success) {
-            return Optional.of(success);
-        }
-
-        @Override
-        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Snapshot snapshot) {
-            return Optional.empty();
+        default int compareTo(CacheKey otherKey) {
+            return version().compareTo(otherKey.version());
         }
     }
 }

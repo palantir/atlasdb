@@ -20,8 +20,8 @@ import java.util.Map;
 
 public interface ClientLockWatchEventLog {
     TransactionsLockWatchEvents getEventsForTransactions(
-            Map<Long, Long> timestampToVersion,
+            Map<Long, IdentifiedVersion> timestampToVersion,
             IdentifiedVersion version);
     IdentifiedVersion getLatestKnownVersion();
-    IdentifiedVersion processUpdate(LockWatchStateUpdate update);
+    IdentifiedVersion processUpdate(LockWatchStateUpdate update, IdentifiedVersion earliestVersion);
 }

@@ -26,7 +26,7 @@ public enum NoOpClientLockWatchEventLog implements ClientLockWatchEventLog {
     INSTANCE;
 
     @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Map<Long, Long> timestampToVersion,
+    public TransactionsLockWatchEvents getEventsForTransactions(Map<Long, IdentifiedVersion> timestampToVersion,
             IdentifiedVersion version) {
         return TransactionsLockWatchEvents.failure(
                 LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
@@ -38,7 +38,8 @@ public enum NoOpClientLockWatchEventLog implements ClientLockWatchEventLog {
     }
 
     @Override
-    public IdentifiedVersion processUpdate(LockWatchStateUpdate update) {
+    public IdentifiedVersion processUpdate(LockWatchStateUpdate update,
+            IdentifiedVersion earliestVersion) {
         return IdentifiedVersion.of(UUID.randomUUID(), Optional.empty());
     }
 }
