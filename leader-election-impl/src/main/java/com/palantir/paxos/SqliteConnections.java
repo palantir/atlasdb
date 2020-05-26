@@ -23,6 +23,8 @@ import java.sql.SQLException;
 import java.util.function.Supplier;
 
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
@@ -36,6 +38,8 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
  * There should be one instance per timelock.
  */
 public final class SqliteConnections {
+    private static final Logger log = LoggerFactory.getLogger(SqliteConnections.class);
+
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
 
     private static LoadingCache<Path, Connection> CONNECTION_CACHE = Caffeine.newBuilder()
@@ -64,16 +68,18 @@ public final class SqliteConnections {
         config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
         config.setPragma(SQLiteConfig.Pragma.LOCKING_MODE, SQLiteConfig.LockingMode.EXCLUSIVE.getValue());
         config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, SQLiteConfig.SynchronousMode.FULL.getValue());
-        config.setBusyTimeout(5000);
         SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
         dataSource.setUrl(target);
         dataSource.setConfig(config);
 
-        try {
-            return dataSource.getConnection();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return ResilientDatabaseConnectionProxy.newProxyInstance(() -> {
+            try {
+                return dataSource.getConnection();
+            } catch (SQLException e) {
+                log.warn("SQL exception when trying to open database connection", e);
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private static void createDirectoryIfNotExists(Path path) {
