@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -27,6 +28,7 @@ import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
@@ -67,7 +69,20 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
-        Iterables.partition(roundsToMigrate, BATCH_SIZE).forEach(destinationLog::writeBatchOfRounds);
+        Iterables.partition(roundsToMigrate, BATCH_SIZE)
+                .forEach(batch -> writeBatchRetryingUpToFiveTimes(destinationLog, batch));
+    }
+
+    private void writeBatchRetryingUpToFiveTimes(PaxosStateLog<V> target, List<PaxosRound<V>> batch) {
+        for (int retryCount = 0; retryCount < 5; retryCount++) {
+            try {
+                target.writeBatchOfRounds(batch);
+                return;
+            } catch (Exception e) {
+                Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+            }
+        }
+        target.writeBatchOfRounds(batch);
     }
 
     @Value.Immutable

@@ -17,8 +17,13 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -36,6 +41,7 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -197,6 +203,54 @@ public class PaxosStateLogMigratorTest {
         for (long counter = lowerBound; counter <= upperBound; counter += BATCH_SIZE) {
             assertThat(readRoundUnchecked(target, counter)).containsExactly(valueForRound(counter).persistToBytes());
         }
+    }
+
+    @Test
+    public void retryWritesFiveTimes() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        PaxosStateLog<PaxosValue> targetMock = mock(PaxosStateLog.class);
+        AtomicInteger failureCount = new AtomicInteger(0);
+        doAnswer(invocation -> {
+            if (failureCount.getAndIncrement() < 5) {
+                throw new RuntimeException();
+            }
+            return null;
+        }).when(targetMock).writeBatchOfRounds(any());
+
+        ImmutableMigrationContext<PaxosValue> context = ImmutableMigrationContext.<PaxosValue>builder()
+                .sourceLog(source)
+                .destinationLog(targetMock)
+                .hydrator(PaxosValue.BYTES_HYDRATOR)
+                .migrationState(migrationState)
+                .migrateFrom(lowerBound)
+                .build();
+
+        assertThatCode(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void eventuallyStopRetrying() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        PaxosStateLog<PaxosValue> targetMock = mock(PaxosStateLog.class);
+        Exception expectedException = new RuntimeException("We failed");
+        doThrow(expectedException).when(targetMock).writeBatchOfRounds(any());
+
+        ImmutableMigrationContext<PaxosValue> context = ImmutableMigrationContext.<PaxosValue>builder()
+                .sourceLog(source)
+                .destinationLog(targetMock)
+                .hydrator(PaxosValue.BYTES_HYDRATOR)
+                .migrationState(migrationState)
+                .migrateFrom(lowerBound)
+                .build();
+
+        assertThatThrownBy(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context))
+                .isEqualTo(expectedException);
     }
 
     private long migrateFrom(PaxosStateLog<PaxosValue> sourceLog) {
