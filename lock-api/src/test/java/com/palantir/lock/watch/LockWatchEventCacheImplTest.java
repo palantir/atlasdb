@@ -19,7 +19,6 @@ package com.palantir.lock.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +47,7 @@ public final class LockWatchEventCacheImplTest {
     private static final LockWatchStateUpdate.Success SUCCESS =
             LockWatchStateUpdate.success(VERSION_1.id(), VERSION_1.version(), ImmutableList.of());
     private static final LockWatchStateUpdate.Snapshot SNAPSHOT =
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of());
+            LockWatchStateUpdate.snapshot(VERSION_2.id(), VERSION_2.version(), ImmutableSet.of(), ImmutableSet.of());
     private static final LockWatchStateUpdate.Failed FAILED = LockWatchStateUpdate.failed(UUID.randomUUID());
     private static final Set<Long> TIMESTAMPS = ImmutableSet.of(1L, 2L, 3L, 1337L, 10110101L);
 
@@ -93,46 +92,61 @@ public final class LockWatchEventCacheImplTest {
 
         when(eventLog.processUpdate(SUCCESS, Optional.of(VERSION_1))).thenReturn(Optional.of(VERSION_2));
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
-        expectedMap.put(3L, null);
+        expectedMap.remove(3L);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
     }
 
     @Test
-    public void timestampsClearedOnSnapshot() {
+    public void timestampsClearedOnSnapshotUpdate() {
         Map<Long, IdentifiedVersion> expectedMap = new HashMap<>();
         TIMESTAMPS.forEach(timestamp -> expectedMap.put(timestamp, VERSION_1));
 
         when(eventLog.processUpdate(SUCCESS, Optional.empty())).thenReturn(Optional.of(VERSION_1));
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SUCCESS);
-        eventCache.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
-        verify(eventLog).getEventsForTransactions(expectedMap, Optional.of(VERSION_1));
+        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
 
-        IdentifiedVersion newVersion = IdentifiedVersion.of(SNAPSHOT.logId(), SNAPSHOT.lastKnownVersion());
-        when(eventLog.processUpdate(eq(SNAPSHOT), any())).thenReturn(Optional.of(newVersion));
-        Set<Long> secondBatch = ImmutableSet.of(666L);
+        when(eventLog.processUpdate(SNAPSHOT, Optional.of(VERSION_1))).thenReturn(Optional.of(VERSION_2));
+        Set<Long> secondBatch = ImmutableSet.of(666L, 12545L);
         eventCache.processStartTransactionsUpdate(secondBatch, SNAPSHOT);
-        eventCache.getEventsForTransactions(secondBatch, Optional.empty());
-        verify(eventLog).getEventsForTransactions(ImmutableMap.of(666L, newVersion), Optional.empty());
+
+        Map<Long, IdentifiedVersion> newExpectedMap = new HashMap<>();
+        secondBatch.forEach(timestamp -> newExpectedMap.put(timestamp, VERSION_2));
+
+        assertThat(eventCache.getTimestampToVersionMap(secondBatch)).containsExactlyEntriesOf(newExpectedMap);
+        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).isEmpty();
     }
 
     @Test
     public void removeFromCacheUpdatesEarliestVersion() {
-        IdentifiedVersion laterVersion = IdentifiedVersion.of(SUCCESS.logId(), SUCCESS.lastKnownVersion() + 2);
         LockWatchStateUpdate.Success laterSuccess =
-                LockWatchStateUpdate.success(SUCCESS.logId(), SUCCESS.lastKnownVersion() + 2, ImmutableList.of());
+                LockWatchStateUpdate.success(VERSION_2.id(), VERSION_2.version(), ImmutableList.of());
+
         when(eventLog.processUpdate(SUCCESS, Optional.empty())).thenReturn(Optional.of(VERSION_1));
-        when(eventLog.processUpdate(laterSuccess, Optional.of(VERSION_1))).thenReturn(Optional.of(laterVersion));
+        when(eventLog.processUpdate(laterSuccess, Optional.of(VERSION_1))).thenReturn(Optional.of(VERSION_2));
+
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(1L, 2L), SUCCESS);
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(3L), laterSuccess);
-        eventCache.getEventsForTransactions(ImmutableSet.of(1L, 2L, 3L), Optional.empty());
-        verify(eventLog).getEventsForTransactions(
-                ImmutableMap.of(1L, VERSION_1, 2L, VERSION_1, 3L, laterVersion),
-                Optional.empty());
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(3L, 4L), laterSuccess);
 
-        eventCache.removeTimestampFromCache(2L);
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), laterSuccess);
-//        verify(eventLog).getEventsForTransactions()
+        Map<Long, IdentifiedVersion> expectedMap = ImmutableMap.<Long, IdentifiedVersion>builder()
+                .put(1L, VERSION_1)
+                .put(2L, VERSION_1)
+                .put(3L, VERSION_2)
+                .put(4L, VERSION_2)
+                .build();
 
+        assertThat(eventCache.getTimestampToVersionMap(ImmutableSet.of(1L, 2L, 3L, 4L)))
+                .containsExactlyInAnyOrderEntriesOf(expectedMap);
+        assertThat(eventCache.getEarliestVersion()).hasValue(VERSION_1);
+
+        removeTimestampAndCheckEarliestVersion(2L, VERSION_1);
+        removeTimestampAndCheckEarliestVersion(4L, VERSION_1);
+        removeTimestampAndCheckEarliestVersion(1L, VERSION_2);
+    }
+
+    private void removeTimestampAndCheckEarliestVersion(long timestamp, IdentifiedVersion version) {
+        eventCache.removeTimestampFromCache(timestamp);
+        eventCache.deleteMarkedEntries();
+        assertThat(eventCache.getEarliestVersion()).hasValue(version);
     }
 
 }

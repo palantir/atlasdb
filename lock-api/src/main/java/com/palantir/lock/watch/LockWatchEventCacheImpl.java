@@ -41,12 +41,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         this.currentVersion = Optional.empty();
     }
 
-    public static LockWatchEventCacheImpl create(ClientLockWatchEventLog eventLog) {
+    @VisibleForTesting
+    static LockWatchEventCacheImpl create(ClientLockWatchEventLog eventLog) {
         return new LockWatchEventCacheImpl(eventLog);
     }
 
     public static LockWatchEventCacheImpl createWithoutCache() {
-        return new LockWatchEventCacheImpl(NoOpClientLockWatchEventLog.INSTANCE);
+        return create(NoOpClientLockWatchEventLog.INSTANCE);
     }
 
     @Override
@@ -70,13 +71,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         if (!(latestVersion.isPresent()
                 && currentVersion.isPresent()
-                && latestVersion.get().id().equals(currentVersion.get().id()))) {
+                && latestVersion.get().id().equals(currentVersion.get().id())
+                && update.accept(SuccessVisitor.INSTANCE))) {
             timestampMap.clear();
             earliestVersion = Optional.empty();
         }
 
         currentVersion = latestVersion;
-
         currentVersion.ifPresent(
                 version -> startTimestamps.forEach(timestamp -> timestampMap.put(timestamp, version)));
 
@@ -113,19 +114,44 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         List<Long> timestampsToDelete = new ArrayList<>(markedForDelete.size());
         markedForDelete.drainTo(timestampsToDelete);
         timestampsToDelete.forEach(timestampMap::remove);
-        earliestVersion = Optional.of(timestampMap.firstEntry().getValue());
+        earliestVersion = Optional.ofNullable(timestampMap.firstEntry()).map(Map.Entry::getValue);
     }
 
     @VisibleForTesting
     Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
-        // This may be bad in the case that some timestamps are not there. This should not happen in practice
-        startTimestamps.forEach(timestamp -> timestampToVersion.put(timestamp, timestampMap.get(timestamp)));
+        // This may return a map of a different size to the input, if timestamps are missing (which we do not expect in
+        // practice).
+        startTimestamps.forEach(timestamp -> {
+            IdentifiedVersion version = timestampMap.get(timestamp);
+            if (version != null) {
+                timestampToVersion.put(timestamp, version);
+            }
+        });
         return timestampToVersion;
     }
 
     @VisibleForTesting
     Optional<IdentifiedVersion> getEarliestVersion() {
         return earliestVersion;
+    }
+
+    enum SuccessVisitor implements LockWatchStateUpdate.Visitor<Boolean> {
+        INSTANCE;
+
+        @Override
+        public Boolean visit(LockWatchStateUpdate.Failed failed) {
+            return false;
+        }
+
+        @Override
+        public Boolean visit(LockWatchStateUpdate.Success success) {
+            return true;
+        }
+
+        @Override
+        public Boolean visit(LockWatchStateUpdate.Snapshot snapshot) {
+            return false;
+        }
     }
 }
