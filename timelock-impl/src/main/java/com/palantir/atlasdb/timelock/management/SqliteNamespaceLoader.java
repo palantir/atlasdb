@@ -16,9 +16,10 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import java.sql.Connection;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.sql.DataSource;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -33,8 +34,8 @@ final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
         this.jdbi = jdbi;
     }
 
-    public static PersistentNamespaceLoader create(Connection connection) {
-        Jdbi jdbi = Jdbi.create(connection).installPlugin(new SqlObjectPlugin());
+    public static PersistentNamespaceLoader create(DataSource dataSource) {
+        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::createTable);
         return new SqliteNamespaceLoader(jdbi);
     }

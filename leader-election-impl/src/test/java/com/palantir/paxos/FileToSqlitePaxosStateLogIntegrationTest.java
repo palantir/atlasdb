@@ -23,10 +23,11 @@ import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
 import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+
+import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,10 +45,10 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     @Before
     public void setup() throws IOException {
         source = new PaxosStateLogImpl<>(tempFolder.newFolder("source").getPath());
-        Connection targetConn = SqliteConnections
-                .getOrCreateDefaultSqliteConnection(tempFolder.newFolder("target").toPath());
-        target = SqlitePaxosStateLog.create(NAMESPACE, targetConn);
-        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConn);
+        DataSource targetSource = SqliteConnections
+                .getOrCreateDefaultDataSource(tempFolder.newFolder("target").toPath());
+        target = SqlitePaxosStateLog.create(NAMESPACE, targetSource);
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetSource);
     }
 
     @Test

@@ -28,11 +28,12 @@ import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
 import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+
+import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,10 +50,10 @@ public class PaxosStateLogMigratorTest {
 
     @Before
     public void setup() throws IOException {
-        Connection sourceConn = SqliteConnections
-                .getOrCreateDefaultSqliteConnection(tempFolder.newFolder("source").toPath());
-        Connection targetConn = SqliteConnections
-                .getOrCreateDefaultSqliteConnection(tempFolder.newFolder("target").toPath());
+        DataSource sourceConn = SqliteConnections
+                .getOrCreateDefaultDataSource(tempFolder.newFolder("source").toPath());
+        DataSource targetConn = SqliteConnections
+                .getOrCreateDefaultDataSource(tempFolder.newFolder("target").toPath());
         source = SqlitePaxosStateLog.create(NAMESPACE, sourceConn);
         target = SqlitePaxosStateLog.create(NAMESPACE, targetConn);
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConn);

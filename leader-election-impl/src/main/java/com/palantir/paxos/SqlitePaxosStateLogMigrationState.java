@@ -16,9 +16,10 @@
 
 package com.palantir.paxos;
 
-import java.sql.Connection;
 import java.util.Optional;
 import java.util.function.Function;
+
+import javax.sql.DataSource;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
@@ -42,8 +43,8 @@ public final class SqlitePaxosStateLogMigrationState {
         this.jdbi = jdbi;
     }
 
-    static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase, Connection connection) {
-        Jdbi jdbi = Jdbi.create(connection).installPlugin(new SqlObjectPlugin());
+    static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase, DataSource dataSource) {
+        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
         SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespaceAndUseCase, jdbi);
         state.initialize();

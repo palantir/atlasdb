@@ -19,18 +19,20 @@ package com.palantir.atlasdb.timelock.management;
 import java.nio.file.Path;
 import java.sql.Connection;
 
+import javax.sql.DataSource;
+
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PersistentNamespaceContext {
     Path fileDataDirectory();
 
-    Connection sqliteConnection();
+    DataSource sqliteDataSource();
 
-    static PersistentNamespaceContext of(Path fileDataDirectory, Connection sqliteConnection) {
+    static PersistentNamespaceContext of(Path fileDataDirectory, DataSource sqliteDataSource) {
         return ImmutablePersistentNamespaceContext.builder()
                 .fileDataDirectory(fileDataDirectory)
-                .sqliteConnection(sqliteConnection)
+                .sqliteDataSource(sqliteDataSource)
                 .build();
     }
 }

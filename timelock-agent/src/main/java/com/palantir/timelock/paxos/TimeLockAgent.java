@@ -17,13 +17,14 @@ package com.palantir.timelock.paxos;
 
 import java.net.URL;
 import java.nio.file.Path;
-import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
@@ -173,13 +174,13 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
 
-        Connection sqliteConnection = SqliteConnections.getOrCreateDefaultSqliteConnection(
+        DataSource sqliteDataSource = SqliteConnections.getOrCreateDefaultDataSource(
                 install.paxos().sqlitePersistence().dataDirectory().toPath());
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
-        registerManagementResource(sqliteConnection);
+        registerManagementResource(sqliteDataSource);
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
@@ -196,16 +197,16 @@ public class TimeLockAgent {
         }
     }
 
-    private void registerManagementResource(Connection sqliteConnection) {
+    private void registerManagementResource(DataSource dataSource) {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
             undertowRegistrar.get().accept(TimeLockManagementResource.undertow(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnection),
+                    PersistentNamespaceContext.of(rootDataDirectory, dataSource),
                     namespaces,
                     redirectRetryTargeter()));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnection),
+                    PersistentNamespaceContext.of(rootDataDirectory, dataSource),
                     namespaces,
                     redirectRetryTargeter()));
         }

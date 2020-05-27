@@ -23,6 +23,8 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -218,8 +220,8 @@ public class PaxosStateLogMigrationIntegrationTest {
     }
 
     private PaxosStateLog<PaxosValue> createSqliteLog(PaxosStorageParameters parameters) {
-        Connection conn = SqliteConnections
-                .getOrCreateDefaultSqliteConnection(parameters.sqliteBasedLogDirectory());
-        return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), conn);
+        DataSource dataSource = SqliteConnections
+                .getOrCreateDefaultDataSource(parameters.sqliteBasedLogDirectory());
+        return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), dataSource);
     }
 }

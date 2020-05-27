@@ -102,7 +102,7 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
             PersistentNamespaceContext persistentNamespaceContext) {
         PersistentNamespaceLoader diskLoader = new DiskNamespaceLoader(persistentNamespaceContext.fileDataDirectory());
         PersistentNamespaceLoader sqliteLoader = SqliteNamespaceLoader.create(
-                persistentNamespaceContext.sqliteConnection());
+                persistentNamespaceContext.sqliteDataSource());
         return ImmutableSet.of(diskLoader, sqliteLoader);
     }
 

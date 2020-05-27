@@ -18,49 +18,38 @@ package com.palantir.paxos;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.SQLException;
+
+import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.palantir.common.proxy.ResilientDatabaseConnectionProxy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * This class is responsible for creating Sqlite connections to an instance.
  * There should be one instance per timelock.
  */
 public final class SqliteConnections {
-    private static final Logger log = LoggerFactory.getLogger(SqliteConnections.class);
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
-    private static final LoadingCache<Path, Connection> CONNECTION_CACHE = Caffeine.newBuilder()
-            .<Path, Connection>removalListener((unused, connection, unusedCause) -> {
-                try {
-                    if (connection != null) {
-                        connection.close();
-                    }
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            })
-            .build(SqliteConnections::createConnection);
+    private static final LoadingCache<Path, DataSource> DATA_SOURCE_LOADING_CACHE = Caffeine.newBuilder()
+            .build(SqliteConnections::buildDataSource);
 
     private SqliteConnections() {
         // no
     }
 
-    public static Connection getOrCreateDefaultSqliteConnection(Path path) {
-        return CONNECTION_CACHE.get(path);
+    public static DataSource getOrCreateDefaultDataSource(Path path) {
+        return DATA_SOURCE_LOADING_CACHE.get(path);
     }
 
-    private static Connection createConnection(Path path) {
+    private static DataSource buildDataSource(Path path) {
         createDirectoryIfNotExists(path);
         String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
 
@@ -68,18 +57,15 @@ public final class SqliteConnections {
         config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
         config.setPragma(SQLiteConfig.Pragma.LOCKING_MODE, SQLiteConfig.LockingMode.EXCLUSIVE.getValue());
         config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, SQLiteConfig.SynchronousMode.FULL.getValue());
+
         SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
         dataSource.setUrl(target);
         dataSource.setConfig(config);
 
-        return ResilientDatabaseConnectionProxy.newProxyInstance(() -> {
-            try {
-                return dataSource.getConnection();
-            } catch (SQLException e) {
-                log.warn("SQL exception when trying to open database connection", e);
-                throw new RuntimeException(e);
-            }
-        });
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setDataSource(dataSource);
+        hikariConfig.setMaximumPoolSize(1);
+        return new HikariDataSource(hikariConfig);
     }
 
     private static void createDirectoryIfNotExists(Path path) {
