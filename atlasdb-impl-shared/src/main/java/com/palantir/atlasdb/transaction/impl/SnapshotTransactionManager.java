@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -46,6 +47,7 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -70,6 +72,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -84,7 +88,7 @@ import com.palantir.util.SafeShutdownRunner;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
-    final LockWatchManager lockWatchManager;
+    final InternalLockWatchManager lockWatchManager;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -107,7 +111,7 @@ import com.palantir.util.SafeShutdownRunner;
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchManager lockWatchManager,
+            InternalLockWatchManager lockWatchManager,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -175,7 +179,7 @@ import com.palantir.util.SafeShutdownRunner;
     @Override
     public OpenTransactions startTransactions(List<StartTransactionRequest> requests) {
         if (requests.isEmpty()) {
-            return EMPTY;
+            return new DefaultOpenTransactions(ImmutableList.of());
         }
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
@@ -214,18 +218,6 @@ import com.palantir.util.SafeShutdownRunner;
         }
     }
 
-    static final OpenTransactions EMPTY = new OpenTransactions() {
-        @Override
-        public List<OpenTransaction> getTransactions() {
-            return ImmutableList.of();
-        }
-
-        //        @Override
-        //        public TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion) {
-        //            throw new SafeIllegalArgumentException("Empty batch");
-        //        }
-    };
-
     private final class DefaultOpenTransactions implements OpenTransactions {
 
         private final List<OpenTransaction> transactions;
@@ -235,16 +227,16 @@ import com.palantir.util.SafeShutdownRunner;
             this.transactions = transactions;
         }
 
-
         @Override
         public List<OpenTransaction> getTransactions() {
             return transactions;
         }
 
-        //    @Override
-        //    public TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion) {
-        //        return null;
-        //    }
+        @Override
+        public TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion) {
+            Set<Long> timestamps = transactions.stream().map(OpenTransaction::getTimestamp).collect(Collectors.toSet());
+            return lockWatchManager.getEventsForTransactions(timestamps, lastKnownVersion);
+        }
     }
 
     private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {

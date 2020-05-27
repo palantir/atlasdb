@@ -19,26 +19,30 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import java.util.Optional;
 import java.util.Set;
 
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
-public final class NoOpLockWatchManager implements LockWatchManager {
-    public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
+public final class InternalLockWatchManagerImpl implements InternalLockWatchManager {
+    private final NamespacedConjureLockWatchingService lockWatcher;
+    private final LockWatchEventCache cache;
 
-    private NoOpLockWatchManager() {
-        // ...
+    public InternalLockWatchManagerImpl(NamespacedConjureLockWatchingService lockWatcher, LockWatchEventCache cache) {
+        this.lockWatcher = lockWatcher;
+        this.cache = cache;
     }
 
     @Override
-    public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
-        throw new UnsupportedOperationException("Lock watch registration not supported");
+    public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries) {
+        lockWatcher.startWatching(LockWatchRequest.of(lockWatchEntries));
     }
 
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> lastKnownVersion) {
-        return NoOpLockWatchEventCache.INSTANCE.getEventsForTransactions(startTimestamps, lastKnownVersion);
+            Optional<IdentifiedVersion> version) {
+        return cache.getEventsForTransactions(startTimestamps, version);
     }
 }

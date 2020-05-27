@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
-public interface OpenTransactions {
-
-    List<OpenTransaction> getTransactions();
-
+public interface InternalLockWatchManager extends LockWatchManager {
     /**
-     * Returns a condensed view of new lock watch events since lastKnownVersion for the set of started transactions.
+     * Returns a condensed view of new lock watch events since lastKnownVersion for a set of transactions identified by
+     * their start timestamps.
      *
+     * @param startTimestamps  a set of start timestamps identifying transactions
      * @param lastKnownVersion exclusive start version to get events from
      */
-    TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion);
+    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> lastKnownVersion);
 }
