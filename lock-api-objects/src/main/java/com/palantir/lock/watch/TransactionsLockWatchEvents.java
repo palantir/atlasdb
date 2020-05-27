@@ -33,7 +33,7 @@ public interface TransactionsLockWatchEvents {
         T visit(ForcedSnapshot failure);
     }
 
-    static Events success(List<LockWatchEvent> events, Map<Long, Long> startTsToSequence) {
+    static Events success(List<LockWatchEvent> events, Map<Long, IdentifiedVersion> startTsToSequence) {
         return ImmutableEvents.of(events, startTsToSequence);
     }
 
@@ -50,7 +50,7 @@ public interface TransactionsLockWatchEvents {
         @Value.Parameter
         List<LockWatchEvent> events();
         @Value.Parameter
-        Map<Long, Long> startTsToSequence();
+        Map<Long, IdentifiedVersion> startTsToSequence();
 
         @Override
         default <T> T accept(Visitor<T> visitor) {
