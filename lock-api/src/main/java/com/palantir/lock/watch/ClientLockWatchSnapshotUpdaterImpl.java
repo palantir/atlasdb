@@ -20,20 +20,31 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
 public final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatchSnapshotUpdater {
-    private final Set<LockWatchReferences.LockWatchReference> watches = new HashSet<>();
-    private final Set<LockDescriptor> locked = new HashSet<>();
-    private final EventVisitor visitor = new EventVisitor();
+    private final Set<LockWatchReferences.LockWatchReference> watches;
+    private final Set<LockDescriptor> locked;
+    private final EventVisitor visitor;
 
     public static ClientLockWatchSnapshotUpdater create() {
         return new ClientLockWatchSnapshotUpdaterImpl();
     }
 
+    private ClientLockWatchSnapshotUpdaterImpl() {
+        this.watches = new HashSet<>();
+        this.locked = new HashSet<>();
+        this.visitor = new EventVisitor();
+    }
+
     @Override
     public synchronized LockWatchStateUpdate.Snapshot getSnapshot(IdentifiedVersion identifiedVersion) {
-        return LockWatchStateUpdate.snapshot(identifiedVersion.id(), identifiedVersion.version(), locked, watches);
+        return LockWatchStateUpdate.snapshot(
+                identifiedVersion.id(),
+                identifiedVersion.version(),
+                ImmutableSet.copyOf(locked),
+                ImmutableSet.copyOf(watches));
     }
 
     @Override
