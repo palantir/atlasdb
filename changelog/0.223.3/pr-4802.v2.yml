@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: |
+    `leaderPaxos` is filtered out from the set of persisted namespaces. Previously if, and only if, you had used SQLite, `leaderPaxos` would be returned as part of the set of persisted namespaces.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4802
