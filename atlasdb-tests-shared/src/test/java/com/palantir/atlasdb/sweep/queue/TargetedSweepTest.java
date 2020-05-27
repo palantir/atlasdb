@@ -288,7 +288,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private static class FailingPreCommitCondition implements PreCommitCondition {
         @Override
-        public void throwIfConditionInvalid(long ignore) {
+        public void throwIfConditionInvalid(long timestamp) {
             throw new RuntimeException("test");
         }
 

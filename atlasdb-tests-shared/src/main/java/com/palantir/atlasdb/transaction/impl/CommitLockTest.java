@@ -154,7 +154,7 @@ public class CommitLockTest extends TransactionTestSetup {
         transaction.commit();
     }
 
-    private Transaction startTransaction(PreCommitCondition condition, ConflictHandler conflictHandler) {
+    private Transaction startTransaction(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 conflictHandler,
@@ -172,7 +172,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
                 Optional.empty(),
-                condition,
+                preCommitCondition,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

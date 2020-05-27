@@ -281,7 +281,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static final PreCommitCondition ALWAYS_FAILS_CONDITION = new PreCommitCondition() {
         @Override
-        public void throwIfConditionInvalid(long commitTs) {
+        public void throwIfConditionInvalid(long timestamp) {
             throw new TransactionFailedRetriableException("Condition failed");
         }
 
@@ -1039,7 +1039,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void runWithRetryFailsOnNonRetriableException() {
         PreCommitCondition nonRetriableFailure = new PreCommitCondition() {
             @Override
-            public void throwIfConditionInvalid(long ignore) {
+            public void throwIfConditionInvalid(long timestamp) {
                 throw new TransactionFailedNonRetriableException("Condition failed");
             }
 
@@ -1084,7 +1084,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         MutableLong counter = new MutableLong(0L);
         PreCommitCondition succeedsCondition = new PreCommitCondition() {
             @Override
-            public void throwIfConditionInvalid(long ignore) {}
+            public void throwIfConditionInvalid(long timestamp) {}
 
             @Override
             public void cleanup() {
@@ -1108,7 +1108,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         MutableLong counter = new MutableLong(0L);
         PreCommitCondition failsCondition = new PreCommitCondition() {
             @Override
-            public void throwIfConditionInvalid(long ignore) {
+            public void throwIfConditionInvalid(long timestamp) {
                 throw new TransactionFailedRetriableException("Condition failed");
             }
 
@@ -1156,7 +1156,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(() ->
                 new PreCommitCondition() {
                     @Override
-                    public void throwIfConditionInvalid(long ignore) {
+                    public void throwIfConditionInvalid(long timestamp) {
                         throw conditionFailure;
                     }
 
@@ -1286,7 +1286,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
 
         // expire the locks when the pre-commit check happens - this is guaranteed to be after we've written the data
-        PreCommitCondition condition = no -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
+        PreCommitCondition condition =
+                unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
         LockImmutableTimestampResponse res =
                 timelockService.lockImmutableTimestamp();
