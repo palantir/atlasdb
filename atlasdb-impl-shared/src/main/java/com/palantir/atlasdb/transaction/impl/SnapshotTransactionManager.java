@@ -57,7 +57,7 @@ import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.ImmutableStartTransactionRequest;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
-import com.palantir.atlasdb.transaction.api.OpenTransactions;
+import com.palantir.atlasdb.transaction.api.StartTransactionsResponse;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.StartTransactionRequest;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -177,9 +177,9 @@ import com.palantir.util.SafeShutdownRunner;
     }
 
     @Override
-    public OpenTransactions startTransactions(List<StartTransactionRequest> requests) {
+    public StartTransactionsResponse startTransactions(List<StartTransactionRequest> requests) {
         if (requests.isEmpty()) {
-            return new DefaultOpenTransactions(ImmutableList.of());
+            return new DefaultStartTransactionsResponse(ImmutableList.of());
         }
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
@@ -208,7 +208,7 @@ import com.palantir.util.SafeShutdownRunner;
                         return new OpenTransactionImpl(transaction, immutableTsLock);
                     }).collect(Collectors.toList());
 
-            return new DefaultOpenTransactions(transactions);
+            return new DefaultStartTransactionsResponse(transactions);
         } catch (Throwable t) {
             timelockService.tryUnlock(
                     responses.stream()
@@ -218,11 +218,11 @@ import com.palantir.util.SafeShutdownRunner;
         }
     }
 
-    private final class DefaultOpenTransactions implements OpenTransactions {
+    private final class DefaultStartTransactionsResponse implements StartTransactionsResponse {
 
         private final List<OpenTransaction> transactions;
 
-        DefaultOpenTransactions(
+        DefaultStartTransactionsResponse(
                 List<OpenTransaction> transactions) {
             this.transactions = transactions;
         }

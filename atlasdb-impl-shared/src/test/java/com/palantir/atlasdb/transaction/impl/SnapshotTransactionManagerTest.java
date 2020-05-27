@@ -48,7 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.OpenTransactions;
+import com.palantir.atlasdb.transaction.api.StartTransactionsResponse;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -254,7 +254,7 @@ public class SnapshotTransactionManagerTest {
         TimelockService timelockService =
                 spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
-        OpenTransactions transactions = transactionManager.startTransactions(ImmutableList.of());
+        StartTransactionsResponse transactions = transactionManager.startTransactions(ImmutableList.of());
 
         assertThat(transactions.getTransactions()).isEmpty();
         verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(anyInt());

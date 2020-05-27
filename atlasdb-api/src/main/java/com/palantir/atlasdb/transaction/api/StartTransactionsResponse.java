@@ -22,7 +22,7 @@ import java.util.Optional;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
-public interface OpenTransactions {
+public interface StartTransactionsResponse {
 
     List<OpenTransaction> getTransactions();
 
