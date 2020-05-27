@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.CommitRequest;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -146,6 +147,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public void commit(TransactionService txService) throws TransactionFailedException {
         delegate().commit(txService);
+    }
+
+    @Override
+    public void commit(CommitRequest commitRequest) throws TransactionFailedException {
+        delegate().commit(commitRequest);
     }
 
     @Override

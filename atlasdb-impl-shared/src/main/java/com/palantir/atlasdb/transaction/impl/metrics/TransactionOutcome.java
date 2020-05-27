@@ -52,6 +52,11 @@ public enum TransactionOutcome {
     PRE_COMMIT_CHECK_FAILED,
 
     /**
+     * Lock watch condition validation failed.
+     */
+    LOCK_WATCH_CONDITION_FAILED,
+
+    /**
      * putUnlessExists to the transactions table may have failed. The API of {@link TransactionService} doesn't allow
      * us to know whether the operation actually succeeded. Note that the case where we have lost our locks and then
      * someone else rolled us back is treated as LOCKS_EXPIRED, not PUT_UNLESS_EXISTS_FAILED.

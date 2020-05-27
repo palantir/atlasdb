@@ -16,10 +16,19 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import org.immutables.value.Value;
+import com.palantir.lock.watch.CommitUpdate;
 
-@Value.Immutable
-public interface StartTransactionRequest {
-    PreCommitCondition preCommitCondition();
-    LockWatchCondition lockWatchEventCondition();
+/**
+ * Extension point for verifying additional constraints that operate on set of invalidated locks.
+ */
+public interface LockWatchCondition {
+
+    LockWatchCondition NO_OP = ignored -> {};
+
+    /**
+     * Checks that the condition is valid for this update.
+     *
+     * Otherwise, throws a {@link TransactionFailedException} and the transaction will not be committed.
+     */
+    void validateChanges(CommitUpdate commitUpdate);
 }

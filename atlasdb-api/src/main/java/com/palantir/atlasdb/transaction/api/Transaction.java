@@ -217,6 +217,9 @@ public interface Transaction {
     @Idempotent
     void commit(TransactionService transactionService) throws TransactionFailedException;
 
+    @Idempotent
+    void commit(CommitRequest commitRequest) throws TransactionFailedException;
+
     /**
      * Gets whether the transaction has been aborted.
      *

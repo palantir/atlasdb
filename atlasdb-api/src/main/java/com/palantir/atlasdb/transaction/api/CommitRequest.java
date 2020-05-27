@@ -18,8 +18,10 @@ package com.palantir.atlasdb.transaction.api;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.transaction.service.TransactionService;
+
 @Value.Immutable
-public interface StartTransactionRequest {
-    PreCommitCondition preCommitCondition();
+public interface CommitRequest {
+    TransactionService transactionService();
     LockWatchCondition lockWatchEventCondition();
 }

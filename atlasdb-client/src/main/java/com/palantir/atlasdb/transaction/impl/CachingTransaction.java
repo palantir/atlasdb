@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.transaction.api.CommitRequest;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -252,6 +253,17 @@ public class CachingTransaction extends ForwardingTransaction {
         } finally {
             if (log.isDebugEnabled()) {
                 log.debug("CachingTransaction cache stats on commit(txService): {}", cellCache.stats());
+            }
+        }
+    }
+
+    @Override
+    public void commit(CommitRequest commitRequest) throws TransactionFailedException {
+        try {
+            super.commit(commitRequest);
+        } finally {
+            if (log.isDebugEnabled()) {
+                log.debug("CachingTransaction cache stats on commit: {}", cellCache.stats());
             }
         }
     }

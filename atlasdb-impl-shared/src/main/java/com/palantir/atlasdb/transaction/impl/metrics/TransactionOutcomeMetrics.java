@@ -77,6 +77,10 @@ public class TransactionOutcomeMetrics {
         getMeter(TransactionOutcome.PRE_COMMIT_CHECK_FAILED).mark();
     }
 
+    public void markLockWatchConditionFailed() {
+        getMeter(TransactionOutcome.LOCK_WATCH_CONDITION_FAILED).mark();
+    }
+
     public void markPutUnlessExistsFailed() {
         getMeter(TransactionOutcome.PUT_UNLESS_EXISTS_FAILED).mark();
     }

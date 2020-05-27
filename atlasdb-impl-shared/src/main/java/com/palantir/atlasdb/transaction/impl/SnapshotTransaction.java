@@ -109,11 +109,13 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitRequest;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
+import com.palantir.atlasdb.transaction.api.LockWatchCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -1572,6 +1574,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public void commit(TransactionService transactionService) {
+
+    }
+
+    @Override
+    public void commit(CommitRequest commitRequest) {
         if (state.get() == State.COMMITTED) {
             return;
         }
@@ -1601,7 +1608,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
 
             checkConstraints();
-            commitWrites(transactionService);
+            commitWrites(commitRequest);
             if (perfLogger.isDebugEnabled()) {
                 long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
                 perfLogger.debug("Committed transaction {} in {}ms",
@@ -1639,7 +1646,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private void commitWrites(TransactionService transactionService) {
+    private void commitWrites(CommitRequest commitRequest) {
+        TransactionService transactionService = commitRequest.transactionService();
+
         if (!hasWrites()) {
             if (hasReads()) {
                 // verify any pre-commit conditions on the transaction
@@ -1688,6 +1697,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
                 // might well cost more.
                 timedAndTraced("microsForPunch", () -> cleaner.punch(commitUpdate.commitTs()));
+
+                // This should be an in-memory check and if it fails, it can abort the transaction immediately.
+                // Therefore, it makes sense to do this before re-checking reads and checking writes.
+                timedAndTraced("lockWatchCondition",
+                        () -> commitRequest.lockWatchEventCondition().validateChanges(commitUpdate));
 
                 // Serializable transactions need to check their reads haven't changed, by reading again at
                 // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
@@ -1767,6 +1781,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             preCommitCondition.throwIfConditionInvalid(commitUpdate);
         } catch (TransactionFailedException ex) {
             transactionOutcomeMetrics.markPreCommitCheckFailed();
+            throw ex;
+        }
+    }
+
+    private void throwIfLockWatchEventConditionThrows(LockWatchCondition condition, CommitUpdate commitUpdate) {
+        try {
+            condition.validateChanges(commitUpdate);
+        } catch (TransactionFailedException ex) {
+            transactionOutcomeMetrics.markLockWatchConditionFailed();
             throw ex;
         }
     }
