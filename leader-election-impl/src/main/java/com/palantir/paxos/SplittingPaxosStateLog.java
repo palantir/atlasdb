@@ -58,7 +58,7 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
     public static <V extends Persistable & Versionable> PaxosStateLog<V> create(SplittingParameters<V> parameters) {
         Preconditions.checkState(parameters.cutoffInclusive() == PaxosAcceptor.NO_LOG_ENTRY
                         || parameters.currentLog().getGreatestLogEntry() >= parameters.cutoffInclusive(),
-                "Cutoff value must either be -1, or the current log must contain en entry after the cutoff.");
+                "Cutoff value must either be -1, or the current log must contain an entry after the cutoff.");
         return new SplittingPaxosStateLog<>(
                 parameters.legacyLog(),
                 parameters.currentLog(),
