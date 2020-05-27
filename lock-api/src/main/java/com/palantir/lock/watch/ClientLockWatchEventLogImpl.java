@@ -29,27 +29,42 @@ import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
-    private final ConcurrentSkipListMap<IdentifiedVersion, LockWatchEvent> eventLog = new ConcurrentSkipListMap<>();
+    private final ConcurrentSkipListMap<IdentifiedVersion, LockWatchEvent> eventLog;
     private volatile Optional<IdentifiedVersion> latestVersion;
 
-    public ClientLockWatchEventLogImpl() {
+    public static ClientLockWatchEventLogImpl create() {
+        return new ClientLockWatchEventLogImpl();
+    }
+
+    private ClientLockWatchEventLogImpl() {
         snapshotUpdater = null;
+        eventLog = new ConcurrentSkipListMap<>();
         latestVersion = Optional.empty();
+    }
+
+    @Override
+    public synchronized Optional<IdentifiedVersion> processUpdate(
+            LockWatchStateUpdate update,
+            Optional<IdentifiedVersion> earliestVersion) {
+        ProcessingVisitor visitor;
+        if (newLeader(update)) {
+            visitor = new NewLeaderVisitor(earliestVersion);
+        } else {
+            visitor = new ProcessingVisitor(earliestVersion);
+        }
+        update.accept(visitor);
+        return latestVersion;
     }
 
     @Override
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
-        // case 1: their version has no version: tell them to go and get a snapshot.
-        // case 2: our version has no version: throw?
-        // case 3: their version has a different uuid to yours (leader election): tell them to get a snapshot.
-        // case 4: their version is too far behind our log
-        if(!latestVersion.isPresent()) {
-            // not sure what to do now
-            throw new RuntimeException();
-        }
+        Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
 
+        // case 1: their version has no version: tell them to go and get a snapshot.
+        // case 2: their version has a different uuid to yours (leader election): tell them to get a snapshot.
+        // case 3: their version is too far behind our log
         IdentifiedVersion currentVersion = latestVersion.get();
         if (!version.isPresent()
                 || !version.get().id().equals(currentVersion.id())
@@ -78,29 +93,22 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return latestVersion;
     }
 
-    @Override
-    public synchronized Optional<IdentifiedVersion> processUpdate(
-            LockWatchStateUpdate update,
-            Optional<IdentifiedVersion> earliestVersion) {
-        ProcessingVisitor visitor;
-        if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
-            visitor = new NewLeaderVisitor(earliestVersion);
-        } else {
-            visitor = new ProcessingVisitor(earliestVersion);
-        }
-        update.accept(visitor);
-        return latestVersion;
+    private boolean newLeader(LockWatchStateUpdate update) {
+        return !latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id());
     }
 
     private void processSuccess(
             LockWatchStateUpdate.Success success,
             Optional<IdentifiedVersion> earliestVersion) {
-        if (earliestVersion.isPresent()) {
-            if (success.lastKnownVersion() >= earliestVersion.get().version()) {
-                success.events().forEach(
-                        event -> eventLog.put(IdentifiedVersion.of(success.logId(), event.sequence()), event));
-                latestVersion = Optional.of(eventLog.lastKey());
-            }
+        // Never re-process old entries
+        if (!latestVersion.isPresent() || success.lastKnownVersion() > latestVersion.get().version()) {
+            success.events().forEach(
+                    event -> eventLog.put(IdentifiedVersion.of(success.logId(), event.sequence()), event));
+            latestVersion = Optional.of(eventLog.lastKey());
+        }
+
+        // Remove unused entries
+        if (earliestVersion.isPresent() && success.lastKnownVersion() >= earliestVersion.get().version()) {
             Set<Map.Entry<IdentifiedVersion, LockWatchEvent>> eventsToBeRemoved =
                     eventLog.headMap(earliestVersion.get()).entrySet();
             snapshotUpdater.processEvents(
@@ -115,7 +123,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         latestVersion = Optional.of(IdentifiedVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
     }
 
-    private void processFailed(LockWatchStateUpdate.Failed _failed) {
+    private void processFailed() {
         eventLog.clear();
         snapshotUpdater.reset();
         latestVersion = Optional.empty();
@@ -129,8 +137,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
 
         @Override
-        public Void visit(LockWatchStateUpdate.Failed failed) {
-            processFailed(failed);
+        public Void visit(LockWatchStateUpdate.Failed _failed) {
+            processFailed();
             return null;
         }
 
@@ -153,8 +161,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
 
         @Override
-        public Void visit(LockWatchStateUpdate.Success success) {
-            processFailed(LockWatchStateUpdate.failed(success.logId()));
+        public Void visit(LockWatchStateUpdate.Success _success) {
+            processFailed();
             return null;
         }
     }

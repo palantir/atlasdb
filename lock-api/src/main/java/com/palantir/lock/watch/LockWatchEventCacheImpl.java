@@ -41,13 +41,17 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         this.currentVersion = Optional.empty();
     }
 
-    @VisibleForTesting
-    static LockWatchEventCacheImpl create(ClientLockWatchEventLog eventLog) {
-        return new LockWatchEventCacheImpl(eventLog);
+    public static LockWatchEventCacheImpl create() {
+        return new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create());
     }
 
     public static LockWatchEventCacheImpl createWithoutCache() {
         return create(NoOpClientLockWatchEventLog.INSTANCE);
+    }
+
+    @VisibleForTesting
+    static LockWatchEventCacheImpl create(ClientLockWatchEventLog eventLog) {
+        return new LockWatchEventCacheImpl(eventLog);
     }
 
     @Override
