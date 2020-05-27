@@ -361,7 +361,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableRef, Iterables.size(rows), results.size(), getRowsMillis);
         }
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef);
         return results;
     }
 
@@ -391,7 +391,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    batchHint,
                                                    getStartTimestamp());
         if (!rawResults.hasNext()) {
-            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef);
         } // else the postFiltered iterator will check for each batch.
 
         BatchColumnRangeSelection batchColumnRangeSelection =
@@ -484,7 +484,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             batch.forEach(rawBuilder::put);
             Map<Cell, Value> raw = rawBuilder.build();
 
-            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef);
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
@@ -518,7 +518,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
-                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                validatePreCommitRequirementsOnReadIfNecessary(tableRef);
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
@@ -614,7 +614,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef);
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
@@ -724,7 +724,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 SafeArg.of("getOperation", operationName),
                                 SafeArg.of("durationMillis", getMillis));
                     }
-                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                    validatePreCommitRequirementsOnReadIfNecessary(tableRef);
                     return removeEmptyColumns(result, tableRef);
                 },
                 MoreExecutors.directExecutor());
@@ -743,7 +743,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 cells,
                 immediateKeyValueService,
                 immediateTransactionService);
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef);
 
         return Maps.filterValues(Futures.getUnchecked(result), Predicates.not(Value::isTombstone));
     }
@@ -801,7 +801,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     Timer.Context timer = getTimer("processedRangeMillis").time();
                     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
-                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                    validatePreCommitRequirementsOnReadIfNecessary(tableRef);
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
@@ -935,11 +935,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         };
     }
 
-    private void validatePreCommitRequirementsOnReadIfNecessary(TableReference tableRef, long timestamp) {
+    private void validatePreCommitRequirementsOnReadIfNecessary(TableReference tableRef) {
         if (!isValidationNecessaryOnReads(tableRef)) {
             return;
         }
-        throwIfPreCommitRequirementsNotMet(null, timestamp);
+        throwIfPreCommitRequirementsNotMet(null);
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
@@ -1116,7 +1116,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
-                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                validatePreCommitRequirementsOnReadIfNecessary(tableRef);
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -1442,7 +1442,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!keysToReload.isEmpty()) {
             return Futures.transform(asyncKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
-                        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                        validatePreCommitRequirementsOnReadIfNecessary(tableRef);
                         return getRemainingResults(nextRawResults, keysAddedToResults);
                     },
                     MoreExecutors.directExecutor());
@@ -1536,7 +1536,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             ensureUncommitted();
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
-                    throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
+                    throwIfPreCommitRequirementsNotMet(null);
                 }
                 transactionOutcomeMetrics.markAbort();
                 return;
@@ -1752,9 +1752,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             + "; the following locks are no longer valid: " + expiredLocks;
     }
 
-    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
+    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        throwIfPreCommitConditionInvalid(timestamp);
+        throwIfPreCommitConditionInvalid(getStartTimestamp());
     }
 
     private void throwIfPreCommitConditionInvalid(long timestamp) {
@@ -1872,13 +1872,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
+                throwIfPreCommitRequirementsNotMet(commitLocksToken);
                 Validate.isTrue(false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell),
                         table);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
+                throwIfPreCommitRequirementsNotMet(commitLocksToken);
                 Validate.isTrue(false, "Wrong timestamp for cell in table %s Expected: %s Actual: %s", table,
                         cellToConflict.get(cell),
                         conflictingValues.get(cell));
