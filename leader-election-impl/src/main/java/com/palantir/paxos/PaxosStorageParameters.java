@@ -16,14 +16,15 @@
 
 package com.palantir.paxos;
 
-import java.nio.file.Path;
 import java.util.Optional;
+
+import javax.sql.DataSource;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PaxosStorageParameters {
     NamespaceAndUseCase namespaceAndUseCase();
-    Path sqliteBasedLogDirectory();
+    DataSource sqliteDataSource();
     Optional<String> fileBasedLogDirectory();
 }

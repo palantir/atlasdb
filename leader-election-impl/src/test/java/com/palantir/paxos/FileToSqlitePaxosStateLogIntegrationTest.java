@@ -21,15 +21,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
 import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
 import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+
+import javax.sql.DataSource;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
@@ -51,10 +50,10 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     @Before
     public void setup() throws IOException {
         source = new PaxosStateLogImpl<>(tempFolder.newFolder("source").getPath());
-        Supplier<Connection> targetConnSupplier = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("target").toPath());
-        target = SqlitePaxosStateLog.create(NAMESPACE, targetConnSupplier);
-        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConnSupplier);
+        DataSource targetSource = SqliteConnections
+                .getPooledDataSource(tempFolder.newFolder("target").toPath());
+        target = SqlitePaxosStateLog.create(NAMESPACE, targetSource);
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetSource);
     }
 
     @Test

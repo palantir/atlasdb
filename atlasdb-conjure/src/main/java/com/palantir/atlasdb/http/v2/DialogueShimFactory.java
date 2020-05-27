@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.management;
+package com.palantir.atlasdb.http.v2;
 
-import java.nio.file.Path;
-import java.sql.Connection;
+import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
+import com.palantir.conjure.java.dialogue.serde.DefaultConjureRuntime;
+import com.palantir.dialogue.Channel;
 
-import javax.sql.DataSource;
+public final class DialogueShimFactory {
+    private DialogueShimFactory() {
+        // Nö
+    }
 
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface PersistentNamespaceContext {
-    Path fileDataDirectory();
-
-    DataSource sqliteDataSource();
-
-    static PersistentNamespaceContext of(Path fileDataDirectory, DataSource sqliteDataSource) {
-        return ImmutablePersistentNamespaceContext.builder()
-                .fileDataDirectory(fileDataDirectory)
-                .sqliteDataSource(sqliteDataSource)
-                .build();
+    public static <T> T create(Class<T> type, Channel channel) {
+        return JaxRsClient.create(type, channel, DefaultConjureRuntime.builder().build());
     }
 }

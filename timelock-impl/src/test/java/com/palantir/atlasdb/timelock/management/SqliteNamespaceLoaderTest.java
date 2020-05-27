@@ -18,9 +18,9 @@ package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.sql.Connection;
 import java.util.UUID;
-import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,14 +45,13 @@ public class SqliteNamespaceLoaderTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private Supplier<Connection> connectionSupplier;
+    private DataSource dataSource;
     private PersistentNamespaceLoader namespaceLoader;
 
     @Before
     public void setup() {
-        connectionSupplier = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
-        namespaceLoader = SqliteNamespaceLoader.create(connectionSupplier);
+        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        namespaceLoader = SqliteNamespaceLoader.create(dataSource);
     }
 
     @Test
@@ -77,7 +76,7 @@ public class SqliteNamespaceLoaderTest {
     }
 
     private void initializeLog(Client namespace, String sequenceId) {
-        SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), connectionSupplier)
+        SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), dataSource)
                 .writeRound(1, PAXOS_VALUE);
     }
 }
