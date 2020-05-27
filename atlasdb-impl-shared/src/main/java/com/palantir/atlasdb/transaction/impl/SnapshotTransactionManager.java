@@ -179,7 +179,7 @@ import com.palantir.util.SafeShutdownRunner;
     @Override
     public StartTransactionsResponse startTransactions(List<StartTransactionRequest> requests) {
         if (requests.isEmpty()) {
-            return new DefaultStartTransactions(ImmutableList.of());
+            return new DefaultStartTransactionsResponse(ImmutableList.of());
         }
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
@@ -208,7 +208,7 @@ import com.palantir.util.SafeShutdownRunner;
                         return new OpenTransactionImpl(transaction, immutableTsLock);
                     }).collect(Collectors.toList());
 
-            return new DefaultStartTransactions(transactions);
+            return new DefaultStartTransactionsResponse(transactions);
         } catch (Throwable t) {
             timelockService.tryUnlock(
                     responses.stream()
@@ -218,11 +218,11 @@ import com.palantir.util.SafeShutdownRunner;
         }
     }
 
-    private final class DefaultStartTransactions implements StartTransactionsResponse {
+    private final class DefaultStartTransactionsResponse implements StartTransactionsResponse {
 
         private final List<OpenTransaction> transactions;
 
-        DefaultStartTransactions(
+        DefaultStartTransactionsResponse(
                 List<OpenTransaction> transactions) {
             this.transactions = transactions;
         }
