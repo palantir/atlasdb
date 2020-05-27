@@ -33,7 +33,7 @@ public interface IdentifiedVersion extends Comparable<IdentifiedVersion> {
 
     @Override
     default int compareTo(IdentifiedVersion otherVersion) {
-        // sorting on version only; should not be used for equality checks
+        // Compare on version only; if used for equality, will not consider leader id
         return Long.compare(version(), otherVersion.version());
     }
 }

@@ -30,7 +30,7 @@ import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
-    private final ConcurrentSkipListMap<IdentifiedVersion, LockWatchEvent> eventLog;
+    private final ConcurrentSkipListMap<Long, LockWatchEvent> eventLog;
     private volatile Optional<IdentifiedVersion> latestVersion;
 
     public static ClientLockWatchEventLogImpl create() {
@@ -62,12 +62,21 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return latestVersion;
     }
 
+    /**
+     * @param timestampToVersion mapping from timestamp to identified version from client-side event cache;
+     * @param version            latest version that the client knows about; should be before timestamps in the
+     *                           mapping;
+     * @return lock watch events that occurred from (exclusive) the provided version, up to (inclusive) the latest
+     * version in the timestamp to version map.
+     */
     @Override
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
-
+        Optional<IdentifiedVersion> versionInclusive =
+                version.map(oldVersion -> IdentifiedVersion.of(oldVersion.id(), oldVersion.version() + 1));
+        IdentifiedVersion currentVersion = latestVersion.get();
         /*
         There are three cases to consider where we would return a snapshot:
             1: they provide an empty version;
@@ -75,28 +84,25 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             3. their version is behind our log.
         Note that if their version is ahead of our log, or we do not have a version, an exception is thrown instead.
          */
-        Optional<IdentifiedVersion> fromVersion =
-                version.map(oldVersion -> IdentifiedVersion.of(oldVersion.id(), oldVersion.version() + 1));
-        IdentifiedVersion currentVersion = latestVersion.get();
-        if (!fromVersion.isPresent()
-                || !fromVersion.get().id().equals(currentVersion.id())
-                || eventLog.floorKey(fromVersion.get()) == null) {
+        if (!versionInclusive.isPresent()
+                || !versionInclusive.get().id().equals(currentVersion.id())
+                || eventLog.floorKey(versionInclusive.get().version()) == null) {
             return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot(currentVersion));
         }
 
-        IdentifiedVersion mostRecentVersion = Collections.max(timestampToVersion.values());
+        IdentifiedVersion toVersion = Collections.max(timestampToVersion.values());
 
-        Preconditions.checkArgument(mostRecentVersion.compareTo(currentVersion) > -1,
+        Preconditions.checkArgument(toVersion.compareTo(currentVersion) > -1,
                 "Transactions' view of the world is more up-to-date than the log");
 
         if (eventLog.isEmpty()) {
             return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
         }
 
-        IdentifiedVersion oldestVersion = fromVersion.get();
+        IdentifiedVersion fromVersion = versionInclusive.get();
 
         return TransactionsLockWatchEvents.success(
-                new ArrayList<>(eventLog.subMap(oldestVersion, true, mostRecentVersion, true).values()),
+                new ArrayList<>(eventLog.subMap(fromVersion.version(), true, toVersion.version(), true).values()),
                 timestampToVersion);
     }
 
@@ -111,18 +117,20 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     private void processSuccess(
             LockWatchStateUpdate.Success success,
-            Optional<IdentifiedVersion> earliestVersion) {
+            Optional<IdentifiedVersion> earliestLivingVersion) {
+        Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
+
         // Never re-process old entries
-        if (!latestVersion.isPresent() || success.lastKnownVersion() > latestVersion.get().version()) {
-            success.events().forEach(
-                    event -> eventLog.put(IdentifiedVersion.of(success.logId(), event.sequence()), event));
-            latestVersion = Optional.of(eventLog.lastKey());
+        if (success.lastKnownVersion() > latestVersion.get().version()) {
+            success.events().forEach(event ->
+                    eventLog.put(event.sequence(), event));
+            latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventLog.lastKey()));
         }
 
-        // Remove unused entries
-        if (earliestVersion.isPresent() && success.lastKnownVersion() >= earliestVersion.get().version()) {
-            Set<Map.Entry<IdentifiedVersion, LockWatchEvent>> eventsToBeRemoved =
-                    eventLog.headMap(earliestVersion.get()).entrySet();
+        // Remove old entries
+        if (earliestLivingVersion.isPresent()) {
+            Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
+                    eventLog.headMap(earliestLivingVersion.get().version()).entrySet();
             snapshotUpdater.processEvents(
                     eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
             eventsToBeRemoved.clear();

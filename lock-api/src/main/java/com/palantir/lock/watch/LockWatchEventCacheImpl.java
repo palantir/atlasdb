@@ -16,37 +16,27 @@
 
 package com.palantir.lock.watch;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.TreeMultimap;
+import com.palantir.logsafe.Preconditions;
 
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
     private final ConcurrentSkipListMap<Long, IdentifiedVersion> timestampMap = new ConcurrentSkipListMap<>();
-    private final BlockingQueue<Long> markedForDelete = new LinkedBlockingQueue<>();
-    private volatile Optional<IdentifiedVersion> earliestVersion;
-    private volatile Optional<IdentifiedVersion> currentVersion;
+    private final TreeMultimap<IdentifiedVersion, Long> aliveVersions = TreeMultimap.create();
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
         this.lockWatchEventLog = lockWatchEventLog;
-        this.earliestVersion = Optional.empty();
-        this.currentVersion = Optional.empty();
     }
 
     public static LockWatchEventCacheImpl create() {
-        return new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create());
-    }
-
-    public static LockWatchEventCacheImpl createWithoutCache() {
-        return create(NoOpClientLockWatchEventLog.INSTANCE);
+        return create(ClientLockWatchEventLogImpl.create());
     }
 
     @VisibleForTesting
@@ -56,7 +46,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public Optional<IdentifiedVersion> lastKnownVersion() {
-        return currentVersion;
+        return lockWatchEventLog.getLatestKnownVersion();
     }
 
     /**
@@ -69,29 +59,28 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
-        deleteMarkedEntries();
-
-        Optional<IdentifiedVersion> latestVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
+        Optional<IdentifiedVersion> currentVersion = lockWatchEventLog.getLatestKnownVersion();
+        Optional<IdentifiedVersion> latestVersion = lockWatchEventLog.processUpdate(update, getEarliestVersion());
 
         if (!(latestVersion.isPresent()
                 && currentVersion.isPresent()
                 && latestVersion.get().id().equals(currentVersion.get().id())
                 && update.accept(SuccessVisitor.INSTANCE))) {
             timestampMap.clear();
-            earliestVersion = Optional.empty();
-            markedForDelete.clear();
+            aliveVersions.clear();
         }
 
-        currentVersion = latestVersion;
-        currentVersion.ifPresent(
-                version -> startTimestamps.forEach(timestamp -> timestampMap.put(timestamp, version)));
-
-        return currentVersion;
+        latestVersion.ifPresent(
+                version -> startTimestamps.forEach(timestamp -> {
+                    timestampMap.put(timestamp, version);
+                    aliveVersions.put(version, timestamp);
+                }));
+        return latestVersion;
     }
 
     @Override
-    public void processUpdate(LockWatchStateUpdate update) {
-        currentVersion = lockWatchEventLog.processUpdate(update, earliestVersion);
+    public synchronized void processUpdate(LockWatchStateUpdate update) {
+        lockWatchEventLog.processUpdate(update, getEarliestVersion());
     }
 
     /**
@@ -107,38 +96,32 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public void removeTimestampFromCache(Long timestamp) {
+    public synchronized void removeTimestampFromCache(Long timestamp) {
         IdentifiedVersion versionToRemove = timestampMap.get(timestamp);
         if (versionToRemove != null) {
-            markedForDelete.add(timestamp);
+            timestampMap.remove(timestamp);
+            aliveVersions.remove(versionToRemove, timestamp);
         }
-    }
-
-    @VisibleForTesting
-    void deleteMarkedEntries() {
-        List<Long> timestampsToDelete = new ArrayList<>(markedForDelete.size());
-        markedForDelete.drainTo(timestampsToDelete);
-        timestampsToDelete.forEach(timestampMap::remove);
-        earliestVersion = Optional.ofNullable(timestampMap.firstEntry()).map(Map.Entry::getValue);
     }
 
     @VisibleForTesting
     Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
-        // This may return a map of a different size to the input, if timestamps are missing (which we do not expect in
-        // practice).
         startTimestamps.forEach(timestamp -> {
             IdentifiedVersion version = timestampMap.get(timestamp);
-            if (version != null) {
-                timestampToVersion.put(timestamp, version);
-            }
+            Preconditions.checkNotNull(version, "Timestamp missing from cache");
+            timestampToVersion.put(timestamp, version);
         });
         return timestampToVersion;
     }
 
     @VisibleForTesting
     Optional<IdentifiedVersion> getEarliestVersion() {
-        return earliestVersion;
+        if (aliveVersions.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.ofNullable(aliveVersions.keySet().first());
+        }
     }
 
     enum SuccessVisitor implements LockWatchStateUpdate.Visitor<Boolean> {

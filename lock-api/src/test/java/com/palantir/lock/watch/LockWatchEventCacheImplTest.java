@@ -17,6 +17,7 @@
 package com.palantir.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -37,6 +38,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.logsafe.exceptions.SafeNullPointerException;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class LockWatchEventCacheImplTest {
@@ -76,23 +78,6 @@ public final class LockWatchEventCacheImplTest {
     }
 
     @Test
-    public void removeFromCachePerformsDeleteOnUpdate() {
-        Map<Long, IdentifiedVersion> expectedMap = constructExpectedMap();
-
-        when(eventLog.processUpdate(SUCCESS, Optional.empty())).thenReturn(Optional.of(VERSION_1));
-        eventCache.processStartTransactionsUpdate(TIMESTAMPS, SUCCESS);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
-
-        eventCache.removeTimestampFromCache(3L);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
-
-        when(eventLog.processUpdate(SUCCESS, Optional.of(VERSION_1))).thenReturn(Optional.of(VERSION_2));
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
-        expectedMap.remove(3L);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).containsExactlyEntriesOf(expectedMap);
-    }
-
-    @Test
     public void oldTimestampsClearedOnSnapshotUpdate() {
         Map<Long, IdentifiedVersion> expectedMap = constructExpectedMap();
 
@@ -107,7 +92,9 @@ public final class LockWatchEventCacheImplTest {
         Map<Long, IdentifiedVersion> newExpectedMap = constructExpectedMap(secondBatch, VERSION_2);
 
         assertThat(eventCache.getTimestampToVersionMap(secondBatch)).containsExactlyEntriesOf(newExpectedMap);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).isEmpty();
+        assertThatThrownBy(() -> eventCache.getTimestampToVersionMap(TIMESTAMPS))
+                .isInstanceOf(SafeNullPointerException.class)
+                .hasMessage("Timestamp missing from cache");
     }
 
     @Test
@@ -119,6 +106,8 @@ public final class LockWatchEventCacheImplTest {
         when(eventLog.processUpdate(laterSuccess, Optional.of(VERSION_1))).thenReturn(Optional.of(VERSION_2));
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(1L, 2L), SUCCESS);
+
+        when(eventLog.getLatestKnownVersion()).thenReturn(Optional.of(VERSION_1));
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(3L, 4L), laterSuccess);
 
         Map<Long, IdentifiedVersion> expectedMap = ImmutableMap.<Long, IdentifiedVersion>builder()
@@ -149,7 +138,6 @@ public final class LockWatchEventCacheImplTest {
 
     private void removeTimestampAndCheckEarliestVersion(long timestamp, IdentifiedVersion version) {
         eventCache.removeTimestampFromCache(timestamp);
-        eventCache.deleteMarkedEntries();
         assertThat(eventCache.getEarliestVersion()).hasValue(version);
     }
 
