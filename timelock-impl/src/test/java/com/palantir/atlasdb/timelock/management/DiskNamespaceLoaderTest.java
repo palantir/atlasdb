@@ -52,10 +52,7 @@ public class DiskNamespaceLoaderTest {
     @Mock private Function<String, TimeLockServices> serviceFactory;
     @Mock private Supplier<Integer> maxNumberOfClientsSupplier;
 
-    private final MetricsManager metricsManager = new MetricsManager(
-            new MetricRegistry(),
-            DefaultTaggedMetricRegistry.getDefault(),
-            unused -> false);
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private TimeLockManagementResource timeLockManagementResource;
 
     @Rule
