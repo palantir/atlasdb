@@ -27,6 +27,10 @@ public final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatch
     private final Set<LockDescriptor> locked = new HashSet<>();
     private final EventVisitor visitor = new EventVisitor();
 
+    public static ClientLockWatchSnapshotUpdater create() {
+        return new ClientLockWatchSnapshotUpdaterImpl();
+    }
+
     @Override
     public synchronized LockWatchStateUpdate.Snapshot getSnapshot(IdentifiedVersion identifiedVersion) {
         return LockWatchStateUpdate.snapshot(identifiedVersion.id(), identifiedVersion.version(), locked, watches);
@@ -39,9 +43,8 @@ public final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatch
 
     @Override
     public synchronized void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
-        watches.clear();
+        reset();
         watches.addAll(snapshot.lockWatches());
-        locked.clear();
         locked.addAll(snapshot.locked());
     }
 

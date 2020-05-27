@@ -33,13 +33,13 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private volatile Optional<IdentifiedVersion> latestVersion;
 
     public static ClientLockWatchEventLogImpl create() {
-        return new ClientLockWatchEventLogImpl();
+        return new ClientLockWatchEventLogImpl(ClientLockWatchSnapshotUpdaterImpl.create());
     }
 
-    private ClientLockWatchEventLogImpl() {
-        snapshotUpdater = null;
-        eventLog = new ConcurrentSkipListMap<>();
-        latestVersion = Optional.empty();
+    private ClientLockWatchEventLogImpl(ClientLockWatchSnapshotUpdater snapshotUpdater) {
+        this.snapshotUpdater = snapshotUpdater;
+        this.eventLog = new ConcurrentSkipListMap<>();
+        this.latestVersion = Optional.empty();
     }
 
     @Override
