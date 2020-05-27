@@ -36,6 +36,7 @@ import com.palantir.lock.watch.CommitUpdate;
  */
 @FunctionalInterface
 public interface PreCommitCondition {
+
     /**
      * Checks that the condition is valid at the given timestamp, otherwise throws a
      * {@link TransactionFailedException}. If the condition is not valid, the transaction will not be committed.
