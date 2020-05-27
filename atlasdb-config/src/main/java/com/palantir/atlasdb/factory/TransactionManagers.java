@@ -92,9 +92,9 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -1081,7 +1081,8 @@ public abstract class TransactionManagers {
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
-        LockWatchManager lockWatcher = new LockWatchManagerImpl(lockWatchingService, lockWatchEventCache);
+        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService,
+                lockWatchEventCache);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
@@ -1304,8 +1305,8 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
         @Value.Default
-        default LockWatchManager lockWatcher() {
-            return NoOpLockWatchManager.INSTANCE;
+        default InternalLockWatchManager lockWatcher() {
+            return NoOpInternalLockWatchManager.INSTANCE;
         }
 
         @Value.Derived
