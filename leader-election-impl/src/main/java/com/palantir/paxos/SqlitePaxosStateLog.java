@@ -34,7 +34,7 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.common.persist.Persistable;
 
-@SuppressWarnings("FinalClass") // non-final for mocking
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private final Client namespace;
     private final String useCase;

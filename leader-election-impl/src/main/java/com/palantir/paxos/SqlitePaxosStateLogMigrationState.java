@@ -52,7 +52,8 @@ public final class SqlitePaxosStateLogMigrationState {
     }
 
     private void initialize() {
-        execute(Queries::createTable);
+        execute(Queries::createMigrationStateTable);
+        execute(Queries::createMigrationCutoffTable);
     }
 
     public void migrateToValidationState() {
@@ -79,6 +80,14 @@ public final class SqlitePaxosStateLogMigrationState {
                 .orElse(false));
     }
 
+    public void setCutoff(long value) {
+        execute(dao -> dao.setCutoff(namespace, useCase, value));
+    }
+
+    public long getCutoff() {
+        return execute(dao -> dao.getCutoff(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
     }
@@ -102,7 +111,11 @@ public final class SqlitePaxosStateLogMigrationState {
     public interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS migration_state (namespace TEXT, useCase TEXT, version INT,"
                 + "PRIMARY KEY(namespace, useCase))")
-        boolean createTable();
+        boolean createMigrationStateTable();
+
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS migration_cutoff (namespace TEXT, useCase TEXT, cutoff BIGINT,"
+                + "PRIMARY KEY(namespace, useCase))")
+        boolean createMigrationCutoffTable();
 
         @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, useCase, version) VALUES"
                 + " (:namespace.value, :useCase, :version)")
@@ -111,8 +124,18 @@ public final class SqlitePaxosStateLogMigrationState {
                 @Bind("useCase") String useCase,
                 @Bind("version") int version);
 
+        @SqlUpdate("INSERT OR REPLACE INTO migration_cutoff (namespace, useCase, cutoff) VALUES"
+                + " (:namespace.value, :useCase, :cutoff)")
+        boolean setCutoff(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("cutoff") long cutoff);
+
         @SqlQuery("SELECT version FROM migration_state WHERE namespace = :namespace.value AND useCase = :useCase")
         Optional<Integer> getVersion(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+
+        @SqlQuery("SELECT cutoff FROM migration_cutoff WHERE namespace = :namespace.value AND useCase = :useCase")
+        Optional<Long> getCutoff(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 
     private enum States {

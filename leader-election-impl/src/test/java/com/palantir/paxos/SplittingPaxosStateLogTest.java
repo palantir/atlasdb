@@ -28,9 +28,9 @@ import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
 import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -50,10 +50,8 @@ public class SplittingPaxosStateLogTest {
 
     @Before
     public void setup() throws IOException {
-        Supplier<Connection> legacy = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("legacy").toPath());
-        Supplier<Connection> current = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.newFolder("current").toPath());
+        DataSource legacy = SqliteConnections.getPooledDataSource(tempFolder.newFolder("legacy").toPath());
+        DataSource current = SqliteConnections.getPooledDataSource(tempFolder.newFolder("current").toPath());
         legacyLog = spy(SqlitePaxosStateLog.create(NAMESPACE, legacy));
         currentLog = spy(SqlitePaxosStateLog.create(NAMESPACE, current));
     }

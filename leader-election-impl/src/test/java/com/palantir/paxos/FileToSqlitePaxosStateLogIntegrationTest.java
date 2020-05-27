@@ -20,19 +20,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
 import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
-import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
+import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import javax.sql.DataSource;
 
+import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.palantir.common.streams.KeyedStream;
 
 public class FileToSqlitePaxosStateLogIntegrationTest {
     @Rule
@@ -79,9 +84,19 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
         source.writeBatchOfRounds(rounds);
 
         migrate();
-        List<PaxosValue> migratedValues = readMigratedValuesFor(expectedValues);
+        long cutoff = source.getGreatestLogEntry() - PaxosStateLogMigrator.SAFETY_BUFFER;
+        Map<Long, byte[]> targetEntries = readMigratedValuesFor(expectedValues);
 
-        assertThat(migratedValues).isEqualTo(roundsToValues(rounds));
+        targetEntries.entrySet().stream()
+                .filter(entry -> entry.getKey() < cutoff)
+                .map(Map.Entry::getValue)
+                .map(Assertions::assertThat)
+                .forEach(AbstractAssert::isNull);
+        KeyedStream.stream(targetEntries)
+                .filterKeys(sequence -> sequence >= cutoff)
+                .mapKeys(PaxosStateLogTestUtils::valueForRound)
+                .mapKeys(PaxosValue::persistToBytes)
+                .forEach((fst, snd) -> assertThat(fst).containsExactly(snd));
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
     }
 
@@ -90,7 +105,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     }
 
     private void migrate() {
-        PaxosStateLogMigrator.migrateToValidation(ImmutableMigrationContext.<PaxosValue>builder()
+        PaxosStateLogMigrator.migrateAndReturnCutoff(ImmutableMigrationContext.<PaxosValue>builder()
                 .sourceLog(source)
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
@@ -98,9 +113,10 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
                 .build());
     }
 
-    private List<PaxosValue> readMigratedValuesFor(List<PaxosValue> values) {
-        return values.stream()
-                .map(value -> getPaxosValue(target, value.seq))
-                .collect(Collectors.toList());
+    private Map<Long, byte[]> readMigratedValuesFor(List<PaxosValue> values) {
+        return KeyedStream.of(values)
+                .mapKeys(value -> value.seq)
+                .map(value -> readRoundUnchecked(target, value.seq))
+                .collectToMap();
     }
 }

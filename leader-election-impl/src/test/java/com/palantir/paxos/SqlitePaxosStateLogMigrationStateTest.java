@@ -104,4 +104,16 @@ public class SqlitePaxosStateLogMigrationStateTest {
         otherState.migrateToValidationState();
         assertThat(otherState.hasMigratedFromInitialState()).isTrue();
     }
+
+    @Test
+    public void defaultCutoffIsNoLogEntry() {
+        assertThat(migrationState.getCutoff()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void canSetCutoff() {
+        long expectedCutoff = 100L;
+        migrationState.setCutoff(expectedCutoff);
+        assertThat(migrationState.getCutoff()).isEqualTo(expectedCutoff);
+    }
 }
