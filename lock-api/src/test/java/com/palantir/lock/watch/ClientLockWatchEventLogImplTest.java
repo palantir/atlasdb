@@ -71,21 +71,25 @@ public final class ClientLockWatchEventLogImplTest {
     public void snapshotUpdateResetsSnapshotter() {
         eventLog.processUpdate(SNAPSHOT, Optional.empty());
         verify(snapshotUpdater).resetWithSnapshot(SNAPSHOT);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
     }
 
     @Test
     public void failedUpdateResetsSnapshotter() {
         eventLog.processUpdate(FAILED, Optional.empty());
         verify(snapshotUpdater).reset();
+        assertThat(eventLog.getLatestKnownVersion()).isEmpty();
     }
 
     @Test
     public void getEventsForTransactionsReturnsRequiredEventsOnly() {
         eventLog.processUpdate(SNAPSHOT, Optional.empty());
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
         eventLog.processUpdate(SUCCESS, Optional.empty());
         List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1))
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_2);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
     }
 
     @Test
@@ -95,6 +99,7 @@ public final class ClientLockWatchEventLogImplTest {
         List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1))
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
 
         when(snapshotUpdater.getSnapshot(VERSION_2)).thenReturn(LockWatchStateUpdate.snapshot(
                         VERSION_2.id(),

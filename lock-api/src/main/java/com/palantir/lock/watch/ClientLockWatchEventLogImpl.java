@@ -68,9 +68,13 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             Optional<IdentifiedVersion> version) {
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
 
-        // case 1: their version has no version: tell them to go and get a snapshot.
-        // case 2: their version has a different uuid to yours (leader election): tell them to get a snapshot.
-        // case 3: their version is too far behind our log
+        /*
+        There are three cases to consider where we would return a snapshot:
+            1: they provide an empty version;
+            2. their version has a different UUID (i.e. refers to the wrong leader);
+            3. their version is behind our log.
+        Note that if their version is ahead of our log, or we do not have a version, an exception is thrown instead.
+         */
         IdentifiedVersion currentVersion = latestVersion.get();
         if (!version.isPresent()
                 || !version.get().id().equals(currentVersion.id())
