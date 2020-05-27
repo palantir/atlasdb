@@ -39,6 +39,7 @@ com.palantir.tracing:* = 4.4.0
 com.palantir.tritium:* = 0.16.8
 com.squareup.okhttp3:* = 3.12.0
 com.squareup:javapoet = 1.11.1
+com.zaxxer:HikariCP = 3.4.1
 commons-cli:commons-cli = 1.2
 commons-codec:commons-codec = 1.13
 commons-io:commons-io = 2.6

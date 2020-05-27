@@ -20,9 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.sql.Connection;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -37,7 +35,6 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosStateLogImpl;
 import com.palantir.paxos.PaxosStorageParameters;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 
 public class PaxosStateLogMigrationIntegrationTest {
@@ -219,8 +216,6 @@ public class PaxosStateLogMigrationIntegrationTest {
     }
 
     private PaxosStateLog<PaxosValue> createSqliteLog(PaxosStorageParameters parameters) {
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
-        return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), conn);
+        return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), parameters.sqliteDataSource());
     }
 }
