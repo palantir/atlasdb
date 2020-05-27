@@ -75,6 +75,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 && update.accept(SuccessVisitor.INSTANCE))) {
             timestampMap.clear();
             earliestVersion = Optional.empty();
+            markedForDelete.clear();
         }
 
         currentVersion = latestVersion;

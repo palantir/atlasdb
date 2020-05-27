@@ -43,12 +43,10 @@ public final class LockWatchEventCacheImplTest {
     private static final UUID LEADER = UUID.randomUUID();
     private static final IdentifiedVersion VERSION_1 = IdentifiedVersion.of(LEADER, 17L);
     private static final IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 38L);
-    private static final IdentifiedVersion VERSION_3 = IdentifiedVersion.of(LEADER, 1066L);
     private static final LockWatchStateUpdate.Success SUCCESS =
             LockWatchStateUpdate.success(VERSION_1.id(), VERSION_1.version(), ImmutableList.of());
     private static final LockWatchStateUpdate.Snapshot SNAPSHOT =
             LockWatchStateUpdate.snapshot(VERSION_2.id(), VERSION_2.version(), ImmutableSet.of(), ImmutableSet.of());
-    private static final LockWatchStateUpdate.Failed FAILED = LockWatchStateUpdate.failed(UUID.randomUUID());
     private static final Set<Long> TIMESTAMPS = ImmutableSet.of(1L, 2L, 3L, 1337L, 10110101L);
 
     @Mock
@@ -70,8 +68,7 @@ public final class LockWatchEventCacheImplTest {
     @Test
     public void processStartTransactionUpdateAddsToCache() {
         when(eventLog.processUpdate(SUCCESS, Optional.empty())).thenReturn(Optional.of(VERSION_1));
-        Map<Long, IdentifiedVersion> expectedMap = new HashMap<>();
-        TIMESTAMPS.forEach(timestamp -> expectedMap.put(timestamp, VERSION_1));
+        Map<Long, IdentifiedVersion> expectedMap = constructExpectedMap();
 
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SUCCESS);
         verify(eventLog).processUpdate(eq(SUCCESS), any());
@@ -80,8 +77,7 @@ public final class LockWatchEventCacheImplTest {
 
     @Test
     public void removeFromCachePerformsDeleteOnUpdate() {
-        Map<Long, IdentifiedVersion> expectedMap = new HashMap<>();
-        TIMESTAMPS.forEach(timestamp -> expectedMap.put(timestamp, VERSION_1));
+        Map<Long, IdentifiedVersion> expectedMap = constructExpectedMap();
 
         when(eventLog.processUpdate(SUCCESS, Optional.empty())).thenReturn(Optional.of(VERSION_1));
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SUCCESS);
@@ -97,9 +93,8 @@ public final class LockWatchEventCacheImplTest {
     }
 
     @Test
-    public void timestampsClearedOnSnapshotUpdate() {
-        Map<Long, IdentifiedVersion> expectedMap = new HashMap<>();
-        TIMESTAMPS.forEach(timestamp -> expectedMap.put(timestamp, VERSION_1));
+    public void oldTimestampsClearedOnSnapshotUpdate() {
+        Map<Long, IdentifiedVersion> expectedMap = constructExpectedMap();
 
         when(eventLog.processUpdate(SUCCESS, Optional.empty())).thenReturn(Optional.of(VERSION_1));
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SUCCESS);
@@ -109,8 +104,7 @@ public final class LockWatchEventCacheImplTest {
         Set<Long> secondBatch = ImmutableSet.of(666L, 12545L);
         eventCache.processStartTransactionsUpdate(secondBatch, SNAPSHOT);
 
-        Map<Long, IdentifiedVersion> newExpectedMap = new HashMap<>();
-        secondBatch.forEach(timestamp -> newExpectedMap.put(timestamp, VERSION_2));
+        Map<Long, IdentifiedVersion> newExpectedMap = constructExpectedMap(secondBatch, VERSION_2);
 
         assertThat(eventCache.getTimestampToVersionMap(secondBatch)).containsExactlyEntriesOf(newExpectedMap);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS)).isEmpty();
@@ -141,6 +135,16 @@ public final class LockWatchEventCacheImplTest {
         removeTimestampAndCheckEarliestVersion(2L, VERSION_1);
         removeTimestampAndCheckEarliestVersion(4L, VERSION_1);
         removeTimestampAndCheckEarliestVersion(1L, VERSION_2);
+    }
+
+    private Map<Long, IdentifiedVersion> constructExpectedMap() {
+        return constructExpectedMap(TIMESTAMPS, VERSION_1);
+    }
+
+    private Map<Long, IdentifiedVersion> constructExpectedMap(Set<Long> timestamps, IdentifiedVersion version) {
+        Map<Long, IdentifiedVersion> expectedMap = new HashMap<>();
+        timestamps.forEach(timestamp -> expectedMap.put(timestamp, version));
+        return expectedMap;
     }
 
     private void removeTimestampAndCheckEarliestVersion(long timestamp, IdentifiedVersion version) {
