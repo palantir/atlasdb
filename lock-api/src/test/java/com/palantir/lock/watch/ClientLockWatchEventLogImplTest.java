@@ -40,9 +40,9 @@ import com.palantir.lock.v2.LockToken;
 @RunWith(MockitoJUnitRunner.class)
 public final class ClientLockWatchEventLogImplTest {
     private static final UUID LEADER = UUID.randomUUID();
-    private static final IdentifiedVersion VERSION_0 = IdentifiedVersion.of(LEADER, 0L);
     private static final IdentifiedVersion VERSION_1 = IdentifiedVersion.of(LEADER, 17L);
-    private static final IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 38L);
+    private static final IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 25L);
+    private static final IdentifiedVersion VERSION_3 = IdentifiedVersion.of(LEADER, 38L);
     private static final LockWatchEvent EVENT_1 =
             LockEvent.builder(ImmutableSet.of(), LockToken.of(UUID.randomUUID())).build(17L);
     private static final LockWatchEvent EVENT_2 =
@@ -50,13 +50,13 @@ public final class ClientLockWatchEventLogImplTest {
     private static final LockWatchStateUpdate.Snapshot SNAPSHOT =
             LockWatchStateUpdate.snapshot(VERSION_1.id(), VERSION_1.version(), ImmutableSet.of(), ImmutableSet.of());
     private static final LockWatchStateUpdate.Success SUCCESS =
-            LockWatchStateUpdate.success(VERSION_2.id(), VERSION_2.version(), ImmutableList.of(EVENT_1, EVENT_2));
+            LockWatchStateUpdate.success(VERSION_3.id(), VERSION_3.version(), ImmutableList.of(EVENT_1, EVENT_2));
     private static final LockWatchStateUpdate.Success SUCCESS_EMPTY =
-            LockWatchStateUpdate.success(VERSION_2.id(), VERSION_2.version(), ImmutableList.of());
+            LockWatchStateUpdate.success(VERSION_3.id(), VERSION_3.version(), ImmutableList.of());
     private static final LockWatchStateUpdate.Failed FAILED =
             LockWatchStateUpdate.failed(LEADER);
     private static final Map<Long, IdentifiedVersion> TIMESTAMPS =
-            ImmutableMap.of(1L, VERSION_1, 2L, VERSION_1, 3L, VERSION_2);
+            ImmutableMap.of(1L, VERSION_1, 2L, VERSION_1, 3L, VERSION_3);
 
     @Mock
     private ClientLockWatchSnapshotUpdater snapshotUpdater;
@@ -82,33 +82,48 @@ public final class ClientLockWatchEventLogImplTest {
     }
 
     @Test
+    public void leaderChangeResetsSnapshot() {
+        eventLog.processUpdate(SNAPSHOT, Optional.empty());
+        verify(snapshotUpdater).resetWithSnapshot(SNAPSHOT);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
+
+        eventLog.processUpdate(
+                LockWatchStateUpdate.success(UUID.randomUUID(), 1L, ImmutableList.of()),
+                Optional.empty());
+        verify(snapshotUpdater).reset();
+        assertThat(eventLog.getLatestKnownVersion()).isEmpty();
+    }
+
+    @Test
     public void getEventsForTransactionsReturnsRequiredEventsOnly() {
         eventLog.processUpdate(SNAPSHOT, Optional.empty());
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
         eventLog.processUpdate(SUCCESS, Optional.empty());
-        List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1))
+        List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_2))
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_2);
-        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_3);
     }
 
     @Test
     public void oldEventsAreDeletedWhenEarliestVersionIsProvided() {
         eventLog.processUpdate(SNAPSHOT, Optional.empty());
         eventLog.processUpdate(SUCCESS, Optional.empty());
-        List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1))
+        List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS,
+                Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)))
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
-        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_3);
 
-        when(snapshotUpdater.getSnapshot(VERSION_2)).thenReturn(LockWatchStateUpdate.snapshot(
-                        VERSION_2.id(),
-                        VERSION_2.version(),
-                        ImmutableSet.of(),
-                        ImmutableSet.of()));
-        eventLog.processUpdate(SUCCESS_EMPTY, Optional.of(VERSION_2));
+        when(snapshotUpdater.getSnapshot(VERSION_3)).thenReturn(LockWatchStateUpdate.snapshot(
+                VERSION_3.id(),
+                VERSION_3.version(),
+                ImmutableSet.of(),
+                ImmutableSet.of()));
+        eventLog.processUpdate(SUCCESS_EMPTY, Optional.of(VERSION_3));
         eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
-        verify(snapshotUpdater).getSnapshot(VERSION_2);
+        verify(snapshotUpdater).getSnapshot(VERSION_3);
+        verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));
     }
 
     enum SuccessVisitor implements TransactionsLockWatchEvents.Visitor<TransactionsLockWatchEvents.Events> {
@@ -123,21 +138,6 @@ public final class ClientLockWatchEventLogImplTest {
         public TransactionsLockWatchEvents.Events visit(TransactionsLockWatchEvents.ForcedSnapshot failure) {
             fail("Expected success outcome");
             return null;
-        }
-    }
-
-    enum SnapshotVisitor implements TransactionsLockWatchEvents.Visitor<TransactionsLockWatchEvents.ForcedSnapshot> {
-        INSTANCE;
-
-        @Override
-        public TransactionsLockWatchEvents.ForcedSnapshot visit(TransactionsLockWatchEvents.Events success) {
-            fail("Expected snapshot outcome");
-            return null;
-        }
-
-        @Override
-        public TransactionsLockWatchEvents.ForcedSnapshot visit(TransactionsLockWatchEvents.ForcedSnapshot failure) {
-            return failure;
         }
     }
 }

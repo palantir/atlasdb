@@ -75,10 +75,12 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             3. their version is behind our log.
         Note that if their version is ahead of our log, or we do not have a version, an exception is thrown instead.
          */
+        Optional<IdentifiedVersion> fromVersion =
+                version.map(oldVersion -> IdentifiedVersion.of(oldVersion.id(), oldVersion.version() + 1));
         IdentifiedVersion currentVersion = latestVersion.get();
-        if (!version.isPresent()
-                || !version.get().id().equals(currentVersion.id())
-                || eventLog.floorKey(version.get()) == null) {
+        if (!fromVersion.isPresent()
+                || !fromVersion.get().id().equals(currentVersion.id())
+                || eventLog.floorKey(fromVersion.get()) == null) {
             return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot(currentVersion));
         }
 
@@ -91,7 +93,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
         }
 
-        IdentifiedVersion oldestVersion = version.get();
+        IdentifiedVersion oldestVersion = fromVersion.get();
 
         return TransactionsLockWatchEvents.success(
                 new ArrayList<>(eventLog.subMap(oldestVersion, true, mostRecentVersion, true).values()),
