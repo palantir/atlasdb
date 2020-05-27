@@ -35,7 +35,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
-    public static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
 
     @VisibleForTesting
     static final int BATCH_SIZE = 10_000;
