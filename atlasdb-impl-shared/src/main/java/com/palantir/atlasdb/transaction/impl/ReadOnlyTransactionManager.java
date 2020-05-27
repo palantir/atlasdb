@@ -32,9 +32,9 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.OpenTransactions;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.StartTransactionRequest;
+import com.palantir.atlasdb.transaction.api.StartTransactionsResponse;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -159,7 +159,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public OpenTransactions startTransactions(List<StartTransactionRequest> request) {
+    public StartTransactionsResponse startTransactions(List<StartTransactionRequest> request) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 

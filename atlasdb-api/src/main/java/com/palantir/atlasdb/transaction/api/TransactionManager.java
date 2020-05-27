@@ -433,7 +433,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Deprecated
     @Timed
-    OpenTransactions startTransactions(List<StartTransactionRequest> request);
+    StartTransactionsResponse startTransactions(List<StartTransactionRequest> request);
 
     /**
      * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.
