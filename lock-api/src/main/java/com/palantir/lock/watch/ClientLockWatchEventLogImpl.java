@@ -73,6 +73,9 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
+        Preconditions.checkArgument(
+                !timestampToVersion.isEmpty(),
+                "Cannot get events for empty map of timestamp to version");
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
         Optional<IdentifiedVersion> versionInclusive =
                 version.map(oldVersion -> IdentifiedVersion.of(oldVersion.id(), oldVersion.version() + 1));
