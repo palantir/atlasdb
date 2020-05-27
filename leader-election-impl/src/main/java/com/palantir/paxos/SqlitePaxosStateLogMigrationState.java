@@ -85,7 +85,7 @@ public final class SqlitePaxosStateLogMigrationState {
     }
 
     public long getCutoff() {
-        return execute(dao -> dao.getCutoff(namespace, useCase)).orElse(Long.MIN_VALUE);
+        return execute(dao -> dao.getCutoff(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     private <T> T execute(Function<Queries, T> call) {

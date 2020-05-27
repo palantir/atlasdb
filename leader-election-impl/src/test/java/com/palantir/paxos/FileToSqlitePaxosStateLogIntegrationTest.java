@@ -84,7 +84,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
         source.writeBatchOfRounds(rounds);
 
         migrate();
-        long cutoff = source.getGreatestLogEntry() - 10;
+        long cutoff = source.getGreatestLogEntry() - PaxosStateLogMigrator.SAFETY_BUFFER;
         Map<Long, byte[]> targetEntries = readMigratedValuesFor(expectedValues);
 
         targetEntries.entrySet().stream()
@@ -110,7 +110,6 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
                 .migrationState(migrationState)
-                .migrateFrom(Math.max(PaxosAcceptor.NO_LOG_ENTRY, source.getGreatestLogEntry() - 10))
                 .build());
     }
 

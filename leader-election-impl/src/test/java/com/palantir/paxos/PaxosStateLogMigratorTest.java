@@ -76,39 +76,19 @@ public class PaxosStateLogMigratorTest {
 
     @Test
     public void emptyLogMigrationSuccessfullyMarksAsMigrated() {
-        migrateFrom(source);
+        long cutoff = migrateFrom(source);
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(cutoff).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Test
-    public void logMigrationWithNoLowerBoundMigratesOnlyGreatest() {
+    public void logMigrationWithNoLowerBoundMigratesForGreatest() {
         long lowerBound = 10;
-        long upperBound = 25;
+        long upperBound = 75;
+        long expectedCutoff = upperBound - PaxosStateLogMigrator.SAFETY_BUFFER;
         insertValuesWithinBounds(lowerBound, upperBound, source);
 
         long cutoff = migrateFrom(source);
-
-        assertThat(cutoff).isEqualTo(upperBound);
-        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
-        assertThat(migrationState.isInMigratedState()).isTrue();
-        assertThat(target.getLeastLogEntry()).isEqualTo(upperBound);
-        assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
-
-        LongStream.rangeClosed(lowerBound, upperBound - 1)
-                .mapToObj(sequence -> readRoundUnchecked(target, sequence))
-                .map(Assertions::assertThat)
-                .forEach(AbstractAssert::isNull);
-        assertThat(getPaxosValue(target, upperBound)).isEqualTo(valueForRound(upperBound));
-    }
-
-    @Test
-    public void logMigrationWithLowerBoundMigratesFromBound() {
-        long lowerBound = 10;
-        long upperBound = 25;
-        insertValuesWithinBounds(lowerBound, upperBound, source);
-
-        long expectedCutoff = 17;
-        long cutoff = migrateFrom(source, OptionalLong.of(expectedCutoff));
 
         assertThat(cutoff).isEqualTo(expectedCutoff);
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
@@ -128,6 +108,73 @@ public class PaxosStateLogMigratorTest {
     }
 
     @Test
+    public void logMigrationWithLowerBoundMigratesForBound() {
+        long lowerBound = 10;
+        long upperBound = 75;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        long bound = 60;
+        long expectedCutoff = bound - PaxosStateLogMigrator.SAFETY_BUFFER;
+        long cutoff = migrateFrom(source, OptionalLong.of(bound));
+
+        assertThat(cutoff).isEqualTo(expectedCutoff);
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isTrue();
+        assertThat(target.getLeastLogEntry()).isEqualTo(expectedCutoff);
+        assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
+
+        LongStream.rangeClosed(lowerBound, expectedCutoff - 1)
+                .mapToObj(sequence -> readRoundUnchecked(target, sequence))
+                .map(Assertions::assertThat)
+                .forEach(AbstractAssert::isNull);
+        KeyedStream.of(LongStream.rangeClosed(expectedCutoff, upperBound).boxed())
+                .map(sequence -> getPaxosValue(target, sequence))
+                .mapKeys(PaxosStateLogTestUtils::valueForRound)
+                .entries()
+                .forEach(entry -> assertThat(entry.getKey()).isEqualTo(entry.getValue()));
+    }
+
+    @Test
+    public void whenBoundIsLowMigrateEverything() {
+        long lowerBound = 10;
+        long upperBound = 75;
+        List<PaxosValue> insertedValues = insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        long expectedCutoff = PaxosAcceptor.NO_LOG_ENTRY;
+        long cutoff = migrateFrom(source, OptionalLong.of(PaxosStateLogMigrator.SAFETY_BUFFER - 10));
+
+        assertThat(cutoff).isEqualTo(expectedCutoff);
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isTrue();
+        assertThat(target.getLeastLogEntry()).isEqualTo(lowerBound);
+        assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
+
+        insertedValues.forEach(value -> assertThat(value).isEqualTo(getPaxosValue(target, value.seq)));
+    }
+
+    @Test
+    public void whenBoundIsTooHighMigrateOneEntry() {
+        long lowerBound = 10;
+        long upperBound = 75;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        long bound = 10_000;
+        long cutoff = migrateFrom(source, OptionalLong.of(bound));
+
+        assertThat(cutoff).isEqualTo(upperBound);
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isTrue();
+        assertThat(target.getLeastLogEntry()).isEqualTo(upperBound);
+        assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
+
+        LongStream.rangeClosed(lowerBound, upperBound - 1)
+                .mapToObj(sequence -> readRoundUnchecked(target, sequence))
+                .map(Assertions::assertThat)
+                .forEach(AbstractAssert::isNull);
+        assertThat(getPaxosValue(target, upperBound)).isEqualTo(valueForRound(upperBound));
+    }
+
+    @Test
     public void migrationDeletesExistingState() {
         long lowerBound = 13;
         long upperBound = 35;
@@ -144,14 +191,14 @@ public class PaxosStateLogMigratorTest {
     @Test
     public void migrateIfInValidationState() {
         long lowerBound = 10;
-        long upperBound = 25;
+        long upperBound = 75;
         insertValuesWithinBounds(lowerBound, upperBound, source);
         migrationState.migrateToValidationState();
 
         long cutoff = migrateFrom(source);
-        assertThat(cutoff).isEqualTo(upperBound);
+        assertThat(cutoff).isEqualTo(upperBound - PaxosStateLogMigrator.SAFETY_BUFFER);
         assertThat(migrationState.isInMigratedState()).isTrue();
-        assertThat(target.getLeastLogEntry()).isEqualTo(upperBound);
+        assertThat(target.getLeastLogEntry()).isEqualTo(upperBound - PaxosStateLogMigrator.SAFETY_BUFFER);
         assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
         verify(target, times(1)).truncate(anyLong());
     }
@@ -159,15 +206,16 @@ public class PaxosStateLogMigratorTest {
     @Test
     public void doNotMigrateIfAlreadyMigratedAndReturnOldCutoff() {
         long lowerBound = 10;
-        long upperBound = 25;
+        long upperBound = 75;
         insertValuesWithinBounds(lowerBound, upperBound, source);
 
-        int expectedCutoff = 17;
-        migrateFrom(source, OptionalLong.of(expectedCutoff));
+        long bound = 60;
+        long expectedCutoff = bound - PaxosStateLogMigrator.SAFETY_BUFFER;
+        migrateFrom(source, OptionalLong.of(bound));
 
         List<PaxosValue> newValuesWritten = new ArrayList<>();
         newValuesWritten.addAll(insertValuesWithinBounds(1, 5, source));
-        newValuesWritten.addAll(insertValuesWithinBounds(30, 35, source));
+        newValuesWritten.addAll(insertValuesWithinBounds(80, 85, source));
         long cutoff = migrateFrom(source, OptionalLong.of(0));
 
         assertThat(cutoff).isEqualTo(expectedCutoff);

@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
@@ -33,8 +35,12 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
+    public static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
+
     @VisibleForTesting
     static final int BATCH_SIZE = 10_000;
+    @VisibleForTesting
+    static final int SAFETY_BUFFER = 50;
 
     private final PaxosStateLog<V> sourceLog;
     private final PaxosStateLog<V> destinationLog;
@@ -44,16 +50,29 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         this.destinationLog = destinationLog;
     }
 
+    /**
+     * Migrates entries from sourceLog to destinationLog if the migration has not been run already. Returns the cutoff
+     * value, i.e., the lower bound of the migration. The cutoff value is guaranteed to be less than or equal to the
+     * value of {@link MigrationContext#migrateFrom()}, and the migration is guaranteed to copy at least one entry if
+     * sourceLog is not empty. If sourceLog is empty, cutoff will be {@link PaxosAcceptor#NO_LOG_ENTRY}.
+     */
     public static <V extends Persistable & Versionable> long migrateAndReturnCutoff(MigrationContext<V> context) {
         PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(context.sourceLog(), context.destinationLog());
         if (!context.migrationState().isInMigratedState()) {
-            long migrationLowerBound = context.migrateFrom().orElse(context.sourceLog().getGreatestLogEntry());
-            migrator.runMigration(migrationLowerBound, context.hydrator());
-            context.migrationState().setCutoff(migrationLowerBound);
+            long cutoff = calculateCutoff(context);
+            migrator.runMigration(cutoff, context.hydrator());
+            context.migrationState().setCutoff(cutoff);
             context.migrationState().migrateToMigratedState();
-            return migrationLowerBound;
+            return cutoff;
         }
         return context.migrationState().getCutoff();
+    }
+
+    private static <V extends Persistable & Versionable> long calculateCutoff(MigrationContext<V> context) {
+        long greatestEntryToMigrate = context.sourceLog().getGreatestLogEntry();
+        long lowerBoundCandidate = context.migrateFrom().orElse(greatestEntryToMigrate) - SAFETY_BUFFER;
+        long lowerBoundWithAtLeastOneEntry = Math.min(greatestEntryToMigrate, lowerBoundCandidate);
+        return Math.max(PaxosAcceptor.NO_LOG_ENTRY, lowerBoundWithAtLeastOneEntry);
     }
 
     private void runMigration(long lowerBound, Persistable.Hydrator<V> hydrator) {
@@ -79,6 +98,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 target.writeBatchOfRounds(batch);
                 return;
             } catch (Exception e) {
+                log.info("Failed to write a migration batch. Retrying after backoff.", e);
                 Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
             }
         }

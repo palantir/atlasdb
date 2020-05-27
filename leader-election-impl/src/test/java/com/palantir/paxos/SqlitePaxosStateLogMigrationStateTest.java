@@ -106,8 +106,8 @@ public class SqlitePaxosStateLogMigrationStateTest {
     }
 
     @Test
-    public void defaultCutoffIsLongMinValue() {
-        assertThat(migrationState.getCutoff()).isEqualTo(Long.MIN_VALUE);
+    public void defaultCutoffIsNoLogEntry() {
+        assertThat(migrationState.getCutoff()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Test
