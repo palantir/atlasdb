@@ -1081,7 +1081,8 @@ public abstract class TransactionManagers {
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
-        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService, lockWatchEventCache);
+        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService,
+                lockWatchEventCache);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
