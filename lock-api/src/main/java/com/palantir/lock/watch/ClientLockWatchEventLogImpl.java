@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Preconditions;
 
@@ -33,7 +34,12 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private volatile Optional<IdentifiedVersion> latestVersion;
 
     public static ClientLockWatchEventLogImpl create() {
-        return new ClientLockWatchEventLogImpl(null);
+        return create(NoOpClientLockWatchSnapshotUpdater.INSTANCE);
+    }
+
+    @VisibleForTesting
+    static ClientLockWatchEventLogImpl create(ClientLockWatchSnapshotUpdater snapshotUpdater) {
+        return new ClientLockWatchEventLogImpl(snapshotUpdater);
     }
 
     private ClientLockWatchEventLogImpl(ClientLockWatchSnapshotUpdater snapshotUpdater) {
@@ -74,7 +80,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
         IdentifiedVersion mostRecentVersion = Collections.max(timestampToVersion.values());
 
-        Preconditions.checkArgument(mostRecentVersion.compareTo(currentVersion) > 0,
+        Preconditions.checkArgument(mostRecentVersion.compareTo(currentVersion) > -1,
                 "Transactions' view of the world is more up-to-date than the log");
 
         if (eventLog.isEmpty()) {
@@ -84,7 +90,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         IdentifiedVersion oldestVersion = version.get();
 
         return TransactionsLockWatchEvents.success(
-                new ArrayList<>(eventLog.subMap(oldestVersion, mostRecentVersion).values()),
+                new ArrayList<>(eventLog.subMap(oldestVersion, true, mostRecentVersion, true).values()),
                 timestampToVersion);
     }
 
