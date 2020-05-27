@@ -33,10 +33,8 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchServiceImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -444,7 +442,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelock,
-                LockWatchServiceImpl.createWithoutLockWatches(timelock),
+                InternalLockWatchManagerImpl.createWithoutLockWatches(timelock),
                 timestampManagementService,
                 lockService,
                 transactionService,

@@ -99,7 +99,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -196,7 +196,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected final TimelockService timelockService;
-    protected final LockWatchService lockWatchService;
+    protected final InternalLockWatchManager lockWatchService;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
@@ -250,7 +250,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchService lockWatchService,
+            InternalLockWatchManager lockWatchService,
             TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,

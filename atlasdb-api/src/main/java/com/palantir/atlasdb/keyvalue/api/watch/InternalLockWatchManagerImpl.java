@@ -20,19 +20,32 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.lock.client.BatchingCommitTimestampGetter;
+import com.palantir.lock.client.CommitTimestampGetter;
+import com.palantir.lock.client.CommitUpdateGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
 public final class InternalLockWatchManagerImpl implements InternalLockWatchManager {
     private final NamespacedConjureLockWatchingService lockWatcher;
     private final LockWatchEventCache cache;
+    private final CommitUpdateGetter commitUpdateGetter;
 
-    public InternalLockWatchManagerImpl(NamespacedConjureLockWatchingService lockWatcher, LockWatchEventCache cache) {
+    private InternalLockWatchManagerImpl(
+            NamespacedConjureLockWatchingService lockWatcher,
+            LockWatchEventCache cache,
+            CommitUpdateGetter commitUpdateGetter) {
         this.lockWatcher = lockWatcher;
         this.cache = cache;
+        this.commitUpdateGetter = commitUpdateGetter;
     }
 
     @Override
@@ -44,5 +57,25 @@ public final class InternalLockWatchManagerImpl implements InternalLockWatchMana
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
         return cache.getEventsForTransactions(startTimestamps, version);
+    }
+
+    @Override
+    public CommitUpdate getCommitUpdate(long startTimestamp, LockToken commitLocksToken) {
+        return commitUpdateGetter.getCommitUpdate(startTimestamp, commitLocksToken);
+    }
+
+    public static InternalLockWatchManager create(
+            NamespacedConjureLockWatchingService lockWatcher,
+            NamespacedConjureTimelockService timelock,
+            LockWatchEventCache cache) {
+        CommitTimestampGetter commitTs = BatchingCommitTimestampGetter.create(timelock, cache);
+        CommitUpdateGetter commitUpdateGetter = new CommitUpdateGetter(commitTs, cache);
+        return new InternalLockWatchManagerImpl(lockWatcher, cache, commitUpdateGetter);
+    }
+
+    public static InternalLockWatchManager createWithoutLockWatches(TimelockService timelock) {
+        CommitTimestampGetter commitTs = timelock::getFreshTimestamp;
+        CommitUpdateGetter commitUpdateGetter = new CommitUpdateGetter(commitTs, NoOpLockWatchEventCache.INSTANCE);
+        return new NoOpInternalLockWatchManager(commitUpdateGetter);
     }
 }

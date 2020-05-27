@@ -19,16 +19,20 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import java.util.Optional;
 import java.util.Set;
 
+import com.palantir.lock.client.CommitUpdateGetter;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
 public final class NoOpInternalLockWatchManager implements InternalLockWatchManager {
-    public static final InternalLockWatchManager INSTANCE = new NoOpInternalLockWatchManager();
 
-    private NoOpInternalLockWatchManager() {
-        // ...
+    private final CommitUpdateGetter commitUpdateGetter;
+
+    public NoOpInternalLockWatchManager(CommitUpdateGetter commitUpdateGetter) {
+        this.commitUpdateGetter = commitUpdateGetter;
     }
 
     @Override
@@ -40,5 +44,10 @@ public final class NoOpInternalLockWatchManager implements InternalLockWatchMana
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> lastKnownVersion) {
         return NoOpLockWatchEventCache.INSTANCE.getEventsForTransactions(startTimestamps, lastKnownVersion);
+    }
+
+    @Override
+    public CommitUpdate getCommitUpdate(long startTimestamp, LockToken commitLocksToken) {
+        return commitUpdateGetter.getCommitUpdate(startTimestamp, commitLocksToken);
     }
 }

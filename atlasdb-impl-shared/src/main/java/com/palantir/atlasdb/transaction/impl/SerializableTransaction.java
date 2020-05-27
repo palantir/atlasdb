@@ -75,7 +75,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -126,7 +126,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     public SerializableTransaction(MetricsManager metricsManager,
                                    KeyValueService keyValueService,
                                    TimelockService timelockService,
-                                   LockWatchService lockWatchService,
+                                   InternalLockWatchManager lockWatchService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
                                    Supplier<Long> startTimeStamp,

@@ -111,7 +111,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchServiceImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -405,7 +405,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         legacyTimelock,
-                        LockWatchServiceImpl.createWithoutLockWatches(legacyTimelock),
+                        InternalLockWatchManagerImpl.createWithoutLockWatches(legacyTimelock),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
@@ -1527,7 +1527,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
-                        LockWatchServiceImpl.createWithoutLockWatches(timelockService),
+                        InternalLockWatchManagerImpl.createWithoutLockWatches(timelockService),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         startTs,

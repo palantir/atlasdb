@@ -92,11 +92,8 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchServiceImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -1083,10 +1080,7 @@ public abstract class TransactionManagers {
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
-        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService,
-                lockWatchEventCache);
-                creator.createServiceWithShortTimeout(ConjureLockWatchingService.class), timelockNamespace);
-        LockWatchService lockWatchService = LockWatchServiceImpl.create(lockWatchingService,
+        InternalLockWatchManager lockWatcher = InternalLockWatchManagerImpl.create(lockWatchingService,
                 namespacedConjureTimelockService, lockWatchEventCache);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
@@ -1106,7 +1100,7 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
-                .lockWatcher(lockWatchService)
+                .lockWatcher(lockWatcher)
                 .close(remoteTimelockServiceAdapter::close)
                 .build();
     }
@@ -1310,8 +1304,8 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
         @Value.Default
-        default LockWatchService lockWatcher() {
-            return LockWatchServiceImpl.createWithoutLockWatches(timelock());
+        default InternalLockWatchManager lockWatcher() {
+            return InternalLockWatchManagerImpl.createWithoutLockWatches(timelock());
         }
 
         @Value.Derived
