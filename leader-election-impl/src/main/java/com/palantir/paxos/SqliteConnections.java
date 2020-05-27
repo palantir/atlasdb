@@ -48,6 +48,7 @@ public final class SqliteConnections {
         SQLiteConfig config = new SQLiteConfig();
         config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
         config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, "EXTRA");
+        config.setBusyTimeout(5_000);
 
         SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
         dataSource.setUrl(target);

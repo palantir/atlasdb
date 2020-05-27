@@ -193,7 +193,7 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void highConcurrencyDoesNotTimeout() {
-        int numThreads = 100;
+        int numThreads = 1000;
         ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
         List<Future<?>> futures = IntStream.range(0, numThreads)
                 .mapToObj(ignore -> executor.submit(() -> {

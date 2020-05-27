@@ -86,7 +86,7 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
         Instant start = Instant.now();
         log.info("Starting migration for namespace and use case {}.",
                 SafeArg.of("namespaceAndUseCase", parameters.namespaceAndUseCase()));
-        PaxosStateLogMigrator.migrateToValidation(migrationContext);
+        PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
         log.info("Migration for namespace and use case {} took {}.",
                 SafeArg.of("namespaceAndUseCase", parameters.namespaceAndUseCase()),
                 SafeArg.of("duration", Duration.between(start, Instant.now())));
