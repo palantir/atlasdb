@@ -14,25 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.management;
+package com.palantir.atlasdb.transaction.api;
 
-import java.nio.file.Path;
-import java.sql.Connection;
+import java.util.List;
+import java.util.Optional;
 
-import javax.sql.DataSource;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
-import org.immutables.value.Value;
+public interface OpenTransactions {
 
-@Value.Immutable
-public interface PersistentNamespaceContext {
-    Path fileDataDirectory();
+    List<OpenTransaction> getTransactions();
 
-    DataSource sqliteDataSource();
-
-    static PersistentNamespaceContext of(Path fileDataDirectory, DataSource sqliteDataSource) {
-        return ImmutablePersistentNamespaceContext.builder()
-                .fileDataDirectory(fileDataDirectory)
-                .sqliteDataSource(sqliteDataSource)
-                .build();
-    }
+    /**
+     * Returns a condensed view of new lock watch events since lastKnownVersion for the set of started transactions.
+     *
+     * @param lastKnownVersion exclusive start version to get events from
+     */
+    TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion);
 }

@@ -94,6 +94,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchServiceImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -1034,8 +1037,15 @@ public abstract class TransactionManagers {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingClientConfig);
 
-        LockRpcClient lockRpcClient = new TimeoutSensitiveLockRpcClient(
+        LockRpcClient cjrLockRpcClient = new TimeoutSensitiveLockRpcClient(
                 ShortAndLongTimeoutServices.create(creator, LockRpcClient.class));
+        LockRpcClient dialogueLockRpcClient = serviceProvider.getLockRpcClient();
+        LockRpcClient lockRpcClient = ImmutableRemoteProxies.<LockRpcClient>builder()
+                .conjureJavaRuntimeProxy(cjrLockRpcClient)
+                .dialogueProxy(dialogueLockRpcClient)
+                .remotingClientConfig(remotingClientConfig)
+                .build()
+                .getConfigSwitchedProxy(LockRpcClient.class);
 
         LockService lockService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
@@ -1045,13 +1055,19 @@ public abstract class TransactionManagers {
         ConjureTimelockService cjrTimelockService = new TimeoutSensitiveConjureTimelockService(
                 ShortAndLongTimeoutServices.create(creator, ConjureTimelockService.class));
         ConjureTimelockService dialogueTimelockService = serviceProvider.getConjureTimelockService();
-        ConjureTimelockService switchableService = PredicateSwitchedProxy.newProxyInstance(
-                dialogueTimelockService,
-                cjrTimelockService,
-                remotingClientConfig.map(RemotingClientConfig::enableDialogue),
-                ConjureTimelockService.class);
+        ConjureTimelockService switchableService = ImmutableRemoteProxies.<ConjureTimelockService>builder()
+                .conjureJavaRuntimeProxy(cjrTimelockService)
+                .dialogueProxy(dialogueTimelockService)
+                .remotingClientConfig(remotingClientConfig)
+                .build()
+                .getConfigSwitchedProxy(ConjureTimelockService.class);
 
-        TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
+        TimelockRpcClient timelockClient = ImmutableRemoteProxies.<TimelockRpcClient>builder()
+                .conjureJavaRuntimeProxy(creator.createService(TimelockRpcClient.class))
+                .dialogueProxy(serviceProvider.getTimelockRpcClient())
+                .remotingClientConfig(remotingClientConfig)
+                .build()
+                .getConfigSwitchedProxy(TimelockRpcClient.class);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
@@ -1066,6 +1082,9 @@ public abstract class TransactionManagers {
 
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
+                creator.createService(ConjureLockWatchingService.class), timelockNamespace);
+        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService,
+                lockWatchEventCache);
                 creator.createServiceWithShortTimeout(ConjureLockWatchingService.class), timelockNamespace);
         LockWatchService lockWatchService = LockWatchServiceImpl.create(lockWatchingService,
                 namespacedConjureTimelockService, lockWatchEventCache);
@@ -1073,7 +1092,14 @@ public abstract class TransactionManagers {
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
-                creator.createServiceWithShortTimeout(TimestampManagementRpcClient.class), timelockNamespace);
+                ImmutableRemoteProxies.<TimestampManagementRpcClient>builder()
+                        .conjureJavaRuntimeProxy(
+                                creator.createServiceWithShortTimeout(TimestampManagementRpcClient.class))
+                        .dialogueProxy(serviceProvider.getTimestampManagementRpcClient())
+                        .remotingClientConfig(remotingClientConfig)
+                        .build()
+                        .getConfigSwitchedProxy(TimestampManagementRpcClient.class),
+                timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -1304,5 +1330,21 @@ public abstract class TransactionManagers {
     public interface TransactionComponents {
         TransactionService transactionService();
         Optional<TransactionSchemaInstaller> schemaInstaller();
+    }
+
+    @Value.Immutable
+    @Value.Style(stagedBuilder = false)
+    public interface RemoteProxies<T> {
+        T conjureJavaRuntimeProxy();
+        T dialogueProxy();
+        Refreshable<RemotingClientConfig> remotingClientConfig();
+
+        default T getConfigSwitchedProxy(Class<T> type) {
+            return PredicateSwitchedProxy.newProxyInstance(
+                    dialogueProxy(),
+                    conjureJavaRuntimeProxy(),
+                    remotingClientConfig().map(RemotingClientConfig::enableDialogue),
+                    type);
+        }
     }
 }

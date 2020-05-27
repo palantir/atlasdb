@@ -59,10 +59,9 @@ public final class PaxosLearnerImpl implements PaxosLearner {
     }
 
     public static PaxosLearner newVerifyingLearner(PaxosStorageParameters params,
-            SqlitePaxosStateLogFactory sqliteFactory,
             PaxosKnowledgeEventRecorder event) {
         PaxosStateLog<PaxosValue> log = VerifyingPaxosStateLog
-                .createWithoutMigration(params, sqliteFactory, PaxosValue.BYTES_HYDRATOR);
+                .createWithoutMigration(params, PaxosValue.BYTES_HYDRATOR);
         return newLearner(log, event);
     }
 

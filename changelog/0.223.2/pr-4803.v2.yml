@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: TimeLock now uses a single resilient database connection when interacting
+    with SQLite. This should lead to substantially improved performance.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4803

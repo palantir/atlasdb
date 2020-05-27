@@ -19,8 +19,7 @@ package com.palantir.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.sql.Connection;
-import java.util.function.Supplier;
+import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,14 +33,14 @@ public class SqlitePaxosStateLogMigrationStateTest {
     private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase
             .of(Client.of("namespace"), "useCase");
 
-    private Supplier<Connection> connSupplier;
+    private DataSource dataSource;
     private SqlitePaxosStateLogMigrationState migrationState;
 
     @Before
     public void setup() {
-        connSupplier = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
-        migrationState = new SqlitePaxosStateLogFactory().createMigrationState(NAMESPACE_AND_USE_CASE, connSupplier);
+        dataSource = SqliteConnections
+                .getPooledDataSource(tempFolder.getRoot().toPath());
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, dataSource);
     }
 
     @Test
@@ -88,8 +87,8 @@ public class SqlitePaxosStateLogMigrationStateTest {
     public void finishingMigrationForOneNamespaceDoesNotSetFlagForOthers() {
         migrationState.migrateToValidationState();
 
-        SqlitePaxosStateLogMigrationState otherState = new SqlitePaxosStateLogFactory().createMigrationState(
-                ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), connSupplier);
+        SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState.create(
+                ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), dataSource);
         assertThat(otherState.hasMigratedFromInitialState()).isFalse();
         otherState.migrateToValidationState();
         assertThat(otherState.hasMigratedFromInitialState()).isTrue();
@@ -99,8 +98,8 @@ public class SqlitePaxosStateLogMigrationStateTest {
     public void finishingMigrationForOneUseCaseDoesNotSetFlagForOthers() {
         migrationState.migrateToValidationState();
 
-        SqlitePaxosStateLogMigrationState otherState = new SqlitePaxosStateLogFactory().createMigrationState(
-                ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), connSupplier);
+        SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState.create(
+                ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), dataSource);
         assertThat(otherState.hasMigratedFromInitialState()).isFalse();
         otherState.migrateToValidationState();
         assertThat(otherState.hasMigratedFromInitialState()).isTrue();

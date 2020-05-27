@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -76,6 +77,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public static Iterable<TestableTimelockCluster> params() {
         return injector.getParameter();
     }
+
+    private static final TestableTimelockCluster FIRST_CLUSTER = params().iterator().next();
 
     private static final LockDescriptor LOCK = StringLockDescriptor.of("foo");
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
@@ -244,6 +247,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
+        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
@@ -256,6 +260,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
+        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
@@ -322,6 +327,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void stressTest() {
+        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
         TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
         boolean isNonLeaderTakenOut = false;
@@ -355,6 +361,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .as("should not additionally spin up too many threads in the absence of failures")
                     .isLessThanOrEqualTo(threadLimit);
         }
+    }
+
+    private void abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere() {
+        Assume.assumeTrue(cluster == FIRST_CLUSTER);
     }
 
     private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {

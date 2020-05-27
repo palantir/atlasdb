@@ -17,7 +17,6 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -27,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -66,17 +64,14 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithMigration(
             PaxosStorageParameters parameters,
-            SqlitePaxosStateLogFactory sqliteFactory,
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
         NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
 
         Settings<V> settings = ImmutableSettings.<V>builder()
                 .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(sqliteFactory.create(namespaceUseCase, conn))
+                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, parameters.sqliteDataSource()))
                 .hydrator(hydrator)
                 .build();
 
@@ -84,7 +79,8 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
                 .sourceLog(settings.currentLog())
                 .destinationLog(settings.experimentalLog())
                 .hydrator(settings.hydrator())
-                .migrationState(sqliteFactory.createMigrationState(namespaceUseCase, conn))
+                .migrationState(SqlitePaxosStateLogMigrationState
+                        .create(namespaceUseCase, parameters.sqliteDataSource()))
                 .build();
 
         Instant start = Instant.now();
@@ -100,17 +96,14 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithoutMigration(
             PaxosStorageParameters parameters,
-            SqlitePaxosStateLogFactory sqliteFactory,
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
         NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
 
         Settings<V> settings = ImmutableSettings.<V>builder()
                 .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(sqliteFactory.create(namespaceUseCase, conn))
+                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, parameters.sqliteDataSource()))
                 .hydrator(hydrator)
                 .build();
 
