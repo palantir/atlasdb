@@ -16,20 +16,22 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.google.common.annotations.VisibleForTesting;
 
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
     private final ConcurrentSkipListMap<Long, IdentifiedVersion> timestampMap = new ConcurrentSkipListMap<>();
-    private final Set<Long> markedForDelete = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final BlockingQueue<Long> markedForDelete = new LinkedBlockingQueue<>();
     private volatile Optional<IdentifiedVersion> earliestVersion;
     private volatile Optional<IdentifiedVersion> currentVersion;
 
@@ -108,18 +110,16 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @VisibleForTesting
     void deleteMarkedEntries() {
-        if (!markedForDelete.isEmpty()) {
-            markedForDelete.forEach(timestampMap::remove);
-            markedForDelete.clear();
-            earliestVersion = Optional.of(timestampMap.firstEntry().getValue());
-        }
+        List<Long> timestampsToDelete = new ArrayList<>(markedForDelete.size());
+        markedForDelete.drainTo(timestampsToDelete);
+        timestampsToDelete.forEach(timestampMap::remove);
+        earliestVersion = Optional.of(timestampMap.firstEntry().getValue());
     }
 
     @VisibleForTesting
     Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
-        // This may be bad in the case that some timestamps are not there;
-        // we don't expect that to happen, but perhaps worth documenting anyway.
+        // This may be bad in the case that some timestamps are not there. This should not happen in practice
         startTimestamps.forEach(timestamp -> timestampToVersion.put(timestamp, timestampMap.get(timestamp)));
         return timestampToVersion;
     }
