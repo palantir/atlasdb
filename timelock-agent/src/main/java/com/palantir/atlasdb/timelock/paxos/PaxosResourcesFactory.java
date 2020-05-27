@@ -34,6 +34,7 @@ import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -45,6 +46,7 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -266,6 +268,9 @@ public final class PaxosResourcesFactory {
 
         @Value.Parameter
         UserAgent userAgent();
+
+        @Value.Parameter
+        TimeLockDialogueServiceProvider dialogueServiceProvider();
 
         @Value.Derived
         default UUID nodeUuid() {

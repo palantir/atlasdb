@@ -30,7 +30,13 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
+import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfigs;
+import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
@@ -50,12 +56,15 @@ import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -97,8 +106,11 @@ public class TimeLockAgent {
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar) {
         ExecutorService executor = createSharedExecutor(metricsManager);
+
+        TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
+                metricsManager, install, userAgent);
         PaxosResources paxosResources = PaxosResourcesFactory.create(
-                ImmutableTimelockPaxosInstallationContext.of(install, userAgent),
+                ImmutableTimelockPaxosInstallationContext.of(install, userAgent, timeLockDialogueServiceProvider),
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
                 executor);
@@ -115,6 +127,28 @@ public class TimeLockAgent {
                 userAgent);
         agent.createAndRegisterResources();
         return agent;
+    }
+
+    private static TimeLockDialogueServiceProvider createTimeLockDialogueServiceProvider(
+            MetricsManager metricsManager, TimeLockInstallConfiguration install, UserAgent userAgent) {
+        DialogueClients.ReloadingFactory baseFactory = DialogueClients.create(
+                Refreshable.only(ServicesConfigBlock.builder().build()));
+        ServerListConfig timeLockServerListConfig = ImmutableServerListConfig.builder()
+                .addAllServers(PaxosRemotingUtils.getRemoteServerPaths(install))
+                .sslConfiguration(install.cluster().cluster().security())
+                .proxyConfiguration(install.cluster().cluster().proxyConfiguration())
+                .build();
+        return TimeLockDialogueServiceProvider.create(
+                metricsManager.getTaggedRegistry(),
+                baseFactory,
+                timeLockServerListConfig,
+                AuxiliaryRemotingParameters.builder()
+                        .userAgent(userAgent)
+                        .shouldLimitPayload(false)
+                        .shouldRetry(false) // Is subsequently overridden.
+                        .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
+                        .shouldUseExtendedTimeout(false)
+                        .build());
     }
 
     private TimeLockAgent(MetricsManager metricsManager,

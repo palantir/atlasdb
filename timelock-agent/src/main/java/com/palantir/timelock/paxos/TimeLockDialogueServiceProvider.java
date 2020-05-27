@@ -17,12 +17,15 @@
 package com.palantir.timelock.paxos;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.v2.DialogueClientOptions;
 import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
@@ -55,7 +58,7 @@ public class TimeLockDialogueServiceProvider {
         Map<String, RemoteServiceConfiguration> remoteServiceConfigurations
                 = createRemoteServiceConfigurations(serverListConfig, versionedAgent, parameters);
         DialogueClients.ReloadingFactory reloadingFactory
-                = decorate(baseFactory, Refreshable.only(remoteServiceConfigurations));
+                = decorate(baseFactory, Refreshable.only(remoteServiceConfigurations)).withUserAgent(versionedAgent);
         return new TimeLockDialogueServiceProvider(reloadingFactory, taggedMetricRegistry);
     }
 
@@ -66,14 +69,37 @@ public class TimeLockDialogueServiceProvider {
                         .from(serverListConfig)
                         .servers(ImmutableList.of(server))
                         .build())
-                .<RemoteServiceConfiguration>map(singleServerConfig -> ImmutableRemoteServiceConfiguration.builder()
-                        .remotingParameters(ImmutableAuxiliaryRemotingParameters.builder()
-                                .from(parameters)
-                                .userAgent(versionedAgent)
-                                .build())
-                        .serverList(singleServerConfig)
-                        .build())
+                .flatMapEntries((uri, singleServerConfig) -> {
+                    RemoteServiceConfiguration nonRetrying = ImmutableRemoteServiceConfiguration.builder()
+                            .remotingParameters(ImmutableAuxiliaryRemotingParameters.builder()
+                                    .from(parameters)
+                                    .userAgent(versionedAgent)
+                                    .shouldRetry(false)
+                                    .build())
+                            .serverList(singleServerConfig)
+                            .build();
+                    RemoteServiceConfiguration retrying = ImmutableRemoteServiceConfiguration.builder()
+                            .remotingParameters(ImmutableAuxiliaryRemotingParameters.builder()
+                                    .from(parameters)
+                                    .userAgent(versionedAgent)
+                                    .shouldRetry(true)
+                                    .build())
+                            .serverList(singleServerConfig)
+                            .build();
+                    return Stream.of(
+                            Maps.immutableEntry(getServiceNameForTimeLock(uri, false), nonRetrying),
+                            Maps.immutableEntry(getServiceNameForTimeLock(uri, true), retrying));
+                })
                 .collectToMap();
+    }
+
+    /**
+     * Creates a proxy to a single node. It is expected that this single node is one of the servers in the
+     * {@link ServerListConfig} provided to this {@link TimeLockDialogueServiceProvider}.
+     */
+    public <T> T createSingleNodeInstrumentedProxy(String uri, Class<T> clazz, boolean shouldRetry) {
+        return AtlasDbHttpClients.createDialogueProxy(
+                taggedMetricRegistry, clazz, reloadingFactory.getChannel(getServiceNameForTimeLock(uri, shouldRetry)));
     }
 
     private static DialogueClients.ReloadingFactory decorate(
@@ -83,5 +109,9 @@ public class TimeLockDialogueServiceProvider {
                 DialogueClientOptions::toServicesConfigBlock))
                 .withNodeSelectionStrategy(NodeSelectionStrategy.PIN_UNTIL_ERROR_WITHOUT_RESHUFFLE)
                 .withClientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS);
+    }
+
+    private static String getServiceNameForTimeLock(String timelockUri, boolean shouldRetry) {
+        return "timelock-" + (shouldRetry ? "retrying" : "nonRetrying") + "-" + timelockUri;
     }
 }
