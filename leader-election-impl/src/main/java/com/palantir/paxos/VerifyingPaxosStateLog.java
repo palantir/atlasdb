@@ -27,8 +27,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
-import javax.sql.DataSource;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,12 +67,11 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        DataSource dataSource = SqliteConnections.getOrCreateDefaultDataSource(parameters.sqliteBasedLogDirectory());
         NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
 
         Settings<V> settings = ImmutableSettings.<V>builder()
                 .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, dataSource))
+                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, parameters.sqliteDataSource()))
                 .hydrator(hydrator)
                 .build();
 
@@ -82,7 +79,8 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
                 .sourceLog(settings.currentLog())
                 .destinationLog(settings.experimentalLog())
                 .hydrator(settings.hydrator())
-                .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, dataSource))
+                .migrationState(SqlitePaxosStateLogMigrationState
+                        .create(namespaceUseCase, parameters.sqliteDataSource()))
                 .build();
 
         Instant start = Instant.now();
@@ -101,13 +99,11 @@ public final class VerifyingPaxosStateLog<V extends Persistable & Versionable> i
             Persistable.Hydrator<V> hydrator) {
         String logDirectory = parameters.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        DataSource dataSource = SqliteConnections
-                .getOrCreateDefaultDataSource(parameters.sqliteBasedLogDirectory());
         NamespaceAndUseCase namespaceUseCase = parameters.namespaceAndUseCase();
 
         Settings<V> settings = ImmutableSettings.<V>builder()
                 .currentLog(new PaxosStateLogImpl<>(logDirectory))
-                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, dataSource))
+                .experimentalLog(SqlitePaxosStateLog.create(namespaceUseCase, parameters.sqliteDataSource()))
                 .hydrator(hydrator)
                 .build();
 

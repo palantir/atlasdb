@@ -25,8 +25,6 @@ import org.apache.commons.io.FileUtils;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.zaxxer.hikari.HikariConfig;
@@ -38,25 +36,18 @@ import com.zaxxer.hikari.HikariDataSource;
  */
 public final class SqliteConnections {
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
-    private static final LoadingCache<Path, DataSource> DATA_SOURCE_LOADING_CACHE = Caffeine.newBuilder()
-            .build(SqliteConnections::buildDataSource);
 
     private SqliteConnections() {
         // no
     }
 
-    public static DataSource getOrCreateDefaultDataSource(Path path) {
-        return DATA_SOURCE_LOADING_CACHE.get(path);
-    }
-
-    private static DataSource buildDataSource(Path path) {
+    public static DataSource getPooledDataSource(Path path) {
         createDirectoryIfNotExists(path);
         String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
 
         SQLiteConfig config = new SQLiteConfig();
         config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
-        config.setPragma(SQLiteConfig.Pragma.LOCKING_MODE, SQLiteConfig.LockingMode.EXCLUSIVE.getValue());
-        config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, SQLiteConfig.SynchronousMode.FULL.getValue());
+        config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, "EXTRA");
 
         SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
         dataSource.setUrl(target);
@@ -64,7 +55,7 @@ public final class SqliteConnections {
 
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setDataSource(dataSource);
-        hikariConfig.setMaximumPoolSize(1);
+        hikariConfig.setMaximumPoolSize(16);
         return new HikariDataSource(hikariConfig);
     }
 

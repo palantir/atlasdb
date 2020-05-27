@@ -39,7 +39,7 @@ public class SqlitePaxosStateLogMigrationStateTest {
     @Before
     public void setup() {
         dataSource = SqliteConnections
-                .getOrCreateDefaultDataSource(tempFolder.getRoot().toPath());
+                .getPooledDataSource(tempFolder.getRoot().toPath());
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, dataSource);
     }
 

@@ -174,7 +174,7 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
 
-        DataSource sqliteDataSource = SqliteConnections.getOrCreateDefaultDataSource(
+        DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(
                 install.paxos().sqlitePersistence().dataDirectory().toPath());
         namespaces = new TimelockNamespaces(
                 metricsManager,
