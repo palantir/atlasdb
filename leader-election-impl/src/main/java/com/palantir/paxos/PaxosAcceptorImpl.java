@@ -16,6 +16,8 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.slf4j.Logger;
@@ -34,9 +36,14 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
                 log.getGreatestLogEntry());
     }
 
-    public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters) {
-        PaxosStateLog<PaxosAcceptorState> log = VerifyingPaxosStateLog
-                .createWithMigration(storageParameters, PaxosAcceptorState.BYTES_HYDRATOR);
+    public static PaxosAcceptor newSplittingAcceptor(PaxosStorageParameters params,
+            SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
+            Optional<Long> migrateFrom) {
+        PaxosStateLog<PaxosAcceptorState> log = SplittingPaxosStateLog.createWithMigration(
+                params,
+                PaxosAcceptorState.BYTES_HYDRATOR,
+                legacyOperationMarkers,
+                migrateFrom.map(OptionalLong::of).orElse(OptionalLong.empty()));
         return new PaxosAcceptorImpl(
                 new ConcurrentSkipListMap<>(),
                 log,

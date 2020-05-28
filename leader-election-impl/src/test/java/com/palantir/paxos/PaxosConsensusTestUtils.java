@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -63,18 +64,23 @@ public final class PaxosConsensusTestUtils {
         DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(getSqlitePath());
 
         RuntimeException exception = new SafeRuntimeException("mock server failure");
+        SplittingPaxosStateLog.LegacyOperationMarkers noop = ImmutableLegacyOperationMarkers.builder()
+                .markLegacyRead(() -> { })
+                .markLegacyWrite(() -> { })
+                .build();
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
-            PaxosLearner learner = PaxosLearnerImpl
-                    .newVerifyingLearner(getLearnerStorageParameters(i, sqliteDataSource), PaxosKnowledgeEventRecorder.NO_OP);
+            PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(
+                    getLearnerStorageParameters(i, sqliteDataSource), noop, PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class,
                     learner,
                     failureToggles.get(i),
                     exception));
 
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newVerifyingAcceptor(getAcceptorStorageParameters(i, sqliteDataSource));
+            PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(
+                    getAcceptorStorageParameters(i, sqliteDataSource), noop, Optional.empty());
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class,
                     acceptor,

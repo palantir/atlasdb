@@ -18,6 +18,7 @@ package com.palantir.paxos;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
@@ -29,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 
@@ -51,10 +51,11 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         return new PaxosLearnerImpl(state, log, eventRecorder);
     }
 
-    public static PaxosLearner newVerifyingLearner(PaxosStorageParameters params,
+    public static PaxosLearner newSplittingLearner(PaxosStorageParameters params,
+            SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
             PaxosKnowledgeEventRecorder event) {
-        PaxosStateLog<PaxosValue> log = VerifyingPaxosStateLog
-                .createWithMigration(params, PaxosValue.BYTES_HYDRATOR);
+        PaxosStateLog<PaxosValue> log = SplittingPaxosStateLog
+                .createWithMigration(params, PaxosValue.BYTES_HYDRATOR, legacyOperationMarkers, OptionalLong.empty());
         return newLearner(log, event);
     }
 

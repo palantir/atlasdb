@@ -154,8 +154,10 @@ public class SplittingPaxosStateLogTest {
         return ImmutableSplittingParameters.<PaxosValue>builder()
                 .legacyLog(legacyLog)
                 .currentLog(currentLog)
-                .markLegacyRead(readMetric::incrementAndGet)
-                .markLegacyWrite(writeMetric::incrementAndGet)
+                .legacyOperationMarkers(ImmutableLegacyOperationMarkers.builder()
+                        .markLegacyRead(readMetric::incrementAndGet)
+                        .markLegacyWrite(writeMetric::incrementAndGet)
+                        .build())
                 .cutoffInclusive(cutoff)
                 .build();
     }

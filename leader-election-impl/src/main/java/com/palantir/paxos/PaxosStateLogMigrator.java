@@ -37,10 +37,9 @@ import com.palantir.common.persist.Persistable;
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
 
+    public static final int SAFETY_BUFFER = 50;
     @VisibleForTesting
     static final int BATCH_SIZE = 10_000;
-    @VisibleForTesting
-    static final int SAFETY_BUFFER = 50;
 
     private final PaxosStateLog<V> sourceLog;
     private final PaxosStateLog<V> destinationLog;
