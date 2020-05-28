@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -37,7 +38,8 @@ import com.palantir.logsafe.Preconditions;
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
     private final HashMap<Long, IdentifiedVersion> timestampMap = new HashMap<>();
-    private final TreeMultimap<IdentifiedVersion, Long> aliveVersions = TreeMultimap.create();
+    private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
+            TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
         this.eventLog = eventLog;

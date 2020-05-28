@@ -16,12 +16,15 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Comparator;
 import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.palantir.logsafe.Preconditions;
+
 @Value.Immutable
-public interface IdentifiedVersion extends Comparable<IdentifiedVersion> {
+public interface IdentifiedVersion {
     @Value.Parameter
     UUID id();
     @Value.Parameter
@@ -31,9 +34,10 @@ public interface IdentifiedVersion extends Comparable<IdentifiedVersion> {
         return ImmutableIdentifiedVersion.of(id, version);
     }
 
-    @Override
-    default int compareTo(IdentifiedVersion otherVersion) {
-        // Compare on version only; if used for equality, will not consider leader id
-        return Long.compare(version(), otherVersion.version());
+    static Comparator<IdentifiedVersion> comparator() {
+        return (version1, version2) -> {
+            Preconditions.checkArgument(version1.id().equals(version2.id()));
+            return Long.compare(version1.version(), version2.version());
+        };
     }
 }

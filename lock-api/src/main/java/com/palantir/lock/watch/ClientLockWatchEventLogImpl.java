@@ -87,7 +87,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
         Optional<IdentifiedVersion> versionInclusive = version.map(this::createInclusiveVersion);
-        IdentifiedVersion toVersion = Collections.max(timestampToVersion.values());
+        IdentifiedVersion toVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(toVersion);
 
         if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
@@ -112,7 +112,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
         IdentifiedVersion fromVersion = createInclusiveVersion(startVersion);
 
-        if(differentLeaderOrTooFarBehind(currentVersion, fromVersion)) {
+        if (differentLeaderOrTooFarBehind(currentVersion, fromVersion)) {
             return Optional.empty();
         }
 
@@ -144,7 +144,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private IdentifiedVersion getLatestVersionAndVerify(IdentifiedVersion endVersion) {
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
         IdentifiedVersion currentVersion = latestVersion.get();
-        Preconditions.checkArgument(endVersion.compareTo(currentVersion) > -1,
+        Preconditions.checkArgument(IdentifiedVersion.comparator().compare(endVersion, currentVersion) > -1,
                 "Transactions' view of the world is more up-to-date than the log");
         return currentVersion;
     }
