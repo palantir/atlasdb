@@ -1,6 +1,8 @@
 install:
   paxos:
     data-directory: "${dataDirectory}"
+    sqlite-persistence:
+      data-directory: "${sqliteDataDirectory}"
     is-new-service: false
     leader-mode: ${leaderMode}
   cluster:
