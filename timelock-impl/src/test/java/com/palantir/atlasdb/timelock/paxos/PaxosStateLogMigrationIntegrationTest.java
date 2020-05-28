@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -35,6 +37,7 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosStateLogImpl;
 import com.palantir.paxos.PaxosStorageParameters;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 
 public class PaxosStateLogMigrationIntegrationTest {
@@ -46,12 +49,12 @@ public class PaxosStateLogMigrationIntegrationTest {
     private LocalPaxosComponents paxosComponents;
     private PaxosUseCase useCase = PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
     private Path legacyDirectory;
-    private Path sqliteDirectory;
+    private DataSource sqlite;
 
     @Before
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
-        sqliteDirectory = TEMPORARY_FOLDER.newFolder("sqlite").toPath();
+        sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
         resetPaxosComponents();
     }
 
@@ -202,7 +205,9 @@ public class PaxosStateLogMigrationIntegrationTest {
                 TimelockPaxosMetrics.of(useCase, MetricsManagers.createForTests()),
                 useCase,
                 legacyDirectory,
-                sqliteDirectory, UUID.randomUUID(), true);
+                sqlite,
+                UUID.randomUUID(),
+                true);
     }
 
     private PaxosValue valueForRound(int num) {

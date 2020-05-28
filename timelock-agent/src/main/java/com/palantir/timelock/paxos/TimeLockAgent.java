@@ -55,7 +55,6 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
-import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -113,7 +112,7 @@ public class TimeLockAgent {
                 registrar,
                 paxosResources,
                 userAgent);
-        agent.createAndRegisterResources();
+        agent.createAndRegisterResources(paxosResources.leadershipContextFactory().sqliteDataSource());
         return agent;
     }
 
@@ -170,12 +169,10 @@ public class TimeLockAgent {
                 timestampBoundPersistence.getClass()));
     }
 
-    private void createAndRegisterResources() {
+    private void createAndRegisterResources(DataSource sqliteDataSource) {
         registerPaxosResource();
         registerExceptionMappers();
 
-        DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(
-                install.paxos().sqlitePersistence().dataDirectory().toPath());
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
@@ -289,5 +286,6 @@ public class TimeLockAgent {
 
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
+        paxosResources.leadershipContextFactory().sqliteDataSource().close();
     }
 }

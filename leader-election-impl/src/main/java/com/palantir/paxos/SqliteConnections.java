@@ -19,8 +19,6 @@ package com.palantir.paxos;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import javax.sql.DataSource;
-
 import org.apache.commons.io.FileUtils;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
@@ -41,7 +39,7 @@ public final class SqliteConnections {
         // no
     }
 
-    public static DataSource getPooledDataSource(Path path) {
+    public static HikariDataSource getPooledDataSource(Path path) {
         createDirectoryIfNotExists(path);
         String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
 

@@ -24,6 +24,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +39,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.paxos.SqliteConnections;
 
 public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");
@@ -54,17 +57,17 @@ public class LocalPaxosComponentsTest {
 
     private LocalPaxosComponents paxosComponents;
     private Path legacyDirectory;
-    private Path sqliteDirectory;
+    private DataSource sqlite;
 
     @Before
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
-        sqliteDirectory = TEMPORARY_FOLDER.newFolder("sqlite").toPath();
+        sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
         paxosComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
-                sqliteDirectory,
+                sqlite,
                 UUID.randomUUID(),
                 true);
     }
@@ -99,7 +102,7 @@ public class LocalPaxosComponentsTest {
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
-                sqliteDirectory,
+                sqlite,
                 UUID.randomUUID(),
                 false);
         assertThatThrownBy(() -> rejectingComponents.learner(CLIENT))
@@ -115,7 +118,7 @@ public class LocalPaxosComponentsTest {
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
-                sqliteDirectory,
+                sqlite,
                 UUID.randomUUID(),
                 false);
         assertThat(rejectingComponents.learner(CLIENT)).isNotNull();

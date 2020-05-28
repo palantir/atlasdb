@@ -30,6 +30,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
+import com.zaxxer.hikari.HikariDataSource;
 
 @Value.Immutable
 public abstract class LeadershipContextFactory implements
@@ -40,6 +41,7 @@ public abstract class LeadershipContextFactory implements
         Dependencies.HealthCheckPinger {
 
     abstract PaxosResourcesFactory.TimelockPaxosInstallationContext install();
+    public abstract HikariDataSource sqliteDataSource();
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
@@ -57,7 +59,7 @@ public abstract class LeadershipContextFactory implements
                 metrics(),
                 useCase(),
                 install().dataDirectory(),
-                install().sqliteDataDirectory(),
+                sqliteDataSource(),
                 leaderUuid(),
                 install().install().paxos().canCreateNewClients());
     }

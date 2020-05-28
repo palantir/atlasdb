@@ -25,6 +25,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.sql.DataSource;
+
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
@@ -41,6 +43,7 @@ import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -48,6 +51,7 @@ import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.zaxxer.hikari.HikariDataSource;
 
 public final class PaxosResourcesFactory {
 
@@ -60,13 +64,16 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
-        ImmutablePaxosResources.Builder resourcesBuilder =
-                setupTimestampResources(install, metrics, paxosRuntime, sharedExecutor, remoteClients);
+        HikariDataSource sqliteDataSource = SqliteConnections.getPooledDataSource(install.sqliteDataDirectory());
+
+        ImmutablePaxosResources.Builder resourcesBuilder = setupTimestampResources(
+                install, sqliteDataSource, metrics, paxosRuntime, sharedExecutor, remoteClients);
 
         if (install.useLeaderForEachClient()) {
             return configureLeaderForEachClient(
                     resourcesBuilder,
                     install,
+                    sqliteDataSource,
                     metrics,
                     paxosRuntime,
                     sharedExecutor,
@@ -75,6 +82,7 @@ public final class PaxosResourcesFactory {
             return configureLeaderForAllClients(
                     resourcesBuilder,
                     install,
+                    sqliteDataSource,
                     metrics,
                     paxosRuntime,
                     sharedExecutor,
@@ -85,6 +93,7 @@ public final class PaxosResourcesFactory {
     private static PaxosResources configureLeaderForEachClient(
             ImmutablePaxosResources.Builder resourcesBuilder,
             TimelockPaxosInstallationContext install,
+            HikariDataSource sqliteDataSource,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor,
@@ -103,11 +112,11 @@ public final class PaxosResourcesFactory {
         // we do *not* use CoalescingPaxosLatestRoundVerifier because any coalescing will happen in the
         // AutobatchingPaxosAcceptorNetworkClient. This is for us to avoid context switching as much as possible on the
         // hot path since batching twice doesn't necessarily give us anything.
-        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
-                new PaxosLatestRoundVerifierImpl(acceptorClient);
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = PaxosLatestRoundVerifierImpl::new;
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
+                .sqliteDataSource(sqliteDataSource)
                 .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
                 .runtime(paxosRuntime)
@@ -129,6 +138,7 @@ public final class PaxosResourcesFactory {
     private static PaxosResources configureLeaderForAllClients(
             ImmutablePaxosResources.Builder resourcesBuilder,
             TimelockPaxosInstallationContext install,
+            HikariDataSource sqliteDataSource,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor,
@@ -149,6 +159,7 @@ public final class PaxosResourcesFactory {
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
+                .sqliteDataSource(sqliteDataSource)
                 .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
                 .runtime(paxosRuntime)
@@ -175,6 +186,7 @@ public final class PaxosResourcesFactory {
 
     private static ImmutablePaxosResources.Builder setupTimestampResources(
             TimelockPaxosInstallationContext install,
+            DataSource sqliteDataSource,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor,
@@ -186,7 +198,7 @@ public final class PaxosResourcesFactory {
                 timelockMetrics,
                 PaxosUseCase.TIMESTAMP,
                 install.dataDirectory(),
-                install.sqliteDataDirectory(),
+                sqliteDataSource,
                 install.nodeUuid(),
                 install.install().paxos().canCreateNewClients());
 
