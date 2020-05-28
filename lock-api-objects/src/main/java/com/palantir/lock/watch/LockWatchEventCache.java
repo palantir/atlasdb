@@ -35,7 +35,7 @@ public interface LockWatchEventCache {
     boolean processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
 
     /**
-     * Updates the cache with the update, and identifies the given commit timestamps with that lock watch state.
+     * Updates the cache with the update, and identifies the given TransactionUpdates with that lock watch state.
      *
      * @returns true if leader switched
      */
@@ -43,11 +43,11 @@ public interface LockWatchEventCache {
             LockWatchStateUpdate update);
 
     /**
-     * Updates the cache with the update, and calculates the {@link CommitUpdate} taking into account all changes to
+     * Gets the {@link CommitUpdate} taking into account all changes to
      * lock watch state since the start of the transaction, excluding the transaction's own commit locks.
      *
      * @param startTs start timestamp of the transaction
-     * @return the commit update for this transaction's precommit condition
+     * @return the commit update for this transaction
      */
     CommitUpdate getCommitUpdate(long startTs);
 

@@ -286,6 +286,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.immutableTimestamp = immutableTimestamp;
         this.immutableTimestampLock = immutableTimestampLock;
         this.preCommitCondition = preCommitCondition;
+        preCommitCondition.initialize(getStartTimestamp());
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;

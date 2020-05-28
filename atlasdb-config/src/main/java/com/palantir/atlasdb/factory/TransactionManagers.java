@@ -346,7 +346,7 @@ public abstract class TransactionManagers {
                     .collect(Collectors.toList());
 
             log.warn("Exception thrown when creating transaction manager. "
-                            + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
+                    + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
                     throwable);
 
             closeables.forEach(autoCloseable -> {
@@ -1096,7 +1096,6 @@ public abstract class TransactionManagers {
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
 
-        // TODO: cache will need the lock watching service.
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService,
