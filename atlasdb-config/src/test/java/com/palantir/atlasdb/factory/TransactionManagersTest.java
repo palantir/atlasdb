@@ -121,7 +121,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
@@ -325,8 +324,7 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory,
-                        NoOpLockWatchEventCache.INSTANCE);
+                        reloadingFactory);
 
         LockRequest lockRequest = LockRequest
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
@@ -778,8 +776,7 @@ public class TransactionManagersTest {
                 invalidator,
                 USER_AGENT,
                 Optional.empty(),
-                reloadingFactory,
-                NoOpLockWatchEventCache.INSTANCE);
+                reloadingFactory);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -799,8 +796,7 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory,
-                        NoOpLockWatchEventCache.INSTANCE);
+                        reloadingFactory);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 

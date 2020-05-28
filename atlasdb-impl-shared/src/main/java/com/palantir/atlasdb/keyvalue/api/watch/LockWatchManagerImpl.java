@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -25,26 +26,52 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
 import com.palantir.logsafe.UnsafeArg;
 
-public final class LockWatchManagerImpl implements LockWatchManager, AutoCloseable {
+public final class LockWatchManagerImpl extends LockWatchManager implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = new HashSet<>();
+    private final LockWatchEventCache lockWatchEventCache;
     private final NamespacedConjureLockWatchingService lockWatchingService;
     private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
     private final ScheduledFuture<?> refreshTask;
 
-    public LockWatchManagerImpl(NamespacedConjureLockWatchingService lockWatchingService) {
+    public LockWatchManagerImpl(LockWatchEventCache lockWatchEventCache,
+            NamespacedConjureLockWatchingService lockWatchingService) {
+        this.lockWatchEventCache = lockWatchEventCache;
         this.lockWatchingService = lockWatchingService;
         refreshTask = executorService.scheduleWithFixedDelay(this::reregisterWatches, 0, 5,
                 TimeUnit.SECONDS);
+    }
+
+    /**
+     * Gets the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the
+     * transaction, excluding the transaction's own commit locks.
+     *
+     * @param startTs start timestamp of the transaction
+     * @return the commit update for this transaction
+     */
+    CommitUpdate getCommitUpdate(long startTs) {
+        return lockWatchEventCache.getCommitUpdate(startTs);
+    }
+
+    /**
+     * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
+     * that version, and a map associating each start timestamp with its respective lock watch state version.
+     */
+    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> version) {
+        return lockWatchEventCache.getEventsForTransactions(startTimestamps, version);
     }
 
     @Override
@@ -58,7 +85,7 @@ public final class LockWatchManagerImpl implements LockWatchManager, AutoCloseab
         lockWatchReferences.addAll(newLockwatches);
     }
 
-    public synchronized void reregisterWatches() {
+    private synchronized void reregisterWatches() {
         if (lockWatchReferences.isEmpty()) {
             return;
         }
