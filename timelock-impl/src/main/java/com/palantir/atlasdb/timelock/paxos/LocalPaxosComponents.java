@@ -58,13 +58,13 @@ public class LocalPaxosComponents {
     LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
-            Path sqliteLogDirectory,
+            DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients) {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
         this.baseLogDirectory = legacyLogDirectory;
-        this.sqliteDataSource = SqliteConnections.getPooledDataSource(sqliteLogDirectory);
+        this.sqliteDataSource = sqliteDataSource;
         this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);

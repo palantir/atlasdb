@@ -35,6 +35,8 @@ public interface TemplateVariables {
 
     @Nullable
     String getDataDirectory();
+    @Nullable
+    String getSqliteDataDirectory();
     List<Integer> getServerPorts();
     Integer getLocalServerPort();
     TimestampPaxos getClientPaxos();
