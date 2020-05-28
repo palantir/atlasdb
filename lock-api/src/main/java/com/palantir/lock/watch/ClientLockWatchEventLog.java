@@ -18,11 +18,17 @@ package com.palantir.lock.watch;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+
+import com.palantir.lock.LockDescriptor;
 
 public interface ClientLockWatchEventLog {
     TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version);
+    Optional<Set<LockDescriptor>> getEventsBetweenVersions(
+            IdentifiedVersion startVersion,
+            IdentifiedVersion endVersion);
     Optional<IdentifiedVersion> getLatestKnownVersion();
     Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update, Optional<IdentifiedVersion> earliestVersion);
 }

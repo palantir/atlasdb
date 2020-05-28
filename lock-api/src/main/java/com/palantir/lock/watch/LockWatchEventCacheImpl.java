@@ -16,23 +16,24 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.TreeMultimap;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 
 /**
  * Notes on concurrency: all public methods in this class are synchronised: this removes any concern that the timestamp
- * mapping will be modified while also being cleared or read. For processing updates and getting events, this should
- * not have a performance impact as these methods will be called in a single-threaded manner anyway (via an
- * autobatcher), but the method to remove entries is not necessarily called as such, and may cause some impact on
- * performance.
+ * mapping will be modified while also being cleared or read. For processing updates and getting events, this should not
+ * have a performance impact as these methods will be called in a single-threaded manner anyway (via an autobatcher),
+ * but the method to remove entries is not necessarily called as such, and may cause some impact on performance.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
@@ -58,8 +59,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
-            Set<Long> startTimestamps,
+    public synchronized void processTransactionUpdate(
+            Collection<Long> startTimestamps,
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
         Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update, getEarliestVersion());
@@ -77,12 +78,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                     timestampMap.put(timestamp, version);
                     aliveVersions.put(version, timestamp);
                 }));
-        return latestVersion;
     }
 
     @Override
-    public synchronized void processUpdate(LockWatchStateUpdate update) {
-        eventLog.processUpdate(update, getEarliestVersion());
+    public synchronized CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken commitLocksToken) {
+        IdentifiedVersion startVersion = timestampMap.get(startTs);
+        IdentifiedVersion endVersion = timestampMap.get(commitTs);
+        Optional<Set<LockDescriptor>> locksTakenOut = eventLog.getEventsBetweenVersions(startVersion, endVersion);
+        return locksTakenOut.map(descriptors -> CommitUpdate.invalidateSome(commitTs, descriptors))
+                .orElseGet(() -> CommitUpdate.invalidateWatches(commitTs));
     }
 
     @Override

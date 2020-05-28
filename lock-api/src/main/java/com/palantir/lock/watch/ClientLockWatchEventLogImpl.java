@@ -18,6 +18,8 @@ package com.palantir.lock.watch;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
@@ -71,10 +75,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
-        Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
-        Optional<IdentifiedVersion> versionInclusive =
-                version.map(oldVersion -> IdentifiedVersion.of(oldVersion.id(), oldVersion.version() + 1));
-        IdentifiedVersion currentVersion = latestVersion.get();
+        Optional<IdentifiedVersion> versionInclusive = version.map(this::getInclusiveVersion);
+        IdentifiedVersion toVersion = Collections.max(timestampToVersion.values());
+        IdentifiedVersion currentVersion = getLatestVersionAndVerify(toVersion);
+
         /*
         There are three cases to consider where we would return a snapshot:
             1: they provide an empty version;
@@ -88,11 +92,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot(currentVersion));
         }
 
-        IdentifiedVersion toVersion = Collections.max(timestampToVersion.values());
-
-        Preconditions.checkArgument(toVersion.compareTo(currentVersion) > -1,
-                "Transactions' view of the world is more up-to-date than the log");
-
         if (eventMap.isEmpty()) {
             return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
         }
@@ -105,8 +104,45 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     @Override
+    public synchronized Optional<Set<LockDescriptor>> getEventsBetweenVersions(
+            IdentifiedVersion startVersion,
+            IdentifiedVersion endVersion) {
+        IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
+
+        if (eventMap.isEmpty()) {
+            return Optional.of(ImmutableSet.of());
+        }
+
+        IdentifiedVersion fromVersion = getInclusiveVersion(startVersion);
+
+        if (!fromVersion.id().equals(currentVersion.id())
+                || eventMap.floorKey(fromVersion.version()) == null) {
+            return Optional.empty();
+        }
+
+        List<LockWatchEvent> events =
+                new ArrayList<>(eventMap.subMap(fromVersion.version(), true, endVersion.version(), true).values());
+        Set<LockDescriptor> locksTakenOut = new HashSet<>();
+        events.forEach(event -> locksTakenOut.addAll(event.accept(LockEventVisitor.INSTANCE)));
+
+        return Optional.of(locksTakenOut);
+    }
+
+    @Override
     public Optional<IdentifiedVersion> getLatestKnownVersion() {
         return latestVersion;
+    }
+
+    private IdentifiedVersion getInclusiveVersion(IdentifiedVersion startVersion) {
+        return IdentifiedVersion.of(startVersion.id(), startVersion.version() + 1);
+    }
+
+    private IdentifiedVersion getLatestVersionAndVerify(IdentifiedVersion endVersion) {
+        Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
+        IdentifiedVersion currentVersion = latestVersion.get();
+        Preconditions.checkArgument(endVersion.compareTo(currentVersion) > -1,
+                "Transactions' view of the world is more up-to-date than the log");
+        return currentVersion;
     }
 
     private void processSuccess(
@@ -169,7 +205,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
     }
 
-    private class NewLeaderVisitor extends ProcessingVisitor {
+    private final class NewLeaderVisitor extends ProcessingVisitor {
         private NewLeaderVisitor(Optional<IdentifiedVersion> earliestVersion) {
             super(earliestVersion);
         }
@@ -178,6 +214,25 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         public Void visit(LockWatchStateUpdate.Success _success) {
             processFailed();
             return null;
+        }
+    }
+
+    enum LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        INSTANCE;
+
+        @Override
+        public Set<LockDescriptor> visit(LockEvent lockEvent) {
+            return lockEvent.lockDescriptors();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return lockWatchCreatedEvent.lockDescriptors();
         }
     }
 }
