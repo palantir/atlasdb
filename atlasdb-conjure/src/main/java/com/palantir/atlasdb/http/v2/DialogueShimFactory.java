@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.http.v2;
 
-import java.util.Set;
+import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
+import com.palantir.conjure.java.dialogue.serde.DefaultConjureRuntime;
+import com.palantir.dialogue.Channel;
 
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.watch.LockWatchReferences;
+public final class DialogueShimFactory {
+    private DialogueShimFactory() {
+        // Nö
+    }
 
-public interface LockWatchManager {
-    /**
-     * Registers a set of lock watches.
-     */
-    @Idempotent
-    void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
+    public static <T> T create(Class<T> type, Channel channel) {
+        return JaxRsClient.create(type, channel, DefaultConjureRuntime.builder().build());
+    }
 }

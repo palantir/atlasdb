@@ -25,6 +25,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.sql.DataSource;
+
 import org.apache.commons.io.FileUtils;
 
 import com.google.common.collect.ImmutableList;
@@ -58,20 +60,22 @@ public final class PaxosConsensusTestUtils {
         List<AtomicBoolean> failureToggles = Lists.newArrayList();
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
+        DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(getSqlitePath());
+
         RuntimeException exception = new SafeRuntimeException("mock server failure");
-        SqlitePaxosStateLogFactory factory = new SqlitePaxosStateLogFactory();
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
-            PaxosLearner learner = PaxosLearnerImpl
-                    .newFileSystemLearner(getLearnerStorageParameters(i), PaxosKnowledgeEventRecorder.NO_OP);
+            PaxosLearner learner = PaxosLearnerImpl.newFileSystemLearner(
+                    getLearnerStorageParameters(i, sqliteDataSource), PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class,
                     learner,
                     failureToggles.get(i),
                     exception));
 
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newFileSystemAcceptor(getAcceptorStorageParameters(i));
+            PaxosAcceptor acceptor = PaxosAcceptorImpl
+                    .newFileSystemAcceptor(getAcceptorStorageParameters(i, sqliteDataSource));
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class,
                     acceptor,
@@ -129,18 +133,18 @@ public final class PaxosConsensusTestUtils {
         }
     }
 
-    private static PaxosStorageParameters getLearnerStorageParameters(int num) {
+    private static PaxosStorageParameters getLearnerStorageParameters(int num, DataSource sqliteDataSource) {
         return ImmutablePaxosStorageParameters.builder()
                 .fileBasedLogDirectory(getLearnerLogDir(num))
-                .sqliteBasedLogDirectory(getSqlitePath())
+                .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "learner"))
                 .build();
     }
 
-    private static PaxosStorageParameters getAcceptorStorageParameters(int num) {
+    private static PaxosStorageParameters getAcceptorStorageParameters(int num, DataSource sqliteDataSource) {
         return ImmutablePaxosStorageParameters.builder()
                 .fileBasedLogDirectory(getAcceptorLogDir(num))
-                .sqliteBasedLogDirectory(getSqlitePath())
+                .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "acceptor"))
                 .build();
     }

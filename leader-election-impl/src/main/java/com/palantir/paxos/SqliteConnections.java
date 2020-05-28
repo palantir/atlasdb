@@ -18,15 +18,17 @@ package com.palantir.paxos;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
+import org.sqlite.SQLiteConfig;
+import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * This class is responsible for creating Sqlite connections to an instance.
@@ -39,16 +41,23 @@ public final class SqliteConnections {
         // no
     }
 
-    public static Supplier<Connection> createDefaultNamedSqliteDatabaseAtPath(Path path) {
+    public static DataSource getPooledDataSource(Path path) {
         createDirectoryIfNotExists(path);
         String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
-        return () -> {
-            try {
-                return DriverManager.getConnection(target);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        };
+
+        SQLiteConfig config = new SQLiteConfig();
+        config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
+        config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, "EXTRA");
+        config.setBusyTimeout(5_000);
+
+        SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
+        dataSource.setUrl(target);
+        dataSource.setConfig(config);
+
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setDataSource(dataSource);
+        hikariConfig.setMaximumPoolSize(16);
+        return new HikariDataSource(hikariConfig);
     }
 
     private static void createDirectoryIfNotExists(Path path) {

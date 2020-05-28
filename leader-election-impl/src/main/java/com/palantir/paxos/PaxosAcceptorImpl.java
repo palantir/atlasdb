@@ -41,10 +41,9 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
         return newAcceptor(logDirectory);
     }
 
-    public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters,
-            SqlitePaxosStateLogFactory sqliteFactory) {
+    public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters) {
         PaxosStateLog<PaxosAcceptorState> log = VerifyingPaxosStateLog
-                .createWithoutMigration(storageParameters, sqliteFactory, PaxosAcceptorState.BYTES_HYDRATOR);
+                .createWithoutMigration(storageParameters, PaxosAcceptorState.BYTES_HYDRATOR);
         return new PaxosAcceptorImpl(
                 new ConcurrentSkipListMap<>(),
                 log,

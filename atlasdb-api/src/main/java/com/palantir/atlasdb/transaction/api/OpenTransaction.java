@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.transaction.api;
 
-import java.util.Set;
+import com.palantir.atlasdb.metrics.Timed;
 
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.watch.LockWatchReferences;
+public interface OpenTransaction extends Transaction {
 
-public interface LockWatchManager {
     /**
-     * Registers a set of lock watches.
+     * Runs a provided task, commits the transaction, and performs cleanup. If no further work needs to be done with the
+     * transaction, a no-op task can be passed in.
+     *
+     * @return value returned by the task
      */
-    @Idempotent
-    void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
+    @Timed
+    <T, E extends Exception> T finish(TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException;
 }
