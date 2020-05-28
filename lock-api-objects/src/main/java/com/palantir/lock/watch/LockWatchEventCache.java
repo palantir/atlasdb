@@ -21,43 +21,12 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface LockWatchEventCache {
-
-    /**
-     * Returns the last known lock watch version for the cache.
-     */
     Optional<IdentifiedVersion> lastKnownVersion();
-
-    /**
-     * Updates the cache with the update, and identifies the given start timestamps with that lock watch state.
-     */
     void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
-
-    /**
-     * Updates the cache with the update, and identifies the given TransactionUpdates with that lock watch state.
-     */
     void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update);
-
-    /**
-     * Gets the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the
-     * transaction, excluding the transaction's own commit locks.
-     *
-     * @param startTs start timestamp of the transaction
-     * @return the commit update for this transaction
-     */
     CommitUpdate getCommitUpdate(long startTs);
-
-    /**
-     * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
-     * that version, and a map associating each start timestamp with its respective lock watch state version.
-     */
     TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version);
-
-    /**
-     * This should clear all state, both initial mapping for IdentifiedVersion as well as any commit log information.
-     *
-     * @param startTimestamp
-     */
     void removeTransactionStateFromCache(long startTimestamp);
 }

@@ -73,9 +73,7 @@ final class CommitTimestampGetter implements AutoCloseable {
                         .build();
                 GetCommitTimestampsResponse response = timelock.getCommitTimestamps(request);
 
-                // TODO: Stitch everything together,
-                // TODO: need to pull out the lock token and startTs and push that to the cache.
-
+                // Stitch everything together,
                 commitTimestamps.addAll(process(response, cache));
             }
             for (int i = 0; i < count; i++) {

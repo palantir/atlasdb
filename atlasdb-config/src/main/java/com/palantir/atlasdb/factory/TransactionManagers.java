@@ -1079,11 +1079,9 @@ public abstract class TransactionManagers {
         NamespacedConjureTimelockService namespacedConjureTimelockService
                 = new NamespacedConjureTimelockService(withDiagnosticsConjureTimelockService, timelockNamespace);
 
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
-
-        // TODO: replace with actual implementation
-        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
