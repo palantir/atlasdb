@@ -34,7 +34,6 @@ import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;

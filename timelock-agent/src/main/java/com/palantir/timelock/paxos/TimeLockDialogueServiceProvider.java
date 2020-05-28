@@ -38,7 +38,7 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class TimeLockDialogueServiceProvider {
+public final class TimeLockDialogueServiceProvider {
     private final DialogueClients.ReloadingFactory reloadingFactory;
     private final TaggedMetricRegistry taggedMetricRegistry;
 
