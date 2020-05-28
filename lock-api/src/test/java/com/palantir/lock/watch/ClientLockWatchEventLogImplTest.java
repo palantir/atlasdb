@@ -69,29 +69,29 @@ public final class ClientLockWatchEventLogImplTest {
 
     @Test
     public void failedUpdateResetsSnapshotUpdater() {
-        eventLog.processUpdate(FAILED, Optional.empty());
+        eventLog.processUpdate(FAILED);
         verify(snapshotUpdater).reset();
         assertThat(eventLog.getLatestKnownVersion()).isEmpty();
     }
 
     @Test
     public void leaderChangeResetsSnapshot() {
-        eventLog.processUpdate(SNAPSHOT, Optional.empty());
+        eventLog.processUpdate(SNAPSHOT);
         verify(snapshotUpdater).resetWithSnapshot(SNAPSHOT);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
 
         eventLog.processUpdate(
-                LockWatchStateUpdate.success(UUID.randomUUID(), 1L, ImmutableList.of()),
-                Optional.empty());
+                LockWatchStateUpdate.success(UUID.randomUUID(), 1L, ImmutableList.of())
+        );
         verify(snapshotUpdater).reset();
         assertThat(eventLog.getLatestKnownVersion()).isEmpty();
     }
 
     @Test
     public void getEventsForTransactionsReturnsRequiredEventsOnly() {
-        eventLog.processUpdate(SNAPSHOT, Optional.empty());
+        eventLog.processUpdate(SNAPSHOT);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
-        eventLog.processUpdate(SUCCESS, Optional.empty());
+        eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1))
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_2);
@@ -100,8 +100,8 @@ public final class ClientLockWatchEventLogImplTest {
 
     @Test
     public void oldEventsAreDeletedWhenEarliestVersionIsProvided() {
-        eventLog.processUpdate(SNAPSHOT, Optional.empty());
-        eventLog.processUpdate(SUCCESS, Optional.empty());
+        eventLog.processUpdate(SNAPSHOT);
+        eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS,
                 Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)))
                 .accept(SuccessVisitor.INSTANCE).events();
@@ -113,7 +113,7 @@ public final class ClientLockWatchEventLogImplTest {
                 VERSION_2.version(),
                 ImmutableSet.of(),
                 ImmutableSet.of()));
-        eventLog.processUpdate(SUCCESS_EMPTY, Optional.of(VERSION_2));
+        eventLog.processUpdate(SUCCESS_EMPTY);
         eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
         verify(snapshotUpdater).getSnapshot(VERSION_2);
         verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));

@@ -23,8 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -34,8 +36,10 @@ import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
-    private final ConcurrentSkipListMap<Long, LockWatchEvent> eventMap = new ConcurrentSkipListMap<>();
-    private volatile Optional<IdentifiedVersion> latestVersion = Optional.empty();
+    private final TreeMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
+
+    @GuardedBy("this")
+    private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
     public static ClientLockWatchEventLogImpl create() {
         return create(ClientLockWatchSnapshotUpdaterImpl.create());
@@ -51,17 +55,24 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     @Override
-    public synchronized Optional<IdentifiedVersion> processUpdate(
-            LockWatchStateUpdate update,
-            Optional<IdentifiedVersion> earliestVersion) {
-        ProcessingVisitor visitor;
+    public synchronized Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
+        final ProcessingVisitor visitor;
         if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
-            visitor = new NewLeaderVisitor(earliestVersion);
+            visitor = new NewLeaderVisitor();
         } else {
-            visitor = new ProcessingVisitor(earliestVersion);
+            visitor = new ProcessingVisitor();
         }
         update.accept(visitor);
         return latestVersion;
+    }
+
+    @Override
+    public synchronized void removeOldEntries(IdentifiedVersion earliestVersion) {
+        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
+                eventMap.headMap(earliestVersion.version()).entrySet();
+        snapshotUpdater.processEvents(
+                eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
+        eventsToBeRemoved.clear();
     }
 
     /**
@@ -75,20 +86,11 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
-        Optional<IdentifiedVersion> versionInclusive = version.map(this::getInclusiveVersion);
+        Optional<IdentifiedVersion> versionInclusive = version.map(this::createInclusiveVersion);
         IdentifiedVersion toVersion = Collections.max(timestampToVersion.values());
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(toVersion);
 
-        /*
-        There are three cases to consider where we would return a snapshot:
-            1: they provide an empty version;
-            2. their version has a different UUID (i.e. refers to the wrong leader);
-            3. their version is behind our log.
-        Note that if their version is ahead of our log, or we do not have a version, an exception is thrown instead.
-         */
-        if (!versionInclusive.isPresent()
-                || !versionInclusive.get().id().equals(currentVersion.id())
-                || eventMap.floorKey(versionInclusive.get().version()) == null) {
+        if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
             return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot(currentVersion));
         }
 
@@ -108,16 +110,14 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             IdentifiedVersion startVersion,
             IdentifiedVersion endVersion) {
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
+        IdentifiedVersion fromVersion = createInclusiveVersion(startVersion);
+
+        if(differentLeaderOrTooFarBehind(currentVersion, fromVersion)) {
+            return Optional.empty();
+        }
 
         if (eventMap.isEmpty()) {
             return Optional.of(ImmutableSet.of());
-        }
-
-        IdentifiedVersion fromVersion = getInclusiveVersion(startVersion);
-
-        if (!fromVersion.id().equals(currentVersion.id())
-                || eventMap.floorKey(fromVersion.version()) == null) {
-            return Optional.empty();
         }
 
         List<LockWatchEvent> events =
@@ -129,11 +129,15 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     @Override
-    public Optional<IdentifiedVersion> getLatestKnownVersion() {
+    public synchronized Optional<IdentifiedVersion> getLatestKnownVersion() {
         return latestVersion;
     }
 
-    private IdentifiedVersion getInclusiveVersion(IdentifiedVersion startVersion) {
+    private boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion, IdentifiedVersion startVersion) {
+        return !startVersion.id().equals(currentVersion.id()) || eventMap.floorKey(startVersion.version()) == null;
+    }
+
+    private IdentifiedVersion createInclusiveVersion(IdentifiedVersion startVersion) {
         return IdentifiedVersion.of(startVersion.id(), startVersion.version() + 1);
     }
 
@@ -145,25 +149,13 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return currentVersion;
     }
 
-    private void processSuccess(
-            LockWatchStateUpdate.Success success,
-            Optional<IdentifiedVersion> earliestLivingVersion) {
+    private void processSuccess(LockWatchStateUpdate.Success success) {
         Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
 
-        // Avoid processing old entries
         if (success.lastKnownVersion() > latestVersion.get().version()) {
             success.events().forEach(event ->
                     eventMap.put(event.sequence(), event));
             latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventMap.lastKey()));
-        }
-
-        // Remove old entries, up to (exclusive) the earliest living version
-        if (earliestLivingVersion.isPresent()) {
-            Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
-                    eventMap.headMap(earliestLivingVersion.get().version()).entrySet();
-            snapshotUpdater.processEvents(
-                    eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
-            eventsToBeRemoved.clear();
         }
     }
 
@@ -180,12 +172,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<Void> {
-        private final Optional<IdentifiedVersion> earliestVersion;
-
-        private ProcessingVisitor(Optional<IdentifiedVersion> earliestVersion) {
-            this.earliestVersion = earliestVersion;
-        }
-
         @Override
         public Void visit(LockWatchStateUpdate.Failed _failed) {
             processFailed();
@@ -194,7 +180,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
         @Override
         public Void visit(LockWatchStateUpdate.Success success) {
-            processSuccess(success, earliestVersion);
+            processSuccess(success);
             return null;
         }
 
@@ -206,10 +192,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     private final class NewLeaderVisitor extends ProcessingVisitor {
-        private NewLeaderVisitor(Optional<IdentifiedVersion> earliestVersion) {
-            super(earliestVersion);
-        }
-
         @Override
         public Void visit(LockWatchStateUpdate.Success _success) {
             processFailed();

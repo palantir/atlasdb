@@ -30,5 +30,7 @@ public interface ClientLockWatchEventLog {
             IdentifiedVersion startVersion,
             IdentifiedVersion endVersion);
     Optional<IdentifiedVersion> getLatestKnownVersion();
-    Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update, Optional<IdentifiedVersion> earliestVersion);
+    Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update);
+
+    void removeOldEntries(IdentifiedVersion earliestVersion);
 }

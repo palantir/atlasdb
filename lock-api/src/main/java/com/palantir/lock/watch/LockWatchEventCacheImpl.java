@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.TreeMultimap;
@@ -37,7 +36,7 @@ import com.palantir.logsafe.Preconditions;
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
-    private final ConcurrentHashMap<Long, IdentifiedVersion> timestampMap = new ConcurrentHashMap<>();
+    private final HashMap<Long, IdentifiedVersion> timestampMap = new HashMap<>();
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions = TreeMultimap.create();
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
@@ -63,7 +62,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Collection<Long> startTimestamps,
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
-        Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update, getEarliestVersion());
+        Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
+        getEarliestVersion().ifPresent(eventLog::removeOldEntries);
 
         if (!(latestVersion.isPresent()
                 && currentVersion.isPresent()
