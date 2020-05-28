@@ -69,27 +69,9 @@ public final class TimeLockDialogueServiceProvider {
                         .from(serverListConfig)
                         .servers(ImmutableList.of(server))
                         .build())
-                .flatMapEntries((uri, singleServerConfig) -> {
-                    RemoteServiceConfiguration nonRetrying = ImmutableRemoteServiceConfiguration.builder()
-                            .remotingParameters(ImmutableAuxiliaryRemotingParameters.builder()
-                                    .from(parameters)
-                                    .userAgent(versionedAgent)
-                                    .shouldRetry(false)
-                                    .build())
-                            .serverList(singleServerConfig)
-                            .build();
-                    RemoteServiceConfiguration retrying = ImmutableRemoteServiceConfiguration.builder()
-                            .remotingParameters(ImmutableAuxiliaryRemotingParameters.builder()
-                                    .from(parameters)
-                                    .userAgent(versionedAgent)
-                                    .shouldRetry(true)
-                                    .build())
-                            .serverList(singleServerConfig)
-                            .build();
-                    return Stream.of(
-                            Maps.immutableEntry(getServiceNameForTimeLock(uri, false), nonRetrying),
-                            Maps.immutableEntry(getServiceNameForTimeLock(uri, true), retrying));
-                })
+                .flatMapEntries((uri, singleServerConfig) -> Stream.of(false, true)
+                        .map(retry -> createSingleServiceConfigurationMapping(
+                                uri, serverListConfig, parameters, versionedAgent, retry)))
                 .collectToMap();
     }
 
@@ -100,6 +82,23 @@ public final class TimeLockDialogueServiceProvider {
     public <T> T createSingleNodeInstrumentedProxy(String uri, Class<T> clazz, boolean shouldRetry) {
         return AtlasDbHttpClients.createDialogueProxy(
                 taggedMetricRegistry, clazz, reloadingFactory.getChannel(getServiceNameForTimeLock(uri, shouldRetry)));
+    }
+
+    private static Map.Entry<String, RemoteServiceConfiguration> createSingleServiceConfigurationMapping(
+            String uri,
+            ServerListConfig singleServerConfig,
+            AuxiliaryRemotingParameters parameters,
+            UserAgent userAgent,
+            boolean shouldRetry) {
+        RemoteServiceConfiguration proxy = ImmutableRemoteServiceConfiguration.builder()
+                .remotingParameters(ImmutableAuxiliaryRemotingParameters.builder()
+                        .from(parameters)
+                        .userAgent(userAgent)
+                        .shouldRetry(shouldRetry)
+                        .build())
+                .serverList(singleServerConfig)
+                .build();
+        return Maps.immutableEntry(getServiceNameForTimeLock(uri, shouldRetry), proxy);
     }
 
     private static DialogueClients.ReloadingFactory decorate(
