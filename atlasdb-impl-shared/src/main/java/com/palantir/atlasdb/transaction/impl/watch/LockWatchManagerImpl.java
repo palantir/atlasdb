@@ -16,22 +16,29 @@
 
 package com.palantir.atlasdb.transaction.impl.watch;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchReferences;
 
 public final class LockWatchManagerImpl implements LockWatchManager {
 
-    private final LockWatchEventCache cache;
+    private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = new HashSet<>();
+    private final NamespacedConjureLockWatchingService lockWatchingService;
 
-    public LockWatchManagerImpl(LockWatchEventCache cache) {
-        this.cache = cache;
+    public LockWatchManagerImpl(NamespacedConjureLockWatchingService lockWatchingService) {
+        this.lockWatchingService = lockWatchingService;
     }
 
     @Override
-    public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
-        cache.registerLockWatches(lockWatchReferences);
+    public synchronized void registerWatches(Set<LockWatchReferences.LockWatchReference> newLockwatches) {
+        lockWatchReferences.addAll(newLockwatches);
+    }
+
+    public synchronized void reregisterWatches() {
+        lockWatchingService.startWatching(LockWatchRequest.of(lockWatchReferences));
     }
 }

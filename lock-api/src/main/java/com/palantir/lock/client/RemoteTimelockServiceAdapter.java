@@ -44,29 +44,34 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
+            Runnable leaderChanged,
             LockWatchEventCache lockWatchEventCache) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
-        this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
-        this.commitTimestampGetter = CommitTimestampGetter.create(conjureTimelockService, lockWatchEventCache);
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, leaderChanged, lockWatchEventCache);
+        this.commitTimestampGetter = CommitTimestampGetter.create(conjureTimelockService, leaderChanged,
+                lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
+            Runnable leaderChanged,
             LockWatchEventCache lockWatchEventCache) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderChanged, lockWatchEventCache);
     }
 
     public static RemoteTimelockServiceAdapter create(
             TimelockRpcClient rpcClient,
             ConjureTimelockService conjureClient,
             String timelockNamespace,
+            Runnable leaderChanged,
             LockWatchEventCache lockWatchEventCache) {
         return create(
                 new NamespacedTimelockRpcClient(rpcClient, timelockNamespace),
                 new NamespacedConjureTimelockService(conjureClient, timelockNamespace),
+                leaderChanged,
                 lockWatchEventCache);
     }
 

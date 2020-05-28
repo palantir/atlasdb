@@ -91,7 +91,7 @@ public class TransactionStarterTest {
 
     @Before
     public void before() {
-        transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
+        transactionStarter = TransactionStarter.create(lockLeaseService, () -> {}, lockWatchEventCache);
     }
 
     @After
@@ -182,7 +182,7 @@ public class TransactionStarterTest {
                                 .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                                 .build())
                 .collect(toList());
-        TransactionStarter.consumer(lockLeaseService, lockWatchEventCache).accept(elements);
+        TransactionStarter.consumer(lockLeaseService, () -> {}, lockWatchEventCache).accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 

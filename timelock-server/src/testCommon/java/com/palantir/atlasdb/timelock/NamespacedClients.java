@@ -70,6 +70,7 @@ public interface NamespacedClients {
         return RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient(),
                 namespacedConjureTimelockService(),
+                () -> {},
                 lockWatchEventCache());
     }
 

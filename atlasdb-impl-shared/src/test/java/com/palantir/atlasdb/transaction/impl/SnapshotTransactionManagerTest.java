@@ -59,6 +59,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
 
@@ -82,6 +83,7 @@ public class SnapshotTransactionManagerTest {
             new LegacyTimelockService(timestampService, closeableLockService,
                     LockClient.of("lock")),
             NoOpLockWatchManager.INSTANCE,
+            NoOpLockWatchEventCache.INSTANCE,
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -137,6 +139,7 @@ public class SnapshotTransactionManagerTest {
                 new LegacyTimelockService(ts, closeableLockService,
                         LockClient.of("lock")),
                 NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchEventCache.INSTANCE,
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -268,6 +271,7 @@ public class SnapshotTransactionManagerTest {
                 keyValueService,
                 timelockService,
                 NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchEventCache.INSTANCE,
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),

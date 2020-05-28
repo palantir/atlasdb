@@ -67,6 +67,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -82,6 +83,7 @@ import com.palantir.util.SafeShutdownRunner;
     final TransactionService transactionService;
     final TimelockService timelockService;
     final LockWatchManager lockWatchManager;
+    final LockWatchEventCache lockWatchEventCache;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -105,6 +107,7 @@ import com.palantir.util.SafeShutdownRunner;
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
+            LockWatchEventCache lockWatchEventCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -123,6 +126,7 @@ import com.palantir.util.SafeShutdownRunner;
             ConflictTracer conflictTracer) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
+        this.lockWatchEventCache = lockWatchEventCache;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -234,6 +238,7 @@ import com.palantir.util.SafeShutdownRunner;
             try {
                 result = runTaskThrowOnConflict(wrappedTask, tx);
             } finally {
+                lockWatchEventCache.removeTransactionStateFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
             }

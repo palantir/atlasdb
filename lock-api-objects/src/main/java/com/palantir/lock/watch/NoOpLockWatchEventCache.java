@@ -35,22 +35,19 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void registerLockWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
-    }
-
-    @Override
     public Optional<IdentifiedVersion> lastKnownVersion() {
         return Optional.empty();
     }
 
     @Override
-    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+    public boolean processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+        return false;
     }
 
     @Override
-    public void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
+    public boolean processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update) {
-        //
+        return false;
     }
 
     @Override

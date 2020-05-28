@@ -54,6 +54,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 
 public class SerializableTransactionManagerTest {
@@ -270,6 +271,7 @@ public class SerializableTransactionManagerTest {
                 mockKvs,
                 mockTimelockService,
                 NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchEventCache.INSTANCE,
                 mockTimestampManagementService,
                 null, // lockService
                 mock(TransactionService.class),

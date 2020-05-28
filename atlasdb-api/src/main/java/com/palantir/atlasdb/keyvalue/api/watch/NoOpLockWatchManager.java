@@ -20,12 +20,8 @@ import java.util.Set;
 
 import com.palantir.lock.watch.LockWatchReferences;
 
-public final class NoOpLockWatchManager implements LockWatchManager {
-    public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
-
-    private NoOpLockWatchManager() {
-        // ...
-    }
+public enum NoOpLockWatchManager implements LockWatchManager {
+    INSTANCE;
 
     @Override
     public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {

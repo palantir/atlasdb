@@ -22,9 +22,6 @@ import java.util.Set;
 
 public interface LockWatchEventCache {
 
-    // TODO: this needs to remember all requests, and make sure to re-register watches once it discovers a leader switch
-    void registerLockWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
-
     /**
      * Returns the last known lock watch version for the cache.
      */
@@ -32,13 +29,17 @@ public interface LockWatchEventCache {
 
     /**
      * Updates the cache with the update, and identifies the given start timestamps with that lock watch state.
+     *
+     * @returns true if leader switched
      */
-    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    boolean processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
 
     /**
      * Updates the cache with the update, and identifies the given commit timestamps with that lock watch state.
+     *
+     * @returns true if leader switched
      */
-    void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
+    boolean processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update);
 
     /**

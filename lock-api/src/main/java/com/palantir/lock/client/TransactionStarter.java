@@ -47,7 +47,7 @@ import com.palantir.logsafe.Preconditions;
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
  * service also handles creating {@link LockTokenShare}'s to enable multiple transactions sharing a single immutable
  * timestamp.
- *
+ * <p>
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
@@ -62,9 +62,10 @@ final class TransactionStarter implements AutoCloseable {
         this.lockLeaseService = lockLeaseService;
     }
 
-    static TransactionStarter create(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
+    static TransactionStarter create(LockLeaseService lockLeaseService, Runnable leaderChanged,
+            LockWatchEventCache lockWatchEventCache) {
         DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher = Autobatchers
-                .independent(consumer(lockLeaseService, lockWatchEventCache))
+                .independent(consumer(lockLeaseService, leaderChanged, lockWatchEventCache))
                 .safeLoggablePurpose("transaction-starter")
                 .build();
         return new TransactionStarter(autobatcher, lockLeaseService);
@@ -119,7 +120,7 @@ final class TransactionStarter implements AutoCloseable {
     /**
      * Calling unlock on a set of LockTokenShares only calls unlock on shared token iff all references to shared token
      * are unlocked.
-     *
+     * <p>
      * {@link com.palantir.lock.v2.TimelockService#unlock(Set)} has a guarantee that returned tokens were valid until
      * calling unlock. To keep that guarantee, we need to check if LockTokenShares were valid (by calling refresh with
      * referenced shared token) even if we don't unlock the underlying shared token.
@@ -139,12 +140,12 @@ final class TransactionStarter implements AutoCloseable {
 
     @VisibleForTesting
     static Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
-            LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
+            LockLeaseService lockLeaseService, Runnable leaderChanged, LockWatchEventCache lockWatchEventCache) {
         return batch -> {
             int numTransactions = batch.stream().mapToInt(BatchElement::argument).reduce(0, Integer::sum);
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
+                    getStartTransactionResponses(lockLeaseService, leaderChanged, lockWatchEventCache, numTransactions);
 
             int start = 0;
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement
@@ -158,6 +159,7 @@ final class TransactionStarter implements AutoCloseable {
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
             LockLeaseService lockLeaseService,
+            Runnable leaderChanged,
             LockWatchEventCache lockWatchEventCache,
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
@@ -165,14 +167,17 @@ final class TransactionStarter implements AutoCloseable {
             try {
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
                         lockWatchEventCache.lastKnownVersion(), numberOfTransactions - result.size());
-                lockWatchEventCache.processStartTransactionsUpdate(
+                boolean hasLeaderChanged = lockWatchEventCache.processStartTransactionsUpdate(
                         response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
                         response.getLockWatchUpdate());
+                if (hasLeaderChanged) {
+                    leaderChanged.run();
+                }
                 result.addAll(split(response));
             } catch (Throwable t) {
                 unlock(result.stream()
-                        .map(response -> response.immutableTimestamp().getLock())
-                        .collect(Collectors.toSet()),
+                                .map(response -> response.immutableTimestamp().getLock())
+                                .collect(Collectors.toSet()),
                         lockLeaseService);
                 throw Throwables.throwUncheckedException(t);
             }
