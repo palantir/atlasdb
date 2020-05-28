@@ -29,22 +29,18 @@ public interface LockWatchEventCache {
 
     /**
      * Updates the cache with the update, and identifies the given start timestamps with that lock watch state.
-     *
-     * @returns true if leader switched
      */
-    boolean processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
 
     /**
      * Updates the cache with the update, and identifies the given TransactionUpdates with that lock watch state.
-     *
-     * @returns true if leader switched
      */
-    boolean processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
+    void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update);
 
     /**
-     * Gets the {@link CommitUpdate} taking into account all changes to
-     * lock watch state since the start of the transaction, excluding the transaction's own commit locks.
+     * Gets the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the
+     * transaction, excluding the transaction's own commit locks.
      *
      * @param startTs start timestamp of the transaction
      * @return the commit update for this transaction

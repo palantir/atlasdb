@@ -42,10 +42,9 @@ final class CommitTimestampGetter implements AutoCloseable {
     }
 
     public static CommitTimestampGetter create(NamespacedConjureTimelockService timelock,
-            Runnable leaderChanged,
             LockWatchEventCache cache) {
         DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers
-                .independent(consumer(timelock, leaderChanged, cache))
+                .independent(consumer(timelock, cache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .build();
         return new CommitTimestampGetter(autobatcher);
@@ -59,7 +58,6 @@ final class CommitTimestampGetter implements AutoCloseable {
     }
 
     private static Consumer<List<BatchElement<Request, Long>>> consumer(NamespacedConjureTimelockService timelock,
-            Runnable leaderChanged,
             LockWatchEventCache cache) {
         return batch -> {
             int count = batch.size();
@@ -78,7 +76,6 @@ final class CommitTimestampGetter implements AutoCloseable {
                 // TODO: Stitch everything together,
                 // TODO: need to pull out the lock token and startTs and push that to the cache.
 
-//                leaderChanged.run();
                 commitTimestamps.addAll(process(response, cache));
             }
             for (int i = 0; i < count; i++) {

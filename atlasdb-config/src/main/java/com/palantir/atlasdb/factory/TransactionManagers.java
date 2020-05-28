@@ -1098,8 +1098,7 @@ public abstract class TransactionManagers {
 
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
-                .create(namespacedTimelockRpcClient, namespacedConjureTimelockService,
-                        lockWatchManager::reregisterWatches, lockWatchEventCache);
+                .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 ImmutableRemoteProxies.<TimestampManagementRpcClient>builder()
                         .conjureJavaRuntimeProxy(
@@ -1117,7 +1116,10 @@ public abstract class TransactionManagers {
                 .timelock(remoteTimelockServiceAdapter)
                 .lockWatcher(lockWatchManager)
                 .eventCache(lockWatchEventCache)
-                .close(remoteTimelockServiceAdapter::close)
+                .close(() -> {
+                    remoteTimelockServiceAdapter.close();
+                    lockWatchManager.close();
+                })
                 .build();
     }
 

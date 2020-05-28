@@ -62,10 +62,10 @@ final class TransactionStarter implements AutoCloseable {
         this.lockLeaseService = lockLeaseService;
     }
 
-    static TransactionStarter create(LockLeaseService lockLeaseService, Runnable leaderChanged,
+    static TransactionStarter create(LockLeaseService lockLeaseService,
             LockWatchEventCache lockWatchEventCache) {
         DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher = Autobatchers
-                .independent(consumer(lockLeaseService, leaderChanged, lockWatchEventCache))
+                .independent(consumer(lockLeaseService, lockWatchEventCache))
                 .safeLoggablePurpose("transaction-starter")
                 .build();
         return new TransactionStarter(autobatcher, lockLeaseService);
@@ -140,12 +140,12 @@ final class TransactionStarter implements AutoCloseable {
 
     @VisibleForTesting
     static Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
-            LockLeaseService lockLeaseService, Runnable leaderChanged, LockWatchEventCache lockWatchEventCache) {
+            LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         return batch -> {
             int numTransactions = batch.stream().mapToInt(BatchElement::argument).reduce(0, Integer::sum);
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockLeaseService, leaderChanged, lockWatchEventCache, numTransactions);
+                    getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
 
             int start = 0;
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement
@@ -159,7 +159,6 @@ final class TransactionStarter implements AutoCloseable {
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
             LockLeaseService lockLeaseService,
-            Runnable leaderChanged,
             LockWatchEventCache lockWatchEventCache,
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
@@ -167,12 +166,9 @@ final class TransactionStarter implements AutoCloseable {
             try {
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
                         lockWatchEventCache.lastKnownVersion(), numberOfTransactions - result.size());
-                boolean hasLeaderChanged = lockWatchEventCache.processStartTransactionsUpdate(
+                lockWatchEventCache.processStartTransactionsUpdate(
                         response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
                         response.getLockWatchUpdate());
-                if (hasLeaderChanged) {
-                    leaderChanged.run();
-                }
                 result.addAll(split(response));
             } catch (Throwable t) {
                 unlock(result.stream()

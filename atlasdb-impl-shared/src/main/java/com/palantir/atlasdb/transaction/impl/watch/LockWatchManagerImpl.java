@@ -18,19 +18,39 @@ package com.palantir.atlasdb.transaction.impl.watch;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.logsafe.UnsafeArg;
 
-public final class LockWatchManagerImpl implements LockWatchManager {
+public final class LockWatchManagerImpl implements LockWatchManager, AutoCloseable {
+
+    private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = new HashSet<>();
     private final NamespacedConjureLockWatchingService lockWatchingService;
+    private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
+    private final ScheduledFuture<?> refreshTask;
 
     public LockWatchManagerImpl(NamespacedConjureLockWatchingService lockWatchingService) {
         this.lockWatchingService = lockWatchingService;
+        refreshTask = executorService.scheduleWithFixedDelay(this::reregisterWatches, 0, 5,
+                TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void close() {
+        refreshTask.cancel(false);
+        executorService.shutdown();
     }
 
     @Override
@@ -39,6 +59,14 @@ public final class LockWatchManagerImpl implements LockWatchManager {
     }
 
     public synchronized void reregisterWatches() {
-        lockWatchingService.startWatching(LockWatchRequest.of(lockWatchReferences));
+        if (lockWatchReferences.isEmpty()) {
+            return;
+        }
+
+        try {
+            lockWatchingService.startWatching(LockWatchRequest.of(lockWatchReferences));
+        } catch (Throwable e) {
+            log.info("Failed to register lockwatches", UnsafeArg.of("lockwatches", lockWatchReferences));
+        }
     }
 }

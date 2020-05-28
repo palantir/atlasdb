@@ -40,7 +40,6 @@ public final class TimestampClient {
                        new NamespacedConjureTimelockService(
                                TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
                                TimelockUtils.NAMESPACE),
-                       () -> {},
                        NoOpLockWatchEventCache.INSTANCE));
     }
 }
