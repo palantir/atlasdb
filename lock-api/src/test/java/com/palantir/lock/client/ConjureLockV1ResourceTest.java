@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.lock.v1;
+package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,9 +24,9 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.client.ConjureLockV1Tokens;
 
 public class ConjureLockV1ResourceTest {
     private static final BigInteger TOKEN_ID = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE);

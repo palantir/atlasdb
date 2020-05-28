@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -40,8 +41,10 @@ import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.dialogue.Channel;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.lock.ConjureLockV1ServiceBlocking;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
+import com.palantir.lock.client.DialogueComposingLockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementRpcClient;
@@ -111,13 +114,27 @@ public final class AtlasDbDialogueServiceProvider {
     }
 
     LockRpcClient getLockRpcClient() {
-        LockRpcClient shortTimeoutService = createDialogueProxyWithShortTimeout(LockRpcClient.class);
-        LockRpcClient longTimeoutService = createDialogueProxyWithLongTimeout(LockRpcClient.class);
+        ConjureLockV1ServiceBlocking shortTimeoutDialogueService
+                = dialogueClientFactory.get(ConjureLockV1ServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        ConjureLockV1ServiceBlocking longTimeoutDialogueService
+                = dialogueClientFactory.get(ConjureLockV1ServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
 
-        return new TimeoutSensitiveLockRpcClient(ImmutableShortAndLongTimeoutServices.<LockRpcClient>builder()
-                .shortTimeout(shortTimeoutService)
-                .longTimeout(longTimeoutService)
-                .build());
+        return new TimeoutSensitiveLockRpcClient(
+                ImmutableShortAndLongTimeoutServices.<ConjureLockV1ServiceBlocking>builder()
+                        .shortTimeout(shortTimeoutDialogueService)
+                        .longTimeout(longTimeoutDialogueService)
+                        .build()
+                        .map(proxy -> FastFailoverProxy.newProxyInstance(
+                                ConjureLockV1ServiceBlocking.class, () -> proxy))
+                        .map(service -> AtlasDbMetrics.instrumentWithTaggedMetrics(
+                                taggedMetricRegistry,
+                                ConjureLockV1ServiceBlocking.class,
+                                service))
+                        .transform(
+                                shortService -> new DialogueComposingLockRpcClient(
+                                        createDialogueProxyWithShortTimeout(LockRpcClient.class), shortService),
+                                longService -> new DialogueComposingLockRpcClient(
+                                        createDialogueProxyWithLongTimeout(LockRpcClient.class), longService)));
     }
 
     TimelockRpcClient getTimelockRpcClient() {

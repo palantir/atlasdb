@@ -14,29 +14,40 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.lock.v1;
+package com.palantir.lock.client;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.SimpleHeldLocksToken;
 
-final class ConjureLockV1Tokens {
+public final class ConjureLockV1Tokens {
     private ConjureLockV1Tokens() {
         // no
     }
 
-    static List<LockRefreshToken> getLegacyTokens(List<ConjureLockRefreshToken> request) {
+    public static List<LockRefreshToken> getLegacyTokens(Collection<ConjureLockRefreshToken> request) {
         return request.stream()
                 .map(token -> new LockRefreshToken(token.getTokenId(), token.getExpirationDateMs()))
                 .collect(Collectors.toList());
     }
 
-    static Set<ConjureLockRefreshToken> getConjureTokens(Set<LockRefreshToken> serverTokens) {
-        return serverTokens.stream()
-                .map(token -> ConjureLockRefreshToken.of(token.getTokenId(), token.getExpirationDateMs()))
-                .collect(Collectors.toSet());
+    public static List<ConjureLockRefreshToken> getConjureTokens(Iterable<LockRefreshToken> serverTokens) {
+        return StreamSupport.stream(serverTokens.spliterator(), false)
+                .map(ConjureLockV1Tokens::getConjureToken)
+                .collect(Collectors.toList());
+    }
+
+    public static ConjureLockRefreshToken getConjureToken(LockRefreshToken token) {
+        return ConjureLockRefreshToken.of(token.getTokenId(), token.getExpirationDateMs());
+    }
+
+    public static ConjureSimpleHeldLocksToken getSimpleHeldLocksToken(SimpleHeldLocksToken legacyToken) {
+        return ConjureSimpleHeldLocksToken.of(legacyToken.getTokenId(), legacyToken.getCreationDateMs());
     }
 }

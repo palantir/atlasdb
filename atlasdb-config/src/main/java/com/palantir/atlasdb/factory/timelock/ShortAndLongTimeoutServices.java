@@ -40,4 +40,11 @@ public interface ShortAndLongTimeoutServices<T> {
                 .shortTimeout(mapper.apply(shortTimeout()))
                 .build();
     }
+
+    default <U> ShortAndLongTimeoutServices<U> transform(Function<T, U> shortTransform, Function<T, U> longTransform) {
+        return ImmutableShortAndLongTimeoutServices.<U>builder()
+                .longTimeout(longTransform.apply(longTimeout()))
+                .shortTimeout(shortTransform.apply(shortTimeout()))
+                .build();
+    }
 }
