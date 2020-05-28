@@ -50,8 +50,6 @@ public final class ClientLockWatchEventLogImplTest {
             LockWatchStateUpdate.snapshot(VERSION_1.id(), VERSION_1.version(), ImmutableSet.of(), ImmutableSet.of());
     private static final LockWatchStateUpdate.Success SUCCESS =
             LockWatchStateUpdate.success(VERSION_2.id(), VERSION_2.version(), ImmutableList.of(EVENT_1, EVENT_2));
-    private static final LockWatchStateUpdate.Success SUCCESS_EMPTY =
-            LockWatchStateUpdate.success(VERSION_2.id(), VERSION_2.version(), ImmutableList.of());
     private static final LockWatchStateUpdate.Failed FAILED =
             LockWatchStateUpdate.failed(LEADER);
     private static final Map<Long, IdentifiedVersion> TIMESTAMPS =
@@ -99,7 +97,7 @@ public final class ClientLockWatchEventLogImplTest {
     }
 
     @Test
-    public void oldEventsAreDeletedWhenEarliestVersionIsProvided() {
+    public void oldEventsAreDeletedAndPassedToSnapshotUpdater() {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS,
@@ -113,7 +111,7 @@ public final class ClientLockWatchEventLogImplTest {
                 VERSION_2.version(),
                 ImmutableSet.of(),
                 ImmutableSet.of()));
-        eventLog.processUpdate(SUCCESS_EMPTY);
+        eventLog.removeOldEntries(VERSION_2);
         eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
         verify(snapshotUpdater).getSnapshot(VERSION_2);
         verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));
