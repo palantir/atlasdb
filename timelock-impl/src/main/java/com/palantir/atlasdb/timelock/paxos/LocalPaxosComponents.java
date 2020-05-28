@@ -51,7 +51,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SplittingPaxosStateLog;
 import com.palantir.paxos.SqliteConnections;
 
-public class LocalPaxosComponents {
+public final class LocalPaxosComponents {
 
     private final TimelockPaxosMetrics metrics;
     private final PaxosUseCase paxosUseCase;
