@@ -40,6 +40,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final NamespacedConjureTimelockService conjureTimelockService;
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
+    private final CommitTimestampGetter commitTimestampGetter;
 
     private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
@@ -47,6 +48,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
+        this.commitTimestampGetter = CommitTimestampGetter.create(conjureTimelockService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
 
@@ -71,6 +73,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public long getFreshTimestamp() {
         return getFreshTimestamps(1).getLowerBound();
+    }
+
+    @Override
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        return commitTimestampGetter.getCommitTimestamp(startTs, commitLocksToken);
     }
 
     @Override

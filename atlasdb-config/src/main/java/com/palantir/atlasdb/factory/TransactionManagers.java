@@ -92,9 +92,9 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchTransactionManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -143,6 +143,8 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
+import com.palantir.atlasdb.transaction.impl.watch.LockWatchManagerImpl;
+import com.palantir.atlasdb.transaction.impl.watch.LockWatchTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -331,6 +333,12 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public TransactionManager serializable() {
+        return lockWatch();
+    }
+
+    @JsonIgnore
+    @Value.Derived
+    public LockWatchTransactionManager lockWatch() {
         List<AutoCloseable> closeables = Lists.newArrayList();
 
         try {
@@ -341,7 +349,7 @@ public abstract class TransactionManagers {
                     .collect(Collectors.toList());
 
             log.warn("Exception thrown when creating transaction manager. "
-                    + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
+                            + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
                     throwable);
 
             closeables.forEach(autoCloseable -> {
@@ -356,7 +364,7 @@ public abstract class TransactionManagers {
     }
 
     @SuppressWarnings("MethodLength")
-    private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
+    private LockWatchTransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
 
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
@@ -535,7 +543,7 @@ public abstract class TransactionManagers {
                         runtime.map(AtlasDbRuntimeConfig::compact)),
                 closeables);
 
-        return transactionManager;
+        return new LockWatchTransactionManagerImpl(transactionManager, lockAndTimestampServices.eventCache());
     }
 
     private static Callback<TransactionManager> createClearsTable() {
@@ -1078,11 +1086,13 @@ public abstract class TransactionManagers {
         NamespacedConjureTimelockService namespacedConjureTimelockService
                 = new NamespacedConjureTimelockService(withDiagnosticsConjureTimelockService, timelockNamespace);
 
-        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
-        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService,
-                lockWatchEventCache);
+
+        // TODO: cache will need the lock watching service.
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
+
+        LockWatchManager lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
@@ -1101,7 +1111,8 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
-                .lockWatcher(lockWatcher)
+                .lockWatcher(lockWatchManager)
+                .eventCache(lockWatchEventCache)
                 .close(remoteTimelockServiceAdapter::close)
                 .build();
     }
@@ -1305,8 +1316,13 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
         @Value.Default
-        default InternalLockWatchManager lockWatcher() {
-            return NoOpInternalLockWatchManager.INSTANCE;
+        default LockWatchManager lockWatcher() {
+            return NoOpLockWatchManager.INSTANCE;
+        }
+
+        @Value.Default
+        default LockWatchEventCache eventCache() {
+            return NoOpLockWatchEventCache.INSTANCE;
         }
 
         @Value.Derived

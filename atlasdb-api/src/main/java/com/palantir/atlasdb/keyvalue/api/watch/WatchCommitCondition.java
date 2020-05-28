@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
-import java.util.Optional;
+import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.lock.watch.CommitUpdate;
 
-import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
-
-public interface StartTransactionsResponse {
-
-    List<OpenTransaction> getTransactions();
+public interface WatchCommitCondition {
+    WatchCommitCondition NO_OP = ignored -> {
+    };
 
     /**
-     * Returns a condensed view of new lock watch events since lastKnownVersion for the set of started transactions.
-     *
-     * @param lastKnownVersion exclusive start version to get events from
+     * Checks that the condition is valid given the changed locks, otherwise throws a {@link
+     * TransactionFailedException}. If the condition throws, the transaction will not be committed.
      */
-    TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion);
+    void throwIfConflict(CommitUpdate commitUpdates);
 }

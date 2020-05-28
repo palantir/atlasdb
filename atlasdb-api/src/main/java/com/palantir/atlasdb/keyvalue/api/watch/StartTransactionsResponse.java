@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
+
+import java.util.List;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.transaction.api.OpenTransaction;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
+
 @Value.Immutable
-public interface StartTransactionRequest {
-    PreCommitCondition preCommitCondition();
+public interface StartTransactionsResponse {
+    List<OpenTransaction> getTransactions();
+    TransactionsLockWatchEvents lockWatchEvents();
 }

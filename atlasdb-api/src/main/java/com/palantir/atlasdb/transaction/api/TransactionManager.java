@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
@@ -322,7 +322,7 @@ public interface TransactionManager extends AutoCloseable {
 
     @DoNotDelegate
     default LockWatchManager getLockWatchManager() {
-        return NoOpInternalLockWatchManager.INSTANCE;
+        return NoOpLockWatchManager.INSTANCE;
     }
 
     /**
@@ -432,7 +432,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Deprecated
     @Timed
-    StartTransactionsResponse startTransactions(List<StartTransactionRequest> request);
+    List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> condition);
 
     /**
      * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.
