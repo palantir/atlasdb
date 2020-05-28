@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -35,7 +36,7 @@ import com.palantir.logsafe.Preconditions;
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
-    private final ConcurrentSkipListMap<Long, IdentifiedVersion> timestampMap = new ConcurrentSkipListMap<>();
+    private final ConcurrentHashMap<Long, IdentifiedVersion> timestampMap = new ConcurrentHashMap<>();
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions = TreeMultimap.create();
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
