@@ -28,9 +28,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.ByteArrayLockDescriptor;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 
@@ -60,9 +62,9 @@ public class SimpleLockResource implements LockResource {
                 .builder(generateDescriptorMap(numLocks, descriptorSize))
                 .build();
         try {
-            LockRefreshToken response = transactionManager.getLockService().lock("test", request);
+            HeldLocksToken response = transactionManager.getLockService().lockAndGetHeldLocks("test", request);
             if (response != null) {
-                transactionManager.getLockService().unlock(response);
+                transactionManager.getLockService().unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(response));
                 return true;
             }
         } catch (InterruptedException e) {
