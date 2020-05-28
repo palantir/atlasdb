@@ -51,7 +51,7 @@ public final class DialogueClientOptions {
                 .maxNumRetries(remotingParameters.definitiveRetryIndication()
                         ? ClientOptionsConstants.STANDARD_MAX_RETRIES
                         : ClientOptionsConstants.NO_RETRIES)
-                .readTimeout(remotingParameters.definitiveRetryIndication()
+                .readTimeout(remotingParameters.shouldUseExtendedTimeout()
                         ? ClientOptionsConstants.LONG_READ_TIMEOUT
                         : ClientOptionsConstants.SHORT_READ_TIMEOUT)
                 .build();

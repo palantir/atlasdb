@@ -39,10 +39,10 @@ public interface AuxiliaryRemotingParameters {
      */
     Optional<Boolean> shouldRetry();
 
-    @Value.Derived
+    @Value.Lazy
     default boolean definitiveRetryIndication() {
         return shouldRetry().orElseThrow(() -> new SafeIllegalStateException("Attempted to determine"
-                + " definitively if we should retry, but this was unknown."));
+                    + " definitively if we should retry, but this was unknown."));
     }
 
     /**
