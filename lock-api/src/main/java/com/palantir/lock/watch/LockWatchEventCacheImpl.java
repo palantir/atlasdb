@@ -26,6 +26,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.logsafe.Preconditions;
 
+/**
+ * Notes on concurrency: all public methods in this class are synchronised: this removes any concern that the timestamp
+ * mapping will be modified while also being cleared or read. For processing updates and getting events, this should
+ * not have a performance impact as these methods will be called in a single-threaded manner anyway (via an
+ * autobatcher), but the method to remove entries is not necessarily called as such, and may cause some impact on
+ * performance.
+ */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog lockWatchEventLog;
     private final ConcurrentSkipListMap<Long, IdentifiedVersion> timestampMap = new ConcurrentSkipListMap<>();
@@ -49,12 +56,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return lockWatchEventLog.getLatestKnownVersion();
     }
 
-    /**
-     * Notes on concurrency: This should only be called in a single-threaded manner, on the transaction starting flow.
-     * Therefore, forcing it to be synchronised does not incur a performance hit but guarantees that changes to the
-     * cache do not cause a race condition. Deletes from the cache and underlying log are handled in this method; there
-     * is no concern that they will grow large between calls of this method as they are never added to elsewhere.
-     */
     @Override
     public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
             Set<Long> startTimestamps,
@@ -83,11 +84,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         lockWatchEventLog.processUpdate(update, getEarliestVersion());
     }
 
-    /**
-     * This is synchronised for the call to getAllPresent. This will also be called in a single-threaded way - once per
-     * batch on the start transaction codepath, and since that is the same codepath as the other processing method,
-     * should not cause bad performance.
-     */
     @Override
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
@@ -120,7 +116,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         if (aliveVersions.isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.ofNullable(aliveVersions.keySet().first());
+            return Optional.of(aliveVersions.keySet().first());
         }
     }
 
