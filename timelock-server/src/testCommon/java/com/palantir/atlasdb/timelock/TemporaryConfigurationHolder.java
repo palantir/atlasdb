@@ -62,9 +62,14 @@ public class TemporaryConfigurationHolder extends ExternalResource {
 
     private void createTemporaryConfigFile() throws Exception {
         Template template = TEMPLATE_CONFIG.getTemplate(templateName);
-        template.process(
-                variables.withDataDirectory(temporaryFolder.newFolder().getAbsolutePath()),
-                new FileWriter(temporaryConfigFile));
+        TemplateVariables variablesWithFolders = variables
+                .withDataDirectory(temporaryFolder.newFolder(appendPort("legacy")).getAbsolutePath())
+                .withSqliteDataDirectory(temporaryFolder.newFolder(appendPort("sqlite")).getAbsolutePath());
+        template.process(variablesWithFolders, new FileWriter(temporaryConfigFile));
+    }
+
+    private String appendPort(String legacy) {
+        return legacy + variables.getLocalServerPort();
     }
 
     String getTemporaryConfigFileLocation() {

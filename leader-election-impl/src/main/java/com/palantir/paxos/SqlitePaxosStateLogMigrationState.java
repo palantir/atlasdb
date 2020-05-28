@@ -16,11 +16,10 @@
 
 package com.palantir.paxos;
 
-import java.sql.Connection;
 import java.util.Optional;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.function.Function;
-import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
@@ -37,70 +36,56 @@ public final class SqlitePaxosStateLogMigrationState {
     private final Client namespace;
     private final String useCase;
     private final Jdbi jdbi;
-    private final ReadWriteLock sharedLock;
 
-    private SqlitePaxosStateLogMigrationState(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi,
-            ReadWriteLock sharedLock) {
+    private SqlitePaxosStateLogMigrationState(NamespaceAndUseCase namespaceAndUseCase, Jdbi jdbi) {
         this.namespace = namespaceAndUseCase.namespace();
         this.useCase = namespaceAndUseCase.useCase();
         this.jdbi = jdbi;
-        this.sharedLock = sharedLock;
     }
 
-    static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase,
-            Supplier<Connection> connectionSupplier, ReadWriteLock sharedLock) {
-        Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+    static SqlitePaxosStateLogMigrationState create(NamespaceAndUseCase namespaceAndUseCase, DataSource dataSource) {
+        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
-        SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespaceAndUseCase, jdbi,
-                sharedLock);
+        SqlitePaxosStateLogMigrationState state = new SqlitePaxosStateLogMigrationState(namespaceAndUseCase, jdbi);
         state.initialize();
         return state;
     }
 
     private void initialize() {
-        executeWrite(Queries::createTable);
+        execute(Queries::createMigrationStateTable);
+        execute(Queries::createMigrationCutoffTable);
     }
 
     public void migrateToValidationState() {
-        executeWrite(migrateToState(States.VALIDATION));
+        execute(migrateToState(States.VALIDATION));
     }
 
     public void migrateToMigratedState() {
-        executeWrite(migrateToState(States.MIGRATED));
+        execute(migrateToState(States.MIGRATED));
     }
 
     public boolean hasMigratedFromInitialState() {
-        return executeRead(dao -> dao.getVersion(namespace, useCase).isPresent());
+        return execute(dao -> dao.getVersion(namespace, useCase).isPresent());
     }
 
     public boolean isInValidationState() {
-        return executeRead(dao -> dao.getVersion(namespace, useCase)
+        return execute(dao -> dao.getVersion(namespace, useCase)
                 .map(States.VALIDATION.getSchemaVersion()::equals)
                 .orElse(false));
     }
 
     public boolean isInMigratedState() {
-        return executeRead(dao -> dao.getVersion(namespace, useCase)
+        return execute(dao -> dao.getVersion(namespace, useCase)
                 .map(States.MIGRATED.getSchemaVersion()::equals)
                 .orElse(false));
     }
 
-    private <T> T executeWrite(Function<Queries, T> call) {
-        sharedLock.writeLock().lock();
-        try {
-            return execute(call);
-        } finally {
-            sharedLock.writeLock().unlock();
-        }
+    public void setCutoff(long value) {
+        execute(dao -> dao.setCutoff(namespace, useCase, value));
     }
 
-    private <T> T executeRead(Function<Queries, T> call) {
-        sharedLock.readLock().lock();
-        try {
-            return execute(call);
-        } finally {
-            sharedLock.readLock().unlock();
-        }
+    public long getCutoff() {
+        return execute(dao -> dao.getCutoff(namespace, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -126,7 +111,11 @@ public final class SqlitePaxosStateLogMigrationState {
     public interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS migration_state (namespace TEXT, useCase TEXT, version INT,"
                 + "PRIMARY KEY(namespace, useCase))")
-        boolean createTable();
+        boolean createMigrationStateTable();
+
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS migration_cutoff (namespace TEXT, useCase TEXT, cutoff BIGINT,"
+                + "PRIMARY KEY(namespace, useCase))")
+        boolean createMigrationCutoffTable();
 
         @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, useCase, version) VALUES"
                 + " (:namespace.value, :useCase, :version)")
@@ -135,8 +124,18 @@ public final class SqlitePaxosStateLogMigrationState {
                 @Bind("useCase") String useCase,
                 @Bind("version") int version);
 
+        @SqlUpdate("INSERT OR REPLACE INTO migration_cutoff (namespace, useCase, cutoff) VALUES"
+                + " (:namespace.value, :useCase, :cutoff)")
+        boolean setCutoff(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("cutoff") long cutoff);
+
         @SqlQuery("SELECT version FROM migration_state WHERE namespace = :namespace.value AND useCase = :useCase")
         Optional<Integer> getVersion(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+
+        @SqlQuery("SELECT cutoff FROM migration_cutoff WHERE namespace = :namespace.value AND useCase = :useCase")
+        Optional<Long> getCutoff(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 
     private enum States {

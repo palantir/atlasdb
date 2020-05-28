@@ -20,10 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.Connection;
 import java.util.UUID;
-import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -33,8 +32,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.Client;
-import com.palantir.paxos.ImmutableNamespaceAndUseCase;
-import com.palantir.paxos.ImmutablePaxosStorageParameters;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosStateLogImpl;
@@ -42,7 +39,6 @@ import com.palantir.paxos.PaxosStorageParameters;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
-import com.palantir.paxos.SqlitePaxosStateLogFactory;
 
 public class PaxosStateLogMigrationIntegrationTest {
     private static final Client CLIENT = Client.of("test");
@@ -53,12 +49,12 @@ public class PaxosStateLogMigrationIntegrationTest {
     private LocalPaxosComponents paxosComponents;
     private PaxosUseCase useCase = PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
     private Path legacyDirectory;
-    private Path sqliteDirectory;
+    private DataSource sqlite;
 
     @Before
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
-        sqliteDirectory = TEMPORARY_FOLDER.newFolder("sqlite").toPath();
+        sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
         resetPaxosComponents();
     }
 
@@ -209,7 +205,9 @@ public class PaxosStateLogMigrationIntegrationTest {
                 TimelockPaxosMetrics.of(useCase, MetricsManagers.createForTests()),
                 useCase,
                 legacyDirectory,
-                sqliteDirectory, UUID.randomUUID(), true);
+                sqlite,
+                UUID.randomUUID(),
+                true);
     }
 
     private PaxosValue valueForRound(int num) {
@@ -223,8 +221,6 @@ public class PaxosStateLogMigrationIntegrationTest {
     }
 
     private PaxosStateLog<PaxosValue> createSqliteLog(PaxosStorageParameters parameters) {
-        Supplier<Connection> conn = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(parameters.sqliteBasedLogDirectory());
-        return new SqlitePaxosStateLogFactory().create(parameters.namespaceAndUseCase(), conn);
+        return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), parameters.sqliteDataSource());
     }
 }

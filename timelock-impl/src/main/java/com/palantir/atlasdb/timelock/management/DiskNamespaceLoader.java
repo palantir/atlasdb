@@ -45,7 +45,6 @@ public final class DiskNamespaceLoader implements PersistentNamespaceLoader {
                 .filter(useCase -> useCase != PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .map(useCase -> useCase.logDirectoryRelativeToDataDirectory(rootDataDirectory))
                 .flatMap(DiskNamespaceLoader::getNamespacesFromUseCaseResolvedDirectory)
-                .filter(namespace -> !namespace.equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
                 .map(Client::of)
                 .collect(Collectors.toSet());
     }

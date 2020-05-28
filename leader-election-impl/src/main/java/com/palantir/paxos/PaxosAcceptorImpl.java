@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
@@ -35,10 +34,9 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
                 log.getGreatestLogEntry());
     }
 
-    public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters,
-            SqlitePaxosStateLogFactory sqliteFactory) {
+    public static PaxosAcceptor newVerifyingAcceptor(PaxosStorageParameters storageParameters) {
         PaxosStateLog<PaxosAcceptorState> log = VerifyingPaxosStateLog
-                .createWithMigration(storageParameters, sqliteFactory, PaxosAcceptorState.BYTES_HYDRATOR);
+                .createWithMigration(storageParameters, PaxosAcceptorState.BYTES_HYDRATOR);
         return new PaxosAcceptorImpl(
                 new ConcurrentSkipListMap<>(),
                 log,

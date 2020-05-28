@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -45,11 +44,11 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
+import com.palantir.atlasdb.transaction.api.StartTransactionsResponse;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -81,7 +80,7 @@ public class SnapshotTransactionManagerTest {
             keyValueService,
             new LegacyTimelockService(timestampService, closeableLockService,
                     LockClient.of("lock")),
-            NoOpLockWatchManager.INSTANCE,
+            NoOpInternalLockWatchManager.INSTANCE,
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -136,7 +135,7 @@ public class SnapshotTransactionManagerTest {
                 keyValueService,
                 new LegacyTimelockService(ts, closeableLockService,
                         LockClient.of("lock")),
-                NoOpLockWatchManager.INSTANCE,
+                NoOpInternalLockWatchManager.INSTANCE,
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -255,10 +254,9 @@ public class SnapshotTransactionManagerTest {
         TimelockService timelockService =
                 spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
-        List<TransactionAndImmutableTsLock> transactions =
-                transactionManager.setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of());
+        StartTransactionsResponse transactions = transactionManager.startTransactions(ImmutableList.of());
 
-        assertThat(transactions).isEmpty();
+        assertThat(transactions.getTransactions()).isEmpty();
         verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(anyInt());
     }
 
@@ -268,7 +266,7 @@ public class SnapshotTransactionManagerTest {
                 metricsManager,
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.INSTANCE,
+                NoOpInternalLockWatchManager.INSTANCE,
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),

@@ -41,6 +41,7 @@ import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -48,6 +49,7 @@ import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.zaxxer.hikari.HikariDataSource;
 
 public final class PaxosResourcesFactory {
 
@@ -60,8 +62,8 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
-        ImmutablePaxosResources.Builder resourcesBuilder =
-                setupTimestampResources(install, metrics, paxosRuntime, sharedExecutor, remoteClients);
+        ImmutablePaxosResources.Builder resourcesBuilder = setupTimestampResources(
+                install, metrics, paxosRuntime, sharedExecutor, remoteClients);
 
         if (install.useLeaderForEachClient()) {
             return configureLeaderForEachClient(
@@ -103,8 +105,7 @@ public final class PaxosResourcesFactory {
         // we do *not* use CoalescingPaxosLatestRoundVerifier because any coalescing will happen in the
         // AutobatchingPaxosAcceptorNetworkClient. This is for us to avoid context switching as much as possible on the
         // hot path since batching twice doesn't necessarily give us anything.
-        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
-                new PaxosLatestRoundVerifierImpl(acceptorClient);
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = PaxosLatestRoundVerifierImpl::new;
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
@@ -186,7 +187,7 @@ public final class PaxosResourcesFactory {
                 timelockMetrics,
                 PaxosUseCase.TIMESTAMP,
                 install.dataDirectory(),
-                install.sqliteDataDirectory(),
+                install.sqliteDataSource(),
                 install.nodeUuid(),
                 install.install().paxos().canCreateNewClients());
 
@@ -293,8 +294,9 @@ public final class PaxosResourcesFactory {
         }
 
         @Value.Derived
-        default Path sqliteDataDirectory() {
-            return install().paxos().sqlitePersistence().dataDirectory().toPath();
+        default HikariDataSource sqliteDataSource() {
+            return SqliteConnections
+                    .getPooledDataSource(install().paxos().sqlitePersistence().dataDirectory().toPath());
         }
 
         @Value.Derived

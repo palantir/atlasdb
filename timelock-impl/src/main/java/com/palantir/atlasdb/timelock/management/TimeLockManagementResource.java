@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import java.nio.file.Path;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -31,6 +30,7 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
@@ -79,6 +79,7 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
         return Futures.immediateFuture(namespaceLoaders.stream()
                 .map(PersistentNamespaceLoader::getAllPersistedNamespaces)
                 .flatMap(Set::stream)
+                .filter(namespace -> !namespace.value().equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
                 .map(Client::value)
                 .collect(Collectors.toSet()));
     }
@@ -102,7 +103,7 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
             PersistentNamespaceContext persistentNamespaceContext) {
         PersistentNamespaceLoader diskLoader = new DiskNamespaceLoader(persistentNamespaceContext.fileDataDirectory());
         PersistentNamespaceLoader sqliteLoader = SqliteNamespaceLoader.create(
-                persistentNamespaceContext.sqliteConnectionSupplier());
+                persistentNamespaceContext.sqliteDataSource());
         return ImmutableSet.of(diskLoader, sqliteLoader);
     }
 
