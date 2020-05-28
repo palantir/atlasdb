@@ -47,8 +47,8 @@ public final class SqliteConnections {
 
         SQLiteConfig config = new SQLiteConfig();
         config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
+        config.setPragma(SQLiteConfig.Pragma.LOCKING_MODE, SQLiteConfig.LockingMode.EXCLUSIVE.getValue());
         config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, "EXTRA");
-        config.setBusyTimeout(5_000);
 
         SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
         dataSource.setUrl(target);
@@ -56,7 +56,7 @@ public final class SqliteConnections {
 
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setDataSource(dataSource);
-        hikariConfig.setMaximumPoolSize(16);
+        hikariConfig.setMaximumPoolSize(1);
         return new HikariDataSource(hikariConfig);
     }
 
