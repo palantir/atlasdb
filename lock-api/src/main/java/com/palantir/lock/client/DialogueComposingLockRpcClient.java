@@ -37,13 +37,13 @@ import com.palantir.tokens.auth.AuthHeader;
 public class DialogueComposingLockRpcClient implements LockRpcClient {
     private static final AuthHeader UNUSED_AUTH_HEADER = AuthHeader.valueOf("Bearer unused");
 
-    private final LockRpcClient dialogueShimDelegate;
     private final ConjureLockV1ServiceBlocking pureDialogueDelegate;
+    private final LockRpcClient dialogueShimDelegate;
 
-    public DialogueComposingLockRpcClient(LockRpcClient dialogueShimDelegate,
-            ConjureLockV1ServiceBlocking pureDialogueDelegate) {
-        this.dialogueShimDelegate = dialogueShimDelegate;
+    public DialogueComposingLockRpcClient(ConjureLockV1ServiceBlocking pureDialogueDelegate,
+            LockRpcClient dialogueShimDelegate) {
         this.pureDialogueDelegate = pureDialogueDelegate;
+        this.dialogueShimDelegate = dialogueShimDelegate;
     }
 
     @Override

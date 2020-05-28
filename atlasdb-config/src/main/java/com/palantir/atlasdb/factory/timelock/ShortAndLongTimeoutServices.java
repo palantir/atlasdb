@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.immutables.value.Value;
@@ -41,10 +42,11 @@ public interface ShortAndLongTimeoutServices<T> {
                 .build();
     }
 
-    default <U> ShortAndLongTimeoutServices<U> transform(Function<T, U> shortTransform, Function<T, U> longTransform) {
-        return ImmutableShortAndLongTimeoutServices.<U>builder()
-                .longTimeout(longTransform.apply(longTimeout()))
-                .shortTimeout(shortTransform.apply(shortTimeout()))
+    default <U, V> ShortAndLongTimeoutServices<V> zipWith(ShortAndLongTimeoutServices<U> otherServices,
+            BiFunction<T, U, V> combiner) {
+        return ImmutableShortAndLongTimeoutServices.<V>builder()
+                .longTimeout(combiner.apply(longTimeout(), otherServices.longTimeout()))
+                .shortTimeout(combiner.apply(shortTimeout(), otherServices.shortTimeout()))
                 .build();
     }
 }
