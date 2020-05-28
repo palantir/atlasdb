@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Map;
-import java.util.function.Function;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;

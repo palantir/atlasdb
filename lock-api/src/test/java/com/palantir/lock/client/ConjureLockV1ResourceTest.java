@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.client.ConjureLockV1Tokens;
 
 public class ConjureLockV1ResourceTest {
     private static final BigInteger TOKEN_ID = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE);
