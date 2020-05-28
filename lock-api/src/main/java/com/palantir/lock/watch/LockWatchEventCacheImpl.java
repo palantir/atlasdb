@@ -34,12 +34,12 @@ import com.palantir.logsafe.Preconditions;
  * performance.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    private final ClientLockWatchEventLog lockWatchEventLog;
+    private final ClientLockWatchEventLog eventLog;
     private final ConcurrentSkipListMap<Long, IdentifiedVersion> timestampMap = new ConcurrentSkipListMap<>();
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions = TreeMultimap.create();
 
-    private LockWatchEventCacheImpl(ClientLockWatchEventLog lockWatchEventLog) {
-        this.lockWatchEventLog = lockWatchEventLog;
+    private LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
+        this.eventLog = eventLog;
     }
 
     public static LockWatchEventCacheImpl create() {
@@ -53,15 +53,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public Optional<IdentifiedVersion> lastKnownVersion() {
-        return lockWatchEventLog.getLatestKnownVersion();
+        return eventLog.getLatestKnownVersion();
     }
 
     @Override
     public synchronized Optional<IdentifiedVersion> processStartTransactionsUpdate(
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
-        Optional<IdentifiedVersion> currentVersion = lockWatchEventLog.getLatestKnownVersion();
-        Optional<IdentifiedVersion> latestVersion = lockWatchEventLog.processUpdate(update, getEarliestVersion());
+        Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
+        Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update, getEarliestVersion());
 
         if (!(latestVersion.isPresent()
                 && currentVersion.isPresent()
@@ -81,14 +81,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized void processUpdate(LockWatchStateUpdate update) {
-        lockWatchEventLog.processUpdate(update, getEarliestVersion());
+        eventLog.processUpdate(update, getEarliestVersion());
     }
 
     @Override
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
-        return lockWatchEventLog.getEventsForTransactions(getTimestampToVersionMap(startTimestamps), version);
+        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
+        return eventLog.getEventsForTransactions(getTimestampToVersionMap(startTimestamps), version);
     }
 
     @Override
