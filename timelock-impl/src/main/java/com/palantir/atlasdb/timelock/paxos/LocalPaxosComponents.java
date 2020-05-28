@@ -51,7 +51,8 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SplittingPaxosStateLog;
 import com.palantir.paxos.SqliteConnections;
 
-public final class LocalPaxosComponents {
+@SuppressWarnings("FinalClass") // mocks
+public class LocalPaxosComponents {
 
     private final TimelockPaxosMetrics metrics;
     private final PaxosUseCase paxosUseCase;

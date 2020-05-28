@@ -43,7 +43,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
                 params,
                 PaxosAcceptorState.BYTES_HYDRATOR,
                 legacyOperationMarkers,
-                migrateFrom.map(OptionalLong::of).orElse(OptionalLong.empty()));
+                migrateFrom.map(OptionalLong::of).orElseGet(OptionalLong::empty));
         return new PaxosAcceptorImpl(
                 new ConcurrentSkipListMap<>(),
                 log,
