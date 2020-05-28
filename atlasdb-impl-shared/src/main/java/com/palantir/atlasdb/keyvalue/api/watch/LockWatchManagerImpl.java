@@ -54,21 +54,10 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
                 TimeUnit.SECONDS);
     }
 
-    /**
-     * Gets the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the
-     * transaction, excluding the transaction's own commit locks.
-     *
-     * @param startTs start timestamp of the transaction
-     * @return the commit update for this transaction
-     */
     CommitUpdate getCommitUpdate(long startTs) {
         return lockWatchEventCache.getCommitUpdate(startTs);
     }
 
-    /**
-     * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
-     * that version, and a map associating each start timestamp with its respective lock watch state version.
-     */
     TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
         return lockWatchEventCache.getEventsForTransactions(startTimestamps, version);
