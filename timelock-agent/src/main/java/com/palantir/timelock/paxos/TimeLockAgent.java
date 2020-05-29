@@ -65,7 +65,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
-    private static final Long SCHEMA_VERSION = 1L;
+    private static final Long SCHEMA_VERSION = 2L;
 
     private static final String PAXOS_SHARED_EXECUTOR = "paxos-shared-executor";
 
