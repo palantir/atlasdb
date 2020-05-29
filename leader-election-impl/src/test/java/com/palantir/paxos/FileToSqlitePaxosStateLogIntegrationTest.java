@@ -68,6 +68,11 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     }
 
     @Test
+    public void migrationSucceedsWhenGreatestEntrySmallerThanSafetyBufferAndNotFromZero() {
+        migrateAndVerifyValuesForSequences(LongStream.rangeClosed(10, PaxosStateLogMigrator.SAFETY_BUFFER - 10));
+    }
+    
+    @Test
     public void migrationForContiguousEntriesFromZeroSucceeds() {
         migrateAndVerifyValuesForSequences(LongStream.rangeClosed(0, 100));
     }
