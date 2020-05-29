@@ -55,29 +55,27 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @Override
     public synchronized Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
-        checkNotFailed();
-        failed = true;
-        final ProcessingVisitor visitor;
-        if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
-            visitor = new NewLeaderVisitor();
-        } else {
-            visitor = new ProcessingVisitor();
-        }
-        update.accept(visitor);
-        failed = false;
+        ensureNotFailed(() -> {
+            final ProcessingVisitor visitor;
+            if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
+                visitor = new NewLeaderVisitor();
+            } else {
+                visitor = new ProcessingVisitor();
+            }
+            update.accept(visitor);
+        });
         return latestVersion;
     }
 
     @Override
     public synchronized void removeOldEntries(IdentifiedVersion earliestVersion) {
-        checkNotFailed();
-        failed = true;
-        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
-                eventMap.headMap(earliestVersion.version()).entrySet();
-        snapshotUpdater.processEvents(
-                eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
-        eventsToBeRemoved.clear();
-        failed = false;
+        ensureNotFailed(() -> {
+            Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
+                    eventMap.headMap(earliestVersion.version()).entrySet();
+            snapshotUpdater.processEvents(
+                    eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
+            eventsToBeRemoved.clear();
+        });
     }
 
     /**
@@ -112,6 +110,13 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public synchronized Optional<IdentifiedVersion> getLatestKnownVersion() {
         checkNotFailed();
         return latestVersion;
+    }
+
+    private void ensureNotFailed(Runnable runnable) {
+        checkNotFailed();
+        failed = true;
+        runnable.run();
+        failed = false;
     }
 
     private void checkNotFailed() {
