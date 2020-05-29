@@ -35,8 +35,16 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
+    private static final boolean INCLUSIVE = true;
+
+    @GuardedBy("this")
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
+
+    @GuardedBy("this")
     private final TreeMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
+
+    @GuardedBy("this")
+    private boolean failed = false;
 
     @GuardedBy("this")
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
@@ -56,6 +64,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @Override
     public synchronized Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
+        checkFailed();
+        failed = true;
         final ProcessingVisitor visitor;
         if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
             visitor = new NewLeaderVisitor();
@@ -63,16 +73,20 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             visitor = new ProcessingVisitor();
         }
         update.accept(visitor);
+        failed = false;
         return latestVersion;
     }
 
     @Override
     public synchronized void removeOldEntries(IdentifiedVersion earliestVersion) {
+        checkFailed();
+        failed = true;
         Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
                 eventMap.headMap(earliestVersion.version()).entrySet();
         snapshotUpdater.processEvents(
                 eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
         eventsToBeRemoved.clear();
+        failed = false;
     }
 
     /**
@@ -86,6 +100,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Map<Long, IdentifiedVersion> timestampToVersion,
             Optional<IdentifiedVersion> version) {
+        checkFailed();
         Optional<IdentifiedVersion> versionInclusive = version.map(this::createInclusiveVersion);
         IdentifiedVersion toVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(toVersion);
@@ -101,7 +116,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         IdentifiedVersion fromVersion = versionInclusive.get();
 
         return TransactionsLockWatchEvents.success(
-                new ArrayList<>(eventMap.subMap(fromVersion.version(), true, toVersion.version(), true).values()),
+                ImmutableList.copyOf(
+                        eventMap.subMap(fromVersion.version(), INCLUSIVE, toVersion.version(), INCLUSIVE).values()),
                 timestampToVersion);
     }
 
@@ -133,6 +149,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return latestVersion;
     }
 
+    private void checkFailed() {
+        Preconditions.checkState(!failed, "Log is in an inconsistent state");
+    }
+
     private boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion, IdentifiedVersion startVersion) {
         return !startVersion.id().equals(currentVersion.id()) || eventMap.floorKey(startVersion.version()) == null;
     }
@@ -149,7 +169,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return currentVersion;
     }
 
-    private void processSuccess(LockWatchStateUpdate.Success success) {
+    private synchronized void processSuccess(LockWatchStateUpdate.Success success) {
         Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
@@ -159,13 +179,13 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
     }
 
-    private void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
+    private synchronized void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         eventMap.clear();
         snapshotUpdater.resetWithSnapshot(snapshot);
         latestVersion = Optional.of(IdentifiedVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
     }
 
-    private void processFailed() {
+    private synchronized void processFailed() {
         eventMap.clear();
         snapshotUpdater.reset();
         latestVersion = Optional.empty();

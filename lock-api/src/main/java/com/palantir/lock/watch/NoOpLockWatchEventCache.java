@@ -36,7 +36,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void removeTimestampFromCache(Long timestamp) {
+    public void removeTimestampFromCache(long timestamp) {
 
     }
 

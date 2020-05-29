@@ -100,7 +100,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void removeTimestampFromCache(Long timestamp) {
+    public synchronized void removeTimestampFromCache(long timestamp) {
         IdentifiedVersion versionToRemove = timestampMap.get(timestamp);
         if (versionToRemove != null) {
             timestampMap.remove(timestamp);

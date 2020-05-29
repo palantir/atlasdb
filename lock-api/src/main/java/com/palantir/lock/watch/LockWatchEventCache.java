@@ -55,5 +55,5 @@ public interface LockWatchEventCache {
      * Removes the given timestamp from the cache. If no timestamps exist for a given version, events before that
      * version in the underlying {@link ClientLockWatchEventLog} will be deleted on next update.
      */
-    void removeTimestampFromCache(Long timestamp);
+    void removeTimestampFromCache(long timestamp);
 }
