@@ -103,7 +103,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         IdentifiedVersion startVersion = timestampMap.get(startTs);
         IdentifiedVersion endVersion = timestampMap.get(commitTs);
         ClientEventUpdate update = eventLog.getEventsForTransactions(Optional.of(startVersion), endVersion);
-        return update.accept(new ClientEventVisitor(commitTs));
+        return update.accept(new ClientEventVisitor(commitTs, commitLocksToken));
     }
 
     @Override
@@ -174,16 +174,19 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     private static final class ClientEventVisitor implements ClientEventUpdate.Visitor<CommitUpdate> {
         private final long commitTs;
+        private final LockToken commitLocksToken;
 
-        private ClientEventVisitor(long commitTs) {
+        private ClientEventVisitor(long commitTs, LockToken commitLocksToken) {
             this.commitTs = commitTs;
+            this.commitLocksToken = commitLocksToken;
         }
 
         @Override
         public CommitUpdate visit(ClientEventUpdate.ClientEvents events) {
             List<LockWatchEvent> eventList = events.events();
             Set<LockDescriptor> locksTakenOut = new HashSet<>();
-            eventList.forEach(event -> locksTakenOut.addAll(event.accept(LockEventVisitor.INSTANCE)));
+            LockEventVisitor lockEventVisitor = new LockEventVisitor(commitLocksToken);
+            eventList.forEach(event -> locksTakenOut.addAll(event.accept(lockEventVisitor)));
             return CommitUpdate.invalidateSome(commitTs, locksTakenOut);
         }
 
@@ -193,12 +196,20 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         }
     }
 
-    enum LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        INSTANCE;
+    private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        private final LockToken commitLocksToken;
+
+        private LockEventVisitor(LockToken commitLocksToken) {
+            this.commitLocksToken = commitLocksToken;
+        }
 
         @Override
         public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            return lockEvent.lockDescriptors();
+            if(lockEvent.lockToken().equals(commitLocksToken)) {
+                return ImmutableSet.of();
+            } else {
+                return lockEvent.lockDescriptors();
+            }
         }
 
         @Override
