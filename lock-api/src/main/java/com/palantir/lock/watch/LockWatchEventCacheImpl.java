@@ -49,6 +49,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @GuardedBy("this")
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
             TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
+    @GuardedBy("this")
+    private boolean failed = false;
+
 
     private LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
         this.eventLog = eventLog;
@@ -72,6 +75,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized void processTransactionUpdate(
             Collection<Long> startTimestamps,
             LockWatchStateUpdate update) {
+        checkNotFailed();
+        failed = true;
         Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
         Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
         getEarliestVersion().ifPresent(eventLog::removeOldEntries);
@@ -89,10 +94,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                     timestampMap.put(timestamp, version);
                     aliveVersions.put(version, timestamp);
                 }));
+        failed = false;
     }
 
     @Override
     public synchronized CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken commitLocksToken) {
+        checkNotFailed();
         IdentifiedVersion startVersion = timestampMap.get(startTs);
         IdentifiedVersion endVersion = timestampMap.get(commitTs);
         ClientEventUpdate update = eventLog.getEventsForTransactions(Optional.of(startVersion), endVersion);
@@ -103,6 +110,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> startVersion) {
+        checkNotFailed();
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampToVersionMap(startTimestamps);
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
@@ -111,11 +119,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized void removeTimestampFromCache(long timestamp) {
+        checkNotFailed();
+        failed = true;
         IdentifiedVersion versionToRemove = timestampMap.get(timestamp);
         if (versionToRemove != null) {
             timestampMap.remove(timestamp);
             aliveVersions.remove(versionToRemove, timestamp);
         }
+        failed = false;
     }
 
     @VisibleForTesting
@@ -138,6 +149,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         }
     }
 
+    private void checkNotFailed() {
+        Preconditions.checkState(!failed, "Log is in an inconsistent state");
+    }
+
     enum SuccessVisitor implements LockWatchStateUpdate.Visitor<Boolean> {
         INSTANCE;
 
@@ -157,7 +172,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         }
     }
 
-    private final class ClientEventVisitor implements ClientEventUpdate.Visitor<CommitUpdate> {
+    private static final class ClientEventVisitor implements ClientEventUpdate.Visitor<CommitUpdate> {
         private final long commitTs;
 
         private ClientEventVisitor(long commitTs) {

@@ -55,7 +55,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @Override
     public synchronized Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
-        checkFailed();
+        checkNotFailed();
         failed = true;
         final ProcessingVisitor visitor;
         if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
@@ -70,7 +70,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @Override
     public synchronized void removeOldEntries(IdentifiedVersion earliestVersion) {
-        checkFailed();
+        checkNotFailed();
         failed = true;
         Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
                 eventMap.headMap(earliestVersion.version()).entrySet();
@@ -90,7 +90,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public synchronized ClientEventUpdate getEventsForTransactions(
             Optional<IdentifiedVersion> startVersion,
             IdentifiedVersion endVersion) {
-        checkFailed();
+        checkNotFailed();
         Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
 
@@ -110,10 +110,11 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @Override
     public synchronized Optional<IdentifiedVersion> getLatestKnownVersion() {
+        checkNotFailed();
         return latestVersion;
     }
 
-    private void checkFailed() {
+    private void checkNotFailed() {
         Preconditions.checkState(!failed, "Log is in an inconsistent state");
     }
 
