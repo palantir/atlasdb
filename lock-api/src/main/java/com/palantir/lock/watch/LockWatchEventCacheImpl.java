@@ -74,11 +74,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void processStartTransactionUpdate(
+    public synchronized void processStartTransactionsUpdate(
             Collection<Long> startTimestamps,
             LockWatchStateUpdate update) {
         ensureNotFailed(() -> {
-            Optional<IdentifiedVersion> latestVersion = processInternalUpdate(update);
+            Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
             latestVersion.ifPresent(
                     version -> startTimestamps.forEach(timestamp -> {
@@ -93,7 +93,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update) {
         ensureNotFailed(() -> {
-            Optional<IdentifiedVersion> latestVersion = processInternalUpdate(update);
+            Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
             latestVersion.ifPresent(version ->
                     transactionUpdates.forEach(transactionUpdate -> {
@@ -141,7 +141,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         });
     }
 
-    private synchronized Optional<IdentifiedVersion> processInternalUpdate(LockWatchStateUpdate update) {
+    private synchronized Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
         Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
         getEarliestVersion().ifPresent(eventLog::removeOldEntries);

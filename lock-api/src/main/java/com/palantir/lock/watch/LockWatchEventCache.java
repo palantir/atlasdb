@@ -29,7 +29,7 @@ public interface LockWatchEventCache {
     /**
      * Updates the cache with the update, and identifies the given timestamps with that lock watch state.
      */
-    void processStartTransactionUpdate(Collection<Long> startTimestamps, LockWatchStateUpdate update);
+    void processStartTransactionsUpdate(Collection<Long> startTimestamps, LockWatchStateUpdate update);
 
     void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update);

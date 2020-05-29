@@ -45,7 +45,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void processStartTransactionUpdate(
+    public void processStartTransactionsUpdate(
             Collection<Long> startTimestamps,
             LockWatchStateUpdate update) {
     }
