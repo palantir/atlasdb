@@ -29,7 +29,7 @@ public interface CommitUpdate {
     interface InvalidateAll extends CommitUpdate {
         @Override
         default <T> T accept(Visitor<T> visitor) {
-            return visitor.visit(this);
+            return visitor.invalidateAll();
         }
     }
 
@@ -39,12 +39,12 @@ public interface CommitUpdate {
 
         @Override
         default <T> T accept(Visitor<T> visitor) {
-            return visitor.visit(this);
+            return visitor.invalidateSome(invalidatedLocks());
         }
     }
 
     interface Visitor<T> {
-        T visit(InvalidateAll update);
-        T visit(InvalidateSome update);
+        T invalidateAll();
+        T invalidateSome(Set<LockDescriptor> invalidatedLocks);
     }
 }
