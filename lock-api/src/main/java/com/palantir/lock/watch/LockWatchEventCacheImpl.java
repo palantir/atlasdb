@@ -88,7 +88,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public void processGetCommitTimestampsUpdate(
+    public synchronized void processGetCommitTimestampsUpdate(
             Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update) {
         ensureNotFailed(() -> {
@@ -156,7 +156,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @VisibleForTesting
-    Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
+    synchronized Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
             MapEntry entry = timestampMap.get(timestamp);
@@ -167,7 +167,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @VisibleForTesting
-    Optional<IdentifiedVersion> getEarliestVersion() {
+    synchronized Optional<IdentifiedVersion> getEarliestVersion() {
         if (aliveVersions.isEmpty()) {
             return Optional.empty();
         } else {
@@ -182,7 +182,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         failed = false;
     }
 
-    private void checkNotFailed() {
+    private synchronized void checkNotFailed() {
         Preconditions.checkState(!failed, "Log is in an inconsistent state");
     }
 
