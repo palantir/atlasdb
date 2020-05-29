@@ -56,7 +56,6 @@ public final class LockWatchEventCacheImplTest {
             LockToken.of(UUID.randomUUID())).build(2L);
     private static final LockWatchEvent COMMIT_LOCK_EVENT =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), LOCK_TOKEN).build(2L);
-
     private static final UUID LEADER = UUID.randomUUID();
     private static final IdentifiedVersion VERSION_1 = IdentifiedVersion.of(LEADER, 17L);
     private static final IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 26L);
