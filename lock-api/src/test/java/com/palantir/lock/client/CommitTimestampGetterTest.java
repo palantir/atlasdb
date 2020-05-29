@@ -52,14 +52,6 @@ import com.palantir.lock.watch.TransactionUpdate;
 
 public final class CommitTimestampGetterTest {
 
-    private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
-    private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
-    private final Consumer<List<BatchElement<CommitTimestampGetter.Request, Long>>> batchProcessor =
-            CommitTimestampGetter.consumer(lockLeaseService, cache);
-    private final Optional<IdentifiedVersion> IDENTIFIED_VERSION_1 = Optional.empty();
-    private final Optional<IdentifiedVersion> IDENTIFIED_VERSION_2 = Optional.of(
-            ImmutableIdentifiedVersion.of(UUID.randomUUID(), -1));
-
     private static final LockWatchStateUpdate UPDATE_1 = LockWatchStateUpdate.success(
             UUID.randomUUID(),
             0,
@@ -74,6 +66,14 @@ public final class CommitTimestampGetterTest {
                     ImmutableSet.of(StringLockDescriptor.of("lock1")),
                     LockToken.of(UUID.randomUUID()))
                     .build(1)));
+    private static final Optional<IdentifiedVersion> IDENTIFIED_VERSION_1 = Optional.empty();
+    private static final Optional<IdentifiedVersion> IDENTIFIED_VERSION_2 = Optional.of(
+            ImmutableIdentifiedVersion.of(UUID.randomUUID(), -1));
+
+    private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
+    private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
+    private final Consumer<List<BatchElement<CommitTimestampGetter.Request, Long>>> batchProcessor =
+            CommitTimestampGetter.consumer(lockLeaseService, cache);
 
     @Test
     public void consumerFillsTheWholeBatch() {
