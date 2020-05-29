@@ -31,7 +31,6 @@ import com.palantir.lock.ByteArrayLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
