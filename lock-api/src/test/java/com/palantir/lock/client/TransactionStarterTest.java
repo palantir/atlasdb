@@ -171,7 +171,7 @@ public class TransactionStarterTest {
         requestSingularBatches(3);
         verify(lockLeaseService).startTransactionsWithWatches(version, 3);
         verify(lockLeaseService).startTransactionsWithWatches(version, 1);
-        verify(lockWatchEventCache).processTransactionUpdate(ImmutableSet.of(40L, 56L), UPDATE);
+        verify(lockWatchEventCache).processStartTransactionUpdate(ImmutableSet.of(40L, 56L), UPDATE);
     }
 
     private List<List<StartIdentifiedAtlasDbTransactionResponse>> requestBatches(List<Integer> counts) {

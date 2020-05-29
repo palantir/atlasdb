@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.watch;
 
 import org.immutables.value.Value;
 
+import com.palantir.lock.v2.LockToken;
+
 @Value.Immutable
-public interface StartTransactionRequest {
-    PreCommitCondition preCommitCondition();
+public interface TransactionUpdate {
+    long startTs();
+    long commitTs();
+    LockToken writesToken();
 }

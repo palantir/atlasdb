@@ -27,6 +27,8 @@ import java.util.Set;
 
 import javax.annotation.concurrent.GuardedBy;
 
+import org.immutables.value.Value;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
@@ -45,7 +47,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @GuardedBy("this")
     private final ClientLockWatchEventLog eventLog;
     @GuardedBy("this")
-    private final HashMap<Long, IdentifiedVersion> timestampMap = new HashMap<>();
+    private final HashMap<Long, MapEntry> timestampMap = new HashMap<>();
     @GuardedBy("this")
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
             TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
@@ -72,38 +74,49 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void processTransactionUpdate(
+    public synchronized void processStartTransactionUpdate(
             Collection<Long> startTimestamps,
             LockWatchStateUpdate update) {
-        checkNotFailed();
-        failed = true;
-        Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
-        Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
-        getEarliestVersion().ifPresent(eventLog::removeOldEntries);
+        ensureNotFailed(() -> {
+            Optional<IdentifiedVersion> latestVersion = processInternalUpdate(update);
 
-        if (!(latestVersion.isPresent()
-                && currentVersion.isPresent()
-                && latestVersion.get().id().equals(currentVersion.get().id())
-                && update.accept(SuccessVisitor.INSTANCE))) {
-            timestampMap.clear();
-            aliveVersions.clear();
-        }
-
-        latestVersion.ifPresent(
-                version -> startTimestamps.forEach(timestamp -> {
-                    timestampMap.put(timestamp, version);
-                    aliveVersions.put(version, timestamp);
-                }));
-        failed = false;
+            latestVersion.ifPresent(
+                    version -> startTimestamps.forEach(timestamp -> {
+                        timestampMap.put(timestamp, MapEntry.of(version));
+                        aliveVersions.put(version, timestamp);
+                    }));
+        });
     }
 
     @Override
-    public synchronized CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken commitLocksToken) {
+    public void processGetCommitTimestampsUpdate(
+            Collection<TransactionUpdate> transactionUpdates,
+            LockWatchStateUpdate update) {
+        ensureNotFailed(() -> {
+            Optional<IdentifiedVersion> latestVersion = processInternalUpdate(update);
+
+            latestVersion.ifPresent(version ->
+                    transactionUpdates.forEach(transactionUpdate -> {
+                        MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
+                        Preconditions.checkNotNull(previousEntry, "Start timestamp missing from cache");
+                        timestampMap.replace(transactionUpdate.startTs(), previousEntry.withCommitInfo(
+                                CommitInfo.of(transactionUpdate.commitTs(),
+                                        transactionUpdate.writesToken(),
+                                        version)));
+                    }));
+        });
+    }
+
+    @Override
+    public synchronized CommitUpdate getCommitUpdate(long startTs) {
         checkNotFailed();
-        IdentifiedVersion startVersion = timestampMap.get(startTs);
-        IdentifiedVersion endVersion = timestampMap.get(commitTs);
-        ClientEventUpdate update = eventLog.getEventsForTransactions(Optional.of(startVersion), endVersion);
-        return update.accept(new ClientEventVisitor(commitTs, commitLocksToken));
+        MapEntry entry = timestampMap.get(startTs);
+        Preconditions.checkState(entry.commitInfo().isPresent(), "Commit timestamp update not yet processed");
+        CommitInfo commitInfo = entry.commitInfo().get();
+
+        ClientEventUpdate update =
+                eventLog.getEventsForTransactions(Optional.of(entry.version()), commitInfo.commitVersion());
+        return update.accept(new ClientEventVisitor(new LockEventVisitor(commitInfo.commitLockToken())));
     }
 
     @Override
@@ -119,23 +132,37 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized void removeTimestampFromCache(long timestamp) {
-        checkNotFailed();
-        failed = true;
-        IdentifiedVersion versionToRemove = timestampMap.get(timestamp);
-        if (versionToRemove != null) {
-            timestampMap.remove(timestamp);
-            aliveVersions.remove(versionToRemove, timestamp);
+        ensureNotFailed(() -> {
+            MapEntry entryToRemove = timestampMap.get(timestamp);
+            if (entryToRemove != null) {
+                timestampMap.remove(timestamp);
+                aliveVersions.remove(entryToRemove.version(), timestamp);
+            }
+        });
+    }
+
+    private synchronized Optional<IdentifiedVersion> processInternalUpdate(LockWatchStateUpdate update) {
+        Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
+        Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
+        getEarliestVersion().ifPresent(eventLog::removeOldEntries);
+
+        if (!(latestVersion.isPresent()
+                && currentVersion.isPresent()
+                && latestVersion.get().id().equals(currentVersion.get().id())
+                && update.accept(SuccessVisitor.INSTANCE))) {
+            timestampMap.clear();
+            aliveVersions.clear();
         }
-        failed = false;
+        return latestVersion;
     }
 
     @VisibleForTesting
     Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
-            IdentifiedVersion version = timestampMap.get(timestamp);
-            Preconditions.checkNotNull(version, "Timestamp missing from cache");
-            timestampToVersion.put(timestamp, version);
+            MapEntry entry = timestampMap.get(timestamp);
+            Preconditions.checkNotNull(entry, "Timestamp missing from cache");
+            timestampToVersion.put(timestamp, entry.version());
         });
         return timestampToVersion;
     }
@@ -147,6 +174,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         } else {
             return Optional.of(aliveVersions.keySet().first());
         }
+    }
+
+    private synchronized void ensureNotFailed(Runnable runnable) {
+        checkNotFailed();
+        failed = true;
+        runnable.run();
+        failed = false;
     }
 
     private void checkNotFailed() {
@@ -173,26 +207,23 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private static final class ClientEventVisitor implements ClientEventUpdate.Visitor<CommitUpdate> {
-        private final long commitTs;
-        private final LockToken commitLocksToken;
+        private final LockEventVisitor eventVisitor;
 
-        private ClientEventVisitor(long commitTs, LockToken commitLocksToken) {
-            this.commitTs = commitTs;
-            this.commitLocksToken = commitLocksToken;
+        private ClientEventVisitor(LockEventVisitor eventVisitor) {
+            this.eventVisitor = eventVisitor;
         }
 
         @Override
         public CommitUpdate visit(ClientEventUpdate.ClientEvents events) {
             List<LockWatchEvent> eventList = events.events();
             Set<LockDescriptor> locksTakenOut = new HashSet<>();
-            LockEventVisitor lockEventVisitor = new LockEventVisitor(commitLocksToken);
-            eventList.forEach(event -> locksTakenOut.addAll(event.accept(lockEventVisitor)));
-            return CommitUpdate.invalidateSome(commitTs, locksTakenOut);
+            eventList.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
+            return CommitUpdate.invalidateSome(locksTakenOut);
         }
 
         @Override
         public CommitUpdate visit(ClientEventUpdate.ClientSnapshot snapshot) {
-            return CommitUpdate.invalidateWatches(commitTs);
+            return CommitUpdate.invalidateWatches();
         }
     }
 
@@ -205,7 +236,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         @Override
         public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            if(lockEvent.lockToken().equals(commitLocksToken)) {
+            if (lockEvent.lockToken().equals(commitLocksToken)) {
                 return ImmutableSet.of();
             } else {
                 return lockEvent.lockDescriptors();
@@ -220,6 +251,43 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         @Override
         public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             return lockWatchCreatedEvent.lockDescriptors();
+        }
+    }
+
+    @Value.Immutable
+    interface MapEntry {
+        @Value.Parameter
+        IdentifiedVersion version();
+
+        @Value.Parameter
+        Optional<CommitInfo> commitInfo();
+
+        static MapEntry of(IdentifiedVersion version) {
+            return ImmutableMapEntry.of(version, Optional.empty());
+        }
+
+        static MapEntry of(IdentifiedVersion version, CommitInfo commitInfo) {
+            return ImmutableMapEntry.of(version, Optional.of(commitInfo));
+        }
+
+        default MapEntry withCommitInfo(CommitInfo commitInfo) {
+            return ImmutableMapEntry.builder().from(this).commitInfo(commitInfo).build();
+        }
+    }
+
+    @Value.Immutable
+    interface CommitInfo {
+        @Value.Parameter
+        long commitTs();
+
+        @Value.Parameter
+        LockToken commitLockToken();
+
+        @Value.Parameter
+        IdentifiedVersion commitVersion();
+
+        static CommitInfo of(long commitTs, LockToken commitLockToken, IdentifiedVersion commitVersion) {
+            return ImmutableCommitInfo.of(commitTs, commitLockToken, commitVersion);
         }
     }
 }

@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.v2.LockToken;
 
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
@@ -46,13 +45,18 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void processTransactionUpdate(
+    public void processStartTransactionUpdate(
             Collection<Long> startTimestamps,
             LockWatchStateUpdate update) {
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken commitLocksToken) {
+    public void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
+            LockWatchStateUpdate update) {
+    }
+
+    @Override
+    public CommitUpdate getCommitUpdate(long startTs) {
         return CommitUpdate.ignoringWatches(commitTs);
     }
 

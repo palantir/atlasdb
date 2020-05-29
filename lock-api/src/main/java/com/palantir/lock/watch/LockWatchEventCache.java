@@ -20,8 +20,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-import com.palantir.lock.v2.LockToken;
-
 public interface LockWatchEventCache {
     /**
      * Returns the last known lock watch version for the cache.
@@ -31,18 +29,19 @@ public interface LockWatchEventCache {
     /**
      * Updates the cache with the update, and identifies the given timestamps with that lock watch state.
      */
-    void processTransactionUpdate(Collection<Long> startTimestamps, LockWatchStateUpdate update);
+    void processStartTransactionUpdate(Collection<Long> startTimestamps, LockWatchStateUpdate update);
+
+    void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
+            LockWatchStateUpdate update);
 
     /**
      * Updates the cache with the update, and calculates the {@link CommitUpdate} taking into account all changes to
      * lock watch state since the start of the transaction, excluding the transaction's own commit locks.
      *
      * @param startTs          start timestamp of the transaction
-     * @param commitTs         commit timestamp of the transaction
-     * @param commitLocksToken lock token for the transactions's commit locks
      * @return the commit update for this transaction's precommit condition
      */
-    CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken commitLocksToken);
+    CommitUpdate getCommitUpdate(long startTs);
 
     /**
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since

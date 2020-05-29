@@ -24,8 +24,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
 public interface CommitUpdate {
-    long commitTs();
-
     <T> T accept(Visitor<T> visitor);
 
     @Value.Immutable
@@ -51,21 +49,19 @@ public interface CommitUpdate {
         T visit(InvalidateSome update);
     }
 
-    static CommitUpdate ignoringWatches(long timestamp) {
+    static CommitUpdate ignoringWatches() {
         return ImmutableInvalidateSome.builder()
-                .commitTs(timestamp)
                 .invalidatedLocks(ImmutableSet.of())
                 .build();
     }
 
-    static CommitUpdate invalidateSome(long timestamp, Set<LockDescriptor> descriptors) {
+    static CommitUpdate invalidateSome(Set<LockDescriptor> descriptors) {
         return ImmutableInvalidateSome.builder()
-                .commitTs(timestamp)
                 .invalidatedLocks(descriptors)
                 .build();
     }
 
-    static CommitUpdate invalidateWatches(long timestamp) {
-        return ImmutableInvalidateAll.builder().commitTs(timestamp).build();
+    static CommitUpdate invalidateWatches() {
+        return ImmutableInvalidateAll.builder().build();
     }
 }

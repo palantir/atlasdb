@@ -69,7 +69,7 @@ public final class LockWatchEventCacheImplTest {
 
         when(eventLog.getLatestKnownVersion()).thenReturn(Optional.empty());
         when(eventLog.processUpdate(SUCCESS_1)).thenReturn(Optional.of(VERSION_1));
-        eventCache.processTransactionUpdate(TIMESTAMPS_1, SUCCESS_1);
+        eventCache.processStartTransactionUpdate(TIMESTAMPS_1, SUCCESS_1);
         verify(eventLog).processUpdate(SUCCESS_1);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_1)).containsExactlyEntriesOf(expectedMap);
 
@@ -77,7 +77,7 @@ public final class LockWatchEventCacheImplTest {
 
         when(eventLog.getLatestKnownVersion()).thenReturn(Optional.of(VERSION_1));
         when(eventLog.processUpdate(SUCCESS_2)).thenReturn(Optional.of(VERSION_2));
-        eventCache.processTransactionUpdate(TIMESTAMPS_2, SUCCESS_2);
+        eventCache.processStartTransactionUpdate(TIMESTAMPS_2, SUCCESS_2);
         verify(eventLog).processUpdate(SUCCESS_2);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
     }
@@ -87,12 +87,12 @@ public final class LockWatchEventCacheImplTest {
         Map<Long, IdentifiedVersion> expectedMap = constructExpectedMap(TIMESTAMPS_COMBINED, VERSION_1);
 
         when(eventLog.processUpdate(SUCCESS_1)).thenReturn(Optional.of(VERSION_1));
-        eventCache.processTransactionUpdate(TIMESTAMPS_COMBINED, SUCCESS_1);
+        eventCache.processStartTransactionUpdate(TIMESTAMPS_COMBINED, SUCCESS_1);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
 
         when(eventLog.processUpdate(SNAPSHOT)).thenReturn(Optional.of(VERSION_3));
         Set<Long> secondBatch = ImmutableSet.of(666L, 12545L);
-        eventCache.processTransactionUpdate(secondBatch, SNAPSHOT);
+        eventCache.processStartTransactionUpdate(secondBatch, SNAPSHOT);
 
         Map<Long, IdentifiedVersion> newExpectedMap = constructExpectedMap(secondBatch, VERSION_3);
 
@@ -108,7 +108,7 @@ public final class LockWatchEventCacheImplTest {
 
         when(eventLog.getLatestKnownVersion()).thenReturn(Optional.empty());
         when(eventLog.processUpdate(SUCCESS_1)).thenReturn(Optional.of(VERSION_1));
-        eventCache.processTransactionUpdate(TIMESTAMPS_1, SUCCESS_1);
+        eventCache.processStartTransactionUpdate(TIMESTAMPS_1, SUCCESS_1);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_1)).containsExactlyInAnyOrderEntriesOf(expectedMap1);
 
         Map<Long, IdentifiedVersion> expectedMap2 = constructExpectedMap(TIMESTAMPS_2, VERSION_2);
@@ -117,7 +117,7 @@ public final class LockWatchEventCacheImplTest {
 
         when(eventLog.getLatestKnownVersion()).thenReturn(Optional.of(VERSION_1));
         when(eventLog.processUpdate(SUCCESS_2)).thenReturn(Optional.of(VERSION_2));
-        eventCache.processTransactionUpdate(TIMESTAMPS_2, SUCCESS_2);
+        eventCache.processStartTransactionUpdate(TIMESTAMPS_2, SUCCESS_2);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_2)).containsExactlyInAnyOrderEntriesOf(expectedMap2);
         assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_COMBINED)).containsExactlyInAnyOrderEntriesOf(combinedMap);
         assertThat(eventCache.getEarliestVersion()).hasValue(VERSION_1);
