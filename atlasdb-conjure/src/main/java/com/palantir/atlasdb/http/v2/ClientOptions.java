@@ -131,10 +131,10 @@ public abstract class ClientOptions {
 
     private static void setupRetrying(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
         builder.backoffSlotSize(ClientOptionsConstants.STANDARD_BACKOFF_SLOT_SIZE.toJavaDuration())
-                .maxNumRetries(parameters.definitiveRetryIndication()
+                .maxNumRetries(parameters.shouldRetry()
                         ? ClientOptionsConstants.STANDARD_MAX_RETRIES
                         : ClientOptionsConstants.NO_RETRIES)
-                .failedUrlCooldown(parameters.definitiveRetryIndication()
+                .failedUrlCooldown(parameters.shouldRetry()
                         ? ClientOptionsConstants.STANDARD_FAILED_URL_COOLDOWN.toJavaDuration()
                         : ClientOptionsConstants.NON_RETRY_FAILED_URL_COOLDOWN.toJavaDuration());
     }

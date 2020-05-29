@@ -143,6 +143,7 @@ public class TimeLockAgent {
                 AuxiliaryRemotingParameters.builder()
                         .userAgent(userAgent)
                         .shouldLimitPayload(false)
+                        .shouldRetry(false) // Is subsequently overridden.
                         .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
                         .shouldUseExtendedTimeout(false)
                         .build());
