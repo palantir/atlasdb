@@ -71,7 +71,7 @@ public final class TimeLockDialogueServiceProvider {
                         .build())
                 .flatMapEntries((uri, singleServerConfig) -> Stream.of(false, true)
                         .map(retry -> createSingleServiceConfigurationMapping(
-                                uri, serverListConfig, parameters, versionedAgent, retry)))
+                                uri, singleServerConfig, parameters, versionedAgent, retry)))
                 .collectToMap();
     }
 
