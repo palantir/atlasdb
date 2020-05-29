@@ -90,7 +90,7 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.processUpdate(SNAPSHOT);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
         eventLog.processUpdate(SUCCESS);
-        List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1))
+        List<LockWatchEvent> events = eventLog.getEventsForTransactions(Optional.of(VERSION_1), TIMESTAMPS)
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
@@ -100,8 +100,9 @@ public final class ClientLockWatchEventLogImplTest {
     public void oldEventsAreDeletedAndPassedToSnapshotUpdater() {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(SUCCESS);
-        List<LockWatchEvent> events = eventLog.getEventsForTransactions(TIMESTAMPS,
-                Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)))
+        List<LockWatchEvent> events = eventLog.getEventsForTransactions(
+                Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)), TIMESTAMPS
+        )
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
@@ -112,7 +113,7 @@ public final class ClientLockWatchEventLogImplTest {
                 ImmutableSet.of(),
                 ImmutableSet.of()));
         eventLog.removeOldEntries(VERSION_2);
-        eventLog.getEventsForTransactions(TIMESTAMPS, Optional.of(VERSION_1));
+        eventLog.getEventsForTransactions(Optional.of(VERSION_1), TIMESTAMPS);
         verify(snapshotUpdater).getSnapshot(VERSION_2);
         verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));
     }

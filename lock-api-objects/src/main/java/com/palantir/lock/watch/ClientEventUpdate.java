@@ -17,6 +17,7 @@
 package com.palantir.lock.watch;
 
 import java.util.List;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
@@ -24,20 +25,22 @@ public interface ClientEventUpdate {
     <T> T accept(Visitor<T> visitor);
 
     interface Visitor<T> {
-        T visit(Events events);
-        T visit(Snapshot snapshot);
+        T visit(ClientEvents events);
+        T visit(ClientSnapshot snapshot);
     }
 
-    static Events success(List<LockWatchEvent> events) {
-        return ImmutableEvents.of(events);
+    TransactionsLockWatchEvents map(Map<Long, IdentifiedVersion> timestampToVersion);
+
+    static ClientEvents success(List<LockWatchEvent> events) {
+        return ImmutableClientEvents.of(events);
     }
 
-    static Snapshot failure(LockWatchStateUpdate.Snapshot snapshot) {
-        return ImmutableSnapshot.of(snapshot);
+    static ClientSnapshot failure(LockWatchStateUpdate.Snapshot snapshot) {
+        return ImmutableClientSnapshot.of(snapshot);
     }
 
     @Value.Immutable
-    interface Events extends ClientEventUpdate {
+    interface ClientEvents extends ClientEventUpdate {
         @Value.Parameter
         List<LockWatchEvent> events();
 
@@ -45,16 +48,26 @@ public interface ClientEventUpdate {
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
         }
+
+        @Override
+        default TransactionsLockWatchEvents map(Map<Long, IdentifiedVersion> timestampToVersion) {
+            return TransactionsLockWatchEvents.success(events(), timestampToVersion);
+        }
     }
 
     @Value.Immutable
-    interface Snapshot extends ClientEventUpdate {
+    interface ClientSnapshot extends ClientEventUpdate {
         @Value.Parameter
         LockWatchStateUpdate.Snapshot snapshot();
 
         @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
+        }
+
+        @Override
+        default TransactionsLockWatchEvents map(Map<Long, IdentifiedVersion> _timestampToVersion) {
+            return TransactionsLockWatchEvents.failure(snapshot());
         }
     }
 }

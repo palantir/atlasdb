@@ -17,12 +17,18 @@
 package com.palantir.lock.watch;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.lock.LockDescriptor;
@@ -36,8 +42,11 @@ import com.palantir.logsafe.Preconditions;
  * but the method to remove entries is not necessarily called as such, and may cause some impact on performance.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
+    @GuardedBy("this")
     private final ClientLockWatchEventLog eventLog;
+    @GuardedBy("this")
     private final HashMap<Long, IdentifiedVersion> timestampMap = new HashMap<>();
+    @GuardedBy("this")
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
             TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
 
@@ -86,17 +95,18 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public synchronized CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken commitLocksToken) {
         IdentifiedVersion startVersion = timestampMap.get(startTs);
         IdentifiedVersion endVersion = timestampMap.get(commitTs);
-        Optional<Set<LockDescriptor>> locksTakenOut = eventLog.getEventsBetweenVersions(startVersion, endVersion);
-        return locksTakenOut.map(descriptors -> CommitUpdate.invalidateSome(commitTs, descriptors))
-                .orElseGet(() -> CommitUpdate.invalidateWatches(commitTs));
+        ClientEventUpdate update = eventLog.getEventsForTransactions(Optional.of(startVersion), endVersion);
+        return update.accept(new ClientEventVisitor(commitTs));
     }
 
     @Override
     public synchronized TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> version) {
+            Optional<IdentifiedVersion> startVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
-        return eventLog.getEventsForTransactions(getTimestampToVersionMap(startTimestamps), version);
+        Map<Long, IdentifiedVersion> timestampToVersion = getTimestampToVersionMap(startTimestamps);
+        IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
+        return eventLog.getEventsForTransactions(startVersion, endVersion).map(timestampToVersion);
     }
 
     @Override
@@ -144,6 +154,46 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         @Override
         public Boolean visit(LockWatchStateUpdate.Snapshot snapshot) {
             return false;
+        }
+    }
+
+    private final class ClientEventVisitor implements ClientEventUpdate.Visitor<CommitUpdate> {
+        private final long commitTs;
+
+        private ClientEventVisitor(long commitTs) {
+            this.commitTs = commitTs;
+        }
+
+        @Override
+        public CommitUpdate visit(ClientEventUpdate.ClientEvents events) {
+            List<LockWatchEvent> eventList = events.events();
+            Set<LockDescriptor> locksTakenOut = new HashSet<>();
+            eventList.forEach(event -> locksTakenOut.addAll(event.accept(LockEventVisitor.INSTANCE)));
+            return CommitUpdate.invalidateSome(commitTs, locksTakenOut);
+        }
+
+        @Override
+        public CommitUpdate visit(ClientEventUpdate.ClientSnapshot snapshot) {
+            return CommitUpdate.invalidateWatches(commitTs);
+        }
+    }
+
+    enum LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        INSTANCE;
+
+        @Override
+        public Set<LockDescriptor> visit(LockEvent lockEvent) {
+            return lockEvent.lockDescriptors();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return lockWatchCreatedEvent.lockDescriptors();
         }
     }
 }

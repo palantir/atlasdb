@@ -103,8 +103,8 @@ public interface LockWatchStateUpdate {
      */
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-    @JsonSerialize(as = ImmutableSnapshot.class)
-    @JsonDeserialize(as = ImmutableSnapshot.class)
+    @JsonSerialize(as = ImmutableClientSnapshot.class)
+    @JsonDeserialize(as = ImmutableClientSnapshot.class)
     @JsonTypeName(Snapshot.TYPE)
     interface Snapshot extends LockWatchStateUpdate {
         String TYPE = "snapshot";

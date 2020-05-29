@@ -16,10 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -30,8 +26,6 @@ import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
@@ -39,13 +33,10 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @GuardedBy("this")
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
-
     @GuardedBy("this")
     private final TreeMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
-
     @GuardedBy("this")
     private boolean failed = false;
-
     @GuardedBy("this")
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
@@ -90,58 +81,31 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     /**
-     * @param timestampToVersion mapping from timestamp to identified version from client-side event cache;
-     * @param version            latest version that the client knows about; should be before timestamps in the
-     *                           mapping;
+     * @param startVersion latest version that the client knows about; should be before timestamps in the mapping;
+     * @param endVersion   mapping from timestamp to identified version from client-side event cache;
      * @return lock watch events that occurred from (exclusive) the provided version, up to (inclusive) the latest
      * version in the timestamp to version map.
      */
     @Override
-    public synchronized TransactionsLockWatchEvents getEventsForTransactions(
-            Map<Long, IdentifiedVersion> timestampToVersion,
-            Optional<IdentifiedVersion> version) {
+    public synchronized ClientEventUpdate getEventsForTransactions(
+            Optional<IdentifiedVersion> startVersion,
+            IdentifiedVersion endVersion) {
         checkFailed();
-        Optional<IdentifiedVersion> versionInclusive = version.map(this::createInclusiveVersion);
-        IdentifiedVersion toVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
-        IdentifiedVersion currentVersion = getLatestVersionAndVerify(toVersion);
+        Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
+        IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
 
         if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
-            return TransactionsLockWatchEvents.failure(snapshotUpdater.getSnapshot(currentVersion));
+            return ClientEventUpdate.failure(snapshotUpdater.getSnapshot(currentVersion));
         }
 
         if (eventMap.isEmpty()) {
-            return TransactionsLockWatchEvents.success(ImmutableList.of(), timestampToVersion);
+            return ClientEventUpdate.success(ImmutableList.of());
         }
 
         IdentifiedVersion fromVersion = versionInclusive.get();
 
-        return TransactionsLockWatchEvents.success(
-                ImmutableList.copyOf(
-                        eventMap.subMap(fromVersion.version(), INCLUSIVE, toVersion.version(), INCLUSIVE).values()),
-                timestampToVersion);
-    }
-
-    @Override
-    public synchronized Optional<Set<LockDescriptor>> getEventsBetweenVersions(
-            IdentifiedVersion startVersion,
-            IdentifiedVersion endVersion) {
-        IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
-        IdentifiedVersion fromVersion = createInclusiveVersion(startVersion);
-
-        if (differentLeaderOrTooFarBehind(currentVersion, fromVersion)) {
-            return Optional.empty();
-        }
-
-        if (eventMap.isEmpty()) {
-            return Optional.of(ImmutableSet.of());
-        }
-
-        List<LockWatchEvent> events =
-                new ArrayList<>(eventMap.subMap(fromVersion.version(), true, endVersion.version(), true).values());
-        Set<LockDescriptor> locksTakenOut = new HashSet<>();
-        events.forEach(event -> locksTakenOut.addAll(event.accept(LockEventVisitor.INSTANCE)));
-
-        return Optional.of(locksTakenOut);
+        return ClientEventUpdate.success(ImmutableList.copyOf(
+                eventMap.subMap(fromVersion.version(), INCLUSIVE, endVersion.version(), INCLUSIVE).values()));
     }
 
     @Override
@@ -219,22 +183,4 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
     }
 
-    enum LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        INSTANCE;
-
-        @Override
-        public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            return lockEvent.lockDescriptors();
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
-            return ImmutableSet.of();
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            return lockWatchCreatedEvent.lockDescriptors();
-        }
-    }
 }
