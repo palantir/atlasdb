@@ -34,9 +34,6 @@ package com.palantir.atlasdb.transaction.api;
 @FunctionalInterface
 public interface PreCommitCondition {
 
-    default void initialize(long startTs) {
-    }
-
     /**
      * Checks that the condition is valid at the given timestamp, otherwise throws a
      * {@link TransactionFailedException}. If the condition is not valid, the transaction will not be committed.

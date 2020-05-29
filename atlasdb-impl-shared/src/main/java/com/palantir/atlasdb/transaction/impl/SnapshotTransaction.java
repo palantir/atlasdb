@@ -57,7 +57,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -210,7 +209,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
-    private final Supplier<PreCommitCondition> preCommitCondition;
+    private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
@@ -286,10 +285,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
         this.immutableTimestampLock = immutableTimestampLock;
-        this.preCommitCondition = Suppliers.memoize(() -> {
-            preCommitCondition.initialize(getStartTimestamp());
-            return preCommitCondition;
-        });
+        this.preCommitCondition = preCommitCondition;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -1646,7 +1642,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!hasWrites()) {
             if (hasReads()) {
                 // verify any pre-commit conditions on the transaction
-                preCommitCondition.get().throwIfConditionInvalid(getStartTimestamp());
+                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
@@ -1764,7 +1760,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void throwIfPreCommitConditionInvalid(long timestamp) {
         try {
-            preCommitCondition.get().throwIfConditionInvalid(timestamp);
+            preCommitCondition.throwIfConditionInvalid(timestamp);
         } catch (TransactionFailedException ex) {
             transactionOutcomeMetrics.markPreCommitCheckFailed();
             throw ex;
