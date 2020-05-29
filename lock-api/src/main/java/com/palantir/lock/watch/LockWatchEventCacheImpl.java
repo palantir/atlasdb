@@ -25,14 +25,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;

@@ -22,10 +22,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.logsafe.Preconditions;
 
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
