@@ -115,7 +115,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         CommitInfo commitInfo = entry.commitInfo().get();
 
         ClientEventUpdate update =
-                eventLog.getEventsForTransactions(Optional.of(entry.version()), commitInfo.commitVersion());
+                eventLog.getEventsBetweenVersions(Optional.of(entry.version()), commitInfo.commitVersion());
         return update.accept(new ClientEventVisitor(new LockEventVisitor(commitInfo.commitLockToken())));
     }
 
@@ -127,7 +127,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampToVersionMap(startTimestamps);
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
-        return eventLog.getEventsForTransactions(startVersion, endVersion).map(timestampToVersion);
+        return eventLog.getEventsBetweenVersions(startVersion, endVersion).map(timestampToVersion);
     }
 
     @Override

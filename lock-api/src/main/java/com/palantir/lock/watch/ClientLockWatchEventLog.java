@@ -22,10 +22,9 @@ import java.util.Set;
 import com.palantir.lock.LockDescriptor;
 
 public interface ClientLockWatchEventLog {
-    ClientEventUpdate getEventsForTransactions(
+    ClientEventUpdate getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion, IdentifiedVersion endVersion);
     Optional<IdentifiedVersion> getLatestKnownVersion();
     Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update);
-
     void removeOldEntries(IdentifiedVersion earliestVersion);
 }

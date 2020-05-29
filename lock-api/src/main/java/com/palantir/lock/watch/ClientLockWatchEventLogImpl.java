@@ -87,7 +87,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
      * version in the timestamp to version map.
      */
     @Override
-    public synchronized ClientEventUpdate getEventsForTransactions(
+    public synchronized ClientEventUpdate getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion,
             IdentifiedVersion endVersion) {
         checkNotFailed();

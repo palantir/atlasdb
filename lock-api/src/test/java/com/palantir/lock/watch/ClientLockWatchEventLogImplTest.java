@@ -35,6 +35,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -90,7 +92,7 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.processUpdate(SNAPSHOT);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
         eventLog.processUpdate(SUCCESS);
-        List<LockWatchEvent> events = eventLog.getEventsForTransactions(Optional.of(VERSION_1), VERSION_2)
+        List<LockWatchEvent> events = eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2)
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
@@ -100,7 +102,7 @@ public final class ClientLockWatchEventLogImplTest {
     public void oldEventsAreDeletedAndPassedToSnapshotUpdater() {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(SUCCESS);
-        List<LockWatchEvent> events = eventLog.getEventsForTransactions(
+        List<LockWatchEvent> events = eventLog.getEventsBetweenVersions(
                 Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)), VERSION_2
         )
                 .accept(SuccessVisitor.INSTANCE).events();
@@ -113,7 +115,7 @@ public final class ClientLockWatchEventLogImplTest {
                 ImmutableSet.of(),
                 ImmutableSet.of()));
         eventLog.removeOldEntries(VERSION_2);
-        eventLog.getEventsForTransactions(Optional.of(VERSION_1), VERSION_2);
+        eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
         verify(snapshotUpdater).getSnapshot(VERSION_2);
         verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));
     }
