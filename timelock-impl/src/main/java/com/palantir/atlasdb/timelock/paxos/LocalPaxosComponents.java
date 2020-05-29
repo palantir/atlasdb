@@ -95,7 +95,6 @@ public class LocalPaxosComponents {
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
         PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
         namespaceLoader.getAllPersistedNamespaces().forEach(components::getOrCreateComponents);
-        components.getOrCreateComponents(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
         return components;
     }
 

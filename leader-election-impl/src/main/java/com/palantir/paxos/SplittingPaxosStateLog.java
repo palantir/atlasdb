@@ -83,20 +83,16 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
         NamespaceAndUseCase namespaceUseCase = params.namespaceAndUseCase();
 
         PaxosStateLogMigrator.MigrationContext<V> migrationContext = ImmutableMigrationContext.<V>builder()
-                .sourceLog(new PaxosStateLogImpl<>(logDirectory))
+                .sourceLog(PaxosStateLogImpl.createFileBacked(logDirectory))
                 .destinationLog(SqlitePaxosStateLog.create(namespaceUseCase, params.sqliteDataSource()))
                 .hydrator(hydrator)
                 .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, params.sqliteDataSource()))
                 .migrateFrom(migrateFrom)
                 .build();
 
-        Instant start = Instant.now();
-        log.info("Starting migration for namespace and use case {}.",
+        log.info("Starting migration for namespace and use case {} if migration has not run before.",
                 SafeArg.of("namespaceAndUseCase", params.namespaceAndUseCase()));
         long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
-        log.info("Migration for namespace and use case {} took {}.",
-                SafeArg.of("namespaceAndUseCase", params.namespaceAndUseCase()),
-                SafeArg.of("duration", Duration.between(start, Instant.now())));
 
         SplittingParameters<V> splittingParameters = ImmutableSplittingParameters.<V>builder()
                 .legacyLog(migrationContext.sourceLog())

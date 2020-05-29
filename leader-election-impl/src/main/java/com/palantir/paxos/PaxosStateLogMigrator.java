@@ -17,6 +17,8 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -33,6 +35,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.SafeArg;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
@@ -82,13 +85,23 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         }
 
         LogReader<V> reader = new LogReader<>(sourceLog, hydrator);
+        log.info("Reading entries for paxos state log migration.");
+        Instant start = Instant.now();
         List<PaxosRound<V>> roundsToMigrate = LongStream.rangeClosed(lowerBound, upperBound)
                 .mapToObj(reader::read)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
+        Instant afterRead = Instant.now();
+        log.info("Reading {} entries from file backed paxos state log took {}.",
+                SafeArg.of("numEntries", roundsToMigrate.size()),
+                Duration.between(start, afterRead));
         Iterables.partition(roundsToMigrate, BATCH_SIZE)
                 .forEach(batch -> writeBatchRetryingUpToFiveTimes(destinationLog, batch));
+        log.info("Writing {} entries to sqlite backed paxos state log took {}.",
+                SafeArg.of("numEntries", roundsToMigrate.size()),
+                Duration.between(afterRead, Instant.now()));
+
     }
 
     private void writeBatchRetryingUpToFiveTimes(PaxosStateLog<V> target, List<PaxosRound<V>> batch) {
