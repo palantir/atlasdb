@@ -77,8 +77,9 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         return Math.max(PaxosAcceptor.NO_LOG_ENTRY, lowerBoundWithAtLeastOneEntry);
     }
 
-    private void runMigration(long lowerBound, Persistable.Hydrator<V> hydrator) {
+    private void runMigration(long cutoff, Persistable.Hydrator<V> hydrator) {
         destinationLog.truncate(destinationLog.getGreatestLogEntry());
+        long lowerBound = cutoff == PaxosAcceptor.NO_LOG_ENTRY ? 0 : cutoff;
         long upperBound = sourceLog.getGreatestLogEntry();
         if (upperBound == PaxosAcceptor.NO_LOG_ENTRY) {
             return;
