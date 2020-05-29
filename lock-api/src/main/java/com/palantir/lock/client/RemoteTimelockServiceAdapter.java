@@ -48,7 +48,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
-        this.commitTimestampGetter = CommitTimestampGetter.create(conjureTimelockService, lockWatchEventCache);
+        this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
 

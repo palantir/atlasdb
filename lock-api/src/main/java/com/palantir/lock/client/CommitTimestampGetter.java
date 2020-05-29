@@ -24,15 +24,17 @@ import java.util.stream.LongStream;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.TransactionUpdate;
 
 final class CommitTimestampGetter implements AutoCloseable {
     private final DisruptorAutobatcher<Request, Long> autobatcher;
@@ -41,10 +43,9 @@ final class CommitTimestampGetter implements AutoCloseable {
         this.autobatcher = autobatcher;
     }
 
-    public static CommitTimestampGetter create(NamespacedConjureTimelockService timelock,
-            LockWatchEventCache cache) {
+    public static CommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
         DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers
-                .independent(consumer(timelock, cache))
+                .independent(consumer(leaseService, cache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .build();
         return new CommitTimestampGetter(autobatcher);
@@ -57,37 +58,37 @@ final class CommitTimestampGetter implements AutoCloseable {
                 .build()));
     }
 
-    private static Consumer<List<BatchElement<Request, Long>>> consumer(NamespacedConjureTimelockService timelock,
+    @VisibleForTesting
+    static Consumer<List<BatchElement<Request, Long>>> consumer(LockLeaseService leaseService,
             LockWatchEventCache cache) {
         return batch -> {
             int count = batch.size();
             List<Long> commitTimestamps = new ArrayList<>();
             while (commitTimestamps.size() < count) {
-                GetCommitTimestampsRequest request = GetCommitTimestampsRequest.builder()
-                        .numTimestamps(count - commitTimestamps.size())
-                        .lastKnownVersion(
-                                cache.lastKnownVersion().map(identifiedVersion -> ConjureIdentifiedVersion.builder()
-                                        .id(identifiedVersion.id())
-                                        .version(identifiedVersion.version())
-                                        .build()))
-                        .build();
-                GetCommitTimestampsResponse response = timelock.getCommitTimestamps(request);
-
-                // Stitch everything together,
-                commitTimestamps.addAll(process(response, cache));
+                GetCommitTimestampsResponse response = leaseService.getCommitTimestamps(cache.lastKnownVersion(),
+                        count - commitTimestamps.size());
+                commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
             }
+
             for (int i = 0; i < count; i++) {
                 batch.get(i).result().set(commitTimestamps.get(i));
             }
         };
     }
 
-    private static List<Long> process(GetCommitTimestampsResponse response, LockWatchEventCache cache) {
+    private static List<Long> process(List<BatchElement<Request, Long>> requests, GetCommitTimestampsResponse response,
+            LockWatchEventCache cache) {
         List<Long> timestamps = LongStream
                 .rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
                 .boxed()
                 .collect(Collectors.toList());
-        cache.processGetCommitTimestampsUpdate(null, response.getLockWatchUpdate());
+        List<TransactionUpdate> transactionUpdates = Streams.zip(timestamps.stream(), requests.stream(),
+                (commitTs, batchElement) -> ImmutableTransactionUpdate.builder()
+                        .startTs(batchElement.argument().startTs())
+                        .commitTs(commitTs)
+                        .writesToken(batchElement.argument().commitLocksToken())
+                        .build()).collect(Collectors.toList());
+        cache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
         return timestamps;
     }
 
