@@ -36,7 +36,7 @@ public interface IdentifiedVersion {
 
     static Comparator<IdentifiedVersion> comparator() {
         return (version1, version2) -> {
-            Preconditions.checkArgument(version1.id().equals(version2.id()));
+            Preconditions.checkArgument(version1.id().equals(version2.id()), "Versions do not have same leader id");
             return Long.compare(version1.version(), version2.version());
         };
     }
