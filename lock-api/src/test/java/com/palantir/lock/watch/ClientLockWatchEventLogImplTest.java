@@ -90,7 +90,7 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.processUpdate(SNAPSHOT);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
         eventLog.processUpdate(SUCCESS);
-        List<LockWatchEvent> events = eventLog.getEventsForTransactions(Optional.of(VERSION_1), TIMESTAMPS)
+        List<LockWatchEvent> events = eventLog.getEventsForTransactions(Optional.of(VERSION_1), VERSION_2)
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
@@ -101,7 +101,7 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events = eventLog.getEventsForTransactions(
-                Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)), TIMESTAMPS
+                Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)), VERSION_2
         )
                 .accept(SuccessVisitor.INSTANCE).events();
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
@@ -113,22 +113,22 @@ public final class ClientLockWatchEventLogImplTest {
                 ImmutableSet.of(),
                 ImmutableSet.of()));
         eventLog.removeOldEntries(VERSION_2);
-        eventLog.getEventsForTransactions(Optional.of(VERSION_1), TIMESTAMPS);
+        eventLog.getEventsForTransactions(Optional.of(VERSION_1), VERSION_2);
         verify(snapshotUpdater).getSnapshot(VERSION_2);
         verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));
     }
 
-    enum SuccessVisitor implements TransactionsLockWatchEvents.Visitor<TransactionsLockWatchEvents.Events> {
+    enum SuccessVisitor implements ClientEventUpdate.Visitor<ClientEventUpdate.ClientEvents> {
         INSTANCE;
 
         @Override
-        public TransactionsLockWatchEvents.Events visit(TransactionsLockWatchEvents.Events success) {
-            return success;
+        public ClientEventUpdate.ClientEvents visit(ClientEventUpdate.ClientEvents events) {
+            return events;
         }
 
         @Override
-        public TransactionsLockWatchEvents.Events visit(TransactionsLockWatchEvents.ForcedSnapshot failure) {
-            fail("Expected success outcome");
+        public ClientEventUpdate.ClientEvents visit(ClientEventUpdate.ClientSnapshot snapshot) {
+            fail("Expected events outcome");
             return null;
         }
     }

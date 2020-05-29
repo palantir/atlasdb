@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
-    private static final IdentifiedVersion FAKE = IdentifiedVersion.of(UUID.randomUUID(), 0L);
     private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
             LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of()));
 
@@ -56,8 +55,8 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTs) {
-        return CommitUpdate.ignoringWatches(commitTs);
+    public CommitUpdate getCommitUpdate(long _startTs) {
+        return CommitUpdate.ignoringWatches();
     }
 
     @Override
