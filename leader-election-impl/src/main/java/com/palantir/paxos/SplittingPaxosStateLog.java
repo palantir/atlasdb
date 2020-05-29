@@ -17,8 +17,6 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
 
