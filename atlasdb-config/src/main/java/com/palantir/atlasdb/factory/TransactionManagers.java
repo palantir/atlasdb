@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -501,7 +502,7 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
-        transactionManager.registerClosingCallback(lockAndTimestampServices.close());
+        lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);
         components.schemaInstaller().ifPresent(
                 installer -> transactionManager.registerClosingCallback(installer::close));
@@ -852,7 +853,7 @@ public abstract class TransactionManagers {
                 .from(lockAndTimestampServices)
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(timeLockClient::close)
+                .addResources(timeLockClient::close)
                 .build();
     }
 
@@ -906,11 +907,8 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(profilingService))
                 .timelock(profilingService)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(() -> {
-                    lockAndTimestampServices.close();
-                    timeLockClient.close();
-                    profilingService.close();
-                })
+                .addResources(timeLockClient::close)
+                .addResources(profilingService::close)
                 .build();
     }
 
@@ -1102,10 +1100,8 @@ public abstract class TransactionManagers {
                 .timelock(remoteTimelockServiceAdapter)
                 .lockWatcher(lockWatchManager)
                 .eventCache(lockWatchEventCache)
-                .close(() -> {
-                    remoteTimelockServiceAdapter.close();
-                    lockWatchManager.close();
-                })
+                .addResources(remoteTimelockServiceAdapter::close)
+                .addResources(lockWatchManager::close)
                 .build();
     }
 
@@ -1324,8 +1320,8 @@ public abstract class TransactionManagers {
 
         @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default
-        default Runnable close() {
-            return () -> {};
+        default List<Runnable> resources() {
+            return Collections.emptyList();
         }
     }
 
