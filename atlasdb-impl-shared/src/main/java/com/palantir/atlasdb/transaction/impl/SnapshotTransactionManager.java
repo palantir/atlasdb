@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -180,9 +179,9 @@ import com.palantir.util.SafeShutdownRunner;
                 timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
-            long immutableTs = Collections.max(responses.stream()
-                    .map(response -> response.immutableTimestamp().getImmutableTimestamp())
-                    .collect(Collectors.toList()));
+            long immutableTs = responses.stream()
+                    .mapToLong(response -> response.immutableTimestamp().getImmutableTimestamp())
+                    .max().getAsLong();
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
