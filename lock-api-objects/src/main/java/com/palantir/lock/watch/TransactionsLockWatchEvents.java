@@ -27,10 +27,7 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 public interface TransactionsLockWatchEvents {
-    @Value.Parameter
     List<LockWatchEvent> events();
-    @Value.Parameter
     Map<Long, IdentifiedVersion> startTsToSequence();
-    @Value.Parameter
     boolean clearCache();
 }

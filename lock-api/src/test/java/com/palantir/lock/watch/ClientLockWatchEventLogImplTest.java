@@ -17,7 +17,6 @@
 package com.palantir.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,8 +34,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -54,8 +51,6 @@ public final class ClientLockWatchEventLogImplTest {
             LockWatchStateUpdate.success(VERSION_2.id(), VERSION_2.version(), ImmutableList.of(EVENT_1, EVENT_2));
     private static final LockWatchStateUpdate.Failed FAILED =
             LockWatchStateUpdate.failed(LEADER);
-    private static final Map<Long, IdentifiedVersion> TIMESTAMPS =
-            ImmutableMap.of(1L, VERSION_1, 2L, VERSION_1, 3L, VERSION_2);
 
     @Mock
     private ClientLockWatchSnapshotUpdater snapshotUpdater;
@@ -92,8 +87,8 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.processUpdate(SNAPSHOT);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
         eventLog.processUpdate(SUCCESS);
-        List<LockWatchEvent> events = eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2)
-                .accept(SuccessVisitor.INSTANCE).events();
+        List<LockWatchEvent> events =
+                eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2).build().events();
         assertThat(events).containsExactly(EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
     }
@@ -103,9 +98,8 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events = eventLog.getEventsBetweenVersions(
-                Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)), VERSION_2
-        )
-                .accept(SuccessVisitor.INSTANCE).events();
+                Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)),
+                VERSION_2).build().events();
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
 
@@ -118,20 +112,5 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
         verify(snapshotUpdater).getSnapshot(VERSION_2);
         verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));
-    }
-
-    enum SuccessVisitor implements ClientEventUpdate.Visitor<ClientEventUpdate.ClientEvents> {
-        INSTANCE;
-
-        @Override
-        public ClientEventUpdate.ClientEvents visit(ClientEventUpdate.ClientEvents events) {
-            return events;
-        }
-
-        @Override
-        public ClientEventUpdate.ClientEvents visit(ClientEventUpdate.ClientSnapshot snapshot) {
-            fail("Expected events outcome");
-            return null;
-        }
     }
 }

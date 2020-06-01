@@ -112,7 +112,9 @@ public final class LockWatchEventCacheImplTest {
         verify(eventLog).processUpdate(SUCCESS_2);
 
         when(eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2)).thenReturn(
-                ClientEventUpdate.success(ImmutableList.of(WATCH_EVENT, LOCK_EVENT, COMMIT_LOCK_EVENT)));
+                ImmutableTransactionsLockWatchEvents.builder()
+                        .addEvents(WATCH_EVENT, LOCK_EVENT, COMMIT_LOCK_EVENT)
+                        .clearCache(false));
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(1L);
         verify(eventLog).getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
         assertThat(commitUpdate.accept(SuccessVisitor.INSTANCE).invalidatedLocks())

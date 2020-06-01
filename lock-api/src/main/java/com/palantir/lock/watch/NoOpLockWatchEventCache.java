@@ -26,8 +26,9 @@ import com.google.common.collect.ImmutableSet;
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
-    private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of()));
+    private static final TransactionsLockWatchEvents NONE = ImmutableTransactionsLockWatchEvents.builder()
+            .clearCache(true)
+            .build();
 
     private NoOpLockWatchEventCache() {
         // singleton
