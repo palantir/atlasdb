@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +40,7 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
 
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
-    private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = new HashSet<>();
+    private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
     private final LockWatchEventCache lockWatchEventCache;
     private final NamespacedConjureLockWatchingService lockWatchingService;
     private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
@@ -50,7 +50,7 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
             NamespacedConjureLockWatchingService lockWatchingService) {
         this.lockWatchEventCache = lockWatchEventCache;
         this.lockWatchingService = lockWatchingService;
-        refreshTask = executorService.scheduleWithFixedDelay(this::reregisterWatches, 0, 5,
+        refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5,
                 TimeUnit.SECONDS);
     }
 
@@ -70,11 +70,11 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
     }
 
     @Override
-    public synchronized void registerWatches(Set<LockWatchReferences.LockWatchReference> newLockWatches) {
+    public void registerWatches(Set<LockWatchReferences.LockWatchReference> newLockWatches) {
         lockWatchReferences.addAll(newLockWatches);
     }
 
-    private synchronized void reregisterWatches() {
+    private void registerWatchesWithTimelock() {
         if (lockWatchReferences.isEmpty()) {
             return;
         }
