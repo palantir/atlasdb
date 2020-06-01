@@ -1,6 +1,6 @@
-apply plugin: 'com.palantir.sls-recommended-dependencies'
-
 apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.palantir.sls-recommended-dependencies'
 
 repositories {
     mavenCentral()

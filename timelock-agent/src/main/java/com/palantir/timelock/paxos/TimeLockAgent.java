@@ -40,6 +40,7 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
@@ -187,13 +188,22 @@ public class TimeLockAgent {
 
         registrar.accept(resource);
 
-        Function<String, AsyncTimelockService> creator = namespace -> namespaces.get(namespace).getTimelockService();
+        Function<String, AsyncTimelockService> asyncTimelockServiceGetter
+                = namespace -> namespaces.get(namespace).getTimelockService();
+        Function<String, LockService> lockServiceGetter
+                = namespace -> namespaces.get(namespace).getLockService();
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(ConjureTimelockResource.undertow(redirectRetryTargeter(), creator));
-            undertowRegistrar.get().accept(ConjureLockWatchingResource.undertow(redirectRetryTargeter(), creator));
+            Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
+            presentUndertowRegistrar.accept(ConjureTimelockResource.undertow(
+                    redirectRetryTargeter(), asyncTimelockServiceGetter));
+            presentUndertowRegistrar.accept(ConjureLockWatchingResource.undertow(
+                    redirectRetryTargeter(), asyncTimelockServiceGetter));
+            presentUndertowRegistrar.accept(ConjureLockV1Resource.undertow(
+                    redirectRetryTargeter(), lockServiceGetter));
         } else {
-            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), creator));
-            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), creator));
+            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
         }
     }
 
