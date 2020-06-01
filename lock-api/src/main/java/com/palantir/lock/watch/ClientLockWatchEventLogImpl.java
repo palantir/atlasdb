@@ -16,6 +16,8 @@
 
 package com.palantir.lock.watch;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -84,25 +86,27 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
      * version in the timestamp to version map.
      */
     @Override
-    public synchronized ClientEventUpdate getEventsBetweenVersions(
+    public synchronized ImmutableTransactionsLockWatchEvents.Builder getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion,
             IdentifiedVersion endVersion) {
         checkNotFailed();
         Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
+        ImmutableTransactionsLockWatchEvents.Builder eventBuilder = ImmutableTransactionsLockWatchEvents.builder();
+        List<LockWatchEvent> events = new ArrayList<>();
+        final long fromSequence;
 
         if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
-            return ClientEventUpdate.failure(snapshotUpdater.getSnapshot(currentVersion));
+            events.add(LockWatchCreatedEvent.fromSnapshot(snapshotUpdater.getSnapshot(currentVersion)));
+            fromSequence = eventMap.firstKey();
+            eventBuilder.clearCache(true);
+        } else {
+            fromSequence = versionInclusive.get().version();
+            eventBuilder.clearCache(false);
         }
 
-        if (eventMap.isEmpty()) {
-            return ClientEventUpdate.success(ImmutableList.of());
-        }
-
-        IdentifiedVersion fromVersion = versionInclusive.get();
-
-        return ClientEventUpdate.success(ImmutableList.copyOf(
-                eventMap.subMap(fromVersion.version(), INCLUSIVE, endVersion.version(), INCLUSIVE).values()));
+        events.addAll(eventMap.subMap(fromSequence, INCLUSIVE, endVersion.version(), INCLUSIVE).values());
+        return eventBuilder.events(events);
     }
 
     @Override

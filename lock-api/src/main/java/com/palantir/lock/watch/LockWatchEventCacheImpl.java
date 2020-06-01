@@ -113,9 +113,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Preconditions.checkState(entry.commitInfo().isPresent(), "Commit timestamp update not yet processed");
         CommitInfo commitInfo = entry.commitInfo().get();
 
-        ClientEventUpdate update =
-                eventLog.getEventsBetweenVersions(Optional.of(entry.version()), commitInfo.commitVersion());
-        return update.accept(new ClientEventVisitor(new LockEventVisitor(commitInfo.commitLockToken())));
+        TransactionsLockWatchEvents update =
+                eventLog.getEventsBetweenVersions(Optional.of(entry.version()), commitInfo.commitVersion()).build();
+
+        if (update.clearCache()) {
+            return CommitUpdate.invalidateWatches();
+        }
+
+        return getCommitUpdate(commitInfo, update.events());
     }
 
     @Override
@@ -126,7 +131,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampToVersionMap(startTimestamps);
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
-        return eventLog.getEventsBetweenVersions(startVersion, endVersion).map(timestampToVersion);
+        return eventLog.getEventsBetweenVersions(startVersion, endVersion)
+                .startTsToSequence(timestampToVersion)
+                .build();
     }
 
     @Override
@@ -138,6 +145,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 aliveVersions.remove(entryToRemove.version(), timestamp);
             }
         });
+    }
+
+    private synchronized CommitUpdate getCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
+        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
+        Set<LockDescriptor> locksTakenOut = new HashSet<>();
+        events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
+        return CommitUpdate.invalidateSome(locksTakenOut);
     }
 
     private synchronized Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {
@@ -205,27 +219,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         }
     }
 
-    private static final class ClientEventVisitor implements ClientEventUpdate.Visitor<CommitUpdate> {
-        private final LockEventVisitor eventVisitor;
-
-        private ClientEventVisitor(LockEventVisitor eventVisitor) {
-            this.eventVisitor = eventVisitor;
-        }
-
-        @Override
-        public CommitUpdate visit(ClientEventUpdate.ClientEvents events) {
-            List<LockWatchEvent> eventList = events.events();
-            Set<LockDescriptor> locksTakenOut = new HashSet<>();
-            eventList.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-            return CommitUpdate.invalidateSome(locksTakenOut);
-        }
-
-        @Override
-        public CommitUpdate visit(ClientEventUpdate.ClientSnapshot snapshot) {
-            return CommitUpdate.invalidateWatches();
-        }
-    }
-
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         private final LockToken commitLocksToken;
 
@@ -263,10 +256,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         static MapEntry of(IdentifiedVersion version) {
             return ImmutableMapEntry.of(version, Optional.empty());
-        }
-
-        static MapEntry of(IdentifiedVersion version, CommitInfo commitInfo) {
-            return ImmutableMapEntry.of(version, Optional.of(commitInfo));
         }
 
         default MapEntry withCommitInfo(CommitInfo commitInfo) {

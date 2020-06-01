@@ -17,12 +17,9 @@
 package com.palantir.lock.watch;
 
 import java.util.Optional;
-import java.util.Set;
-
-import com.palantir.lock.LockDescriptor;
 
 public interface ClientLockWatchEventLog {
-    ClientEventUpdate getEventsBetweenVersions(
+    ImmutableTransactionsLockWatchEvents.Builder getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion, IdentifiedVersion endVersion);
     Optional<IdentifiedVersion> getLatestKnownVersion();
     Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update);
