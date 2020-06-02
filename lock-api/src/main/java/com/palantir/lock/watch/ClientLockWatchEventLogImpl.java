@@ -32,10 +32,9 @@ import com.palantir.logsafe.Preconditions;
 public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private static final boolean INCLUSIVE = true;
 
-    @GuardedBy("this")
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
-    @GuardedBy("this")
     private final TreeMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
+
     @GuardedBy("this")
     private boolean failed = false;
     @GuardedBy("this")

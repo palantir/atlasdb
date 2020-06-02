@@ -43,13 +43,11 @@ import com.palantir.logsafe.Preconditions;
  * but the method to remove entries is not necessarily called as such, and may cause some impact on performance.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    @GuardedBy("this")
     private final ClientLockWatchEventLog eventLog;
-    @GuardedBy("this")
     private final HashMap<Long, MapEntry> timestampMap = new HashMap<>();
-    @GuardedBy("this")
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
             TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
+
     @GuardedBy("this")
     private boolean failed = false;
 
