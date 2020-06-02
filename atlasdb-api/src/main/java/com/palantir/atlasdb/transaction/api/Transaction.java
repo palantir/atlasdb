@@ -54,9 +54,9 @@ public interface Transaction {
      * {@code rows} is irrelevant.
      *
      * If there are rows with no cells matching the provided {@link ColumnSelection}, they will not be present in the
-     * {@link Map#keySet()} of the output map at all. This accounts for local writes and deletes: a row written
-     * to locally (even if not persisted) will be present, and a row which is completely deleted locally (even if
-     * existing in the key value service) will be absent.
+     * {@link Map#keySet()} of the output map at all. This accounts for writes and deletes done in this transaction:
+     * a row written to in this transaction will be present, and a row which is deleted in this transaction will be
+     * absent.
      *
      * @param tableRef table to load rows from
      * @param rows rows to be loaded
@@ -70,10 +70,9 @@ public interface Transaction {
             ColumnSelection columnSelection);
 
     /**
-     * Returns a mapping of rows to {@link BatchingVisitable}s (which may be thought of as iterators over columns)
-     * within {@code tableRef} for the specified {@code rows}, where the columns fall within the provided
-     * {@link BatchColumnRangeSelection}. The single provided {@link BatchColumnRangeSelection} applies to all of the
-     * rows.
+     * Returns a mapping of requested {@code rows} to corresponding columns from the queried table.
+     * Only columns matching the provided predicate will be returned, and the single predicate provided applies across
+     * all of the rows.
      *
      * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
      * by column, with ascending byte ordering.
@@ -124,8 +123,8 @@ public interface Transaction {
      * {@code rows}, where the columns fall within the provided {@link BatchColumnRangeSelection}. The single provided
      * {@link BatchColumnRangeSelection} applies to all of the rows.
      *
-     * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
-     * by column, with ascending byte ordering.
+     * The returned iterators are guaranteed to return cells matching the predicate. These are sorted by column, with
+     * ascending byte ordering.
      *
      * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
      * input {@code rows}, even if there are rows where no columns match the predicate.
