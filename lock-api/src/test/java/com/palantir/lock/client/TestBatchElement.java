@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.client;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+
 @Value.Immutable
-public interface StartTransactionRequest {
-    PreCommitCondition preCommitCondition();
+public interface TestBatchElement<A, R> extends BatchElement<A, R> {
+    @Override
+    A argument();
+
+    @Override
+    DisruptorAutobatcher.DisruptorFuture<R> result();
 }

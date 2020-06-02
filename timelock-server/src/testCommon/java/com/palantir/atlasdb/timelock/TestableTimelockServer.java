@@ -153,7 +153,8 @@ public class TestableTimelockServer {
         Streams.stream(namespacesToAccept)
                 .flatMap(namespace -> Stream.of(
                         any(namespaceEqualTo(namespace)),
-                        any(conjureUrlNamespaceEqualTo(namespace))))
+                        any(conjureUrlNamespaceEqualTo(namespace)),
+                        any(legacyLockUrlNamespaceEqualTo(namespace))))
                 .map(this::namespacesIsProxiedToTimelock)
                 .forEach(serverHolder.wireMock()::register);
     }
@@ -168,6 +169,10 @@ public class TestableTimelockServer {
 
     private static UrlPattern conjureUrlNamespaceEqualTo(String namespace) {
         return urlMatching(String.format("/tl/.*/%s", namespace));
+    }
+
+    private static UrlPattern legacyLockUrlNamespaceEqualTo(String namespace) {
+        return urlMatching(String.format("/lk/.*/%s", namespace));
     }
 
     private StubMapping namespacesIsProxiedToTimelock(MappingBuilder mappingBuilder) {

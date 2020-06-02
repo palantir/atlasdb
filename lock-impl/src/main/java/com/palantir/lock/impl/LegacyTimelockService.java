@@ -73,6 +73,11 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        return getFreshTimestamp();
+    }
+
+    @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return timestampService.getFreshTimestamps(numTimestampsRequested);
     }

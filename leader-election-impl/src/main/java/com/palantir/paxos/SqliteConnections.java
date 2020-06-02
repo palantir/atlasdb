@@ -19,8 +19,6 @@ package com.palantir.paxos;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import javax.sql.DataSource;
-
 import org.apache.commons.io.FileUtils;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
@@ -41,14 +39,14 @@ public final class SqliteConnections {
         // no
     }
 
-    public static DataSource getPooledDataSource(Path path) {
+    public static HikariDataSource getPooledDataSource(Path path) {
         createDirectoryIfNotExists(path);
         String target = String.format("jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
 
         SQLiteConfig config = new SQLiteConfig();
         config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
+        config.setPragma(SQLiteConfig.Pragma.LOCKING_MODE, SQLiteConfig.LockingMode.EXCLUSIVE.getValue());
         config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, "EXTRA");
-        config.setBusyTimeout(5_000);
 
         SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
         dataSource.setUrl(target);
@@ -56,7 +54,7 @@ public final class SqliteConnections {
 
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setDataSource(dataSource);
-        hikariConfig.setMaximumPoolSize(16);
+        hikariConfig.setMaximumPoolSize(1);
         return new HikariDataSource(hikariConfig);
     }
 

@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
+import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.immutables.value.Value;
@@ -25,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * This implementation of {@link PaxosStateLog} delegates all reads and writes of rounds to one of two delegates, as
@@ -62,10 +65,41 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
         return new SplittingPaxosStateLog<>(
                 parameters.legacyLog(),
                 parameters.currentLog(),
-                parameters.markLegacyWrite(),
-                parameters.markLegacyRead(),
+                parameters.legacyOperationMarkers().markLegacyWrite(),
+                parameters.legacyOperationMarkers().markLegacyRead(),
                 parameters.cutoffInclusive(),
                 new AtomicLong(parameters.legacyLog().getLeastLogEntry()));
+    }
+
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithMigration(
+            PaxosStorageParameters params,
+            Persistable.Hydrator<V> hydrator,
+            LegacyOperationMarkers legacyOperationMarkers,
+            OptionalLong migrateFrom) {
+        String logDirectory = params.fileBasedLogDirectory()
+                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
+        NamespaceAndUseCase namespaceUseCase = params.namespaceAndUseCase();
+
+        PaxosStateLogMigrator.MigrationContext<V> migrationContext = ImmutableMigrationContext.<V>builder()
+                .sourceLog(PaxosStateLogImpl.createFileBacked(logDirectory))
+                .destinationLog(SqlitePaxosStateLog.create(namespaceUseCase, params.sqliteDataSource()))
+                .hydrator(hydrator)
+                .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, params.sqliteDataSource()))
+                .migrateFrom(migrateFrom)
+                .build();
+
+        log.info("Starting migration for namespace and use case {} if migration has not run before.",
+                SafeArg.of("namespaceAndUseCase", params.namespaceAndUseCase()));
+        long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
+
+        SplittingParameters<V> splittingParameters = ImmutableSplittingParameters.<V>builder()
+                .legacyLog(migrationContext.sourceLog())
+                .currentLog(migrationContext.destinationLog())
+                .cutoffInclusive(cutoff)
+                .legacyOperationMarkers(legacyOperationMarkers)
+                .build();
+
+        return SplittingPaxosStateLog.create(splittingParameters);
     }
 
     @Override
@@ -108,11 +142,16 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
     }
 
     @Value.Immutable
-    abstract static class SplittingParameters<V extends Persistable & Versionable> {
-        abstract PaxosStateLog<V> legacyLog();
-        abstract PaxosStateLog<V> currentLog();
-        abstract Runnable markLegacyWrite();
-        abstract Runnable markLegacyRead();
-        abstract long cutoffInclusive();
+    interface SplittingParameters<V extends Persistable & Versionable> {
+        PaxosStateLog<V> legacyLog();
+        PaxosStateLog<V> currentLog();
+        LegacyOperationMarkers legacyOperationMarkers();
+        long cutoffInclusive();
+    }
+
+    @Value.Immutable
+    public interface LegacyOperationMarkers {
+        Runnable markLegacyWrite();
+        Runnable markLegacyRead();
     }
 }

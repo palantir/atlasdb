@@ -63,12 +63,22 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     }
 
     @Test
-    public void contiguousMigrationFromZeroSucceeds() {
+    public void migrationSucceedsWhenGreatestEntrySmallerThanSafetyBuffer() {
+        migrateAndVerifyValuesForSequences(LongStream.rangeClosed(0, PaxosStateLogMigrator.SAFETY_BUFFER - 10));
+    }
+
+    @Test
+    public void migrationSucceedsWhenGreatestEntrySmallerThanSafetyBufferAndNotFromZero() {
+        migrateAndVerifyValuesForSequences(LongStream.rangeClosed(10, PaxosStateLogMigrator.SAFETY_BUFFER - 10));
+    }
+
+    @Test
+    public void migrationForContiguousEntriesFromZeroSucceeds() {
         migrateAndVerifyValuesForSequences(LongStream.rangeClosed(0, 100));
     }
 
     @Test
-    public void contiguousMigrationFromGreaterThanZeroSucceeds() {
+    public void migrationForContiguousEntriesFromGreaterThanZeroSucceeds() {
         migrateAndVerifyValuesForSequences(LongStream.rangeClosed(50, 130));
     }
 
@@ -84,7 +94,8 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
         source.writeBatchOfRounds(rounds);
 
         migrate();
-        long cutoff = source.getGreatestLogEntry() - PaxosStateLogMigrator.SAFETY_BUFFER;
+        long cutoff = Math.max(PaxosAcceptor.NO_LOG_ENTRY,
+                source.getGreatestLogEntry() - PaxosStateLogMigrator.SAFETY_BUFFER);
         Map<Long, byte[]> targetEntries = readMigratedValuesFor(expectedValues);
 
         targetEntries.entrySet().stream()

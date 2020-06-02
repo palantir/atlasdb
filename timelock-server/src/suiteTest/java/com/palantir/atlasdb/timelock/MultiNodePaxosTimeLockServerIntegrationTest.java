@@ -39,6 +39,7 @@ import org.junit.runners.Parameterized;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -52,7 +53,12 @@ import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
+import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.ConjureLockRequests;
 import com.palantir.lock.v2.LeaderTime;
@@ -68,7 +74,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_TIMESTAMP_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.NON_BATCHED_TIMESTAMP_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -323,6 +329,42 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .map(resource -> resource.getNamespaces(AuthHeader.valueOf("Bearer omitted")))
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
+    }
+
+    @Test
+    public void directLegacyAndConjureLockServicesInteractCorrectly() throws InterruptedException {
+        LockRefreshToken token = client.legacyLockService().lock("tom", com.palantir.lock.LockRequest.builder(
+                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                .build())
+                .build());
+        ConjureLockRefreshToken conjureAnalogue = ConjureLockRefreshToken.of(
+                token.getTokenId(), token.getExpirationDateMs());
+
+        // Cannot assert equality because tokens can have different expiration dates.
+        assertThat(client.legacyLockService().refreshLockRefreshTokens(ImmutableList.of(token)))
+                .as("refreshing a live token should succeed")
+                .hasOnlyOneElementSatisfying(refreshed ->
+                        assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
+        AuthHeader authHeader = AuthHeader.valueOf("Bearer unused");
+        assertThat(client.conjureLegacyLockService().refreshLockRefreshTokens(
+                authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
+                .as("it is possible to refresh a live token through the conjure API")
+                .hasOnlyOneElementSatisfying(refreshed ->
+                        assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
+
+        ConjureSimpleHeldLocksToken conjureHeldLocksToken = ConjureSimpleHeldLocksToken.of(token.getTokenId(), 0L);
+        assertThat(client.conjureLegacyLockService().unlockSimple(
+                authHeader, client.namespace(), conjureHeldLocksToken))
+                .as("it is possible to unlock a live token through the conjure API")
+                .isTrue();
+        assertThat(client.conjureLegacyLockService().unlockSimple(
+                authHeader, client.namespace(), conjureHeldLocksToken))
+                .as("a token unlocked through the conjure API stays unlocked")
+                .isFalse();
+        assertThat(client.legacyLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token)))
+                .as("a token unlocked through the conjure API stays unlocked even in the legacy API")
+                .isFalse();
     }
 
     @Test

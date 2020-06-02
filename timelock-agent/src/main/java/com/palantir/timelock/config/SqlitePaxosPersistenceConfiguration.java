@@ -21,9 +21,12 @@ import java.io.File;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+@JsonDeserialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
+@JsonSerialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
 @Value.Immutable
-// TODO (jkong): Allow serialization/deserialization, once we want this to actually be configurable
 public interface SqlitePaxosPersistenceConfiguration {
     SqlitePaxosPersistenceConfiguration DEFAULT = ImmutableSqlitePaxosPersistenceConfiguration.builder()
             .dataDirectory(new File("var/data/sqlitePaxos"))

@@ -1,0 +1,39 @@
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.palantir.sls-recommended-dependencies'
+apply plugin: 'com.palantir.conjure'
+
+conjure {
+    java {
+        undertowServicePrefixes = true
+        undertowListenableFutures = true
+        useImmutableBytes = true
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    conjureCompiler 'com.palantir.conjure:conjure'
+    conjureJava 'com.palantir.conjure.java:conjure-java'
+}
+
+recommendedProductDependencies {
+    productDependency {
+        productGroup = 'com.palantir.timelock'
+        productName = 'timelock-server'
+        minimumVersion = '0.144.0' // TODO (jkong): This needs to be bumped
+        maximumVersion = '0.x.x'
+    }
+}
+
+subprojects {
+    apply from: "../../gradle/shared.gradle"
+    dependencies {
+        compile project(':lock-api-objects')
+        compile 'com.palantir.conjure.java:conjure-lib'
+    }
+    tasks.licenseMain.enabled = false
+}

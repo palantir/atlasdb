@@ -20,7 +20,6 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
 public interface CommitUpdate {
@@ -30,7 +29,7 @@ public interface CommitUpdate {
     interface InvalidateAll extends CommitUpdate {
         @Override
         default <T> T accept(Visitor<T> visitor) {
-            return visitor.visit(this);
+            return visitor.invalidateAll();
         }
     }
 
@@ -40,28 +39,12 @@ public interface CommitUpdate {
 
         @Override
         default <T> T accept(Visitor<T> visitor) {
-            return visitor.visit(this);
+            return visitor.invalidateSome(invalidatedLocks());
         }
     }
 
     interface Visitor<T> {
-        T visit(InvalidateAll update);
-        T visit(InvalidateSome update);
-    }
-
-    static CommitUpdate ignoringWatches() {
-        return ImmutableInvalidateSome.builder()
-                .invalidatedLocks(ImmutableSet.of())
-                .build();
-    }
-
-    static CommitUpdate invalidateSome(Set<LockDescriptor> descriptors) {
-        return ImmutableInvalidateSome.builder()
-                .invalidatedLocks(descriptors)
-                .build();
-    }
-
-    static CommitUpdate invalidateWatches() {
-        return ImmutableInvalidateAll.builder().build();
+        T invalidateAll();
+        T invalidateSome(Set<LockDescriptor> invalidatedLocks);
     }
 }

@@ -63,6 +63,7 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
+import com.palantir.paxos.SqliteConnections;
 
 @RunWith(Parameterized.class)
 public class PaxosTimestampBoundStoreTest {
@@ -109,11 +110,11 @@ public class PaxosTimestampBoundStoreTest {
 
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();
-            LocalPaxosComponents components = new LocalPaxosComponents(
+            LocalPaxosComponents components = LocalPaxosComponents.createWithBlockingMigration(
                     TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                     PaxosUseCase.TIMESTAMP,
                     Paths.get(root, i + "legacy"),
-                    Paths.get(root, i + "sqlite"),
+                    SqliteConnections.getPooledDataSource(Paths.get(root, i + "sqlite")),
                     UUID.randomUUID(),
                     true);
 

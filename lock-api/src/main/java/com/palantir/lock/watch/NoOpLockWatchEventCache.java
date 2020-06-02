@@ -35,19 +35,12 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void removeTimestampFromCache(long timestamp) {
-
-    }
-
-    @Override
     public Optional<IdentifiedVersion> lastKnownVersion() {
         return Optional.empty();
     }
 
     @Override
-    public void processStartTransactionsUpdate(
-            Collection<Long> startTimestamps,
-            LockWatchStateUpdate update) {
+    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
     }
 
     @Override
@@ -56,13 +49,17 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long _startTs) {
-        return CommitUpdate.ignoringWatches();
+    public CommitUpdate getCommitUpdate(long startTs) {
+        return ImmutableInvalidateAll.builder().build();
     }
 
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
         return NONE;
+    }
+
+    @Override
+    public void removeTransactionStateFromCache(long startTimestamp) {
     }
 }
