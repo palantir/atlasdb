@@ -35,8 +35,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     private final TreeMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     @GuardedBy("this")
-    private boolean failed = false;
-    @GuardedBy("this")
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
     public static ClientLockWatchEventLogImpl create() {
@@ -54,27 +52,23 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @Override
     public synchronized Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
-        ensureNotFailed(() -> {
-            final ProcessingVisitor visitor;
-            if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
-                visitor = new NewLeaderVisitor();
-            } else {
-                visitor = new ProcessingVisitor();
-            }
-            update.accept(visitor);
-        });
+        final ProcessingVisitor visitor;
+        if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
+            visitor = new NewLeaderVisitor();
+        } else {
+            visitor = new ProcessingVisitor();
+        }
+        update.accept(visitor);
         return latestVersion;
     }
 
     @Override
     public synchronized void removeOldEntries(IdentifiedVersion earliestVersion) {
-        ensureNotFailed(() -> {
-            Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
-                    eventMap.headMap(earliestVersion.version()).entrySet();
-            snapshotUpdater.processEvents(
-                    eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
-            eventsToBeRemoved.clear();
-        });
+        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
+                eventMap.headMap(earliestVersion.version()).entrySet();
+        snapshotUpdater.processEvents(
+                eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()));
+        eventsToBeRemoved.clear();
     }
 
     /**
@@ -87,7 +81,6 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     public synchronized ImmutableTransactionsLockWatchEvents.Builder getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion,
             IdentifiedVersion endVersion) {
-        checkNotFailed();
         Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
         ImmutableTransactionsLockWatchEvents.Builder eventBuilder = ImmutableTransactionsLockWatchEvents.builder();
@@ -109,19 +102,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
 
     @Override
     public synchronized Optional<IdentifiedVersion> getLatestKnownVersion() {
-        checkNotFailed();
         return latestVersion;
-    }
-
-    private synchronized void ensureNotFailed(Runnable runnable) {
-        checkNotFailed();
-        failed = true;
-        runnable.run();
-        failed = false;
-    }
-
-    private synchronized void checkNotFailed() {
-        Preconditions.checkState(!failed, "Log is in an inconsistent state");
     }
 
     private synchronized boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion,
