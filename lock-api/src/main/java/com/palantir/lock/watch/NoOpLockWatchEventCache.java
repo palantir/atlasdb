@@ -19,9 +19,6 @@ package com.palantir.lock.watch;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-
-import com.google.common.collect.ImmutableSet;
 
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {

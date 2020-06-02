@@ -74,7 +74,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized void processStartTransactionsUpdate(
-            Collection<Long> startTimestamps,
+            Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
         ensureNotFailed(() -> {
             Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
@@ -117,7 +117,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 eventLog.getEventsBetweenVersions(Optional.of(entry.version()), commitInfo.commitVersion()).build();
 
         if (update.clearCache()) {
-            return CommitUpdate.invalidateWatches();
+            return ImmutableInvalidateAll.builder().build();
         }
 
         return getCommitUpdate(commitInfo, update.events());
@@ -137,12 +137,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void removeTimestampFromCache(long timestamp) {
+    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
         ensureNotFailed(() -> {
-            MapEntry entryToRemove = timestampMap.get(timestamp);
+            MapEntry entryToRemove = timestampMap.get(startTimestamp);
             if (entryToRemove != null) {
-                timestampMap.remove(timestamp);
-                aliveVersions.remove(entryToRemove.version(), timestamp);
+                timestampMap.remove(startTimestamp);
+                aliveVersions.remove(entryToRemove.version(), startTimestamp);
             }
         });
     }
@@ -151,7 +151,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
         Set<LockDescriptor> locksTakenOut = new HashSet<>();
         events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-        return CommitUpdate.invalidateSome(locksTakenOut);
+        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
     }
 
     private synchronized Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {

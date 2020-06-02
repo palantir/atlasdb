@@ -29,8 +29,12 @@ public interface LockWatchEventCache {
     /**
      * Updates the cache with the update, and identifies the given timestamps with that lock watch state.
      */
-    void processStartTransactionsUpdate(Collection<Long> startTimestamps, LockWatchStateUpdate update);
+    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
 
+    /**
+     * Updates the cache by providing a lock token, commit timestamp, and lock watch version at commit time for the
+     * given start timestamps.
+     */
     void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update);
 
@@ -38,7 +42,7 @@ public interface LockWatchEventCache {
      * Updates the cache with the update, and calculates the {@link CommitUpdate} taking into account all changes to
      * lock watch state since the start of the transaction, excluding the transaction's own commit locks.
      *
-     * @param startTs          start timestamp of the transaction
+     * @param startTs start timestamp of the transaction
      * @return the commit update for this transaction's precommit condition
      */
     CommitUpdate getCommitUpdate(long startTs);
@@ -47,12 +51,13 @@ public interface LockWatchEventCache {
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
      * that version, and a map associating each start timestamp with its respective lock watch state version.
      */
-    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+    TransactionsLockWatchEvents getEventsForTransactions(
+            Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version);
 
     /**
-     * Removes the given timestamp from the cache. If no timestamps exist for a given version, events before that
-     * version in the underlying {@link ClientLockWatchEventLog} will be deleted on next update.
+     * Removes the given timestamp from the cache, along with all associated state. This may update the earliest
+     * still-held version, and therefore may trigger retention in the underlying {@link ClientLockWatchEventLog}.
      */
-    void removeTimestampFromCache(long timestamp);
+    void removeTransactionStateFromCache(long startTimestamp);
 }

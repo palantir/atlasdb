@@ -195,7 +195,7 @@ public final class LockWatchEventCacheImplTest {
     }
 
     private void removeTimestampAndCheckEarliestVersion(long timestamp, IdentifiedVersion version) {
-        eventCache.removeTimestampFromCache(timestamp);
+        eventCache.removeTransactionStateFromCache(timestamp);
         assertThat(eventCache.getEarliestVersion()).hasValue(version);
     }
 
