@@ -78,17 +78,16 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
      * version in the timestamp to version map.
      */
     @Override
-    public synchronized ImmutableTransactionsLockWatchEvents.Builder getEventsBetweenVersions(
+    public synchronized ClientLogEvents getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion,
             IdentifiedVersion endVersion) {
         Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
-        ImmutableTransactionsLockWatchEvents.Builder eventBuilder = ImmutableTransactionsLockWatchEvents.builder();
-        List<LockWatchEvent> events = new ArrayList<>();
+        ClientLogEvents.Builder eventBuilder = new ClientLogEvents.Builder();
         final long fromSequence;
 
         if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
-            events.add(LockWatchCreatedEvent.fromSnapshot(snapshotUpdater.getSnapshot(currentVersion)));
+            eventBuilder.addEvents(LockWatchCreatedEvent.fromSnapshot(snapshotUpdater.getSnapshot(currentVersion)));
             fromSequence = eventMap.firstKey();
             eventBuilder.clearCache(true);
         } else {
@@ -96,8 +95,8 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
             eventBuilder.clearCache(false);
         }
 
-        events.addAll(eventMap.subMap(fromSequence, INCLUSIVE, endVersion.version(), INCLUSIVE).values());
-        return eventBuilder.events(events);
+        eventBuilder.addAllEvents(eventMap.subMap(fromSequence, INCLUSIVE, endVersion.version(), INCLUSIVE).values());
+        return eventBuilder.build();
     }
 
     @Override

@@ -95,8 +95,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Preconditions.checkState(entry.commitInfo().isPresent(), "Commit timestamp update not yet processed");
         CommitInfo commitInfo = entry.commitInfo().get();
 
-        TransactionsLockWatchEvents update =
-                eventLog.getEventsBetweenVersions(Optional.of(entry.version()), commitInfo.commitVersion()).build();
+        ClientLogEvents update =
+                eventLog.getEventsBetweenVersions(Optional.of(entry.version()), commitInfo.commitVersion());
 
         if (update.clearCache()) {
             return ImmutableInvalidateAll.builder().build();
@@ -112,9 +112,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampToVersionMap(startTimestamps);
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
-        return eventLog.getEventsBetweenVersions(startVersion, endVersion)
-                .startTsToSequence(timestampToVersion)
-                .build();
+        return eventLog.getEventsBetweenVersions(startVersion, endVersion).map(timestampToVersion);
     }
 
     @Override

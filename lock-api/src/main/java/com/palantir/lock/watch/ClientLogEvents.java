@@ -16,12 +16,25 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Optional;
+import java.util.List;
+import java.util.Map;
 
-public interface ClientLockWatchEventLog {
-    ClientLogEvents getEventsBetweenVersions(
-            Optional<IdentifiedVersion> startVersion, IdentifiedVersion endVersion);
-    Optional<IdentifiedVersion> getLatestKnownVersion();
-    Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update);
-    void removeOldEntries(IdentifiedVersion earliestVersion);
+import org.immutables.value.Value;
+
+@Value.Immutable
+interface ClientLogEvents {
+
+    List<LockWatchEvent> events();
+
+    boolean clearCache();
+
+    default TransactionsLockWatchEvents map(Map<Long, IdentifiedVersion> timestampMap) {
+        return ImmutableTransactionsLockWatchEvents.builder()
+                .startTsToSequence(timestampMap)
+                .events(events())
+                .clearCache(clearCache())
+                .build();
+    }
+
+    class Builder extends ImmutableClientLogEvents.Builder {}
 }

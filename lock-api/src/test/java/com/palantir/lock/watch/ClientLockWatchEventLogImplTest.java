@@ -88,7 +88,7 @@ public final class ClientLockWatchEventLogImplTest {
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
         eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events =
-                eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2).build().events();
+                eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2).events();
         assertThat(events).containsExactly(EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
     }
@@ -99,7 +99,7 @@ public final class ClientLockWatchEventLogImplTest {
         eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events = eventLog.getEventsBetweenVersions(
                 Optional.of(IdentifiedVersion.of(VERSION_1.id(), VERSION_1.version() - 1)),
-                VERSION_2).build().events();
+                VERSION_2).events();
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
 
