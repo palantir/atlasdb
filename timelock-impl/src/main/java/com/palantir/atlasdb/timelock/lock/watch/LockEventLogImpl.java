@@ -57,11 +57,11 @@ public class LockEventLogImpl implements LockEventLog {
     @Override
     public LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion, long toVersion) {
         if (isVersionStale(fromVersion)) {
-            return attemptToCalculateSnapshot();
+            return blockAndCalculateSnapshot();
         }
         Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromTo(fromVersion.get().version(), toVersion);
         if (!maybeEvents.isPresent()) {
-            return attemptToCalculateSnapshot();
+            return blockAndCalculateSnapshot();
         }
         List<LockWatchEvent> events = maybeEvents.get();
         return LockWatchStateUpdate.success(logId, toVersion, events);
@@ -75,21 +75,16 @@ public class LockEventLogImpl implements LockEventLog {
      * Gets a snapshot estimate, then replays all lock watch events that occurred in the meantime on top of it
      * to correct any inconsistencies as discussed in {@link this#calculateOpenLocks(RangeSet)}.
      */
-    private LockWatchStateUpdate attemptToCalculateSnapshot() {
-        long startVersion = slidingWindow.lastVersion();
-        SnapshotEventReplayer eventReplayer = getSnapshotEstimateAndCreateReplayer();
-        long endVersion = slidingWindow.lastVersion();
-
-        Optional<List<LockWatchEvent>> eventsToReplay = slidingWindow.getFromTo(startVersion, endVersion);
-        if (!eventsToReplay.isPresent()) {
-            return LockWatchStateUpdate.failed(logId);
-        }
-        eventsToReplay.get().forEach(eventReplayer::replay);
-        return LockWatchStateUpdate.snapshot(
-                logId,
-                endVersion,
-                eventReplayer.locked,
-                eventReplayer.watches);
+    private LockWatchStateUpdate blockAndCalculateSnapshot() {
+        return slidingWindow.runTaskAndAtomicallyReturnVersion(() -> {
+            long lastVersion = slidingWindow.lastVersion();
+            SnapshotEventReplayer eventReplayer = getSnapshotEstimateAndCreateReplayer();
+            return LockWatchStateUpdate.snapshot(
+                    logId,
+                    lastVersion,
+                    eventReplayer.locked,
+                    eventReplayer.watches);
+        }).value();
     }
 
     private SnapshotEventReplayer getSnapshotEstimateAndCreateReplayer() {
@@ -140,7 +135,7 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     /**
-     * Similar to {@link this#attemptToCalculateSnapshot()}, we get an estimate of open locks for the new watches,
+     * Similar to {@link this#blockAndCalculateSnapshot()}, we get an estimate of open locks for the new watches,
      * then replay the recent events on top. Finally, we replay any additional events just before logging in a
      * synchronised block in
      * {@link ArrayLockEventSlidingWindow#finalizeAndAddSnapshot(long, LockWatchCreatedEventReplayer)}, ensuring nothing
@@ -148,17 +143,12 @@ public class LockEventLogImpl implements LockEventLog {
      */
     @Override
     public void logLockWatchCreated(LockWatches newWatches) {
-        long startVersion = slidingWindow.lastVersion();
-        LockWatchCreatedEventReplayer eventReplayer = getOpenLocksEstimateAndCreateReplayer(newWatches);
-        long intermediaryVersion = slidingWindow.lastVersion();
-
-        Optional<List<LockWatchEvent>> eventsToReplay = slidingWindow.getFromTo(startVersion, intermediaryVersion);
-        if (!eventsToReplay.isPresent()) {
-            // fail to log: this is fine, clients can request a snapshot if they need the info
-            return;
-        }
-        eventsToReplay.get().forEach(eventReplayer::replay);
-        slidingWindow.finalizeAndAddSnapshot(intermediaryVersion, eventReplayer);
+        slidingWindow.runTaskAndAtomicallyReturnVersion(() -> {
+            LockWatchCreatedEventReplayer eventReplayer = getOpenLocksEstimateAndCreateReplayer(newWatches);
+            slidingWindow.add(
+                    LockWatchCreatedEvent.builder(eventReplayer.getReferences(), eventReplayer.getLockedDescriptors()));
+            return true;
+        });
     }
 
     private LockWatchCreatedEventReplayer getOpenLocksEstimateAndCreateReplayer(LockWatches newWatches) {
