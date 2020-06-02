@@ -36,12 +36,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 
-/**
- * Notes on concurrency: all public methods in this class are synchronised: this removes any concern that the timestamp
- * mapping will be modified while also being cleared or read. For processing updates and getting events, this should not
- * have a performance impact as these methods will be called in a single-threaded manner anyway (via an autobatcher),
- * but the method to remove entries is not necessarily called as such, and may cause some impact on performance.
- */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
     private final HashMap<Long, MapEntry> timestampMap = new HashMap<>();
