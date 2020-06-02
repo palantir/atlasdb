@@ -20,6 +20,11 @@ import org.immutables.value.Value;
 
 import com.palantir.lock.v2.LockToken;
 
+/**
+ * This is a record of a transaction that successfully retrieved a commit timestamp, along with the lock token it
+ * acquired for its writes. Users MUST NOT assume that this transaction has successfully committed - it may or may not
+ * have.
+ */
 @Value.Immutable
 public interface TransactionUpdate {
     long startTs();
