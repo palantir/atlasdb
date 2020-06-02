@@ -31,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
+import com.palantir.atlasdb.transaction.api.TimelockLeaderChangeDuringTransactionException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
@@ -78,7 +79,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         latestVersion.ifPresent(version ->
                 transactionUpdates.forEach(transactionUpdate -> {
                     MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
-                    Preconditions.checkNotNull(previousEntry, "Start timestamp missing from cache");
+                    checkConditionOrThrow(previousEntry == null);
                     timestampMap.replace(transactionUpdate.startTs(), previousEntry.withCommitInfo(
                             CommitInfo.of(transactionUpdate.commitTs(),
                                     transactionUpdate.writesToken(),
@@ -88,12 +89,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized CommitUpdate getCommitUpdate(long startTs) {
-        MapEntry entry = timestampMap.get(startTs);
-        Preconditions.checkState(entry.commitInfo().isPresent(), "Commit timestamp update not yet processed");
-        CommitInfo commitInfo = entry.commitInfo().get();
+        Optional<MapEntry> maybeEntry = Optional.ofNullable(timestampMap.get(startTs));
+        Optional<CommitInfo> maybeCommitInfo = maybeEntry.flatMap(MapEntry::commitInfo);
+
+        checkConditionOrThrow(!maybeCommitInfo.isPresent());
+
+        CommitInfo commitInfo = maybeCommitInfo.get();
 
         ClientLogEvents update =
-                eventLog.getEventsBetweenVersions(Optional.of(entry.version()), commitInfo.commitVersion());
+                eventLog.getEventsBetweenVersions(Optional.of(maybeEntry.get().version()), commitInfo.commitVersion());
 
         if (update.clearCache()) {
             return ImmutableInvalidateAll.builder().build();
@@ -114,10 +118,34 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized void removeTransactionStateFromCache(long startTimestamp) {
-        MapEntry entryToRemove = timestampMap.get(startTimestamp);
-        if (entryToRemove != null) {
-            timestampMap.remove(startTimestamp);
-            aliveVersions.remove(entryToRemove.version(), startTimestamp);
+        Optional.ofNullable(timestampMap.remove(startTimestamp))
+                .ifPresent(entry -> aliveVersions.remove(entry.version(), startTimestamp));
+    }
+
+    @VisibleForTesting
+    synchronized Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
+        Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
+        startTimestamps.forEach(timestamp -> {
+            MapEntry entry = timestampMap.get(timestamp);
+            checkConditionOrThrow(entry == null);
+            timestampToVersion.put(timestamp, entry.version());
+        });
+        return timestampToVersion;
+    }
+
+    @VisibleForTesting
+    synchronized Optional<IdentifiedVersion> getEarliestVersion() {
+        if (aliveVersions.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(aliveVersions.keySet().first());
+        }
+    }
+
+    private void checkConditionOrThrow(boolean condition) {
+        if (condition) {
+            throw new TimelockLeaderChangeDuringTransactionException(
+                    "Timelock had a leader change during this transaction's lifetime");
         }
     }
 
@@ -141,26 +169,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             aliveVersions.clear();
         }
         return latestVersion;
-    }
-
-    @VisibleForTesting
-    synchronized Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
-        Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
-        startTimestamps.forEach(timestamp -> {
-            MapEntry entry = timestampMap.get(timestamp);
-            Preconditions.checkNotNull(entry, "Timestamp missing from cache");
-            timestampToVersion.put(timestamp, entry.version());
-        });
-        return timestampToVersion;
-    }
-
-    @VisibleForTesting
-    synchronized Optional<IdentifiedVersion> getEarliestVersion() {
-        if (aliveVersions.isEmpty()) {
-            return Optional.empty();
-        } else {
-            return Optional.of(aliveVersions.keySet().first());
-        }
     }
 
     enum SuccessVisitor implements LockWatchStateUpdate.Visitor<Boolean> {

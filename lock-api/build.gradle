@@ -8,6 +8,7 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
+    compile project(":atlasdb-api")
     compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
     compile project(':lock-api-objects')
