@@ -99,8 +99,8 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        int batchHint = range.count;
         int numberOfColumns = predicate.slice_range.count;
+        int batchHint = range.count;
 
         try (CloseableTrace trace = startLocalTrace(
                 "client.get_range_slices(table {}, number of columns {}, batch hint {}, consistency {}) on kvs.{}",
