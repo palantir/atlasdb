@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: The Paxos state log migration now correctly logs durations as safe.
+    Previously they weren't wrapped in an Arg and thus treated as unsafe.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4818
