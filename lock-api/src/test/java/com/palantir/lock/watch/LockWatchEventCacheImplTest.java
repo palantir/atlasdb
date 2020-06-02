@@ -117,7 +117,7 @@ public final class LockWatchEventCacheImplTest {
                         .clearCache(false));
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(1L);
         verify(eventLog).getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
-        assertThat(commitUpdate.accept(SuccessVisitor.INSTANCE).invalidatedLocks())
+        assertThat(commitUpdate.accept(CommitUpdateVisitor.INSTANCE))
                 .containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_2);
     }
 
@@ -199,18 +199,17 @@ public final class LockWatchEventCacheImplTest {
         assertThat(eventCache.getEarliestVersion()).hasValue(version);
     }
 
-    enum SuccessVisitor implements CommitUpdate.Visitor<CommitUpdate.InvalidateSome> {
+    enum CommitUpdateVisitor implements CommitUpdate.Visitor<Set<LockDescriptor>> {
         INSTANCE;
 
         @Override
-        public CommitUpdate.InvalidateSome visit(CommitUpdate.InvalidateAll update) {
-            fail("Expecting invalidateSome response");
-            return null;
+        public Set<LockDescriptor> invalidateAll() {
+            return ImmutableSet.of();
         }
 
         @Override
-        public CommitUpdate.InvalidateSome visit(CommitUpdate.InvalidateSome update) {
-            return update;
+        public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            return invalidatedLocks;
         }
     }
 }
