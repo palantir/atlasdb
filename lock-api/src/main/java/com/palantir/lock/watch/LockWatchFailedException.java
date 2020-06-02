@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.watch;
 
-public class TimelockLeaderChangeDuringTransactionException extends TransactionFailedRetriableException {
-    public TimelockLeaderChangeDuringTransactionException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public TimelockLeaderChangeDuringTransactionException(String message) {
+public class LockWatchFailedException extends RuntimeException {
+    public LockWatchFailedException(String message) {
         super(message);
     }
 }

@@ -73,7 +73,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
         latestVersion.ifPresent(version -> transactionUpdates.forEach(
-                transactionUpdate -> checkConditionOrThrow(timestampMap.replace(transactionUpdate))));
+                transactionUpdate -> checkConditionOrThrow(timestampMap.replace(transactionUpdate),
+                        "start timestamp missing from map")));
     }
 
     @Override
@@ -81,7 +82,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<MapEntry> maybeEntry = timestampMap.get(startTs);
         Optional<CommitInfo> maybeCommitInfo = maybeEntry.flatMap(MapEntry::commitInfo);
 
-        checkConditionOrThrow(!maybeCommitInfo.isPresent());
+        checkConditionOrThrow(!maybeCommitInfo.isPresent(), "commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
 
@@ -115,7 +116,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
             Optional<MapEntry> entry = timestampMap.get(timestamp);
-            checkConditionOrThrow(!entry.isPresent());
+            checkConditionOrThrow(!entry.isPresent(), "start timestamp missing from map");
             timestampToVersion.put(timestamp, entry.get().version());
         });
         return timestampToVersion;
@@ -126,10 +127,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return timestampMap.getEarliestVersion();
     }
 
-    private void checkConditionOrThrow(boolean condition) {
+    private void checkConditionOrThrow(boolean condition, String message) {
         if (condition) {
-            throw new RuntimeException( // temp
-                    "Timelock had a leader change during this transaction's lifetime");
+            throw new LockWatchFailedException(message);
         }
     }
 
