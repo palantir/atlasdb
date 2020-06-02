@@ -82,18 +82,9 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion, long endVersion) {
-        // Why doesn't this need to take the read lock here???
-        return lockEventLog.getLogDiff(lastKnownVersion, endVersion);
-    }
-
-    /**
-     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
-     * result in a deadlock.
-     */
-    @Override
-    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnLockWatchVersion(Supplier<T> task) {
-        return lockEventLog.runTaskAndAtomicallyReturnVersion(task);
+    public <T> AtomicValue<T> runTaskAndAtomicallyReturnLockWatchStateUpdate(
+            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
+        return lockEventLog.runTaskAndAtomicallyReturnLockWatchStateUpdate(lastKnownVersion, task);
     }
 
     @Override

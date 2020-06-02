@@ -30,7 +30,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
-import com.palantir.atlasdb.timelock.lock.watch.ValueAndVersion;
+import com.palantir.atlasdb.timelock.lock.watch.AtomicValue;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
@@ -200,7 +200,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(StartTransactionRequestV5 request) {
+    public ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(
+            StartTransactionRequestV5 request) {
         return Futures.immediateFuture(startTransactionsWithWatchesSync(request));
     }
 
@@ -208,15 +209,15 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 
-        ValueAndVersion<PartitionedTimestamps> timestampsAndVersion = lockService.getLockWatchingService()
-                .runTaskAndAtomicallyReturnLockWatchVersion(() ->
+        AtomicValue<PartitionedTimestamps> timestampsAndVersion = lockService.getLockWatchingService()
+                .runTaskAndAtomicallyReturnLockWatchStateUpdate(request.lastKnownLockLogVersion(), () ->
                         timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions()));
 
         return StartTransactionResponseV5.of(
                 leasedLockImmutableTimestampResponse.value(),
                 timestampsAndVersion.value(),
                 leasedLockImmutableTimestampResponse.lease(),
-                getWatchStateUpdate(request.lastKnownLockLogVersion(), timestampsAndVersion.version()));
+                timestampsAndVersion.lockWatchStateUpdate());
     }
 
     @Override
@@ -270,12 +271,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion, long endVersion) {
-        return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion, endVersion);
-    }
-
-    @Override
-    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnLockWatchVersion(Supplier<T> task) {
+    public <T> AtomicValue<T> runTaskAndAtomicallyReturnLockWatchStateUpdate(
+            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
         throw new UnsupportedOperationException("Exposing this method is too dangerous.");
     }
 

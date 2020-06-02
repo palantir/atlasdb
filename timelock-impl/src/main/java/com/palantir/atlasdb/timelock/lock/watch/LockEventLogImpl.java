@@ -50,53 +50,67 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion) {
-        return getLogDiff(fromVersion, slidingWindow.lastVersion());
+    public synchronized LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion) {
+        if (shouldCalculateSnapshot(fromVersion)) {
+            return calculateSnapshot();
+        }
+        List<LockWatchEvent> events = slidingWindow.getFromVersion(fromVersion.get().version());
+        return LockWatchStateUpdate.success(logId, slidingWindow.lastVersion(), events);
     }
 
     @Override
-    public LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion, long toVersion) {
-        if (isVersionStale(fromVersion)) {
-            return blockAndCalculateSnapshot();
+    public synchronized <T> AtomicValue<T> runTaskAndAtomicallyReturnLockWatchStateUpdate(
+            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
+        T t = task.get();
+        LockWatchStateUpdate logDiff = getLogDiff(lastKnownVersion);
+        return AtomicValue.of(logDiff, t);
+    }
+
+    @Override
+    public synchronized void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken) {
+        // I feel like this would be simpler if the isEmpty check was done somewhere else, it's weird API
+        if (!locksTakenOut.isEmpty()) {
+            synchronized (this) {
+                slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken));
+            }
         }
-        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromTo(fromVersion.get().version(), toVersion);
-        if (!maybeEvents.isPresent()) {
-            return blockAndCalculateSnapshot();
+    }
+
+    @Override
+    public void logUnlock(Set<LockDescriptor> locksUnlocked) {
+        if (!locksUnlocked.isEmpty()) {
+            synchronized (this) {
+                slidingWindow.add(UnlockEvent.builder(locksUnlocked));
+            }
         }
-        List<LockWatchEvent> events = maybeEvents.get();
-        return LockWatchStateUpdate.success(logId, toVersion, events);
     }
 
-    private boolean isVersionStale(Optional<IdentifiedVersion> fromVersion) {
-        return !fromVersion.isPresent() || !fromVersion.get().id().equals(logId);
+    @Override
+    public synchronized void logLockWatchCreated(LockWatches newWatches) {
+        Set<LockDescriptor> openLocks = calculateOpenLocks(newWatches.ranges());
+        slidingWindow.add(LockWatchCreatedEvent.builder(newWatches.references(), openLocks));
     }
 
-    /**
-     * Gets a snapshot estimate, then replays all lock watch events that occurred in the meantime on top of it
-     * to correct any inconsistencies as discussed in {@link this#calculateOpenLocks(RangeSet)}.
-     */
-    private LockWatchStateUpdate blockAndCalculateSnapshot() {
-        return slidingWindow.runTaskAndAtomicallyReturnVersion(() -> {
-            long lastVersion = slidingWindow.lastVersion();
-            SnapshotEventReplayer eventReplayer = getSnapshotEstimateAndCreateReplayer();
-            return LockWatchStateUpdate.snapshot(
-                    logId,
-                    lastVersion,
-                    eventReplayer.locked,
-                    eventReplayer.watches);
-        }).value();
+    private boolean shouldCalculateSnapshot(Optional<IdentifiedVersion> fromVersion) {
+        return !fromVersion.isPresent() || !fromVersion.get().id().equals(logId) || !slidingWindow.contains(
+                fromVersion.get().version());
     }
 
-    private SnapshotEventReplayer getSnapshotEstimateAndCreateReplayer() {
+    private LockWatchStateUpdate calculateSnapshot() {
+        long lastVersion = slidingWindow.lastVersion();
         LockWatches currentWatches = watchesSupplier.get();
-        Set<LockWatchReference> watched = new HashSet<>(currentWatches.references());
-        Set<LockDescriptor> estimatedLocks = calculateOpenLocks(currentWatches.ranges());
-        return new SnapshotEventReplayer(watched, estimatedLocks);
+        Set<LockWatchReference> watches = new HashSet<>(currentWatches.references());
+        Set<LockDescriptor> openLocks = calculateOpenLocks(currentWatches.ranges());
+        return LockWatchStateUpdate.snapshot(
+                logId,
+                lastVersion,
+                openLocks,
+                watches);
     }
 
     /**
      * Iterates through all currently held locks and returns the set of all locks matching the watched ranges.
-     *
+     * <p>
      * Note that the set of held locks can be modified during the execution of this method. Therefore, this method is
      * NOT guaranteed to return a consistent snapshot of the world. If the given set of ranges is being watched, i.e.,
      * every lock and unlock pertaining to watchedRanges is being appropriately logged, then any potential
@@ -109,130 +123,5 @@ public class LockEventLogImpl implements LockEventLog {
                 .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .filter(watchedRanges::contains)
                 .collect(Collectors.toSet());
-    }
-
-    /**
-     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
-     * result in a deadlock.
-     */
-    @Override
-    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
-        return slidingWindow.runTaskAndAtomicallyReturnVersion(task);
-    }
-
-    @Override
-    public void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken) {
-        if (!locksTakenOut.isEmpty()) {
-            slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken));
-        }
-    }
-
-    @Override
-    public void logUnlock(Set<LockDescriptor> locksUnlocked) {
-        if (!locksUnlocked.isEmpty()) {
-            slidingWindow.add(UnlockEvent.builder(locksUnlocked));
-        }
-    }
-
-    /**
-     * Similar to {@link this#blockAndCalculateSnapshot()}, we get an estimate of open locks for the new watches,
-     * then replay the recent events on top. Finally, we replay any additional events just before logging in a
-     * synchronised block in
-     * {@link ArrayLockEventSlidingWindow#finalizeAndAddSnapshot(long, LockWatchCreatedEventReplayer)}, ensuring nothing
-     * is missed at logging time.
-     */
-    @Override
-    public void logLockWatchCreated(LockWatches newWatches) {
-        slidingWindow.runTaskAndAtomicallyReturnVersion(() -> {
-            LockWatchCreatedEventReplayer eventReplayer = getOpenLocksEstimateAndCreateReplayer(newWatches);
-            slidingWindow.add(
-                    LockWatchCreatedEvent.builder(eventReplayer.getReferences(), eventReplayer.getLockedDescriptors()));
-            return true;
-        });
-    }
-
-    private LockWatchCreatedEventReplayer getOpenLocksEstimateAndCreateReplayer(LockWatches newWatches) {
-        Set<LockDescriptor> estimatedLocked = calculateOpenLocks(newWatches.ranges());
-        return new LockWatchCreatedEventReplayer(newWatches, estimatedLocked);
-    }
-
-    /**
-     * When replaying events on top of a snapshot, we must take into account all lock/unlock events as well as any
-     * newly registered lock watches, so we can return the most accurate view of the world.
-     */
-    static class SnapshotEventReplayer implements LockWatchEvent.Visitor<Void> {
-        private final Set<LockWatchReference> watches;
-        private final Set<LockDescriptor> locked;
-
-        private SnapshotEventReplayer(Set<LockWatchReference> watches, Set<LockDescriptor> maybeLocked) {
-            this.watches = watches;
-            this.locked = maybeLocked;
-        }
-
-        private void replay(LockWatchEvent event) {
-            event.accept(this);
-        }
-
-        @Override
-        public Void visit(LockEvent lockEvent) {
-            locked.addAll(lockEvent.lockDescriptors());
-            return null;
-        }
-
-        @Override
-        public Void visit(UnlockEvent unlockEvent) {
-            locked.removeAll(unlockEvent.lockDescriptors());
-            return null;
-        }
-
-        @Override
-        public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            locked.addAll(lockWatchCreatedEvent.lockDescriptors());
-            watches.addAll(lockWatchCreatedEvent.references());
-            return null;
-        }
-    }
-
-    /**
-     * When replaying events for a lock watch created event, we only care about lock descriptors matching the newly
-     * registered locks
-     */
-    static class LockWatchCreatedEventReplayer implements LockWatchEvent.Visitor<Void> {
-        private final LockWatches lockWatches;
-        private final Set<LockDescriptor> locked;
-
-        private LockWatchCreatedEventReplayer(LockWatches watchesAndRanges, Set<LockDescriptor> maybeLocked) {
-            this.lockWatches = watchesAndRanges;
-            this.locked = maybeLocked;
-        }
-
-        void replay(LockWatchEvent event) {
-            event.accept(this);
-        }
-
-        @Override
-        public Void visit(LockEvent lockEvent) {
-            lockEvent.lockDescriptors().stream().filter(lockWatches.ranges()::contains).forEach(locked::add);
-            return null;
-        }
-
-        @Override
-        public Void visit(UnlockEvent unlockEvent) {
-            locked.removeAll(unlockEvent.lockDescriptors());
-            return null;
-        }
-
-        @Override
-        public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            return null;
-        }
-
-        Set<LockWatchReference> getReferences() {
-            return lockWatches.references();
-        }
-
-        Set<LockDescriptor> getLockedDescriptors() {
-            return locked;
-        }
     }
 }

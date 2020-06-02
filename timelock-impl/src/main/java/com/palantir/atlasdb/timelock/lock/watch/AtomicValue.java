@@ -18,15 +18,17 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import org.immutables.value.Value;
 
+import com.palantir.lock.watch.LockWatchStateUpdate;
+
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public interface ValueAndVersion<T> {
+public interface AtomicValue<T> {
     @Value.Parameter
-    long version();
+    LockWatchStateUpdate lockWatchStateUpdate();
     @Value.Parameter
     T value();
 
-    static <R> ValueAndVersion<R> of(long version, R result) {
-        return ImmutableValueAndVersion.of(version, result);
+    static <R> AtomicValue<R> of(LockWatchStateUpdate lockWatchStateUpdate, R result) {
+        return ImmutableAtomicValue.of(lockWatchStateUpdate, result);
     }
 }

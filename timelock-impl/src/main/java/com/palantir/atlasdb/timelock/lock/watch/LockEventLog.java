@@ -27,8 +27,8 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public interface LockEventLog {
     LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion);
-    LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion, long toVersion);
-    <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task);
+    <T> AtomicValue<T> runTaskAndAtomicallyReturnLockWatchStateUpdate(
+            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task);
     void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken);
     void logUnlock(Set<LockDescriptor> locksUnlocked);
     void logLockWatchCreated(LockWatches newWatches);
