@@ -112,7 +112,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             return ImmutableInvalidateAll.builder().build();
         }
 
-        return getCommitUpdate(commitInfo, update.events());
+        return constructCommitUpdate(commitInfo, update.events());
     }
 
     @Override
@@ -139,7 +139,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         });
     }
 
-    private synchronized CommitUpdate getCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
+    private synchronized CommitUpdate constructCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
         LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
         Set<LockDescriptor> locksTakenOut = new HashSet<>();
         events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
