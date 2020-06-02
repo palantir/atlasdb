@@ -41,17 +41,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
             TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
 
-    private LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
-        this.eventLog = eventLog;
-    }
-
-    public static LockWatchEventCacheImpl create() {
-        return create(ClientLockWatchEventLogImpl.create());
+    public static LockWatchEventCache create() {
+        return FailureCheckingLockWatchEventCache.newProxyInstance(
+                new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create()));
     }
 
     @VisibleForTesting
-    static LockWatchEventCacheImpl create(ClientLockWatchEventLog eventLog) {
-        return new LockWatchEventCacheImpl(eventLog);
+    LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
+        this.eventLog = eventLog;
     }
 
     @Override

@@ -78,7 +78,7 @@ public final class LockWatchEventCacheImplTest {
 
     @Before
     public void before() {
-        eventCache = LockWatchEventCacheImpl.create(eventLog);
+        eventCache = new LockWatchEventCacheImpl(eventLog);
     }
 
     @Test

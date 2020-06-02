@@ -179,7 +179,6 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.FailureCheckingLockWatchEventCache;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchEventCacheImpl;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
@@ -1078,8 +1077,7 @@ public abstract class TransactionManagers {
         NamespacedConjureTimelockService namespacedConjureTimelockService
                 = new NamespacedConjureTimelockService(withDiagnosticsConjureTimelockService, timelockNamespace);
 
-        LockWatchEventCache lockWatchEventCache =
-                FailureCheckingLockWatchEventCache.newProxyInstance(LockWatchEventCacheImpl.create());
+        LockWatchEventCache lockWatchEventCache = LockWatchEventCacheImpl.create();
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
