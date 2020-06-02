@@ -25,7 +25,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.logsafe.Preconditions;
 
@@ -114,18 +113,19 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return latestVersion;
     }
 
-    private void ensureNotFailed(Runnable runnable) {
+    private synchronized void ensureNotFailed(Runnable runnable) {
         checkNotFailed();
         failed = true;
         runnable.run();
         failed = false;
     }
 
-    private void checkNotFailed() {
+    private synchronized void checkNotFailed() {
         Preconditions.checkState(!failed, "Log is in an inconsistent state");
     }
 
-    private boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion, IdentifiedVersion startVersion) {
+    private synchronized boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion,
+            IdentifiedVersion startVersion) {
         return !startVersion.id().equals(currentVersion.id()) || eventMap.floorKey(startVersion.version()) == null;
     }
 
@@ -133,7 +133,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return IdentifiedVersion.of(startVersion.id(), startVersion.version() + 1);
     }
 
-    private IdentifiedVersion getLatestVersionAndVerify(IdentifiedVersion endVersion) {
+    private synchronized IdentifiedVersion getLatestVersionAndVerify(IdentifiedVersion endVersion) {
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
         IdentifiedVersion currentVersion = latestVersion.get();
         Preconditions.checkArgument(IdentifiedVersion.comparator().compare(endVersion, currentVersion) > -1,
