@@ -26,21 +26,20 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.logsafe.Preconditions;
 
-public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
+final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private static final boolean INCLUSIVE = true;
 
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
     private final TreeMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
-    @GuardedBy("this")
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
-    public static ClientLockWatchEventLogImpl create() {
+    static ClientLockWatchEventLog create() {
         return create(ClientLockWatchSnapshotUpdaterImpl.create());
     }
 
     @VisibleForTesting
-    static ClientLockWatchEventLogImpl create(ClientLockWatchSnapshotUpdater snapshotUpdater) {
+    static ClientLockWatchEventLog create(ClientLockWatchSnapshotUpdater snapshotUpdater) {
         return new ClientLockWatchEventLogImpl(snapshotUpdater);
     }
 
@@ -49,7 +48,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     @Override
-    public synchronized Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
+    public Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
         final ProcessingVisitor visitor;
         if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
             visitor = new NewLeaderVisitor();
@@ -61,7 +60,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     @Override
-    public synchronized void removeOldEntries(IdentifiedVersion earliestVersion) {
+    public void removeOldEntries(IdentifiedVersion earliestVersion) {
         Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved =
                 eventMap.headMap(earliestVersion.version()).entrySet();
         snapshotUpdater.processEvents(
@@ -76,7 +75,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
      * version in the timestamp to version map.
      */
     @Override
-    public synchronized ClientLogEvents getEventsBetweenVersions(
+    public ClientLogEvents getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion,
             IdentifiedVersion endVersion) {
         Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
@@ -98,11 +97,11 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
     }
 
     @Override
-    public synchronized Optional<IdentifiedVersion> getLatestKnownVersion() {
+    public Optional<IdentifiedVersion> getLatestKnownVersion() {
         return latestVersion;
     }
 
-    private synchronized boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion,
+    private boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion,
             IdentifiedVersion startVersion) {
         return !startVersion.id().equals(currentVersion.id()) || eventMap.floorKey(startVersion.version()) == null;
     }
@@ -111,7 +110,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return IdentifiedVersion.of(startVersion.id(), startVersion.version() + 1);
     }
 
-    private synchronized IdentifiedVersion getLatestVersionAndVerify(IdentifiedVersion endVersion) {
+    private IdentifiedVersion getLatestVersionAndVerify(IdentifiedVersion endVersion) {
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
         IdentifiedVersion currentVersion = latestVersion.get();
         Preconditions.checkArgument(IdentifiedVersion.comparator().compare(endVersion, currentVersion) > -1,
@@ -119,7 +118,7 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         return currentVersion;
     }
 
-    private synchronized void processSuccess(LockWatchStateUpdate.Success success) {
+    private void processSuccess(LockWatchStateUpdate.Success success) {
         Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
@@ -129,13 +128,13 @@ public final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLo
         }
     }
 
-    private synchronized void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
+    private void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         eventMap.clear();
         snapshotUpdater.resetWithSnapshot(snapshot);
         latestVersion = Optional.of(IdentifiedVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
     }
 
-    private synchronized void processFailed() {
+    private void processFailed() {
         eventMap.clear();
         snapshotUpdater.reset();
         latestVersion = Optional.empty();

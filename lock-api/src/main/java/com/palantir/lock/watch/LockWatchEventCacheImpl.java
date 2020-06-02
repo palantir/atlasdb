@@ -36,6 +36,10 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 
+/**
+ * This class should only be used through {@link FailureCheckingLockWatchEventCache} as a proxy; failure to do so
+ * will result in concurrency issues and inconsistency in the cache state.
+ */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
     private final HashMap<Long, MapEntry> timestampMap = new HashMap<>();
@@ -58,7 +62,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void processStartTransactionsUpdate(
+    public void processStartTransactionsUpdate(
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
@@ -71,7 +75,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void processGetCommitTimestampsUpdate(
+    public void processGetCommitTimestampsUpdate(
             Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
@@ -88,7 +92,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized CommitUpdate getCommitUpdate(long startTs) {
+    public CommitUpdate getCommitUpdate(long startTs) {
         Optional<MapEntry> maybeEntry = Optional.ofNullable(timestampMap.get(startTs));
         Optional<CommitInfo> maybeCommitInfo = maybeEntry.flatMap(MapEntry::commitInfo);
 
@@ -107,7 +111,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized TransactionsLockWatchEvents getEventsForTransactions(
+    public TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> startVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
@@ -117,13 +121,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
+    public void removeTransactionStateFromCache(long startTimestamp) {
         Optional.ofNullable(timestampMap.remove(startTimestamp))
                 .ifPresent(entry -> aliveVersions.remove(entry.version(), startTimestamp));
     }
 
     @VisibleForTesting
-    synchronized Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
+    Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
             MapEntry entry = timestampMap.get(timestamp);
@@ -134,7 +138,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @VisibleForTesting
-    synchronized Optional<IdentifiedVersion> getEarliestVersion() {
+    Optional<IdentifiedVersion> getEarliestVersion() {
         if (aliveVersions.isEmpty()) {
             return Optional.empty();
         } else {
@@ -149,14 +153,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         }
     }
 
-    private synchronized CommitUpdate constructCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
+    private CommitUpdate constructCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
         LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
         Set<LockDescriptor> locksTakenOut = new HashSet<>();
         events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
         return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
     }
 
-    private synchronized Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {
+    private Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
         Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
         getEarliestVersion().ifPresent(eventLog::removeOldEntries);
