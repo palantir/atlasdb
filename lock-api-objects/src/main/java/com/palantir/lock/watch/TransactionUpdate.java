@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.watch;
 
-import java.util.List;
-import java.util.Optional;
+import org.immutables.value.Value;
 
-import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.v2.LockToken;
 
-public interface StartTransactionsResponse {
-
-    List<OpenTransaction> getTransactions();
-
-    /**
-     * Returns a condensed view of new lock watch events since lastKnownVersion for the set of started transactions.
-     *
-     * @param lastKnownVersion exclusive start version to get events from
-     */
-    TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion);
+/**
+ * This is a record of a transaction that successfully retrieved a commit timestamp, along with the lock token it
+ * acquired for its writes. Users MUST NOT assume that this transaction has successfully committed - it may or may not
+ * have.
+ */
+@Value.Immutable
+public interface TransactionUpdate {
+    long startTs();
+    long commitTs();
+    LockToken writesToken();
 }

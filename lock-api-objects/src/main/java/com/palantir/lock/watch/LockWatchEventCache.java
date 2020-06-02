@@ -16,13 +16,17 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
 public interface LockWatchEventCache {
     Optional<IdentifiedVersion> lastKnownVersion();
-    IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
-    void processUpdate(LockWatchStateUpdate update);
+    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
+            LockWatchStateUpdate update);
+    CommitUpdate getCommitUpdate(long startTs);
     TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version);
+    void removeTransactionStateFromCache(long startTimestamp);
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -92,9 +93,9 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -476,6 +477,7 @@ public abstract class TransactionManagers {
                         keyValueService,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lockWatcher(),
+                        lockAndTimestampServices.eventCache(),
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
@@ -500,7 +502,7 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
-        transactionManager.registerClosingCallback(lockAndTimestampServices.close());
+        lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);
         components.schemaInstaller().ifPresent(
                 installer -> transactionManager.registerClosingCallback(installer::close));
@@ -851,7 +853,7 @@ public abstract class TransactionManagers {
                 .from(lockAndTimestampServices)
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(timeLockClient::close)
+                .addResources(timeLockClient::close)
                 .build();
     }
 
@@ -905,11 +907,8 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(profilingService))
                 .timelock(profilingService)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(() -> {
-                    lockAndTimestampServices.close();
-                    timeLockClient.close();
-                    profilingService.close();
-                })
+                .addResources(timeLockClient::close)
+                .addResources(profilingService::close)
                 .build();
     }
 
@@ -1081,9 +1080,7 @@ public abstract class TransactionManagers {
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
-        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService,
-                lockWatchEventCache);
-
+        LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
@@ -1101,8 +1098,10 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
-                .lockWatcher(lockWatcher)
-                .close(remoteTimelockServiceAdapter::close)
+                .lockWatcher(lockWatchManager)
+                .eventCache(lockWatchEventCache)
+                .addResources(remoteTimelockServiceAdapter::close)
+                .addResources(lockWatchManager::close)
                 .build();
     }
 
@@ -1305,8 +1304,13 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
         @Value.Default
-        default InternalLockWatchManager lockWatcher() {
-            return NoOpInternalLockWatchManager.INSTANCE;
+        default LockWatchManager lockWatcher() {
+            return NoOpLockWatchManager.INSTANCE;
+        }
+
+        @Value.Default
+        default LockWatchEventCache eventCache() {
+            return NoOpLockWatchEventCache.INSTANCE;
         }
 
         @Value.Derived
@@ -1316,8 +1320,8 @@ public abstract class TransactionManagers {
 
         @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default
-        default Runnable close() {
-            return () -> {};
+        default List<Runnable> resources() {
+            return Collections.emptyList();
         }
     }
 
