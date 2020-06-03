@@ -17,7 +17,12 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
+
 import org.junit.Test;
+
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.util.Pair;
 
 public class ValueTypeTest {
     private static final String BYTE_ARRAY = "byte[]";
@@ -40,5 +45,29 @@ public class ValueTypeTest {
     @Test
     public void arrayTypesReturnClassNameForObjectClassName() {
         assertThat(ValueType.BLOB.getJavaClassName()).isEqualTo(BYTE_ARRAY);
+    }
+
+    @Test
+    public void stringTypesConvertToAndFromJsonStrings() {
+        String string = "tom";
+        String jsonString = "\"" + string + "\"";
+        assertThat(ValueType.VAR_STRING.convertFromJson(jsonString)).isEqualTo(
+                ValueType.VAR_STRING.convertFromJava(string));
+        assertThat(ValueType.VAR_STRING.convertToJson(ValueType.VAR_STRING.convertFromJava(string), 0))
+                .isEqualTo(Pair.create(jsonString, 4));
+        assertThat(ValueType.STRING.convertFromJson(jsonString)).isEqualTo(
+                ValueType.STRING.convertFromJava(string));
+        assertThat(ValueType.STRING.convertToJson(ValueType.STRING.convertFromJava(string), 0))
+                .isEqualTo(Pair.create(jsonString, 3));
+    }
+
+    @Test
+    public void uuidJsonConversions() {
+        UUID uuid = UUID.randomUUID();
+        byte[] uuidBytes = ValueType.UUID.convertFromJava(uuid);
+        String quotedUuidString = "\"" + uuid.toString() + "\"";
+        assertThat(ValueType.UUID.convertToJson(uuidBytes, 0)).isEqualTo(
+                Pair.create(quotedUuidString, 16));
+        assertThat(ValueType.UUID.convertFromJson(quotedUuidString)).isEqualTo(uuidBytes);
     }
 }
