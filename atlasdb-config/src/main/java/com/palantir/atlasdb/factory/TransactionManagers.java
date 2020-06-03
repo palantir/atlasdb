@@ -218,8 +218,7 @@ public abstract class TransactionManagers {
 
     @Value.Default
     Consumer<Object> registrar() {
-        return resource -> {
-        };
+        return resource -> { };
     }
 
     @Value.Default
@@ -254,14 +253,14 @@ public abstract class TransactionManagers {
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
     /**
-     * The callback Runnable will be run when the TransactionManager is successfully initialized. The TransactionManager
-     * will stay uninitialized and continue to throw for all other purposes until the callback returns at which point it
-     * will become initialized. If asynchronous initialization is disabled, the callback will be run just before the TM
-     * is returned.
-     * <p>
+     * The callback Runnable will be run when the TransactionManager is successfully initialized. The
+     * TransactionManager will stay uninitialized and continue to throw for all other purposes until the callback
+     * returns at which point it will become initialized. If asynchronous initialization is disabled, the callback will
+     * be run just before the TM is returned.
+     *
      * Note that if the callback blocks forever, the TransactionManager will never become initialized, and calling its
-     * close() method will block forever as well. If the callback init() fails, and its cleanup() method throws, the
-     * TransactionManager will not become initialized and it will be closed.
+     * close() method will block forever as well. If the callback init() fails, and its cleanup() method throws,
+     * the TransactionManager will not become initialized and it will be closed.
      */
     @Value.Default
     Callback<TransactionManager> asyncInitializationCallback() {
@@ -277,10 +276,11 @@ public abstract class TransactionManagers {
     }
 
     /**
-     * If set, a {@link com.palantir.dialogue.clients.DialogueClients.ReloadingFactory} that a {@link
-     * com.palantir.atlasdb.transaction.api.TransactionManager} based on this configuration should use. This may be
-     * useful for ensuring that connection pools are shared between multiple TransactionManagers in the same JVM. We
-     * intend this to be used in exactly one place - do not use this without discussing with the AtlasDB team.
+     * If set, a {@link com.palantir.dialogue.clients.DialogueClients.ReloadingFactory} that a
+     * {@link com.palantir.atlasdb.transaction.api.TransactionManager} based on this configuration should use.
+     * This may be useful for ensuring that connection pools are shared between multiple TransactionManagers in
+     * the same JVM.
+     * We intend this to be used in exactly one place - do not use this without discussing with the AtlasDB team.
      */
     @Value.Default
     DialogueClients.ReloadingFactory reloadingFactory() {
@@ -314,8 +314,9 @@ public abstract class TransactionManagers {
     }
 
     /**
-     * Create a {@link TransactionManager} backed by an {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.
-     * This should be used for testing purposes only.
+     * Create a {@link TransactionManager} backed by an
+     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
+     * purposes only.
      */
     public static TransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
@@ -342,7 +343,7 @@ public abstract class TransactionManagers {
                     .collect(Collectors.toList());
 
             log.warn("Exception thrown when creating transaction manager. "
-                            + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
+                    + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
                     throwable);
 
             closeables.forEach(autoCloseable -> {
@@ -437,7 +438,7 @@ public abstract class TransactionManagers {
 
         Cleaner cleaner = initializeCloseable(() ->
                         new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),
-                                ImmutableList.of(follower), transactionService, metricsManager)
+                                        ImmutableList.of(follower), transactionService, metricsManager)
                                 .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                                 .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
                                 .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())
@@ -461,7 +462,7 @@ public abstract class TransactionManagers {
 
         Supplier<TransactionConfig> transactionConfigSupplier =
                 runtime.map(AtlasDbRuntimeConfig::transaction)
-                        .map(this::withConsolidatedGrabImmutableTsLockFlag);
+                .map(this::withConsolidatedGrabImmutableTsLockFlag);
 
         TimestampCache timestampCache = config().timestampCache()
                 .orElseGet(() -> new DefaultTimestampCache(
@@ -552,7 +553,7 @@ public abstract class TransactionManagers {
     /**
      * If we decide to move a service to use thorough sweep; we need to make sure that background sweep won't cause any
      * trouble by deleting large number of empty values at once - causing Cassandra OOMs.
-     * <p>
+     *
      * lockImmutableTsOnReadOnlyTransaction flag is used to decide on disabling background sweep, as this flag is used
      * as an intermediate step for migrating to thorough sweep.
      */
@@ -611,9 +612,9 @@ public abstract class TransactionManagers {
                 .filter(version -> version != TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
                 .ifPresent(version ->
                         log.warn("This service seems like it has been configured to use transaction schema version {},"
-                                        + " which isn't supported as your KVS doesn't support details on CAS failures"
-                                        + " (typically Postgres or Oracle). We will remain with transactions1.",
-                                SafeArg.of("configuredTransactionSchemaVersion", version)));
+                                + " which isn't supported as your KVS doesn't support details on CAS failures"
+                                + " (typically Postgres or Oracle). We will remain with transactions1.",
+                        SafeArg.of("configuredTransactionSchemaVersion", version)));
         return Optional.empty();
     }
 
