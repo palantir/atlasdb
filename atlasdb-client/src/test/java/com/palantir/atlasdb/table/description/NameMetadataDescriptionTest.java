@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 
 public class NameMetadataDescriptionTest {
@@ -63,13 +64,10 @@ public class NameMetadataDescriptionTest {
     }
 
     @Test
-    public void extraFieldsAreTolerated() throws JsonProcessingException {
-        byte[] row = PtBytes.toBytes("someData");
-        JsonNode jsonNode = OBJECT_MAPPER.readTree(SIMPLE_NAME_METADATA_DESCRIPTION.renderToJson(row));
-        ((ObjectNode) jsonNode).put("extraneousThing", "nein");
-        System.out.println(jsonNode.toString());
-        assertThatCode(() -> SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(jsonNode.toString(), false))
-                .doesNotThrowAnyException();
+    public void extraFieldsAreTolerated() {
+        String extraFieldJson = "{\"string\": \"tom\", \"extraneous\": \"another\"}";
+        byte[] result = SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(extraFieldJson, false);
+        assertThat(result).containsExactly(PtBytes.toBytes("tom"));
     }
 
     @Test
@@ -91,6 +89,32 @@ public class NameMetadataDescriptionTest {
                 .hasMessageContaining("JSON object needs a field named: string.");
     }
 
+    @Test
+    public void throwsOnRawJsonString() {
+        String jsonString = "\"string\"";
+
+        assertThatThrownBy(() -> SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(jsonString, false))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Only JSON objects can be deserialized into parsed byte arrays.");
+    }
+
+    @Test
+    public void throwsOnArrays() {
+        String jsonString = "[\"string\"]";
+
+        assertThatThrownBy(() -> SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(jsonString, false))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Only JSON objects can be deserialized into parsed byte arrays.");
+    }
+
+    @Test
+    public void throwsOnNonJsonInput() {
+        String gobbledygook = "]q2!a0v-_13r";
+
+        assertThatThrownBy(() -> SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(gobbledygook, false))
+                .isInstanceOf(PalantirRuntimeException.class)
+                .hasMessageContaining("Unexpected close marker");
+    }
 
     @Test
     public void parseAndRenderAreInverses_MultiPart() {
