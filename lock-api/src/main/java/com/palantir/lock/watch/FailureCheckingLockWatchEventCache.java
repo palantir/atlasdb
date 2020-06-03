@@ -22,9 +22,9 @@ import java.lang.reflect.Proxy;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 
-public final class FailureCheckingLockWatchEventCache extends AbstractInvocationHandler {
+final class FailureCheckingLockWatchEventCache extends AbstractInvocationHandler {
 
-    public static LockWatchEventCache newProxyInstance(LockWatchEventCache defaultCache) {
+    static LockWatchEventCache newProxyInstance(LockWatchEventCache defaultCache) {
         return (LockWatchEventCache) Proxy.newProxyInstance(
                 LockWatchEventCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchEventCache.class},

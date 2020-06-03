@@ -18,17 +18,20 @@ package com.palantir.lock.watch;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.logsafe.Preconditions;
 
-public final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatchSnapshotUpdater {
+final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatchSnapshotUpdater {
     private final Set<LockWatchReferences.LockWatchReference> watches;
     private final Set<LockDescriptor> locked;
     private final EventVisitor visitor;
+    private Optional<IdentifiedVersion> snapshotVersion;
 
-    public static ClientLockWatchSnapshotUpdater create() {
+    static ClientLockWatchSnapshotUpdater create() {
         return new ClientLockWatchSnapshotUpdaterImpl();
     }
 
@@ -36,31 +39,37 @@ public final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatch
         this.watches = new HashSet<>();
         this.locked = new HashSet<>();
         this.visitor = new EventVisitor();
+        this.snapshotVersion = Optional.empty();
     }
 
     @Override
-    public synchronized LockWatchStateUpdate.Snapshot getSnapshot(IdentifiedVersion identifiedVersion) {
+    public synchronized LockWatchStateUpdate.Snapshot getSnapshot() {
+        Preconditions.checkState(snapshotVersion.isPresent(),
+                "Snapshot was reset on fail and has not been seeded since");
         return LockWatchStateUpdate.snapshot(
-                identifiedVersion.id(),
-                identifiedVersion.version(),
+                snapshotVersion.get().id(),
+                snapshotVersion.get().version(),
                 ImmutableSet.copyOf(locked),
                 ImmutableSet.copyOf(watches));
     }
 
     @Override
-    public synchronized void processEvents(List<LockWatchEvent> events) {
+    public void processEvents(List<LockWatchEvent> events, IdentifiedVersion lastVersion) {
         events.forEach(event -> event.accept(visitor));
+        snapshotVersion = Optional.of(lastVersion);
     }
 
     @Override
-    public synchronized void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
+    public void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         reset();
         watches.addAll(snapshot.lockWatches());
         locked.addAll(snapshot.locked());
+        snapshotVersion = Optional.of(IdentifiedVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
     }
 
     @Override
-    public synchronized void reset() {
+    public void reset() {
+        snapshotVersion = Optional.empty();
         watches.clear();
         locked.clear();
     }

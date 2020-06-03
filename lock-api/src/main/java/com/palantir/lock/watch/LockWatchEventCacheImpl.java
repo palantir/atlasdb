@@ -64,6 +64,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
         latestVersion.ifPresent(version -> startTimestamps.forEach(timestamp -> timestampMap.put(timestamp, version)));
+
+        getEarliestVersion().ifPresent(eventLog::removeOldEntries);
     }
 
     @Override
@@ -73,7 +75,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
         latestVersion.ifPresent(version -> transactionUpdates.forEach(
-                transactionUpdate -> checkConditionOrThrow(timestampMap.replace(transactionUpdate),
+                transactionUpdate -> checkConditionOrThrow(!timestampMap.replace(transactionUpdate, version),
                         "start timestamp missing from map")));
     }
 
@@ -143,7 +145,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
         Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
-        getEarliestVersion().ifPresent(eventLog::removeOldEntries);
 
         if (!(latestVersion.isPresent()
                 && currentVersion.isPresent()

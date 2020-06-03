@@ -21,7 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,7 +31,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.LockToken;
 
@@ -103,14 +101,14 @@ public final class ClientLockWatchEventLogImplTest {
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
 
-        when(snapshotUpdater.getSnapshot(VERSION_2)).thenReturn(LockWatchStateUpdate.snapshot(
+        when(snapshotUpdater.getSnapshot()).thenReturn(LockWatchStateUpdate.snapshot(
                 VERSION_2.id(),
                 VERSION_2.version(),
                 ImmutableSet.of(),
                 ImmutableSet.of()));
         eventLog.removeOldEntries(VERSION_2);
         eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
-        verify(snapshotUpdater).getSnapshot(VERSION_2);
-        verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1));
+        verify(snapshotUpdater).getSnapshot();
+        verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1), VERSION_1);
     }
 }

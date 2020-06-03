@@ -35,14 +35,14 @@ final class TimestampToVersionMap {
         aliveVersions.put(version, startTimestamp);
     }
 
-    boolean replace(TransactionUpdate transactionUpdate) {
+    boolean replace(TransactionUpdate transactionUpdate, IdentifiedVersion newVersion) {
         MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
         if (previousEntry == null) {
             return false;
         }
 
         timestampMap.replace(transactionUpdate.startTs(), previousEntry.withCommitInfo(
-                CommitInfo.of(transactionUpdate.commitTs(), transactionUpdate.writesToken(), previousEntry.version())));
+                CommitInfo.of(transactionUpdate.commitTs(), transactionUpdate.writesToken(), newVersion)));
 
         return true;
     }
