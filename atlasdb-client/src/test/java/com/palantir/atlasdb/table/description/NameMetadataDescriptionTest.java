@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
@@ -31,7 +30,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 
 public class NameMetadataDescriptionTest {
     private static final NameMetadataDescription SIMPLE_NAME_METADATA_DESCRIPTION = NameMetadataDescription.safe(
@@ -54,7 +52,7 @@ public class NameMetadataDescriptionTest {
     private static final byte[] SAMPLE_ROW = EncodingUtils.add(SAMPLE_ALPHA, SAMPLE_BETA, SAMPLE_GAMMA, SAMPLE_OMEGA);
     private static final byte[] SAMPLE_ROW_PREFIX = EncodingUtils.add(SAMPLE_ALPHA, SAMPLE_BETA);
 
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
     public void parseAndRenderAreInverses_Simple() {
