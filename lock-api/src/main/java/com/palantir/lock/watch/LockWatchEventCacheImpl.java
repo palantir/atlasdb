@@ -103,7 +103,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> startVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
-        Map<Long, IdentifiedVersion> timestampToVersion = getTimestampToVersionMap(startTimestamps);
+        Map<Long, IdentifiedVersion> timestampToVersion = getTimestampMappings(startTimestamps);
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
         return eventLog.getEventsBetweenVersions(startVersion, endVersion).map(timestampToVersion);
     }
@@ -114,7 +114,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @VisibleForTesting
-    Map<Long, IdentifiedVersion> getTimestampToVersionMap(Set<Long> startTimestamps) {
+    Map<Long, IdentifiedVersion> getTimestampMappings(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
             Optional<MapEntry> entry = timestampMap.get(timestamp);

@@ -92,7 +92,7 @@ public final class LockWatchEventCacheImplTest {
         setupSecondSuccess();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
         verify(eventLog).processUpdate(SUCCESS_2);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
+        assertThat(eventCache.getTimestampMappings(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
     }
 
     @Test
@@ -127,7 +127,7 @@ public final class LockWatchEventCacheImplTest {
 
         setupFirstSuccess();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_COMBINED, SUCCESS_1);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
+        assertThat(eventCache.getTimestampMappings(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
 
         when(eventLog.processUpdate(SNAPSHOT)).thenReturn(Optional.of(VERSION_3));
         Set<Long> secondBatch = ImmutableSet.of(666L, 12545L);
@@ -135,8 +135,8 @@ public final class LockWatchEventCacheImplTest {
 
         Map<Long, IdentifiedVersion> newExpectedMap = constructExpectedMap(secondBatch, VERSION_3);
 
-        assertThat(eventCache.getTimestampToVersionMap(secondBatch)).containsExactlyEntriesOf(newExpectedMap);
-        assertThatThrownBy(() -> eventCache.getTimestampToVersionMap(TIMESTAMPS_COMBINED))
+        assertThat(eventCache.getTimestampMappings(secondBatch)).containsExactlyEntriesOf(newExpectedMap);
+        assertThatThrownBy(() -> eventCache.getTimestampMappings(TIMESTAMPS_COMBINED))
                 .isInstanceOf(SafeNullPointerException.class)
                 .hasMessage("Timestamp missing from cache");
     }
@@ -147,7 +147,7 @@ public final class LockWatchEventCacheImplTest {
 
         setupFirstSuccess();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_1, SUCCESS_1);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_1)).containsExactlyInAnyOrderEntriesOf(expectedMap1);
+        assertThat(eventCache.getTimestampMappings(TIMESTAMPS_1)).containsExactlyInAnyOrderEntriesOf(expectedMap1);
 
         Map<Long, IdentifiedVersion> expectedMap2 = constructExpectedMap(TIMESTAMPS_2, VERSION_2);
         Map<Long, IdentifiedVersion> combinedMap = new HashMap<>(expectedMap1);
@@ -155,8 +155,8 @@ public final class LockWatchEventCacheImplTest {
 
         setupSecondSuccess();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_2)).containsExactlyInAnyOrderEntriesOf(expectedMap2);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_COMBINED)).containsExactlyInAnyOrderEntriesOf(
+        assertThat(eventCache.getTimestampMappings(TIMESTAMPS_2)).containsExactlyInAnyOrderEntriesOf(expectedMap2);
+        assertThat(eventCache.getTimestampMappings(TIMESTAMPS_COMBINED)).containsExactlyInAnyOrderEntriesOf(
                 combinedMap);
         assertThat(eventCache.getEarliestVersion()).hasValue(VERSION_1);
 
@@ -185,7 +185,7 @@ public final class LockWatchEventCacheImplTest {
         setupFirstSuccess();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_1, SUCCESS_1);
         verify(eventLog).processUpdate(SUCCESS_1);
-        assertThat(eventCache.getTimestampToVersionMap(TIMESTAMPS_1)).containsExactlyEntriesOf(expectedMap);
+        assertThat(eventCache.getTimestampMappings(TIMESTAMPS_1)).containsExactlyEntriesOf(expectedMap);
     }
 
     private static Map<Long, IdentifiedVersion> constructExpectedMap(Set<Long> timestamps, IdentifiedVersion version) {
