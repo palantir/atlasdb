@@ -73,7 +73,7 @@ public interface Transaction {
     /**
      * Returns a mapping of requested {@code rows} to corresponding columns from the queried table.
      * Only columns matching the provided predicate will be returned, and the single predicate provided applies across
-     * all of the rows.
+     * all of the rows. Users should provide unique rows: behaviour is undefined if this is not the case.
      *
      * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
      * by column on byte ordering.
@@ -85,7 +85,6 @@ public interface Transaction {
      * @param rows unique rows to apply the column range selection to
      * @param columnRangeSelection range of columns and batch size to load for each of the rows provided
      * @return a mapping of rows to cells matching the predicate in the row, following the ordering outlined above
-     * @throws IllegalArgumentException if {@code rows} contains duplicates
      */
     @Idempotent
     Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(

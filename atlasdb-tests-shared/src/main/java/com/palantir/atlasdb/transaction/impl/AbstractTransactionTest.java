@@ -1443,22 +1443,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void getRowsColumnRangeDuplicates() {
-        Transaction t = startTransaction();
-        byte[] row0 = row(0);
-        byte[] anotherRow0 = row(0);
-        byte[] col0 = column(0);
-        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0)));
-        t.commit();
-
-        Transaction t2 = startTransaction();
-        assertThatThrownBy(() -> t2.getRowsColumnRangeIterator(
-                TEST_TABLE, ImmutableList.of(row0, anotherRow0), ALL_COLUMNS))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Multiple entries with same key");
-    }
-
-    @Test
     public void lookupFromGetRowsColumnRange() {
         Transaction t = startTransaction();
         byte[] row0 = row(0);
