@@ -394,7 +394,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
                 .as("if the conjure impl has taken a lock, the legacy impl mustn't be able to take it")
                 .isNull();
-        assertThat(client.legacyLockService().unlock(token.getLockRefreshToken())).isTrue();
+        assertThat(client.legacyLockService().unlock(token.getLockRefreshToken()))
+                .as("legacy impl can unlock a lock taken by conjure impl")
+                .isTrue();
         assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
                 .as("lock taken by conjure impl that was unlocked can now be acquired by legacy impl")
                 .isNotNull();
