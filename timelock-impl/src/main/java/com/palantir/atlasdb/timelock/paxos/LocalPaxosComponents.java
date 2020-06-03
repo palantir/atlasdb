@@ -17,13 +17,18 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
@@ -38,6 +43,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableLegacyOperationMarkers;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
@@ -53,6 +59,7 @@ import com.palantir.paxos.SqliteConnections;
 
 @SuppressWarnings("FinalClass") // mocks
 public class LocalPaxosComponents {
+    private static final Logger log = LoggerFactory.getLogger(LocalPaxosComponents.class);
 
     private final TimelockPaxosMetrics metrics;
     private final PaxosUseCase paxosUseCase;
@@ -94,7 +101,14 @@ public class LocalPaxosComponents {
 
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
         PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
-        namespaceLoader.getAllPersistedNamespaces().forEach(components::getOrCreateComponents);
+        Set<Client> namespaces = namespaceLoader.getAllPersistedNamespaces();
+        log.info("Performing blocking migration of {} namespaces",
+                SafeArg.of("numNamespaces", namespaces.size()));
+        Instant startInstant = Instant.now();
+        namespaces.forEach(components::getOrCreateComponents);
+        log.info("Successfully migrated a total of {} namespaces in {}",
+                SafeArg.of("numNamespaces", namespaces.size()),
+                SafeArg.of("duration", Duration.between(startInstant, Instant.now())));
         return components;
     }
 
