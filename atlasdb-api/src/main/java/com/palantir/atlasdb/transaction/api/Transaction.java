@@ -39,7 +39,7 @@ import com.palantir.common.base.BatchingVisitable;
  * Provides the methods for a transaction with the key-value store.
  *
  * In general: users may assume that if maps (including sorted maps) keyed on byte[] are returned to the user,
- * they may be accessed, including via random access, via any byte array that is equivalent in terms of
+ * they may be accessed via any byte array that is equivalent in terms of
  * {@link java.util.Arrays#equals(byte[], byte[])}.
  *
  * @see TransactionManager
@@ -48,7 +48,8 @@ public interface Transaction {
 
     /**
      * Returns a mapping of rows to {@link RowResult}s within {@code tableRef} for the specified {@code rows}, loading
-     * columns according to the provided {@link ColumnSelection}.
+     * columns according to the provided {@link ColumnSelection}. Duplicate rows are permitted (but there will be just
+     * one key-value pair for that row in the returned {@link SortedMap}).
      *
      * The returned {@link SortedMap} is sorted on the byte order of row keys; the ordering of the input parameter
      * {@code rows} is irrelevant.
@@ -75,7 +76,7 @@ public interface Transaction {
      * all of the rows.
      *
      * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
-     * by column, with ascending byte ordering.
+     * by column on byte ordering.
      *
      * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
      * input {@code rows}, even if there are rows where no columns match the predicate.
@@ -97,12 +98,11 @@ public interface Transaction {
      * columns fall within the provided {@link ColumnRangeSelection}. The single provided {@link ColumnRangeSelection}
      * applies to all of the rows.
      *
-     * If the provided {@link Iterable} of {@code rows} has a stable ordering, the returned iterator is guaranteed
-     * to return cell-value pairs in a lexicographic ordering over rows and columns, where rows are sorted according to
-     * the stable ordering of {@code rows}, and columns are sorted on byte ordering. If {@code rows} does not have a
-     * stable ordering, the returned iterator will return cell-value pairs that are ordered within a row - that is,
-     * columns from the same row are always grouped together and are always sorted on byte ordering, but there are no
-     * guarantees on the ordering of rows.
+     * The returned iterator is guaranteed to return cell-value pairs in a lexicographic ordering over rows and columns
+     * where rows are sorted according to the provided {@code rows} {@link Iterable} and then columns on byte ordering.
+     * If the {@link Iterable} does not have a stable ordering (i.e. iteration order can change across iterators
+     * returned) then the returned iterator is sorted lexicographically with columns sorted on byte ordering, but
+     * the ordering of rows is undefined.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
@@ -123,8 +123,8 @@ public interface Transaction {
      * {@code rows}, where the columns fall within the provided {@link BatchColumnRangeSelection}. The single provided
      * {@link BatchColumnRangeSelection} applies to all of the rows.
      *
-     * The returned iterators are guaranteed to return cells matching the predicate. These are sorted by column, with
-     * ascending byte ordering.
+     * The returned iterators are guaranteed to return cells matching the predicate. These are sorted by column on
+     * byte ordering.
      *
      * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
      * input {@code rows}, even if there are rows where no columns match the predicate.

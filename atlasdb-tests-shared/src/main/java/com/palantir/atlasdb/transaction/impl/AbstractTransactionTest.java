@@ -707,7 +707,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(PtBytes.toBytes("row1")), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 1));
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
@@ -1362,6 +1362,41 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
+    public void getRowsWithDuplicateQueries() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] anotherRow0 = row(0);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                t.getRows(TEST_TABLE, ImmutableList.of(row0, anotherRow0), ColumnSelection.all());
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows).hasSize(1);
+    }
+
+    @Test
+    public void getRowsAppliesColumnSelection() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] col0 = column(0);
+        byte[] col1 = column(1);
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(row0, col0), value(0),
+                Cell.create(row0, col1), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                t.getRows(TEST_TABLE, ImmutableList.of(row0), ColumnSelection.create(ImmutableList.of(col0)));
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows.get(row0).getColumns().keySet()).containsExactly(col0);
+        assertThat(readRows.get(row0).getColumns().get(col0)).containsExactly(value(0));
+    }
+
+    @Test
     public void getRowsIncludesLocalWrites() {
         Transaction t = startTransaction();
         byte[] rowKey = row(0);
@@ -1408,6 +1443,63 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
+    public void getRowsColumnRangeDuplicates() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] anotherRow0 = row(0);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0)));
+        t.commit();
+
+        Transaction t2 = startTransaction();
+        assertThatThrownBy(() -> t2.getRowsColumnRangeIterator(
+                TEST_TABLE, ImmutableList.of(row0, anotherRow0), ALL_COLUMNS))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Multiple entries with same key");
+    }
+
+    @Test
+    public void lookupFromGetRowsColumnRange() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] row1 = row(1);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0), Cell.create(row1, col0), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRange(
+                TEST_TABLE, ImmutableList.of(row0, row1), ALL_COLUMNS);
+
+        Map<Cell, byte[]> directLookupResults = KeyedStream.ofEntries(
+                BatchingVisitables.copyToList(result.get(row0)).stream()).collectToMap();
+        assertThat(directLookupResults).hasSize(1);
+        assertThat(Arrays.equals(directLookupResults.get(Cell.create(row0, col0)), value(0))).isTrue();
+
+        Map<Cell, byte[]> indirectLookupResults = KeyedStream.ofEntries(
+                BatchingVisitables.copyToList(result.get(row1.clone())).stream()).collectToMap();
+        assertThat(indirectLookupResults).hasSize(1);
+        assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row1.clone(), col0)), value(1))).isTrue();
+    }
+
+    @Test
+    public void getRowsColumnRangeAbsentRow() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRange(
+                TEST_TABLE, ImmutableList.of(row0), ALL_COLUMNS);
+
+        assertThat(result.keySet()).containsExactly(row0);
+
+        Map<Cell, byte[]> results = KeyedStream.ofEntries(
+                BatchingVisitables.copyToList(result.get(row0)).stream()).collectToMap();
+        assertThat(results).hasSize(0);
+    }
+
+    @Test
     public void lookupFromGetRowsColumnRangeIterator() {
         Transaction t = startTransaction();
         byte[] row0 = row(0);
@@ -1429,6 +1521,23 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         result.get(row1.clone()).forEachRemaining(entry -> indirectLookupResults.put(entry.getKey(), entry.getValue()));
         assertThat(indirectLookupResults).hasSize(1);
         assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row1.clone(), col0)), value(1))).isTrue();
+    }
+
+    @Test
+    public void getRowsColumnRangeIteratorAbsentLookup() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRangeIterator(
+                TEST_TABLE, ImmutableList.of(row0), ALL_COLUMNS);
+
+        assertThat(result.keySet()).containsExactly(row0);
+
+        Map<Cell, byte[]> results = Maps.newHashMap();
+        result.get(row0).forEachRemaining(entry -> results.put(entry.getKey(), entry.getValue()));
+        assertThat(results).hasSize(0);
     }
 
     @Test

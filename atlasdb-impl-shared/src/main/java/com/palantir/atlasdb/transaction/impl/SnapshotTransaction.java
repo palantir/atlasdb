@@ -410,7 +410,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
         ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
-                ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
+                ImmutableSortedMap.orderedBy(PtBytes.BYTES_COMPARATOR);
         for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
