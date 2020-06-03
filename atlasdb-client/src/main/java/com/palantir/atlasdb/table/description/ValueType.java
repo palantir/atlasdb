@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.io.IOException;
 import java.util.UUID;
 
-import org.json.simple.JSONValue;
-
-import com.google.common.base.Preconditions;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -454,7 +453,7 @@ public enum ValueType {
         @Override
         public Pair<String, Integer> convertToJson(byte[] value, int offset) {
             Pair<String, Integer> p = convertToString(value, offset);
-            return Pair.create(JSONValue.toJSONString(p.getLhSide()), p.getRhSide());
+            return Pair.create(ValueType.writeJson(p.getLhSide()), p.getRhSide());
         }
 
         @Override
@@ -464,9 +463,7 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJson(String jsonValue) {
-            Object s = JSONValue.parse(jsonValue);
-            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
-            return convertFromString((String) s);
+            return convertFromString(ValueType.readJson(jsonValue, String.class));
         }
 
         @Override
@@ -527,7 +524,7 @@ public enum ValueType {
         @Override
         public Pair<String, Integer> convertToJson(byte[] value, int offset) {
             Pair<String, Integer> p = convertToString(value, offset);
-            return Pair.create(JSONValue.toJSONString(p.getLhSide()), p.getRhSide());
+            return Pair.create(ValueType.writeJson(p.getLhSide()), p.getRhSide());
         }
 
         @Override
@@ -537,9 +534,7 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJson(String jsonValue) {
-            Object s = JSONValue.parse(jsonValue);
-            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
-            return convertFromString((String) s);
+            return convertFromString(ValueType.readJson(jsonValue, String.class));
         }
 
         @Override
@@ -828,14 +823,12 @@ public enum ValueType {
 
         @Override
         public Pair<String, Integer> convertToJson(byte[] value, int offset) {
-            return Pair.create(JSONValue.toJSONString(convertToJava(value, offset).toString()), 16);
+            return Pair.create(ValueType.writeJson(convertToJava(value, offset).toString()), 16);
         }
 
         @Override
         public byte[] convertFromJson(String jsonValue) {
-            Object s = JSONValue.parse(jsonValue);
-            Preconditions.checkArgument(s instanceof String, "%s must be a json string", jsonValue);
-            return convertFromString((String) s);
+            return convertFromString(ValueType.readJson(jsonValue, String.class));
         }
 
         @Override
@@ -870,6 +863,8 @@ public enum ValueType {
 
     }
     ;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public abstract Object convertToJava(byte[] value, int offset);
     public abstract Pair<String, Integer> convertToJson(byte[] value, int offset);
@@ -921,4 +916,19 @@ public enum ValueType {
         return valueOf(message.name());
     }
 
+    private static <T> T readJson(String json, Class<T> clazz) {
+        try {
+            return OBJECT_MAPPER.readValue(json, clazz);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String writeJson(Object value) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(value);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
