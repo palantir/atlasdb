@@ -205,6 +205,8 @@ import com.palantir.util.SafeShutdownRunner;
                     responses.stream()
                             .map(response -> response.immutableTimestamp().getLock())
                             .collect(Collectors.toSet()));
+            responses.forEach(response -> lockWatchEventCache.removeTransactionStateFromCache(
+                    response.startTimestampAndPartition().timestamp()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
