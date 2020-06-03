@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.timelock.lock.v1;
 
 import java.util.List;
 import java.util.Optional;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.timelock.lock.v1;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.LockRefreshToken;
 
@@ -37,9 +37,9 @@ public class ConjureLockV1ResourceTest {
 
     @Test
     public void translationOfTokensPreservesIdAndExpiration() {
-        assertThat(ConjureLockV1Resource.getConjureTokens(ImmutableSet.of(LEGACY_TOKEN)))
+        assertThat(ConjureLockV1Tokens.getConjureTokens(ImmutableSet.of(LEGACY_TOKEN)))
                 .containsExactly(CONJURE_TOKEN);
-        assertThat(ConjureLockV1Resource.getLegacyTokens(ImmutableList.of(CONJURE_TOKEN)))
+        assertThat(ConjureLockV1Tokens.getLegacyTokens(ImmutableList.of(CONJURE_TOKEN)))
                 .containsExactly(LEGACY_TOKEN);
     }
 
@@ -47,7 +47,7 @@ public class ConjureLockV1ResourceTest {
     public void multipleTokensAreTranslatedInSequence() {
         long expirationDateMs = 585L;
         ConjureLockRefreshToken otherToken = ConjureLockRefreshToken.of(BigInteger.ZERO, expirationDateMs);
-        assertThat(ConjureLockV1Resource.getLegacyTokens(ImmutableList.of(CONJURE_TOKEN, otherToken)))
+        assertThat(ConjureLockV1Tokens.getLegacyTokens(ImmutableList.of(CONJURE_TOKEN, otherToken)))
                 .containsExactly(LEGACY_TOKEN, new LockRefreshToken(BigInteger.ZERO, expirationDateMs));
     }
 }

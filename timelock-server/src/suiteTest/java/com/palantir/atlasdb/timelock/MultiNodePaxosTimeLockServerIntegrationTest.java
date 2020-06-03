@@ -390,7 +390,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .isNull();
         assertThat(client.legacyLockService().unlock(token.getLockRefreshToken())).isTrue();
         assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
-                .as("a lock once unlocked by conjure impl can be acquired by legacy impl")
+                .as("lock taken by conjure impl that was unlocked can now be acquired by legacy impl")
                 .isNotNull();
         assertThat(client.conjureLegacyLockService().lockAndGetHeldLocks(
                 AuthHeader.valueOf("Bearer unused"),

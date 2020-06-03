@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.timelock.lock.v1;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
@@ -85,10 +84,11 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
             String namespace, List<ConjureLockRefreshToken> request) {
         return exceptionHandler.handleExceptions(() -> {
             ListenableFuture<Set<LockRefreshToken>> serviceTokens = Futures.immediateFuture(
-                    lockServices.apply(namespace).refreshLockRefreshTokens(getLegacyTokens(request)));
+                    lockServices.apply(namespace).refreshLockRefreshTokens(
+                            ConjureLockV1Tokens.getLegacyTokens(request)));
             return Futures.transform(
                     serviceTokens,
-                    ConjureLockV1Resource::getConjureTokens,
+                    ConjureLockV1Tokens::getConjureTokens,
                     MoreExecutors.directExecutor());
         });
     }
@@ -101,20 +101,6 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
                     request.getTokenId(), request.getCreationDateMs());
             return Futures.immediateFuture(lockServices.apply(namespace).unlockSimple(serverToken));
         });
-    }
-
-    @VisibleForTesting
-    static List<LockRefreshToken> getLegacyTokens(List<ConjureLockRefreshToken> request) {
-        return request.stream()
-                .map(token -> new LockRefreshToken(token.getTokenId(), token.getExpirationDateMs()))
-                .collect(Collectors.toList());
-    }
-
-    @VisibleForTesting
-    static Set<ConjureLockRefreshToken> getConjureTokens(Set<LockRefreshToken> serverTokens) {
-        return serverTokens.stream()
-                .map(token -> ConjureLockRefreshToken.of(token.getTokenId(), token.getExpirationDateMs()))
-                .collect(Collectors.toSet());
     }
 
     public static final class JerseyAdapter implements ConjureLockV1ShimService {
