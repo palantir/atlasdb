@@ -32,6 +32,7 @@ import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.tokens.auth.AuthHeader;
 
 /*

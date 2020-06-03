@@ -53,10 +53,11 @@ public abstract class LeadershipContextFactory implements
 
     @Value.Derived
     public LocalPaxosComponents components() {
-        return new LocalPaxosComponents(
+        return LocalPaxosComponents.createWithBlockingMigration(
                 metrics(),
                 useCase(),
                 install().dataDirectory(),
+                install().sqliteDataSource(),
                 leaderUuid(),
                 install().install().paxos().canCreateNewClients());
     }

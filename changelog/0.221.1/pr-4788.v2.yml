@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: AtlasDB now supports Paxos state logs that validate themselves using
+    an alternative implementation. Please contact the AtlasDB team should you wish
+    to use this feature.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4788

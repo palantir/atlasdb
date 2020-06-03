@@ -24,10 +24,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
+import com.palantir.atlasdb.http.v2.DialogueShimFactory;
+import com.palantir.atlasdb.http.v2.FastFailoverProxy;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.dialogue.Channel;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
@@ -78,6 +81,14 @@ public final class AtlasDbHttpClients {
                         clientParameters),
                 type);
         return wrapWithOkHttpBugHandling(type, clientFactory);
+    }
+
+    public static <T> T createDialogueProxy(TaggedMetricRegistry registry, Class<T> type, Channel channel) {
+        T proxy = DialogueShimFactory.create(type, channel);
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                registry,
+                type,
+                FastFailoverProxy.newProxyInstance(type, () -> proxy));
     }
 
     @VisibleForTesting

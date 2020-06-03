@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,6 +43,7 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ImmutableIdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -51,6 +52,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 
 public class LockWatchingServiceImplTest {
+    private static final UUID LOG_ID = UUID.randomUUID();
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("prod.table");
     private static final LockToken TOKEN = LockToken.of(UUID.randomUUID());
@@ -64,7 +66,7 @@ public class LockWatchingServiceImplTest {
     private static final AsyncLock LOCK_2 = new ExclusiveLock(descriptorForOtherTable());
 
     private final HeldLocksCollection locks = mock(HeldLocksCollection.class);
-    private final LockWatchingService lockWatcher = new LockWatchingServiceImpl(locks);
+    private final LockWatchingService lockWatcher = new LockWatchingServiceImpl(LOG_ID, locks);
 
     private final HeldLocks heldLocks = mock(HeldLocks.class);
 
@@ -291,7 +293,8 @@ public class LockWatchingServiceImplTest {
     }
 
     private void assertLoggedEvents(List<LockWatchEvent> expectedEvents) {
-        LockWatchStateUpdate update = lockWatcher.getWatchStateUpdate(OptionalLong.of(-1));
+        LockWatchStateUpdate update = lockWatcher.getWatchStateUpdate(
+                Optional.of(ImmutableIdentifiedVersion.of(LOG_ID, -1L)));
         List<LockWatchEvent> events = UpdateVisitors.assertSuccess(update).events();
         assertThat(events).isEqualTo(expectedEvents);
     }

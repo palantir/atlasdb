@@ -34,6 +34,8 @@ import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.ConjureLockV1ServiceEndpoints;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;

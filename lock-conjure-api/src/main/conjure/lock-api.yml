@@ -16,6 +16,11 @@ types:
       base-type: any
       external:
         java: java.lang.Long
+    BigInteger:
+      base-type: any
+      external:
+        java: java.math.BigInteger
+
   definitions:
     default-package: com.palantir.lock
     objects:
