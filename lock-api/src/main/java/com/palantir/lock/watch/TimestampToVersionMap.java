@@ -17,6 +17,7 @@
 package com.palantir.lock.watch;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.immutables.value.Value;
@@ -26,7 +27,7 @@ import com.google.common.collect.TreeMultimap;
 import com.palantir.lock.v2.LockToken;
 
 final class TimestampToVersionMap {
-    private final HashMap<Long, MapEntry> timestampMap = new HashMap<>();
+    private final Map<Long, MapEntry> timestampMap = new HashMap<>();
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
             TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
 

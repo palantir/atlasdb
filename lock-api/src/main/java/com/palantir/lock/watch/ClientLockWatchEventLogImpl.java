@@ -17,6 +17,7 @@
 package com.palantir.lock.watch;
 
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -30,7 +31,8 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private static final boolean INCLUSIVE = true;
 
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
-    private final TreeMap<IdentifiedVersion, LockWatchEvent> eventMap = new TreeMap<>(IdentifiedVersion.comparator());
+    private final NavigableMap<IdentifiedVersion, LockWatchEvent> eventMap =
+            new TreeMap<>(IdentifiedVersion.comparator());
 
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
