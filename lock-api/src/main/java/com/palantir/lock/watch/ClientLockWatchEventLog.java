@@ -19,9 +19,18 @@ package com.palantir.lock.watch;
 import java.util.Optional;
 
 public interface ClientLockWatchEventLog {
-    ClientLogEvents getEventsBetweenVersions(
-            Optional<IdentifiedVersion> startVersion, IdentifiedVersion endVersion);
+    /**
+     * @param startVersion latest version that the client knows about; should be before timestamps in the mapping;
+     * @param endVersion   mapping from timestamp to identified version from client-side event cache;
+     * @return lock watch events that occurred from (exclusive) the provided version, up to (inclusive) the latest
+     * version in the timestamp to version map.
+     */
+    ClientLogEvents getEventsBetweenVersions(Optional<IdentifiedVersion> startVersion, IdentifiedVersion endVersion);
     Optional<IdentifiedVersion> getLatestKnownVersion();
-    Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update);
+
+    /**
+     * @return true if the update was successful and on the same leader; false if the cache should be cleared.
+     */
+    boolean processUpdate(LockWatchStateUpdate update);
     void removeOldEntries(long earliestSequence);
 }

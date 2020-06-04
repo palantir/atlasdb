@@ -48,7 +48,7 @@ import com.palantir.lock.watch.TransactionsLockWatchEvents;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
-public class LockWatchEventLogIntegrationTest {
+public class LockWatchEventCacheIntegrationTest {
     private static final String TABLE = "table";
     private static final LockDescriptor DESCRIPTOR = AtlasRowLockDescriptor.of(TABLE, new byte[] {1});
     private static final LockDescriptor DESCRIPTOR_2 = AtlasRowLockDescriptor.of(TABLE, new byte[] {2});

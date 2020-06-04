@@ -56,23 +56,16 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     }
 
     @Override
-    public Optional<IdentifiedVersion> processUpdate(LockWatchStateUpdate update) {
+    public boolean processUpdate(LockWatchStateUpdate update) {
         final ProcessingVisitor visitor;
         if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
             visitor = new NewLeaderVisitor();
         } else {
             visitor = new ProcessingVisitor();
         }
-        update.accept(visitor);
-        return latestVersion;
+        return update.accept(visitor);
     }
 
-    /**
-     * @param startVersion latest version that the client knows about; should be before timestamps in the mapping;
-     * @param endVersion   mapping from timestamp to identified version from client-side event cache;
-     * @return lock watch events that occurred from (exclusive) the provided version, up to (inclusive) the latest
-     * version in the timestamp to version map.
-     */
     @Override
     public ClientLogEvents getEventsBetweenVersions(
             Optional<IdentifiedVersion> startVersion,
@@ -157,31 +150,31 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
         latestVersion = Optional.empty();
     }
 
-    private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<Void> {
+    private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<Boolean> {
         @Override
-        public Void visit(LockWatchStateUpdate.Failed failed) {
+        public Boolean visit(LockWatchStateUpdate.Failed failed) {
             processFailed();
-            return null;
+            return false;
         }
 
         @Override
-        public Void visit(LockWatchStateUpdate.Success success) {
+        public Boolean visit(LockWatchStateUpdate.Success success) {
             processSuccess(success);
-            return null;
+            return true;
         }
 
         @Override
-        public Void visit(LockWatchStateUpdate.Snapshot snapshot) {
+        public Boolean visit(LockWatchStateUpdate.Snapshot snapshot) {
             processSnapshot(snapshot);
-            return null;
+            return false;
         }
     }
 
     private final class NewLeaderVisitor extends ProcessingVisitor {
         @Override
-        public Void visit(LockWatchStateUpdate.Success success) {
+        public Boolean visit(LockWatchStateUpdate.Success success) {
             processFailed();
-            return null;
+            return false;
         }
     }
 

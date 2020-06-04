@@ -167,35 +167,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {
-        Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
-        Optional<IdentifiedVersion> latestVersion = eventLog.processUpdate(update);
+        boolean wasSuccessful = eventLog.processUpdate(update);
 
-        if (!(latestVersion.isPresent()
-                && currentVersion.isPresent()
-                && latestVersion.get().id().equals(currentVersion.get().id())
-                && update.accept(SuccessVisitor.INSTANCE))) {
+        if (!wasSuccessful) {
             timestampStateStore.clear();
         }
-        return latestVersion;
-    }
 
-    enum SuccessVisitor implements LockWatchStateUpdate.Visitor<Boolean> {
-        INSTANCE;
-
-        @Override
-        public Boolean visit(LockWatchStateUpdate.Failed failed) {
-            return false;
-        }
-
-        @Override
-        public Boolean visit(LockWatchStateUpdate.Success success) {
-            return true;
-        }
-
-        @Override
-        public Boolean visit(LockWatchStateUpdate.Snapshot snapshot) {
-            return false;
-        }
+        return eventLog.getLatestKnownVersion();
     }
 
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {

@@ -140,7 +140,8 @@ public final class LockWatchEventCacheImplTest {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_COMBINED, SUCCESS_1);
         assertThat(eventCache.getTimestampMappings(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
 
-        when(eventLog.processUpdate(SNAPSHOT)).thenReturn(Optional.of(VERSION_3));
+        when(eventLog.processUpdate(SNAPSHOT)).thenReturn(false);
+        when(eventLog.getLatestKnownVersion()).thenReturn(Optional.of(VERSION_3));
         Set<Long> secondBatch = ImmutableSet.of(666L, 12545L);
         eventCache.processStartTransactionsUpdate(secondBatch, SNAPSHOT);
 
@@ -178,18 +179,16 @@ public final class LockWatchEventCacheImplTest {
     }
 
     private void setupFirstSuccess() {
-        setupEventLogSuccess(Optional.empty(), VERSION_1, SUCCESS_1);
+        setupEventLogSuccess(VERSION_1, SUCCESS_1);
     }
 
     private void setupSecondSuccess() {
-        setupEventLogSuccess(Optional.of(VERSION_1), VERSION_2, SUCCESS_2);
+        setupEventLogSuccess(VERSION_2, SUCCESS_2);
     }
 
-    private void setupEventLogSuccess(
-            Optional<IdentifiedVersion> previousVersion,
-            IdentifiedVersion newVersion, LockWatchStateUpdate.Success successUpdate) {
-        when(eventLog.getLatestKnownVersion()).thenReturn(previousVersion);
-        when(eventLog.processUpdate(successUpdate)).thenReturn(Optional.of(newVersion));
+    private void setupEventLogSuccess(IdentifiedVersion newVersion, LockWatchStateUpdate.Success successUpdate) {
+        when(eventLog.processUpdate(successUpdate)).thenReturn(true);
+        when(eventLog.getLatestKnownVersion()).thenReturn(Optional.of(newVersion));
     }
 
     private void processFirstTimestampBatch(Map<Long, IdentifiedVersion> expectedMap) {

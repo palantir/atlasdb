@@ -112,7 +112,7 @@ public final class ClientLockWatchEventLogImplTest {
                 VERSION_2.version(),
                 ImmutableSet.of(),
                 ImmutableSet.of()));
-        eventLog.removeOldEntries(VERSION_2);
+        eventLog.removeOldEntries(VERSION_2.version());
         eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
         verify(snapshotUpdater).getSnapshot();
         verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1), VERSION_1);
