@@ -30,6 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampToVersionMap.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.ClientLockWatchEventLog;
@@ -57,9 +58,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
     private final TimestampToVersionMap timestampMap;
 
-    public static LockWatchEventCache create() {
+    public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create()), NoOpLockWatchEventCache.INSTANCE);
+                new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create()), NoOpLockWatchEventCache.INSTANCE,
+                metricsManager);
     }
 
     @VisibleForTesting

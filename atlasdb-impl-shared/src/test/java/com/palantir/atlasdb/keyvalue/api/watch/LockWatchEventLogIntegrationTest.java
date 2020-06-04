@@ -26,9 +26,11 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -44,6 +46,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class LockWatchEventLogIntegrationTest {
     private static final String TABLE = "table";
@@ -70,11 +73,16 @@ public class LockWatchEventLogIntegrationTest {
     private static final Set<TransactionUpdate> COMMIT_UPDATE = ImmutableSet.of(
             ImmutableTransactionUpdate.builder().startTs(START_TS).commitTs(5L).writesToken(COMMIT_TOKEN).build());
 
+    private final MetricsManager metricsManager = new MetricsManager(
+            new MetricRegistry(),
+            new DefaultTaggedMetricRegistry(),
+            unused -> false);
+
     private LockWatchEventCache eventCache;
 
     @Before
     public void before() {
-        eventCache = LockWatchEventCacheImpl.create();
+        eventCache = LockWatchEventCacheImpl.create(metricsManager);
     }
 
     @Test

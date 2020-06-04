@@ -19,28 +19,42 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Counter;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
 
 final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
 
-    static LockWatchEventCache newProxyInstance(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
+    private static final Logger log = LoggerFactory.getLogger(ResilientLockWatchEventCache.class);
+
+    static LockWatchEventCache newProxyInstance(
+            LockWatchEventCache defaultCache,
+            LockWatchEventCache fallbackCache,
+            MetricsManager metricsManager) {
         return (LockWatchEventCache) Proxy.newProxyInstance(
                 LockWatchEventCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchEventCache.class},
-                new ResilientLockWatchEventCache(defaultCache, fallbackCache));
+                new ResilientLockWatchEventCache(defaultCache, fallbackCache, metricsManager));
     }
 
     private final LockWatchEventCache fallbackCache;
+    private final Counter fallbackCacheSelectedCounter;
 
     @GuardedBy("this")
     private LockWatchEventCache delegate;
 
-    private ResilientLockWatchEventCache(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
+    private ResilientLockWatchEventCache(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache,
+            MetricsManager metricsManager) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
+        this.fallbackCacheSelectedCounter =
+                metricsManager.registerOrGetCounter(ResilientLockWatchEventCache.class, "fallbackCacheSelectedCounter");
     }
 
     @Override
@@ -50,6 +64,9 @@ final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
         } catch (TransactionLockWatchFailedException e) {
             throw e;
         } catch (Throwable t) {
+            log.warn("Unexpected failure occurred when trying to use the default cache. Switching to the fallback "
+                    + "implementation", t);
+            fallbackCacheSelectedCounter.inc();
             delegate = fallbackCache;
             throw new TransactionLockWatchFailedException("Unexpected failure in the lock watch cache", t);
         }

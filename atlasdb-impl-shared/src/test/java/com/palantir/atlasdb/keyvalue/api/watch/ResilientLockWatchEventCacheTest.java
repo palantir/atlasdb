@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -29,10 +28,18 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class ResilientLockWatchEventCacheTest {
+
+    private final MetricsManager metricsManager = new MetricsManager(
+            new MetricRegistry(),
+            new DefaultTaggedMetricRegistry(),
+            unused -> false);
 
     @Mock
     private LockWatchEventCache defaultCache;
@@ -42,7 +49,7 @@ public final class ResilientLockWatchEventCacheTest {
 
     @Before
     public void before() {
-        proxyCache = ResilientLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache);
+        proxyCache = ResilientLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache, metricsManager);
     }
 
     @Test
