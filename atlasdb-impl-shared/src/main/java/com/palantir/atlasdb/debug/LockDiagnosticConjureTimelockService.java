@@ -43,12 +43,14 @@ import com.palantir.tokens.auth.AuthHeader;
 public class LockDiagnosticConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockService conjureDelegate;
     private final ClientLockDiagnosticCollector lockDiagnosticCollector;
+    private final LocalLockTracker localLockTracker;
 
     public LockDiagnosticConjureTimelockService(
             ConjureTimelockService conjureDelegate,
             ClientLockDiagnosticCollector lockDiagnosticCollector) {
         this.conjureDelegate = conjureDelegate;
         this.lockDiagnosticCollector = lockDiagnosticCollector;
+        this.localLockTracker = lockDiagnosticCollector.getLocalLockTracker();
     }
 
     @Override
@@ -79,7 +81,9 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
                 .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
                 .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
                         startTimestamp, request.getRequestId(), request.getLockDescriptors()));
-        return conjureDelegate.lock(authHeader, namespace, request);
+        ConjureLockResponse response = conjureDelegate.lock(authHeader, namespace, request);
+        localLockTracker.logLockResponse(request.getLockDescriptors(), response);
+        return response;
     }
 
     @Override
@@ -89,18 +93,24 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
                 .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
                 .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
                         startTimestamp, request.getRequestId(), request.getLockDescriptors()));
-        return conjureDelegate.waitForLocks(authHeader, namespace, request);
+        ConjureWaitForLocksResponse response = conjureDelegate.waitForLocks(authHeader, namespace, request);
+        localLockTracker.logWaitForLocksResponse(request.getLockDescriptors(), response);
+        return response;
     }
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
             ConjureRefreshLocksRequest request) {
-        return conjureDelegate.refreshLocks(authHeader, namespace, request);
+        ConjureRefreshLocksResponse response = conjureDelegate.refreshLocks(authHeader, namespace, request);
+        localLockTracker.logRefreshResponse(request.getTokens(), response);
+        return response;
     }
 
     @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
-        return conjureDelegate.unlock(authHeader, namespace, request);
+        ConjureUnlockResponse response = conjureDelegate.unlock(authHeader, namespace, request);
+        localLockTracker.logUnlockResponse(request.getTokens(), response);
+        return response;
     }
 
     @Override

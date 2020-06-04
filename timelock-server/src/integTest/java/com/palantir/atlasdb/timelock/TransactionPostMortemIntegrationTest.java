@@ -31,6 +31,7 @@ import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollectorImpl;
 import com.palantir.atlasdb.debug.FullDiagnosticDigest;
 import com.palantir.atlasdb.debug.ImmutableLockDiagnosticConfig;
+import com.palantir.atlasdb.debug.LocalLockTracker;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.debug.TransactionPostMortemRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -65,7 +66,7 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
 
     private TransactionManagerContext transactionManagerContext;
     private ClientLockDiagnosticCollector diagnosticCollector =
-            new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG);
+            new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG, new LocalLockTracker(10_000));
     private TransactionPostMortemRunner runner;
 
     @Before
