@@ -80,10 +80,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
-
-        latestVersion.ifPresent(
-                version -> startTimestamps.forEach(
-                        timestamp -> timestampStateStore.putStartVersion(timestamp, version)));
+        latestVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
     }
 
     @Override
@@ -91,11 +88,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
-
-        latestVersion.ifPresent(version -> transactionUpdates.forEach(
-                transactionUpdate -> assertTrue(
-                        timestampStateStore.putCommitUpdate(transactionUpdate, version),
-                        "start timestamp missing from map")));
+        latestVersion.ifPresent(version -> timestampStateStore.putCommitUpdates(transactionUpdates, version));
     }
 
     @Override

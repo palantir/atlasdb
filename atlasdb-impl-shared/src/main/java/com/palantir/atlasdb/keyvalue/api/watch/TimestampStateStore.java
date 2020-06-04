@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import org.immutables.value.Value;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.TransactionUpdate;
@@ -34,26 +36,28 @@ final class TimestampStateStore {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
     private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
-    void putStartVersion(long startTimestamp, IdentifiedVersion version) {
-        MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
-        Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
-        aliveVersions.put(version.version(), startTimestamp);
+    void putStartTimestamps(Collection<Long> startTimestamps, IdentifiedVersion version) {
+        startTimestamps.forEach(startTimestamp -> {
+            MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
+            Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
+            aliveVersions.put(version.version(), startTimestamp);
+        });
     }
 
-    boolean putCommitUpdate(TransactionUpdate transactionUpdate, IdentifiedVersion newVersion) {
-        MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
-        if (previousEntry == null) {
-            return false;
-        }
+    void putCommitUpdates(Collection<TransactionUpdate> transactionUpdates, IdentifiedVersion newVersion) {
+        transactionUpdates.forEach(transactionUpdate -> {
+            MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
+            if (previousEntry == null) {
+                throw new TransactionLockWatchFailedException("start timestamp missing from map");
+            }
 
-        Preconditions.checkArgument(!previousEntry.commitInfo().isPresent(),
-                "Commit info already present for given timestamp");
+            Preconditions.checkArgument(!previousEntry.commitInfo().isPresent(),
+                    "Commit info already present for given timestamp");
 
-        timestampMap.replace(
-                transactionUpdate.startTs(),
-                previousEntry.withCommitInfo(CommitInfo.of(transactionUpdate.writesToken(), newVersion)));
-
-        return true;
+            timestampMap.replace(
+                    transactionUpdate.startTs(),
+                    previousEntry.withCommitInfo(CommitInfo.of(transactionUpdate.writesToken(), newVersion)));
+        });
     }
 
     void remove(long startTimestamp) {

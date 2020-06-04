@@ -43,10 +43,10 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void earliestVersionUpdatesWhenAllTimestampsRemovedForVersion() {
-        timestampStateStore.putStartVersion(100L, VERSION_1);
-        timestampStateStore.putStartVersion(200L, VERSION_1);
-        timestampStateStore.putStartVersion(400L, VERSION_2);
-        timestampStateStore.putStartVersion(800L, VERSION_2);
+        timestampStateStore.putStartTimestamps(100L, VERSION_1);
+        timestampStateStore.putStartTimestamps(200L, VERSION_1);
+        timestampStateStore.putStartTimestamps(400L, VERSION_2);
+        timestampStateStore.putStartTimestamps(800L, VERSION_2);
 
         assertThat(timestampStateStore.getEarliestVersion()).hasValue(1L);
 
@@ -66,9 +66,9 @@ public final class TimestampStateStoreTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        timestampStateStore.putStartVersion(100L, VERSION_1);
-        assertThat(timestampStateStore.putCommitUpdate(update, VERSION_2)).isTrue();
-        assertThat(timestampStateStore.putCommitUpdate(update, VERSION_2)).isFalse();
+        timestampStateStore.putStartTimestamps(100L, VERSION_1);
+        assertThat(timestampStateStore.putCommitUpdates(update, VERSION_2)).isTrue();
+        assertThat(timestampStateStore.putCommitUpdates(update, VERSION_2)).isFalse();
     }
 
     @Test
@@ -79,7 +79,7 @@ public final class TimestampStateStoreTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        assertThat(timestampStateStore.putCommitUpdate(update, VERSION_2)).isFalse();
+        assertThat(timestampStateStore.putCommitUpdates(update, VERSION_2)).isFalse();
     }
 
     private void removeAndCheckEarliestVersion(long timestamp, long sequence) {
