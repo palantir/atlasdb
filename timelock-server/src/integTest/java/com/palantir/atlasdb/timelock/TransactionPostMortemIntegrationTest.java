@@ -63,10 +63,11 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
             .build();
     private static final ProfileTableFactory TABLE_FACTORY = ProfileTableFactory.of();
     private static final TableReference TABLE_REFERENCE = TABLE_FACTORY.getUserProfileTable(null).getTableRef();
+    private static final int LOCK_TRACKER_SIZE = 10_000;
 
     private TransactionManagerContext transactionManagerContext;
     private ClientLockDiagnosticCollector diagnosticCollector =
-            new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG, new LocalLockTracker(10_000));
+            new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG, new LocalLockTracker(LOCK_TRACKER_SIZE));
     private TransactionPostMortemRunner runner;
 
     @Before
