@@ -19,7 +19,6 @@ package com.palantir.lock.watch;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 
 import org.immutables.value.Value;
 
@@ -42,8 +41,9 @@ final class TimestampToVersionMap {
             return false;
         }
 
-        timestampMap.replace(transactionUpdate.startTs(), previousEntry.withCommitInfo(
-                CommitInfo.of(transactionUpdate.commitTs(), transactionUpdate.writesToken(), newVersion)));
+        timestampMap.replace(
+                transactionUpdate.startTs(),
+                previousEntry.withCommitInfo(CommitInfo.of(transactionUpdate.writesToken(), newVersion)));
 
         return true;
     }
@@ -58,16 +58,20 @@ final class TimestampToVersionMap {
         aliveVersions.clear();
     }
 
-    OptionalLong getEarliestVersion() {
+    Optional<Long> getEarliestVersion() {
         if (aliveVersions.isEmpty()) {
-            return OptionalLong.empty();
+            return Optional.empty();
         } else {
-            return OptionalLong.of(aliveVersions.keySet().first());
+            return Optional.of(aliveVersions.keySet().first());
         }
     }
 
-    Optional<MapEntry> get(long startTimestamp) {
-        return Optional.ofNullable(timestampMap.get(startTimestamp));
+    Optional<IdentifiedVersion> getStartVersion(long startTimestamp) {
+        return Optional.ofNullable(timestampMap.get(startTimestamp)).map(MapEntry::version);
+    }
+
+    Optional<CommitInfo> getCommitInfo(long startTimestamp) {
+        return Optional.ofNullable(timestampMap.get(startTimestamp)).flatMap(MapEntry::commitInfo);
     }
 
     @Value.Immutable
@@ -90,16 +94,13 @@ final class TimestampToVersionMap {
     @Value.Immutable
     interface CommitInfo {
         @Value.Parameter
-        long commitTs();
-
-        @Value.Parameter
         LockToken commitLockToken();
 
         @Value.Parameter
         IdentifiedVersion commitVersion();
 
-        static CommitInfo of(long commitTs, LockToken commitLockToken, IdentifiedVersion commitVersion) {
-            return ImmutableCommitInfo.of(commitTs, commitLockToken, commitVersion);
+        static CommitInfo of(LockToken commitLockToken, IdentifiedVersion commitVersion) {
+            return ImmutableCommitInfo.of(commitLockToken, commitVersion);
         }
     }
 

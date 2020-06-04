@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.TimestampToVersionMap.CommitInfo;
-import com.palantir.lock.watch.TimestampToVersionMap.MapEntry;
 import com.palantir.logsafe.Preconditions;
 
 /**
@@ -63,7 +62,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
-        latestVersion.ifPresent(version -> startTimestamps.forEach(timestamp -> timestampMap.putStartVersion(timestamp, version)));
+        latestVersion.ifPresent(
+                version -> startTimestamps.forEach(timestamp -> timestampMap.putStartVersion(timestamp, version)));
 
         getEarliestVersion().ifPresent(eventLog::removeOldEntries);
     }
@@ -81,15 +81,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public CommitUpdate getCommitUpdate(long startTs) {
-        Optional<MapEntry> maybeEntry = timestampMap.get(startTs);
-        Optional<CommitInfo> maybeCommitInfo = maybeEntry.flatMap(MapEntry::commitInfo);
+        Optional<IdentifiedVersion> startVersion = timestampMap.getStartVersion(startTs);
+        Optional<CommitInfo> maybeCommitInfo = timestampMap.getCommitInfo(startTs);
 
-        checkConditionOrThrow(!maybeCommitInfo.isPresent(), "commit info not processed for start timestamp");
+        checkConditionOrThrow(!maybeCommitInfo.isPresent() || !startVersion.isPresent(),
+                "start or commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
 
-        ClientLogEvents update =
-                eventLog.getEventsBetweenVersions(Optional.of(maybeEntry.get().version()), commitInfo.commitVersion());
+        ClientLogEvents update = eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion());
 
         if (update.clearCache()) {
             return ImmutableInvalidateAll.builder().build();
@@ -117,16 +117,18 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     Map<Long, IdentifiedVersion> getTimestampMappings(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
-            Optional<MapEntry> entry = timestampMap.get(timestamp);
+            Optional<IdentifiedVersion> entry = timestampMap.getStartVersion(timestamp);
             checkConditionOrThrow(!entry.isPresent(), "start timestamp missing from map");
-            timestampToVersion.put(timestamp, entry.get().version());
+            timestampToVersion.put(timestamp, entry.get());
         });
         return timestampToVersion;
     }
 
     @VisibleForTesting
     Optional<IdentifiedVersion> getEarliestVersion() {
-        return timestampMap.getEarliestVersion();
+        Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
+        return timestampMap.getEarliestVersion().flatMap(sequence ->
+                currentVersion.map(version -> IdentifiedVersion.of(version.id(), sequence)));
     }
 
     private void checkConditionOrThrow(boolean condition, String message) {
