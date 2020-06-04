@@ -22,6 +22,8 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -29,8 +31,7 @@ import com.palantir.lock.watch.TransactionUpdate;
 
 final class TimestampToVersionMap {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
-    @SuppressWarnings("IllegalTypeCheck")
-    private final TreeMultimap<Long, Long> aliveVersions = TreeMultimap.create();
+    private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
     void putStartVersion(long startTimestamp, IdentifiedVersion version) {
         timestampMap.put(startTimestamp, MapEntry.of(version));
@@ -61,11 +62,7 @@ final class TimestampToVersionMap {
     }
 
     Optional<Long> getEarliestVersion() {
-        if (aliveVersions.isEmpty()) {
-            return Optional.empty();
-        } else {
-            return Optional.of(aliveVersions.keySet().first());
-        }
+        return Optional.ofNullable(Iterables.getFirst(aliveVersions.keySet(), null));
     }
 
     Optional<IdentifiedVersion> getStartVersion(long startTimestamp) {
