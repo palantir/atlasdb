@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.lock.v1;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -28,6 +29,11 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureLockV1Request;
+import com.palantir.lock.ConjureLockV1Service;
+import com.palantir.lock.ConjureLockV1ServiceEndpoints;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
@@ -60,6 +66,22 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     }
 
     @Override
+    public ListenableFuture<Optional<HeldLocksToken>> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
+            ConjureLockV1Request request) {
+        return exceptionHandler.handleExceptions(() -> {
+            try {
+                return Futures.immediateFuture(Optional.ofNullable(
+                        lockServices.apply(namespace)
+                                .lockAndGetHeldLocks(request.getLockClient(), request.getLockRequest())
+                ));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
     public ListenableFuture<Set<ConjureLockRefreshToken>> refreshLockRefreshTokens(AuthHeader authHeader,
             String namespace, List<ConjureLockRefreshToken> request) {
         return exceptionHandler.handleExceptions(() -> {
@@ -88,6 +110,12 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
 
         private JerseyAdapter(ConjureLockV1Resource resource) {
             this.resource = resource;
+        }
+
+        @Override
+        public Optional<HeldLocksToken> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
+                ConjureLockV1Request request) {
+            return unwrap(resource.lockAndGetHeldLocks(authHeader, namespace, request));
         }
 
         @Override
