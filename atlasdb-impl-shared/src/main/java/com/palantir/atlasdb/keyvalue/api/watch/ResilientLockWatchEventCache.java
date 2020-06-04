@@ -24,13 +24,13 @@ import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.watch.LockWatchEventCache;
 
-final class FailureCheckingLockWatchEventCache extends AbstractInvocationHandler {
+final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
 
     static LockWatchEventCache newProxyInstance(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
         return (LockWatchEventCache) Proxy.newProxyInstance(
                 LockWatchEventCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchEventCache.class},
-                new FailureCheckingLockWatchEventCache(defaultCache, fallbackCache));
+                new ResilientLockWatchEventCache(defaultCache, fallbackCache));
     }
 
     private final LockWatchEventCache fallbackCache;
@@ -38,7 +38,7 @@ final class FailureCheckingLockWatchEventCache extends AbstractInvocationHandler
     @GuardedBy("this")
     private LockWatchEventCache delegate;
 
-    private FailureCheckingLockWatchEventCache(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
+    private ResilientLockWatchEventCache(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
     }

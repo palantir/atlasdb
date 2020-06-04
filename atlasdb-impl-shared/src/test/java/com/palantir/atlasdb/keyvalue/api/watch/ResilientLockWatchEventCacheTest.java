@@ -32,7 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.palantir.lock.watch.LockWatchEventCache;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class FailureCheckingLockWatchEventCacheTest {
+public final class ResilientLockWatchEventCacheTest {
 
     @Mock
     private LockWatchEventCache defaultCache;
@@ -42,7 +42,7 @@ public final class FailureCheckingLockWatchEventCacheTest {
 
     @Before
     public void before() {
-        proxyCache = FailureCheckingLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache);
+        proxyCache = ResilientLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache);
     }
 
     @Test

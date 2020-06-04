@@ -49,7 +49,7 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 /**
- * This class should only be used through {@link FailureCheckingLockWatchEventCache} as a proxy; failure to do so will
+ * This class should only be used through {@link ResilientLockWatchEventCache} as a proxy; failure to do so will
  * result in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
@@ -57,7 +57,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final TimestampToVersionMap timestampMap;
 
     public static LockWatchEventCache create() {
-        return FailureCheckingLockWatchEventCache.newProxyInstance(
+        return ResilientLockWatchEventCache.newProxyInstance(
                 new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create()), NoOpLockWatchEventCache.INSTANCE);
     }
 
