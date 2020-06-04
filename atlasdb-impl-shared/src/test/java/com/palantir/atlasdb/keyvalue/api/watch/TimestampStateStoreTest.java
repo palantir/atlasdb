@@ -28,34 +28,34 @@ import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 
-public final class TimestampToVersionMapTest {
+public final class TimestampStateStoreTest {
     private static UUID LEADER = UUID.randomUUID();
 
     private static IdentifiedVersion VERSION_1 = IdentifiedVersion.of(LEADER, 1L);
     private static IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 17L);
 
-    private TimestampToVersionMap timestampToVersionMap;
+    private TimestampStateStore timestampStateStore;
 
     @Before
     public void before() {
-        timestampToVersionMap = new TimestampToVersionMap();
+        timestampStateStore = new TimestampStateStore();
     }
 
     @Test
     public void earliestVersionUpdatesWhenAllTimestampsRemovedForVersion() {
-        timestampToVersionMap.putStartVersion(100L, VERSION_1);
-        timestampToVersionMap.putStartVersion(200L, VERSION_1);
-        timestampToVersionMap.putStartVersion(400L, VERSION_2);
-        timestampToVersionMap.putStartVersion(800L, VERSION_2);
+        timestampStateStore.putStartVersion(100L, VERSION_1);
+        timestampStateStore.putStartVersion(200L, VERSION_1);
+        timestampStateStore.putStartVersion(400L, VERSION_2);
+        timestampStateStore.putStartVersion(800L, VERSION_2);
 
-        assertThat(timestampToVersionMap.getEarliestVersion()).hasValue(1L);
+        assertThat(timestampStateStore.getEarliestVersion()).hasValue(1L);
 
         removeAndCheckEarliestVersion(100L, 1L);
         removeAndCheckEarliestVersion(800L, 1L);
         removeAndCheckEarliestVersion(200L, 17L);
 
-        timestampToVersionMap.remove(400L);
-        assertThat(timestampToVersionMap.getEarliestVersion()).isEmpty();
+        timestampStateStore.remove(400L);
+        assertThat(timestampStateStore.getEarliestVersion()).isEmpty();
     }
 
     @Test
@@ -66,9 +66,9 @@ public final class TimestampToVersionMapTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        timestampToVersionMap.putStartVersion(100L, VERSION_1);
-        assertThat(timestampToVersionMap.putCommitUpdate(update, VERSION_2)).isTrue();
-        assertThat(timestampToVersionMap.putCommitUpdate(update, VERSION_2)).isFalse();
+        timestampStateStore.putStartVersion(100L, VERSION_1);
+        assertThat(timestampStateStore.putCommitUpdate(update, VERSION_2)).isTrue();
+        assertThat(timestampStateStore.putCommitUpdate(update, VERSION_2)).isFalse();
     }
 
     @Test
@@ -79,11 +79,11 @@ public final class TimestampToVersionMapTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        assertThat(timestampToVersionMap.putCommitUpdate(update, VERSION_2)).isFalse();
+        assertThat(timestampStateStore.putCommitUpdate(update, VERSION_2)).isFalse();
     }
 
     private void removeAndCheckEarliestVersion(long timestamp, long sequence) {
-        timestampToVersionMap.remove(timestamp);
-        assertThat(timestampToVersionMap.getEarliestVersion()).hasValue(sequence);
+        timestampStateStore.remove(timestamp);
+        assertThat(timestampStateStore.getEarliestVersion()).hasValue(sequence);
     }
 }

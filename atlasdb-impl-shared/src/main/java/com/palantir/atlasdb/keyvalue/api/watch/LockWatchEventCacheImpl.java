@@ -28,7 +28,7 @@ import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.watch.TimestampToVersionMap.CommitInfo;
+import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockDescriptor;
@@ -56,7 +56,7 @@ import com.palantir.logsafe.Preconditions;
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
-    private final TimestampToVersionMap timestampMap;
+    private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
@@ -67,7 +67,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @VisibleForTesting
     LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
         this.eventLog = eventLog;
-        timestampMap = new TimestampToVersionMap();
+        timestampStateStore = new TimestampStateStore();
     }
 
     @Override
@@ -82,7 +82,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
         latestVersion.ifPresent(
-                version -> startTimestamps.forEach(timestamp -> timestampMap.putStartVersion(timestamp, version)));
+                version -> startTimestamps.forEach(
+                        timestamp -> timestampStateStore.putStartVersion(timestamp, version)));
 
         getEarliestVersion().ifPresent(eventLog::removeOldEntries);
     }
@@ -94,14 +95,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
         latestVersion.ifPresent(version -> transactionUpdates.forEach(
-                transactionUpdate -> checkConditionOrThrow(!timestampMap.putCommitUpdate(transactionUpdate, version),
+                transactionUpdate -> checkConditionOrThrow(
+                        !timestampStateStore.putCommitUpdate(transactionUpdate, version),
                         "start timestamp missing from map")));
     }
 
     @Override
     public CommitUpdate getCommitUpdate(long startTs) {
-        Optional<IdentifiedVersion> startVersion = timestampMap.getStartVersion(startTs);
-        Optional<CommitInfo> maybeCommitInfo = timestampMap.getCommitInfo(startTs);
+        Optional<IdentifiedVersion> startVersion = timestampStateStore.getStartVersion(startTs);
+        Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
 
         checkConditionOrThrow(!maybeCommitInfo.isPresent() || !startVersion.isPresent(),
                 "start or commit info not processed for start timestamp");
@@ -130,14 +132,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
-        timestampMap.remove(startTimestamp);
+        timestampStateStore.remove(startTimestamp);
     }
 
     @VisibleForTesting
     Map<Long, IdentifiedVersion> getTimestampMappings(Set<Long> startTimestamps) {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
-            Optional<IdentifiedVersion> entry = timestampMap.getStartVersion(timestamp);
+            Optional<IdentifiedVersion> entry = timestampStateStore.getStartVersion(timestamp);
             checkConditionOrThrow(!entry.isPresent(), "start timestamp missing from map");
             timestampToVersion.put(timestamp, entry.get());
         });
@@ -147,7 +149,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @VisibleForTesting
     Optional<IdentifiedVersion> getEarliestVersion() {
         Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
-        return timestampMap.getEarliestVersion().flatMap(sequence ->
+        return timestampStateStore.getEarliestVersion().flatMap(sequence ->
                 currentVersion.map(version -> IdentifiedVersion.of(version.id(), sequence)));
     }
 
@@ -172,7 +174,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 && currentVersion.isPresent()
                 && latestVersion.get().id().equals(currentVersion.get().id())
                 && update.accept(SuccessVisitor.INSTANCE))) {
-            timestampMap.clear();
+            timestampStateStore.clear();
         }
         return latestVersion;
     }

@@ -30,7 +30,7 @@ import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 
-final class TimestampToVersionMap {
+final class TimestampStateStore {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
     private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
