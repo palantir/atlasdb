@@ -35,7 +35,8 @@ final class TimestampStateStore {
     private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
     void putStartVersion(long startTimestamp, IdentifiedVersion version) {
-        timestampMap.put(startTimestamp, MapEntry.of(version));
+        MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
+        Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
         aliveVersions.put(version.version(), startTimestamp);
     }
 
