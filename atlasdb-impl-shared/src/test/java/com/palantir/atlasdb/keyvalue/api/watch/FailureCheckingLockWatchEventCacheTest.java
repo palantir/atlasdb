@@ -19,6 +19,8 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -44,12 +46,14 @@ public final class FailureCheckingLockWatchEventCacheTest {
     }
 
     @Test
-    public void failCausesNoOpCacheToBeUsed() {
+    public void failCausesFallbackCacheToBeUsed() {
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
         assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).hasRootCause(runtimeException);
 
         // no op cache returns empty on last known version, so this should prove that we delegate there correctly
-        assertThat(proxyCache.lastKnownVersion()).isEmpty();
+        proxyCache.lastKnownVersion();
+        verify(fallbackCache).lastKnownVersion();
+        verify(defaultCache, never()).lastKnownVersion();
     }
 }
