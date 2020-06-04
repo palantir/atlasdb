@@ -19,27 +19,26 @@ package com.palantir.lock.watch;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.lock.v2.LockToken;
 
 final class TimestampToVersionMap {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
     @SuppressWarnings("IllegalTypeCheck")
-    private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
-            TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
+    private final TreeMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
     void put(long startTimestamp, IdentifiedVersion version) {
         timestampMap.put(startTimestamp, MapEntry.of(version));
-        aliveVersions.put(version, startTimestamp);
+        aliveVersions.put(version.version(), startTimestamp);
     }
 
     boolean replace(TransactionUpdate transactionUpdate, IdentifiedVersion newVersion) {
         MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
-        if (previousEntry == null) {
+        if (previousEntry == null || previousEntry.commitInfo().isPresent()) {
             return false;
         }
 
@@ -59,11 +58,11 @@ final class TimestampToVersionMap {
         aliveVersions.clear();
     }
 
-    Optional<IdentifiedVersion> getEarliestVersion() {
+    OptionalLong getEarliestVersion() {
         if (aliveVersions.isEmpty()) {
-            return Optional.empty();
+            return OptionalLong.empty();
         } else {
-            return Optional.of(aliveVersions.keySet().first());
+            return OptionalLong.of(aliveVersions.keySet().first());
         }
     }
 
