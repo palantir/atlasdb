@@ -52,7 +52,7 @@ final class TimestampToVersionMap {
 
     void remove(long startTimestamp) {
         Optional.ofNullable(timestampMap.remove(startTimestamp))
-                .ifPresent(entry -> aliveVersions.remove(entry.version(), startTimestamp));
+                .ifPresent(entry -> aliveVersions.remove(entry.version().version(), startTimestamp));
     }
 
     void clear() {
