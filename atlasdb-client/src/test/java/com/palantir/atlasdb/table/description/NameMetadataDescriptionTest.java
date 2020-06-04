@@ -147,7 +147,7 @@ public class NameMetadataDescriptionTest {
         JsonNode jsonNode = OBJECT_MAPPER.readTree(MULTIPART_NAME_METADATA_DESCRIPTION.renderToJson(SAMPLE_ROW));
         ((ObjectNode) jsonNode).remove(ImmutableList.of("alpha", "omega"));
 
-        assertThatThrownBy(() -> MULTIPART_NAME_METADATA_DESCRIPTION.parseFromJson(jsonNode.toString(), false))
+        assertThatThrownBy(() -> MULTIPART_NAME_METADATA_DESCRIPTION.parseFromJson(jsonNode.toString(), true))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("JSON object is missing field: alpha");
     }
