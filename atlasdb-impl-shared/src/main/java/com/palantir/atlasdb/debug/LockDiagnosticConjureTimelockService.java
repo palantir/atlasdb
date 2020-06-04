@@ -47,10 +47,11 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
 
     public LockDiagnosticConjureTimelockService(
             ConjureTimelockService conjureDelegate,
-            ClientLockDiagnosticCollector lockDiagnosticCollector) {
+            ClientLockDiagnosticCollector lockDiagnosticCollector,
+            LocalLockTracker localLockTracker) {
         this.conjureDelegate = conjureDelegate;
         this.lockDiagnosticCollector = lockDiagnosticCollector;
-        this.localLockTracker = lockDiagnosticCollector.getLocalLockTracker();
+        this.localLockTracker = localLockTracker;
     }
 
     @Override

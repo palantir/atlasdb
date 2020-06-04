@@ -40,14 +40,12 @@ import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCollector {
 
     private final Cache<Long, ClientLockDiagnosticDigest> cache;
-    private final LocalLockTracker localLockTracker;
 
-    public ClientLockDiagnosticCollectorImpl(LockDiagnosticConfig config, LocalLockTracker tracker) {
+    public ClientLockDiagnosticCollectorImpl(LockDiagnosticConfig config) {
         this.cache = Caffeine.newBuilder()
                 .maximumSize(config.maximumSize())
                 .expireAfterWrite(config.ttl())
                 .build();
-        this.localLockTracker = tracker;
     }
 
     @Override
@@ -75,11 +73,6 @@ public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCo
     @Override
     public Map<Long, ClientLockDiagnosticDigest> getSnapshot() {
         return ImmutableMap.copyOf(cache.asMap());
-    }
-
-    @Override
-    public LocalLockTracker getLocalLockTracker() {
-        return localLockTracker;
     }
 
     private static BiFunction<Long, ClientLockDiagnosticDigest, ClientLockDiagnosticDigest> mutateDigest(

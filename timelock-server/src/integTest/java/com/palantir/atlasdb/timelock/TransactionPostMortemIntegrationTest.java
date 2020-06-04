@@ -30,8 +30,10 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollectorImpl;
 import com.palantir.atlasdb.debug.FullDiagnosticDigest;
+import com.palantir.atlasdb.debug.ImmutableLockDiagnosticComponents;
 import com.palantir.atlasdb.debug.ImmutableLockDiagnosticConfig;
 import com.palantir.atlasdb.debug.LocalLockTracker;
+import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.debug.TransactionPostMortemRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -66,8 +68,9 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
     private static final int LOCK_TRACKER_SIZE = 10_000;
 
     private TransactionManagerContext transactionManagerContext;
-    private ClientLockDiagnosticCollector diagnosticCollector =
-            new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG, new LocalLockTracker(LOCK_TRACKER_SIZE));
+    private ClientLockDiagnosticCollector diagnosticCollector
+            = new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG);
+    private LocalLockTracker lockTracker = new LocalLockTracker(LOCK_TRACKER_SIZE);
     private TransactionPostMortemRunner runner;
 
     @Before
@@ -78,14 +81,18 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
                 cluster,
                 TIMELOCK_CLIENT.value(),
                 runtimeConfig,
-                Optional.of(diagnosticCollector),
+                Optional.of(ImmutableLockDiagnosticComponents.builder()
+                        .clientLockDiagnosticCollector(diagnosticCollector)
+                        .localLockTracker(lockTracker)
+                        .build()),
                 ProfileSchema.INSTANCE.getLatestSchema());
         runner = new TransactionPostMortemRunner(
                 transactionManagerContext.transactionManager(),
                 TABLE_REFERENCE,
                 transactionManagerContext.install(),
                 Refreshable.only(transactionManagerContext.runtime()),
-                diagnosticCollector);
+                diagnosticCollector,
+                lockTracker);
     }
 
     @Test

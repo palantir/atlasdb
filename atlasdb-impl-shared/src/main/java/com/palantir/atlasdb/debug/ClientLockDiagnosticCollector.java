@@ -39,7 +39,6 @@ public interface ClientLockDiagnosticCollector extends ConflictTracer {
     void collect(LongStream startTimestamps, long immutableTimestamp, UUID requestId);
     void collect(long startTimestamp, UUID requestId, Set<ConjureLockDescriptor> lockDescriptors);
     Map<Long, ClientLockDiagnosticDigest> getSnapshot();
-    LocalLockTracker getLocalLockTracker();
 
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.

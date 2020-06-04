@@ -66,17 +66,20 @@ public class TransactionPostMortemRunner {
     private final ClientLockDiagnosticCollector clientLockDiagnosticCollector;
     private final WritesDigestEmitter writesDigestEmitter;
     private final LockDiagnosticInfoService timelockDiagnosticService;
+    private final LocalLockTracker localLockTracker;
 
     public TransactionPostMortemRunner(
             TransactionManager transactionManager,
             TableReference tableReference,
             AtlasDbConfig install,
             Refreshable<AtlasDbRuntimeConfig> runtime,
-            ClientLockDiagnosticCollector clientLockDiagnosticCollector) {
+            ClientLockDiagnosticCollector clientLockDiagnosticCollector,
+            LocalLockTracker localLockTracker) {
         this.timelockNamespace = timelockNamespace(install);
         this.clientLockDiagnosticCollector = clientLockDiagnosticCollector;
         this.timelockDiagnosticService = createRpcClient(install, runtime);
         this.writesDigestEmitter = new WritesDigestEmitter(transactionManager, tableReference);
+        this.localLockTracker = localLockTracker;
     }
 
     public FullDiagnosticDigest<String> conductPostMortem(Persistable row, byte[] columnName) {
@@ -105,7 +108,7 @@ public class TransactionPostMortemRunner {
         log.info("transaction digests", SafeArg.of("transactionDigests", transactionDigests));
 
         List<LocalLockTracker.TrackedLockEvent> locallyTrackedLockEvents
-                = clientLockDiagnosticCollector.getLocalLockTracker().getLocalLockHistory();
+                = localLockTracker.getLocalLockHistory();
 
         return ImmutableFullDiagnosticDigest.<String>builder()
                 .rawData(ImmutableRawData.of(digest, lockDiagnosticInfo, snapshot))
