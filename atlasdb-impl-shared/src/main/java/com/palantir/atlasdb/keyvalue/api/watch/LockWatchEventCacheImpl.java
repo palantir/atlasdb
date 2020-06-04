@@ -95,8 +95,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
 
         latestVersion.ifPresent(version -> transactionUpdates.forEach(
-                transactionUpdate -> checkConditionOrThrow(
-                        !timestampStateStore.putCommitUpdate(transactionUpdate, version),
+                transactionUpdate -> assertTrue(
+                        timestampStateStore.putCommitUpdate(transactionUpdate, version),
                         "start timestamp missing from map")));
     }
 
@@ -105,7 +105,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<IdentifiedVersion> startVersion = timestampStateStore.getStartVersion(startTs);
         Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
 
-        checkConditionOrThrow(!maybeCommitInfo.isPresent() || !startVersion.isPresent(),
+        assertTrue(maybeCommitInfo.isPresent() && startVersion.isPresent(),
                 "start or commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
@@ -140,7 +140,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Map<Long, IdentifiedVersion> timestampToVersion = new HashMap<>();
         startTimestamps.forEach(timestamp -> {
             Optional<IdentifiedVersion> entry = timestampStateStore.getStartVersion(timestamp);
-            checkConditionOrThrow(!entry.isPresent(), "start timestamp missing from map");
+            assertTrue(entry.isPresent(), "start timestamp missing from map");
             timestampToVersion.put(timestamp, entry.get());
         });
         return timestampToVersion;
@@ -153,8 +153,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 currentVersion.map(version -> IdentifiedVersion.of(version.id(), sequence)));
     }
 
-    private void checkConditionOrThrow(boolean condition, String message) {
-        if (condition) {
+    private void assertTrue(boolean condition, String message) {
+        if (!condition) {
             throw new TransactionLockWatchFailedException(message);
         }
     }
