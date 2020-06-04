@@ -34,7 +34,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class TimestampStateStoreTest {
     private static UUID LEADER = UUID.randomUUID();
-
     private static IdentifiedVersion VERSION_1 = IdentifiedVersion.of(LEADER, 1L);
     private static IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 17L);
 

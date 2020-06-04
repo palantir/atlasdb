@@ -25,12 +25,12 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
-import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
 
@@ -95,15 +95,15 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
     public void removeOldEntries(long earliestSequence) {
         Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventMap.headMap(earliestSequence).entrySet();
         Optional<Long> latestDeletedVersion = Streams.findLast(eventsToBeRemoved.stream()).map(Map.Entry::getKey);
-        Optional<IdentifiedVersion> latestVersion = getLatestKnownVersion();
+        Optional<IdentifiedVersion> currentVersion = getLatestKnownVersion();
 
-        if (eventsToBeRemoved.isEmpty() || !latestDeletedVersion.isPresent() || !latestVersion.isPresent()) {
+        if (eventsToBeRemoved.isEmpty() || !latestDeletedVersion.isPresent() || !currentVersion.isPresent()) {
             return;
         }
 
         snapshotUpdater.processEvents(
                 eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()),
-                IdentifiedVersion.of(latestVersion.get().id(), latestDeletedVersion.get()));
+                IdentifiedVersion.of(currentVersion.get().id(), latestDeletedVersion.get()));
         eventsToBeRemoved.clear();
     }
 

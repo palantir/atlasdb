@@ -33,7 +33,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -43,6 +42,7 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
@@ -81,6 +81,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
         latestVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
+        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeOldEntries);
     }
 
     @Override
@@ -124,7 +125,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
-        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeOldEntries);
     }
 
     @VisibleForTesting
