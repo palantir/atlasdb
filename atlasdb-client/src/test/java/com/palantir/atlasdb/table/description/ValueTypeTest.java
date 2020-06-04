@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.UUID;
 
@@ -59,6 +60,19 @@ public class ValueTypeTest {
                 ValueType.STRING.convertFromJava(string));
         assertThat(ValueType.STRING.convertToJson(ValueType.STRING.convertFromJava(string), 0))
                 .isEqualTo(Pair.create(jsonString, 3));
+    }
+
+    @Test
+    public void illegalArgumentExceptionThrownOnNonJsonStrings() {
+        assertThatThrownBy(() -> ValueType.STRING.convertFromJson("{\"data\": 42}"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be a JSON string");
+        assertThatThrownBy(() -> ValueType.STRING.convertFromJson("[2, 3, 4, 5, 6]"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be a JSON string");
+        assertThatThrownBy(() -> ValueType.STRING.convertFromJson("103-jv1-qg58n"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be a JSON string");
     }
 
     @Test

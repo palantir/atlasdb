@@ -34,6 +34,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 public class NameMetadataDescriptionTest {
     private static final NameMetadataDescription SIMPLE_NAME_METADATA_DESCRIPTION = NameMetadataDescription.safe(
             "string", ValueType.STRING);
+
     private static final NameMetadataDescription MULTIPART_NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
             ImmutableList.of(
                     new NameComponentDescription.Builder()
@@ -69,10 +70,12 @@ public class NameMetadataDescriptionTest {
     }
 
     @Test
-    // TODO (jkong): This looks ridiculous, but I don't wish to change existing behaviour.
+    // TODO (jkong): Tolerating duplicate fields was permitted, even though it is a bit dubious.
     public void duplicateFieldsAreTolerated() {
         String invalidJson = "{\"string\": \"tom\", \"string\": \"robert\"}";
         byte[] result = SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(invalidJson, false);
+        
+        // Which value is selected is an implementation detail - we should not guarantee this.
         assertThat(result).satisfiesAnyOf(
                 (bytes) -> assertThat(bytes).containsExactly(PtBytes.toBytes("tom")),
                 (bytes) -> assertThat(bytes).containsExactly(PtBytes.toBytes("robert")));
