@@ -24,33 +24,35 @@ import com.google.errorprone.annotations.concurrent.GuardedBy;
 
 final class FailureCheckingLockWatchEventCache extends AbstractInvocationHandler {
 
-    static LockWatchEventCache newProxyInstance(LockWatchEventCache defaultCache) {
+    static LockWatchEventCache newProxyInstance(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
         return (LockWatchEventCache) Proxy.newProxyInstance(
                 LockWatchEventCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchEventCache.class},
-                new FailureCheckingLockWatchEventCache(defaultCache));
+                new FailureCheckingLockWatchEventCache(defaultCache, fallbackCache));
     }
 
-    private final LockWatchEventCache defaultCache;
-    private final LockWatchEventCache noOpCache;
+    private final LockWatchEventCache fallbackCache;
+
+    @GuardedBy("this")
+    private LockWatchEventCache delegate;
 
     @GuardedBy("this")
     private boolean hasFailed = false;
 
-    private FailureCheckingLockWatchEventCache(LockWatchEventCache defaultCache) {
-        this.defaultCache = defaultCache;
-        this.noOpCache = NoOpLockWatchEventCache.INSTANCE;
+    private FailureCheckingLockWatchEventCache(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
+        this.delegate = defaultCache;
+        this.fallbackCache = fallbackCache;
     }
 
     @Override
     protected synchronized Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        if (hasFailed) {
-            return method.invoke(noOpCache, args);
-        } else {
-            hasFailed = true;
-            Object result = method.invoke(defaultCache, args);
-            hasFailed = false;
-            return result;
+        try {
+            return method.invoke(delegate, args);
+        } catch (LockWatchFailedException e) {
+            throw e;
+        } catch (Throwable t) {
+            delegate = fallbackCache;
+            throw t; // temp
         }
     }
 }
