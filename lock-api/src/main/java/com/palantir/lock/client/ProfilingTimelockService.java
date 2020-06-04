@@ -102,6 +102,11 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        return runTaskTimed("getCommitTimestamp", () -> delegate.getCommitTimestamp(startTs, commitLocksToken));
+    }
+
+    @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return runTaskTimed("getFreshTimestamps", () -> delegate.getFreshTimestamps(numTimestampsRequested));
     }

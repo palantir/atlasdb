@@ -16,12 +16,17 @@
 package com.palantir.paxos;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
 
@@ -32,6 +37,7 @@ import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -55,18 +61,26 @@ public final class PaxosConsensusTestUtils {
         List<AtomicBoolean> failureToggles = Lists.newArrayList();
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
+        DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(getSqlitePath());
+
         RuntimeException exception = new SafeRuntimeException("mock server failure");
+        SplittingPaxosStateLog.LegacyOperationMarkers noop = ImmutableLegacyOperationMarkers.builder()
+                .markLegacyRead(() -> { })
+                .markLegacyWrite(() -> { })
+                .build();
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
-            PaxosLearner learner = PaxosLearnerImpl.newLearner(getLearnerLogDir(i));
+            PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(
+                    getLearnerStorageParameters(i, sqliteDataSource), noop, PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class,
                     learner,
                     failureToggles.get(i),
                     exception));
 
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(getAcceptorLogDir(i));
+            PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(
+                    getAcceptorStorageParameters(i, sqliteDataSource), noop, Optional.empty());
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class,
                     acceptor,
@@ -124,11 +138,31 @@ public final class PaxosConsensusTestUtils {
         }
     }
 
+    private static PaxosStorageParameters getLearnerStorageParameters(int num, DataSource sqliteDataSource) {
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(getLearnerLogDir(num))
+                .sqliteDataSource(sqliteDataSource)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "learner"))
+                .build();
+    }
+
+    private static PaxosStorageParameters getAcceptorStorageParameters(int num, DataSource sqliteDataSource) {
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(getAcceptorLogDir(num))
+                .sqliteDataSource(sqliteDataSource)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "acceptor"))
+                .build();
+    }
+
     private static String getLearnerLogDir(int dir) {
         return LEARNER_DIR_PREFIX + dir;
     }
 
     private static String getAcceptorLogDir(int dir) {
         return ACCEPTOR_DIR_PREFIX + dir;
+    }
+
+    private static Path getSqlitePath() {
+        return Paths.get(LOG_DIR, "sqlite");
     }
 }

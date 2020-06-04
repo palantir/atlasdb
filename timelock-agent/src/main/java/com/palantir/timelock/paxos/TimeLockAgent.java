@@ -17,7 +17,6 @@ package com.palantir.timelock.paxos;
 
 import java.net.URL;
 import java.nio.file.Path;
-import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -55,7 +54,6 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
-import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -64,13 +62,12 @@ import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.zaxxer.hikari.HikariDataSource;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
-    private static final Long SCHEMA_VERSION = 1L;
+    private static final Long SCHEMA_VERSION = 2L;
 
-    private static final int MAX_SHARED_EXECUTOR_THREADS = 256;
-    private static final int CORE_SHARED_EXECUTOR_THREADS = 10;
     private static final String PAXOS_SHARED_EXECUTOR = "paxos-shared-executor";
 
     private final MetricsManager metricsManager;
@@ -83,6 +80,7 @@ public class TimeLockAgent {
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
+    private final HikariDataSource sqliteDataSource;
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
@@ -97,8 +95,11 @@ public class TimeLockAgent {
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar) {
         ExecutorService executor = createSharedExecutor(metricsManager);
+        PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
+                ImmutableTimelockPaxosInstallationContext.of(install, userAgent);
+
         PaxosResources paxosResources = PaxosResourcesFactory.create(
-                ImmutableTimelockPaxosInstallationContext.of(install, userAgent),
+                installationContext,
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
                 executor);
@@ -112,7 +113,8 @@ public class TimeLockAgent {
                 blockingTimeoutMs,
                 registrar,
                 paxosResources,
-                userAgent);
+                userAgent,
+                installationContext.sqliteDataSource());
         agent.createAndRegisterResources();
         return agent;
     }
@@ -125,13 +127,14 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             PaxosResources paxosResources,
-            UserAgent userAgent) {
+            UserAgent userAgent, HikariDataSource sqliteDataSource) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
         this.undertowRegistrar = undertowRegistrar;
         this.registrar = registrar;
         this.paxosResources = paxosResources;
+        this.sqliteDataSource = sqliteDataSource;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampCreator = getTimestampCreator();
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
@@ -174,13 +177,11 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
 
-        Supplier<Connection> sqliteConnectionSupplier = SqliteConnections.createDefaultNamedSqliteDatabaseAtPath(
-                install.paxos().sqlitePersistence().dataDirectory().toPath());
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
-        registerManagementResource(sqliteConnectionSupplier);
+        registerManagementResource();
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
@@ -206,16 +207,16 @@ public class TimeLockAgent {
         }
     }
 
-    private void registerManagementResource(Supplier<Connection> sqliteConnectionSupplier) {
+    private void registerManagementResource() {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
             undertowRegistrar.get().accept(TimeLockManagementResource.undertow(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnectionSupplier),
+                    PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
                     namespaces,
                     redirectRetryTargeter()));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteConnectionSupplier),
+                    PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
                     namespaces,
                     redirectRetryTargeter()));
         }
@@ -298,5 +299,6 @@ public class TimeLockAgent {
 
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
+        sqliteDataSource.close();
     }
 }

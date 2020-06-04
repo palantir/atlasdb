@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: 'Reintroduced writing timelock paxos state logs both to the file system
+    and into a sqlite implementation on disk. This was previously reverted due to
+    a locking issue in sqlite. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/4786

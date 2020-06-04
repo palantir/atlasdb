@@ -17,30 +17,54 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import org.immutables.value.Value;
+import javax.sql.DataSource;
 
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
+import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
+import com.palantir.paxos.ImmutableLegacyOperationMarkers;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.ImmutablePaxosStorageParameters;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
+import com.palantir.paxos.PaxosStorageParameters;
+import com.palantir.paxos.PaxosValue;
+import com.palantir.paxos.SplittingPaxosStateLog;
+import com.palantir.paxos.SqliteConnections;
 
+@SuppressWarnings("FinalClass") // mocks
 public class LocalPaxosComponents {
+    private static final Logger log = LoggerFactory.getLogger(LocalPaxosComponents.class);
 
     private final TimelockPaxosMetrics metrics;
     private final PaxosUseCase paxosUseCase;
     private final Path baseLogDirectory;
+    private final DataSource sqliteDataSource;
     private final UUID leaderUuid;
     private final Map<Client, Components> componentsByClient = Maps.newConcurrentMap();
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
@@ -48,19 +72,44 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
 
-    LocalPaxosComponents(TimelockPaxosMetrics metrics,
+    private LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
-            Path baseLogDirectory,
+            Path legacyLogDirectory,
+            DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients) {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
-        this.baseLogDirectory = baseLogDirectory;
+        this.baseLogDirectory = legacyLogDirectory;
+        this.sqliteDataSource = sqliteDataSource;
         this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
         this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
         this.canCreateNewClients = canCreateNewClients;
+    }
+
+    public static LocalPaxosComponents createWithBlockingMigration(
+            TimelockPaxosMetrics metrics,
+            PaxosUseCase paxosUseCase,
+            Path legacyLogDirectory,
+            DataSource sqliteDataSource,
+            UUID leaderUuid,
+            boolean canCreateNewClients) {
+        LocalPaxosComponents components = new LocalPaxosComponents(metrics, paxosUseCase, legacyLogDirectory,
+                sqliteDataSource, leaderUuid, canCreateNewClients);
+
+        Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
+        PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
+        Set<Client> namespaces = namespaceLoader.getAllPersistedNamespaces();
+        log.info("Performing blocking migration of {} namespaces",
+                SafeArg.of("numNamespaces", namespaces.size()));
+        Instant startInstant = Instant.now();
+        namespaces.forEach(components::getOrCreateComponents);
+        log.info("Successfully migrated a total of {} namespaces in {}",
+                SafeArg.of("numNamespaces", namespaces.size()),
+                SafeArg.of("duration", Duration.between(startInstant, Instant.now())));
+        return components;
     }
 
     public PaxosAcceptor acceptor(Client client) {
@@ -92,41 +141,69 @@ public class LocalPaxosComponents {
     }
 
     private Components createComponents(Client client) {
-        Path clientDirectory = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory)
+        Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory)
                 .resolve(client.value());
 
         // TODO (jkong): This test is no longer valid with the new implementation, it needs to be fixed before
         // the migration.
-        if (!canCreateNewClients && clientDirectoryDoesNotExist(clientDirectory)) {
+        if (!canCreateNewClients && clientDirectoryDoesNotExist(legacyClientDir)) {
             throw new ServiceNotAvailableException("This TimeLock server is not allowed to create new clients at this"
                     + " time, and the client " + client + " provided is novel for this TimeLock server.");
         }
 
-        Path learnerLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
-        String learnerNamespace = String.format("%s!%s!learner", paxosUseCase.toString(), client);
+        PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(getLearnerParameters(client),
+                createMetrics(PaxosLearner.class), PaxosKnowledgeEventRecorder.NO_OP);
 
-        PaxosLearner learner = PaxosLearnerImpl.newLearner(
-                ImmutablePaxosStorageParameters.builder()
-                        .fileBasedLogDirectory(learnerLogDir.toString())
-                        .databaseNamespace(learnerNamespace)
-                        .build(),
-                PaxosKnowledgeEventRecorder.NO_OP);
-
-        Path acceptorLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
-        String acceptorNamespace = String.format("%s!%s!acceptor", paxosUseCase.toString(), client);
-
-        PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(
-                ImmutablePaxosStorageParameters.builder()
-                        .fileBasedLogDirectory(acceptorLogDir.toString())
-                        .databaseNamespace(acceptorNamespace)
-                        .build());
-
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(getAcceptorParameters(client),
+                createMetrics(PaxosAcceptor.class),
+                learner.getGreatestLearnedValue().map(PaxosValue::getRound));
         PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
 
         return ImmutableComponents.builder()
                 .acceptor(acceptor)
                 .learner(learner)
                 .pingableLeader(localPingableLeader)
+                .build();
+    }
+
+    private SplittingPaxosStateLog.LegacyOperationMarkers createMetrics(Class<?> forClass) {
+        return ImmutableLegacyOperationMarkers.builder()
+                .markLegacyRead(getReadCounter(forClass)::inc)
+                .markLegacyWrite(getWriteCounter(forClass)::inc)
+                .build();
+    }
+
+    @VisibleForTesting
+    Counter getReadCounter(Class<?> forClass) {
+        return metrics.asMetricsManager().registerOrGetCounter(forClass, AtlasDbMetricNames.LEGACY_READ);
+    }
+
+    @VisibleForTesting
+    Counter getWriteCounter(Class<?> forClass) {
+        return metrics.asMetricsManager().registerOrGetCounter(forClass, AtlasDbMetricNames.LEGACY_WRITE);
+    }
+
+    @VisibleForTesting
+    PaxosStorageParameters getLearnerParameters(Client client) {
+        Path legacyDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory).resolve(client.value());
+        Path learnerLogDir = Paths.get(legacyDir.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
+        String learnerUseCase = String.format("%s!learner", paxosUseCase.toString());
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(learnerLogDir.toString())
+                .sqliteDataSource(sqliteDataSource)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, learnerUseCase))
+                .build();
+    }
+
+    @VisibleForTesting
+    PaxosStorageParameters getAcceptorParameters(Client client) {
+        Path legacyDir = paxosUseCase.logDirectoryRelativeToDataDirectory(baseLogDirectory).resolve(client.value());
+        Path acceptorLogDir = Paths.get(legacyDir.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
+        String acceptorUseCase = String.format("%s!acceptor", paxosUseCase.toString());
+        return ImmutablePaxosStorageParameters.builder()
+                .fileBasedLogDirectory(acceptorLogDir.toString())
+                .sqliteDataSource(sqliteDataSource)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, acceptorUseCase))
                 .build();
     }
 

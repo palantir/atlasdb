@@ -20,8 +20,8 @@ import static java.util.stream.Collectors.toList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,7 +32,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,6 +58,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -70,6 +70,7 @@ public class TransactionStarterTest {
     @Mock
     private LockLeaseService lockLeaseService;
     private final LockWatchEventCache lockWatchEventCache = spy(NoOpLockWatchEventCache.INSTANCE);
+    private final Optional<IdentifiedVersion> version = lockWatchEventCache.lastKnownVersion();
     private TransactionStarter transactionStarter;
 
     private static final int NUM_PARTITIONS = 16;
@@ -101,7 +102,7 @@ public class TransactionStarterTest {
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
         ConjureStartTransactionsResponse startTransactionResponse = getStartTransactionResponse(12, 1);
 
-        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 1)).thenReturn(startTransactionResponse);
+        when(lockLeaseService.startTransactionsWithWatches(version, 1)).thenReturn(startTransactionResponse);
         StartIdentifiedAtlasDbTransactionResponse response =
                 Iterables.getOnlyElement(transactionStarter.startIdentifiedAtlasDbTransactionBatch(1));
 
@@ -112,7 +113,7 @@ public class TransactionStarterTest {
     public void shouldDeriveStartTransactionResponseBatchFromBatchedResponse_multipleTransactions() {
         ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(12, 5);
 
-        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 5)).thenReturn(batchResponse);
+        when(lockLeaseService.startTransactionsWithWatches(version, 5)).thenReturn(batchResponse);
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
                 transactionStarter.startIdentifiedAtlasDbTransactionBatch(5);
 
@@ -132,7 +133,7 @@ public class TransactionStarterTest {
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() {
         ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(40, 3);
-        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 3))
+        when(lockLeaseService.startTransactionsWithWatches(version, 3))
                 .thenReturn(batchResponse);
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses = requestSingularBatches(3);
@@ -145,7 +146,7 @@ public class TransactionStarterTest {
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_nonTrivialBatchSize() {
         ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(40, 10);
-        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 10))
+        when(lockLeaseService.startTransactionsWithWatches(version, 10))
                 .thenReturn(batchResponse);
 
         ImmutableList<Integer> sizes = ImmutableList.of(2, 3, 4, 1);
@@ -162,20 +163,20 @@ public class TransactionStarterTest {
 
     @Test
     public void shouldCallTimelockMultipleTimesUntilCollectsAllRequiredTimestampsAndProcessUpdates() {
-        when(lockLeaseService.startTransactionsWithWatches(any(Optional.class), anyInt()))
+        when(lockLeaseService.startTransactionsWithWatches(eq(version), anyInt()))
                 .thenReturn(getStartTransactionResponse(40, 2))
                 .thenReturn(getStartTransactionResponse(100, 1));
 
         requestSingularBatches(3);
-        verify(lockLeaseService).startTransactionsWithWatches(Optional.empty(), 3);
-        verify(lockLeaseService).startTransactionsWithWatches(Optional.empty(), 1);
+        verify(lockLeaseService).startTransactionsWithWatches(version, 3);
+        verify(lockLeaseService).startTransactionsWithWatches(version, 1);
         verify(lockWatchEventCache).processStartTransactionsUpdate(ImmutableSet.of(40L, 56L), UPDATE);
     }
 
     private List<List<StartIdentifiedAtlasDbTransactionResponse>> requestBatches(List<Integer> counts) {
         List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>> elements = counts.stream()
                 .map(count ->
-                        ImmutableTestBatchElement.builder()
+                        ImmutableTestBatchElement.<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>builder()
                                 .argument(count)
                                 .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                                 .build())
@@ -247,11 +248,4 @@ public class TransactionStarterTest {
                 .interval(NUM_PARTITIONS)
                 .build();
     }
-
-    @Value.Immutable
-    interface TestBatchElement extends BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> {
-        @Override
-        Integer argument();
-    }
-
 }

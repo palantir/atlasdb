@@ -16,6 +16,7 @@ types:
       base-type: any
       external:
         java: java.lang.Long
+
   definitions:
     default-package: com.palantir.lock
     objects:

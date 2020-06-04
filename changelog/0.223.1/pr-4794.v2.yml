@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: If Dialogue on clients is enabled, then communications to the V1 Lock,
+    Timestamp Management and TimelockRpcClient now take place through Dialogue as
+    well. Previously even if this was enabled they would go through CJR.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4794

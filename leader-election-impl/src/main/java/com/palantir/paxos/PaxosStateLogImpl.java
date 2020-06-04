@@ -98,6 +98,10 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
     }
 
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> createFileBacked(String path) {
+        return new PaxosStateLogImpl<>(path);
+    }
+
     @Override
     public void writeRound(long seq, V round) {
         lock.writeLock().lock();

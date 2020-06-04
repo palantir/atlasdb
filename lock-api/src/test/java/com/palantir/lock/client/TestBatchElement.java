@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.api;
+
+package com.palantir.lock.client;
 
 import org.immutables.value.Value;
 
-import com.palantir.lock.v2.LockToken;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 
 @Value.Immutable
-public interface TransactionAndImmutableTsLock {
+public interface TestBatchElement<A, R> extends BatchElement<A, R> {
+    @Override
+    A argument();
 
-    Transaction transaction();
-
-    LockToken immutableTsLock();
-
-    static TransactionAndImmutableTsLock of(Transaction transaction, LockToken immutableTsLock) {
-        return ImmutableTransactionAndImmutableTsLock.builder()
-                .transaction(transaction)
-                .immutableTsLock(immutableTsLock)
-                .build();
-    }
+    @Override
+    DisruptorAutobatcher.DisruptorFuture<R> result();
 }

@@ -47,9 +47,9 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.atlasdb.transaction.impl.TxTask;
@@ -67,7 +67,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     private final KeyValueService kvs;
     private final TransactionManager txManager;
-    private final Cache<TransactionToken, TransactionAndImmutableTsLock> transactions =
+    private final Cache<TransactionToken, OpenTransaction> transactions =
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
@@ -168,7 +168,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         if (token.shouldAutoCommit()) {
             return txManager.runTaskWithRetry(task);
         } else {
-            Transaction tx = transactions.getIfPresent(token).transaction();
+            Transaction tx = transactions.getIfPresent(token);
             Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
@@ -178,7 +178,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         if (token.shouldAutoCommit()) {
             return txManager.runTaskWithRetry(task);
         } else {
-            Transaction tx = transactions.getIfPresent(token).transaction();
+            Transaction tx = transactions.getIfPresent(token);
             Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
@@ -188,27 +188,26 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public TransactionToken startTransaction() {
         String id = UUID.randomUUID().toString();
         TransactionToken token = new TransactionToken(id);
-        TransactionAndImmutableTsLock txAndLock = Iterables.getOnlyElement(
-                txManager.setupRunTaskBatchWithConditionThrowOnConflict(
-                        ImmutableList.of(PreCommitConditions.NO_OP)));
-        transactions.put(token, txAndLock);
+        OpenTransaction openTxn = Iterables.getOnlyElement(
+                txManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
+        transactions.put(token, openTxn);
         return token;
     }
 
     @Override
     public void commit(TransactionToken token) {
-        TransactionAndImmutableTsLock txAndLock = transactions.getIfPresent(token);
-        if (txAndLock != null) {
-            txManager.finishRunTaskWithLockThrowOnConflict(txAndLock, (TxTask) transaction -> null);
+        OpenTransaction openTxn = transactions.getIfPresent(token);
+        if (openTxn != null) {
+            openTxn.finish((TxTask) transaction -> null);
             transactions.invalidate(token);
         }
     }
 
     @Override
     public void abort(TransactionToken token) {
-        TransactionAndImmutableTsLock txAndLock = transactions.getIfPresent(token);
-        if (txAndLock != null) {
-            txManager.finishRunTaskWithLockThrowOnConflict(txAndLock, (TxTask) transaction -> {
+        OpenTransaction openTxn = transactions.getIfPresent(token);
+        if (openTxn != null) {
+            openTxn.finish((TxTask) transaction -> {
                 transaction.abort();
                 return null;
             });
