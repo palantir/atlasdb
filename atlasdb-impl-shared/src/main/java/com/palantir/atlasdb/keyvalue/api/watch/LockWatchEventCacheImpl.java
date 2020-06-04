@@ -49,8 +49,8 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 /**
- * This class should only be used through {@link ResilientLockWatchEventCache} as a proxy; failure to do so will
- * result in concurrency issues and inconsistency in the cache state.
+ * This class should only be used through {@link ResilientLockWatchEventCache} as a proxy; failure to do so will result
+ * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final ClientLockWatchEventLog eventLog;
@@ -118,7 +118,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public TransactionsLockWatchEvents getEventsForTransactions(
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> startVersion) {
-        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of tranasctions");
+        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampMappings(startTimestamps);
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
         return eventLog.getEventsBetweenVersions(startVersion, endVersion).map(timestampToVersion);
