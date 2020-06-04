@@ -59,9 +59,7 @@ public final class LocalLockTracker {
                 .eventDescription(response.accept(new ConjureLockResponse.Visitor<String>() {
                     @Override
                     public String visitSuccessful(SuccessfulLockResponse value) {
-                        return "SUCCESS - locked " + lockDescriptors
-                                + "; token is " + value.getLockToken()
-                                + "; lease is " + value.getLease();
+                        return "SUCCESS - locked " + lockDescriptors + "; obtained " + value;
                     }
 
                     @Override
@@ -90,7 +88,8 @@ public final class LocalLockTracker {
     void logRefreshResponse(Set<ConjureLockToken> tokens, ConjureRefreshLocksResponse response) {
         TrackedLockEvent event = getTimestampedLockEventBuilder()
                 .eventType(EventType.REFRESH_LOCKS)
-                .eventDescription("Refreshed " + tokens + "; succeeded refreshing " + response.getRefreshedTokens())
+                .eventDescription("Attempted to refresh " + tokens
+                        + "; succeeded refreshing " + response.getRefreshedTokens())
                 .build();
         eventBuffer.add(event);
     }
@@ -98,7 +97,8 @@ public final class LocalLockTracker {
     void logUnlockResponse(Set<ConjureLockToken> tokens, ConjureUnlockResponse response) {
         TrackedLockEvent event = getTimestampedLockEventBuilder()
                 .eventType(EventType.UNLOCK)
-                .eventDescription("Unlocked " + tokens + "; succeeded unlocking " + response.getTokens())
+                .eventDescription("Attempted to unlock " + tokens
+                        + "; succeeded unlocking " + response.getTokens())
                 .build();
         eventBuffer.add(event);
     }
