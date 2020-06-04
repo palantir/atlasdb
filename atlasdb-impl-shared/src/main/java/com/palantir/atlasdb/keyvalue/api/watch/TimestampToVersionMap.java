@@ -28,6 +28,7 @@ import com.google.common.collect.TreeMultimap;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.TransactionUpdate;
+import com.palantir.logsafe.Preconditions;
 
 final class TimestampToVersionMap {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
@@ -40,9 +41,12 @@ final class TimestampToVersionMap {
 
     boolean putCommitUpdate(TransactionUpdate transactionUpdate, IdentifiedVersion newVersion) {
         MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
-        if (previousEntry == null || previousEntry.commitInfo().isPresent()) {
+        if (previousEntry == null) {
             return false;
         }
+
+        Preconditions.checkArgument(!previousEntry.commitInfo().isPresent(),
+                "Commit info already present for given timestamp");
 
         timestampMap.replace(
                 transactionUpdate.startTs(),
