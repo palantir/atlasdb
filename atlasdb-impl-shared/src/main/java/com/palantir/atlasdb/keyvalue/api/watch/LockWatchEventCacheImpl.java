@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -120,7 +121,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Optional<IdentifiedVersion> startVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampMappings(startTimestamps);
-        IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(), IdentifiedVersion.comparator());
+        IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(),
+                Comparator.comparingLong(IdentifiedVersion::version));
         return eventLog.getEventsBetweenVersions(startVersion, endVersion).map(timestampToVersion);
     }
 

@@ -38,8 +38,7 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private static final boolean INCLUSIVE = true;
 
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
-    private final NavigableMap<IdentifiedVersion, LockWatchEvent> eventMap =
-            new TreeMap<>(IdentifiedVersion.comparator());
+    private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
@@ -81,7 +80,7 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
         Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
         ClientLogEvents.Builder eventBuilder = new ClientLogEvents.Builder();
-        final IdentifiedVersion fromSequence;
+        final long fromSequence;
 
         if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
             eventBuilder.addEvents(LockWatchCreatedEvent.fromSnapshot(snapshotUpdater.getSnapshot()));
@@ -92,27 +91,26 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
             fromSequence = eventMap.firstKey();
         } else {
             eventBuilder.clearCache(false);
-            fromSequence = versionInclusive.get();
+            fromSequence = versionInclusive.get().version();
         }
 
-        eventBuilder.addAllEvents(eventMap.subMap(fromSequence, INCLUSIVE, endVersion, INCLUSIVE).values());
+        eventBuilder.addAllEvents(eventMap.subMap(fromSequence, INCLUSIVE, endVersion.version(), INCLUSIVE).values());
         return eventBuilder.build();
     }
 
     @Override
     public void removeOldEntries(IdentifiedVersion earliestVersion) {
-        Set<Map.Entry<IdentifiedVersion, LockWatchEvent>> eventsToBeRemoved =
-                eventMap.headMap(earliestVersion).entrySet();
-        Optional<IdentifiedVersion> latestDeletedVersion =
-                Streams.findLast(eventsToBeRemoved.stream()).map(Map.Entry::getKey);
+        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventMap.headMap(earliestVersion.version()).entrySet();
+        Optional<Long> latestDeletedVersion = Streams.findLast(eventsToBeRemoved.stream()).map(Map.Entry::getKey);
+        Optional<IdentifiedVersion> latestVersion = getLatestKnownVersion();
 
-        if (eventsToBeRemoved.isEmpty() || !latestDeletedVersion.isPresent()) {
+        if (eventsToBeRemoved.isEmpty() || !latestDeletedVersion.isPresent() || !latestVersion.isPresent()) {
             return;
         }
 
         snapshotUpdater.processEvents(
                 eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()),
-                latestDeletedVersion.get());
+                IdentifiedVersion.of(latestVersion.get().id(), latestDeletedVersion.get()));
         eventsToBeRemoved.clear();
     }
 
@@ -123,7 +121,7 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
 
     private boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion,
             IdentifiedVersion startVersion) {
-        return !startVersion.id().equals(currentVersion.id()) || eventMap.floorKey(startVersion) == null;
+        return !startVersion.id().equals(currentVersion.id()) || eventMap.floorKey(startVersion.version()) == null;
     }
 
     private IdentifiedVersion createInclusiveVersion(IdentifiedVersion startVersion) {
@@ -133,7 +131,7 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     private IdentifiedVersion getLatestVersionAndVerify(IdentifiedVersion endVersion) {
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
         IdentifiedVersion currentVersion = latestVersion.get();
-        Preconditions.checkArgument(IdentifiedVersion.comparator().compare(endVersion, currentVersion) < 1,
+        Preconditions.checkArgument(endVersion.version() <= currentVersion.version(),
                 "Transactions' view of the world is more up-to-date than the log");
         return currentVersion;
     }
@@ -142,9 +140,8 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
         Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
-            success.events().forEach(event ->
-                    eventMap.put(IdentifiedVersion.of(success.logId(), event.sequence()), event));
-            latestVersion = Optional.of(eventMap.lastKey());
+            success.events().forEach(event -> eventMap.put(event.sequence(), event));
+            latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventMap.lastKey()));
         }
     }
 

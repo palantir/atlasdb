@@ -16,12 +16,9 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Comparator;
 import java.util.UUID;
 
 import org.immutables.value.Value;
-
-import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface IdentifiedVersion {
@@ -32,12 +29,5 @@ public interface IdentifiedVersion {
 
     static IdentifiedVersion of(UUID id, long version) {
         return ImmutableIdentifiedVersion.of(id, version);
-    }
-
-    static Comparator<IdentifiedVersion> comparator() {
-        return (version1, version2) -> {
-            Preconditions.checkArgument(version1.id().equals(version2.id()), "Versions do not have same leader id");
-            return Long.compare(version1.version(), version2.version());
-        };
     }
 }
