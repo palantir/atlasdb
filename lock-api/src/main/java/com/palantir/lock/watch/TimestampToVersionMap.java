@@ -31,12 +31,12 @@ final class TimestampToVersionMap {
     @SuppressWarnings("IllegalTypeCheck")
     private final TreeMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
-    void put(long startTimestamp, IdentifiedVersion version) {
+    void putStartVersion(long startTimestamp, IdentifiedVersion version) {
         timestampMap.put(startTimestamp, MapEntry.of(version));
         aliveVersions.put(version.version(), startTimestamp);
     }
 
-    boolean replace(TransactionUpdate transactionUpdate, IdentifiedVersion newVersion) {
+    boolean putCommitUpdate(TransactionUpdate transactionUpdate, IdentifiedVersion newVersion) {
         MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
         if (previousEntry == null || previousEntry.commitInfo().isPresent()) {
             return false;
