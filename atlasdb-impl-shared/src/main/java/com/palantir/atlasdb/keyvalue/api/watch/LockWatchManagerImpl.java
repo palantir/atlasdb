@@ -33,8 +33,8 @@ import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchFailedException;
+import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 import com.palantir.logsafe.UnsafeArg;
 

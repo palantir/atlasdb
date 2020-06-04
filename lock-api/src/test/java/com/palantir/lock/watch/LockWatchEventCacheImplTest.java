@@ -137,8 +137,8 @@ public final class LockWatchEventCacheImplTest {
 
         assertThat(eventCache.getTimestampMappings(secondBatch)).containsExactlyEntriesOf(newExpectedMap);
         assertThatThrownBy(() -> eventCache.getTimestampMappings(TIMESTAMPS_COMBINED))
-                .isInstanceOf(SafeNullPointerException.class)
-                .hasMessage("Timestamp missing from cache");
+                .isInstanceOf(LockWatchFailedException.class)
+                .hasMessage("start timestamp missing from map");
     }
 
     @Test

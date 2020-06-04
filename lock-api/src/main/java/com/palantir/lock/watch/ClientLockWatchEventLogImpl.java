@@ -155,7 +155,7 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
 
     private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<Void> {
         @Override
-        public Void visit(LockWatchStateUpdate.Failed _failed) {
+        public Void visit(LockWatchStateUpdate.Failed failed) {
             processFailed();
             return null;
         }
@@ -175,7 +175,7 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
 
     private final class NewLeaderVisitor extends ProcessingVisitor {
         @Override
-        public Void visit(LockWatchStateUpdate.Success _success) {
+        public Void visit(LockWatchStateUpdate.Success success) {
             processFailed();
             return null;
         }

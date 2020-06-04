@@ -48,8 +48,6 @@ public final class FailureCheckingLockWatchEventCacheTest {
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
         assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).hasRootCause(runtimeException);
 
-        when(defaultCache.lastKnownVersion()).thenReturn(Optional.of(IdentifiedVersion.of(UUID.randomUUID(), 1L)));
-
         // no op cache returns empty on last known version, so this should prove that we delegate there correctly
         assertThat(proxyCache.lastKnownVersion()).isEmpty();
     }

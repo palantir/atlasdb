@@ -28,6 +28,7 @@ import com.palantir.lock.v2.LockToken;
 
 final class TimestampToVersionMap {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
+    @SuppressWarnings("IllegalTypeCheck")
     private final TreeMultimap<IdentifiedVersion, Long> aliveVersions =
             TreeMultimap.create(IdentifiedVersion.comparator(), Ordering.natural());
 
