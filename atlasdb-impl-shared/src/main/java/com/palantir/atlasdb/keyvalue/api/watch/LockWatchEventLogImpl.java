@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
-import com.palantir.lock.watch.ClientLockWatchEventLog;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -34,7 +34,7 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
 
-final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
+final class LockWatchEventLogImpl implements LockWatchEventLog {
     private static final boolean INCLUSIVE = true;
 
     private final ClientLockWatchSnapshotUpdater snapshotUpdater;
@@ -42,16 +42,16 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
 
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
-    static ClientLockWatchEventLog create() {
+    static LockWatchEventLog create() {
         return create(ClientLockWatchSnapshotUpdaterImpl.create());
     }
 
     @VisibleForTesting
-    static ClientLockWatchEventLog create(ClientLockWatchSnapshotUpdater snapshotUpdater) {
-        return new ClientLockWatchEventLogImpl(snapshotUpdater);
+    static LockWatchEventLog create(ClientLockWatchSnapshotUpdater snapshotUpdater) {
+        return new LockWatchEventLogImpl(snapshotUpdater);
     }
 
-    private ClientLockWatchEventLogImpl(ClientLockWatchSnapshotUpdater snapshotUpdater) {
+    private LockWatchEventLogImpl(ClientLockWatchSnapshotUpdater snapshotUpdater) {
         this.snapshotUpdater = snapshotUpdater;
     }
 

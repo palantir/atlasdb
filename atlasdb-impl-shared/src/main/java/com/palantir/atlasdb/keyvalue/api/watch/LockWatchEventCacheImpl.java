@@ -33,7 +33,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ClientLockWatchEventLog;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -55,17 +55,17 @@ import com.palantir.logsafe.Preconditions;
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    private final ClientLockWatchEventLog eventLog;
+    private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create()), NoOpLockWatchEventCache.INSTANCE,
+                new LockWatchEventCacheImpl(LockWatchEventLogImpl.create()), NoOpLockWatchEventCache.INSTANCE,
                 metricsManager);
     }
 
     @VisibleForTesting
-    LockWatchEventCacheImpl(ClientLockWatchEventLog eventLog) {
+    LockWatchEventCacheImpl(LockWatchEventLog eventLog) {
         this.eventLog = eventLog;
         timestampStateStore = new TimestampStateStore();
     }

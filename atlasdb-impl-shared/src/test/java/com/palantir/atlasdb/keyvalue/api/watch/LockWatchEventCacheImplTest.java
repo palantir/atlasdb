@@ -39,7 +39,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ClientLockWatchEventLog;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -83,7 +83,7 @@ public final class LockWatchEventCacheImplTest {
     private static final Set<Long> TIMESTAMPS_COMBINED = ImmutableSet.of(1L, 2L, 3L, 1337L, 10110101L);
 
     @Mock
-    private ClientLockWatchEventLog eventLog;
+    private LockWatchEventLog eventLog;
 
     private LockWatchEventCacheImpl eventCache;
 

@@ -33,7 +33,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ClientLockWatchEventLog;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
@@ -41,7 +41,7 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class ClientLockWatchEventLogImplTest {
+public final class LockWatchEventLogImplTest {
     private static final UUID LEADER = UUID.randomUUID();
     private static final IdentifiedVersion VERSION_1 = IdentifiedVersion.of(LEADER, 17L);
     private static final IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 25L);
@@ -59,11 +59,11 @@ public final class ClientLockWatchEventLogImplTest {
     @Mock
     private ClientLockWatchSnapshotUpdater snapshotUpdater;
 
-    private ClientLockWatchEventLog eventLog;
+    private LockWatchEventLog eventLog;
 
     @Before
     public void before() {
-        eventLog = ClientLockWatchEventLogImpl.create(snapshotUpdater);
+        eventLog = LockWatchEventLogImpl.create(snapshotUpdater);
     }
 
     @Test
