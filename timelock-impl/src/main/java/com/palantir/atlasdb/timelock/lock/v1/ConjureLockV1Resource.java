@@ -21,10 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-<<<<<<< HEAD
 import com.google.common.collect.ImmutableSet;
-=======
->>>>>>> develop
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -34,26 +31,20 @@ import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
-<<<<<<< HEAD
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.HeldLocksToken;
-=======
 import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
->>>>>>> develop
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.UndertowConjureLockV1Service;
-<<<<<<< HEAD
 import com.palantir.lock.client.ConjureLockV1Tokens;
-=======
->>>>>>> develop
 import com.palantir.tokens.auth.AuthHeader;
 
 public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
@@ -104,11 +95,7 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
                             ConjureLockV1Tokens.getLegacyTokens(request)));
             return Futures.transform(
                     serviceTokens,
-<<<<<<< HEAD
                     tokens -> ImmutableSet.copyOf(ConjureLockV1Tokens.getConjureTokens(tokens)),
-=======
-                    ConjureLockV1Tokens::getConjureTokens,
->>>>>>> develop
                     MoreExecutors.directExecutor());
         });
     }
