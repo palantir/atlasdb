@@ -85,7 +85,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 version -> startTimestamps.forEach(
                         timestamp -> timestampStateStore.putStartVersion(timestamp, version)));
 
-        getEarliestVersion().ifPresent(eventLog::removeOldEntries);
+        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeOldEntries);
     }
 
     @Override

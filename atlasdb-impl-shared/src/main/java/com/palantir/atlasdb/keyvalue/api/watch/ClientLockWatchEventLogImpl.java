@@ -99,8 +99,8 @@ final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {
     }
 
     @Override
-    public void removeOldEntries(IdentifiedVersion earliestVersion) {
-        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventMap.headMap(earliestVersion.version()).entrySet();
+    public void removeOldEntries(long earliestSequence) {
+        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventMap.headMap(earliestSequence).entrySet();
         Optional<Long> latestDeletedVersion = Streams.findLast(eventsToBeRemoved.stream()).map(Map.Entry::getKey);
         Optional<IdentifiedVersion> latestVersion = getLatestKnownVersion();
 
