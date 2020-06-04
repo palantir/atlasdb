@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -27,9 +27,25 @@ import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.watch.TimestampToVersionMap.CommitInfo;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.TimestampToVersionMap.CommitInfo;
+import com.palantir.lock.watch.ClientLockWatchEventLog;
+import com.palantir.lock.watch.ClientLogEvents;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.ImmutableInvalidateAll;
+import com.palantir.lock.watch.ImmutableInvalidateSome;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.TransactionUpdate;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 /**
@@ -42,7 +58,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     public static LockWatchEventCache create() {
         return FailureCheckingLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create()));
+                new LockWatchEventCacheImpl(ClientLockWatchEventLogImpl.create()), NoOpLockWatchEventCache.INSTANCE);
     }
 
     @VisibleForTesting
@@ -133,7 +149,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     private void checkConditionOrThrow(boolean condition, String message) {
         if (condition) {
-            throw new LockWatchFailedException(message);
+            throw new TransactionLockWatchFailedException(message);
         }
     }
 

@@ -20,4 +20,8 @@ public final class TransactionLockWatchFailedException extends TransactionFailed
     public TransactionLockWatchFailedException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    public TransactionLockWatchFailedException(String message) {
+        super(message);
+    }
 }

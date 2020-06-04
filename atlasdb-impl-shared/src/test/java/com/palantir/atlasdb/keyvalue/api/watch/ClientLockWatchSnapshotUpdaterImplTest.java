@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,6 +30,14 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.UnlockEvent;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class ClientLockWatchSnapshotUpdaterImplTest {

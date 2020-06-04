@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.lock.watch.LockWatchEventCache;
 
 final class FailureCheckingLockWatchEventCache extends AbstractInvocationHandler {
 
@@ -36,23 +38,20 @@ final class FailureCheckingLockWatchEventCache extends AbstractInvocationHandler
     @GuardedBy("this")
     private LockWatchEventCache delegate;
 
-    @GuardedBy("this")
-    private boolean hasFailed = false;
-
     private FailureCheckingLockWatchEventCache(LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
     }
 
     @Override
-    protected synchronized Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected synchronized Object handleInvocation(Object proxy, Method method, Object[] args) {
         try {
             return method.invoke(delegate, args);
-        } catch (LockWatchFailedException e) {
+        } catch (TransactionLockWatchFailedException e) {
             throw e;
         } catch (Throwable t) {
             delegate = fallbackCache;
-            throw t; // temp
+            throw new TransactionLockWatchFailedException("Unexpected failure in the lock watch cache", t);
         }
     }
 }

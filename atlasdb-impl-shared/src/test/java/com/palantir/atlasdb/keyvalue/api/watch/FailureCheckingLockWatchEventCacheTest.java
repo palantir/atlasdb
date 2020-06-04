@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,16 +27,20 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.palantir.lock.watch.LockWatchEventCache;
+
 @RunWith(MockitoJUnitRunner.class)
 public final class FailureCheckingLockWatchEventCacheTest {
 
     @Mock
     private LockWatchEventCache defaultCache;
+    @Mock
+    private LockWatchEventCache fallbackCache;
     private LockWatchEventCache proxyCache;
 
     @Before
     public void before() {
-        proxyCache = FailureCheckingLockWatchEventCache.newProxyInstance(defaultCache);
+        proxyCache = FailureCheckingLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache);
     }
 
     @Test

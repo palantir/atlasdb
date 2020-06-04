@@ -27,13 +27,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
-import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.LockWatchFailedException;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 import com.palantir.logsafe.UnsafeArg;
@@ -57,20 +55,12 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
     }
 
     CommitUpdate getCommitUpdate(long startTs) {
-        try {
-            return lockWatchEventCache.getCommitUpdate(startTs);
-        } catch (LockWatchFailedException e) {
-            throw new TransactionLockWatchFailedException("Failed to get commit update", e);
-        }
+        return lockWatchEventCache.getCommitUpdate(startTs);
     }
 
     TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
-        try {
-            return lockWatchEventCache.getEventsForTransactions(startTimestamps, version);
-        } catch (LockWatchFailedException e) {
-            throw new TransactionLockWatchFailedException("Failed to get events", e);
-        }
+        return lockWatchEventCache.getEventsForTransactions(startTimestamps, version);
     }
 
     @Override

@@ -22,7 +22,7 @@ import java.util.Map;
 import org.immutables.value.Value;
 
 @Value.Immutable
-interface ClientLogEvents {
+public interface ClientLogEvents {
 
     List<LockWatchEvent> events();
 

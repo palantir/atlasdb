@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,10 +35,21 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.logsafe.exceptions.SafeNullPointerException;
+import com.palantir.lock.watch.ClientLockWatchEventLog;
+import com.palantir.lock.watch.ClientLogEvents;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.ImmutableTransactionUpdate;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.TransactionUpdate;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class LockWatchEventCacheImplTest {
@@ -137,7 +148,7 @@ public final class LockWatchEventCacheImplTest {
 
         assertThat(eventCache.getTimestampMappings(secondBatch)).containsExactlyEntriesOf(newExpectedMap);
         assertThatThrownBy(() -> eventCache.getTimestampMappings(TIMESTAMPS_COMBINED))
-                .isInstanceOf(LockWatchFailedException.class)
+                .isInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start timestamp missing from map");
     }
 

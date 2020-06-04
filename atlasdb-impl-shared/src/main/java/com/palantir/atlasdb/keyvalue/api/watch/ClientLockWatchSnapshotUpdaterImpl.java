@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +23,14 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatchSnapshotUpdater {

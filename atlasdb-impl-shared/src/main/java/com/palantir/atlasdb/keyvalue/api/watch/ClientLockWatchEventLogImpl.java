@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Map;
 import java.util.NavigableMap;
@@ -25,6 +25,13 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
+import com.palantir.lock.watch.ClientLockWatchEventLog;
+import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
+import com.palantir.lock.watch.ClientLogEvents;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
 
 final class ClientLockWatchEventLogImpl implements ClientLockWatchEventLog {

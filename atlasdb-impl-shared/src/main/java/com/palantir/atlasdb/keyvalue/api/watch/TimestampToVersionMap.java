@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +24,8 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.TreeMultimap;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.TransactionUpdate;
 
 final class TimestampToVersionMap {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
