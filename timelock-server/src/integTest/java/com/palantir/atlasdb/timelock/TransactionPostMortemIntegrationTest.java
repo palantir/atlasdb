@@ -33,7 +33,6 @@ import com.palantir.atlasdb.debug.FullDiagnosticDigest;
 import com.palantir.atlasdb.debug.ImmutableLockDiagnosticComponents;
 import com.palantir.atlasdb.debug.ImmutableLockDiagnosticConfig;
 import com.palantir.atlasdb.debug.LocalLockTracker;
-import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.debug.TransactionPostMortemRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
