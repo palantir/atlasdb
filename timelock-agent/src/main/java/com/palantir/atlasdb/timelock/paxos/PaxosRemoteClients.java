@@ -29,9 +29,6 @@ import org.immutables.value.Value;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.RemotingClientConfigs;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
@@ -150,17 +147,8 @@ public abstract class PaxosRemoteClients {
 
     private <T> KeyedStream<String, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
         return KeyedStream.of(context().remoteUris())
-                .map(uri -> AtlasDbHttpClients.createProxy(
-                        context().trustContext(),
-                        uri,
-                        clazz,
-                        AuxiliaryRemotingParameters.builder()
-                                .userAgent(context().userAgent())
-                                .shouldLimitPayload(false)
-                                .shouldRetry(shouldRetry)
-                                .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
-                                .shouldUseExtendedTimeout(false)
-                                .build()))
+                .map(uri -> context().dialogueServiceProvider()
+                        .createSingleNodeInstrumentedProxy(uri, clazz, shouldRetry))
                 .map((host, proxy) -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics().getTaggedRegistry(),
                         clazz,
