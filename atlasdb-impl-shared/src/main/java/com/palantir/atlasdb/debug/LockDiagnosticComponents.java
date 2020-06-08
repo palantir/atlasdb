@@ -19,7 +19,7 @@ package com.palantir.atlasdb.debug;
 import org.immutables.value.Value;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * TODO(jkong): Remove this once PDS-95791 is resolved.
  * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated

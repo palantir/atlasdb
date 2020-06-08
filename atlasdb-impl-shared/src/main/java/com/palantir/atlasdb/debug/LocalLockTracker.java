@@ -38,7 +38,7 @@ import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * TODO(jkong): Remove this once PDS-95791 is resolved.
  * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
