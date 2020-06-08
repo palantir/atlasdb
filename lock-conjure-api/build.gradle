@@ -24,7 +24,7 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.timelock'
         productName = 'timelock-server'
-        minimumVersion = '0.144.0' // TODO (jkong): This needs to be bumped
+        minimumVersion = '0.187.0' // TODO (jkong): Bump
         maximumVersion = '0.x.x'
     }
 }

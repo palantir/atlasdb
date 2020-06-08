@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -30,6 +31,9 @@ import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
+import com.palantir.lock.ConjureLockV1ServiceEndpoints;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
@@ -40,6 +44,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.UndertowConjureLockV1Service;
+import com.palantir.lock.client.ConjureLockV1Tokens;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
@@ -90,7 +95,7 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
                             ConjureLockV1Tokens.getLegacyTokens(request)));
             return Futures.transform(
                     serviceTokens,
-                    ConjureLockV1Tokens::getConjureTokens,
+                    tokens -> ImmutableSet.copyOf(ConjureLockV1Tokens.getConjureTokens(tokens)),
                     MoreExecutors.directExecutor());
         });
     }

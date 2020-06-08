@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.factory.ServiceCreator;
 
 public class ShortAndLongTimeoutServicesTest {
@@ -56,5 +57,39 @@ public class ShortAndLongTimeoutServicesTest {
         ShortAndLongTimeoutServices<String> strings = integers.map(Object::toString);
         assertThat(strings.shortTimeout()).isEqualTo("1");
         assertThat(strings.longTimeout()).isEqualTo("3");
+    }
+
+    @Test
+    public void zipWithZipsCorrectElements() {
+        ShortAndLongTimeoutServices<Integer> numbers = ImmutableShortAndLongTimeoutServices.<Integer>builder()
+                .shortTimeout(1)
+                .longTimeout(10)
+                .build();
+        ShortAndLongTimeoutServices<String> stringNumbers = ImmutableShortAndLongTimeoutServices.<String>builder()
+                .shortTimeout("100")
+                .longTimeout("1000")
+                .build();
+
+        ShortAndLongTimeoutServices<Integer> zipped = numbers.zipWith(stringNumbers,
+                (integer, string) -> integer + Integer.parseInt(string));
+        assertThat(zipped.shortTimeout()).isEqualTo(101);
+        assertThat(zipped.longTimeout()).isEqualTo(1010);
+    }
+
+    @Test
+    public void zipWithUsesZippedObjectAsFirstArgument() {
+        ShortAndLongTimeoutServices<Integer> minuends = ImmutableShortAndLongTimeoutServices.<Integer>builder()
+                .shortTimeout(100)
+                .longTimeout(100)
+                .build();
+        ShortAndLongTimeoutServices<Integer> subtrahends = ImmutableShortAndLongTimeoutServices.<Integer>builder()
+                .shortTimeout(1)
+                .longTimeout(1)
+                .build();
+
+        ShortAndLongTimeoutServices<Integer> zipped = minuends.zipWith(subtrahends, IntMath::checkedSubtract);
+        assertThat(zipped.shortTimeout()).isEqualTo(99);
+        assertThat(zipped.longTimeout()).isEqualTo(99);
+
     }
 }

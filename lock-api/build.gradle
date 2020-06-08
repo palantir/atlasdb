@@ -11,6 +11,8 @@ dependencies {
     compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
     compile project(':lock-api-objects')
+    compile project(':lock-conjure-api:lock-conjure-api-dialogue')
+    compile project(':lock-conjure-api:lock-conjure-api-jersey')
     compile project(':timelock-api:timelock-api-dialogue')
     compile project(':timelock-api:timelock-api-jersey')
     compile project(":timestamp-api")
