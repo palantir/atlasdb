@@ -23,7 +23,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 
 public abstract class LockWatchManager {
     /**
@@ -45,8 +45,9 @@ public abstract class LockWatchManager {
 
     /**
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
-     * that version, and a map associating each start timestamp with its respective lock watch state version.
+     * that version, and a map associating each start timestamp with its respective lock watch state version, and a flag
+     * that is true if a snapshot or timelock leader election occurred.
      */
-    abstract TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+    abstract TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version);
 }

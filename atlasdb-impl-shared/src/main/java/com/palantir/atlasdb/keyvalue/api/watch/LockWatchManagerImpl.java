@@ -33,7 +33,7 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
 
 public final class LockWatchManagerImpl extends LockWatchManager implements AutoCloseable {
@@ -58,9 +58,9 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
         return lockWatchEventCache.getCommitUpdate(startTs);
     }
 
-    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+    TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
-        return lockWatchEventCache.getEventsForTransactions(startTimestamps, version);
+        return lockWatchEventCache.getUpdateForTransactions(startTimestamps, version);
     }
 
     @Override
