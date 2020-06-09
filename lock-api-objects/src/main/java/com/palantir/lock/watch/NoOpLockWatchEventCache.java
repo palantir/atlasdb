@@ -20,14 +20,11 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-
-import com.google.common.collect.ImmutableSet;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
-    private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of()));
 
     private NoOpLockWatchEventCache() {
         // singleton
@@ -55,10 +52,19 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
-        return NONE;
+        IdentifiedVersion fakeVersion = generateFakeVersion();
+        return ImmutableTransactionsLockWatchEvents.builder()
+                .clearCache(true)
+                .startTsToSequence(
+                        startTimestamps.stream().collect(Collectors.toMap(startTs -> startTs, $ -> fakeVersion)))
+                .build();
     }
 
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
+    }
+
+    private IdentifiedVersion generateFakeVersion() {
+        return IdentifiedVersion.of(UUID.randomUUID(), -1L);
     }
 }
