@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix a resource leak in RemoteTimelockServiceAdapter.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4828
