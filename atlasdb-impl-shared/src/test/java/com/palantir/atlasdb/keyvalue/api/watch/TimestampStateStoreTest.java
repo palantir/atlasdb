@@ -34,8 +34,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class TimestampStateStoreTest {
     private static UUID LEADER = UUID.randomUUID();
-    private static IdentifiedVersion VERSION_1 = IdentifiedVersion.of(LEADER, 1L);
-    private static IdentifiedVersion VERSION_2 = IdentifiedVersion.of(LEADER, 17L);
+    private static IdentifiedVersion FIRST_VERSION = IdentifiedVersion.of(LEADER, 1L);
+    private static IdentifiedVersion LATER_VERSION = IdentifiedVersion.of(LEADER, 17L);
 
     private TimestampStateStore timestampStateStore;
 
@@ -46,8 +46,8 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void earliestVersionUpdatesWhenAllTimestampsRemovedForVersion() {
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), VERSION_1);
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), VERSION_2);
+        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), FIRST_VERSION);
+        timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), LATER_VERSION);
 
         assertThat(timestampStateStore.getEarliestVersion()).hasValue(1L);
 
@@ -67,9 +67,9 @@ public final class TimestampStateStoreTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L), VERSION_1);
-        timestampStateStore.putCommitUpdates(ImmutableSet.of(update), VERSION_2);
-        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), VERSION_2))
+        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L), FIRST_VERSION);
+        timestampStateStore.putCommitUpdates(ImmutableSet.of(update), LATER_VERSION);
+        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), LATER_VERSION))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Commit info already present for given timestamp");
     }
@@ -82,7 +82,7 @@ public final class TimestampStateStoreTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), VERSION_2))
+        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), LATER_VERSION))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start timestamp missing from map");
     }
