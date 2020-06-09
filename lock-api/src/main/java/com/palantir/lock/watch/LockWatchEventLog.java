@@ -29,10 +29,6 @@ public interface LockWatchEventLog {
 
     Optional<IdentifiedVersion> getLatestKnownVersion();
 
-    /**
-     * Processes a state update and returns true if the update was a successful response on the same leader; returns
-     * false otherwise
-     */
     boolean processUpdate(LockWatchStateUpdate update);
 
     void removeOldEntries(long earliestSequence);

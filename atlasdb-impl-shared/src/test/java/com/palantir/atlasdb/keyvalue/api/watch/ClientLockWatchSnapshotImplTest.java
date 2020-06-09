@@ -64,13 +64,13 @@ public final class ClientLockWatchSnapshotImplTest {
     @Test
     public void eventsProcessedAsExpected() {
         snapshot.processEvents(ImmutableList.of(WATCH_EVENT), VERSION);
-        LockWatchStateUpdate.Snapshot snapshot = this.snapshot.getSnapshot();
-        assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_2);
-        assertThat(snapshot.lockWatches()).containsExactlyInAnyOrder(REFERENCE);
+        LockWatchStateUpdate.Snapshot snapshotUpdate = snapshot.getSnapshot();
+        assertThat(snapshotUpdate.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_2);
+        assertThat(snapshotUpdate.lockWatches()).containsExactlyInAnyOrder(REFERENCE);
 
-        this.snapshot.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), VERSION);
-        LockWatchStateUpdate.Snapshot snapshot2 = this.snapshot.getSnapshot();
-        assertThat(snapshot2.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_3);
-        assertThat(snapshot2.lockWatches()).containsExactlyInAnyOrder(REFERENCE);
+        snapshot.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), VERSION);
+        LockWatchStateUpdate.Snapshot snapshotUpdate2 = snapshot.getSnapshot();
+        assertThat(snapshotUpdate2.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_3);
+        assertThat(snapshotUpdate2.lockWatches()).containsExactlyInAnyOrder(REFERENCE);
     }
 }

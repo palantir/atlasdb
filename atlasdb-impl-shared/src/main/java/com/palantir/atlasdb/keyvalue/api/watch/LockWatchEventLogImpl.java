@@ -138,10 +138,10 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         }
     }
 
-    private void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
+    private void processSnapshot(LockWatchStateUpdate.Snapshot snapshotUpdate) {
         eventMap.clear();
-        this.snapshot.resetWithSnapshot(snapshot);
-        latestVersion = Optional.of(IdentifiedVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
+        this.snapshot.resetWithSnapshot(snapshotUpdate);
+        latestVersion = Optional.of(IdentifiedVersion.of(snapshotUpdate.logId(), snapshotUpdate.lastKnownVersion()));
     }
 
     private void processFailed() {
@@ -164,8 +164,8 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         }
 
         @Override
-        public Boolean visit(LockWatchStateUpdate.Snapshot snapshot) {
-            processSnapshot(snapshot);
+        public Boolean visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
+            processSnapshot(snapshotUpdate);
             return false;
         }
     }
