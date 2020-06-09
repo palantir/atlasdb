@@ -26,7 +26,7 @@ import org.immutables.value.Value;
  * calls.
  */
 @Value.Immutable
-public interface TransactionsLockWatchEvents {
+public interface TransactionsLockWatchUpdate {
     List<LockWatchEvent> events();
     Map<Long, IdentifiedVersion> startTsToSequence();
     boolean clearCache();

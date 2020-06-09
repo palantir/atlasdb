@@ -26,7 +26,7 @@ public interface LockWatchEventCache {
     void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
             LockWatchStateUpdate update);
     CommitUpdate getCommitUpdate(long startTs);
-    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+    TransactionsLockWatchUpdate getUpdateForTransactionsg(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version);
     void removeTransactionStateFromCache(long startTimestamp);
 }
