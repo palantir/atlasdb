@@ -84,6 +84,11 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        return delegate.getCommitTimestamp(startTs, commitLocksToken);
+    }
+
+    @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return timestampService.getFreshTimestamps(numTimestampsRequested);
     }

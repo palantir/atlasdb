@@ -17,9 +17,9 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.sql.Connection;
-import java.util.function.Supplier;
+import javax.sql.DataSource;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -33,14 +33,14 @@ public class SqlitePaxosStateLogMigrationStateTest {
     private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase
             .of(Client.of("namespace"), "useCase");
 
-    private Supplier<Connection> connSupplier;
+    private DataSource dataSource;
     private SqlitePaxosStateLogMigrationState migrationState;
 
     @Before
     public void setup() {
-        connSupplier = SqliteConnections
-                .createDefaultNamedSqliteDatabaseAtPath(tempFolder.getRoot().toPath());
-        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, connSupplier);
+        dataSource = SqliteConnections
+                .getPooledDataSource(tempFolder.getRoot().toPath());
+        migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, dataSource);
     }
 
     @Test
@@ -67,26 +67,28 @@ public class SqlitePaxosStateLogMigrationStateTest {
     }
 
     @Test
-    public void canChangeStates() {
+    public void canProgressThroughAndRepeatMigrationStates() {
         migrationState.migrateToValidationState();
         migrationState.migrateToMigratedState();
         migrationState.migrateToMigratedState();
         assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
         assertThat(migrationState.isInValidationState()).isFalse();
         assertThat(migrationState.isInMigratedState()).isTrue();
+    }
 
+    @Test
+    public void cannotRegressToLowerMigrationState() {
         migrationState.migrateToValidationState();
-        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
-        assertThat(migrationState.isInValidationState()).isTrue();
-        assertThat(migrationState.isInMigratedState()).isFalse();
+        migrationState.migrateToMigratedState();
+        assertThatThrownBy(migrationState::migrateToValidationState).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void finishingMigrationForOneNamespaceDoesNotSetFlagForOthers() {
         migrationState.migrateToValidationState();
 
-        SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
-                .create(ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), connSupplier);
+        SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState.create(
+                ImmutableNamespaceAndUseCase.of(Client.of("other"), "useCase"), dataSource);
         assertThat(otherState.hasMigratedFromInitialState()).isFalse();
         otherState.migrateToValidationState();
         assertThat(otherState.hasMigratedFromInitialState()).isTrue();
@@ -96,10 +98,22 @@ public class SqlitePaxosStateLogMigrationStateTest {
     public void finishingMigrationForOneUseCaseDoesNotSetFlagForOthers() {
         migrationState.migrateToValidationState();
 
-        SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState
-                .create(ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), connSupplier);
+        SqlitePaxosStateLogMigrationState otherState = SqlitePaxosStateLogMigrationState.create(
+                ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "other"), dataSource);
         assertThat(otherState.hasMigratedFromInitialState()).isFalse();
         otherState.migrateToValidationState();
         assertThat(otherState.hasMigratedFromInitialState()).isTrue();
+    }
+
+    @Test
+    public void defaultCutoffIsNoLogEntry() {
+        assertThat(migrationState.getCutoff()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void canSetCutoff() {
+        long expectedCutoff = 100L;
+        migrationState.setCutoff(expectedCutoff);
+        assertThat(migrationState.getCutoff()).isEqualTo(expectedCutoff);
     }
 }

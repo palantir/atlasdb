@@ -31,7 +31,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
-import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
+import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.table.description.Schema;
@@ -63,7 +63,7 @@ public final class TimeLockTestUtils {
             TestableTimelockCluster cluster,
             String agent,
             AtlasDbRuntimeConfig runtimeConfigTemplate,
-            Optional<ClientLockDiagnosticCollector> diagnosticCollector,
+            Optional<LockDiagnosticComponents> diagnosticComponents,
             Schema... schemas) {
         List<String> serverUris = cluster.servers().stream()
                 .map(server -> server.serverHolder().getTimelockUri())
@@ -89,7 +89,7 @@ public final class TimeLockTestUtils {
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .runtimeConfigSupplier(() -> Optional.of(runtimeConfig))
-                .lockDiagnosticInfoCollector(diagnosticCollector)
+                .lockDiagnosticComponents(diagnosticComponents)
                 .addSchemas(schemas)
                 .build()
                 .serializable();

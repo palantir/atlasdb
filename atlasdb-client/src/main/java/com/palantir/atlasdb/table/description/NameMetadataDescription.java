@@ -20,19 +20,28 @@ import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 
 @Immutable
 public class NameMetadataDescription {
     public static final String HASH_ROW_COMPONENT_NAME = "hashOfRowComponents";
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final List<NameComponentDescription> rowParts;
     private final int numberOfComponentsHashed;
@@ -172,6 +181,61 @@ public class NameMetadataDescription {
         }
         sb.append("}");
         return sb.toString();
+    }
+
+    public byte[] parseFromJson(String json, boolean allowPrefix) {
+        try {
+            JsonNode jsonNode = OBJECT_MAPPER.readTree(json);
+            Preconditions.checkState(jsonNode.isObject(),
+                    "Only JSON objects can be deserialized into parsed byte arrays.  Passed json was: %s",
+                    json);
+            ObjectNode objectNode = (ObjectNode) jsonNode;
+
+            int numDefinedFields = countNumDefinedFields(objectNode);
+            byte[][] bytes = new byte[numDefinedFields][];
+
+            Preconditions.checkArgument(numDefinedFields > 0,
+                    "JSON object needs a field named: %s.  Passed json was: %s",
+                    rowParts.get(0).getComponentName(),
+                    json);
+            Preconditions.checkArgument(allowPrefix || numDefinedFields == rowParts.size(),
+                    "JSON object has %s defined fields, but the number of row components is %s.  Passed json was: %s",
+                    numDefinedFields,
+                    rowParts.size(),
+                    json);
+
+            for (int i = 0; i < numDefinedFields; ++i) {
+                NameComponentDescription desc = rowParts.get(i);
+                JsonNode element = objectNode.get(desc.getComponentName());
+                String textRepresentation = element.isTextual() ? element.textValue() : String.valueOf(element);
+                bytes[i] = desc.getType().convertFromString(textRepresentation);
+                if (desc.isReverseOrder()) {
+                    EncodingUtils.flipAllBitsInPlace(bytes[i]);
+                }
+            }
+
+            return Bytes.concat(bytes);
+        } catch (JsonProcessingException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    private int countNumDefinedFields(ObjectNode objectNode) {
+        int numFields = 0;
+        for (; numFields < rowParts.size(); ++numFields) {
+            if (!objectNode.has(rowParts.get(numFields).getComponentName())) {
+                break;
+            }
+        }
+
+        for (int i = numFields + 1; i < rowParts.size(); ++i) {
+            String componentName = rowParts.get(i).getComponentName();
+            if (objectNode.has(componentName)) {
+                throw new IllegalArgumentException("JSON object is missing field: "
+                        + rowParts.get(i - 1).getComponentName());
+            }
+        }
+        return numFields;
     }
 
     public TableMetadataPersistence.NameMetadataDescription.Builder persistToProto() {

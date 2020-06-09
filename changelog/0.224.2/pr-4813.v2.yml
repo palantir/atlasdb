@@ -1,0 +1,6 @@
+type: migration
+migration:
+  description: This version performs a blocking migration for timelock paxos state
+    logs. Consumers of atlasdb other than timelock server are unaffected.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4813

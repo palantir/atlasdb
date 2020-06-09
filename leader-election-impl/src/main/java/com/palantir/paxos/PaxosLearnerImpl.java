@@ -18,6 +18,7 @@ package com.palantir.paxos;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
@@ -29,18 +30,16 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 
     private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
 
-    public static PaxosLearner newLearner(String logDir) {
-        return newLearner(logDir, PaxosKnowledgeEventRecorder.NO_OP);
+    public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
+        return newLearner(new PaxosStateLogImpl<>(logDir), eventRecorder);
     }
 
-    public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
-        PaxosStateLogImpl<PaxosValue> log = new PaxosStateLogImpl<>(logDir);
+    private static PaxosLearner newLearner(PaxosStateLog<PaxosValue> log, PaxosKnowledgeEventRecorder eventRecorder) {
         ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<>();
 
         byte[] greatestValidValue = PaxosStateLogs.getGreatestValidLogEntry(log);
@@ -52,11 +51,12 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         return new PaxosLearnerImpl(state, log, eventRecorder);
     }
 
-    public static PaxosLearner newLearner(
-            PaxosStorageParameters storageParameters, PaxosKnowledgeEventRecorder eventRecorder) {
-        String logDirectory = storageParameters.fileBasedLogDirectory()
-                .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
-        return newLearner(logDirectory, eventRecorder);
+    public static PaxosLearner newSplittingLearner(PaxosStorageParameters params,
+            SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
+            PaxosKnowledgeEventRecorder event) {
+        PaxosStateLog<PaxosValue> log = SplittingPaxosStateLog
+                .createWithMigration(params, PaxosValue.BYTES_HYDRATOR, legacyOperationMarkers, OptionalLong.empty());
+        return newLearner(log, event);
     }
 
     final SortedMap<Long, PaxosValue> state;

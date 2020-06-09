@@ -35,6 +35,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public interface RemotingClientConfig {
     @Value.Default
     default boolean enableDialogue() {
-        return false;
+        return true;
     }
 }

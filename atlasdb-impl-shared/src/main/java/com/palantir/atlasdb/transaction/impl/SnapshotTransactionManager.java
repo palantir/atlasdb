@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -53,10 +52,10 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
-import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -67,6 +66,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -82,6 +82,7 @@ import com.palantir.util.SafeShutdownRunner;
     final TransactionService transactionService;
     final TimelockService timelockService;
     final LockWatchManager lockWatchManager;
+    final LockWatchEventCache lockWatchEventCache;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -105,6 +106,7 @@ import com.palantir.util.SafeShutdownRunner;
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
+            LockWatchEventCache lockWatchEventCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -123,6 +125,7 @@ import com.palantir.util.SafeShutdownRunner;
             ConflictTracer conflictTracer) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
+        this.lockWatchEventCache = lockWatchEventCache;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -157,19 +160,17 @@ import com.palantir.util.SafeShutdownRunner;
             throws E, TransactionFailedRetriableException {
         checkOpen();
         try {
-            TransactionAndImmutableTsLock txAndLock =
-                    runTimed(() -> Iterables.getOnlyElement(
-                            setupRunTaskBatchWithConditionThrowOnConflict(ImmutableList.of(condition))), "setupTask");
-            return finishRunTaskWithLockThrowOnConflict(txAndLock,
-                    transaction -> task.execute(transaction, condition));
+            OpenTransaction openTransaction =
+                    runTimed(() -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))),
+                            "setupTask");
+            return openTransaction.finish(transaction -> task.execute(transaction, condition));
         } finally {
             condition.cleanup();
         }
     }
 
     @Override
-    public List<TransactionAndImmutableTsLock> setupRunTaskBatchWithConditionThrowOnConflict(
-            List<? extends PreCommitCondition> conditions) {
+    public List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> conditions) {
         if (conditions.isEmpty()) {
             return ImmutableList.of();
         }
@@ -178,9 +179,9 @@ import com.palantir.util.SafeShutdownRunner;
                 timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
-            long immutableTs = Collections.max(responses.stream()
-                    .map(response -> response.immutableTimestamp().getImmutableTimestamp())
-                    .collect(Collectors.toList()));
+            long immutableTs = responses.stream()
+                    .mapToLong(response -> response.immutableTimestamp().getImmutableTimestamp())
+                    .max().getAsLong();
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
@@ -197,8 +198,7 @@ import com.palantir.util.SafeShutdownRunner;
                                 startTimestampSupplier,
                                 immutableTsLock,
                                 condition);
-
-                        return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
+                        return new OpenTransactionImpl(transaction, immutableTsLock);
                     }).collect(Collectors.toList());
         } catch (Throwable t) {
             timelockService.tryUnlock(
@@ -209,26 +209,42 @@ import com.palantir.util.SafeShutdownRunner;
         }
     }
 
-    @Override
-    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
-                                                                           TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        Timer postTaskTimer = getTimer("finishTask");
-        Timer.Context postTaskContext;
+    private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
 
-        TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
+        private final Transaction delegate;
+        private final LockToken immutableTsLock;
 
-        Transaction tx = txAndLock.transaction();
-        T result;
-        try {
-            result = runTaskThrowOnConflict(wrappedTask, tx);
-        } finally {
-            postTaskContext = postTaskTimer.time();
-            timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
+        private OpenTransactionImpl(Transaction delegate, LockToken immutableTsLock) {
+            this.delegate = delegate;
+            this.immutableTsLock = immutableTsLock;
         }
-        scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
-        postTaskContext.stop();
-        return result;
+
+        @Override
+        public Transaction delegate() {
+            return delegate;
+        }
+
+        @Override
+        public <T, E extends Exception> T finish(TransactionTask<T, E> task)
+                throws E, TransactionFailedRetriableException {
+            Timer postTaskTimer = getTimer("finishTask");
+            Timer.Context postTaskContext;
+
+            TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, immutableTsLock);
+
+            Transaction tx = delegate;
+            T result;
+            try {
+                result = runTaskThrowOnConflict(wrappedTask, tx);
+            } finally {
+                lockWatchEventCache.removeTransactionStateFromCache(getTimestamp());
+                postTaskContext = postTaskTimer.time();
+                timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
+            }
+            scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
+            postTaskContext.stop();
+            return result;
+        }
     }
 
     private void scrubForAggressiveHardDelete(SnapshotTransaction tx) {
@@ -295,7 +311,7 @@ import com.palantir.util.SafeShutdownRunner;
         }
     }
 
-    private  <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
+    private <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();

@@ -16,11 +16,11 @@
 
 package com.palantir.paxos;
 
-import java.sql.Connection;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
@@ -34,7 +34,8 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.common.persist.Persistable;
 
-public final class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
+public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private final Client namespace;
     private final String useCase;
     private final Jdbi jdbi;
@@ -45,9 +46,10 @@ public final class SqlitePaxosStateLog<V extends Persistable & Versionable> impl
         this.jdbi = jdbi;
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(NamespaceAndUseCase namespaceAndUseCase,
-            Supplier<Connection> connectionSupplier) {
-        Jdbi jdbi = Jdbi.create(connectionSupplier::get).installPlugin(new SqlObjectPlugin());
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(
+            NamespaceAndUseCase namespaceAndUseCase,
+            DataSource dataSource) {
+        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
         log.initialize();

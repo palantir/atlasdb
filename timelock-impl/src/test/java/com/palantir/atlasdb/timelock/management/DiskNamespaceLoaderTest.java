@@ -18,37 +18,66 @@ package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Path;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mock;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.paxos.Client;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.paxos.SqliteConnections;
+import com.palantir.tokens.auth.AuthHeader;
 
 public class DiskNamespaceLoaderTest {
     private static final String NAMESPACE_1 = "namespace_1";
     private static final String NAMESPACE_2 = "namespace_2";
+    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
+    @Mock private Function<String, TimeLockServices> serviceFactory;
+    @Mock private Supplier<Integer> maxNumberOfClientsSupplier;
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private TimeLockManagementResource timeLockManagementResource;
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
-    public DiskNamespaceLoader diskNamespaceLoader;
-
     @Before
-    public void setup() {
-        diskNamespaceLoader = new DiskNamespaceLoader(tempFolder.getRoot().toPath());
+    public void setup() throws MalformedURLException {
+        URL testUrl = new URL("http", "host", "file");
+        RedirectRetryTargeter redirectRetryTargeter = RedirectRetryTargeter
+                .create(testUrl, ImmutableList.of(testUrl));
+
+        Path rootFolderPath = tempFolder.getRoot().toPath();
+        PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContext.of(rootFolderPath, SqliteConnections
+                        .getPooledDataSource(rootFolderPath));
+
+        TimelockNamespaces namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
+
+        timeLockManagementResource = TimeLockManagementResource.create(persistentNamespaceContext,
+                namespaces,
+                redirectRetryTargeter);
+
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);
     }
 
     @Test
-    public void doesNotLoadLeaderPaxosAsNamespace() {
-        Set<String> namespaces = diskNamespaceLoader.getAllPersistedNamespaces().stream().map(Client::value).collect(
-                Collectors.toSet());
+    public void doesNotLoadLeaderPaxosAsNamespace() throws ExecutionException, InterruptedException {
+        Set<String> namespaces = timeLockManagementResource.getNamespaces(AUTH_HEADER).get();
         assertThat(namespaces).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
     }
 

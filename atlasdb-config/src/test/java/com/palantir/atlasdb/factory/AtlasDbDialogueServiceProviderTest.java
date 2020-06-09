@@ -46,7 +46,6 @@ import com.google.common.net.HttpHeaders;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
@@ -81,41 +80,43 @@ public class AtlasDbDialogueServiceProviderTest {
             = DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
     private static final UserAgent USER_USER_AGENT = UserAgent.of(UserAgent.Agent.of("jeremy", "77.79.12"));
 
+    private static final int FIRST_LOWER = 58;
+    private static final int FIRST_UPPER = 70;
+    private static final int SECOND_LOWER = 12;
+    private static final int SECOND_UPPER = 24;
+
     private int serverPort;
+    private int secondServerPort;
+
+    private AtlasDbDialogueServiceProvider provider;
     private ConjureTimelockService conjureTimelockService;
 
     @Rule
     public WireMockRule server = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
+    @Rule
+    public WireMockRule secondServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+
     @Before
     public void setup() {
-        setupServerToGiveOutTimestamps();
+        setupServersToGiveOutTimestamps();
 
         serverPort = server.port();
-        ServerListConfig serverListConfig = ImmutableServerListConfig.builder()
-                .addServers(getUriForPort(serverPort))
-                .sslConfiguration(SSL_CONFIGURATION)
-                .build();
+        secondServerPort = secondServer.port();
 
-        AtlasDbDialogueServiceProvider provider = AtlasDbDialogueServiceProvider.create(
-                Refreshable.only(serverListConfig),
-                DIALOGUE_BASE_FACTORY,
-                USER_USER_AGENT,
-                MetricsManagers.createForTests().getTaggedRegistry());
+        provider = getAtlasDbDialogueServiceProvider(serverPort);
         conjureTimelockService = provider.getConjureTimelockService();
     }
 
 
     @Test
     public void canMakeRequestsThroughDialogue() {
-        ConjureGetFreshTimestampsResponse response = makeTimestampsRequest();
-        assertThat(response.getInclusiveLower()).isEqualTo(58);
-        assertThat(response.getInclusiveUpper()).isEqualTo(70);
+        assertTimestampRange(conjureTimelockService, FIRST_LOWER, FIRST_UPPER);
     }
 
     @Test
     public void requestsAreIdentifiedWithTheUserProvidedUserAgent() {
-        makeTimestampsRequest();
+        makeTimestampsRequest(conjureTimelockService);
 
         server.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
                 .withHeader(HttpHeaders.USER_AGENT, WireMock.containing(
@@ -126,7 +127,7 @@ public class AtlasDbDialogueServiceProviderTest {
 
     @Test
     public void atlasDbHttpClientVersionProvidedAsAnInformationalAgent() {
-        makeTimestampsRequest();
+        makeTimestampsRequest(conjureTimelockService);
 
         server.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
                 .withHeader(HttpHeaders.USER_AGENT, WireMock.containing(
@@ -145,7 +146,7 @@ public class AtlasDbDialogueServiceProviderTest {
         ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
         ex.submit(this::scheduleServerRecoveryAfterFiveSeconds);
 
-        assertThatCode(this::makeTimestampsRequest).doesNotThrowAnyException();
+        assertThatCode(() -> makeTimestampsRequest(conjureTimelockService)).doesNotThrowAnyException();
         assertThat(Instant.now())
                 .as("should recover in a second after things are good again")
                 .isBefore(start.plus(Duration.ofSeconds(6)));
@@ -172,20 +173,60 @@ public class AtlasDbDialogueServiceProviderTest {
         assertThat(lockResponse).isEqualTo(ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()));
     }
 
-    private void scheduleServerRecoveryAfterFiveSeconds() {
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
-        setupServerToGiveOutTimestamps();
+    @Test
+    public void canHaveTwoInstancesOfServicesTalkingToTheSameTimeLockServer() {
+        ConjureTimelockService sameTimelockService = provider.getConjureTimelockService();
+
+        assertTimestampRange(conjureTimelockService, FIRST_LOWER, FIRST_UPPER);
+        assertTimestampRange(sameTimelockService, FIRST_LOWER, FIRST_UPPER);
     }
 
-    private void setupServerToGiveOutTimestamps() {
+    @Test
+    public void canTalkToTwoDifferentTimeLockServers() {
+        ConjureTimelockService secondTimelockService = getAtlasDbDialogueServiceProvider(secondServerPort)
+                .getConjureTimelockService();
+
+        assertTimestampRange(conjureTimelockService, FIRST_LOWER, FIRST_UPPER);
+        assertTimestampRange(secondTimelockService, SECOND_LOWER, SECOND_UPPER);
+    }
+
+    private AtlasDbDialogueServiceProvider getAtlasDbDialogueServiceProvider(int port) {
+        return AtlasDbDialogueServiceProvider.create(
+                Refreshable.only(ImmutableServerListConfig.builder()
+                        .sslConfiguration(SSL_CONFIGURATION)
+                        .addServers(getUriForPort(port))
+                        .build()),
+                DIALOGUE_BASE_FACTORY,
+                USER_USER_AGENT,
+                MetricsManagers.createForTests().getTaggedRegistry());
+    }
+
+    private void scheduleServerRecoveryAfterFiveSeconds() {
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        setupServersToGiveOutTimestamps();
+    }
+
+    private void setupServersToGiveOutTimestamps() {
         server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
                 .withStatus(200)
                 .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
-                .withBody("{\"inclusiveLower\": 58, \"inclusiveUpper\": 70}")));
+                .withBody("{\"inclusiveLower\": " + FIRST_LOWER + ", \"inclusiveUpper\": " + FIRST_UPPER + "}")));
+        secondServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
+                .withStatus(200)
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+                .withBody("{\"inclusiveLower\": " + SECOND_LOWER + ", \"inclusiveUpper\": " + SECOND_UPPER + "}")));
     }
 
-    private ConjureGetFreshTimestampsResponse makeTimestampsRequest() {
-        return conjureTimelockService.getFreshTimestamps(
+    private void assertTimestampRange(ConjureTimelockService timelockService, int expectedLower, int expectedUpper) {
+        assertThat(makeTimestampsRequest(timelockService)).satisfies(
+                range -> {
+                    assertThat(range.getInclusiveLower()).isEqualTo(expectedLower);
+                    assertThat(range.getInclusiveUpper()).isEqualTo(expectedUpper);
+                });
+    }
+
+    private ConjureGetFreshTimestampsResponse makeTimestampsRequest(ConjureTimelockService service) {
+        return service.getFreshTimestamps(
                 AuthHeader.valueOf("Bearer unused"), CLIENT, ConjureGetFreshTimestampsRequest.of(96));
     }
 

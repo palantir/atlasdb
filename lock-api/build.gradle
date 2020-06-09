@@ -1,6 +1,6 @@
-apply plugin: 'com.palantir.sls-recommended-dependencies'
-
 apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.palantir.sls-recommended-dependencies'
 
 repositories {
     mavenCentral()
@@ -11,6 +11,8 @@ dependencies {
     compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
     compile project(':lock-api-objects')
+    compile project(':lock-conjure-api:lock-conjure-api-dialogue')
+    compile project(':lock-conjure-api:lock-conjure-api-jersey')
     compile project(':timelock-api:timelock-api-dialogue')
     compile project(':timelock-api:timelock-api-jersey')
     compile project(":timestamp-api")
@@ -39,13 +41,4 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
-}
-
-recommendedProductDependencies {
-    productDependency {
-        productGroup = 'com.palantir.timelock'
-        productName = 'timelock-server'
-        minimumVersion = '0.144.0'
-        maximumVersion = '0.x.x'
-    }
 }
