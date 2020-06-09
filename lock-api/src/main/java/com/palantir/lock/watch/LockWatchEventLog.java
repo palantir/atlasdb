@@ -30,7 +30,8 @@ public interface LockWatchEventLog {
     Optional<IdentifiedVersion> getLatestKnownVersion();
 
     /**
-     * @return true if the update was successful and on the same leader; false if the cache should be cleared.
+     * Processes a state update and returns true if the update was a successful response on the same leader; returns
+     * false otherwise
      */
     boolean processUpdate(LockWatchStateUpdate update);
 
