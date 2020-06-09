@@ -417,7 +417,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry()));
+        super(config.blockingExecutor().orElseGet(
+                () -> createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry())));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;

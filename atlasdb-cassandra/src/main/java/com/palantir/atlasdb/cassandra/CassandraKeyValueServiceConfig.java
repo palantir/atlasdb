@@ -19,6 +19,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 import org.immutables.value.Value;
 
@@ -188,6 +189,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
         return DefaultCassandraAsyncKeyValueServiceFactory.DEFAULT;
+    }
+
+    @Value.Default
+    @JsonIgnore
+    default Optional<ExecutorService> blockingExecutor() {
+        return Optional.empty();
     }
 
     int replicationFactor();
