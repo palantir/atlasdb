@@ -383,10 +383,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
+        Iterable<byte[]> stableRows = ImmutableList.copyOf(rows);
         hasReads = true;
         RowColumnRangeIterator rawResults =
                 keyValueService.getRowsColumnRange(tableRef,
-                                                   rows,
+                                                   stableRows,
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
@@ -410,8 +411,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
-        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
-                Maps.newHashMapWithExpectedSize(rawResults.size());
+        ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
+                ImmutableSortedMap.orderedBy(PtBytes.BYTES_COMPARATOR);
         for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
@@ -419,7 +420,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
             postFilteredResults.put(row, postFilteredIterator);
         }
-        return postFilteredResults;
+        return postFilteredResults.build();
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(

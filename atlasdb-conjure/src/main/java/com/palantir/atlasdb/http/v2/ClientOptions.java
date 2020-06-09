@@ -74,7 +74,6 @@ public abstract class ClientOptions {
                 .failedUrlCooldown(failedUrlCooldown())
                 .enableGcmCipherSuites(true)
                 .enableHttp2(true)
-                .fallbackToCommonNameVerification(true)
                 .clientQoS(clientQoS())
                 .build();
     }
@@ -94,7 +93,6 @@ public abstract class ClientOptions {
                 .maxNumRetries(maxNumRetries())
                 .enableGcmCipherSuites(true)
                 .enableHttp2(true)
-                .fallbackToCommonNameVerification(true)
                 .clientQoS(clientQoS())
                 .serverQoS(serverQoS());
 
@@ -131,10 +129,10 @@ public abstract class ClientOptions {
 
     private static void setupRetrying(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
         builder.backoffSlotSize(ClientOptionsConstants.STANDARD_BACKOFF_SLOT_SIZE.toJavaDuration())
-                .maxNumRetries(parameters.shouldRetry()
+                .maxNumRetries(parameters.definitiveRetryIndication()
                         ? ClientOptionsConstants.STANDARD_MAX_RETRIES
                         : ClientOptionsConstants.NO_RETRIES)
-                .failedUrlCooldown(parameters.shouldRetry()
+                .failedUrlCooldown(parameters.definitiveRetryIndication()
                         ? ClientOptionsConstants.STANDARD_FAILED_URL_COOLDOWN.toJavaDuration()
                         : ClientOptionsConstants.NON_RETRY_FAILED_URL_COOLDOWN.toJavaDuration());
     }

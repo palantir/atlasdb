@@ -46,6 +46,7 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -267,6 +268,9 @@ public final class PaxosResourcesFactory {
 
         @Value.Parameter
         UserAgent userAgent();
+
+        @Value.Parameter
+        TimeLockDialogueServiceProvider dialogueServiceProvider();
 
         @Value.Derived
         default UUID nodeUuid() {
