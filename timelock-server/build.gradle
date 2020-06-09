@@ -29,6 +29,7 @@ check.dependsOn integTest
 check.dependsOn suiteTest
 
 dependencies {
+    compile project(":dropwizard-metrics-hack")
     compile project(":timelock-agent")
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'

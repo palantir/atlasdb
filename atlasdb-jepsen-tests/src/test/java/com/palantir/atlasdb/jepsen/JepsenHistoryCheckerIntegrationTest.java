@@ -18,7 +18,6 @@ package com.palantir.atlasdb.jepsen;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -32,9 +31,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import com.palantir.atlasdb.jepsen.events.Checker;
+import com.palantir.common.streams.KeyedStream;
 
 import clojure.lang.Keyword;
-import one.util.streamex.EntryStream;
 
 public class JepsenHistoryCheckerIntegrationTest {
     @Test
@@ -92,14 +91,10 @@ public class JepsenHistoryCheckerIntegrationTest {
         List<Map<String, ?>> allEvents = new ObjectMapper().readValue(Resources.getResource(resourcePath),
                 new TypeReference<List<Map<String, ?>>>() {});
         return allEvents.stream()
-                .map(singleEvent -> {
-                    Map<Keyword, Object> convertedEvent = new HashMap<>();
-                    EntryStream.of(singleEvent)
-                            .mapKeys(Keyword::intern)
-                            .mapValues(value -> value instanceof String ? Keyword.intern((String) value) : value)
-                            .forKeyValue(convertedEvent::put);
-                    return convertedEvent;
-                })
+                .map(singleEvent -> KeyedStream.stream(singleEvent)
+                        .mapKeys(key -> Keyword.intern(key))
+                        .map(value -> value instanceof String ? Keyword.intern((String) value) : value)
+                        .collectToMap())
                 .collect(Collectors.toList());
     }
 }

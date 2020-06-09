@@ -9,7 +9,8 @@ dependencies {
     compile project(':atlasdb-client')
 
     compile group: 'junit', name: 'junit'
-    compile group: 'org.hamcrest', name: 'hamcrest-all'
+    compile group: 'org.hamcrest', name: 'hamcrest-core'
+    compile group: 'org.hamcrest', name: 'hamcrest-library'
     compile group: 'commons-io', name: 'commons-io'
 }
 

@@ -20,7 +20,6 @@ buildscript {
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
         classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.10.1'
-        classpath 'com.netflix.nebula:nebula-dependency-recommender:8.0.0'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:17.2.1'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
         classpath 'gradle.plugin.org.inferred:gradle-processors:3.3.0'
@@ -30,6 +29,7 @@ buildscript {
 plugins {
     id 'com.github.johnrengelman.shadow' version '5.1.0'
     id 'com.palantir.configuration-resolver' version '0.4.0'
+    id 'com.palantir.consistent-versions' version '1.17.3'
     id 'org.unbroken-dome.test-sets' version '2.1.1'
     id 'com.google.protobuf' version '0.8.10'
 }
@@ -63,7 +63,6 @@ allprojects {
     }
 
     apply plugin: 'java-library'
-    apply plugin: 'nebula.dependency-recommender'
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
 
     // temporary until this is merged/fixed inside gradle-processors
@@ -74,19 +73,17 @@ allprojects {
         }
     }
 
-    dependencyRecommendations {
-        strategy OverrideTransitives
-        propertiesFile file: project.rootProject.file('versions.props')
-    }
-
     configurations.all {
-        resolutionStrategy {
-            failOnVersionConflict()
-        }
 
         resolutionStrategy.eachDependency { details ->
             if (details.requested.group == 'com.palantir.docker.compose' && details.requested.name == 'docker-compose-rule') {
                 details.useTarget group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: dependencyRecommendations.getRecommendedVersion('com.palantir.docker.compose', 'docker-compose-rule-junit4')
+            }
+        }
+
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'io.dropwizard.metrics' && details.requested.name != 'metrics-jmx') {
+                details.useVersion '3.2.6'
             }
         }
 
