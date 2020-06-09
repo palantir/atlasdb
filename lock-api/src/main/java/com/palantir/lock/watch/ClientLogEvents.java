@@ -28,8 +28,8 @@ public interface ClientLogEvents {
 
     boolean clearCache();
 
-    default TransactionsLockWatchEvents map(Map<Long, IdentifiedVersion> timestampMap) {
-        return ImmutableTransactionsLockWatchEvents.builder()
+    default TransactionsLockWatchUpdate map(Map<Long, IdentifiedVersion> timestampMap) {
+        return ImmutableTransactionsLockWatchUpdate.builder()
                 .startTsToSequence(timestampMap)
                 .events(events())
                 .clearCache(clearCache())

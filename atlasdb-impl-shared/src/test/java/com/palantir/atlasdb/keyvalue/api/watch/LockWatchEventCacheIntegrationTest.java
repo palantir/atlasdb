@@ -44,7 +44,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
@@ -110,7 +110,7 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(timestamps2, success2);
         assertThat(eventCache.lastKnownVersion()).hasValue(IdentifiedVersion.of(LEADER, 10L));
 
-        TransactionsLockWatchEvents results = eventCache.getEventsForTransactions(timestamps2, Optional.empty());
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(timestamps2, Optional.empty());
         assertThat(results.clearCache()).isTrue();
         assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
                 ImmutableMap.of(16L, IdentifiedVersion.of(LEADER, 10L)));
