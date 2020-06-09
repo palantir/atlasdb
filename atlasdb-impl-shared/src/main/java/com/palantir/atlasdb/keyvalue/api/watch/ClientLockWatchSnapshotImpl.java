@@ -23,7 +23,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
+import com.palantir.lock.watch.ClientLockWatchSnapshot;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
@@ -33,17 +33,17 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
-final class ClientLockWatchSnapshotUpdaterImpl implements ClientLockWatchSnapshotUpdater {
+final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
     private final Set<LockWatchReferences.LockWatchReference> watches;
     private final Set<LockDescriptor> locked;
     private final EventVisitor visitor;
     private Optional<IdentifiedVersion> snapshotVersion;
 
-    static ClientLockWatchSnapshotUpdater create() {
-        return new ClientLockWatchSnapshotUpdaterImpl();
+    static ClientLockWatchSnapshot create() {
+        return new ClientLockWatchSnapshotImpl();
     }
 
-    private ClientLockWatchSnapshotUpdaterImpl() {
+    private ClientLockWatchSnapshotImpl() {
         this.watches = new HashSet<>();
         this.locked = new HashSet<>();
         this.visitor = new EventVisitor();

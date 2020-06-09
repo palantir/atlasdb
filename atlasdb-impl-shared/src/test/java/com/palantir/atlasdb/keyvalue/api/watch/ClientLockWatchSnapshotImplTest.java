@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
+import com.palantir.lock.watch.ClientLockWatchSnapshot;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
@@ -40,7 +40,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class ClientLockWatchSnapshotUpdaterImplTest {
+public final class ClientLockWatchSnapshotImplTest {
     private static final String TABLE = "table";
     private static final LockDescriptor DESCRIPTOR = AtlasRowLockDescriptor.of(TABLE, new byte[] {1});
     private static final LockDescriptor DESCRIPTOR_2 = AtlasRowLockDescriptor.of(TABLE, new byte[] {2});
@@ -54,22 +54,22 @@ public final class ClientLockWatchSnapshotUpdaterImplTest {
             LockToken.of(UUID.randomUUID())).build(2L);
     private static final IdentifiedVersion VERSION = IdentifiedVersion.of(UUID.randomUUID(), 999L);
 
-    private ClientLockWatchSnapshotUpdater snapshotUpdater;
+    private ClientLockWatchSnapshot snapshot;
 
     @Before
     public void before() {
-        snapshotUpdater = ClientLockWatchSnapshotUpdaterImpl.create();
+        snapshot = ClientLockWatchSnapshotImpl.create();
     }
 
     @Test
     public void eventsProcessedAsExpected() {
-        snapshotUpdater.processEvents(ImmutableList.of(WATCH_EVENT), VERSION);
-        LockWatchStateUpdate.Snapshot snapshot = snapshotUpdater.getSnapshot();
+        snapshot.processEvents(ImmutableList.of(WATCH_EVENT), VERSION);
+        LockWatchStateUpdate.Snapshot snapshot = this.snapshot.getSnapshot();
         assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_2);
         assertThat(snapshot.lockWatches()).containsExactlyInAnyOrder(REFERENCE);
 
-        snapshotUpdater.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), VERSION);
-        LockWatchStateUpdate.Snapshot snapshot2 = snapshotUpdater.getSnapshot();
+        this.snapshot.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), VERSION);
+        LockWatchStateUpdate.Snapshot snapshot2 = this.snapshot.getSnapshot();
         assertThat(snapshot2.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_3);
         assertThat(snapshot2.lockWatches()).containsExactlyInAnyOrder(REFERENCE);
     }

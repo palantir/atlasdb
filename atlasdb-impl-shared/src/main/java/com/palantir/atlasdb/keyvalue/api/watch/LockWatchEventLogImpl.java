@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
-import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
+import com.palantir.lock.watch.ClientLockWatchSnapshot;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
@@ -37,22 +37,22 @@ import com.palantir.logsafe.Preconditions;
 final class LockWatchEventLogImpl implements LockWatchEventLog {
     private static final boolean INCLUSIVE = true;
 
-    private final ClientLockWatchSnapshotUpdater snapshotUpdater;
+    private final ClientLockWatchSnapshot snapshot;
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
     static LockWatchEventLog create() {
-        return create(ClientLockWatchSnapshotUpdaterImpl.create());
+        return create(ClientLockWatchSnapshotImpl.create());
     }
 
     @VisibleForTesting
-    static LockWatchEventLog create(ClientLockWatchSnapshotUpdater snapshotUpdater) {
-        return new LockWatchEventLogImpl(snapshotUpdater);
+    static LockWatchEventLog create(ClientLockWatchSnapshot snapshot) {
+        return new LockWatchEventLogImpl(snapshot);
     }
 
-    private LockWatchEventLogImpl(ClientLockWatchSnapshotUpdater snapshotUpdater) {
-        this.snapshotUpdater = snapshotUpdater;
+    private LockWatchEventLogImpl(ClientLockWatchSnapshot snapshot) {
+        this.snapshot = snapshot;
     }
 
     @Override
@@ -76,7 +76,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         final long fromSequence;
 
         if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
-            eventBuilder.addEvents(LockWatchCreatedEvent.fromSnapshot(snapshotUpdater.getSnapshot()));
+            eventBuilder.addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()));
             eventBuilder.clearCache(true);
             if (eventMap.isEmpty()) {
                 return eventBuilder.build();
@@ -101,7 +101,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
             return;
         }
 
-        snapshotUpdater.processEvents(
+        snapshot.processEvents(
                 eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()),
                 IdentifiedVersion.of(currentVersion.get().id(), latestDeletedVersion.get()));
         eventsToBeRemoved.clear();
@@ -140,13 +140,13 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
 
     private void processSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         eventMap.clear();
-        snapshotUpdater.resetWithSnapshot(snapshot);
+        this.snapshot.resetWithSnapshot(snapshot);
         latestVersion = Optional.of(IdentifiedVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
     }
 
     private void processFailed() {
         eventMap.clear();
-        snapshotUpdater.reset();
+        snapshot.reset();
         latestVersion = Optional.empty();
     }
 

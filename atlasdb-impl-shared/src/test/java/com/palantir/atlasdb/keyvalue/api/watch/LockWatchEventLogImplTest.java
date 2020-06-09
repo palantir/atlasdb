@@ -33,7 +33,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ClientLockWatchSnapshotUpdater;
+import com.palantir.lock.watch.ClientLockWatchSnapshot;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -57,32 +57,32 @@ public final class LockWatchEventLogImplTest {
             LockWatchStateUpdate.failed(LEADER);
 
     @Mock
-    private ClientLockWatchSnapshotUpdater snapshotUpdater;
+    private ClientLockWatchSnapshot snapshot;
 
     private LockWatchEventLog eventLog;
 
     @Before
     public void before() {
-        eventLog = LockWatchEventLogImpl.create(snapshotUpdater);
+        eventLog = LockWatchEventLogImpl.create(snapshot);
     }
 
     @Test
-    public void failedUpdateResetsSnapshotUpdater() {
+    public void failedUpdateResetsSnapshot() {
         eventLog.processUpdate(FAILED);
-        verify(snapshotUpdater).reset();
+        verify(snapshot).reset();
         assertThat(eventLog.getLatestKnownVersion()).isEmpty();
     }
 
     @Test
     public void leaderChangeResetsSnapshot() {
         eventLog.processUpdate(SNAPSHOT);
-        verify(snapshotUpdater).resetWithSnapshot(SNAPSHOT);
+        verify(snapshot).resetWithSnapshot(SNAPSHOT);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_1);
 
         eventLog.processUpdate(
                 LockWatchStateUpdate.success(UUID.randomUUID(), 1L, ImmutableList.of())
         );
-        verify(snapshotUpdater).reset();
+        verify(snapshot).reset();
         assertThat(eventLog.getLatestKnownVersion()).isEmpty();
     }
 
@@ -98,7 +98,7 @@ public final class LockWatchEventLogImplTest {
     }
 
     @Test
-    public void oldEventsAreDeletedAndPassedToSnapshotUpdater() {
+    public void oldEventsAreDeletedAndPassedToSnapshot() {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(SUCCESS);
         List<LockWatchEvent> events = eventLog.getEventsBetweenVersions(
@@ -107,14 +107,14 @@ public final class LockWatchEventLogImplTest {
         assertThat(events).containsExactly(EVENT_1, EVENT_2);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(VERSION_2);
 
-        when(snapshotUpdater.getSnapshot()).thenReturn(LockWatchStateUpdate.snapshot(
+        when(snapshot.getSnapshot()).thenReturn(LockWatchStateUpdate.snapshot(
                 VERSION_2.id(),
                 VERSION_2.version(),
                 ImmutableSet.of(),
                 ImmutableSet.of()));
         eventLog.removeOldEntries(VERSION_2.version());
         eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
-        verify(snapshotUpdater).getSnapshot();
-        verify(snapshotUpdater).processEvents(ImmutableList.of(EVENT_1), VERSION_1);
+        verify(snapshot).getSnapshot();
+        verify(snapshot).processEvents(ImmutableList.of(EVENT_1), VERSION_1);
     }
 }
