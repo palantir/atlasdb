@@ -72,8 +72,8 @@ import com.palantir.atlasdb.config.ShouldRunBackgroundSweepSupplier;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -267,7 +267,7 @@ public abstract class TransactionManagers {
     }
 
     // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-    abstract Optional<ClientLockDiagnosticCollector> lockDiagnosticInfoCollector();
+    abstract Optional<LockDiagnosticComponents> lockDiagnosticComponents();
 
     @Value.Default
     LockWatchingCache lockWatchingCache() {
@@ -386,7 +386,7 @@ public abstract class TransactionManagers {
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent(),
-                lockDiagnosticInfoCollector(),
+                lockDiagnosticComponents(),
                 reloadingFactory());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
@@ -467,7 +467,8 @@ public abstract class TransactionManagers {
                 .orElseGet(() -> new DefaultTimestampCache(
                         metricsManager.getRegistry(), () -> runtime.get().getTimestampCacheSize()));
 
-        ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
+        ConflictTracer conflictTracer = lockDiagnosticComponents()
+                .map(LockDiagnosticComponents::clientLockDiagnosticCollector)
                 .<ConflictTracer>map(Function.identity())
                 .orElse(ConflictTracer.NO_OP);
 
@@ -867,7 +868,7 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
@@ -878,7 +879,7 @@ public abstract class TransactionManagers {
                 time,
                 invalidator,
                 userAgent,
-                lockDiagnosticCollector,
+                lockDiagnosticComponents,
                 reloadingFactory);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
@@ -936,7 +937,7 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
@@ -951,7 +952,7 @@ public abstract class TransactionManagers {
                     runtimeConfig,
                     invalidator,
                     userAgent,
-                    lockDiagnosticCollector,
+                    lockDiagnosticComponents,
                     reloadingFactory);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
@@ -981,7 +982,7 @@ public abstract class TransactionManagers {
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
@@ -995,7 +996,7 @@ public abstract class TransactionManagers {
                         runtimeConfig.map(AtlasDbRuntimeConfig::remotingClient),
                         userAgent,
                         timelockNamespace,
-                        lockDiagnosticCollector,
+                        lockDiagnosticComponents,
                         reloadingFactory);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
@@ -1026,7 +1027,7 @@ public abstract class TransactionManagers {
             Refreshable<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             String timelockNamespace,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
@@ -1067,9 +1068,12 @@ public abstract class TransactionManagers {
                 .getConfigSwitchedProxy(TimelockRpcClient.class);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-        ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
-                .<ConjureTimelockService>map(collector ->
-                        new LockDiagnosticConjureTimelockService(switchableService, collector))
+        ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticComponents
+                .<ConjureTimelockService>map(components ->
+                        new LockDiagnosticConjureTimelockService(
+                                switchableService,
+                                components.clientLockDiagnosticCollector(),
+                                components.localLockTracker()))
                 .orElse(switchableService);
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
