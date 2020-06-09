@@ -16,18 +16,18 @@
 
 package com.palantir.lock.watch;
 
-import java.util.UUID;
+import java.util.List;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
+/**
+ * Represents a condensed view of lock watch events occurring between some known version and a set of start transaction
+ * calls.
+ */
 @Value.Immutable
-public interface IdentifiedVersion {
-    @Value.Parameter
-    UUID id();
-    @Value.Parameter
-    long version();
-
-    static IdentifiedVersion of(UUID id, long version) {
-        return ImmutableIdentifiedVersion.of(id, version);
-    }
+public interface TransactionsLockWatchUpdate {
+    List<LockWatchEvent> events();
+    Map<Long, IdentifiedVersion> startTsToSequence();
+    boolean clearCache();
 }
