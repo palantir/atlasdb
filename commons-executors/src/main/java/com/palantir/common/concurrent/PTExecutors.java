@@ -413,9 +413,9 @@ public final class PTExecutors {
             }
         };
         // QA-49019 - always allow core pool threads to timeout.
-        //        if (keepAliveTime > 0) {
-        //            tpe.allowCoreThreadTimeOut(true);
-        //        }
+        if (keepAliveTime > 0) {
+            tpe.allowCoreThreadTimeOut(true);
+        }
         return tpe;
     }
 
