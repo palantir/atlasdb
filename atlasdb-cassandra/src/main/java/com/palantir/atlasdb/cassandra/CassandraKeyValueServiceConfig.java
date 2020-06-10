@@ -48,6 +48,13 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
 
+    /**
+     * These are only the initial 'contact points' that will be used in connecting with the cluster. AtlasDB will
+     * subsequently discover additional hosts in the cluster. (This is true for both Thrift and CQL endpoints.)
+     *
+     * This value, or values derived from it (e.g. the number of Thrift hosts) MUST NOT be used to ascertain the
+     * current live state of the cluster.
+     */
     CassandraServersConfigs.CassandraServersConfig servers();
 
     @Value.Default
