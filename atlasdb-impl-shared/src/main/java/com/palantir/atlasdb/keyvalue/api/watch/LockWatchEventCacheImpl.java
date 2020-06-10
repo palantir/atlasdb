@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.CacheStatus;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -159,9 +160,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private Optional<IdentifiedVersion> processEventLogUpdate(LockWatchStateUpdate update) {
-        boolean wasSuccessful = eventLog.processUpdate(update);
+        CacheStatus cacheStatus = eventLog.processUpdate(update);
 
-        if (!wasSuccessful) {
+        if (cacheStatus.shouldClearCache()) {
             timestampStateStore.clear();
         }
 

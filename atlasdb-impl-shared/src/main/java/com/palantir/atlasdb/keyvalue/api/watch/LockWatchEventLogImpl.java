@@ -17,14 +17,13 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
+import com.palantir.lock.watch.CacheStatus;
 import com.palantir.lock.watch.ClientLockWatchSnapshot;
 import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -38,7 +37,8 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
     private static final boolean INCLUSIVE = true;
 
     private final ClientLockWatchSnapshot snapshot;
-    private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
+    //    private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
+    private final VersionedEventStore eventStore = new VersionedEventStore();
 
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
@@ -56,14 +56,12 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
     }
 
     @Override
-    public boolean processUpdate(LockWatchStateUpdate update) {
-        final ProcessingVisitor visitor;
+    public CacheStatus processUpdate(LockWatchStateUpdate update) {
         if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
-            visitor = new NewLeaderVisitor();
+            return update.accept(new NewLeaderVisitor());
         } else {
-            visitor = new ProcessingVisitor();
+            return update.accept(new ProcessingVisitor());
         }
-        return update.accept(visitor);
     }
 
     @Override
@@ -78,22 +76,22 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
             eventBuilder.addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()));
             eventBuilder.clearCache(true);
-            if (eventMap.isEmpty()) {
+            if (eventStore.isEmpty()) {
                 return eventBuilder.build();
             }
-            fromSequence = eventMap.firstKey();
+            fromSequence = eventStore.getFirstKey();
         } else {
             eventBuilder.clearCache(false);
             fromSequence = versionInclusive.get().version();
         }
 
-        eventBuilder.addAllEvents(eventMap.subMap(fromSequence, INCLUSIVE, endVersion.version(), INCLUSIVE).values());
+        eventBuilder.addAllEvents(eventStore.getEventsBetweenVersionsInclusive(fromSequence, endVersion.version()));
         return eventBuilder.build();
     }
 
     @Override
     public void removeOldEntries(long earliestSequence) {
-        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventMap.headMap(earliestSequence).entrySet();
+        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventStore.getElementsUpToExclusive(earliestSequence);
         Optional<Long> latestDeletedVersion = Streams.findLast(eventsToBeRemoved.stream()).map(Map.Entry::getKey);
         Optional<IdentifiedVersion> currentVersion = getLatestKnownVersion();
 
@@ -104,7 +102,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         snapshot.processEvents(
                 eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()),
                 IdentifiedVersion.of(currentVersion.get().id(), latestDeletedVersion.get()));
-        eventsToBeRemoved.clear();
+        eventStore.clearElementsUpToExclusive(earliestSequence);
     }
 
     @Override
@@ -114,7 +112,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
 
     private boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion,
             IdentifiedVersion startVersion) {
-        return !startVersion.id().equals(currentVersion.id()) || eventMap.floorKey(startVersion.version()) == null;
+        return !startVersion.id().equals(currentVersion.id()) || !eventStore.hasFloorKey(startVersion.version());
     }
 
     private IdentifiedVersion createInclusiveVersion(IdentifiedVersion startVersion) {
@@ -133,49 +131,60 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
-            success.events().forEach(event -> eventMap.put(event.sequence(), event));
-            latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventMap.lastKey()));
+            success.events().forEach(event -> eventStore.put(event.sequence(), event));
+            latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventStore.getLastKey()));
         }
     }
 
     private void processSnapshot(LockWatchStateUpdate.Snapshot snapshotUpdate) {
-        eventMap.clear();
+        eventStore.clear();
         this.snapshot.resetWithSnapshot(snapshotUpdate);
         latestVersion = Optional.of(IdentifiedVersion.of(snapshotUpdate.logId(), snapshotUpdate.lastKnownVersion()));
     }
 
     private void processFailed() {
-        eventMap.clear();
+        eventStore.clear();
         snapshot.reset();
         latestVersion = Optional.empty();
     }
 
-    private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<Boolean> {
+    private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<CacheStatus> {
         @Override
-        public Boolean visit(LockWatchStateUpdate.Failed failed) {
+        public CacheStatus visit(LockWatchStateUpdate.Failed failed) {
             processFailed();
-            return false;
+            return CacheStatus.CLEAR_CACHE;
         }
 
         @Override
-        public Boolean visit(LockWatchStateUpdate.Success success) {
+        public CacheStatus visit(LockWatchStateUpdate.Success success) {
             processSuccess(success);
-            return true;
+            return CacheStatus.KEEP_CACHE;
         }
 
         @Override
-        public Boolean visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
+        public CacheStatus visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
             processSnapshot(snapshotUpdate);
-            return false;
+            return CacheStatus.CLEAR_CACHE;
         }
     }
 
-    private final class NewLeaderVisitor extends ProcessingVisitor {
+    private class NewLeaderVisitor implements LockWatchStateUpdate.Visitor<CacheStatus> {
         @Override
-        public Boolean visit(LockWatchStateUpdate.Success success) {
+        public CacheStatus visit(LockWatchStateUpdate.Failed failed) {
             processFailed();
-            return false;
+            return CacheStatus.CLEAR_CACHE;
+        }
+
+        @Override
+        public CacheStatus visit(LockWatchStateUpdate.Success success) {
+            processFailed();
+            return CacheStatus.CLEAR_CACHE;
+        }
+
+        @Override
+        public CacheStatus visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
+            processSnapshot(snapshotUpdate);
+            return CacheStatus.CLEAR_CACHE;
         }
     }
-
 }

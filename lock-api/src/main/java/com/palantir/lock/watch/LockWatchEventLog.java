@@ -29,7 +29,7 @@ public interface LockWatchEventLog {
 
     Optional<IdentifiedVersion> getLatestKnownVersion();
 
-    boolean processUpdate(LockWatchStateUpdate update);
+    CacheStatus processUpdate(LockWatchStateUpdate update);
 
     void removeOldEntries(long earliestSequence);
 }

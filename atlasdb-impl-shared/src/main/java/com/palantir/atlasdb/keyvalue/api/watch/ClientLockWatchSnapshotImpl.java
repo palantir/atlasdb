@@ -51,7 +51,7 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
     }
 
     @Override
-    public synchronized LockWatchStateUpdate.Snapshot getSnapshot() {
+    public LockWatchStateUpdate.Snapshot getSnapshot() {
         Preconditions.checkState(snapshotVersion.isPresent(),
                 "Snapshot was reset on fail and has not been seeded since");
         return LockWatchStateUpdate.snapshot(
