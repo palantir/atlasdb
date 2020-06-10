@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.List;
 import java.util.Map;
 
 import org.immutables.value.Value;
 
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+
 @Value.Immutable
-public interface ClientLogEvents {
+interface ClientLogEvents {
 
     List<LockWatchEvent> events();
 

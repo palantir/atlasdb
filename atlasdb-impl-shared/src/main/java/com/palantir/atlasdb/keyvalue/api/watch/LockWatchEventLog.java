@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
 
-public interface LockWatchEventLog {
+import com.palantir.lock.watch.CacheStatus;
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+
+interface LockWatchEventLog {
     /**
      * @param startVersion latest version that the client knows about; should be before timestamps in the mapping;
      * @param endVersion   mapping from timestamp to identified version from client-side event cache;

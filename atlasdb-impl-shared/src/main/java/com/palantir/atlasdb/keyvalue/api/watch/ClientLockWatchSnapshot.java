@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.List;
 
-public interface ClientLockWatchSnapshot {
+import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+
+interface ClientLockWatchSnapshot {
     LockWatchStateUpdate.Snapshot getSnapshot();
     void processEvents(List<LockWatchEvent> events, IdentifiedVersion lastVersion);
     void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot);

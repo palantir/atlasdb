@@ -24,20 +24,14 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
 import com.palantir.lock.watch.CacheStatus;
-import com.palantir.lock.watch.ClientLockWatchSnapshot;
-import com.palantir.lock.watch.ClientLogEvents;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
 
 final class LockWatchEventLogImpl implements LockWatchEventLog {
-    private static final boolean INCLUSIVE = true;
-
     private final ClientLockWatchSnapshot snapshot;
-    //    private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
     private final VersionedEventStore eventStore = new VersionedEventStore();
 
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();

@@ -23,7 +23,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.ClientLockWatchSnapshot;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;

@@ -57,7 +57,7 @@ public interface LockWatchEventCache {
 
     /**
      * Removes the given timestamp from the cache, along with all associated state. This may update the earliest
-     * still-held version, and therefore may trigger retention in the underlying {@link LockWatchEventLog}.
+     * still-held version, and therefore may trigger retention in the underlying event log.
      */
     void removeTransactionStateFromCache(long startTimestamp);
 }

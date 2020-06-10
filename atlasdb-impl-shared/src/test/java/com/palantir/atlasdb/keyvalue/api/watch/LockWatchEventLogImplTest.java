@@ -33,11 +33,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ClientLockWatchSnapshot;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @RunWith(MockitoJUnitRunner.class)
