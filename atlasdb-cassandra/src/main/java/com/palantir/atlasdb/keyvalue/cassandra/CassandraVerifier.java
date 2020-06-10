@@ -257,7 +257,9 @@ public final class CassandraVerifier {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
                 client.system_update_keyspace(modifiedKsDef);
-                CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                CassandraKeyValueServices.waitForSchemaVersions(
+                        config,
+                        client,
                         "after updating the existing keyspace");
             }
             return null;
