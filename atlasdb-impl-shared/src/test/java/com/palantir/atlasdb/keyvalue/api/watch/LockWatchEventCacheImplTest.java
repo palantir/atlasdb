@@ -39,6 +39,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.CacheStatus;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
@@ -138,7 +139,7 @@ public final class LockWatchEventCacheImplTest {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_COMBINED, SUCCESS_1);
         assertThat(eventCache.getTimestampMappings(TIMESTAMPS_COMBINED)).containsExactlyEntriesOf(expectedMap);
 
-        when(eventLog.processUpdate(SNAPSHOT)).thenReturn(false);
+        when(eventLog.processUpdate(SNAPSHOT)).thenReturn(CacheStatus.CLEAR_CACHE);
         when(eventLog.getLatestKnownVersion()).thenReturn(Optional.of(VERSION_3));
         Set<Long> secondBatch = ImmutableSet.of(666L, 12545L);
         eventCache.processStartTransactionsUpdate(secondBatch, SNAPSHOT);
@@ -185,7 +186,7 @@ public final class LockWatchEventCacheImplTest {
     }
 
     private void setupEventLogSuccess(IdentifiedVersion newVersion, LockWatchStateUpdate.Success successUpdate) {
-        when(eventLog.processUpdate(successUpdate)).thenReturn(true);
+        when(eventLog.processUpdate(successUpdate)).thenReturn(CacheStatus.KEEP_CACHE);
         when(eventLog.getLatestKnownVersion()).thenReturn(Optional.of(newVersion));
     }
 

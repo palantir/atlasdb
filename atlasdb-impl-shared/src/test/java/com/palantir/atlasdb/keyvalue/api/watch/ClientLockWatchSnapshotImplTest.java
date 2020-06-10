@@ -36,7 +36,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -54,7 +53,8 @@ public final class ClientLockWatchSnapshotImplTest {
     private static final LockWatchEvent UNLOCK_EVENT = UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_2)).build(1L);
     private static final LockWatchEvent LOCK_EVENT = LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3),
             LockToken.of(UUID.randomUUID())).build(2L);
-    private static final IdentifiedVersion VERSION = IdentifiedVersion.of(UUID.randomUUID(), 999L);
+    private static final IdentifiedVersion WATCH_VERSION = IdentifiedVersion.of(UUID.randomUUID(), 0L);
+    private static final IdentifiedVersion SECOND_VERSION = IdentifiedVersion.of(UUID.randomUUID(), 2L);
     private static final LockWatchStateUpdate.Snapshot SNAPSHOT_TO_RESET = LockWatchStateUpdate.snapshot(
             UUID.randomUUID(), 1002L, ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2), ImmutableSet.of(REFERENCE_2));
 
@@ -67,12 +67,12 @@ public final class ClientLockWatchSnapshotImplTest {
 
     @Test
     public void eventsProcessedAsExpected() {
-        snapshot.processEvents(ImmutableList.of(WATCH_EVENT), VERSION);
+        snapshot.processEvents(ImmutableList.of(WATCH_EVENT), WATCH_VERSION);
         LockWatchStateUpdate.Snapshot snapshotUpdate = snapshot.getSnapshot();
         assertThat(snapshotUpdate.locked()).containsExactlyInAnyOrderElementsOf(INITIAL_DESCRIPTORS);
         assertThat(snapshotUpdate.lockWatches()).containsExactlyInAnyOrder(REFERENCE_1);
 
-        snapshot.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), VERSION);
+        snapshot.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), SECOND_VERSION);
         LockWatchStateUpdate.Snapshot snapshotUpdate2 = snapshot.getSnapshot();
         assertThat(snapshotUpdate2.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_3);
         assertThat(snapshotUpdate2.lockWatches()).containsExactlyInAnyOrder(REFERENCE_1);
@@ -98,9 +98,24 @@ public final class ClientLockWatchSnapshotImplTest {
                 .hasMessage("Snapshot was reset on fail and has not been seeded since");
     }
 
+    @Test
+    public void nonContiguousEventsThrows() {
+        assertThatThrownBy(() -> snapshot.processEvents(ImmutableList.of(WATCH_EVENT, LOCK_EVENT), SECOND_VERSION))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Events form a non-contiguous sequence");
+    }
+
+    @Test
+    public void missedEventsWhenUpdatingThrows() {
+        snapshot.processEvents(ImmutableList.of(WATCH_EVENT), WATCH_VERSION);
+        assertThatThrownBy(() -> snapshot.processEvents(ImmutableList.of(LOCK_EVENT), SECOND_VERSION))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Events missing between last snapshot and this batch of events");
+    }
+
     private void setupInitialEvents() {
-        snapshot.processEvents(ImmutableList.of(WATCH_EVENT), VERSION);
-        snapshot.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), VERSION);
+        snapshot.processEvents(ImmutableList.of(WATCH_EVENT), WATCH_VERSION);
+        snapshot.processEvents(ImmutableList.of(UNLOCK_EVENT, LOCK_EVENT), SECOND_VERSION);
         LockWatchStateUpdate.Snapshot snapshotUpdate = snapshot.getSnapshot();
         assertThat(snapshotUpdate.locked()).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_3);
         assertThat(snapshotUpdate.lockWatches()).containsExactlyInAnyOrder(REFERENCE_1);

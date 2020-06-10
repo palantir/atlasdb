@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
@@ -62,6 +63,7 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
 
     @Override
     public void processEvents(List<LockWatchEvent> events, IdentifiedVersion lastVersion) {
+        assertEventsAreContinguous(events);
         events.forEach(event -> event.accept(visitor));
         snapshotVersion = Optional.of(lastVersion);
     }
@@ -79,6 +81,24 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
         snapshotVersion = Optional.empty();
         watches.clear();
         locked.clear();
+    }
+
+    private void assertEventsAreContinguous(List<LockWatchEvent> events) {
+        if (events.isEmpty()) {
+            return;
+        }
+
+        if(snapshotVersion.isPresent()) {
+            LockWatchEvent firstEvent = Iterables.getFirst(events, null);
+            Preconditions.checkNotNull(firstEvent);
+            Preconditions.checkArgument(snapshotVersion.get().version() + 1 == firstEvent.sequence(),
+                    "Events missing between last snapshot and this batch of events");
+        }
+
+        for (int i = 0; i < events.size() - 1; ++i) {
+            Preconditions.checkArgument(events.get(i).sequence() + 1 == events.get(i + 1).sequence(),
+                    "Events form a non-contiguous sequence");
+        }
     }
 
     private final class EventVisitor implements LockWatchEvent.Visitor<Void> {
