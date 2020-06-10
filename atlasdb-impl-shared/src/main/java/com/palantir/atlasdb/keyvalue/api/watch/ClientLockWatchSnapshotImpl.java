@@ -88,9 +88,9 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
             return;
         }
 
-        if(snapshotVersion.isPresent()) {
+        if (snapshotVersion.isPresent()) {
             LockWatchEvent firstEvent = Iterables.getFirst(events, null);
-            Preconditions.checkNotNull(firstEvent);
+            Preconditions.checkNotNull(firstEvent, "First element not preset in list of events");
             Preconditions.checkArgument(snapshotVersion.get().version() + 1 == firstEvent.sequence(),
                     "Events missing between last snapshot and this batch of events");
         }
