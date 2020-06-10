@@ -24,16 +24,17 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 
 interface LockWatchEventLog {
     /**
-     * @param startVersion latest version that the client knows about; should be before timestamps in the mapping;
-     * @param endVersion   mapping from timestamp to identified version from client-side event cache;
+     * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping;
+     * @param endVersion       mapping from timestamp to identified version from client-side event cache;
      * @return lock watch events that occurred from (exclusive) the provided version, up to (inclusive) the latest
      * version in the timestamp to version map.
      */
-    ClientLogEvents getEventsBetweenVersions(Optional<IdentifiedVersion> startVersion, IdentifiedVersion endVersion);
+    ClientLogEvents getEventsBetweenVersions(Optional<IdentifiedVersion> lastKnownVersion,
+            IdentifiedVersion endVersion);
 
     Optional<IdentifiedVersion> getLatestKnownVersion();
 
     CacheStatus processUpdate(LockWatchStateUpdate update);
 
-    void removeOldEntries(long earliestSequence);
+    void removeEventsBefore(long earliestSequence);
 }

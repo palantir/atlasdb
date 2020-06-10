@@ -80,7 +80,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
         latestVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
-        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeOldEntries);
+        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeEventsBefore);
     }
 
     @Override
@@ -113,12 +113,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> startVersion) {
+            Optional<IdentifiedVersion> lastKnownVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampMappings(startTimestamps);
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(),
                 Comparator.comparingLong(IdentifiedVersion::version));
-        return eventLog.getEventsBetweenVersions(startVersion, endVersion).map(timestampToVersion);
+        return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampToVersion);
     }
 
     @Override

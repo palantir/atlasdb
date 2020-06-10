@@ -60,14 +60,14 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
 
     @Override
     public ClientLogEvents getEventsBetweenVersions(
-            Optional<IdentifiedVersion> startVersion,
+            Optional<IdentifiedVersion> lastKnownVersion,
             IdentifiedVersion endVersion) {
-        Optional<IdentifiedVersion> versionInclusive = startVersion.map(this::createInclusiveVersion);
+        Optional<IdentifiedVersion> startVersion = lastKnownVersion.map(this::createStartVersion);
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
         ClientLogEvents.Builder eventBuilder = new ClientLogEvents.Builder();
         final long fromSequence;
 
-        if (!versionInclusive.isPresent() || differentLeaderOrTooFarBehind(currentVersion, versionInclusive.get())) {
+        if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(currentVersion, startVersion.get())) {
             eventBuilder.addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()));
             eventBuilder.clearCache(true);
             if (eventStore.isEmpty()) {
@@ -76,7 +76,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
             fromSequence = eventStore.getFirstKey();
         } else {
             eventBuilder.clearCache(false);
-            fromSequence = versionInclusive.get().version();
+            fromSequence = startVersion.get().version();
         }
 
         eventBuilder.addAllEvents(eventStore.getEventsBetweenVersionsInclusive(fromSequence, endVersion.version()));
@@ -84,7 +84,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
     }
 
     @Override
-    public void removeOldEntries(long earliestSequence) {
+    public void removeEventsBefore(long earliestSequence) {
         Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventStore.getElementsUpToExclusive(earliestSequence);
         Optional<Long> latestDeletedVersion = Streams.findLast(eventsToBeRemoved.stream()).map(Map.Entry::getKey);
         Optional<IdentifiedVersion> currentVersion = getLatestKnownVersion();
@@ -109,7 +109,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         return !startVersion.id().equals(currentVersion.id()) || !eventStore.hasFloorKey(startVersion.version());
     }
 
-    private IdentifiedVersion createInclusiveVersion(IdentifiedVersion startVersion) {
+    private IdentifiedVersion createStartVersion(IdentifiedVersion startVersion) {
         return IdentifiedVersion.of(startVersion.id(), startVersion.version() + 1);
     }
 
