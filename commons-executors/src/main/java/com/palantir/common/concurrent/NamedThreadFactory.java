@@ -19,7 +19,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Timer;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 /**
@@ -29,10 +36,14 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
  * @author regs
  */
 public class NamedThreadFactory implements ThreadFactory {
+    private static final Logger log = LoggerFactory.getLogger(NamedThreadFactory.class);
+
     private final String prefix;
     private final boolean isDaemon;
     private final AtomicLong count = new AtomicLong();
     private final ThreadFactory threadFactory;
+    private final Timer threadCreate;
+    private final Counter threadCreateFailed;
 
     /**
      * Creates a new thread factory that will construct non-daemon threads with names like
@@ -61,15 +72,32 @@ public class NamedThreadFactory implements ThreadFactory {
                 SharedTaggedMetricRegistries.getSingleton(),
                 Executors.defaultThreadFactory(),
                 prefix);
+        threadCreate = SharedTaggedMetricRegistries.getSingleton().timer(MetricName.builder()
+                .safeName("atlas.executor.threads.created")
+                .putSafeTags("executor", prefix)
+                .build());
+        threadCreateFailed = SharedTaggedMetricRegistries.getSingleton().counter(MetricName.builder()
+                .safeName("atlas.executor.threads.createFailure")
+                .putSafeTags("executor", prefix)
+                .build());
     }
 
     /** {@inheritDoc} */
     @Override
     public Thread newThread(Runnable runnable) {
-        Thread thread = threadFactory.newThread(runnable);
-        thread.setName(prefix + "-" + count.getAndIncrement());
-        thread.setDaemon(isDaemon);
-        return thread;
+        Timer.Context time = threadCreate.time();
+        try {
+            Thread thread = threadFactory.newThread(runnable);
+            thread.setName(prefix + "-" + count.getAndIncrement());
+            thread.setDaemon(isDaemon);
+            return thread;
+        } catch (Throwable e) {
+            log.error("Failed to create thread", SafeArg.of("prefix", prefix), e);
+            threadCreateFailed.inc();
+            throw e;
+        } finally {
+            time.stop();
+        }
     }
 
     String getPrefix() {
