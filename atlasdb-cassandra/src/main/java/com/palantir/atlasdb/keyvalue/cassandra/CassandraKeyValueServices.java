@@ -91,7 +91,7 @@ public final class CassandraKeyValueServices {
             // This may only include some of the nodes if the coordinator hasn't shaken hands with someone; however,
             // this existed largely as a defense against performance issues with concurrent schema modifications.
             versions = client.describe_schema_versions();
-            if (!clusterKnownToHaveSchemaDivergence(versions)) {
+            if (reachablePartOfClusterHasConsistentSchemaVersions(versions)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
@@ -136,8 +136,8 @@ public final class CassandraKeyValueServices {
         waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
     }
 
-    static boolean clusterKnownToHaveSchemaDivergence(Map<String, List<String>> versions) {
-        return getDistinctReachableSchemas(versions).size() > 1;
+    static boolean reachablePartOfClusterHasConsistentSchemaVersions(Map<String, List<String>> versions) {
+        return getDistinctReachableSchemas(versions).size() == 1;
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
