@@ -41,7 +41,7 @@ final class VersionedEventStore {
     }
 
     long getLastKey() {
-        Preconditions.checkState(!eventMap.isEmpty(), "Cannot get first key from empty map");
+        Preconditions.checkState(!eventMap.isEmpty(), "Cannot get last key from empty map");
         return eventMap.lastKey();
     }
 
