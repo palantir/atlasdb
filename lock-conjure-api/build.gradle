@@ -1,6 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'com.palantir.sls-recommended-dependencies'
 apply plugin: 'com.palantir.conjure'
 
 conjure {
@@ -22,6 +21,8 @@ dependencies {
 
 subprojects {
     apply from: "../../gradle/shared.gradle"
+    apply plugin: 'com.palantir.sls-recommended-dependencies'
+
     dependencies {
         compile project(':lock-api-objects')
         compile 'com.palantir.conjure.java:conjure-lib'
