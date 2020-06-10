@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
@@ -43,7 +42,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -55,7 +53,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
-import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
@@ -73,24 +70,11 @@ public final class CassandraKeyValueServices {
         // Utility class
     }
 
-    static void waitForSchemaVersions(
-            CassandraKeyValueServiceConfig config,
-            CassandraClient client,
-            String unsafeSchemaChangeDescription)
-            throws TException {
-        waitForSchemaVersions(
-                config,
-                client,
-                () -> extractThriftHostsFromStaticConfig(config),
-                unsafeSchemaChangeDescription);
-    }
-
     /**
      * Attempt to wait until nodes' schema versions match.
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.
-     * @param currentClusterViewSupplier view of the Cassandra cluster.
      * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
      *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
@@ -98,18 +82,16 @@ public final class CassandraKeyValueServices {
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
-            Supplier<Set<InetSocketAddress>> currentClusterViewSupplier,
             String unsafeSchemaChangeDescription)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
         do {
-            // This only returns the schema versions of nodes that the client knows exist. In particular, if a node we
-            // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
-            // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
+            // This may only include some of the nodes if the coordinator hasn't shaken hands with someone; however,
+            // this existed largely as a defense against performance issues with concurrent schema modifications.
             versions = client.describe_schema_versions();
-            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(currentClusterViewSupplier, versions)) {
+            if (!clusterKnownToHaveSchemaDivergence(versions)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
@@ -117,12 +99,12 @@ public final class CassandraKeyValueServices {
 
         StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
-            schemaVersions = addNodeInformation(schemaVersions,
+            addNodeInformation(schemaVersions,
                     String.format("%nAt schema version %s:", version.getKey()),
                     version.getValue());
         }
 
-        Set<InetSocketAddress> thriftHosts = extractThriftHostsFromStaticConfig(config);
+        Set<InetSocketAddress> thriftHosts = config.servers().accept(new ThriftHostsExtractingVisitor());
 
         String configNodes = addNodeInformation(new StringBuilder(),
                 "Nodes specified in config file:",
@@ -143,10 +125,6 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
-    private static Set<InetSocketAddress> extractThriftHostsFromStaticConfig(CassandraKeyValueServiceConfig config) {
-        return config.servers().accept(new ThriftHostsExtractingVisitor());
-    }
-
     static void runWithWaitingForSchemas(
             RunnableCheckedException<TException> task,
             CassandraKeyValueServiceConfig config,
@@ -158,31 +136,14 @@ public final class CassandraKeyValueServices {
         waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
     }
 
-    static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
-            Supplier<Set<InetSocketAddress>> clusterAddressesSupplier,
-            Map<String, List<String>> versions) {
-        List<String> reachableSchemas = getDistinctReachableSchemas(versions);
-        if (reachableSchemas.size() > 1) {
-            return false;
-        }
-
-        int numberOfServers = clusterAddressesSupplier.get().size();
-        int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
-
-        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
+    static boolean clusterKnownToHaveSchemaDivergence(Map<String, List<String>> versions) {
+        return getDistinctReachableSchemas(versions).size() > 1;
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
         return versions.keySet().stream()
                 .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
                 .collect(Collectors.toList());
-    }
-
-    private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
-        return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
-                .map(Entry::getValue)
-                .mapToInt(List::size)
-                .sum();
     }
 
     private static long sleepAndGetNextBackoffTime(long sleepTime) {
