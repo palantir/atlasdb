@@ -94,7 +94,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     public void waitSucceedsOnMinorityOnSameVersionAndRestUnreachable() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
@@ -131,10 +131,11 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
                 ImmutableMap.of(),
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, REST_OF_NODES, VERSION_UNREACHABLE, QUORUM_OF_NODES),
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, ALL_NODES));
 
         CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
-        verify(waitingClient, times(3)).describe_schema_versions();
+        verify(waitingClient, times(4)).describe_schema_versions();
     }
 
     private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {

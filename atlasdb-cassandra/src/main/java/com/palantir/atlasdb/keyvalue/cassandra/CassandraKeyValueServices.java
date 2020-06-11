@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -91,7 +92,7 @@ public final class CassandraKeyValueServices {
             // This may only include some of the nodes if the coordinator hasn't shaken hands with someone; however,
             // this existed largely as a defense against performance issues with concurrent schema modifications.
             versions = client.describe_schema_versions();
-            if (reachablePartOfClusterHasConsistentSchemaVersions(versions)) {
+            if (majorityOfClusterHasConsistentSchemaVersionAndNoDivergentNodes(versions)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
@@ -136,8 +137,17 @@ public final class CassandraKeyValueServices {
         waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
     }
 
-    static boolean reachablePartOfClusterHasConsistentSchemaVersions(Map<String, List<String>> versions) {
-        return getDistinctReachableSchemas(versions).size() == 1;
+    private static boolean majorityOfClusterHasConsistentSchemaVersionAndNoDivergentNodes(
+            Map<String, List<String>> versions) {
+        if (getDistinctReachableSchemas(versions).size() != 1) {
+            return false;
+        }
+
+        int totalNodes = versions.values().stream().mapToInt(List::size).sum();
+        int numUnreachableNodes = Optional.ofNullable(versions.get(VERSION_UNREACHABLE))
+                .map(List::size)
+                .orElse(0);
+        return totalNodes - numUnreachableNodes >= (totalNodes / 2) + 1;
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
