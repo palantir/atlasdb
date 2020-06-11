@@ -73,7 +73,25 @@ public final class CassandraKeyValueServices {
     }
 
     /**
-     * Attempt to wait until nodes' schema versions match.
+     * Attempt to wait until a quorum of nodes has reached consensus on a schema version, and it is known that no
+     * other nodes currently disagree with this quorum.
+     *
+     * The goals of this method include:
+     * <ol>
+     *     <li>
+     *         Backoff during schema mutations if the cluster is known to currently be in disagreement, so that
+     *         Cassandra can more efficiently come to agreement.
+     *     </li>
+     *     <li>
+     *         Avoid performing schema mutations if they could potentially cause a split-brain in terms of how the
+     *         schema evolves. This is achieved by ensuring a quorum of reachable nodes agree on the version. There
+     *         is of course a check-then-act race condition, but Cassandra is able to eventually recover.
+     *     </li>
+     *     <li>
+     *         Allowing schema mutations to take place in the presence of failures (the KVS needs to be able to
+     *         tolerate a limited number of Cassandra node-level failures).
+     *     </li>
+     * </ol>
      *
      * @param schemaMutationTimeMillis time to wait for nodes' schema versions to match.
      * @param client Cassandra client.
