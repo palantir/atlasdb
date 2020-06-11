@@ -1,13 +1,13 @@
 options:
-  javaPackage: 'com.palantir.atlasdb.timelock.api'
+  javaPackage: 'com.palantir.lock.client'
 
 namespaces:
   conjureTimelockServiceBlocking:
-    docs: Metrics helpful for timeLock adjudication.
+    docs: Metrics helpful for TimeLock adjudication.
     metrics:
       leaderTime:
         type: timer
-        docs: p99 and rate for leaderTime endpoint on timeLock
+        docs: how long it takes to get leaderTime from timelock
       startTransactions:
         type: timer
-        docs: p99 and rate of startTransaction endpoint on timeLock
+        docs: how long it takes to start transaction in timelock

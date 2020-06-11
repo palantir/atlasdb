@@ -16,7 +16,10 @@
 
 package com.palantir.lock.client;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -50,9 +53,13 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        long timeCreated = System.currentTimeMillis();
-        ConjureStartTransactionsResponse response = dialogueDelegate.startTransactions(authHeader, namespace, request);
-        long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
+        return timeTransaction(() -> dialogueDelegate.startTransactions(authHeader, namespace, request));
+    }
+
+    private <T> T timeTransaction(Supplier<T> supplier) {
+        Instant timeCreated = Instant.now();
+        T response = supplier.get();
+        long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(Duration.between(Instant.now(), timeCreated).toMillis());
         this.conjureTimelockServiceBlockingMetrics.startTransactions().update(microsSinceCreation,
                 TimeUnit.MICROSECONDS);
         return response;
