@@ -34,6 +34,7 @@ import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
@@ -90,6 +91,8 @@ public final class AtlasDbDialogueServiceProvider {
                 = dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
         ConjureTimelockServiceBlocking shortTimeoutService
                 = dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics =
+                ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
 
         ShortAndLongTimeoutServices<ConjureTimelockService> shortAndLongTimeoutServices
                 = ImmutableShortAndLongTimeoutServices.<ConjureTimelockServiceBlocking>builder()
@@ -101,7 +104,8 @@ public final class AtlasDbDialogueServiceProvider {
                         taggedMetricRegistry,
                         ConjureTimelockServiceBlocking.class,
                         service))
-                .map(DialogueAdaptingConjureTimelockService::new);
+                .map(instrumentedService -> new DialogueAdaptingConjureTimelockService(instrumentedService,
+                        conjureTimelockServiceBlockingMetrics));
 
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
     }

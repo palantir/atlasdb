@@ -1,4 +1,5 @@
 apply plugin: 'com.palantir.sls-recommended-dependencies'
+apply plugin: 'com.palantir.metric-schema'
 
 apply from: "../gradle/shared.gradle"
 

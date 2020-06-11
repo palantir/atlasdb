@@ -16,6 +16,8 @@
 
 package com.palantir.lock.client;
 
+import java.util.concurrent.TimeUnit;
+
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -26,6 +28,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
@@ -36,15 +39,23 @@ import com.palantir.tokens.auth.AuthHeader;
 
 public class DialogueAdaptingConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockServiceBlocking dialogueDelegate;
+    private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
 
-    public DialogueAdaptingConjureTimelockService(ConjureTimelockServiceBlocking dialogueDelegate) {
+    public DialogueAdaptingConjureTimelockService(ConjureTimelockServiceBlocking dialogueDelegate,
+            ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics) {
         this.dialogueDelegate = dialogueDelegate;
+        this.conjureTimelockServiceBlockingMetrics = conjureTimelockServiceBlockingMetrics;
     }
 
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        return dialogueDelegate.startTransactions(authHeader, namespace, request);
+        long timeCreated = System.currentTimeMillis();
+        ConjureStartTransactionsResponse response = dialogueDelegate.startTransactions(authHeader, namespace, request);
+        long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
+        this.conjureTimelockServiceBlockingMetrics.startTransactions().update(microsSinceCreation,
+                TimeUnit.MICROSECONDS);
+        return response;
     }
 
     @Override
