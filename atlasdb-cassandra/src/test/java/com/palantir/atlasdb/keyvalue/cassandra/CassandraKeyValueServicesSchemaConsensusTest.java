@@ -75,13 +75,13 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @Test
     public void waitThrowsForAllUnknownSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
     public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -91,10 +91,10 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     }
 
     @Test
-    public void waitSucceedsOnMinorityOnSameVersionAndRestUnreachable() throws TException {
+    public void waitFailsOnMinorityOnSameVersionAndRestUnreachable() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -114,7 +114,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     public void waitThrowsForDifferentSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -138,10 +138,10 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         verify(waitingClient, times(4)).describe_schema_versions();
     }
 
-    private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
+    private void assertWaitForSchemaVersionsThrows() {
         assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining(FIVE_SERVERS.iterator().next().getHostName());
+                .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
     }
 
     private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {

@@ -21,6 +21,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -105,11 +106,9 @@ public final class CassandraKeyValueServices {
                     version.getValue());
         }
 
-        Set<InetSocketAddress> thriftHosts = config.servers().accept(new ThriftHostsExtractingVisitor());
-
-        String configNodes = addNodeInformation(new StringBuilder(),
-                "Nodes specified in config file:",
-                thriftHosts.stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
+        String clusterNodes = addNodeInformation(new StringBuilder(),
+                "Nodes believed to exist:",
+                versions.values().stream().flatMap(Collection::stream).collect(Collectors.toList()))
                 .toString();
 
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions, %s. %s"
@@ -122,7 +121,7 @@ public final class CassandraKeyValueServices {
                         + " and that the nodes specified in the config are up and joined the cluster. %s",
                 unsafeSchemaChangeDescription,
                 schemaVersions.toString(),
-                configNodes);
+                clusterNodes);
         throw new IllegalStateException(errorMessage);
     }
 
