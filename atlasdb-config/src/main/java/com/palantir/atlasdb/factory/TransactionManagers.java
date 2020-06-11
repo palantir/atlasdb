@@ -149,6 +149,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.common.time.Clock;
@@ -174,6 +175,7 @@ import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
+import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
@@ -359,7 +361,12 @@ public abstract class TransactionManagers {
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
-
+//        metricsManager.getTaggedRegistry()
+//        Supplier<String> versionSupplier = () -> AtlasDbVersion.readVersion();
+//        config().namespace() || timeLock.namespace || Cass.keyspace || unknown
+        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = new TimeLockFeedbackBackgroundTask(
+                globalTaggedMetricRegistry(),
+        );
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
