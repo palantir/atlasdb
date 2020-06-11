@@ -85,6 +85,12 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     }
 
     @Test
+    public void waitSucceedsWithClusterHavingDownsizedAtRuntime() throws TException {
+        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
+        assertWaitForSchemaVersionsDoesNotThrow();
+    }
+
+    @Test
     public void waitFailsOnMinorityOnSameVersionAndRestUnreachable() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
