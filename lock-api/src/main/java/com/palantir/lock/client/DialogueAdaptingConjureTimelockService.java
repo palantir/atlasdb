@@ -15,10 +15,6 @@
  */
 
 package com.palantir.lock.client;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.Timer;
@@ -32,7 +28,6 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
