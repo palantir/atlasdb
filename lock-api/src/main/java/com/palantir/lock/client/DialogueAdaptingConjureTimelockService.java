@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -56,15 +57,6 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         return timeTransaction(() -> dialogueDelegate.startTransactions(authHeader, namespace, request));
     }
 
-    private <T> T timeTransaction(Supplier<T> supplier) {
-        Instant timeCreated = Instant.now();
-        T response = supplier.get();
-        long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(Duration.between(Instant.now(), timeCreated).toMillis());
-        this.conjureTimelockServiceBlockingMetrics.startTransactions().update(microsSinceCreation,
-                TimeUnit.MICROSECONDS);
-        return response;
-    }
-
     @Override
     public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
             ConjureGetFreshTimestampsRequest request) {
@@ -73,7 +65,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return dialogueDelegate.leaderTime(authHeader, namespace);
+        return timeTransaction(() -> dialogueDelegate.leaderTime(authHeader, namespace));
     }
 
     @Override
@@ -102,5 +94,11 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
+    }
+
+    private <T> T timeTransaction(Supplier<T> supplier) {
+        try (Timer.Context timer = this.conjureTimelockServiceBlockingMetrics.startTransactions().time()) {
+            return supplier.get();
+        }
     }
 }
