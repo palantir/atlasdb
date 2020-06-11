@@ -75,14 +75,14 @@ public final class CassandraKeyValueServices {
     /**
      * Attempt to wait until nodes' schema versions match.
      *
-     * @param config the KVS configuration.
+     * @param schemaMutationTimeMillis time to wait for nodes' schema versions to match.
      * @param client Cassandra client.
      * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
      *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
-            CassandraKeyValueServiceConfig config,
+            int schemaMutationTimeMillis,
             CassandraClient client,
             String unsafeSchemaChangeDescription)
             throws TException {
@@ -97,7 +97,7 @@ public final class CassandraKeyValueServices {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
-        } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
+        } while (System.currentTimeMillis() < start + schemaMutationTimeMillis);
 
         StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
@@ -131,9 +131,9 @@ public final class CassandraKeyValueServices {
             CassandraClient client,
             String unsafeSchemaChangeDescription)
             throws TException {
-        waitForSchemaVersions(config, client, "before " + unsafeSchemaChangeDescription);
+        waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, "before " + unsafeSchemaChangeDescription);
         task.run();
-        waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
+        waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, "after " + unsafeSchemaChangeDescription);
     }
 
     private static boolean majorityOfClusterHasConsistentSchemaVersionAndNoDivergentNodes(
@@ -183,7 +183,7 @@ public final class CassandraKeyValueServices {
             CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
-                waitForSchemaVersions(config, client, " during an initialization check");
+                waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, " during an initialization check");
                 return null;
             });
         } catch (Exception e) {

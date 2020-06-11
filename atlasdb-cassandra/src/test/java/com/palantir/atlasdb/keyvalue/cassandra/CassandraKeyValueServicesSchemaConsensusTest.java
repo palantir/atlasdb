@@ -134,17 +134,20 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, ALL_NODES));
 
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
+        CassandraKeyValueServices.waitForSchemaVersions(
+                waitingConfig.schemaMutationTimeoutMillis(), waitingClient, TABLE);
         verify(waitingClient, times(4)).describe_schema_versions();
     }
 
     private void assertWaitForSchemaVersionsThrows() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
+        assertThatThrownBy(
+                () -> CassandraKeyValueServices.waitForSchemaVersions(
+                        config.schemaMutationTimeoutMillis(), client, TABLE))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
     }
 
     private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE);
+        CassandraKeyValueServices.waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, TABLE);
     }
 }
