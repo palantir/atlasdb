@@ -1,6 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'com.palantir.sls-recommended-dependencies'
 apply plugin: 'com.palantir.conjure'
 
 conjure {
@@ -20,20 +19,22 @@ dependencies {
     conjureJava 'com.palantir.conjure.java:conjure-java'
 }
 
-recommendedProductDependencies {
-    productDependency {
-        productGroup = 'com.palantir.timelock'
-        productName = 'timelock-server'
-        minimumVersion = '0.187.0' // TODO (jkong): Bump
-        maximumVersion = '0.x.x'
-    }
-}
-
 subprojects {
     apply from: "../../gradle/shared.gradle"
+    apply plugin: 'com.palantir.sls-recommended-dependencies'
+
     dependencies {
         compile project(':lock-api-objects')
         compile 'com.palantir.conjure.java:conjure-lib'
     }
     tasks.licenseMain.enabled = false
+
+    recommendedProductDependencies {
+        productDependency {
+            productGroup = 'com.palantir.timelock'
+            productName = 'timelock-server'
+            minimumVersion = '0.189.0'
+            maximumVersion = '0.x.x'
+        }
+    }
 }
