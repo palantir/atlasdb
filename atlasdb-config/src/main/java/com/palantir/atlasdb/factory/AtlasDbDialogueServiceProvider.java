@@ -34,7 +34,6 @@ import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
