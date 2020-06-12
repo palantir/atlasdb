@@ -22,8 +22,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
-import com.google.common.collect.ImmutableMap;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -42,14 +40,17 @@ public class TimeLockFeedbackBackgroundTask {
             ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics =
                     ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
 
-            ImmutableMap.of(
-            "perc99", conjureTimelockServiceBlockingMetrics.startTransactions().getSnapshot().get99thPercentile(),
-            "Rate", conjureTimelockServiceBlockingMetrics.startTransactions().getOneMinuteRate(),
-            "atlasVersion", versionSupplier.get(),
-            "nodeId", nodeId,
-                    "serviceName", serviceName);
-
-
+            ImmutableClientFeedback
+                    .builder()
+                    .percentile99th(conjureTimelockServiceBlockingMetrics
+                            .startTransactions()
+                            .getSnapshot()
+                            .get99thPercentile())
+                    .oneMinuteRate(conjureTimelockServiceBlockingMetrics.startTransactions().getOneMinuteRate())
+                    .atlasVersion(versionSupplier.get())
+                    .nodeId(nodeId)
+                    .serviceName(serviceName)
+                    .build();
         }, 30, 30, TimeUnit.SECONDS);
 
     }
