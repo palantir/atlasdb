@@ -24,12 +24,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlockingMetrics;
+import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TimeLockFeedbackBackgroundTask {
 
-    TimeLockFeedbackBackgroundTask (TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
+    public TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
             String serviceName) {
         UUID nodeId = UUID.randomUUID();
 
@@ -48,5 +48,6 @@ public class TimeLockFeedbackBackgroundTask {
 
 
         }, 30, 30, TimeUnit.SECONDS);
+
     }
 }

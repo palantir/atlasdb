@@ -361,12 +361,12 @@ public abstract class TransactionManagers {
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
-//        metricsManager.getTaggedRegistry()
-//        Supplier<String> versionSupplier = () -> AtlasDbVersion.readVersion();
-//        config().namespace() || timeLock.namespace || Cass.keyspace || unknown
-        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = new TimeLockFeedbackBackgroundTask(
+
+        new TimeLockFeedbackBackgroundTask(
                 globalTaggedMetricRegistry(),
-        );
+                () -> AtlasDbVersion.readVersion(),
+                getServiceName());
+
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
@@ -546,6 +546,19 @@ public abstract class TransactionManagers {
                 closeables);
 
         return transactionManager;
+    }
+
+    private String getServiceName() {
+        String serviceName = "UNKNOWN";
+        if (config().namespace().isPresent()) {
+            serviceName = config().namespace().get();
+        } else if (config().timelock().isPresent()) {
+            TimeLockClientConfig timeLockClientConfig = config().timelock().get();
+            serviceName = timeLockClientConfig.getClientOrThrow();
+        } else if (config().keyValueService().namespace().isPresent()) {
+            serviceName = config().keyValueService().namespace().get();
+        }
+        return serviceName;
     }
 
     private static Callback<TransactionManager> createClearsTable() {
