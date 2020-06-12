@@ -28,8 +28,11 @@ import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TimeLockFeedbackBackgroundTask {
+    private TimeLockFeedbackBackgroundTask() {
+        // no op
+    }
 
-    public TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
+    public static void create(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
             String serviceName) {
         UUID nodeId = UUID.randomUUID();
 
