@@ -51,10 +51,10 @@ license {
 
     include '**/*.java'
     exclude '**/generated/**/*.java'
-    exclude '**/generated_src/**/*.java'
     exclude '**/RateLimiter.java'
     exclude '**/SmoothRateLimiter.java'
     exclude '**/DiscoverableSubtypeResolver.java'
+    exclude '**/ConjureTimelockServiceBlockingMetrics.java'
 }
 
 ext {
