@@ -417,8 +417,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(config.blockingExecutor().orElseGet(
-                () -> createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry())));
+        super(createThreadpool(log, config, metricsManager));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -445,6 +444,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, tableMetadata,
                 cassandraTableTruncator);
         this.runtimeConfigSupplier = runtimeConfigSupplier;
+    }
+
+    private static ExecutorService createThreadpool(Logger log, CassandraKeyValueServiceConfig config,
+            MetricsManager metricsManager) {
+        if (config.blockingExecutor().isPresent()) {
+            log.error("Blocking executor provided, using it", new RuntimeException());
+            return config.blockingExecutor().get();
+        } else {
+            log.error("Creating a new blocking executor", new RuntimeException());
+            return createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry());
+        }
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(
