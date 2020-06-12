@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Avoid setting insecure hostname verification
+  links:
+  - https://github.com/palantir/atlasdb/pull/4824

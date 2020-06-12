@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Fix incorrect getRangeSlices trace span names for the Cassandra client;
+    previously the number of columns was reported as the number of rows, and the batch
+    hint was reported as the number of columns.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4817

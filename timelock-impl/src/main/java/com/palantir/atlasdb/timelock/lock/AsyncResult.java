@@ -22,10 +22,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-
-import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
 public class AsyncResult<T> {

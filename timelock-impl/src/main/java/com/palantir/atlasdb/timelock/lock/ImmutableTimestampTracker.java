@@ -19,11 +19,11 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.UUID;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.logsafe.SafeArg;
-
-import net.jcip.annotations.GuardedBy;
 
 public class ImmutableTimestampTracker {
 

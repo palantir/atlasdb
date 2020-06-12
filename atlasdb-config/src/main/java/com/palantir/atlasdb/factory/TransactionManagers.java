@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -71,8 +72,8 @@ import com.palantir.atlasdb.config.ShouldRunBackgroundSweepSupplier;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -92,9 +93,9 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.InternalLockWatchManagerImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -266,7 +267,7 @@ public abstract class TransactionManagers {
     }
 
     // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-    abstract Optional<ClientLockDiagnosticCollector> lockDiagnosticInfoCollector();
+    abstract Optional<LockDiagnosticComponents> lockDiagnosticComponents();
 
     @Value.Default
     LockWatchingCache lockWatchingCache() {
@@ -385,7 +386,7 @@ public abstract class TransactionManagers {
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent(),
-                lockDiagnosticInfoCollector(),
+                lockDiagnosticComponents(),
                 reloadingFactory());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
@@ -466,7 +467,8 @@ public abstract class TransactionManagers {
                 .orElseGet(() -> new DefaultTimestampCache(
                         metricsManager.getRegistry(), () -> runtime.get().getTimestampCacheSize()));
 
-        ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
+        ConflictTracer conflictTracer = lockDiagnosticComponents()
+                .map(LockDiagnosticComponents::clientLockDiagnosticCollector)
                 .<ConflictTracer>map(Function.identity())
                 .orElse(ConflictTracer.NO_OP);
 
@@ -476,6 +478,7 @@ public abstract class TransactionManagers {
                         keyValueService,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lockWatcher(),
+                        lockAndTimestampServices.eventCache(),
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
@@ -500,7 +503,7 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
-        transactionManager.registerClosingCallback(lockAndTimestampServices.close());
+        lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);
         components.schemaInstaller().ifPresent(
                 installer -> transactionManager.registerClosingCallback(installer::close));
@@ -851,7 +854,7 @@ public abstract class TransactionManagers {
                 .from(lockAndTimestampServices)
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(timeLockClient::close)
+                .addResources(timeLockClient::close)
                 .build();
     }
 
@@ -865,7 +868,7 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
@@ -876,7 +879,7 @@ public abstract class TransactionManagers {
                 time,
                 invalidator,
                 userAgent,
-                lockDiagnosticCollector,
+                lockDiagnosticComponents,
                 reloadingFactory);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
@@ -905,11 +908,8 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(profilingService))
                 .timelock(profilingService)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(() -> {
-                    lockAndTimestampServices.close();
-                    timeLockClient.close();
-                    profilingService.close();
-                })
+                .addResources(timeLockClient::close)
+                .addResources(profilingService::close)
                 .build();
     }
 
@@ -937,7 +937,7 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
@@ -952,7 +952,7 @@ public abstract class TransactionManagers {
                     runtimeConfig,
                     invalidator,
                     userAgent,
-                    lockDiagnosticCollector,
+                    lockDiagnosticComponents,
                     reloadingFactory);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
@@ -982,7 +982,7 @@ public abstract class TransactionManagers {
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
@@ -996,7 +996,7 @@ public abstract class TransactionManagers {
                         runtimeConfig.map(AtlasDbRuntimeConfig::remotingClient),
                         userAgent,
                         timelockNamespace,
-                        lockDiagnosticCollector,
+                        lockDiagnosticComponents,
                         reloadingFactory);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
@@ -1027,7 +1027,7 @@ public abstract class TransactionManagers {
             Refreshable<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             String timelockNamespace,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory) {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
@@ -1068,9 +1068,12 @@ public abstract class TransactionManagers {
                 .getConfigSwitchedProxy(TimelockRpcClient.class);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-        ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
-                .<ConjureTimelockService>map(collector ->
-                        new LockDiagnosticConjureTimelockService(switchableService, collector))
+        ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticComponents
+                .<ConjureTimelockService>map(components ->
+                        new LockDiagnosticConjureTimelockService(
+                                switchableService,
+                                components.clientLockDiagnosticCollector(),
+                                components.localLockTracker()))
                 .orElse(switchableService);
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
@@ -1081,9 +1084,7 @@ public abstract class TransactionManagers {
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 creator.createService(ConjureLockWatchingService.class), timelockNamespace);
-        InternalLockWatchManager lockWatcher = new InternalLockWatchManagerImpl(lockWatchingService,
-                lockWatchEventCache);
-
+        LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
@@ -1101,8 +1102,10 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
-                .lockWatcher(lockWatcher)
-                .close(remoteTimelockServiceAdapter::close)
+                .lockWatcher(lockWatchManager)
+                .eventCache(lockWatchEventCache)
+                .addResources(remoteTimelockServiceAdapter::close)
+                .addResources(lockWatchManager::close)
                 .build();
     }
 
@@ -1305,8 +1308,13 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
         @Value.Default
-        default InternalLockWatchManager lockWatcher() {
-            return NoOpInternalLockWatchManager.INSTANCE;
+        default LockWatchManager lockWatcher() {
+            return NoOpLockWatchManager.INSTANCE;
+        }
+
+        @Value.Default
+        default LockWatchEventCache eventCache() {
+            return NoOpLockWatchEventCache.INSTANCE;
         }
 
         @Value.Derived
@@ -1316,8 +1324,8 @@ public abstract class TransactionManagers {
 
         @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default
-        default Runnable close() {
-            return () -> {};
+        default List<Runnable> resources() {
+            return Collections.emptyList();
         }
     }
 

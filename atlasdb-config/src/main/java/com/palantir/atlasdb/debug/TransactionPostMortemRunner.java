@@ -18,6 +18,7 @@ package com.palantir.atlasdb.debug;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -65,17 +66,20 @@ public class TransactionPostMortemRunner {
     private final ClientLockDiagnosticCollector clientLockDiagnosticCollector;
     private final WritesDigestEmitter writesDigestEmitter;
     private final LockDiagnosticInfoService timelockDiagnosticService;
+    private final LocalLockTracker localLockTracker;
 
     public TransactionPostMortemRunner(
             TransactionManager transactionManager,
             TableReference tableReference,
             AtlasDbConfig install,
             Refreshable<AtlasDbRuntimeConfig> runtime,
-            ClientLockDiagnosticCollector clientLockDiagnosticCollector) {
+            ClientLockDiagnosticCollector clientLockDiagnosticCollector,
+            LocalLockTracker localLockTracker) {
         this.timelockNamespace = timelockNamespace(install);
         this.clientLockDiagnosticCollector = clientLockDiagnosticCollector;
         this.timelockDiagnosticService = createRpcClient(install, runtime);
         this.writesDigestEmitter = new WritesDigestEmitter(transactionManager, tableReference);
+        this.localLockTracker = localLockTracker;
     }
 
     public FullDiagnosticDigest<String> conductPostMortem(Persistable row, byte[] columnName) {
@@ -103,11 +107,15 @@ public class TransactionPostMortemRunner {
 
         log.info("transaction digests", SafeArg.of("transactionDigests", transactionDigests));
 
+        List<LocalLockTracker.TrackedLockEvent> locallyTrackedLockEvents
+                = localLockTracker.getLocalLockHistory();
+
         return ImmutableFullDiagnosticDigest.<String>builder()
                 .rawData(ImmutableRawData.of(digest, lockDiagnosticInfo, snapshot))
                 .addAllInProgressTransactions(digest.inProgressTransactions())
                 .lockRequestIdsEvictedMidLockRequest(lockRequestIdsEvictedMidLockRequest)
                 .completedTransactionDigests(transactionDigests)
+                .trackedLockEvents(locallyTrackedLockEvents)
                 .build();
     }
 

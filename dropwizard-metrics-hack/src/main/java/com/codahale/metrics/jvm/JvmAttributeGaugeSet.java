@@ -14,11 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.codahale.metrics.jvm;
 
-import org.immutables.value.Value;
+import java.util.Collections;
+import java.util.Map;
 
-@Value.Immutable
-public interface StartTransactionRequest {
-    PreCommitCondition preCommitCondition();
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricSet;
+
+/**
+ * We need to use Dropwizard metrics 3.x internally - this is the class that's needed to get
+ * Dropwizard 2.0 working with metrics 3.x.
+ */
+public final class JvmAttributeGaugeSet implements MetricSet {
+    @Override
+    public Map<String, Metric> getMetrics() {
+        return Collections.emptyMap();
+    }
 }

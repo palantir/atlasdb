@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.client;
 
-import java.util.List;
-import java.util.Optional;
+import org.immutables.value.Value;
 
-import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 
-public interface StartTransactionsResponse {
+@Value.Immutable
+public interface TestBatchElement<A, R> extends BatchElement<A, R> {
+    @Override
+    A argument();
 
-    List<OpenTransaction> getTransactions();
-
-    /**
-     * Returns a condensed view of new lock watch events since lastKnownVersion for the set of started transactions.
-     *
-     * @param lastKnownVersion exclusive start version to get events from
-     */
-    TransactionsLockWatchEvents getEvents(Optional<IdentifiedVersion> lastKnownVersion);
+    @Override
+    DisruptorAutobatcher.DisruptorFuture<R> result();
 }

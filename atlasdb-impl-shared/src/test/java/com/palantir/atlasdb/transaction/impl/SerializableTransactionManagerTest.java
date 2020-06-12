@@ -44,7 +44,7 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpInternalLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
@@ -54,6 +54,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 
 public class SerializableTransactionManagerTest {
@@ -269,7 +270,8 @@ public class SerializableTransactionManagerTest {
                 MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
-                NoOpInternalLockWatchManager.INSTANCE,
+                NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchEventCache.INSTANCE,
                 mockTimestampManagementService,
                 null, // lockService
                 mock(TransactionService.class),

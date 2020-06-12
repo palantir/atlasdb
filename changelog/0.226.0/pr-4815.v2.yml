@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: 'Atlasdb will now use dialogue clients by default. You can still opt-out
+    of this by setting `atlas-runtime: { remotingClient: { enableDialogue: false }}`'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4815
