@@ -550,6 +550,7 @@ public abstract class TransactionManagers {
 
     private String getServiceName() {
         String serviceName = "UNKNOWN";
+        Stream.
         if (config().namespace().isPresent()) {
             serviceName = config().namespace().get();
         } else if (config().timelock().isPresent()) {

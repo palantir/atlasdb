@@ -38,7 +38,7 @@ public class TimeLockFeedbackBackgroundTask {
 
         ScheduledExecutorService scheduledExecutorService =
                 Executors.newScheduledThreadPool(5);
-        scheduledExecutorService.scheduleWithFixedDelay((Runnable) () -> {
+        scheduledExecutorService.scheduleWithFixedDelay(() -> {
             ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics =
                     ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
 
