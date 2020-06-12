@@ -92,7 +92,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     private <T> T executeInTimerContext(Supplier<T> supplier) {
-        try (Timer.Context timer = this.conjureTimelockServiceBlockingMetrics.startTransactions().time()) {
+        try (Timer.Context timer = conjureTimelockServiceBlockingMetrics.startTransactions().time()) {
             return supplier.get();
         }
     }
