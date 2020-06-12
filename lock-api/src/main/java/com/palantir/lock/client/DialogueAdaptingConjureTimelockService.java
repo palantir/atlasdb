@@ -15,7 +15,9 @@
  */
 
 package com.palantir.lock.client;
+import java.util.function.Supplier;
 
+import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -36,15 +38,18 @@ import com.palantir.tokens.auth.AuthHeader;
 
 public class DialogueAdaptingConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockServiceBlocking dialogueDelegate;
+    private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
 
-    public DialogueAdaptingConjureTimelockService(ConjureTimelockServiceBlocking dialogueDelegate) {
+    public DialogueAdaptingConjureTimelockService(ConjureTimelockServiceBlocking dialogueDelegate,
+            ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics) {
         this.dialogueDelegate = dialogueDelegate;
+        this.conjureTimelockServiceBlockingMetrics = conjureTimelockServiceBlockingMetrics;
     }
 
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        return dialogueDelegate.startTransactions(authHeader, namespace, request);
+        return executeInTimerContext(() -> dialogueDelegate.startTransactions(authHeader, namespace, request));
     }
 
     @Override
@@ -55,7 +60,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return dialogueDelegate.leaderTime(authHeader, namespace);
+        return executeInTimerContext(() -> dialogueDelegate.leaderTime(authHeader, namespace));
     }
 
     @Override
@@ -84,5 +89,11 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
+    }
+
+    private <T> T executeInTimerContext(Supplier<T> supplier) {
+        try (Timer.Context timer = conjureTimelockServiceBlockingMetrics.startTransactions().time()) {
+            return supplier.get();
+        }
     }
 }

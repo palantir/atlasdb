@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Instrument leaderTime and startTransactions end points with timer metrics
+    for TimeLock Adjudication.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4832

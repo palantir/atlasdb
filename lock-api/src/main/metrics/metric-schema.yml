@@ -1,0 +1,13 @@
+options:
+  javaPackage: 'com.palantir.lock.client'
+
+namespaces:
+  conjureTimelockServiceBlocking:
+    docs: Metrics helpful for TimeLock adjudication.
+    metrics:
+      leaderTime:
+        type: timer
+        docs: how long it takes to get leaderTime from timelock
+      startTransactions:
+        type: timer
+        docs: how long it takes to start transaction in timelock

@@ -1,6 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
+apply plugin: 'com.palantir.metric-schema'
 
 repositories {
     mavenCentral()
