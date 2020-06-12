@@ -26,4 +26,8 @@ public interface IdentifiedVersion {
     UUID id();
     @Value.Parameter
     long version();
+
+    static IdentifiedVersion of(UUID id, long version) {
+        return ImmutableIdentifiedVersion.of(id, version);
+    }
 }

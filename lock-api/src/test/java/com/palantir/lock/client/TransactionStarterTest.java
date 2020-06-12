@@ -32,7 +32,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -177,7 +176,7 @@ public class TransactionStarterTest {
     private List<List<StartIdentifiedAtlasDbTransactionResponse>> requestBatches(List<Integer> counts) {
         List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>> elements = counts.stream()
                 .map(count ->
-                        ImmutableTestBatchElement.builder()
+                        ImmutableTestBatchElement.<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>builder()
                                 .argument(count)
                                 .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                                 .build())
@@ -249,11 +248,4 @@ public class TransactionStarterTest {
                 .interval(NUM_PARTITIONS)
                 .build();
     }
-
-    @Value.Immutable
-    interface TestBatchElement extends BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> {
-        @Override
-        Integer argument();
-    }
-
 }

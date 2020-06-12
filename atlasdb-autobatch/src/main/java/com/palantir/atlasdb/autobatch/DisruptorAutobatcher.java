@@ -24,7 +24,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,7 +140,7 @@ public final class DisruptorAutobatcher<T, R>
         }
 
         @Override
-        public boolean set(@NullableDecl R value) {
+        public boolean set(R value) {
             return super.set(value);
         }
 

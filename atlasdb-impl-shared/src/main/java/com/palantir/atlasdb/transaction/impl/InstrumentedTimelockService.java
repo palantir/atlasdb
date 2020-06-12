@@ -54,6 +54,11 @@ public class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        return executeWithRecord(() -> timelockService.getCommitTimestamp(startTs, commitLocksToken));
+    }
+
+    @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return executeWithRecord(() -> timelockService.getFreshTimestamps(numTimestampsRequested));
     }

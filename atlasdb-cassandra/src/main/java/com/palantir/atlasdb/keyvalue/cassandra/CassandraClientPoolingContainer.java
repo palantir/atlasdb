@@ -113,7 +113,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             return runWithGoodResource(fn);
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}",
-                    SafeArg.of("host", CassandraLogHelper.host(host)), UnsafeArg.of("exception", t.toString()));
+                    SafeArg.of("host", CassandraLogHelper.host(host)), t);
             if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
                 log.warn("Extra information about exhausted pool",
                         SafeArg.of("numActive", clientPool.getNumActive()),

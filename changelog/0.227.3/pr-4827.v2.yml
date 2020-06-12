@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Remove the visitor pattern from `TransactionLockWatchEvents`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4827

@@ -25,11 +25,3 @@ distribution {
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts "-Xms4096m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
 }
-
-configurations.all {
-    resolutionStrategy {
-        force 'io.netty:netty-handler:4.1.5.Final'
-        force 'org.slf4j:log4j-over-slf4j:1.7.21'
-        force 'org.slf4j:jcl-over-slf4j:1.7.21'
-    }
-}

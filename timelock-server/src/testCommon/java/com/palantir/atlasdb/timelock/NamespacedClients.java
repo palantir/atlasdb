@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
+import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
@@ -103,6 +104,11 @@ public interface NamespacedClients {
         return RemoteLockServiceAdapter.create(
                 proxyFactory().createProxy(LockRpcClient.class, proxyMode()),
                 namespace());
+    }
+
+    @Value.Derived
+    default ConjureLockV1Service conjureLegacyLockService() {
+        return proxyFactory().createProxy(ConjureLockV1Service.class, proxyMode());
     }
 
     @Value.Derived

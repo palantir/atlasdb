@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: TimeLock exposes new Conjure-Undertow versions of `refreshLockRefreshTokens`
+    and `unlockSimple`. This may be useful for Dialogue users.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4790

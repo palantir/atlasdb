@@ -30,6 +30,8 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
@@ -97,10 +99,7 @@ class LockLeaseService {
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
-                .lastKnownVersion(maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
-                        .id(identifiedVersion.id())
-                        .version(identifiedVersion.version())
-                        .build()))
+                .lastKnownVersion(toConjure(maybeVersion))
                 .build();
         ConjureStartTransactionsResponse response = delegate.startTransactions(request);
         Lease lease = response.getLease();
@@ -113,6 +112,14 @@ class LockLeaseService {
                 .timestamps(response.getTimestamps())
                 .lockWatchUpdate(response.getLockWatchUpdate())
                 .build();
+    }
+
+    GetCommitTimestampsResponse getCommitTimestamps(Optional<IdentifiedVersion> maybeVersion, int batchSize) {
+        GetCommitTimestampsRequest request = GetCommitTimestampsRequest.builder()
+                .numTimestamps(batchSize)
+                .lastKnownVersion(toConjure(maybeVersion))
+                .build();
+        return delegate.getCommitTimestamps(request);
     }
 
     LockResponse lock(LockRequest request) {
@@ -185,7 +192,10 @@ class LockLeaseService {
                 .collect(Collectors.toSet());
     }
 
-    private static ConjureLockToken toConjure(LockToken lockToken) {
-        return ConjureLockToken.of(lockToken.getRequestId());
+    private Optional<ConjureIdentifiedVersion> toConjure(Optional<IdentifiedVersion> maybeVersion) {
+        return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
+                .id(identifiedVersion.id())
+                .version(identifiedVersion.version())
+                .build());
     }
 }

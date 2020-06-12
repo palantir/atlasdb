@@ -96,13 +96,12 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         Instant afterRead = Instant.now();
         log.info("Reading {} entries from file backed paxos state log took {}.",
                 SafeArg.of("numEntries", roundsToMigrate.size()),
-                Duration.between(start, afterRead));
+                SafeArg.of("duration", Duration.between(start, afterRead)));
         Iterables.partition(roundsToMigrate, BATCH_SIZE)
                 .forEach(batch -> writeBatchRetryingUpToFiveTimes(destinationLog, batch));
         log.info("Writing {} entries to sqlite backed paxos state log took {}.",
                 SafeArg.of("numEntries", roundsToMigrate.size()),
-                Duration.between(afterRead, Instant.now()));
-
+                SafeArg.of("duration", Duration.between(afterRead, Instant.now())));
     }
 
     private void writeBatchRetryingUpToFiveTimes(PaxosStateLog<V> target, List<PaxosRound<V>> batch) {

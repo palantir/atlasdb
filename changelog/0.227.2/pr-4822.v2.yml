@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: The type and stack trace of Exceptions when talking to Cassandra are
+    now logged (and in the case of Safe exceptions, the exception message will also
+    be available). Previously, only the exception message was logged, and this was
+    always Unsafe.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4822

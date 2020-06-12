@@ -45,6 +45,7 @@ public interface FullDiagnosticDigest<T> {
     Set<UUID> lockRequestIdsEvictedMidLockRequest();
     List<CompletedTransactionDigest<T>> completedTransactionDigests();
     RawData<T> rawData();
+    List<LocalLockTracker.TrackedLockEvent> trackedLockEvents();
 
     @Value.Immutable
     @JsonDeserialize(as = ImmutableRawData.class)
