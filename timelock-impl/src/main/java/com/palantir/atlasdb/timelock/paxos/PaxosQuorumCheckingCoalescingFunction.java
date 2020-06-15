@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
@@ -82,7 +83,7 @@ public class PaxosQuorumCheckingCoalescingFunction<
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
+                PaxosConstants.CANCEL_REMAINING_CALLS);
 
         Map<REQ, PaxosResponsesWithRemote<FUNC, RESP>> responseMap = responses.stream()
                 .map(PaxosContainer::get)
