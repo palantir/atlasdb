@@ -18,28 +18,40 @@ package com.palantir.lock.client.metrics;
 
 
 import java.util.UUID;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class TimeLockFeedbackBackgroundTask {
-    private TimeLockFeedbackBackgroundTask() {
-        // no op
+public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
+    private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
+    private final UUID nodeId = UUID.randomUUID();
+    private final int timeLockClientFeedbackReportInterval = 30;
+    private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
+    private Supplier<String> versionSupplier;
+    private String serviceName;
+
+    private TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
+            String serviceName) {
+        this.conjureTimelockServiceBlockingMetrics = ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
+        this.versionSupplier = versionSupplier;
+        this.serviceName = serviceName;
     }
 
-    public static void create(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
+    public static TimeLockFeedbackBackgroundTask create(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
             String serviceName) {
-        UUID nodeId = UUID.randomUUID();
+        TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(taggedMetricRegistry,
+                versionSupplier, serviceName);
+        task.scheduleWithFixedDelay();
+        return task;
+    }
 
-        ScheduledExecutorService scheduledExecutorService =
-                Executors.newScheduledThreadPool(5);
-        scheduledExecutorService.scheduleWithFixedDelay(() -> {
-            ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics =
-                    ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry); //todo sudiksha
 
+    public void scheduleWithFixedDelay() {
+        executor.scheduleWithFixedDelay(() -> {
             ImmutableClientFeedback
                     .builder()
                     .percentile99th(conjureTimelockServiceBlockingMetrics
@@ -51,7 +63,11 @@ public class TimeLockFeedbackBackgroundTask {
                     .nodeId(nodeId)
                     .serviceName(serviceName)
                     .build();
-        }, 30, 30, TimeUnit.SECONDS);
+        }, timeLockClientFeedbackReportInterval, timeLockClientFeedbackReportInterval, TimeUnit.SECONDS);
+    }
 
+    @Override
+    public void close() {
+        executor.shutdown();
     }
 }
