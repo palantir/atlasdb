@@ -363,10 +363,10 @@ public abstract class TransactionManagers {
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
 
-        TimeLockFeedbackBackgroundTask.create(
+        initializeCloseable(() -> TimeLockFeedbackBackgroundTask.create(
                 globalTaggedMetricRegistry(),
                 () -> AtlasDbVersion.readVersion(),
-                getServiceName());
+                getServiceName()), closeables);
 
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
