@@ -155,7 +155,7 @@ public class TargetedSweepMetrics {
             case THOROUGH:
                 return AtlasDbMetricNames.TAG_THOROUGH;
             default:
-                throw new SafeIllegalStateException("Unexpected sweeper strategy " + strategy);
+                throw new SafeIllegalStateException("Unexpected sweeper strategy", SafeArg.of("strategy", strategy));
         }
     }
 

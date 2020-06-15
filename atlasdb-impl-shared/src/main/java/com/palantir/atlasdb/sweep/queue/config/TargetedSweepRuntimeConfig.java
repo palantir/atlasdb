@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 @JsonDeserialize(as = ImmutableTargetedSweepRuntimeConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepRuntimeConfig.class)
