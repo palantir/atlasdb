@@ -1647,7 +1647,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         client.system_update_column_family(cf);
                     }
 
-                    CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                    CassandraKeyValueServices.waitForSchemaVersions(
+                            config.schemaMutationTimeoutMillis(),
+                            client,
                             schemaChangeDescriptionForPutMetadataForTables(updatedCfs));
                 }
                 // Done with actual schema mutation, push the metadata

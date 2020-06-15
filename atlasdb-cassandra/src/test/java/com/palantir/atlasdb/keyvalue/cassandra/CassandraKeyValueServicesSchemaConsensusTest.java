@@ -75,26 +75,26 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @Test
     public void waitThrowsForAllUnknownSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
     public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
-    public void waitThrowsForFewerThanQuorumOnSameVersion() throws TException {
+    public void waitSucceedsWithClusterHavingDownsizedAtRuntime() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsDoesNotThrow();
     }
 
     @Test
-    public void waitThrowsForQuorumOfUnreachableNodes() throws TException {
+    public void waitFailsOnMinorityOnSameVersionAndRestUnreachable() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -114,7 +114,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     public void waitThrowsForDifferentSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -129,21 +129,25 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         CassandraClient waitingClient = mock(CassandraClient.class);
         when(waitingClient.describe_schema_versions()).thenReturn(
                 ImmutableMap.of(),
-                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, REST_OF_NODES, VERSION_UNREACHABLE, QUORUM_OF_NODES),
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, ALL_NODES));
 
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
-        verify(waitingClient, times(3)).describe_schema_versions();
+        CassandraKeyValueServices.waitForSchemaVersions(
+                waitingConfig.schemaMutationTimeoutMillis(), waitingClient, TABLE);
+        verify(waitingClient, times(4)).describe_schema_versions();
     }
 
-    private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
+    private void assertWaitForSchemaVersionsThrows() {
+        assertThatThrownBy(
+                () -> CassandraKeyValueServices.waitForSchemaVersions(
+                        config.schemaMutationTimeoutMillis(), client, TABLE))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining(FIVE_SERVERS.iterator().next().getHostName());
+                .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
     }
 
     private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE);
+        CassandraKeyValueServices.waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, TABLE);
     }
 }

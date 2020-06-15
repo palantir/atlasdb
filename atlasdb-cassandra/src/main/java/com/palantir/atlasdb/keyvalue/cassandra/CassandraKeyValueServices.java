@@ -15,16 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -42,7 +42,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -71,16 +70,34 @@ public final class CassandraKeyValueServices {
     }
 
     /**
-     * Attempt to wait until nodes' schema versions match.
+     * Attempt to wait until a quorum of nodes has reached consensus on a schema version, and it is known that no
+     * other nodes currently disagree with this quorum.
      *
-     * @param config the KVS configuration.
+     * The goals of this method include:
+     * <ol>
+     *     <li>
+     *         Backoff during schema mutations if the cluster is known to currently be in disagreement, so that
+     *         Cassandra can more efficiently come to agreement.
+     *     </li>
+     *     <li>
+     *         Avoid performing schema mutations if they could potentially cause a split-brain in terms of how the
+     *         schema evolves. This is achieved by ensuring a quorum of reachable nodes agree on the version. There
+     *         is of course a check-then-act race condition, but Cassandra is able to eventually recover.
+     *     </li>
+     *     <li>
+     *         Allowing schema mutations to take place in the presence of failures (the KVS needs to be able to
+     *         tolerate a limited number of Cassandra node-level failures).
+     *     </li>
+     * </ol>
+     *
+     * @param schemaMutationTimeMillis time to wait for nodes' schema versions to match.
      * @param client Cassandra client.
      * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
      *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
-            CassandraKeyValueServiceConfig config,
+            int schemaMutationTimeMillis,
             CassandraClient client,
             String unsafeSchemaChangeDescription)
             throws TException {
@@ -88,28 +105,25 @@ public final class CassandraKeyValueServices {
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
         do {
-            // This only returns the schema versions of nodes that the client knows exist. In particular, if a node we
-            // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
-            // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
+            // This may only include some of the nodes if the coordinator hasn't shaken hands with someone; however,
+            // this existed largely as a defense against performance issues with concurrent schema modifications.
             versions = client.describe_schema_versions();
-            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions)) {
+            if (majorityOfClusterHasConsistentSchemaVersionAndNoDivergentNodes(versions)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
-        } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
+        } while (System.currentTimeMillis() < start + schemaMutationTimeMillis);
 
         StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
-            schemaVersions = addNodeInformation(schemaVersions,
+            addNodeInformation(schemaVersions,
                     String.format("%nAt schema version %s:", version.getKey()),
                     version.getValue());
         }
 
-        Set<InetSocketAddress> thriftHosts = config.servers().accept(new ThriftHostsExtractingVisitor());
-
-        String configNodes = addNodeInformation(new StringBuilder(),
-                "Nodes specified in config file:",
-                thriftHosts.stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
+        String clusterNodes = addNodeInformation(new StringBuilder(),
+                "Nodes believed to exist:",
+                versions.values().stream().flatMap(Collection::stream).collect(Collectors.toList()))
                 .toString();
 
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions, %s. %s"
@@ -122,7 +136,7 @@ public final class CassandraKeyValueServices {
                         + " and that the nodes specified in the config are up and joined the cluster. %s",
                 unsafeSchemaChangeDescription,
                 schemaVersions.toString(),
-                configNodes);
+                clusterNodes);
         throw new IllegalStateException(errorMessage);
     }
 
@@ -132,36 +146,28 @@ public final class CassandraKeyValueServices {
             CassandraClient client,
             String unsafeSchemaChangeDescription)
             throws TException {
-        waitForSchemaVersions(config, client, "before " + unsafeSchemaChangeDescription);
+        waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, "before " + unsafeSchemaChangeDescription);
         task.run();
-        waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
+        waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, "after " + unsafeSchemaChangeDescription);
     }
 
-    static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
-            CassandraKeyValueServiceConfig config,
+    private static boolean majorityOfClusterHasConsistentSchemaVersionAndNoDivergentNodes(
             Map<String, List<String>> versions) {
-        List<String> reachableSchemas = getDistinctReachableSchemas(versions);
-        if (reachableSchemas.size() > 1) {
+        if (getDistinctReachableSchemas(versions).size() != 1) {
             return false;
         }
 
-        int numberOfServers = config.servers().numberOfThriftHosts();
-        int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
-
-        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
+        int totalNodes = versions.values().stream().mapToInt(List::size).sum();
+        int numUnreachableNodes = Optional.ofNullable(versions.get(VERSION_UNREACHABLE))
+                .map(List::size)
+                .orElse(0);
+        return totalNodes - numUnreachableNodes >= (totalNodes / 2) + 1;
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
         return versions.keySet().stream()
                 .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
                 .collect(Collectors.toList());
-    }
-
-    private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
-        return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
-                .map(Entry::getValue)
-                .mapToInt(List::size)
-                .sum();
     }
 
     private static long sleepAndGetNextBackoffTime(long sleepTime) {
@@ -192,7 +198,7 @@ public final class CassandraKeyValueServices {
             CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
-                waitForSchemaVersions(config, client, " during an initialization check");
+                waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, " during an initialization check");
                 return null;
             });
         } catch (Exception e) {
