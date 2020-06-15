@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
@@ -64,7 +65,7 @@ abstract class SingleLeaderNetworkClientFactories implements
                             .mapKeys(WithDedicatedExecutor::service)
                             .map(WithDedicatedExecutor::executor)
                             .collectToMap(),
-                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
+                    PaxosConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosAcceptorNetworkClient.class, uninstrumentedAcceptor);
         };
     }
@@ -85,7 +86,7 @@ abstract class SingleLeaderNetworkClientFactories implements
                     allLearners.remotes(),
                     quorumSize(),
                     allLearners.withSharedExecutor(sharedExecutor()),
-                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
+                    PaxosConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosLearnerNetworkClient.class, uninstrumentedLearner);
         };
     }

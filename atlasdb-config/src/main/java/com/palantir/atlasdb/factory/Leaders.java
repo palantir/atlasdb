@@ -68,6 +68,7 @@ import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
@@ -162,7 +163,7 @@ public final class Leaders {
                 remoteLearners,
                 config.quorumSize(),
                 createExecutorsForService(metricsManager, learners, "knowledge-update"),
-                true);
+                PaxosConstants.CANCEL_REMAINING_CALLS);
 
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
                 ourAcceptor,
@@ -175,7 +176,7 @@ public final class Leaders {
                 acceptors,
                 config.quorumSize(),
                 createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"),
-                true);
+                PaxosConstants.CANCEL_REMAINING_CALLS);
 
         List<LeaderPingerContext<PingableLeader>> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(),

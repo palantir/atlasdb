@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosConstants;
 
 public final class PaxosTimeLockConstants {
     public static final String LEARNER_SUBDIRECTORY_PATH = "learner";
@@ -32,7 +33,12 @@ public final class PaxosTimeLockConstants {
 
     public static final Client LEGACY_PAXOS_AS_CLIENT = Client.of(LEADER_PAXOS_NAMESPACE);
 
-    public static final boolean CANCEL_REMAINING_CALLS = false;
+    /**
+     * Prefer {@link PaxosConstants#CANCEL_REMAINING_CALLS}.
+     * @deprecated in favor of {@link PaxosConstants#CANCEL_REMAINING_CALLS}
+     */
+    @Deprecated
+    public static final boolean CANCEL_REMAINING_CALLS = PaxosConstants.CANCEL_REMAINING_CALLS;
 
     private PaxosTimeLockConstants() {
     }

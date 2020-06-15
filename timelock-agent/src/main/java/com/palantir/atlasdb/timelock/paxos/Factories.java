@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosLatestRoundVerifier;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
@@ -84,7 +85,7 @@ public interface Factories {
                     Maps.toMap(remoteClients().nonBatchPingableLeadersWithContext(), _pingable -> sharedExecutor()),
                     leaderPingResponseWait(),
                     leaderUuid(),
-                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
+                    PaxosConstants.CANCEL_REMAINING_CALLS);
         }
 
         @Override
