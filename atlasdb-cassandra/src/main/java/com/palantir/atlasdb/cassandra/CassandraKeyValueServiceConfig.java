@@ -19,6 +19,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 import org.immutables.value.Value;
 
@@ -188,6 +189,16 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
         return DefaultCassandraAsyncKeyValueServiceFactory.DEFAULT;
+    }
+
+    /**
+     * If provided, will be used to perform some blocking calls to Cassandra. Otherwise,
+     * a new executor service will be created.
+     */
+    @Value.Default
+    @JsonIgnore
+    default Optional<ExecutorService> thriftExecutorService() {
+        return Optional.empty();
     }
 
     int replicationFactor();
