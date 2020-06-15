@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
@@ -39,6 +41,7 @@ import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.AggregatingVersionedMetric;
@@ -55,32 +58,36 @@ public class TargetedSweepMetrics {
             MetricsManager metricsManager,
             Function<Long, Long> tsToMillis,
             Clock clock,
-            long millisBetweenRecomputingMetrics,
-            Set<SweeperStrategy> sweeperStrategies) {
-        metricsForStrategyMap = KeyedStream.of(sweeperStrategies)
+            MetricsConfiguration metricsConfiguration) {
+        metricsForStrategyMap = KeyedStream.of(metricsConfiguration.trackedSweeperStrategies())
                 .map(TargetedSweepMetrics::getTagForStrategy)
                 .map(strategyTag -> new MetricsForStrategy(
                         metricsManager,
                         strategyTag,
                         tsToMillis,
                         clock,
-                        millisBetweenRecomputingMetrics))
+                        metricsConfiguration.millisBetweenRecomputingMetrics()))
                 .collectToMap();
     }
 
-    public static TargetedSweepMetrics create(MetricsManager metricsManager, TimelockService timelock,
-            KeyValueService kvs, long millis) {
-        return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, millis);
+    public static TargetedSweepMetrics create(
+            MetricsManager metricsManager,
+            TimelockService timelock,
+            KeyValueService kvs,
+            MetricsConfiguration metricsConfiguration) {
+        return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, metricsConfiguration);
     }
 
     public static TargetedSweepMetrics createWithClock(
-            MetricsManager metricsManager, KeyValueService kvs, Clock clock, long millis) {
+            MetricsManager metricsManager,
+            KeyValueService kvs,
+            Clock clock,
+            MetricsConfiguration metricsConfiguration) {
         return new TargetedSweepMetrics(
                 metricsManager,
                 ts -> getMillisForTimestampBoundedAtOneWeek(kvs, ts, clock),
                 clock,
-                millis,
-                ImmutableSet.copyOf(SweeperStrategy.values()));
+                metricsConfiguration);
     }
 
     private static long getMillisForTimestampBoundedAtOneWeek(KeyValueService kvs, long ts, Clock clock) {
@@ -240,6 +247,31 @@ public class TargetedSweepMetrics {
 
         public void registerEntriesReadInBatch(long batchSize) {
             batchSizeMean.update(batchSize);
+        }
+    }
+
+    @Value.Immutable
+    public interface MetricsConfiguration {
+        MetricsConfiguration DEFAULT = ImmutableMetricsConfiguration.builder().build();
+
+        @Value.Default
+        default Set<SweeperStrategy> trackedSweeperStrategies() {
+            return ImmutableSet.copyOf(SweeperStrategy.values());
+        }
+
+        @Value.Default
+        default long millisBetweenRecomputingMetrics() {
+            return SweepQueueUtils.REFRESH_TIME;
+        }
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(millisBetweenRecomputingMetrics() >= 0,
+                    "Cannot specify negative interval between metric computations!");
+        }
+
+        static ImmutableMetricsConfiguration.Builder builder() {
+            return ImmutableMetricsConfiguration.builder();
         }
     }
 }
