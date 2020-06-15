@@ -188,7 +188,7 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
                 config.leaderPingResponseWait(),
                 leaderUuid,
-                true);
+                PaxosConstants.CANCEL_REMAINING_CALLS);
 
         LeaderElectionService uninstrumentedLeaderElectionService = new LeaderElectionServiceBuilder()
                 .leaderUuid(leaderUuid)
