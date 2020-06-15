@@ -1,0 +1,14 @@
+types:
+  definitions:
+    default-package: com.palantir.timelock.feedback
+    objects:
+      ConjureTimeLockClientFeedback:
+        fields:
+          atlasVersion: string
+          serviceName: string
+          nodeId: uuid
+          stats: map<string, EndpointStatistics>
+      EndpointStatistics:
+        fields:
+          p99: double
+          oneMin: double
