@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.logsafe.SafeArg;
@@ -33,9 +34,10 @@ import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
+public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final Logger log = LoggerFactory.getLogger(TimeLockFeedbackBackgroundTask.class);
-    private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("TimeLockFeedbackBackgroundTask", true));
     private final UUID nodeId = UUID.randomUUID();
     private final int timeLockClientFeedbackReportInterval = 30;
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
@@ -49,7 +51,8 @@ public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
         this.serviceName = serviceName;
     }
 
-    public static TimeLockFeedbackBackgroundTask create(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
+    public static TimeLockFeedbackBackgroundTask create(TaggedMetricRegistry taggedMetricRegistry,
+            Supplier<String> versionSupplier,
             String serviceName) {
         TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(taggedMetricRegistry,
                 versionSupplier, serviceName);
@@ -61,7 +64,8 @@ public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     public void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(() -> {
             try {
-                log.info("The TimeLock client metrics for startTransaction endpoint aggregated over the last 1 minute - {}",
+                log.info("The TimeLock client metrics for startTransaction endpoint aggregated "
+                                + "over the last 1 minute - {}",
                         SafeArg.of("startTxnStats", ConjureTimeLockClientFeedback
                                 .builder()
                                 .stats(ImmutableMap.of("conjureTimelockServiceBlocking.startTransactions",
