@@ -135,7 +135,7 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
     }
 
     @Override
-    public Optional<ExecutorService> thriftExecutorServiceFactory() {
+    public Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory() {
         return config.thriftExecutorServiceFactory();
     }
 
