@@ -461,7 +461,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void serviceNameIsFetchedFromKvsConfig() {
+    public void serviceNameIsFetchedFromKvsConfigWhenItIsNotPresentInAtlasConfig() {
         KeyValueServiceConfig kvs = mock(KeyValueServiceConfig.class);
         when(kvs.type()).thenReturn("memory");
         when(kvs.namespace()).thenReturn(Optional.of("namespace"));
@@ -483,7 +483,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void serviceNameIsFetchedFromTimeLock() {
+    public void serviceNameFallsBackToDefaultWhenNamespaceIsNotPresent() {
         KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(kvs)
