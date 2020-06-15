@@ -102,7 +102,8 @@ public final class PaxosConsensusTestUtils {
                     .filter(learner -> !learner.equals(ourLearner))
                     .collect(ImmutableList.toImmutableList());
             PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
-                    ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
+                    ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor),
+                    PaxosConstants.CANCEL_REMAINING_CALLS);
 
             LeaderElectionService leader = new LeaderElectionServiceBuilder()
                     .leaderUuid(leaderUuid)
