@@ -22,11 +22,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
+    private final Logger log = LoggerFactory.getLogger(TimeLockFeedbackBackgroundTask.class);
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
     private final UUID nodeId = UUID.randomUUID();
     private final int timeLockClientFeedbackReportInterval = 30;
@@ -52,17 +56,21 @@ public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
 
     public void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(() -> {
-            ImmutableClientFeedback
-                    .builder()
-                    .percentile99th(conjureTimelockServiceBlockingMetrics
-                            .startTransactions()
-                            .getSnapshot()
-                            .get99thPercentile())
-                    .oneMinuteRate(conjureTimelockServiceBlockingMetrics.startTransactions().getOneMinuteRate())
-                    .atlasVersion(versionSupplier.get())
-                    .nodeId(nodeId)
-                    .serviceName(serviceName)
-                    .build();
+            try {
+                ImmutableClientFeedback
+                        .builder()
+                        .percentile99th(conjureTimelockServiceBlockingMetrics
+                                .startTransactions()
+                                .getSnapshot()
+                                .get99thPercentile())
+                        .oneMinuteRate(conjureTimelockServiceBlockingMetrics.startTransactions().getOneMinuteRate())
+                        .atlasVersion(versionSupplier.get())
+                        .nodeId(nodeId)
+                        .serviceName(serviceName)
+                        .build();
+            } catch (Exception e) {
+                log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
+            }
         }, timeLockClientFeedbackReportInterval, timeLockClientFeedbackReportInterval, TimeUnit.SECONDS);
     }
 
