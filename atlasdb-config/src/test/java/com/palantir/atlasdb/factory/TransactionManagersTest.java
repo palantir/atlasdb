@@ -91,6 +91,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -428,7 +429,7 @@ public class TransactionManagersTest {
                 .build();
 
         MetricRegistry metrics = new MetricRegistry();
-        TransactionManagers.builder()
+        TransactionManager tm = TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
@@ -438,6 +439,26 @@ public class TransactionManagersTest {
                 .serializable();
         assertThat(metrics.getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
+    public void testServiceNameForFeedbackMetrics() {
+        KeyValueServiceConfig kvs = mock(InMemoryAtlasDbConfig.class);
+        when(kvs.namespace()).thenReturn(Optional.of("kvsNamespace"));
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvs)
+                .namespace(Optional.of("namespace"))
+                .build();
+        MetricRegistry metrics = new MetricRegistry();
+        TransactionManagers transactionManagers = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(metrics)
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .build();
+
+        assertThat(transactionManagers.getServiceName()).isEqualTo("namespace");
     }
 
     @Test
