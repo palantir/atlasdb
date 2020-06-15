@@ -26,6 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -251,14 +253,25 @@ public class TargetedSweepMetrics {
     }
 
     @Value.Immutable
+    @JsonSerialize(as = ImmutableMetricsConfiguration.class)
+    @JsonDeserialize(as = ImmutableMetricsConfiguration.class)
     public interface MetricsConfiguration {
         MetricsConfiguration DEFAULT = ImmutableMetricsConfiguration.builder().build();
 
+        /**
+         * Which sweeper strategies metrics should be tracked for (defaults to all known sweeper strategies).
+         * Legitimate use cases for overriding this include products where there is no or extremely minimal usage
+         * of tables with a given sweep strategy (e.g. AtlasDB-Proxy in contexts where the stream store is not used).
+         */
         @Value.Default
         default Set<SweeperStrategy> trackedSweeperStrategies() {
             return ImmutableSet.copyOf(SweeperStrategy.values());
         }
 
+        /**
+         * Milliseconds to pause between recomputing computationally intensive sweep metrics (that may require
+         * database reads or remote calls).
+         */
         @Value.Default
         default long millisBetweenRecomputingMetrics() {
             return SweepQueueUtils.REFRESH_TIME;

@@ -62,6 +62,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final Supplier<TargetedSweepRuntimeConfig> runtime;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
+    private final TargetedSweepMetrics.MetricsConfiguration metricsConfiguration;
 
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -83,6 +84,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(),
                 SweeperStrategy.THOROUGH);
         this.followers = followers;
+        this.metricsConfiguration = install.metricsConfiguration();
     }
 
     /**
@@ -154,8 +156,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
-        metrics = TargetedSweepMetrics.create(
-                metricsManager, timelockService, kvs, TargetedSweepMetrics.MetricsConfiguration.DEFAULT);
+        metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, metricsConfiguration);
         queue = SweepQueue.create(
                 metrics,
                 kvs,
