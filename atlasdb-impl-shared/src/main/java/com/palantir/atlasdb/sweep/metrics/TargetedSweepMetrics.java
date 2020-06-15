@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -34,9 +36,11 @@ import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
@@ -47,13 +51,21 @@ public class TargetedSweepMetrics {
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<SweeperStrategy, MetricsForStrategy> metricsForStrategyMap;
 
-    private TargetedSweepMetrics(MetricsManager metricsManager,
-                Function<Long, Long> tsToMillis, Clock clock, long millis) {
-        metricsForStrategyMap = ImmutableMap.of(
-                SweeperStrategy.CONSERVATIVE,
-                new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
-                SweeperStrategy.THOROUGH,
-                new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
+    private TargetedSweepMetrics(
+            MetricsManager metricsManager,
+            Function<Long, Long> tsToMillis,
+            Clock clock,
+            long millisBetweenRecomputingMetrics,
+            Set<SweeperStrategy> sweeperStrategies) {
+        metricsForStrategyMap = KeyedStream.of(sweeperStrategies)
+                .map(TargetedSweepMetrics::getTagForStrategy)
+                .map(strategyTag -> new MetricsForStrategy(
+                        metricsManager,
+                        strategyTag,
+                        tsToMillis,
+                        clock,
+                        millisBetweenRecomputingMetrics))
+                .collectToMap();
     }
 
     public static TargetedSweepMetrics create(MetricsManager metricsManager, TimelockService timelock,
@@ -67,7 +79,8 @@ public class TargetedSweepMetrics {
                 metricsManager,
                 ts -> getMillisForTimestampBoundedAtOneWeek(kvs, ts, clock),
                 clock,
-                millis);
+                millis,
+                ImmutableSet.copyOf(SweeperStrategy.values()));
     }
 
     private static long getMillisForTimestampBoundedAtOneWeek(KeyValueService kvs, long ts, Clock clock) {
@@ -117,6 +130,17 @@ public class TargetedSweepMetrics {
 
     private MetricsForStrategy getMetrics(SweeperStrategy strategy) {
         return metricsForStrategyMap.get(strategy);
+    }
+
+    private static String getTagForStrategy(SweeperStrategy strategy) {
+        switch (strategy) {
+            case CONSERVATIVE:
+                return AtlasDbMetricNames.TAG_CONSERVATIVE;
+            case THOROUGH:
+                return AtlasDbMetricNames.TAG_THOROUGH;
+            default:
+                throw new SafeIllegalStateException("Unexpected sweeper strategy " + strategy);
+        }
     }
 
     private static final class MetricsForStrategy {
