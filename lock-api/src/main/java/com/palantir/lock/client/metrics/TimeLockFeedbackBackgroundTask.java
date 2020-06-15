@@ -25,8 +25,12 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
@@ -57,21 +61,35 @@ public class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     public void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(() -> {
             try {
-                ImmutableClientFeedback
-                        .builder()
-                        .percentile99th(conjureTimelockServiceBlockingMetrics
-                                .startTransactions()
-                                .getSnapshot()
-                                .get99thPercentile())
-                        .oneMinuteRate(conjureTimelockServiceBlockingMetrics.startTransactions().getOneMinuteRate())
-                        .atlasVersion(versionSupplier.get())
-                        .nodeId(nodeId)
-                        .serviceName(serviceName)
-                        .build();
+                log.info("The TimeLock client metrics for startTransaction endpoint aggregated over the last 1 minute - {}",
+                        SafeArg.of("startTxnStats", ConjureTimeLockClientFeedback
+                                .builder()
+                                .stats(ImmutableMap.of("conjureTimelockServiceBlocking.startTransactions",
+                                        getEndpointStatsForStartTxn()))
+                                .atlasVersion(versionSupplier.get())
+                                .nodeId(nodeId)
+                                .serviceName(serviceName)
+                                .build()));
             } catch (Exception e) {
                 log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
             }
         }, timeLockClientFeedbackReportInterval, timeLockClientFeedbackReportInterval, TimeUnit.SECONDS);
+    }
+
+    private EndpointStatistics getEndpointStatsForStartTxn() {
+        return EndpointStatistics.of(getP99ForStartTxn(),
+                getOneMinuteRateForStartTxn());
+    }
+
+    private double getOneMinuteRateForStartTxn() {
+        return conjureTimelockServiceBlockingMetrics.startTransactions().getOneMinuteRate();
+    }
+
+    private double getP99ForStartTxn() {
+        return conjureTimelockServiceBlockingMetrics
+                .startTransactions()
+                .getSnapshot()
+                .get99thPercentile();
     }
 
     @Override
