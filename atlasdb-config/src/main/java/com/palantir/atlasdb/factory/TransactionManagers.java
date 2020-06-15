@@ -363,10 +363,11 @@ public abstract class TransactionManagers {
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
 
-        initializeCloseable(() -> TimeLockFeedbackBackgroundTask.create(
-                globalTaggedMetricRegistry(),
-                () -> AtlasDbVersion.readVersion(),
-                getServiceName()), closeables);
+        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = initializeCloseable(
+                () -> TimeLockFeedbackBackgroundTask.create(
+                        globalTaggedMetricRegistry(),
+                        () -> AtlasDbVersion.readVersion(),
+                        getServiceName()), closeables);
 
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
@@ -510,6 +511,8 @@ public abstract class TransactionManagers {
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
+
+        transactionManager.registerClosingCallback(timeLockFeedbackBackgroundTask::close);
 
         lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);

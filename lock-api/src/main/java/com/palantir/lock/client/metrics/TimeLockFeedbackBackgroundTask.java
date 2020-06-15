@@ -36,11 +36,14 @@ import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
-    private final Logger log = LoggerFactory.getLogger(TimeLockFeedbackBackgroundTask.class);
+    private final Logger log = LoggerFactory.getLogger(
+            TimeLockFeedbackBackgroundTask.class);
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("TimeLockFeedbackBackgroundTask", true));
+                    new NamedThreadFactory(Constants.TIMELOCK_FEEDBACK_THREAD_PREFIX, true));
+
     private final UUID nodeId = UUID.randomUUID();
-    private final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
+    private final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(
+            Constants.TIMELOCK_CLIENT_FEEDBACK_INTERVAL_SECONDS);
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private Supplier<String> versionSupplier;
     private String serviceName;

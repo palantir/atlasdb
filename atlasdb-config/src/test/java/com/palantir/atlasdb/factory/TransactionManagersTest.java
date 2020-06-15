@@ -120,6 +120,7 @@ import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
+import com.palantir.lock.client.metrics.Constants;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -498,6 +499,32 @@ public class TransactionManagersTest {
                 .build();
 
         assertThat(transactionManagers.getServiceName()).isEqualTo("UNKNOWN");
+    }
+
+    @Test
+    public void timeLockFeedbackBackgroundTaskShutsDownWhenTMCloses() {
+        KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvs)
+                .build();
+        MetricRegistry metrics = new MetricRegistry();
+        TransactionManager transactionManager = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(metrics)
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .build()
+                .serializable();
+        assertThat(Thread.getAllStackTraces().keySet()
+                .stream()
+                .filter(x -> x.getName().startsWith(Constants.TIMELOCK_FEEDBACK_THREAD_PREFIX))
+                .findFirst()).isPresent();
+        transactionManager.close();
+        assertThat(Thread.getAllStackTraces().keySet()
+                .stream()
+                .filter(x -> x.getName().startsWith(Constants.TIMELOCK_FEEDBACK_THREAD_PREFIX))
+                .findFirst()).isNotPresent();
     }
 
     @Test
