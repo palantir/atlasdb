@@ -17,6 +17,7 @@
 package com.palantir.lock.client.metrics;
 
 
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +40,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("TimeLockFeedbackBackgroundTask", true));
     private final UUID nodeId = UUID.randomUUID();
-    private final int timeLockClientFeedbackReportInterval = 30;
+    private final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private Supplier<String> versionSupplier;
     private String serviceName;
@@ -77,7 +78,10 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             } catch (Exception e) {
                 log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
             }
-        }, timeLockClientFeedbackReportInterval, timeLockClientFeedbackReportInterval, TimeUnit.SECONDS);
+        },
+                timeLockClientFeedbackReportInterval.getSeconds(),
+                timeLockClientFeedbackReportInterval.getSeconds(),
+                TimeUnit.SECONDS);
     }
 
     private EndpointStatistics getEndpointStatsForStartTxn() {
