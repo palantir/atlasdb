@@ -16,8 +16,10 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -98,43 +100,48 @@ public class TargetedSweepMetrics {
     }
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
-        getMetrics(shardStrategy).updateEnqueuedWrites(writes);
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.updateEnqueuedWrites(writes));
     }
 
-    public void updateEntriesRead(ShardAndStrategy shardStrategy, long writes) {
-        getMetrics(shardStrategy).updateEntriesRead(writes);
+    public void updateEntriesRead(ShardAndStrategy shardStrategy, long reads) {
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.updateEntriesRead(reads));
     }
 
     public void updateNumberOfTombstones(ShardAndStrategy shardStrategy, long tombstones) {
-        getMetrics(shardStrategy).updateNumberOfTombstones(tombstones);
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.updateNumberOfTombstones(tombstones));
     }
 
     public void updateAbortedWritesDeleted(ShardAndStrategy shardStrategy, long deletes) {
-        getMetrics(shardStrategy).updateAbortedWritesDeleted(deletes);
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.updateAbortedWritesDeleted(deletes));
     }
 
     public void updateSweepTimestamp(ShardAndStrategy shardStrategy, long value) {
-        getMetrics(shardStrategy).updateSweepTimestamp(value);
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.updateSweepTimestamp(value));
     }
 
     public void updateProgressForShard(ShardAndStrategy shardStrategy, long lastSweptTs) {
-        getMetrics(shardStrategy).updateProgressForShard(shardStrategy.shard(), lastSweptTs);
+        updateMetricsIfPresent(
+                shardStrategy, metrics -> metrics.updateProgressForShard(shardStrategy.shard(), lastSweptTs));
     }
 
     public void registerOccurrenceOf(ShardAndStrategy shardStrategy, SweepOutcome outcome) {
-        registerOccurrenceOf(shardStrategy.strategy(), outcome);
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.registerOccurrenceOf(outcome));
     }
 
     public void registerOccurrenceOf(SweeperStrategy strategy, SweepOutcome outcome) {
-        getMetrics(strategy).registerOccurrenceOf(outcome);
+        updateMetricsIfPresent(strategy, metrics -> metrics.registerOccurrenceOf(outcome));
     }
 
     public void registerEntriesReadInBatch(ShardAndStrategy shardStrategy, long batchSize) {
-        getMetrics(shardStrategy).registerEntriesReadInBatch(batchSize);
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.registerEntriesReadInBatch(batchSize));
     }
 
-    private MetricsForStrategy getMetrics(ShardAndStrategy shardStrategy) {
-        return getMetrics(shardStrategy.strategy());
+    private void updateMetricsIfPresent(ShardAndStrategy shardStrategy, Consumer<MetricsForStrategy> update) {
+        updateMetricsIfPresent(shardStrategy.strategy(), update);
+    }
+
+    private void updateMetricsIfPresent(SweeperStrategy strategy, Consumer<MetricsForStrategy> update) {
+        Optional.ofNullable(getMetrics(strategy)).ifPresent(update);
     }
 
     private MetricsForStrategy getMetrics(SweeperStrategy strategy) {

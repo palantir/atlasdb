@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
@@ -77,6 +78,42 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(null);
         assertThat(metricsManager).containsEntriesReadInBatchConservative();
         assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo(0.0);
+    }
+
+    @Test
+    public void metricsAreNotRegisteredIfSweepStrategyNotTracked() {
+        MetricsManager anotherManager = MetricsManagers.createForTests();
+        TargetedSweepMetrics.createWithClock(anotherManager, kvs, () -> clockTime,
+                TargetedSweepMetrics.MetricsConfiguration.builder()
+                        .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
+                        .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
+                        .build());
+        assertThat(anotherManager).hasNotRegisteredEnqueuedWritesConservativeMetric();
+        assertThat(anotherManager).hasEnqueuedWritesThoroughEqualTo(0);
+    }
+
+    @Test
+    public void untrackedSweepStrategyMetricsUpdatesAreSafelyIgnored() {
+        MetricsManager anotherManager = MetricsManagers.createForTests();
+        TargetedSweepMetrics anotherMetrics = TargetedSweepMetrics.createWithClock(anotherManager, kvs, () -> clockTime,
+                TargetedSweepMetrics.MetricsConfiguration.builder()
+                        .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
+                        .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
+                        .build());
+
+        anotherMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
+        assertThat(anotherManager).hasNotRegisteredEnqueuedWritesConservativeMetric();
+
+        anotherMetrics.registerOccurrenceOf(CONS_ZERO, SweepOutcome.SUCCESS);
+        assertThat(anotherManager).hasNotRegisteredTargetedOutcome(
+                SweepStrategy.SweeperStrategy.CONSERVATIVE, SweepOutcome.SUCCESS);
+
+        anotherMetrics.updateEnqueuedWrites(THOR_ZERO, 5);
+        assertThat(anotherManager).hasEnqueuedWritesThoroughEqualTo(5);
+
+        anotherMetrics.registerOccurrenceOf(THOR_ZERO, SweepOutcome.SUCCESS);
+        assertThat(anotherManager).hasTargetedOutcomeEqualTo(
+                SweepStrategy.SweeperStrategy.THOROUGH, SweepOutcome.SUCCESS, 1L);
     }
 
     @Test
