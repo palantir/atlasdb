@@ -26,6 +26,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ws.rs.ClientErrorException;
 
@@ -37,7 +38,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -153,7 +153,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -550,17 +549,14 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    private String getServiceName() {
-        String serviceName = "UNKNOWN";
-        if (config().namespace().isPresent()) {
-            serviceName = config().namespace().get();
-        } else if (config().timelock().isPresent()) {
-            TimeLockClientConfig timeLockClientConfig = config().timelock().get();
-            serviceName = timeLockClientConfig.getClientOrThrow();
-        } else if (config().keyValueService().namespace().isPresent()) {
-            serviceName = config().keyValueService().namespace().get();
-        }
-        return serviceName;
+    public String getServiceName() {
+        return Stream.of(config().namespace(),
+                config().timelock().map(TimeLockClientConfig::getClientOrThrow),
+                config().keyValueService().namespace())
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst()
+                .orElse("UNKNOWN");
     }
 
     private static Callback<TransactionManager> createClearsTable() {
