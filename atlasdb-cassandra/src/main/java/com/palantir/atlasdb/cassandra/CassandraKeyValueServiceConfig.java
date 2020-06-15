@@ -20,6 +20,7 @@ import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
@@ -204,7 +205,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     @JsonIgnore
-    default Optional<ExecutorService> thriftExecutorService() {
+    default Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory() {
         return Optional.empty();
     }
 

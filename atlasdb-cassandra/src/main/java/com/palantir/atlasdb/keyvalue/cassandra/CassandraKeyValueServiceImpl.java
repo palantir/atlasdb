@@ -448,8 +448,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static ExecutorService createBlockingThreadpool(CassandraKeyValueServiceConfig config,
             MetricsManager metricsManager) {
-        return config.thriftExecutorService()
-                .orElseGet(() -> createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry()));
+        return config.thriftExecutorServiceFactory()
+                .orElse(() -> createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry()))
+                .get();
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(
