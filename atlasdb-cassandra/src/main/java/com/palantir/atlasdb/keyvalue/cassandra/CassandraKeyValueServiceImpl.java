@@ -449,20 +449,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private static ExecutorService createBlockingThreadpool(CassandraKeyValueServiceConfig config,
             MetricsManager metricsManager) {
         return config.thriftExecutorServiceFactory()
-                .orElse(() -> createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry()))
+                .orElseGet(() -> instrumentedFixedThreadPoolSupplier(config, metricsManager.getTaggedRegistry()))
                 .get();
     }
 
-    private static ExecutorService createInstrumentedFixedThreadPool(
+    private static Supplier<ExecutorService> instrumentedFixedThreadPoolSupplier(
             CassandraKeyValueServiceConfig config,
             TaggedMetricRegistry registry) {
-        int numberOfThriftHosts = config.servers().numberOfThriftHosts();
-        int corePoolSize = config.poolSize() * numberOfThriftHosts;
-        int maxPoolSize = config.maxConnectionBurstSize() * numberOfThriftHosts;
-        return Tracers.wrap(
-                MetricRegistries.instrument(registry,
-                        createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
-                        "Atlas Cassandra KVS"));
+        return () -> {
+            int numberOfThriftHosts = config.servers().numberOfThriftHosts();
+            int corePoolSize = config.poolSize() * numberOfThriftHosts;
+            int maxPoolSize = config.maxConnectionBurstSize() * numberOfThriftHosts;
+            return Tracers.wrap(
+                    MetricRegistries.instrument(registry,
+                            createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
+                            "Atlas Cassandra KVS"));
+        };
     }
 
     @Override
