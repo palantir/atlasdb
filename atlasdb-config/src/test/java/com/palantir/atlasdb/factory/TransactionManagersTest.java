@@ -102,7 +102,6 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.annotation.Immutable;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
@@ -430,7 +429,7 @@ public class TransactionManagersTest {
                 .build();
 
         MetricRegistry metrics = new MetricRegistry();
-        TransactionManager tm = TransactionManagers.builder()
+        TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
