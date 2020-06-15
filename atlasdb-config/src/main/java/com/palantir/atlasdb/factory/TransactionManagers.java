@@ -549,7 +549,8 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    public String getServiceName() {
+    @VisibleForTesting
+    String getServiceName() {
         return Stream.of(config().namespace(),
                 config().timelock().map(TimeLockClientConfig::getClientOrThrow),
                 config().keyValueService().namespace())

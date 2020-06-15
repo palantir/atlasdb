@@ -102,6 +102,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.annotation.Immutable;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
@@ -442,9 +443,8 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void testServiceNameForFeedbackMetrics() {
-        KeyValueServiceConfig kvs = mock(InMemoryAtlasDbConfig.class);
-        when(kvs.namespace()).thenReturn(Optional.of("kvsNamespace"));
+    public void serviceNameIsFetchedFromAtlasConfig() {
+        KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(kvs)
                 .namespace(Optional.of("namespace"))
@@ -459,6 +459,46 @@ public class TransactionManagersTest {
                 .build();
 
         assertThat(transactionManagers.getServiceName()).isEqualTo("namespace");
+    }
+
+    @Test
+    public void serviceNameIsFetchedFromKvsConfig() {
+        KeyValueServiceConfig kvs = mock(KeyValueServiceConfig.class);
+        when(kvs.type()).thenReturn("memory");
+        when(kvs.namespace()).thenReturn(Optional.of("namespace"));
+        when(kvs.concurrentGetRangesThreadPoolSize()).thenReturn(1);
+
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvs)
+                .build();
+        MetricRegistry metrics = new MetricRegistry();
+        TransactionManagers transactionManagers = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(metrics)
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .build();
+
+        assertThat(transactionManagers.getServiceName()).isEqualTo("namespace");
+    }
+
+    @Test
+    public void serviceNameIsFetchedFromTimeLock() {
+        KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvs)
+                .build();
+        MetricRegistry metrics = new MetricRegistry();
+        TransactionManagers transactionManagers = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(metrics)
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .build();
+
+        assertThat(transactionManagers.getServiceName()).isEqualTo("UNKNOWN");
     }
 
     @Test
