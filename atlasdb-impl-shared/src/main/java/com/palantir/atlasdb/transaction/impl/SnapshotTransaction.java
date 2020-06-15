@@ -2234,8 +2234,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             logLargeNumberOfTransactions(tableRef, gets);
         }
 
-        getCounter(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).inc(gets.size());
-
         return Futures.transform(loadCommitTimestamps(asyncTransactionService, gets),
                 rawResults -> {
                     for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
