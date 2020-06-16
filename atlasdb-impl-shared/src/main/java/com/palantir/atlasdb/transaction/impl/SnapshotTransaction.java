@@ -1703,9 +1703,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
+
+                // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
+                // timed.
                 traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
-                // TransactionService.putUnlessExists: actually commits the transaction
+                // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
                 traced("commitPutCommitTs",
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
 
@@ -1713,6 +1716,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
             } finally {
+                // Not timed because tryUnlock() is an asynchronous operation.
                 traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
             }
         });
