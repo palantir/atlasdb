@@ -442,7 +442,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void overridenServiceNameIsReturned() {
+    public void overriddenServiceNameIsReturned() {
         KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(kvs)
