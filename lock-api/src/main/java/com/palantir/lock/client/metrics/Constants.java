@@ -16,9 +16,11 @@
 
 package com.palantir.lock.client.metrics;
 
-import java.time.Duration;
-
 public class Constants {
+    private Constants () {
+        // no op
+    }
+
     public static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
     public static final long TIMELOCK_CLIENT_FEEDBACK_INTERVAL_SECONDS = 30;
 }

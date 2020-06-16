@@ -502,32 +502,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void timeLockFeedbackBackgroundTaskShutsDownWhenTMCloses() {
-        KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
-        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvs)
-                .build();
-        MetricRegistry metrics = new MetricRegistry();
-        TransactionManager transactionManager = TransactionManagers.builder()
-                .config(atlasDbConfig)
-                .userAgent(USER_AGENT)
-                .globalMetricsRegistry(metrics)
-                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
-                .build()
-                .serializable();
-        assertThat(Thread.getAllStackTraces().keySet()
-                .stream()
-                .filter(x -> x.getName().startsWith(Constants.TIMELOCK_FEEDBACK_THREAD_PREFIX))
-                .findFirst()).isPresent();
-        transactionManager.close();
-        assertThat(Thread.getAllStackTraces().keySet()
-                .stream()
-                .filter(x -> x.getName().startsWith(Constants.TIMELOCK_FEEDBACK_THREAD_PREFIX))
-                .findFirst()).isNotPresent();
-    }
-
-    @Test
     public void interruptingLocalLeaderElectionTerminates() throws IOException {
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
                 metricsManager,
