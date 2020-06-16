@@ -555,7 +555,7 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     String getServiceName() {
         return Stream.of(config().namespace(),
-                config().timelock().map(TimeLockClientConfig::getClientOrThrow),
+                config().timelock().flatMap(TimeLockClientConfig::client),
                 config().keyValueService().namespace())
                 .filter(Optional::isPresent)
                 .map(Optional::get)
