@@ -26,6 +26,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ws.rs.ClientErrorException;
 
@@ -149,6 +150,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.common.time.Clock;
@@ -174,6 +176,7 @@ import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
+import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
@@ -360,6 +363,12 @@ public abstract class TransactionManagers {
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
 
+        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = initializeCloseable(
+                () -> TimeLockFeedbackBackgroundTask.create(
+                        globalTaggedMetricRegistry(),
+                        () -> AtlasDbVersion.readVersion(),
+                        getServiceName()), closeables);
+
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
@@ -503,6 +512,8 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
+        transactionManager.registerClosingCallback(timeLockFeedbackBackgroundTask::close);
+
         lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);
         components.schemaInstaller().ifPresent(
@@ -539,6 +550,17 @@ public abstract class TransactionManagers {
                 closeables);
 
         return transactionManager;
+    }
+
+    @VisibleForTesting
+    String getServiceName() {
+        return Stream.of(config().namespace(),
+                config().timelock().flatMap(TimeLockClientConfig::client),
+                config().keyValueService().namespace())
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst()
+                .orElse("UNKNOWN");
     }
 
     private static Callback<TransactionManager> createClearsTable() {
