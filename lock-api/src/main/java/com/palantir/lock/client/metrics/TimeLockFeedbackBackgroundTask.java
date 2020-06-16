@@ -39,11 +39,12 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(
             TimeLockFeedbackBackgroundTask.class);
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
+    private static final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
+
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
                     new NamedThreadFactory(TIMELOCK_FEEDBACK_THREAD_PREFIX, true));
 
     private final UUID nodeId = UUID.randomUUID();
-    private final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private Supplier<String> versionSupplier;
     private String serviceName;
