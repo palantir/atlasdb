@@ -442,6 +442,26 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void returnsOverridenServiceName() {
+        KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvs)
+                .namespace(Optional.of("namespace"))
+                .build();
+        MetricRegistry metrics = new MetricRegistry();
+        TransactionManagers transactionManagers = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(metrics)
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .serviceName("override")
+                .build();
+
+        assertThat(transactionManagers.serviceName()).isEqualTo("override");
+    }
+
+    @Test
     public void serviceNameIsFetchedFromAtlasConfig() {
         KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
@@ -457,7 +477,7 @@ public class TransactionManagersTest {
                 .registrar(environment)
                 .build();
 
-        assertThat(transactionManagers.getServiceName()).isEqualTo("namespace");
+        assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
     }
 
     @Test
@@ -479,7 +499,7 @@ public class TransactionManagersTest {
                 .registrar(environment)
                 .build();
 
-        assertThat(transactionManagers.getServiceName()).isEqualTo("namespace");
+        assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
     }
 
     @Test
@@ -497,7 +517,7 @@ public class TransactionManagersTest {
                 .registrar(environment)
                 .build();
 
-        assertThat(transactionManagers.getServiceName()).isEqualTo("UNKNOWN");
+        assertThat(transactionManagers.serviceName()).isEqualTo("UNKNOWN");
     }
 
     @Test
