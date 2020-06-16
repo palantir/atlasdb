@@ -54,6 +54,10 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         return new SweepMetricsAssert(metricsManager);
     }
 
+    public void hasNotRegisteredEnqueuedWritesConservativeMetric() {
+        objects.assertNull(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES));
+    }
+
     public void hasEnqueuedWritesConservativeEqualTo(long value) {
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
     }

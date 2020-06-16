@@ -44,7 +44,10 @@ public class SweepOutcomeMetricsTest {
         metricsManager = MetricsManagers.createForTests();
         legacyMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
         targetedSweepMetrics = TargetedSweepMetrics
-                .create(metricsManager, mock(TimelockService.class), new InMemoryKeyValueService(true), Long.MAX_VALUE);
+                .create(metricsManager, mock(TimelockService.class), new InMemoryKeyValueService(true),
+                        TargetedSweepMetrics.MetricsConfiguration.builder()
+                                .millisBetweenRecomputingMetrics(Long.MAX_VALUE)
+                                .build());
     }
 
     @Test
