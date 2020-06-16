@@ -367,7 +367,7 @@ public abstract class TransactionManagers {
                 () -> TimeLockFeedbackBackgroundTask.create(
                         globalTaggedMetricRegistry(),
                         () -> AtlasDbVersion.readVersion(),
-                        getServiceName()), closeables);
+                        serviceName()), closeables);
 
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
@@ -553,7 +553,8 @@ public abstract class TransactionManagers {
     }
 
     @VisibleForTesting
-    String getServiceName() {
+    @Value.Default
+    String serviceName() {
         return Stream.of(config().namespace(),
                 config().timelock().flatMap(TimeLockClientConfig::client),
                 config().keyValueService().namespace())
