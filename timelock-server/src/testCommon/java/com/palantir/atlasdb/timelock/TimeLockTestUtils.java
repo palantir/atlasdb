@@ -76,7 +76,6 @@ public final class TimeLockTestUtils {
                                 .servers(serverUris)
                                 .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
                                 .build())
-                        .client(Optional.of(agent))
                         .build())
                 .build();
 
