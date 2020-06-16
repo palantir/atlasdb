@@ -2234,7 +2234,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             logLargeNumberOfTransactions(tableRef, gets);
         }
 
-        getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).inc(gets.size());
+        getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).update(gets.size());
 
         return Futures.transform(loadCommitTimestamps(asyncTransactionService, gets),
                 rawResults -> {
