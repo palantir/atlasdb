@@ -12,3 +12,17 @@ types:
         fields:
           p99: double
           oneMin: double
+
+services:
+  TimeLockClientFeedbackService:
+    name: TimeLock Client Feedback Service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.adjudicate.feedback
+    base-path: /tl/feedback
+    endpoints:
+      reportFeedback:
+        http: POST /reportFeedback
+        args:
+          namespaces: ConjureTimeLockClientFeedback
+        docs: |
+          The endpoint recieves feedback reports from clients which are required for TimeLock Adjudication.

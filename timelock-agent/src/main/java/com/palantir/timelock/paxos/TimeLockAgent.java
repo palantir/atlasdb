@@ -43,6 +43,7 @@ import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -206,6 +207,7 @@ public class TimeLockAgent {
     private void createAndRegisterResources() {
         registerPaxosResource();
         registerExceptionMappers();
+        registerClientFeedbackService();
 
         namespaces = new TimelockNamespaces(
                 metricsManager,
@@ -234,6 +236,14 @@ public class TimeLockAgent {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
+        }
+    }
+
+    private void registerClientFeedbackService() {
+        if (undertowRegistrar.isPresent()) {
+            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow());
+        } else {
+            registrar.accept(TimeLockClientFeedbackResource.jersey());
         }
     }
 
