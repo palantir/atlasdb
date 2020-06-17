@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.codahale.metrics.Histogram;
