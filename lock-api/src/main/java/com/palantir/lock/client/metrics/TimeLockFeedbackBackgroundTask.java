@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -41,7 +42,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(
             TimeLockFeedbackBackgroundTask.class);
-
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
     private static final Duration TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL = Duration.ofSeconds(30);
