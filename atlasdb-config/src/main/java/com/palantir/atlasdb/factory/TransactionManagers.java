@@ -46,6 +46,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -103,6 +104,7 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -196,7 +198,9 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -250,6 +254,10 @@ public abstract class TransactionManagers {
 
     abstract UserAgent userAgent();
 
+    /**
+     * Please use {@link #globalTaggedMetricRegistry()} instead. The publishing of metrics to the external metrics
+     * registry has ceased; they are all published to the tagged registry instead.
+     */
     abstract MetricRegistry globalMetricsRegistry();
 
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
@@ -361,7 +369,7 @@ public abstract class TransactionManagers {
 
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
-        MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
+        MetricsManager metricsManager = setUpMetricsAndGetMetricsManager();
 
         TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = initializeCloseable(
                 () -> TimeLockFeedbackBackgroundTask.create(
@@ -550,6 +558,20 @@ public abstract class TransactionManagers {
                 closeables);
 
         return transactionManager;
+    }
+
+    private MetricsManager setUpMetricsAndGetMetricsManager() {
+        MetricRegistry internalAtlasDbMetrics = new MetricRegistry();
+        TaggedMetricRegistry internalTaggedAtlasDbMetrics = new DefaultTaggedMetricRegistry();
+        MetricsManager metricsManager = MetricsManagers.of(internalAtlasDbMetrics, internalTaggedAtlasDbMetrics);
+
+        // TODO (jkong): Add filtering here
+        TaggedMetricSet taggedLegacyMetrics = new DropwizardTaggedMetricSet(internalAtlasDbMetrics);
+        globalTaggedMetricRegistry().addMetrics(
+                AtlasDbMetricNames.LIBRARY_ORIGIN_TAG,
+                AtlasDbMetricNames.LIBRARY_ORIGIN_VALUE,
+                new DisjointUnionTaggedMetricSet(taggedLegacyMetrics, internalTaggedAtlasDbMetrics));
+        return metricsManager;
     }
 
     abstract Optional<String> serviceIdentifierOverride();

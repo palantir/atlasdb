@@ -33,6 +33,9 @@ public final class AtlasDbMetricNames {
         public static final String EMPTY_VALUE = "emptyValuesCellFilterCount";
     }
 
+    public static final String LIBRARY_ORIGIN_TAG = "libraryOrigin";
+    public static final String LIBRARY_ORIGIN_VALUE = "atlasdb";
+
     public static final String SNAPSHOT_TRANSACTION_CELLS_READ = "numCellsRead";
     public static final String SNAPSHOT_TRANSACTION_CELLS_RETURNED = "numCellsReturnedAfterFiltering";
     public static final String SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ = "tooManyBytesRead";
