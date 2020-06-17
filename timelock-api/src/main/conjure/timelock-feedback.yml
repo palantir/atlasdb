@@ -23,6 +23,6 @@ services:
       reportFeedback:
         http: POST /reportFeedback
         args:
-          namespaces: ConjureTimeLockClientFeedback
+          feedback: ConjureTimeLockClientFeedback
         docs: |
           The endpoint recieves feedback reports from clients which are required for TimeLock Adjudication.

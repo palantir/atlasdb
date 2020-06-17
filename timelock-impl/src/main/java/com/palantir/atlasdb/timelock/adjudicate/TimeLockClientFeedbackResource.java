@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackServiceEndpoints;
@@ -44,7 +45,7 @@ public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFee
     @Override
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
         // collect and assess feedback report
-        return null;
+        return Futures.immediateVoidFuture();
     }
 
     public static final class JerseyAdapter implements TimeLockClientFeedbackService {
