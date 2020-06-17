@@ -18,6 +18,7 @@ package com.palantir.lock.client.metrics;
 
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,17 +28,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(
             TimeLockFeedbackBackgroundTask.class);
+    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
     private static final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
 
@@ -48,19 +52,23 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private Supplier<String> versionSupplier;
     private String serviceName;
+    List<TimeLockClientFeedbackService> timeLockClientFeedbackServices;
 
     private TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
-            String serviceName) {
+            String serviceName,
+            List<TimeLockClientFeedbackService> timeLockClientFeedbackServices) {
         this.conjureTimelockServiceBlockingMetrics = ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
         this.versionSupplier = versionSupplier;
         this.serviceName = serviceName;
+        this.timeLockClientFeedbackServices = timeLockClientFeedbackServices;
     }
 
     public static TimeLockFeedbackBackgroundTask create(TaggedMetricRegistry taggedMetricRegistry,
             Supplier<String> versionSupplier,
-            String serviceName) {
+            String serviceName,
+            List<TimeLockClientFeedbackService> timeLockClientFeedbackServices) {
         TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(taggedMetricRegistry,
-                versionSupplier, serviceName);
+                versionSupplier, serviceName, timeLockClientFeedbackServices);
         task.scheduleWithFixedDelay();
         return task;
     }
@@ -69,16 +77,18 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     public void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(() -> {
             try {
+                ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
+                        .builder()
+                        .stats(ImmutableMap.of("conjureTimelockServiceBlocking.startTransactions",
+                                getEndpointStatsForStartTxn()))
+                        .atlasVersion(versionSupplier.get())
+                        .nodeId(nodeId)
+                        .serviceName(serviceName)
+                        .build();
+                timeLockClientFeedbackServices.forEach(service -> service.reportFeedback(AUTH_HEADER, feedbackReport));
                 log.info("The TimeLock client metrics for startTransaction endpoint aggregated "
                                 + "over the last 1 minute - {}",
-                        SafeArg.of("startTxnStats", ConjureTimeLockClientFeedback
-                                .builder()
-                                .stats(ImmutableMap.of("conjureTimelockServiceBlocking.startTransactions",
-                                        getEndpointStatsForStartTxn()))
-                                .atlasVersion(versionSupplier.get())
-                                .nodeId(nodeId)
-                                .serviceName(serviceName)
-                                .build()));
+                        SafeArg.of("startTxnStats", feedbackReport));
             } catch (Exception e) {
                 log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
             }

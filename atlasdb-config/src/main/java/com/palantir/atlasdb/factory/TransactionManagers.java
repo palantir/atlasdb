@@ -130,6 +130,7 @@ import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -371,16 +372,13 @@ public abstract class TransactionManagers {
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = setUpMetricsAndGetMetricsManager();
 
-        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = initializeCloseable(
-                () -> TimeLockFeedbackBackgroundTask.create(
-                        globalTaggedMetricRegistry(),
-                        () -> AtlasDbVersion.readVersion(),
-                        serviceName()), closeables);
-
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
+
+        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = getTimeLockFeedbackBackgroundTask(closeables,
+                config(), runtime);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -572,6 +570,33 @@ public abstract class TransactionManagers {
                 AtlasDbMetricNames.LIBRARY_ORIGIN_VALUE,
                 new DisjointUnionTaggedMetricSet(taggedLegacyMetrics, internalTaggedAtlasDbMetrics));
         return metricsManager;
+    }
+
+    private TimeLockFeedbackBackgroundTask getTimeLockFeedbackBackgroundTask(
+            @Output List<AutoCloseable> closeables,
+            AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
+        Refreshable<ServerListConfig> serverListConfigSupplier =
+                getServerListConfigSupplierForTimeLock(config, runtimeConfig);
+        List<TimeLockClientFeedbackService> timeLockClientFeedbackServices =
+                serverListConfigSupplier.current().servers().stream()
+                .map(uri -> AtlasDbHttpClients.createProxy(
+                        serverListConfigSupplier.current().trustContext(),
+                        uri,
+                        TimeLockClientFeedbackService.class,
+                        AuxiliaryRemotingParameters.builder()
+                                .shouldUseExtendedTimeout(true)
+                                .shouldLimitPayload(true)
+                                .shouldRetry(true)
+                                .userAgent(userAgent())
+                                .build()))
+                .collect(Collectors.toList());
+        return initializeCloseable(
+                () -> TimeLockFeedbackBackgroundTask.create(
+                        globalTaggedMetricRegistry(),
+                        () -> AtlasDbVersion.readVersion(),
+                        serviceName(),
+                        timeLockClientFeedbackServices), closeables);
     }
 
     abstract Optional<String> serviceIdentifierOverride();
