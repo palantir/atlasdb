@@ -552,16 +552,18 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
+    abstract Optional<String> serviceIdentifier();
+
     @VisibleForTesting
-    @Value.Default
+    @Value.Derived
     String serviceName() {
-        return Stream.of(config().namespace(),
+        return serviceIdentifier().orElseGet(() -> Stream.of(config().namespace(),
                 config().timelock().flatMap(TimeLockClientConfig::client),
                 config().keyValueService().namespace())
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst()
-                .orElse("UNKNOWN");
+                .orElse("UNKNOWN"));
     }
 
     private static Callback<TransactionManager> createClearsTable() {
