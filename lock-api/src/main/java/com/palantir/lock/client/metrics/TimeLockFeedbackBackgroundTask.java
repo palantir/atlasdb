@@ -52,11 +52,11 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private Supplier<String> versionSupplier;
     private String serviceName;
-    List<TimeLockClientFeedbackService> timeLockClientFeedbackServices;
+    Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
 
     private TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
             String serviceName,
-            List<TimeLockClientFeedbackService> timeLockClientFeedbackServices) {
+            Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
         this.conjureTimelockServiceBlockingMetrics = ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
         this.versionSupplier = versionSupplier;
         this.serviceName = serviceName;
@@ -66,7 +66,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     public static TimeLockFeedbackBackgroundTask create(TaggedMetricRegistry taggedMetricRegistry,
             Supplier<String> versionSupplier,
             String serviceName,
-            List<TimeLockClientFeedbackService> timeLockClientFeedbackServices) {
+            Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
         TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(taggedMetricRegistry,
                 versionSupplier, serviceName, timeLockClientFeedbackServices);
         task.scheduleWithFixedDelay();
@@ -85,7 +85,9 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                         .nodeId(nodeId)
                         .serviceName(serviceName)
                         .build();
-                timeLockClientFeedbackServices.forEach(service -> service.reportFeedback(AUTH_HEADER, feedbackReport));
+                timeLockClientFeedbackServices
+                        .get()
+                        .forEach(service -> service.reportFeedback(AUTH_HEADER, feedbackReport));
                 log.info("The TimeLock client metrics for startTransaction endpoint aggregated "
                                 + "over the last 1 minute - {}",
                         SafeArg.of("startTxnStats", feedbackReport));
