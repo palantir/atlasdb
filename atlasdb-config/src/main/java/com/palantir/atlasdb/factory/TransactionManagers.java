@@ -202,6 +202,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
+import com.palantir.util.CachedTransformingSupplier;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -576,27 +577,42 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
-        Refreshable<ServerListConfig> serverListConfigSupplier =
-                getServerListConfigSupplierForTimeLock(config, runtimeConfig);
-        List<TimeLockClientFeedbackService> timeLockClientFeedbackServices =
-                serverListConfigSupplier.current().servers().stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(
-                        serverListConfigSupplier.current().trustContext(),
-                        uri,
-                        TimeLockClientFeedbackService.class,
-                        AuxiliaryRemotingParameters.builder()
-                                .shouldUseExtendedTimeout(true)
-                                .shouldLimitPayload(true)
-                                .shouldRetry(true)
-                                .userAgent(userAgent())
-                                .build()))
-                .collect(Collectors.toList());
+        Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServicesSupplier
+                = getTimeLockClientFeedbackServices(config,
+                runtimeConfig, userAgent());
         return initializeCloseable(
                 () -> TimeLockFeedbackBackgroundTask.create(
                         globalTaggedMetricRegistry(),
                         () -> AtlasDbVersion.readVersion(),
                         serviceName(),
-                        timeLockClientFeedbackServices), closeables);
+                        timeLockClientFeedbackServicesSupplier), closeables);
+    }
+
+    @VisibleForTesting
+    static Supplier<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
+            UserAgent userAgent) {
+        Refreshable<ServerListConfig> serverListConfigSupplier =
+                getServerListConfigSupplierForTimeLock(config, runtimeConfig);
+        return new CachedTransformingSupplier<>(
+                serverListConfigSupplier,
+                serverListConfig -> createProxiesForFeedbackService(userAgent, serverListConfig));
+    }
+
+    private static List<TimeLockClientFeedbackService> createProxiesForFeedbackService(UserAgent userAgent,
+            ServerListConfig serverListConfig) {
+        return serverListConfig.servers().stream()
+           .map(uri -> AtlasDbHttpClients.createProxy(
+                   serverListConfig.trustContext(),
+                   uri,
+                   TimeLockClientFeedbackService.class,
+                   AuxiliaryRemotingParameters.builder()
+                           .shouldUseExtendedTimeout(true)
+                           .shouldLimitPayload(true)
+                           .shouldRetry(true)
+                           .userAgent(userAgent)
+                           .build()))
+           .collect(Collectors.toList());
     }
 
     abstract Optional<String> serviceIdentifierOverride();
