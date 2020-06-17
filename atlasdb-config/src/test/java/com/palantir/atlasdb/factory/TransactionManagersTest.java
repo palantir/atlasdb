@@ -455,7 +455,7 @@ public class TransactionManagersTest {
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
-                .serviceIdentifier("overriden")
+                .serviceIdentifierOverride("overriden")
                 .build();
 
         assertThat(transactionManagers.serviceName()).isEqualTo("overriden");

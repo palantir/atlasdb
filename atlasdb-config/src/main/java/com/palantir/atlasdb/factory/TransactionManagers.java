@@ -552,12 +552,12 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    abstract Optional<String> serviceIdentifier();
+    abstract Optional<String> serviceIdentifierOverride();
 
     @VisibleForTesting
     @Value.Derived
     String serviceName() {
-        return serviceIdentifier().orElseGet(() -> Stream.of(config().namespace(),
+        return serviceIdentifierOverride().orElseGet(() -> Stream.of(config().namespace(),
                 config().timelock().flatMap(TimeLockClientConfig::client),
                 config().keyValueService().namespace())
                 .filter(Optional::isPresent)
