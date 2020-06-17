@@ -17,11 +17,14 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
@@ -31,41 +34,47 @@ final class VersionedEventStore {
 
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
-    boolean isEmpty() {
-        return eventMap.isEmpty();
+    Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
+        return ImmutableSet.copyOf(maybeStartVersion.map(
+                startVersion -> getValuesBetweenInclusive(endVersion, startVersion))
+                .orElseGet(() -> getFirstKey().map(firstKey -> getValuesBetweenInclusive(endVersion, firstKey))
+                        .orElseGet(ImmutableList::of)));
     }
 
-    long getFirstKey() {
-        Preconditions.checkState(!eventMap.isEmpty(), "Cannot get first key from empty map");
-        return eventMap.firstKey();
+    LockWatchEvents getAndRemoveElementsUpToExclusive(long endVersion) {
+        Set<Map.Entry<Long, LockWatchEvent>> elementsUpToVersion = eventMap.headMap(endVersion).entrySet();
+        LockWatchEvents events = LockWatchEvents.create(elementsUpToVersion);
+        elementsUpToVersion.clear();
+        return events;
     }
 
-    long getLastKey() {
-        Preconditions.checkState(!eventMap.isEmpty(), "Cannot get last key from empty map");
-        return eventMap.lastKey();
-    }
-
-    Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(long startVersion, long endVersion) {
-        return eventMap.subMap(startVersion, INCLUSIVE, endVersion, INCLUSIVE).values();
-    }
-
-    Set<Map.Entry<Long, LockWatchEvent>> getElementsUpToExclusive(long endVersion) {
-        return ImmutableSet.copyOf(eventMap.headMap(endVersion).entrySet());
-    }
-
-    void clearElementsUpToExclusive(long endVersion) {
-        eventMap.headMap(endVersion).entrySet().clear();
-    }
-
-    boolean hasFloorKey(long key) {
+    boolean contains(long key) {
         return eventMap.floorKey(key) != null;
+    }
+
+    long putAll(Iterable<LockWatchEvent> events) {
+        events.forEach(event -> eventMap.put(event.sequence(), event));
+        return getLastKey();
     }
 
     void clear() {
         eventMap.clear();
     }
 
-    void put(long version, LockWatchEvent event) {
-        eventMap.put(version, event);
+    private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, Long startVersion) {
+        return eventMap.subMap(startVersion, INCLUSIVE, endVersion, INCLUSIVE).values();
+    }
+
+    private Optional<Long> getFirstKey() {
+        if (eventMap.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(eventMap.firstKey());
+        }
+    }
+
+    private long getLastKey() {
+        Preconditions.checkState(!eventMap.isEmpty(), "Cannot get last key from empty map");
+        return eventMap.lastKey();
     }
 }

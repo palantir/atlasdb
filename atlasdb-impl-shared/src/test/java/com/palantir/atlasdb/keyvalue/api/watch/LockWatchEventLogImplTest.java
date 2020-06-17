@@ -113,6 +113,6 @@ public final class LockWatchEventLogImplTest {
         eventLog.removeEventsBefore(VERSION_2.version());
         eventLog.getEventsBetweenVersions(Optional.of(VERSION_1), VERSION_2);
         verify(snapshot).getSnapshot();
-        verify(snapshot).processEvents(ImmutableList.of(EVENT_1), VERSION_1);
+        verify(snapshot).processEvents(events, versionId);
     }
 }

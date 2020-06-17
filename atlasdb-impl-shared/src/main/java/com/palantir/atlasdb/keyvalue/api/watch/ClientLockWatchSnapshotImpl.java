@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -62,10 +63,14 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
     }
 
     @Override
-    public void processEvents(List<LockWatchEvent> events, IdentifiedVersion lastVersion) {
-        assertEventsAreContinguous(events);
-        events.forEach(event -> event.accept(visitor));
-        snapshotVersion = Optional.of(lastVersion);
+    public void processEvents(LockWatchEvents events, UUID versionId) {
+        if(!events.latestSequence().isPresent()) {
+            return;
+        }
+
+        assertNoMissedEvents(events.events());
+        events.events().forEach(event -> event.accept(visitor));
+        snapshotVersion = Optional.of(IdentifiedVersion.of(versionId, events.latestSequence().get()));
     }
 
     @Override
@@ -83,21 +88,12 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
         locked.clear();
     }
 
-    private void assertEventsAreContinguous(List<LockWatchEvent> events) {
-        if (events.isEmpty()) {
-            return;
-        }
-
+    private void assertNoMissedEvents(List<LockWatchEvent> events) {
         if (snapshotVersion.isPresent()) {
             LockWatchEvent firstEvent = Iterables.getFirst(events, null);
             Preconditions.checkNotNull(firstEvent, "First element not preset in list of events");
             Preconditions.checkArgument(snapshotVersion.get().version() + 1 == firstEvent.sequence(),
                     "Events missing between last snapshot and this batch of events");
-        }
-
-        for (int i = 0; i < events.size() - 1; ++i) {
-            Preconditions.checkArgument(events.get(i).sequence() + 1 == events.get(i + 1).sequence(),
-                    "Events form a non-contiguous sequence");
         }
     }
 

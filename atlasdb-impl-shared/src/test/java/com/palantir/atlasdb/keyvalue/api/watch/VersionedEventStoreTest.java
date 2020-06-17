@@ -60,41 +60,41 @@ public final class VersionedEventStoreTest {
 
     @Test
     public void getElementsUpToExclusiveDoesNotIncludeEndVersion() {
-        eventStore.put(1L, EVENT_1);
-        eventStore.put(2L, EVENT_2);
-        eventStore.put(3L, EVENT_3);
-        Set<Map.Entry<Long, LockWatchEvent>> elements = eventStore.getElementsUpToExclusive(3L);
+        eventStore.putAll(events);
+        eventStore.putAll(events);
+        eventStore.putAll(events);
+        Set<Map.Entry<Long, LockWatchEvent>> elements = eventStore.getAndRemoveElementsUpToExclusive(3L);
         assertThat(elements.stream().map(Map.Entry::getKey)).containsExactly(1L, 2L);
     }
 
     @Test
     public void clearElementsUpToExclusiveDoesNotIncludeEndVersion() {
-        eventStore.put(1L, EVENT_1);
-        eventStore.put(2L, EVENT_2);
-        eventStore.put(3L, EVENT_3);
+        eventStore.putAll(events);
+        eventStore.putAll(events);
+        eventStore.putAll(events);
         eventStore.clearElementsUpToExclusive(3L);
         assertThat(eventStore.getFirstKey()).isEqualTo(3L);
     }
 
     @Test
     public void hasFloorKeyReturnsFalseWhenKeyBelowFirstKey() {
-        eventStore.put(10L, EVENT_1);
-        assertThat(eventStore.hasFloorKey(9L)).isFalse();
+        eventStore.putAll(events);
+        assertThat(eventStore.contains(9L)).isFalse();
     }
 
     @Test
     public void hasFloorKeyReturnsTrueForAnyLargerOrEqualKey() {
-        eventStore.put(10L, EVENT_1);
-        assertThat(eventStore.hasFloorKey(10L)).isTrue();
-        assertThat(eventStore.hasFloorKey(9999L)).isTrue();
+        eventStore.putAll(events);
+        assertThat(eventStore.contains(10L)).isTrue();
+        assertThat(eventStore.contains(9999L)).isTrue();
     }
 
     @Test
     public void getEventsBetweenVersionsReturnsInclusiveOnBounds() {
-        eventStore.put(1L, EVENT_1);
-        eventStore.put(2L, EVENT_2);
-        eventStore.put(3L, EVENT_3);
-        eventStore.put(4L, EVENT_4);
+        eventStore.putAll(events);
+        eventStore.putAll(events);
+        eventStore.putAll(events);
+        eventStore.putAll(events);
 
         assertThat(eventStore.getEventsBetweenVersionsInclusive(2L, 3L)).containsExactly(EVENT_2, EVENT_3);
     }

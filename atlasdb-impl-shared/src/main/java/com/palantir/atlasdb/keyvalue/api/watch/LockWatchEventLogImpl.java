@@ -16,17 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Streams;
 import com.palantir.lock.watch.CacheStatus;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
 
@@ -64,39 +59,29 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
             IdentifiedVersion endVersion) {
         Optional<IdentifiedVersion> startVersion = lastKnownVersion.map(this::createStartVersion);
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
-        ClientLogEvents.Builder eventBuilder = new ClientLogEvents.Builder();
-        final long fromSequence;
 
         if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(currentVersion, startVersion.get())) {
-            eventBuilder.addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()));
-            eventBuilder.clearCache(true);
-            if (eventStore.isEmpty()) {
-                return eventBuilder.build();
-            }
-            fromSequence = eventStore.getFirstKey();
+            return new ClientLogEvents.Builder()
+                    .clearCache(true)
+                    .addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()))
+                    .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), endVersion.version()))
+                    .build();
         } else {
-            eventBuilder.clearCache(false);
-            fromSequence = startVersion.get().version();
+            return new ClientLogEvents.Builder()
+                    .clearCache(false)
+                    .addAllEvents(
+                            eventStore.getEventsBetweenVersionsInclusive(Optional.of(startVersion.get().version()),
+                                    endVersion.version()))
+                    .build();
         }
-
-        eventBuilder.addAllEvents(eventStore.getEventsBetweenVersionsInclusive(fromSequence, endVersion.version()));
-        return eventBuilder.build();
     }
 
     @Override
     public void removeEventsBefore(long earliestSequence) {
-        Set<Map.Entry<Long, LockWatchEvent>> eventsToBeRemoved = eventStore.getElementsUpToExclusive(earliestSequence);
-        Optional<Long> latestDeletedVersion = Streams.findLast(eventsToBeRemoved.stream()).map(Map.Entry::getKey);
-        Optional<IdentifiedVersion> currentVersion = getLatestKnownVersion();
-
-        if (eventsToBeRemoved.isEmpty() || !latestDeletedVersion.isPresent() || !currentVersion.isPresent()) {
-            return;
-        }
-
-        snapshot.processEvents(
-                eventsToBeRemoved.stream().map(Map.Entry::getValue).collect(Collectors.toList()),
-                IdentifiedVersion.of(currentVersion.get().id(), latestDeletedVersion.get()));
-        eventStore.clearElementsUpToExclusive(earliestSequence);
+        getLatestKnownVersion().ifPresent(latestVersion -> {
+            LockWatchEvents eventsToBeRemoved = eventStore.getAndRemoveElementsUpToExclusive(earliestSequence);
+            snapshot.processEvents(eventsToBeRemoved, latestVersion.id());
+        });
     }
 
     @Override
@@ -106,7 +91,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
 
     private boolean differentLeaderOrTooFarBehind(IdentifiedVersion currentVersion,
             IdentifiedVersion startVersion) {
-        return !startVersion.id().equals(currentVersion.id()) || !eventStore.hasFloorKey(startVersion.version());
+        return !startVersion.id().equals(currentVersion.id()) || !eventStore.contains(startVersion.version());
     }
 
     private IdentifiedVersion createStartVersion(IdentifiedVersion startVersion) {
@@ -125,8 +110,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
         Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
-            success.events().forEach(event -> eventStore.put(event.sequence(), event));
-            latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventStore.getLastKey()));
+            latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventStore.putAll(success.events())));
         }
     }
 

@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
+import java.util.UUID;
 
-import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 interface ClientLockWatchSnapshot {
     LockWatchStateUpdate.Snapshot getSnapshot();
-    void processEvents(List<LockWatchEvent> events, IdentifiedVersion lastVersion);
+    void processEvents(LockWatchEvents events, UUID versionId);
     void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot);
     void reset();
 }
