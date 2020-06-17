@@ -1659,6 +1659,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // Acquire row locks and a lock on the start timestamp row in the transactions table.
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
+            // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
             LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
             try {
                 // Conflict checking. We can actually do this later without compromising correctness, but there is no
@@ -1677,6 +1678,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
+                // Timing is still useful, as this may perform operations pertaining to lock watches.
                 long commitTimestamp = timedAndTraced("getCommitTimestamp",
                         () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
                 commitTsForScrubbing = commitTimestamp;
@@ -1686,7 +1688,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // scrub timestamp (same as the hard delete transaction's start timestamp).
                 // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
                 // might well cost more.
-                timedAndTraced("microsForPunch", () -> cleaner.punch(commitTimestamp));
+                // Not timed as this is generally an asynchronous operation.
+                traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
 
                 // Serializable transactions need to check their reads haven't changed, by reading again at
                 // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
@@ -1700,25 +1703,34 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
-                timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
-                timedAndTraced("commitPutCommitTs",
+                // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
+                // timed.
+                traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
+                // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
+                traced("commitPutCommitTs",
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
             } finally {
-                timedAndTraced("postCommitUnlock",
-                        () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
+                // Not timed because tryUnlock() is an asynchronous operation.
+                traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
             }
         });
     }
 
-    private void timedAndTraced(String timerName, Runnable runnable) {
-        try (Timer.Context timer = getTimer(timerName).time();
-                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+    private void traced(String spanName, Runnable runnable) {
+        try (CloseableTracer tracer = CloseableTracer.startSpan(spanName)) {
             runnable.run();
+        }
+    }
+
+    private void timedAndTraced(String timerName, Runnable runnable) {
+        try (Timer.Context timer = getTimer(timerName).time()) {
+            traced(timerName, runnable);
         }
     }
 

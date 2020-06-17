@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: |-
+    Snapshot Transaction no longer publishes metrics for
+    - punching the `_punch` table: this operation is asynchronous
+    - refreshing commit locks: consider `ConjureTimelockServiceBlocking.refreshLockLeases`
+    - putting a commit timestamp into the database: consider `TransactionService.putUnlessExists`
+    - unlocking lock tokens after a commit: this operation is asynchronous
+  links:
+  - https://github.com/palantir/atlasdb/pull/4837
