@@ -25,4 +25,4 @@ services:
         args:
           namespaces: ConjureTimeLockClientFeedback
         docs: |
-          The endpoint recieves feedback reports from clients which are required for TimeLock Adjudication.
+          The endpoint receives feedback reports from clients which are required for TimeLock Adjudication.
