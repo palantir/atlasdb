@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +31,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tokens.auth.AuthHeader;
@@ -52,11 +52,12 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private Supplier<String> versionSupplier;
     private String serviceName;
-    Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
+    private Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
 
-    private TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry, Supplier<String> versionSupplier,
+    private TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry,
+            Supplier<String> versionSupplier,
             String serviceName,
-            Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
+            Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
         this.conjureTimelockServiceBlockingMetrics = ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
         this.versionSupplier = versionSupplier;
         this.serviceName = serviceName;
@@ -66,9 +67,11 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     public static TimeLockFeedbackBackgroundTask create(TaggedMetricRegistry taggedMetricRegistry,
             Supplier<String> versionSupplier,
             String serviceName,
-            Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
+            Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
         TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(taggedMetricRegistry,
-                versionSupplier, serviceName, timeLockClientFeedbackServices);
+                versionSupplier,
+                serviceName,
+                timeLockClientFeedbackServices);
         task.scheduleWithFixedDelay();
         return task;
     }
@@ -86,7 +89,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                         .serviceName(serviceName)
                         .build();
                 timeLockClientFeedbackServices
-                        .get()
+                        .current()
                         .forEach(service -> reportClientFeedbackToService(feedbackReport, service));
                 log.info("The TimeLock client metrics for startTransaction endpoint aggregated "
                                 + "over the last 1 minute - {}",
