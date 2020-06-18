@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -66,6 +67,7 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -97,6 +99,7 @@ import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConf
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
 import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
+import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -124,9 +127,11 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 
@@ -154,6 +159,9 @@ public class TransactionManagersTest {
     private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
     private static final String LOCK_PATH = "/lock/current-time-millis";
     private static final MappingBuilder LOCK_MAPPING = post(urlEqualTo(LOCK_PATH));
+
+    private static final String FEEDBACK_PATH = "/tl/feedback/reportFeedback";
+    private static final MappingBuilder FEEDBACK_MAPPING = post(urlEqualTo(FEEDBACK_PATH));
 
     private static final SslConfiguration SSL_CONFIGURATION
             = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
@@ -191,6 +199,7 @@ public class TransactionManagersTest {
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
+        availableServer.stubFor(FEEDBACK_MAPPING.willReturn(aResponse().withStatus(200)));
 
         config = mock(AtlasDbConfig.class);
         when(config.leader()).thenReturn(Optional.empty());
@@ -885,6 +894,36 @@ public class TransactionManagersTest {
                 .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlMatching(lockPath))
                 .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
+    }
+
+    @Test
+    public void sanityCheckFeedbackReportingPipeline() {
+        setUpTimeLockConfig();
+        verifyFeedbackIsReportedToService();
+    }
+
+    private void setUpTimeLockConfig() {
+        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+    }
+
+    private void verifyFeedbackIsReportedToService() {
+        AuthHeader authHeader = AuthHeader.valueOf("Bearer omitted");
+
+        Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
+                TransactionManagers.getTimeLockClientFeedbackServices(
+                        config, Refreshable.only(runtimeConfig), USER_AGENT, metricsManager);
+        TimeLockClientFeedbackService timeLockClientFeedbackService = timeLockClientFeedbackServices.get().get(0);
+        ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
+                .builder()
+                .atlasVersion("1.0")
+                .serviceName("service")
+                .nodeId(UUID.randomUUID())
+                .build();
+        timeLockClientFeedbackService.reportFeedback(authHeader, feedbackReport);
+        List<LoggedRequest> requests = findAll(postRequestedFor(urlMatching(FEEDBACK_PATH)));
+        assertThat(requests.size()).isEqualTo(1);
+        availableServer.verify(postRequestedFor(urlMatching(FEEDBACK_PATH))
+                .withHeader("Authorization", WireMock.containing("Bearer omitted")));
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
