@@ -108,8 +108,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             service.reportFeedback(AUTH_HEADER, feedbackReport);
         } catch (Exception e) {
             // we do not want this exception to bubble up so that feedback can be reported to other hosts
-            log.warn("A problem occurred while reporting client feedback for timeLock "
-                    + "adjudication to host - {} .", e);
+            log.warn("Failed to report feedback to TimeLock host.", e);
         }
     }
 

@@ -96,11 +96,6 @@ public class BroadcastDialogueServiceProvider {
         return Maps.immutableEntry(getServiceName(uri, shouldRetry), proxy);
     }
 
-//    public <T> T createSingleNodeInstrumentedProxy(String uri, Class<T> clazz, boolean shouldRetry) {
-//        return createDialogueProxy(
-//                clazz, reloadingFactory.getChannel(getServiceName(uri, shouldRetry)));
-//    }
-
     public <T> List<T> getSingleNodeProxies(Class<T> clazz, boolean shouldRetry) {
         return this.serverListConfigSupplier.current().servers()
                 .stream()
