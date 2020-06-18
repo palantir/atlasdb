@@ -33,6 +33,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.timelock.adjudicate.Constants;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tokens.auth.AuthHeader;
@@ -43,10 +44,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             TimeLockFeedbackBackgroundTask.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
-    public static final String START_TRANSACTION = "st";
-
     private static final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
@@ -83,7 +81,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             try {
                 ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                         .builder()
-                        .stats(ImmutableMap.of(START_TRANSACTION,
+                        .stats(ImmutableMap.of(Constants.START_TRANSACTION,
                                 getEndpointStatsForStartTxn()))
                         .atlasVersion(versionSupplier.get())
                         .nodeId(nodeId)
