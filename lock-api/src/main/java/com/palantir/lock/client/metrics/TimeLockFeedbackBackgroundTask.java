@@ -41,8 +41,12 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(
             TimeLockFeedbackBackgroundTask.class);
+
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
+
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
+    public static final String START_TRANSACTION = "st";
+
     private static final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
@@ -79,7 +83,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             try {
                 ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                         .builder()
-                        .stats(ImmutableMap.of("conjureTimelockServiceBlocking.startTransactions",
+                        .stats(ImmutableMap.of(START_TRANSACTION,
                                 getEndpointStatsForStartTxn()))
                         .atlasVersion(versionSupplier.get())
                         .nodeId(nodeId)
@@ -87,7 +91,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                         .build();
                 timeLockClientFeedbackServices
                         .get()
-                        .forEach(service -> service.reportFeedback(AUTH_HEADER, feedbackReport));
+                        .forEach(service -> reportClientFeedbackToService(feedbackReport, service));
                 log.info("The TimeLock client metrics for startTransaction endpoint aggregated "
                                 + "over the last 1 minute - {}",
                         SafeArg.of("startTxnStats", feedbackReport));
@@ -98,6 +102,17 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                 timeLockClientFeedbackReportInterval.getSeconds(),
                 timeLockClientFeedbackReportInterval.getSeconds(),
                 TimeUnit.SECONDS);
+    }
+
+    private void reportClientFeedbackToService(ConjureTimeLockClientFeedback feedbackReport,
+            TimeLockClientFeedbackService service) {
+        try {
+            service.reportFeedback(AUTH_HEADER, feedbackReport);
+        } catch (Exception e) {
+            // we do not want this exception to bubble up so that feedback can be reported to other hosts
+            log.warn("A problem occurred while reporting client feedback for timeLock "
+                    + "adjudication to host - {} .", e);
+        }
     }
 
     private EndpointStatistics getEndpointStatsForStartTxn() {
