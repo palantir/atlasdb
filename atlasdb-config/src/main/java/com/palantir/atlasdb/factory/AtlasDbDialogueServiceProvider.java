@@ -117,8 +117,11 @@ public final class AtlasDbDialogueServiceProvider {
         return createDialogueProxyWithShortTimeout(TimestampManagementRpcClient.class);
     }
 
+    //todo Sudiksha -> move this as this is diff from TLRpc client; we want to talk all the nodes.
+    // Check TLDialogueServiceProvider -> different version; BroadcastServiceProvider (Long term) [Be careful, no instrument metrics / no fast failover ]
+    // (Short term) -> go back :(
     TimeLockClientFeedbackService getTimeLockClientFeedbackRpcClient() {
-        return createDialogueProxyWithLongTimeout(TimeLockClientFeedbackService.class);
+        return createDialogueProxyWithShortTimeout(TimeLockClientFeedbackService.class);
     }
 
     LockRpcClient getLockRpcClient() {
@@ -163,6 +166,7 @@ public final class AtlasDbDialogueServiceProvider {
         return AtlasDbHttpClients.createDialogueProxy(taggedMetricRegistry, type, channel);
     }
 
+    // todo Sudiksha - option 1 -> creating as many services as there are hosts
     private static ImmutableMap<String, RemoteServiceConfiguration> getServiceConfigurations(
             UserAgent versionedAgent,
             ServerListConfig serverListConfig) {
