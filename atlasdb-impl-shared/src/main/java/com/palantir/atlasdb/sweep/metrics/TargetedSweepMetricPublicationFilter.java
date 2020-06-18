@@ -22,6 +22,7 @@ import java.util.function.LongSupplier;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 
 /**
@@ -33,8 +34,10 @@ import com.palantir.atlasdb.metrics.MetricPublicationFilter;
  * will be published.
  */
 public class TargetedSweepMetricPublicationFilter implements MetricPublicationFilter {
-    private static final long MINIMUM_READS_WRITES_TO_BE_CONSIDERED_ACTIVE = 1_000;
-    private static final Duration MINIMUM_STALE_DURATION = Duration.ofHours(4);
+    @VisibleForTesting
+    static final long MINIMUM_READS_WRITES_TO_BE_CONSIDERED_ACTIVE = 1_000;
+    @VisibleForTesting
+    static final Duration MINIMUM_STALE_DURATION = Duration.ofHours(4);
 
     private final AtomicBoolean publicationLatch;
 
