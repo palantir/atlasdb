@@ -24,6 +24,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -32,6 +36,7 @@ import com.palantir.logsafe.Preconditions;
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
 
+    @JsonProperty
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
@@ -59,6 +64,16 @@ final class VersionedEventStore {
 
     void clear() {
         eventMap.clear();
+    }
+
+    @VisibleForTesting
+    String getJsonStateForTesting() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(eventMap);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, Long startVersion) {

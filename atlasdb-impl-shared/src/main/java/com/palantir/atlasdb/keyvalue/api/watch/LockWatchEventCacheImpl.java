@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
@@ -54,19 +56,26 @@ import com.palantir.logsafe.Preconditions;
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    private final LockWatchEventLog eventLog;
+    @JsonProperty
+    private final LockWatchEventLogImpl eventLog;
+
+    @JsonProperty
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(LockWatchEventLogImpl.create()), NoOpLockWatchEventCache.INSTANCE,
+                new LockWatchEventCacheImpl(LockWatchEventLogImpl.create(), new TimestampStateStore()),
+                NoOpLockWatchEventCache.INSTANCE,
                 metricsManager);
     }
 
+    @JsonCreator
     @VisibleForTesting
-    LockWatchEventCacheImpl(LockWatchEventLog eventLog) {
+    public LockWatchEventCacheImpl(
+            @JsonProperty("eventLog") LockWatchEventLogImpl eventLog,
+            @JsonProperty("timestampStateStore") TimestampStateStore timestampStateStore) {
         this.eventLog = eventLog;
-        timestampStateStore = new TimestampStateStore();
+        this.timestampStateStore = timestampStateStore;
     }
 
     @Override

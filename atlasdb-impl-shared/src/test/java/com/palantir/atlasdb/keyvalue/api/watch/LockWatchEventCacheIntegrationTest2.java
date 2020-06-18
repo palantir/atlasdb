@@ -18,9 +18,17 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -31,6 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Resources;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -49,7 +58,9 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
-public class LockWatchEventCacheIntegrationTest {
+public class LockWatchEventCacheIntegrationTest2 {
+    private static final Mode MODE = Mode.DEV;
+
     private static final String TABLE = "table";
     private static final LockDescriptor DESCRIPTOR = AtlasRowLockDescriptor.of(TABLE, new byte[] {1});
     private static final LockDescriptor DESCRIPTOR_2 = AtlasRowLockDescriptor.of(TABLE, new byte[] {2});
@@ -81,10 +92,62 @@ public class LockWatchEventCacheIntegrationTest {
 
     private LockWatchEventCache eventCache;
 
+    private enum Mode {
+        DEV,
+        CI;
+    }
+
     @Before
     public void before() {
         eventCache = LockWatchEventCacheImpl.create(metricsManager);
     }
+
+    private void runTest(int part, Consumer<LockWatchEventCache> test)
+            throws URISyntaxException, IOException {
+        ObjectMapper mapper = new ObjectMapper();
+
+//        URL startingUrl = Resources.getResource(LockWatchEventCacheImpl.class, "test-" + part + ".json");
+
+//        LockWatchEventCache eventCache = mapper.readValue(new File(startingUrl.toURI()), LockWatchEventCacheImpl.class);
+        LockWatchEventCache eventCache = mapper.readValue(getResourcePath(part).toFile(), LockWatchEventCacheImpl.class);
+        test.accept(eventCache);
+        URL output = Resources.getResource(LockWatchEventCacheImpl.class, "test-" + (part + 1) + ".json");
+
+        if (MODE.equals(Mode.DEV)) {
+            mapper.writeValue(new File(output.toURI()), eventCache);
+        } else if (MODE.equals(Mode.CI)) {
+            assertThat(eventCache).isEqualTo(mapper.readValue(getResourcePath(part+1).toFile(), LockWatchEventCache.class));
+        }
+    }
+
+    private void part0(LockWatchEventCache eventCache) {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(START_TS), SNAPSHOT);
+    }
+
+    @Test
+    public void runPart0() {
+
+        int part = 0;
+        try {
+//            ObjectMapper mapper = new ObjectMapper();
+//            File file = getResourcePath("a").toFile();
+//            mapper.writeValue(file, new LockWatchEventCacheImpl(LockWatchEventLogImpl.create()));
+            runTest(part, this::part0);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    private static Path getResourcePath(int number) {
+        try {
+            return Paths.get(Objects.requireNonNull(
+                    LockWatchEventCacheIntegrationTest2.class.getClassLoader().getResource(
+                            "test/test-" + number + ".json")).toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     @Test
     public void getCommitUpdateDoesNotContainCommitLocks() {

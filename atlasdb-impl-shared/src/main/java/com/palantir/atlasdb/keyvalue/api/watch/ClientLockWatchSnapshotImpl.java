@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -35,36 +35,43 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
+    @JsonProperty
     private final Set<LockWatchReferences.LockWatchReference> watches;
+    @JsonProperty
     private final Set<LockDescriptor> locked;
     private final EventVisitor visitor;
+    @JsonProperty
     private Optional<IdentifiedVersion> snapshotVersion;
 
-    static ClientLockWatchSnapshot create() {
-        return new ClientLockWatchSnapshotImpl();
+    static ClientLockWatchSnapshotImpl create() {
+        return new ClientLockWatchSnapshotImpl(new HashSet<>(), new HashSet<>(), Optional.empty());
     }
 
-    private ClientLockWatchSnapshotImpl() {
-        this.watches = new HashSet<>();
-        this.locked = new HashSet<>();
+    ClientLockWatchSnapshotImpl(
+            @JsonProperty("watches") Set<LockWatchReferences.LockWatchReference> watches,
+            @JsonProperty("locked") Set<LockDescriptor> locked,
+            @JsonProperty("snapshotVersion") Optional<IdentifiedVersion> snapshotVersion) {
+        this.watches = watches;
+        this.locked = locked;
+        this.snapshotVersion = snapshotVersion;
         this.visitor = new EventVisitor();
-        this.snapshotVersion = Optional.empty();
     }
 
     @Override
     public LockWatchStateUpdate.Snapshot getSnapshot() {
-        Preconditions.checkState(snapshotVersion.isPresent(),
-                "Snapshot was reset on fail and has not been seeded since");
-        return LockWatchStateUpdate.snapshot(
-                snapshotVersion.get().id(),
-                snapshotVersion.get().version(),
-                ImmutableSet.copyOf(locked),
-                ImmutableSet.copyOf(watches));
+//        Preconditions.checkState(snapshotVersion.isPresent(),
+//                "Snapshot was reset on fail and has not been seeded since");
+//        return LockWatchStateUpdate.snapshot(
+//                snapshotVersion.get().id(),
+//                snapshotVersion.get().version(),
+//                ImmutableSet.copyOf(locked),
+//                ImmutableSet.copyOf(watches));
+        return null;
     }
 
     @Override
     public void processEvents(LockWatchEvents events, UUID versionId) {
-        if(!events.latestSequence().isPresent()) {
+        if (!events.latestSequence().isPresent()) {
             return;
         }
 

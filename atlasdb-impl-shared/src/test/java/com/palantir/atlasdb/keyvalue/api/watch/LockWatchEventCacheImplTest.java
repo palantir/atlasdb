@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -88,7 +89,7 @@ public final class LockWatchEventCacheImplTest {
 
     @Before
     public void before() {
-        eventCache = new LockWatchEventCacheImpl(eventLog);
+//        eventCache = new LockWatchEventCacheImpl(eventLog);
     }
 
     @Test
