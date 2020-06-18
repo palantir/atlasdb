@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
 
 import com.codahale.metrics.Metric;
 import com.palantir.common.streams.KeyedStream;

@@ -196,7 +196,7 @@ public class TargetedSweepMetrics {
                             .entriesRead(entriesRead::getValue)
                             .millisSinceLastSweptTs(millisSinceLastSwept::getValue)
                             .build());
-            // This is kind of against the point of metrics-filter, but is needed for our purposes
+            // This is kind of against the point of metrics-filter, but is needed for our filtering
             AtlasDbMetricNames.TARGETED_SWEEP_PROGRESS_METRIC_NAMES
                     .stream()
                     .map(operationName -> MetricName.builder()
@@ -216,21 +216,13 @@ public class TargetedSweepMetrics {
             progressMetrics.batchSizeMean().strategy(strategy).build(batchSizeMean);
         }
 
-        private AccumulatingValueMetric registerAccumulating(String name) {
-            return register(name, new AccumulatingValueMetric());
-        }
-
-        @SuppressWarnings("unchecked")
-        private <T extends Gauge<?>> T register(String name, T metric) {
-            return (T) manager.registerOrGet(TargetedSweepMetrics.class, name, metric, tag);
-        }
-
         private AggregatingVersionedMetric<Long> createLastSweptTsMetric(long millis) {
             AggregatingVersionedSupplier<Long> lastSweptTimestamp = AggregatingVersionedSupplier.min(millis);
             return new AggregatingVersionedMetric<>(lastSweptTimestamp);
         }
 
-        private Gauge<Long> createMillisSinceLastSweptMetric(Function<Long, Long> tsToMillis, Clock wallClock, long millis) {
+        private Gauge<Long> createMillisSinceLastSweptMetric(
+                Function<Long, Long> tsToMillis, Clock wallClock, long millis) {
             Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
                     sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis),
                     lastSweptTs::getVersionedValue,
