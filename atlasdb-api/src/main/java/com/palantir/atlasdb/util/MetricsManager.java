@@ -69,7 +69,7 @@ public class MetricsManager {
     public MetricsManager(MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
             Predicate<TableReference> isSafeToLog) {
-        this(metricRegistry, taggedMetricRegistry, () -> false, isSafeToLog);
+        this(metricRegistry, taggedMetricRegistry, Refreshable.only(false), isSafeToLog);
     }
 
     public MetricsManager(MetricRegistry metricRegistry,
