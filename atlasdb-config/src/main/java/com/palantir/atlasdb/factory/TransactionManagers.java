@@ -579,8 +579,7 @@ public abstract class TransactionManagers {
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
             MetricsManager metricsManager) {
         Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServicesSupplier
-                = getTimeLockClientFeedbackServices(config,
-                runtimeConfig, userAgent(), metricsManager);
+                = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent());
         return initializeCloseable(
                 () -> TimeLockFeedbackBackgroundTask.create(
                         globalTaggedMetricRegistry(),
@@ -592,7 +591,7 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static Supplier<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            UserAgent userAgent, MetricsManager metricsManager) {
+            UserAgent userAgent) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
         DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
