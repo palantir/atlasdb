@@ -20,39 +20,53 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BooleanSupplier;
 
 import com.codahale.metrics.Metric;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
 public class FilteredTaggedMetricSet implements TaggedMetricSet {
     private final TaggedMetricSet unfiltered;
     private final Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters;
+    private final Refreshable<Boolean> performFiltering;
 
-    public FilteredTaggedMetricSet(TaggedMetricSet unfiltered,
-            Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters) {
+    public FilteredTaggedMetricSet(
+            TaggedMetricSet unfiltered,
+            Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters,
+            Refreshable<Boolean> performFiltering) {
         this.unfiltered = unfiltered;
         this.singleMetricFilters = singleMetricFilters;
+        this.performFiltering = performFiltering;
     }
 
     @Override
     public Map<MetricName, Metric> getMetrics() {
-        return KeyedStream.stream(unfiltered.getMetrics())
-                .filterEntries((name, metric) -> Optional.ofNullable(singleMetricFilters.get(name))
-                        .map(FilteredTaggedMetricSet::allFiltersMatch)
-                        .orElse(true))
-                .collectToMap();
+        if (performFiltering.get()) {
+            return KeyedStream.stream(unfiltered.getMetrics())
+                    .filterEntries((name, metric) -> Optional.ofNullable(singleMetricFilters.get(name))
+                            .map(FilteredTaggedMetricSet::allFiltersMatch)
+                            .orElse(true))
+                    .collectToMap();
+        }
+        return unfiltered.getMetrics();
     }
 
     @Override
     public void forEachMetric(BiConsumer<MetricName, Metric> consumer) {
-        unfiltered.forEachMetric((name, metric) -> {
-            List<MetricPublicationFilter> relevantFilters = singleMetricFilters.get(name);
-            if (relevantFilters == null || allFiltersMatch(relevantFilters)) {
-                consumer.accept(name, metric);
-            }
-        });
+        boolean filter = performFiltering.get();
+        if (filter) {
+            unfiltered.forEachMetric((name, metric) -> {
+                List<MetricPublicationFilter> relevantFilters = singleMetricFilters.get(name);
+                if (relevantFilters == null || allFiltersMatch(relevantFilters)) {
+                    consumer.accept(name, metric);
+                }
+            });
+        } else {
+            unfiltered.forEachMetric(consumer);
+        }
     }
 
     private static boolean allFiltersMatch(List<MetricPublicationFilter> relevantFilters) {

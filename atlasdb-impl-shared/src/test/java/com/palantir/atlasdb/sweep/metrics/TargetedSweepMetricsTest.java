@@ -273,7 +273,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
         assertThat(metricsManager).containsEntriesReadInBatchConservative(20L);
-        
+
         assertThat(anotherMetricsManager).hasEnqueuedWritesConservativeEqualTo(5);
         assertThat(anotherMetricsManager).hasEntriesReadConservativeEqualTo(5);
         assertThat(anotherMetricsManager).hasTombstonesPutConservativeEqualTo(5);

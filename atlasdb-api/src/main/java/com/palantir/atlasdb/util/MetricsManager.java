@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -39,17 +40,13 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
 import com.palantir.atlasdb.metrics.FilteredTaggedMetricSet;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -64,6 +61,7 @@ public class MetricsManager {
     private final Set<String> registeredMetrics;
     private final Set<MetricName> registeredTaggedMetrics;
     private final Map<MetricName, List<MetricPublicationFilter>> metricsFilters;
+    private final TaggedMetricSet publishableMetricsView;
     private final Predicate<TableReference> isSafeToLog;
     private final ReadWriteLock lock;
     private final MetricNameCache metricNameCache;
@@ -71,14 +69,34 @@ public class MetricsManager {
     public MetricsManager(MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
             Predicate<TableReference> isSafeToLog) {
+        this(metricRegistry, taggedMetricRegistry, () -> false, isSafeToLog);
+    }
+
+    public MetricsManager(MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
+            Refreshable<Boolean> performFiltering,
+            Predicate<TableReference> isSafeToLog) {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
         this.registeredMetrics = ConcurrentHashMap.newKeySet();
         this.registeredTaggedMetrics = ConcurrentHashMap.newKeySet();
         this.metricsFilters = Maps.newConcurrentMap();
         this.isSafeToLog = isSafeToLog;
+        this.publishableMetricsView = createPublishableMetricsView(
+                metricRegistry, taggedMetricRegistry, metricsFilters, performFiltering);
         this.lock = new ReentrantReadWriteLock();
         this.metricNameCache = new MetricNameCache();
+    }
+
+    private static TaggedMetricSet createPublishableMetricsView(
+            MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
+            Map<MetricName, List<MetricPublicationFilter>> metricsFilters,
+            Refreshable<Boolean> performFiltering) {
+        TaggedMetricSet legacyMetricsAsTaggedSet = new DropwizardTaggedMetricSet(metricRegistry);
+        TaggedMetricSet unfilteredUnion
+                = new DisjointUnionTaggedMetricSet(legacyMetricsAsTaggedSet, taggedMetricRegistry);
+        return new FilteredTaggedMetricSet(unfilteredUnion, metricsFilters, performFiltering);
     }
 
     public MetricRegistry getRegistry() {
@@ -90,16 +108,12 @@ public class MetricsManager {
     }
 
     public void addMetricFilter(MetricName metricName, MetricPublicationFilter publicationFilter) {
-        metricsFilters.merge(metricName, ImmutableList.of(publicationFilter), (oldFilters, newFilter) -> {
-            return ImmutableList.<MetricPublicationFilter>builder().addAll(oldFilters).addAll(newFilter).build();
-        });
+        metricsFilters.merge(metricName, ImmutableList.of(publicationFilter), (oldFilters, newFilter)
+                -> ImmutableList.<MetricPublicationFilter>builder().addAll(oldFilters).addAll(newFilter).build());
     }
 
     public TaggedMetricSet getPublishableMetrics() {
-        TaggedMetricSet legacyMetricsAsTaggedSet = new DropwizardTaggedMetricSet(metricRegistry);
-        TaggedMetricSet unfilteredUnion
-                = new DisjointUnionTaggedMetricSet(legacyMetricsAsTaggedSet, taggedMetricRegistry);
-        return new FilteredTaggedMetricSet(unfilteredUnion, metricsFilters);
+        return publishableMetricsView;
     }
 
     public void registerMetric(Class clazz, String metricName, Gauge gauge) {

@@ -564,7 +564,14 @@ public abstract class TransactionManagers {
     private MetricsManager setUpMetricsAndGetMetricsManager() {
         MetricRegistry internalAtlasDbMetrics = new MetricRegistry();
         TaggedMetricRegistry internalTaggedAtlasDbMetrics = new DefaultTaggedMetricRegistry();
-        MetricsManager metricsManager = MetricsManagers.of(internalAtlasDbMetrics, internalTaggedAtlasDbMetrics);
+        MetricsManager metricsManager = MetricsManagers.of(
+                internalAtlasDbMetrics,
+                internalTaggedAtlasDbMetrics,
+                runtimeConfig()
+                        .map(runtimeConfigRefreshable -> runtimeConfigRefreshable.map(
+                                maybeRuntime -> maybeRuntime.map(AtlasDbRuntimeConfig::enableMetricFiltering)
+                                        .orElse(true)))
+                        .orElseGet(() -> Refreshable.only(true)));
         globalTaggedMetricRegistry().addMetrics(
                 AtlasDbMetricNames.LIBRARY_ORIGIN_TAG,
                 AtlasDbMetricNames.LIBRARY_ORIGIN_VALUE,

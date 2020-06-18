@@ -108,6 +108,18 @@ public abstract class AtlasDbRuntimeConfig {
         return ImmutableRemotingClientConfig.builder().build();
     }
 
+    /**
+     * Feature flag for AtlasDB. If enabled (default), some AtlasDB metrics (e.g. targeted sweep) will only be produced
+     * if they exceed certain thresholds.
+     *
+     * If debugging (e.g. P0) and you need metrics that are being filtered out, consider overriding this setting to
+     * false.
+     */
+    @Value.Default
+    public boolean enableMetricFiltering() {
+        return true;
+    }
+
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder().build();
     }
