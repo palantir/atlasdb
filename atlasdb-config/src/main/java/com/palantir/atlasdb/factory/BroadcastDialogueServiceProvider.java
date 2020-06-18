@@ -45,19 +45,26 @@ import com.palantir.refreshable.Refreshable;
  * information to allow client services to identify the protocol they are using to talk, via
  * {@link AtlasDbHttpProtocolVersion}.
  */
-public class BroadcastDialogueServiceProvider {
+public final class BroadcastDialogueServiceProvider {
     DialogueClients.ReloadingFactory reloadingFactory;
     Refreshable<ServerListConfig> serverListConfigSupplier;
 
-    private BroadcastDialogueServiceProvider (DialogueClients.ReloadingFactory reloadingFactory,
+    private BroadcastDialogueServiceProvider(DialogueClients.ReloadingFactory reloadingFactory,
             Refreshable<ServerListConfig> serverListConfigSupplier) {
         this.reloadingFactory = reloadingFactory;
         this.serverListConfigSupplier = serverListConfigSupplier;
     }
-    public static BroadcastDialogueServiceProvider create(DialogueClients.ReloadingFactory baseFactory,
-            Refreshable<ServerListConfig> serverListConfigSupplier, UserAgent versionedAgent, AuxiliaryRemotingParameters parameters) {
+
+    public static BroadcastDialogueServiceProvider create(
+            DialogueClients.ReloadingFactory baseFactory,
+            Refreshable<ServerListConfig> serverListConfigSupplier,
+            UserAgent versionedAgent,
+            AuxiliaryRemotingParameters parameters) {
         Refreshable<Map<String, RemoteServiceConfiguration>> timeLockRemoteConfigurations = serverListConfigSupplier
-                .map(serverListConfig -> createRemoteServiceConfigurations(serverListConfig, versionedAgent, parameters));
+                .map(serverListConfig -> createRemoteServiceConfigurations(
+                        serverListConfig,
+                        versionedAgent,
+                        parameters));
 
         DialogueClients.ReloadingFactory reloadingFactory = baseFactory.reloading(
                 timeLockRemoteConfigurations.map(DialogueClientOptions::toServicesConfigBlock))
