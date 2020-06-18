@@ -33,6 +33,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.timelock.adjudicate.Constants;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tokens.auth.AuthHeader;
@@ -43,7 +44,6 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             TimeLockFeedbackBackgroundTask.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
     private static final Duration TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL = Duration.ofSeconds(30);
 
