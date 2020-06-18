@@ -105,6 +105,7 @@ import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueServic
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
+import com.palantir.atlasdb.metrics.FilteredTaggedMetricSet;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -564,13 +565,10 @@ public abstract class TransactionManagers {
         MetricRegistry internalAtlasDbMetrics = new MetricRegistry();
         TaggedMetricRegistry internalTaggedAtlasDbMetrics = new DefaultTaggedMetricRegistry();
         MetricsManager metricsManager = MetricsManagers.of(internalAtlasDbMetrics, internalTaggedAtlasDbMetrics);
-
-        // TODO (jkong): Add filtering here
-        TaggedMetricSet taggedLegacyMetrics = new DropwizardTaggedMetricSet(internalAtlasDbMetrics);
         globalTaggedMetricRegistry().addMetrics(
                 AtlasDbMetricNames.LIBRARY_ORIGIN_TAG,
                 AtlasDbMetricNames.LIBRARY_ORIGIN_VALUE,
-                new DisjointUnionTaggedMetricSet(taggedLegacyMetrics, internalTaggedAtlasDbMetrics));
+                metricsManager.getPublishableMetrics());
         return metricsManager;
     }
 
