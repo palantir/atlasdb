@@ -51,7 +51,6 @@ license {
 
     include '**/*.java'
     exclude '**/generated/**/*.java'
-    exclude '**/metricSchema/**/*.java'
     exclude '**/RateLimiter.java'
     exclude '**/SmoothRateLimiter.java'
     exclude '**/DiscoverableSubtypeResolver.java'

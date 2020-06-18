@@ -8,6 +8,10 @@ repositories {
 
 libsDirName = file('build/artifacts')
 
+license {
+  exclude '**/TargetedSweepProgressMetrics.java'
+}
+
 dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-commons")
