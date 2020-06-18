@@ -584,12 +584,9 @@ public abstract class TransactionManagers {
                         .shouldLimitPayload(true)
                         .build());
 
-        return new CachedTransformingSupplier<>(
-                serverListConfigSupplier,
-                serverListConfig -> broadcastDialogueServiceProvider
-                        .getSingleNodeProxies(
-                                TimeLockClientFeedbackService.class,
-                                true));
+        return () -> broadcastDialogueServiceProvider.getSingleNodeProxies(
+                TimeLockClientFeedbackService.class,
+                true);
     }
 
     abstract Optional<String> serviceIdentifierOverride();
