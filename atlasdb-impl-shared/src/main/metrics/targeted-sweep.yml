@@ -1,0 +1,51 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.sweep.metrics'
+
+namespaces:
+  targetedSweepProgress:
+    docs: Metrics for tracking the progress of Targeted Sweep.
+    metrics:
+      enqueuedWrites:
+        type: gauge
+        tags:
+          - strategy
+        docs: Number of cell references added to the targeted sweep queue as part of transactions.
+      entriesRead:
+        type: gauge
+        tags:
+          - strategy
+        docs: Number of entries read from the targeted sweep queue by targeted sweep threads.
+      tombstonesPut:
+        type: gauge
+        tags:
+          - strategy
+        docs: Number of (range) tombstones written by targeted sweep threads.
+      abortedWritesDeleted:
+        type: gauge
+        tags:
+          - strategy
+        docs: >-
+          Number of values in the key-value-service that were deleted by targeted sweep threads, because they
+          corresponded to transactions that did not successfully commit.
+      sweepTimestamp:
+        type: gauge
+        tags:
+          - strategy
+        docs: Value of the sweep timestamp (that is, the highest timestamp that is eligible for sweeping).
+      lastSweptTimestamp:
+        type: gauge
+        tags:
+          - strategy
+        docs: Value of the last swept timestamp (that is, the highest timestamp at which we actually did sweep).
+      millisSinceLastSweptTs:
+        type: gauge
+        tags:
+          - strategy
+        docs: >-
+          Estimate in milliseconds of how old the last swept timestamp is. This gives an estimate of when the oldest
+          entries in the sweep queue were written.
+      batchSizeMean:
+        type: gauge
+        tags:
+          - strategy
+        docs: Mean number of entries read in a batch from the targeted sweep queue.

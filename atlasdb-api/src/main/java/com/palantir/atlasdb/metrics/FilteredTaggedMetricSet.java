@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.metrics;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -27,10 +28,10 @@ import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
 public class FilteredTaggedMetricSet implements TaggedMetricSet {
     private final TaggedMetricSet unfiltered;
-    private final Map<MetricName, MetricPublicationFilter> singleMetricFilters;
+    private final Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters;
 
     public FilteredTaggedMetricSet(TaggedMetricSet unfiltered,
-            Map<MetricName, MetricPublicationFilter> singleMetricFilters) {
+            Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters) {
         this.unfiltered = unfiltered;
         this.singleMetricFilters = singleMetricFilters;
     }
@@ -39,7 +40,7 @@ public class FilteredTaggedMetricSet implements TaggedMetricSet {
     public Map<MetricName, Metric> getMetrics() {
         return KeyedStream.stream(unfiltered.getMetrics())
                 .filterEntries((name, metric) -> Optional.ofNullable(singleMetricFilters.get(name))
-                        .map(MetricPublicationFilter::shouldPublish)
+                        .map(FilteredTaggedMetricSet::allFiltersMatch)
                         .orElse(true))
                 .collectToMap();
     }
@@ -47,10 +48,14 @@ public class FilteredTaggedMetricSet implements TaggedMetricSet {
     @Override
     public void forEachMetric(BiConsumer<MetricName, Metric> consumer) {
         unfiltered.forEachMetric((name, metric) -> {
-            MetricPublicationFilter relevantFilter = singleMetricFilters.get(name);
-            if (relevantFilter == null || relevantFilter.shouldPublish()) {
+            List<MetricPublicationFilter> relevantFilters = singleMetricFilters.get(name);
+            if (relevantFilters == null || allFiltersMatch(relevantFilters)) {
                 consumer.accept(name, metric);
             }
         });
+    }
+
+    private static boolean allFiltersMatch(List<MetricPublicationFilter> relevantFilters) {
+        return relevantFilters.stream().allMatch(MetricPublicationFilter::shouldPublish);
     }
 }

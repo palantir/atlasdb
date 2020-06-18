@@ -37,13 +37,19 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
 import com.palantir.atlasdb.metrics.FilteredTaggedMetricSet;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -57,7 +63,7 @@ public class MetricsManager {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
     private final Set<MetricName> registeredTaggedMetrics;
-    private final Map<MetricName, MetricPublicationFilter> metricsFilters;
+    private final Map<MetricName, List<MetricPublicationFilter>> metricsFilters;
     private final Predicate<TableReference> isSafeToLog;
     private final ReadWriteLock lock;
     private final MetricNameCache metricNameCache;
@@ -81,6 +87,12 @@ public class MetricsManager {
 
     public TaggedMetricRegistry getTaggedRegistry() {
         return taggedMetricRegistry;
+    }
+
+    public void addMetricFilter(MetricName metricName, MetricPublicationFilter publicationFilter) {
+        metricsFilters.merge(metricName, ImmutableList.of(publicationFilter), (oldFilters, newFilter) -> {
+            return ImmutableList.<MetricPublicationFilter>builder().addAll(oldFilters).addAll(newFilter).build();
+        });
     }
 
     public TaggedMetricSet getPublishableMetrics() {
