@@ -606,7 +606,7 @@ public abstract class TransactionManagers {
                         .shouldLimitPayload(true)
                         .build());
 
-        return () -> broadcastDialogueServiceProvider.getSingleNodeProxies(
+        return broadcastDialogueServiceProvider.getSingleNodeProxies(
                 TimeLockClientFeedbackService.class,
                 true);
     }
