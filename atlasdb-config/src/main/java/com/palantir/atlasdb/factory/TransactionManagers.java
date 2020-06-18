@@ -379,7 +379,7 @@ public abstract class TransactionManagers {
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
 
         TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = getTimeLockFeedbackBackgroundTask(closeables,
-                config(), runtime);
+                config(), runtime, metricsManager);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -576,10 +576,11 @@ public abstract class TransactionManagers {
     private TimeLockFeedbackBackgroundTask getTimeLockFeedbackBackgroundTask(
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
-            Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
+            MetricsManager metricsManager) {
         Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServicesSupplier
                 = getTimeLockClientFeedbackServices(config,
-                runtimeConfig, userAgent());
+                runtimeConfig, userAgent(), metricsManager);
         return initializeCloseable(
                 () -> TimeLockFeedbackBackgroundTask.create(
                         globalTaggedMetricRegistry(),
@@ -591,28 +592,34 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static Supplier<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            UserAgent userAgent) {
+            UserAgent userAgent, MetricsManager metricsManager) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
         return new CachedTransformingSupplier<>(
                 serverListConfigSupplier,
-                serverListConfig -> createProxiesForFeedbackService(userAgent, serverListConfig));
+                serverListConfig -> createProxiesForFeedbackService(userAgent, serverListConfig, metricsManager));
     }
 
     private static List<TimeLockClientFeedbackService> createProxiesForFeedbackService(UserAgent userAgent,
-            ServerListConfig serverListConfig) {
+            ServerListConfig serverListConfig, MetricsManager metricsManager) {
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
+                Refreshable.only(ServicesConfigBlock.builder().build()));
         return serverListConfig.servers().stream()
-           .map(uri -> AtlasDbHttpClients.createProxy(
-                   serverListConfig.trustContext(),
-                   uri,
-                   TimeLockClientFeedbackService.class,
-                   AuxiliaryRemotingParameters.builder()
-                           .shouldUseExtendedTimeout(true)
-                           .shouldLimitPayload(true)
-                           .shouldRetry(true)
-                           .userAgent(userAgent)
-                           .build()))
-           .collect(Collectors.toList());
+                .map(uri -> {
+                    AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
+                            Refreshable.only(
+                                    ImmutableServerListConfig
+                                            .builder()
+                                            .from(serverListConfig)
+                                            .servers(
+                                                    ImmutableList
+                                                            .of(uri))
+                                            .build()),
+                            reloadingFactory,
+                            userAgent,
+                            metricsManager.getTaggedRegistry());
+                    return serviceProvider.getTimeLockClientFeedbackRpcClient();
+                }).collect(Collectors.toList());
     }
 
     abstract Optional<String> serviceIdentifierOverride();
