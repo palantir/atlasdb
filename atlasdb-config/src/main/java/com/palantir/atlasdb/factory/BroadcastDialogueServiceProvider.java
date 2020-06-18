@@ -103,13 +103,13 @@ public final class BroadcastDialogueServiceProvider {
         return Maps.immutableEntry(getServiceName(uri, shouldRetry), proxy);
     }
 
-    public <T> List<T> getSingleNodeProxies(Class<T> clazz, boolean shouldRetry) {
-        return this.serverListConfigSupplier.current().servers()
+    public <T> Refreshable<List<T>> getSingleNodeProxies(Class<T> clazz, boolean shouldRetry) {
+        return this.serverListConfigSupplier.map(serverListConfig -> serverListConfig.servers()
                 .stream()
                 .map(uri -> createDialogueProxy(
                         clazz,
                         reloadingFactory.getChannel(getServiceName(uri, shouldRetry))))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
     }
 
 
