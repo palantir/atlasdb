@@ -909,7 +909,7 @@ public class TransactionManagersTest {
     private void verifyFeedbackIsReportedToService() {
         AuthHeader authHeader = AuthHeader.valueOf("Bearer omitted");
 
-        Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
+        Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
                         config, Refreshable.only(runtimeConfig), USER_AGENT);
         TimeLockClientFeedbackService timeLockClientFeedbackService = timeLockClientFeedbackServices.get().get(0);
