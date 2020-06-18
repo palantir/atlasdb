@@ -28,6 +28,7 @@ import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpProtocolVersion;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.v2.DialogueClientOptions;
 import com.palantir.atlasdb.http.v2.DialogueShimFactory;
 import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
@@ -58,8 +59,9 @@ public final class BroadcastDialogueServiceProvider {
     public static BroadcastDialogueServiceProvider create(
             DialogueClients.ReloadingFactory baseFactory,
             Refreshable<ServerListConfig> serverListConfigSupplier,
-            UserAgent versionedAgent,
+            UserAgent userAgent,
             AuxiliaryRemotingParameters parameters) {
+        UserAgent versionedAgent = userAgent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
         Refreshable<Map<String, RemoteServiceConfiguration>> timeLockRemoteConfigurations = serverListConfigSupplier
                 .map(serverListConfig -> createRemoteServiceConfigurations(
                         serverListConfig,
