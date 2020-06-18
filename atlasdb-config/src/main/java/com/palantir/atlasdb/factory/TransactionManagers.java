@@ -595,31 +595,24 @@ public abstract class TransactionManagers {
             UserAgent userAgent, MetricsManager metricsManager) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
-        return new CachedTransformingSupplier<>(
-                serverListConfigSupplier,
-                serverListConfig -> createProxiesForFeedbackService(userAgent, serverListConfig, metricsManager));
-    }
-
-    private static List<TimeLockClientFeedbackService> createProxiesForFeedbackService(UserAgent userAgent,
-            ServerListConfig serverListConfig, MetricsManager metricsManager) {
         DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
                 Refreshable.only(ServicesConfigBlock.builder().build()));
-        return serverListConfig.servers().stream()
-                .map(uri -> {
-                    AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
-                            Refreshable.only(
-                                    ImmutableServerListConfig
-                                            .builder()
-                                            .from(serverListConfig)
-                                            .servers(
-                                                    ImmutableList
-                                                            .of(uri))
-                                            .build()),
-                            reloadingFactory,
-                            userAgent,
-                            metricsManager.getTaggedRegistry());
-                    return serviceProvider.getTimeLockClientFeedbackRpcClient();
-                }).collect(Collectors.toList());
+
+        BroadcastDialogueServiceProvider broadcastDialogueServiceProvider = BroadcastDialogueServiceProvider.create(
+                reloadingFactory, serverListConfigSupplier, userAgent,
+                AuxiliaryRemotingParameters
+                        .builder()
+                        .shouldRetry(true)
+                        .userAgent(userAgent)
+                        .shouldLimitPayload(true)
+                        .build());
+
+        return new CachedTransformingSupplier<>(
+                serverListConfigSupplier,
+                serverListConfig -> broadcastDialogueServiceProvider
+                        .getSingleNodeProxies(
+                                TimeLockClientFeedbackService.class,
+                                true));
     }
 
     abstract Optional<String> serviceIdentifierOverride();
