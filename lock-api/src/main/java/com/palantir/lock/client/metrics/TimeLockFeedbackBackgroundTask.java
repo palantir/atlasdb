@@ -33,7 +33,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.timelock.adjudicate.Constants;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tokens.auth.AuthHeader;
@@ -81,8 +80,8 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             try {
                 ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                         .builder()
-                        .stats(ImmutableMap.of(Constants.START_TRANSACTION,
-                                getEndpointStatsForStartTxn()))
+                        .startTransaction(getEndpointStatsForStartTxn())
+                        .leaderTime(getEndpointStatsForLeaderTime())
                         .atlasVersion(versionSupplier.get())
                         .nodeId(nodeId)
                         .serviceName(serviceName)
@@ -110,6 +109,22 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             // we do not want this exception to bubble up so that feedback can be reported to other hosts
             log.warn("Failed to report feedback to TimeLock host.", e);
         }
+    }
+
+    private EndpointStatistics getEndpointStatsForLeaderTime() {
+        return EndpointStatistics.of(getP99ForLeaderTime(),
+                getOneMinuteRateForLeaderTime());
+    }
+
+    private double getOneMinuteRateForLeaderTime() {
+        return conjureTimelockServiceBlockingMetrics.leaderTime().getOneMinuteRate();
+    }
+
+    private double getP99ForLeaderTime() {
+        return conjureTimelockServiceBlockingMetrics
+                .leaderTime()
+                .getSnapshot()
+                .get99thPercentile();
     }
 
     private EndpointStatistics getEndpointStatsForStartTxn() {
