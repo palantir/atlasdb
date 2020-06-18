@@ -33,7 +33,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.timelock.adjudicate.Constants;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tokens.auth.AuthHeader;
@@ -131,7 +130,6 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
 
     private double getP99ForLeaderTime() {
         return getP99(() -> conjureTimelockServiceBlockingMetrics.leaderTime());
-
     }
 
     private EndpointStatistics getEndpointStatsForStartTxn() {
