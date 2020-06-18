@@ -911,7 +911,7 @@ public class TransactionManagersTest {
 
         Supplier<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
-                        config, Refreshable.only(runtimeConfig), USER_AGENT, metricsManager);
+                        config, Refreshable.only(runtimeConfig), USER_AGENT);
         TimeLockClientFeedbackService timeLockClientFeedbackService = timeLockClientFeedbackServices.get().get(0);
         ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                 .builder()
