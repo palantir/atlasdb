@@ -198,7 +198,6 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import com.palantir.util.CachedTransformingSupplier;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -555,14 +554,14 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
-        Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServicesSupplier
+        Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices
                 = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent());
         return initializeCloseable(
                 () -> TimeLockFeedbackBackgroundTask.create(
                         globalTaggedMetricRegistry(),
                         () -> AtlasDbVersion.readVersion(),
                         serviceName(),
-                        timeLockClientFeedbackServicesSupplier), closeables);
+                        refreshableTimeLockClientFeedbackServices), closeables);
     }
 
     @VisibleForTesting
@@ -575,7 +574,9 @@ public abstract class TransactionManagers {
                 Refreshable.only(ServicesConfigBlock.builder().build()));
 
         BroadcastDialogueServiceProvider broadcastDialogueServiceProvider = BroadcastDialogueServiceProvider.create(
-                reloadingFactory, serverListConfigSupplier, userAgent,
+                reloadingFactory,
+                serverListConfigSupplier,
+                userAgent,
                 AuxiliaryRemotingParameters
                         .builder()
                         .shouldRetry(true)
