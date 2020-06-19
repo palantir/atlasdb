@@ -59,7 +59,7 @@ public class TargetedSweepMetricPublicationFilter implements MetricPublicationFi
         }
         boolean conditionsAchieved = testConditions();
         if (conditionsAchieved) {
-            publicationLatch.compareAndSet(false, true);
+            publicationLatch.set(true);
         }
         return conditionsAchieved;
     }

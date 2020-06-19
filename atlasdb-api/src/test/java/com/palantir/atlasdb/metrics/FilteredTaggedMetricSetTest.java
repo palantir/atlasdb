@@ -23,7 +23,6 @@ import java.util.Objects;
 import org.junit.Test;
 
 import com.codahale.metrics.Timer;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;

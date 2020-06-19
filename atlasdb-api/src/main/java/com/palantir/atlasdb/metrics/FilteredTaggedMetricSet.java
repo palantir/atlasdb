@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.metrics;
 
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
@@ -59,7 +58,8 @@ public class FilteredTaggedMetricSet implements TaggedMetricSet {
             unfiltered.forEachMetric((name, metric) -> {
                 if (metricNameFilter.test(name)) {
                     consumer.accept(name, metric);
-                }            });
+                }
+            });
         } else {
             unfiltered.forEachMetric(consumer);
         }
