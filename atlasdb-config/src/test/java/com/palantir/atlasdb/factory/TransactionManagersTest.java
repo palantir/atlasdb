@@ -918,7 +918,8 @@ public class TransactionManagersTest {
 
     private void verifyFeedbackIsReportedToService() {
         AuthHeader authHeader = AuthHeader.valueOf("Bearer omitted");
-        SettableRefreshable<AtlasDbRuntimeConfig> refreshableRuntimeConfig = Refreshable.create(mockAtlasDbRuntimeConfig);
+        SettableRefreshable<AtlasDbRuntimeConfig> refreshableRuntimeConfig =
+                Refreshable.create(mockAtlasDbRuntimeConfig);
         Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
                         config, refreshableRuntimeConfig, USER_AGENT);
