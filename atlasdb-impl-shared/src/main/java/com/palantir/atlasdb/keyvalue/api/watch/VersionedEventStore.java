@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -32,6 +33,7 @@ import com.palantir.logsafe.Preconditions;
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
 
+    @JsonProperty
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {

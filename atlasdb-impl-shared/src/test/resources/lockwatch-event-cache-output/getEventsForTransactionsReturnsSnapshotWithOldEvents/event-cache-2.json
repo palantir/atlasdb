@@ -1,0 +1,53 @@
+{
+  "eventLog" : {
+    "snapshot" : {
+      "watches" : [ {
+        "type" : "fullTable",
+        "qualifiedTableRef" : "table"
+      } ],
+      "locked" : [ {
+        "bytes" : "dGFibGUAAw=="
+      } ],
+      "snapshotVersion" : {
+        "present" : true
+      },
+      "snapshot" : null
+    },
+    "eventStore" : {
+      "eventMap" : {
+        "10" : {
+          "type" : "lock",
+          "sequence" : 10,
+          "lockDescriptors" : [ {
+            "bytes" : "dGFibGUAAQ=="
+          } ],
+          "lockToken" : {
+            "requestId" : "888fcd7a-b3d7-4d2a-9d2c-3d61cde1ba44"
+          }
+        }
+      }
+    },
+    "latestVersion" : {
+      "present" : true
+    },
+    "latestKnownVersion" : {
+      "present" : true
+    }
+  },
+  "timestampStateStore" : {
+    "timestampMap" : {
+      "16" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 10
+        },
+        "commitInfo" : {
+          "present" : false
+        }
+      }
+    },
+    "aliveVersions" : {
+      "empty" : false
+    }
+  }
+}

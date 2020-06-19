@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.watch.CacheStatus;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -26,9 +27,11 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
 
 final class LockWatchEventLogImpl implements LockWatchEventLog {
+    @JsonProperty
     private final ClientLockWatchSnapshot snapshot;
+    @JsonProperty
     private final VersionedEventStore eventStore = new VersionedEventStore();
-
+    @JsonProperty
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
     static LockWatchEventLog create() {

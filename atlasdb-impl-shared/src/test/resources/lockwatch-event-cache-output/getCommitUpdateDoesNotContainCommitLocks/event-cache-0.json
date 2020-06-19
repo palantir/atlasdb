@@ -1,0 +1,27 @@
+{
+  "eventLog" : {
+    "snapshot" : {
+      "watches" : [ ],
+      "locked" : [ ],
+      "snapshotVersion" : {
+        "present" : false
+      },
+      "snapshot" : null
+    },
+    "eventStore" : {
+      "eventMap" : { }
+    },
+    "latestVersion" : {
+      "present" : false
+    },
+    "latestKnownVersion" : {
+      "present" : false
+    }
+  },
+  "timestampStateStore" : {
+    "timestampMap" : { },
+    "aliveVersions" : {
+      "empty" : true
+    }
+  }
+}

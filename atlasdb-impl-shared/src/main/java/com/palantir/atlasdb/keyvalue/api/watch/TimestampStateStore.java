@@ -23,6 +23,9 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -33,7 +36,9 @@ import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 
 final class TimestampStateStore {
+    @JsonProperty
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
+    @JsonProperty
     private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
     void putStartTimestamps(Collection<Long> startTimestamps, IdentifiedVersion version) {
@@ -83,6 +88,8 @@ final class TimestampStateStore {
     }
 
     @Value.Immutable
+    @JsonDeserialize(as = ImmutableMapEntry.class)
+    @JsonSerialize(as = ImmutableMapEntry.class)
     interface MapEntry {
         @Value.Parameter
         IdentifiedVersion version();
@@ -100,6 +107,8 @@ final class TimestampStateStore {
     }
 
     @Value.Immutable
+    @JsonDeserialize(as = ImmutableCommitInfo.class)
+    @JsonSerialize(as = ImmutableCommitInfo.class)
     interface CommitInfo {
         @Value.Parameter
         LockToken commitLockToken();

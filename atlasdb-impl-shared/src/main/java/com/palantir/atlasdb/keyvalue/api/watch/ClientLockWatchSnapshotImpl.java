@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
@@ -35,9 +37,12 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
+    @JsonProperty
     private final Set<LockWatchReferences.LockWatchReference> watches;
+    @JsonProperty
     private final Set<LockDescriptor> locked;
     private final EventVisitor visitor;
+    @JsonProperty
     private Optional<IdentifiedVersion> snapshotVersion;
 
     static ClientLockWatchSnapshot create() {
@@ -63,6 +68,7 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
     }
 
     @Override
+    @JsonIgnore
     public void processEvents(LockWatchEvents events, UUID versionId) {
         if(!events.latestSequence().isPresent()) {
             return;

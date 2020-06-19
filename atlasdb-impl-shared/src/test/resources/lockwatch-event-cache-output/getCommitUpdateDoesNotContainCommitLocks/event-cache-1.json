@@ -1,0 +1,39 @@
+{
+  "eventLog" : {
+    "snapshot" : {
+      "watches" : [ ],
+      "locked" : [ {
+        "bytes" : "dGFibGUAAg=="
+      } ],
+      "snapshotVersion" : {
+        "present" : true
+      },
+      "snapshot" : null
+    },
+    "eventStore" : {
+      "eventMap" : { }
+    },
+    "latestVersion" : {
+      "present" : true
+    },
+    "latestKnownVersion" : {
+      "present" : true
+    }
+  },
+  "timestampStateStore" : {
+    "timestampMap" : {
+      "1" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 3
+        },
+        "commitInfo" : {
+          "present" : false
+        }
+      }
+    },
+    "aliveVersions" : {
+      "empty" : false
+    }
+  }
+}
