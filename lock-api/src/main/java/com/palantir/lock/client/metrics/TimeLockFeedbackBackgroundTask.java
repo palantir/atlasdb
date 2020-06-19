@@ -43,7 +43,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
-    private static final Duration timeLockClientFeedbackReportInterval = Duration.ofSeconds(30);
+    private static final Duration TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL = Duration.ofSeconds(30);
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
                     new NamedThreadFactory(TIMELOCK_FEEDBACK_THREAD_PREFIX, true));
@@ -98,8 +98,8 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                 log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
             }
         },
-                timeLockClientFeedbackReportInterval.getSeconds(),
-                timeLockClientFeedbackReportInterval.getSeconds(),
+                TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
+                TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);
     }
 

@@ -573,7 +573,7 @@ public abstract class TransactionManagers {
         DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
                 Refreshable.only(ServicesConfigBlock.builder().build()));
 
-        BroadcastDialogueServiceProvider broadcastDialogueServiceProvider = BroadcastDialogueServiceProvider.create(
+        BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
                 reloadingFactory,
                 serverListConfigSupplier,
                 userAgent,
@@ -584,7 +584,7 @@ public abstract class TransactionManagers {
                         .shouldLimitPayload(true)
                         .build());
 
-        return broadcastDialogueServiceProvider.getSingleNodeProxies(
+        return broadcastDialogueClientFactory.getSingleNodeProxies(
                 TimeLockClientFeedbackService.class,
                 true);
     }

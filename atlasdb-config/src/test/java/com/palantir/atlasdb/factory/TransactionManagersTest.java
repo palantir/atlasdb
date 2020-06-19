@@ -204,7 +204,7 @@ public class TransactionManagersTest {
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
-        availableServer.stubFor(FEEDBACK_MAPPING.willReturn(aResponse().withStatus(200)));
+        availableServer.stubFor(FEEDBACK_MAPPING.willReturn(aResponse().withStatus(204)));
 
         config = mock(AtlasDbConfig.class);
         when(config.leader()).thenReturn(Optional.empty());
@@ -225,9 +225,7 @@ public class TransactionManagersTest {
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
 
         availablePort = availableServer.port();
-
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
-//        timeLockRuntimeConfig = getTimelockRuntimeConfig(ImmutableList.of(getUriForPort(availablePort)));
 
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))

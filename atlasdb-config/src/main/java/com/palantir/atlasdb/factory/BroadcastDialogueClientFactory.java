@@ -40,24 +40,25 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 
 /**
- * Provides a mechanism for creating individual proxies that use Dialogue for communication for each node in the
- * cluster.
+ * Provides a mechanism for creating individual proxy for each node in a cluster that use Dialogue for communication
+ * unlike {@link AtlasDbDialogueServiceProvider} which creates a proxy for a service i.e. a cluster of
+ * zero or more nodes, where contacting any of the nodes is legitimate (subject to redirects via 308s and 503s).
  *
  * Furthermore, proxies should include in their {@link com.palantir.conjure.java.api.config.service.UserAgent}
  * information to allow client services to identify the protocol they are using to talk, via
  * {@link AtlasDbHttpProtocolVersion}.
  */
-public final class BroadcastDialogueServiceProvider {
+public final class BroadcastDialogueClientFactory {
     DialogueClients.ReloadingFactory reloadingFactory;
     Refreshable<ServerListConfig> serverListConfigSupplier;
 
-    private BroadcastDialogueServiceProvider(DialogueClients.ReloadingFactory reloadingFactory,
+    private BroadcastDialogueClientFactory(DialogueClients.ReloadingFactory reloadingFactory,
             Refreshable<ServerListConfig> serverListConfigSupplier) {
         this.reloadingFactory = reloadingFactory;
         this.serverListConfigSupplier = serverListConfigSupplier;
     }
 
-    public static BroadcastDialogueServiceProvider create(
+    public static BroadcastDialogueClientFactory create(
             DialogueClients.ReloadingFactory baseFactory,
             Refreshable<ServerListConfig> serverListConfigSupplier,
             UserAgent userAgent,
@@ -72,7 +73,7 @@ public final class BroadcastDialogueServiceProvider {
         DialogueClients.ReloadingFactory reloadingFactory = baseFactory.reloading(
                 timeLockRemoteConfigurations.map(DialogueClientOptions::toServicesConfigBlock))
                 .withUserAgent(versionedAgent);
-        return new BroadcastDialogueServiceProvider(reloadingFactory, serverListConfigSupplier);
+        return new BroadcastDialogueClientFactory(reloadingFactory, serverListConfigSupplier);
     }
 
     private static Map<String, RemoteServiceConfiguration> createRemoteServiceConfigurations(
