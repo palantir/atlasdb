@@ -225,6 +225,7 @@ public class TransactionManagersTest {
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
 
         availablePort = availableServer.port();
+
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
 
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
