@@ -43,6 +43,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
 import com.palantir.atlasdb.metrics.FilteredTaggedMetricSet;
+import com.palantir.atlasdb.metrics.MetricPublicationArbiter;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
@@ -95,7 +96,8 @@ public class MetricsManager {
         TaggedMetricSet legacyMetricsAsTaggedSet = new DropwizardTaggedMetricSet(metricRegistry);
         TaggedMetricSet unfilteredUnion
                 = new DisjointUnionTaggedMetricSet(legacyMetricsAsTaggedSet, taggedMetricRegistry);
-        return new FilteredTaggedMetricSet(unfilteredUnion, metricsFilters, performFiltering);
+        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(metricsFilters);
+        return new FilteredTaggedMetricSet(unfilteredUnion, arbiter, performFiltering);
     }
 
     public MetricRegistry getRegistry() {

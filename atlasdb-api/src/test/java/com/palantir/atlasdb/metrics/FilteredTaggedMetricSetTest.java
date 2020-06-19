@@ -18,6 +18,8 @@ package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Objects;
+
 import org.junit.Test;
 
 import com.codahale.metrics.Timer;
@@ -44,9 +46,7 @@ public class FilteredTaggedMetricSetTest {
         Timer timer = taggedMetricRegistry.timer(METRIC_NAME_1);
 
         FilteredTaggedMetricSet filteredTaggedMetricSet = new FilteredTaggedMetricSet(
-                taggedMetricRegistry,
-                ImmutableMap.of(METRIC_NAME_1, ImmutableList.of(() -> false)),
-                Refreshable.only(false));
+                taggedMetricRegistry, $ -> false, Refreshable.only(false));
         assertThat(filteredTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
                 ImmutableMap.of(METRIC_NAME_1, timer));
     }
@@ -57,35 +57,8 @@ public class FilteredTaggedMetricSetTest {
         Timer timer = taggedMetricRegistry.timer(METRIC_NAME_2);
 
         FilteredTaggedMetricSet filteredTaggedMetricSet = new FilteredTaggedMetricSet(
-                taggedMetricRegistry,
-                ImmutableMap.of(
-                        METRIC_NAME_1, ImmutableList.of(() -> false),
-                        METRIC_NAME_2, ImmutableList.of(() -> true)),
-                Refreshable.only(true));
+                taggedMetricRegistry, name -> Objects.equals(name, METRIC_NAME_2), Refreshable.only(true));
         assertThat(filteredTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
                 ImmutableMap.of(METRIC_NAME_2, timer));
-    }
-
-    @Test
-    public void metricsWithNoRegisteredFiltersAreAlwaysAllowed() {
-        Timer timer = taggedMetricRegistry.timer(METRIC_NAME_1);
-
-        FilteredTaggedMetricSet filteredTaggedMetricSet = new FilteredTaggedMetricSet(
-                taggedMetricRegistry,
-                ImmutableMap.of(),
-                Refreshable.only(true));
-        assertThat(filteredTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(METRIC_NAME_1, timer));
-    }
-
-    @Test
-    public void oneRejectingFilterIsSufficientToPreventMetricFromBeingPublished() {
-        taggedMetricRegistry.timer(METRIC_NAME_1);
-
-        FilteredTaggedMetricSet filteredTaggedMetricSet = new FilteredTaggedMetricSet(
-                taggedMetricRegistry,
-                ImmutableMap.of(METRIC_NAME_1, ImmutableList.of(() -> true, () -> false, () -> true)),
-                Refreshable.only(true));
-        assertThat(filteredTaggedMetricSet.getMetrics()).isEmpty();
     }
 }

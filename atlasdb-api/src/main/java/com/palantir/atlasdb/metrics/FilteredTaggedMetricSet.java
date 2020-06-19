@@ -18,8 +18,8 @@ package com.palantir.atlasdb.metrics;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 import com.codahale.metrics.Metric;
 import com.palantir.common.streams.KeyedStream;
@@ -29,15 +29,16 @@ import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
 public class FilteredTaggedMetricSet implements TaggedMetricSet {
     private final TaggedMetricSet unfiltered;
-    private final Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters;
+    private final Predicate<MetricName> metricNameFilter;
     private final Refreshable<Boolean> performFiltering;
+
 
     public FilteredTaggedMetricSet(
             TaggedMetricSet unfiltered,
-            Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters,
+            Predicate<MetricName> metricNameFilter,
             Refreshable<Boolean> performFiltering) {
         this.unfiltered = unfiltered;
-        this.singleMetricFilters = singleMetricFilters;
+        this.metricNameFilter = metricNameFilter;
         this.performFiltering = performFiltering;
     }
 
@@ -45,9 +46,7 @@ public class FilteredTaggedMetricSet implements TaggedMetricSet {
     public Map<MetricName, Metric> getMetrics() {
         if (performFiltering.get()) {
             return KeyedStream.stream(unfiltered.getMetrics())
-                    .filterEntries((name, metric) -> Optional.ofNullable(singleMetricFilters.get(name))
-                            .map(FilteredTaggedMetricSet::allFiltersMatch)
-                            .orElse(true))
+                    .filterKeys(metricNameFilter)
                     .collectToMap();
         }
         return unfiltered.getMetrics();
@@ -58,17 +57,11 @@ public class FilteredTaggedMetricSet implements TaggedMetricSet {
         boolean filter = performFiltering.get();
         if (filter) {
             unfiltered.forEachMetric((name, metric) -> {
-                List<MetricPublicationFilter> relevantFilters = singleMetricFilters.get(name);
-                if (relevantFilters == null || allFiltersMatch(relevantFilters)) {
+                if (metricNameFilter.test(name)) {
                     consumer.accept(name, metric);
-                }
-            });
+                }            });
         } else {
             unfiltered.forEachMetric(consumer);
         }
-    }
-
-    private static boolean allFiltersMatch(List<MetricPublicationFilter> relevantFilters) {
-        return relevantFilters.stream().allMatch(MetricPublicationFilter::shouldPublish);
     }
 }
