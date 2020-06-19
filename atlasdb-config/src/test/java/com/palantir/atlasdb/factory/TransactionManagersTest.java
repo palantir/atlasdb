@@ -87,6 +87,7 @@ import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -127,6 +128,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
@@ -174,11 +176,14 @@ public class TransactionManagersTest {
             = DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
 
     private int availablePort;
+
     private TimeLockClientConfig mockClientConfig;
+    private TimeLockRuntimeConfig timeLockRuntimeConfig;
+
     private ServerListConfig rawRemoteServerConfig;
 
     private AtlasDbConfig config;
-    private AtlasDbRuntimeConfig runtimeConfig;
+    private AtlasDbRuntimeConfig mockAtlasDbRuntimeConfig;
     private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
@@ -209,10 +214,10 @@ public class TransactionManagersTest {
         when(config.keyValueService()).thenReturn(new InMemoryAtlasDbConfig());
         when(config.initializeAsync()).thenReturn(false);
 
-        runtimeConfig = mock(AtlasDbRuntimeConfig.class);
-        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
-        when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
-        when(runtimeConfig.remotingClient()).thenReturn(RemotingClientConfigs.DEFAULT);
+        mockAtlasDbRuntimeConfig = mock(AtlasDbRuntimeConfig.class);
+        when(mockAtlasDbRuntimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
+        when(mockAtlasDbRuntimeConfig.timelockRuntime()).thenReturn(Optional.empty());
+        when(mockAtlasDbRuntimeConfig.remotingClient()).thenReturn(RemotingClientConfigs.DEFAULT);
 
         environment = mock(Consumer.class);
 
@@ -220,7 +225,10 @@ public class TransactionManagersTest {
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
 
         availablePort = availableServer.port();
+
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
+//        timeLockRuntimeConfig = getTimelockRuntimeConfig(ImmutableList.of(getUriForPort(availablePort)));
+
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .sslConfiguration(SSL_CONFIGURATION)
@@ -327,7 +335,7 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        Refreshable.only(runtimeConfig),
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
                         environment,
                         lockServiceSupplier,
                         () -> ts,
@@ -827,7 +835,7 @@ public class TransactionManagersTest {
     }
 
     private void setUpTimeLockBlockInRuntimeConfig() {
-        when(runtimeConfig.timelockRuntime())
+        when(mockAtlasDbRuntimeConfig.timelockRuntime())
                 .thenReturn(Optional.of(ImmutableTimeLockRuntimeConfig.builder()
                         .serversList(ImmutableServerListConfig.builder()
                                 .addServers(getUriForPort(availablePort))
@@ -858,7 +866,7 @@ public class TransactionManagersTest {
         return TransactionManagers.createLockAndTimestampServices(
                 metricsManager,
                 config,
-                Refreshable.only(runtimeConfig),
+                Refreshable.only(mockAtlasDbRuntimeConfig),
                 environment,
                 LockServiceImpl::create,
                 () -> ts,
@@ -878,7 +886,7 @@ public class TransactionManagersTest {
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
                         config,
-                        Refreshable.only(runtimeConfig),
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
                         environment,
                         LockServiceImpl::create,
                         () -> ts,
@@ -903,27 +911,36 @@ public class TransactionManagersTest {
     }
 
     private void setUpTimeLockConfig() {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        timeLockRuntimeConfig = getTimelockRuntimeConfig(ImmutableList.of(getUriForPort(availablePort)));
+        when(mockAtlasDbRuntimeConfig.timelockRuntime())
+                .thenReturn(Optional.of(timeLockRuntimeConfig));
     }
 
     private void verifyFeedbackIsReportedToService() {
         AuthHeader authHeader = AuthHeader.valueOf("Bearer omitted");
-
+        SettableRefreshable<AtlasDbRuntimeConfig> refreshableRuntimeConfig = Refreshable.create(mockAtlasDbRuntimeConfig);
         Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
-                        config, Refreshable.only(runtimeConfig), USER_AGENT);
-        TimeLockClientFeedbackService timeLockClientFeedbackService = timeLockClientFeedbackServices.get().get(0);
+                        config, refreshableRuntimeConfig, USER_AGENT);
         ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                 .builder()
                 .atlasVersion("1.0")
                 .serviceName("service")
                 .nodeId(UUID.randomUUID())
                 .build();
-        timeLockClientFeedbackService.reportFeedback(authHeader, feedbackReport);
+        assertThat(timeLockClientFeedbackServices.current().size()).isEqualTo(1);
+        timeLockClientFeedbackServices.current().get(0).reportFeedback(authHeader, feedbackReport);
         List<LoggedRequest> requests = findAll(postRequestedFor(urlMatching(FEEDBACK_PATH)));
         assertThat(requests.size()).isEqualTo(1);
         availableServer.verify(postRequestedFor(urlMatching(FEEDBACK_PATH))
                 .withHeader("Authorization", WireMock.containing("Bearer omitted")));
+
+        /* config with no servers */
+        timeLockRuntimeConfig = getTimelockRuntimeConfig(ImmutableList.of());
+        mockAtlasDbRuntimeConfig = mock(AtlasDbRuntimeConfig.class);
+        when(mockAtlasDbRuntimeConfig.timelockRuntime()).thenReturn(Optional.of(timeLockRuntimeConfig));
+        refreshableRuntimeConfig.update(mockAtlasDbRuntimeConfig);
+        assertThat(timeLockClientFeedbackServices.current().size()).isEqualTo(0);
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
@@ -940,6 +957,15 @@ public class TransactionManagersTest {
     private static TimeLockClientConfig getTimelockConfigForServers(List<String> servers) {
         return ImmutableTimeLockClientConfig.builder()
                 .client(CLIENT)
+                .serversList(ImmutableServerListConfig.builder()
+                        .addAllServers(servers)
+                        .sslConfiguration(SSL_CONFIGURATION)
+                        .build())
+                .build();
+    }
+
+    private static TimeLockRuntimeConfig getTimelockRuntimeConfig(List<String> servers) {
+        return ImmutableTimeLockRuntimeConfig.builder()
                 .serversList(ImmutableServerListConfig.builder()
                         .addAllServers(servers)
                         .sslConfiguration(SSL_CONFIGURATION)

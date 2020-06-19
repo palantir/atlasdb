@@ -40,7 +40,8 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 
 /**
- * Provides a mechanism for creating individual proxies that use Dialogue for communication for each node in the cluster.
+ * Provides a mechanism for creating individual proxies that use Dialogue for communication for each node in the
+ * cluster.
  *
  * Furthermore, proxies should include in their {@link com.palantir.conjure.java.api.config.service.UserAgent}
  * information to allow client services to identify the protocol they are using to talk, via
