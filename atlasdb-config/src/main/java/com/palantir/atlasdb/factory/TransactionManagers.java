@@ -377,8 +377,8 @@ public abstract class TransactionManagers {
 
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
 
-        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = getTimeLockFeedbackBackgroundTask(closeables,
-                config(), runtime);
+        Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask =
+                getTimeLockFeedbackBackgroundTask(closeables, config(), runtime);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -518,7 +518,7 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
-        transactionManager.registerClosingCallback(timeLockFeedbackBackgroundTask::close);
+        timeLockFeedbackBackgroundTask.ifPresent(task -> transactionManager.registerClosingCallback(task::close));
 
         lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);
@@ -572,18 +572,21 @@ public abstract class TransactionManagers {
         return metricsManager;
     }
 
-    private TimeLockFeedbackBackgroundTask getTimeLockFeedbackBackgroundTask(
+    private Optional<TimeLockFeedbackBackgroundTask> getTimeLockFeedbackBackgroundTask(
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
-        Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices
-                = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent());
-        return initializeCloseable(
-                () -> TimeLockFeedbackBackgroundTask.create(
-                        globalTaggedMetricRegistry(),
-                        () -> AtlasDbVersion.readVersion(),
-                        serviceName(),
-                        refreshableTimeLockClientFeedbackServices), closeables);
+        if (isUsingTimeLock(config, runtimeConfig.current())) {
+            Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices
+                    = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent());
+            return Optional.of(initializeCloseable(
+                    () -> TimeLockFeedbackBackgroundTask.create(
+                            globalTaggedMetricRegistry(),
+                            () -> AtlasDbVersion.readVersion(),
+                            serviceName(),
+                            refreshableTimeLockClientFeedbackServices), closeables));
+        }
+        return Optional.empty();
     }
 
     @VisibleForTesting
