@@ -194,7 +194,8 @@ public class TargetedSweepMetrics {
                     ImmutableDecisionMetrics.builder()
                             .enqueuedWrites(enqueuedWrites::getValue)
                             .entriesRead(entriesRead::getValue)
-                            .millisSinceLastSweptTs(millisSinceLastSwept::getValue)
+                            .millisSinceLastSweptTs(
+                                    () -> Optional.ofNullable(millisSinceLastSwept.getValue()).orElse(0L))
                             .build());
             // This is kind of against the point of metrics-filter, but is needed for our filtering
             AtlasDbMetricNames.TARGETED_SWEEP_PROGRESS_METRIC_NAMES
