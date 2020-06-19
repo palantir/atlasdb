@@ -46,8 +46,8 @@ public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
 
     @Override
     public void forEachMetric(BiConsumer<MetricName, Metric> consumer) {
-        first.getMetrics().forEach(consumer);
-        second.getMetrics().forEach(consumer);
+        first.forEachMetric(consumer);
+        second.forEachMetric(consumer);
     }
 
 }
