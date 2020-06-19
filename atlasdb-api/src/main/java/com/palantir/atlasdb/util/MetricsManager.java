@@ -60,7 +60,7 @@ public class MetricsManager {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
     private final Set<MetricName> registeredTaggedMetrics;
-    private final Map<MetricName, List<MetricPublicationFilter>> metricsFilters;
+    private final MetricPublicationArbiter publicationArbiter;
     private final TaggedMetricSet publishableMetricsView;
     private final Predicate<TableReference> isSafeToLog;
     private final ReadWriteLock lock;
@@ -80,10 +80,10 @@ public class MetricsManager {
         this.taggedMetricRegistry = taggedMetricRegistry;
         this.registeredMetrics = ConcurrentHashMap.newKeySet();
         this.registeredTaggedMetrics = ConcurrentHashMap.newKeySet();
-        this.metricsFilters = Maps.newConcurrentMap();
         this.isSafeToLog = isSafeToLog;
+        this.publicationArbiter = new MetricPublicationArbiter(Maps.newConcurrentMap());
         this.publishableMetricsView = createPublishableMetricsView(
-                metricRegistry, taggedMetricRegistry, metricsFilters, performFiltering);
+                metricRegistry, taggedMetricRegistry, publicationArbiter, performFiltering);
         this.lock = new ReentrantReadWriteLock();
         this.metricNameCache = new MetricNameCache();
     }
@@ -91,12 +91,11 @@ public class MetricsManager {
     private static TaggedMetricSet createPublishableMetricsView(
             MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
-            Map<MetricName, List<MetricPublicationFilter>> metricsFilters,
+            MetricPublicationArbiter arbiter,
             Refreshable<Boolean> performFiltering) {
         TaggedMetricSet legacyMetricsAsTaggedSet = new DropwizardTaggedMetricSet(metricRegistry);
         TaggedMetricSet unfilteredUnion
                 = new DisjointUnionTaggedMetricSet(legacyMetricsAsTaggedSet, taggedMetricRegistry);
-        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(metricsFilters);
         return new FilteredTaggedMetricSet(unfilteredUnion, arbiter, performFiltering);
     }
 
@@ -109,8 +108,7 @@ public class MetricsManager {
     }
 
     public void addMetricFilter(MetricName metricName, MetricPublicationFilter publicationFilter) {
-        metricsFilters.merge(metricName, ImmutableList.of(publicationFilter), (oldFilters, newFilter)
-                -> ImmutableList.<MetricPublicationFilter>builder().addAll(oldFilters).addAll(newFilter).build());
+        publicationArbiter.registerMetricsFilter(metricName, publicationFilter);
     }
 
     public TaggedMetricSet getPublishableMetrics() {

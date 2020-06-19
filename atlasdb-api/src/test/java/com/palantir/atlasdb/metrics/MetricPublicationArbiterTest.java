@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 public class MetricPublicationArbiterTest {
@@ -56,5 +57,14 @@ public class MetricPublicationArbiterTest {
                 METRIC_NAME_2, ImmutableList.of(() -> true, () -> true, () -> true)));
         assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
         assertThat(arbiter.test(METRIC_NAME_2)).isTrue();
+    }
+
+    @Test
+    public void canAddFilters() {
+        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(Maps.newConcurrentMap());
+        assertThat(arbiter.test(METRIC_NAME_1)).isTrue();
+
+        arbiter.registerMetricsFilter(METRIC_NAME_1, () -> false);
+        assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
     }
 }

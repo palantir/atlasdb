@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 /**
@@ -40,6 +41,11 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
         return Optional.ofNullable(singleMetricFilters.get(metricName))
                 .map(MetricPublicationArbiter::allFiltersMatch)
                 .orElse(true);
+    }
+
+    public void registerMetricsFilter(MetricName metricName, MetricPublicationFilter filter) {
+        singleMetricFilters.merge(metricName, ImmutableList.of(filter), (oldFilters, newFilter)
+                -> ImmutableList.<MetricPublicationFilter>builder().addAll(oldFilters).addAll(newFilter).build());
     }
 
     private static boolean allFiltersMatch(List<MetricPublicationFilter> relevantFilters) {
