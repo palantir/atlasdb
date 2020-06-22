@@ -131,6 +131,7 @@ import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -372,16 +373,13 @@ public abstract class TransactionManagers {
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = setUpMetricsAndGetMetricsManager();
 
-        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = initializeCloseable(
-                () -> TimeLockFeedbackBackgroundTask.create(
-                        globalTaggedMetricRegistry(),
-                        () -> AtlasDbVersion.readVersion(),
-                        serviceName()), closeables);
-
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
+
+        Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask =
+                getTimeLockFeedbackBackgroundTask(closeables, config(), runtime);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -521,7 +519,7 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
-        transactionManager.registerClosingCallback(timeLockFeedbackBackgroundTask::close);
+        timeLockFeedbackBackgroundTask.ifPresent(task -> transactionManager.registerClosingCallback(task::close));
 
         lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);
@@ -573,6 +571,48 @@ public abstract class TransactionManagers {
                 AtlasDbMetricNames.LIBRARY_ORIGIN_VALUE,
                 new DisjointUnionTaggedMetricSet(taggedLegacyMetrics, internalTaggedAtlasDbMetrics));
         return metricsManager;
+    }
+
+    private Optional<TimeLockFeedbackBackgroundTask> getTimeLockFeedbackBackgroundTask(
+            @Output List<AutoCloseable> closeables,
+            AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
+        if (isUsingTimeLock(config, runtimeConfig.current())) {
+            Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices
+                    = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent());
+            return Optional.of(initializeCloseable(
+                    () -> TimeLockFeedbackBackgroundTask.create(
+                            globalTaggedMetricRegistry(),
+                            () -> AtlasDbVersion.readVersion(),
+                            serviceName(),
+                            refreshableTimeLockClientFeedbackServices), closeables));
+        }
+        return Optional.empty();
+    }
+
+    @VisibleForTesting
+    static Refreshable<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
+            UserAgent userAgent) {
+        Refreshable<ServerListConfig> serverListConfigSupplier =
+                getServerListConfigSupplierForTimeLock(config, runtimeConfig);
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
+                Refreshable.only(ServicesConfigBlock.builder().build()));
+
+        BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
+                reloadingFactory,
+                serverListConfigSupplier,
+                userAgent,
+                AuxiliaryRemotingParameters
+                        .builder()
+                        .shouldRetry(true)
+                        .userAgent(userAgent)
+                        .shouldLimitPayload(true)
+                        .build());
+
+        return broadcastDialogueClientFactory.getSingleNodeProxies(
+                TimeLockClientFeedbackService.class,
+                true);
     }
 
     abstract Optional<String> serviceIdentifierOverride();
