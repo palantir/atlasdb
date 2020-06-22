@@ -1,0 +1,73 @@
+/*
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.keyvalue.api.watch;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Optional;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.UnlockEvent;
+
+public final class VersionedEventStoreTest {
+
+    private static final LockWatchEvent EVENT_1 = UnlockEvent.builder(ImmutableSet.of()).build(1L);
+    private static final LockWatchEvent EVENT_2 = UnlockEvent.builder(ImmutableSet.of()).build(2L);
+    private static final LockWatchEvent EVENT_3 = UnlockEvent.builder(ImmutableSet.of()).build(3L);
+    private static final LockWatchEvent EVENT_4 = UnlockEvent.builder(ImmutableSet.of()).build(4L);
+
+    private VersionedEventStore eventStore;
+
+    @Before
+    public void before() {
+        eventStore = new VersionedEventStore();
+    }
+
+    @Test
+    public void getAndRemoveElementsUpToExclusiveDoesNotIncludeEndVersion() {
+        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3));
+        LockWatchEvents events = eventStore.getAndRemoveElementsUpToExclusive(3L);
+        assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
+        assertThat(events.latestSequence()).hasValue(2L);
+        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
+    }
+
+    @Test
+    public void containsReturnsTrueForValuesLargerThanFirstKey() {
+        eventStore.putAll(ImmutableList.of(EVENT_4));
+        assertThat(eventStore.contains(1L)).isFalse();
+        assertThat(eventStore.contains(5L)).isTrue();
+    }
+
+    @Test
+    public void getEventsBetweenVersionsReturnsInclusiveOnBounds() {
+        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.of(2L), 3L)).containsExactly(EVENT_2, EVENT_3);
+    }
+
+    @Test
+    public void getEventsBetweenVersionsStartsFromFirstKeyIfNotSpecified() {
+        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), 3L))
+                .containsExactly(EVENT_1, EVENT_2, EVENT_3);
+    }
+}

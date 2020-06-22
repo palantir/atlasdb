@@ -14,25 +14,28 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.UUID;
+import java.util.Optional;
 
-import org.immutables.value.Value;
+import com.palantir.lock.watch.IdentifiedVersion;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+final class CacheUpdate {
+    static final CacheUpdate FAILED = new CacheUpdate(true, Optional.empty());
 
-@Value.Immutable
-@JsonDeserialize(as = ImmutableIdentifiedVersion.class)
-@JsonSerialize(as = ImmutableIdentifiedVersion.class)
-public interface IdentifiedVersion {
-    @Value.Parameter
-    UUID id();
-    @Value.Parameter
-    long version();
+    private final boolean shouldClearCache;
+    private final Optional<IdentifiedVersion> version;
 
-    static IdentifiedVersion of(UUID id, long version) {
-        return ImmutableIdentifiedVersion.of(id, version);
+    CacheUpdate(boolean shouldClearCache, Optional<IdentifiedVersion> version) {
+        this.shouldClearCache = shouldClearCache;
+        this.version = version;
+    }
+
+    boolean shouldClearCache() {
+        return shouldClearCache;
+    }
+
+    Optional<IdentifiedVersion> getVersion() {
+        return version;
     }
 }

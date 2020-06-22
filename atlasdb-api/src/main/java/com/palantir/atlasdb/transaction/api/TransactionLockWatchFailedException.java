@@ -14,25 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.transaction.api;
 
-import java.util.UUID;
+public final class TransactionLockWatchFailedException extends TransactionFailedRetriableException {
+    public TransactionLockWatchFailedException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
-@Value.Immutable
-@JsonDeserialize(as = ImmutableIdentifiedVersion.class)
-@JsonSerialize(as = ImmutableIdentifiedVersion.class)
-public interface IdentifiedVersion {
-    @Value.Parameter
-    UUID id();
-    @Value.Parameter
-    long version();
-
-    static IdentifiedVersion of(UUID id, long version) {
-        return ImmutableIdentifiedVersion.of(id, version);
+    public TransactionLockWatchFailedException(String message) {
+        super(message);
     }
 }

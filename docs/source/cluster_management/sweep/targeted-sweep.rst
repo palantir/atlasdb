@@ -3,11 +3,6 @@
 Targeted Sweep
 ==============
 
-.. warning::
-
-   Targeted sweep is still under active development and some of its functionality is not implemented yet.
-   Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
-
 Targeted sweep persists the information about each transactional write as it is performed, and then uses this information to delete all older versions of each of the cells using a single ranged tombstone.
 
 Persisting to the Sweep Queue

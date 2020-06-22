@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
-
-import java.util.UUID;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import org.immutables.value.Value;
 
@@ -24,15 +22,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableIdentifiedVersion.class)
-@JsonSerialize(as = ImmutableIdentifiedVersion.class)
-public interface IdentifiedVersion {
-    @Value.Parameter
-    UUID id();
-    @Value.Parameter
-    long version();
+@JsonSerialize(as = ImmutableLockWatchEventCacheState.class)
+@JsonDeserialize(as = ImmutableLockWatchEventCacheState.class)
+interface LockWatchEventCacheState {
+    LockWatchEventLogState logState();
 
-    static IdentifiedVersion of(UUID id, long version) {
-        return ImmutableIdentifiedVersion.of(id, version);
-    }
+    TimestampStateStoreState timestampStoreState();
 }
