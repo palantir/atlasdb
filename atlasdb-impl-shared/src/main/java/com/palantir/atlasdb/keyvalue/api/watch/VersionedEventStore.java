@@ -34,7 +34,6 @@ import com.palantir.logsafe.Preconditions;
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
 
-    @JsonProperty
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
