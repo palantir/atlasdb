@@ -23,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,6 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackS
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
@@ -91,9 +91,6 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                 timeLockClientFeedbackServices
                         .current()
                         .forEach(service -> reportClientFeedbackToService(feedbackReport, service));
-                log.info("The TimeLock client metrics for startTransaction endpoint aggregated "
-                                + "over the last 1 minute - {}",
-                        SafeArg.of("startTxnStats", feedbackReport));
             } catch (Exception e) {
                 log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
             }
