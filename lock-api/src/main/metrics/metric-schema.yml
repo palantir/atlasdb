@@ -13,9 +13,9 @@ namespaces:
         docs: how long it takes to start transaction in timelock
       leaderTimeErrors:
           type: meter
-          docs: error rate for startTransaction api in timelock
+          docs: error rate for leaderTime api in timelock
       startTransactionErrors:
         type: meter
-        docs: error rate for leaderTime api in timelock
+        docs: error rate for startTransaction api in timelock
 
 
