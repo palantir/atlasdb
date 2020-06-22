@@ -44,7 +44,7 @@ public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFee
     }
     @Override
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
-        // collect and assess feedback report
+        FeedbackReportsSink.registerFeedbackReport(feedbackReport);
         return Futures.immediateVoidFuture();
     }
 
