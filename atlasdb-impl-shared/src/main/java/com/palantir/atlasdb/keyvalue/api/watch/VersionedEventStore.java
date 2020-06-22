@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -61,6 +62,13 @@ final class VersionedEventStore {
 
     void clear() {
         eventMap.clear();
+    }
+
+    @VisibleForTesting
+    VersionedEventStoreState getStateForTesting() {
+        return ImmutableVersionedEventStoreState.builder()
+                .eventMap(eventMap)
+                .build();
     }
 
     private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, Long startVersion) {

@@ -54,19 +54,26 @@
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
           "version" : 3
         },
-        "commitInfo" : {
-          "commitLockToken" : {
-            "requestId" : "203fcd7a-b3d7-4c2a-9d2c-3d61cde1ba59"
-          },
-          "commitVersion" : {
-            "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
-            "version" : 6
-          }
-        }
+        "commitInfo" : null
+      },
+      "11" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 6
+        },
+        "commitInfo" : null
+      },
+      "12" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 6
+        },
+        "commitInfo" : null
       }
     },
     "aliveVersions" : {
-      "3" : [ 1 ]
+      "3" : [ 1 ],
+      "6" : [ 11, 12 ]
     }
   }
 }

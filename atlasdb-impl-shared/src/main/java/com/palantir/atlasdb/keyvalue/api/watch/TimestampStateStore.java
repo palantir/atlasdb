@@ -23,9 +23,9 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -36,9 +36,7 @@ import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 
 final class TimestampStateStore {
-    @JsonProperty
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
-    @JsonProperty
     private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
     void putStartTimestamps(Collection<Long> startTimestamps, IdentifiedVersion version) {
@@ -85,6 +83,14 @@ final class TimestampStateStore {
 
     Optional<CommitInfo> getCommitInfo(long startTimestamp) {
         return Optional.ofNullable(timestampMap.get(startTimestamp)).flatMap(MapEntry::commitInfo);
+    }
+
+    @VisibleForTesting
+    TimestampStateStoreState getStateForTesting() {
+        return ImmutableTimestampStateStoreState.builder()
+                .timestampMap(timestampMap)
+                .aliveVersions(aliveVersions)
+                .build();
     }
 
     @Value.Immutable

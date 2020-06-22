@@ -34,17 +34,6 @@ public interface LockWatchEvents {
 
     Optional<Long> latestSequence();
 
-    @Value.Check
-    default void assertEventsAreContiguous() {
-        if (events().isEmpty()) {
-            return;
-        }
-        for (int i = 0; i < events().size() - 1; ++i) {
-            Preconditions.checkArgument(events().get(i).sequence() + 1 == events().get(i + 1).sequence(),
-                    "Events form a non-contiguous sequence");
-        }
-    }
-
     static LockWatchEvents create(Set<Map.Entry<Long, LockWatchEvent>> versionToEventSet) {
         if (versionToEventSet.isEmpty()) {
             return ImmutableLockWatchEvents.builder().build();

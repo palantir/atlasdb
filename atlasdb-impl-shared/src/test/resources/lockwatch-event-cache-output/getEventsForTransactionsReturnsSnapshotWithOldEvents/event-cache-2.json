@@ -1,6 +1,6 @@
 {
-  "eventLog" : {
-    "snapshot" : {
+  "logState" : {
+    "snapshotState" : {
       "watches" : [ {
         "type" : "fullTable",
         "qualifiedTableRef" : "table"
@@ -15,11 +15,11 @@
         "version" : 6
       }
     },
-    "eventStore" : {
+    "eventStoreState" : {
       "eventMap" : {
-        "10" : {
+        "7" : {
           "type" : "lock",
-          "sequence" : 10,
+          "sequence" : 7,
           "lockDescriptors" : [ {
             "bytes" : "dGFibGUAAQ=="
           } ],
@@ -31,21 +31,21 @@
     },
     "latestVersion" : {
       "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
-      "version" : 10
+      "version" : 7
     }
   },
-  "timestampStateStore" : {
+  "timestampStoreState" : {
     "timestampMap" : {
       "16" : {
         "version" : {
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
-          "version" : 10
+          "version" : 7
         },
         "commitInfo" : null
       }
     },
     "aliveVersions" : {
-      "10" : [ 16 ]
+      "7" : [ 16 ]
     }
   }
 }

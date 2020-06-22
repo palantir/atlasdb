@@ -1,6 +1,6 @@
 {
-  "eventLog" : {
-    "snapshot" : {
+  "logState" : {
+    "snapshotState" : {
       "watches" : [ {
         "type" : "fullTable",
         "qualifiedTableRef" : "table"
@@ -13,7 +13,7 @@
         "version" : 5
       }
     },
-    "eventStore" : {
+    "eventStoreState" : {
       "eventMap" : {
         "6" : {
           "type" : "lock",
@@ -32,7 +32,7 @@
       "version" : 6
     }
   },
-  "timestampStateStore" : {
+  "timestampStoreState" : {
     "timestampMap" : {
       "16" : {
         "version" : {

@@ -1,6 +1,6 @@
 {
-  "eventLog" : {
-    "snapshot" : {
+  "logState" : {
+    "snapshotState" : {
       "watches" : [ ],
       "locked" : [ {
         "bytes" : "dGFibGUAAg=="
@@ -10,7 +10,7 @@
         "version" : 3
       }
     },
-    "eventStore" : {
+    "eventStoreState" : {
       "eventMap" : {
         "4" : {
           "type" : "created",
@@ -47,7 +47,7 @@
       "version" : 6
     }
   },
-  "timestampStateStore" : {
+  "timestampStoreState" : {
     "timestampMap" : { },
     "aliveVersions" : { }
   }
