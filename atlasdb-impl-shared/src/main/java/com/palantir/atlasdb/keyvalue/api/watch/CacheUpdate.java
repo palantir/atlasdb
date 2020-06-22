@@ -14,19 +14,28 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-public enum CacheStatus {
-    CLEAR_CACHE(true),
-    KEEP_CACHE(false);
+import java.util.Optional;
+
+import com.palantir.lock.watch.IdentifiedVersion;
+
+final class CacheUpdate {
+    static final CacheUpdate FAILED = new CacheUpdate(true, Optional.empty());
 
     private final boolean shouldClearCache;
+    private final Optional<IdentifiedVersion> version;
 
-    CacheStatus(boolean shouldClearCache) {
+    CacheUpdate(boolean shouldClearCache, Optional<IdentifiedVersion> version) {
         this.shouldClearCache = shouldClearCache;
+        this.version = version;
     }
 
-    public boolean shouldClearCache() {
+    boolean shouldClearCache() {
         return shouldClearCache;
+    }
+
+    Optional<IdentifiedVersion> getVersion() {
+        return version;
     }
 }

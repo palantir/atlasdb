@@ -21,7 +21,6 @@ import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import com.palantir.lock.watch.CacheStatus;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -46,7 +45,7 @@ final class LockWatchEventLog {
         this.snapshot = snapshot;
     }
 
-    CacheStatus processUpdate(LockWatchStateUpdate update) {
+    CacheUpdate processUpdate(LockWatchStateUpdate update) {
         if (!latestVersion.isPresent() || !update.logId().equals(latestVersion.get().id())) {
             return update.accept(new NewLeaderVisitor());
         } else {
@@ -159,43 +158,44 @@ final class LockWatchEventLog {
         latestVersion = Optional.empty();
     }
 
-    private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<CacheStatus> {
+    private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<CacheUpdate> {
         @Override
-        public CacheStatus visit(LockWatchStateUpdate.Failed failed) {
+        public CacheUpdate visit(LockWatchStateUpdate.Failed failed) {
             processFailed();
-            return CacheStatus.CLEAR_CACHE;
+            return CacheUpdate.FAILED;
         }
 
         @Override
-        public CacheStatus visit(LockWatchStateUpdate.Success success) {
+        public CacheUpdate visit(LockWatchStateUpdate.Success success) {
             processSuccess(success);
-            return CacheStatus.KEEP_CACHE;
+            return new CacheUpdate(false,
+                    Optional.of(IdentifiedVersion.of(success.logId(), success.lastKnownVersion())));
         }
 
         @Override
-        public CacheStatus visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
+        public CacheUpdate visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
             processSnapshot(snapshotUpdate);
-            return CacheStatus.CLEAR_CACHE;
+            return new CacheUpdate(true, latestVersion);
         }
     }
 
-    private class NewLeaderVisitor implements LockWatchStateUpdate.Visitor<CacheStatus> {
+    private class NewLeaderVisitor implements LockWatchStateUpdate.Visitor<CacheUpdate> {
         @Override
-        public CacheStatus visit(LockWatchStateUpdate.Failed failed) {
+        public CacheUpdate visit(LockWatchStateUpdate.Failed failed) {
             processFailed();
-            return CacheStatus.CLEAR_CACHE;
+            return CacheUpdate.FAILED;
         }
 
         @Override
-        public CacheStatus visit(LockWatchStateUpdate.Success success) {
+        public CacheUpdate visit(LockWatchStateUpdate.Success success) {
             processFailed();
-            return CacheStatus.CLEAR_CACHE;
+            return CacheUpdate.FAILED;
         }
 
         @Override
-        public CacheStatus visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
+        public CacheUpdate visit(LockWatchStateUpdate.Snapshot snapshotUpdate) {
             processSnapshot(snapshotUpdate);
-            return CacheStatus.CLEAR_CACHE;
+            return new CacheUpdate(true, latestVersion);
         }
     }
 }
