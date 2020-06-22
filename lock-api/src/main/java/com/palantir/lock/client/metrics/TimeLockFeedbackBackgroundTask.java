@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -120,10 +121,8 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private double getP99ForLeaderTime() {
-        return conjureTimelockServiceBlockingMetrics
-                .leaderTime()
-                .getSnapshot()
-                .get99thPercentile();
+        return getP99(() -> conjureTimelockServiceBlockingMetrics.leaderTime());
+
     }
 
     private EndpointStatistics getEndpointStatsForStartTxn() {
@@ -136,8 +135,11 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private double getP99ForStartTxn() {
-        return conjureTimelockServiceBlockingMetrics
-                .startTransactions()
+        return getP99(() -> conjureTimelockServiceBlockingMetrics.startTransactions());
+    }
+
+    private double getP99(Supplier<Timer> timerSupplier) {
+        return timerSupplier.get()
                 .getSnapshot()
                 .get99thPercentile();
     }

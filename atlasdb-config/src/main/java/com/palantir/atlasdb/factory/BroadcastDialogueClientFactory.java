@@ -89,7 +89,6 @@ public final class BroadcastDialogueClientFactory {
                 .collectToMap();
     }
 
-
     private static Map.Entry<String, RemoteServiceConfiguration> createSingleServiceConfigurationMapping(
             String uri,
             ServerListConfig singleServerConfig,
