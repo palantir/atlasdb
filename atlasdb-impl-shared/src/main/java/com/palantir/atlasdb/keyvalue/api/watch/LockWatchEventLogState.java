@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 
-public interface LockWatchEventCache {
-    Optional<IdentifiedVersion> lastKnownVersion();
-    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
-    void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
-            LockWatchStateUpdate update);
-    CommitUpdate getCommitUpdate(long startTs);
-    TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> version);
-    void removeTransactionStateFromCache(long startTimestamp);
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.watch.IdentifiedVersion;
+
+@Value.Immutable
+@JsonSerialize(as = ImmutableLockWatchEventLogState.class)
+@JsonDeserialize(as = ImmutableLockWatchEventLogState.class)
+interface LockWatchEventLogState {
+    ClientLockWatchSnapshotState snapshotState();
+
+    VersionedEventStoreState eventStoreState();
+
+    Optional<IdentifiedVersion> latestVersion();
 }

@@ -1,0 +1,69 @@
+{
+  "logState" : {
+    "snapshotState" : {
+      "watches" : [ ],
+      "locked" : [ {
+        "bytes" : "dGFibGUAAg=="
+      } ],
+      "snapshotVersion" : {
+        "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+        "version" : 3
+      }
+    },
+    "eventStoreState" : {
+      "eventMap" : {
+        "4" : {
+          "type" : "created",
+          "sequence" : 4,
+          "references" : [ {
+            "type" : "fullTable",
+            "qualifiedTableRef" : "table"
+          } ],
+          "lockDescriptors" : [ {
+            "bytes" : "dGFibGUAAQ=="
+          } ]
+        },
+        "5" : {
+          "type" : "unlock",
+          "sequence" : 5,
+          "lockDescriptors" : [ {
+            "bytes" : "dGFibGUAAg=="
+          } ]
+        }
+      }
+    },
+    "latestVersion" : {
+      "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+      "version" : 5
+    }
+  },
+  "timestampStoreState" : {
+    "timestampMap" : {
+      "1" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 3
+        },
+        "commitInfo" : null
+      },
+      "11" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 5
+        },
+        "commitInfo" : null
+      },
+      "12" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 5
+        },
+        "commitInfo" : null
+      }
+    },
+    "aliveVersions" : {
+      "3" : [ 1 ],
+      "5" : [ 11, 12 ]
+    }
+  }
+}

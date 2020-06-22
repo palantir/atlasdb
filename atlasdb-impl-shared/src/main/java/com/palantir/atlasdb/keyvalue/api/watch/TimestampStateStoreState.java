@@ -14,25 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.UUID;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.SortedSetMultimap;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableIdentifiedVersion.class)
-@JsonSerialize(as = ImmutableIdentifiedVersion.class)
-public interface IdentifiedVersion {
-    @Value.Parameter
-    UUID id();
-    @Value.Parameter
-    long version();
+@JsonSerialize(as = ImmutableTimestampStateStoreState.class)
+@JsonDeserialize(as = ImmutableTimestampStateStoreState.class)
+interface TimestampStateStoreState {
+    Map<Long, TimestampStateStore.MapEntry> timestampMap();
 
-    static IdentifiedVersion of(UUID id, long version) {
-        return ImmutableIdentifiedVersion.of(id, version);
-    }
+    SortedSetMultimap<Long, Long> aliveVersions();
 }
