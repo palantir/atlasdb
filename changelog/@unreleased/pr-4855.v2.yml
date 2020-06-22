@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: '`enableDialogue` is no longer configurable: Dialogue is sufficiently
+    stable that we believe forcing it for all TimeLock users is acceptable. We believe
+    that this configuration option has not ever been used in production. Please contact
+    the AtlasDB team if this is a concern.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4855
