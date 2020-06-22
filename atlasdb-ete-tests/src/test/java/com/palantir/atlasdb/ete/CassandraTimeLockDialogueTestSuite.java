@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.util.List;
-
-import org.junit.ClassRule;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
+import java.util.List;
+import org.junit.ClassRule;
+import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({

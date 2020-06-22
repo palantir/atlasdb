@@ -18,14 +18,12 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.BigInteger;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.LockRefreshToken;
+import java.math.BigInteger;
+import org.junit.Test;
 
 public class ConjureLockV1ResourceTest {
     private static final BigInteger TOKEN_ID = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE);

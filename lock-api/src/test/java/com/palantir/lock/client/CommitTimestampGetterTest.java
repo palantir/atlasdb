@@ -17,21 +17,10 @@
 package com.palantir.lock.client;
 
 import static java.util.stream.Collectors.toList;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import org.junit.Test;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -49,6 +38,14 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+import org.junit.Test;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 public final class CommitTimestampGetterTest {
 

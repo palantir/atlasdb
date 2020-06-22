@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import java.util.concurrent.Semaphore;
-import java.util.function.Predicate;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -36,6 +29,11 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
+import java.util.concurrent.Semaphore;
+import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 public class PostgresDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);

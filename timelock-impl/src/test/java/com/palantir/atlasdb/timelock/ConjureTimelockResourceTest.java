@@ -20,17 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.Duration;
-import java.util.concurrent.ExecutionException;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
@@ -44,6 +33,15 @@ import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConjureTimelockResourceTest {

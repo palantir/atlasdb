@@ -19,16 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
 public class CassandraAtlasDbFactoryTest {
     private static final String KEYSPACE = "ks";

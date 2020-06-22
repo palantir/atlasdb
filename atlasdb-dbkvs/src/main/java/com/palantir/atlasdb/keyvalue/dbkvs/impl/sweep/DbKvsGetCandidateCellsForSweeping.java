@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Iterator;
+import java.util.List;
 
 public class DbKvsGetCandidateCellsForSweeping {
 

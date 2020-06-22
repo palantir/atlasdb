@@ -15,15 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.net.URL;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
@@ -71,6 +62,14 @@ import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {

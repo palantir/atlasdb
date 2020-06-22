@@ -18,16 +18,6 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Meter;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Runnables;
@@ -35,6 +25,14 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Name matches the class we're testing
 public class PTExecutorsTest {

@@ -18,21 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static java.util.stream.Collectors.toSet;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
-
-import javax.annotation.concurrent.NotThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -49,6 +34,18 @@ import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponsesWithRemote;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
+import javax.annotation.concurrent.NotThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
     This is not thread safe, but it is okay because it is run within an autobatcher, which is configured to not process

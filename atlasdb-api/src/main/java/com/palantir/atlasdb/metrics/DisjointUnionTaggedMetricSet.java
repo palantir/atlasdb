@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.metrics;
 
-import java.util.Map;
-import java.util.function.BiConsumer;
-
 import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * Combines two {@link TaggedMetricSet}s. It is expected that the metric names present from the two sets are disjoint.

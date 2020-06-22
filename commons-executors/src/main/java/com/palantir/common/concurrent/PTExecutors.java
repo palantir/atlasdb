@@ -15,6 +15,15 @@
  */
 package com.palantir.common.concurrent;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.util.concurrent.Runnables;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tracing.Tracers;
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,20 +45,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.Runnables;
-import com.palantir.tracing.Tracers;
-import com.palantir.tritium.metrics.MetricRegistries;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -107,8 +105,8 @@ public final class PTExecutors {
      * @return the newly created thread pool
      */
     public static ExecutorService newCachedThreadPool(String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        com.palantir.logsafe.Preconditions.checkNotNull(name, "Name is required");
+        com.palantir.logsafe.Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         return newCachedThreadPool(new NamedThreadFactory(name, true));
     }
 
@@ -682,6 +680,6 @@ public final class PTExecutors {
     }
 
     private PTExecutors() {
-        throw new AssertionError("uninstantiable");
+        throw new SafeIllegalStateException("uninstantiable");
     }
 }

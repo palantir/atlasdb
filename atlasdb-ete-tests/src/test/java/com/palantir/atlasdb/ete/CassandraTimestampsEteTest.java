@@ -17,6 +17,13 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.ete.cassandra.util.CassandraCommands;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.todo.ImmutableTodo;
+import com.palantir.atlasdb.todo.Todo;
+import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.atlasdb.todo.TodoSchema;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -25,19 +32,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.ete.cassandra.util.CassandraCommands;
-import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.todo.ImmutableTodo;
-import com.palantir.atlasdb.todo.Todo;
-import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.atlasdb.todo.TodoSchema;
 
 public class CassandraTimestampsEteTest {
     private static final Todo TODO = ImmutableTodo.of("todo");

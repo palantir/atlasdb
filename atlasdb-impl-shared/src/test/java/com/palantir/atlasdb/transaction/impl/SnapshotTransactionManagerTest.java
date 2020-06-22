@@ -30,15 +30,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import org.junit.Test;
-import org.mockito.InOrder;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -62,6 +53,13 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.Test;
+import org.mockito.InOrder;
 
 public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =

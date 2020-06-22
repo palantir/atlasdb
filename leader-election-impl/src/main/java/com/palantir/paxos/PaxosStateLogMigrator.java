@@ -16,6 +16,12 @@
 
 package com.palantir.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.SafeArg;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -25,17 +31,9 @@ import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.persist.Persistable;
-import com.palantir.logsafe.SafeArg;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);

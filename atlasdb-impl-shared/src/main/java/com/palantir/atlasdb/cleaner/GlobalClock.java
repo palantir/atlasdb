@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.function.Supplier;
-
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import java.util.function.Supplier;
 
 /**
  * Clock implementation that delegates to a LockService.

@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -31,6 +27,9 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 
 public class InstrumentedTimelockService implements TimelockService {
     private final TimelockService timelockService;

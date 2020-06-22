@@ -20,19 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -71,6 +58,17 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import org.junit.Assert;
+import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {

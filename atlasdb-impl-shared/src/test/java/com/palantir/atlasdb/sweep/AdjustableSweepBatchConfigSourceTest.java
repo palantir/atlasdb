@@ -17,11 +17,9 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.function.Function;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.util.function.Function;
+import org.junit.Test;
 
 public class AdjustableSweepBatchConfigSourceTest {
 

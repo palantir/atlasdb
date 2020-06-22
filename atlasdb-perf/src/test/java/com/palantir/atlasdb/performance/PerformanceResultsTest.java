@@ -17,8 +17,9 @@ package com.palantir.atlasdb.performance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.performance.backend.CassandraKeyValueServiceInstrumentation;
 import java.util.List;
-
 import org.apache.commons.math3.stat.inference.TestUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
@@ -28,9 +29,6 @@ import org.openjdk.jmh.results.Result;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.WorkloadParams;
 import org.openjdk.jmh.util.MultisetStatistics;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.performance.backend.CassandraKeyValueServiceInstrumentation;
 
 public class PerformanceResultsTest {
     private static final String SUITE_NAME = "PerformanceResults";

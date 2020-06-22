@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-
-import javax.annotation.Nonnull;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
@@ -33,6 +24,12 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a cell in the key-value store.

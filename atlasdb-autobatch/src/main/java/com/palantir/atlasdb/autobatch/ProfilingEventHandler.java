@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.Map;
-
 import com.lmax.disruptor.EventHandler;
+import java.util.Map;
 
 final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 

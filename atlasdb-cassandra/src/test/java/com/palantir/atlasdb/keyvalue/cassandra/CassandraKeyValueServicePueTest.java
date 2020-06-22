@@ -18,17 +18,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-
+import java.util.Map;
+import java.util.stream.Collectors;
 import okio.ByteString;
+import org.junit.Test;
 
 public class CassandraKeyValueServicePueTest {
     @Test

@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.EvictingQueue;
@@ -36,6 +29,11 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
+import java.time.Instant;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import org.immutables.value.Value;
 
 /**
  * TODO(jkong): Remove this once PDS-95791 is resolved.

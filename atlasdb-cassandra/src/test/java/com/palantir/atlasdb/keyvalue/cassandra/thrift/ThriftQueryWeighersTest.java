@@ -17,20 +17,18 @@ package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
 
 public class ThriftQueryWeighersTest {
 

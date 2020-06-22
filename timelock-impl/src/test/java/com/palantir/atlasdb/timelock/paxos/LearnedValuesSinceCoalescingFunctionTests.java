@@ -19,17 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Answers;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -38,6 +27,15 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LearnedValuesSinceCoalescingFunctionTests {

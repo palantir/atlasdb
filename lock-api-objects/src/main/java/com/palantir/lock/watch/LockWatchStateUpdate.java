@@ -16,12 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -29,6 +23,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({

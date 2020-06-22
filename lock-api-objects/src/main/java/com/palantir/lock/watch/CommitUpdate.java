@@ -16,11 +16,9 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.palantir.lock.LockDescriptor;
+import java.util.Set;
+import org.immutables.value.Value;
 
 public interface CommitUpdate {
     <T> T accept(Visitor<T> visitor);

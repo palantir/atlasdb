@@ -15,14 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -35,6 +27,13 @@ import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.timelock.TimeLockStatus;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class LeaderPingHealthCheck {
 

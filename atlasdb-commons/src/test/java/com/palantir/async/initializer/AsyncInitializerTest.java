@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.Mockito;

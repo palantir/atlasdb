@@ -22,16 +22,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
+import com.palantir.atlasdb.table.description.ValueType;
+import okio.ByteString;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
-import com.palantir.atlasdb.table.description.ValueType;
-
-import okio.ByteString;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class DeltaEncodingTimestampEntryMapperTests {

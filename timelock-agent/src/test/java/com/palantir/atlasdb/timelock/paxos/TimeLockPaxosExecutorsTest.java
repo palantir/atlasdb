@@ -20,6 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -29,14 +34,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.concurrent.PTExecutors;
 
 public class TimeLockPaxosExecutorsTest {
     private static final String TEST = "test";

@@ -15,23 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
@@ -76,6 +59,21 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
+import java.net.URI;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public final class Leaders {
     private Leaders() {

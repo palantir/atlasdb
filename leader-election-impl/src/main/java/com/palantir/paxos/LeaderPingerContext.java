@@ -16,9 +16,8 @@
 
 package com.palantir.paxos;
 
-import org.immutables.value.Value;
-
 import com.google.common.net.HostAndPort;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(allParameters = true)

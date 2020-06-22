@@ -16,10 +16,9 @@
 
 package com.palantir.lock.client;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TestBatchElement<A, R> extends BatchElement<A, R> {

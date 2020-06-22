@@ -21,11 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
@@ -34,6 +29,9 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class TimestampTrackerTest {
     private static final long ONE = 1L;

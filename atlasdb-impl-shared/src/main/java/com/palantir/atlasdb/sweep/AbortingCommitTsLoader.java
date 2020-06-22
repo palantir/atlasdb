@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -32,6 +24,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.logsafe.SafeArg;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
     private static final Logger log = LoggerFactory.getLogger(AbortingCommitTsLoader.class);

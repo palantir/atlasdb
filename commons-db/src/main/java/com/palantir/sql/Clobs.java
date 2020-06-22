@@ -15,11 +15,10 @@
  */
 package com.palantir.sql;
 
-import java.sql.Clob;
-import java.sql.SQLException;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.BasicSQL;
+import java.sql.Clob;
+import java.sql.SQLException;
 
 public class Clobs {
 

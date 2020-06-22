@@ -16,12 +16,6 @@
 
 package com.palantir.paxos;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -30,6 +24,11 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistable;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 public class PaxosStateLogBatchReader<V extends Persistable & Versionable> implements AutoCloseable {
     private final PaxosStateLog<V> delegate;

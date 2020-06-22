@@ -23,14 +23,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 
 public class TimeLockPersistenceInvariantsTest {
 

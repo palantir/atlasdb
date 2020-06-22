@@ -15,22 +15,6 @@
  */
 package com.palantir.lock.logger;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -48,6 +32,20 @@ import com.palantir.lock.impl.ClientAwareReadWriteLock;
 import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.LockServiceStateDebugger;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 public class LockServiceStateLogger {
     private static Logger log = LoggerFactory.getLogger(LockServiceStateLogger.class);

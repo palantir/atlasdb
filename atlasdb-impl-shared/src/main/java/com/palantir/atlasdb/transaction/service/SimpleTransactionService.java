@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
@@ -32,6 +29,8 @@ import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
     private final KeyValueService kvs;

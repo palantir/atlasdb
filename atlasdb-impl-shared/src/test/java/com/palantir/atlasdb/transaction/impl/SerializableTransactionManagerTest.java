@@ -28,15 +28,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -56,6 +47,13 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SerializableTransactionManagerTest {
     private static final long THREE = 3L;

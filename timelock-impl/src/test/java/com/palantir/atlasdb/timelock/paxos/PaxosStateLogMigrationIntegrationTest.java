@@ -18,17 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.UUID;
-
-import javax.sql.DataSource;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.persist.Persistable;
 import com.palantir.paxos.Client;
@@ -43,6 +32,14 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.paxos.Versionable;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.UUID;
+import javax.sql.DataSource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class PaxosStateLogMigrationIntegrationTest {
     private static final Client CLIENT = Client.of("test");

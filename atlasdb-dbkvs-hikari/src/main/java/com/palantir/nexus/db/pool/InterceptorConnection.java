@@ -15,6 +15,9 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.reflect.AbstractInvocationHandler;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,10 +27,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.Map;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
  * Allows you to intercept and override methods in {@link Connection}.

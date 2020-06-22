@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import java.util.List;
+import java.util.Map;
+import org.immutables.value.Value;
 
 @Value.Immutable
 interface ClientLogEvents {

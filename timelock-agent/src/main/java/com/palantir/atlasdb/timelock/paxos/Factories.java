@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
@@ -30,6 +25,9 @@ import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosLatestRoundVerifier;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
+import java.io.Closeable;
+import java.util.List;
+import org.immutables.value.Value;
 
 public interface Factories {
     interface LeaderPingerFactoryContainer {

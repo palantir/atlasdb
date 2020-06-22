@@ -15,6 +15,9 @@
  */
 package com.palantir.common.compression;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.io.CountingInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
@@ -28,10 +31,6 @@ import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterInputStream;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.io.CountingInputStream;
 
 
 public final class GzipCompressingInputStream {

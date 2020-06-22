@@ -20,15 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -50,6 +41,13 @@ import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LockEventLogImplTest {
     private final AtomicReference<LockWatches> lockWatches = new AtomicReference<>(LockWatches.create());

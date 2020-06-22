@@ -22,16 +22,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class ResilientLockWatchEventCacheTest {

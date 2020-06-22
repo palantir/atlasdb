@@ -15,14 +15,12 @@
  */
 package com.palantir.nexus.db.pool;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.ReentrantConnectionSupplier;
+import java.sql.Connection;
+import java.sql.SQLException;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public class ReentrantManagedConnectionSupplier implements ReentrantConnectionSupplier {

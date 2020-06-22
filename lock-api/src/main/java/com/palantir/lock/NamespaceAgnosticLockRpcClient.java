@@ -16,19 +16,17 @@
 
 package com.palantir.lock;
 
+import com.palantir.annotations.remoting.CancelableServerCall;
+import com.palantir.logsafe.Safe;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.annotations.remoting.CancelableServerCall;
-import com.palantir.logsafe.Safe;
 
 /**
  * See also {@link LockRpcClient}. This interface exists to support legacy users not using an external TimeLock

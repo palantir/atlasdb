@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
@@ -47,6 +37,13 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(PaxosTimestampBoundStore.class);

@@ -18,16 +18,14 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.lock.watch.LockWatchEvent;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.immutables.value.Value;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.lock.watch.LockWatchEvent;
 
 public class ArrayLockEventSlidingWindowTest {
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(10);

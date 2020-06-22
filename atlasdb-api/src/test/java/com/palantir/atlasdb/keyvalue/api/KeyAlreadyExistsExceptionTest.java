@@ -18,16 +18,14 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.encoding.PtBytes;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.URL;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.encoding.PtBytes;
 
 public class KeyAlreadyExistsExceptionTest {
     @Test

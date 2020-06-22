@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static java.util.stream.Collectors.toList;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,24 +23,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.annotation.Nullable;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -65,6 +46,21 @@ import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SqliteConnections;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nullable;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class PaxosTimestampBoundStoreTest {

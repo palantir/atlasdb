@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.transaction;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionRetryStrategy;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableTransactionConfig.class)
 @JsonSerialize(as = ImmutableTransactionConfig.class)

@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.containers.CassandraResource;
 import org.junit.ClassRule;
 import org.junit.Test;
-
-import com.palantir.atlasdb.containers.CassandraResource;
 
 public class CassandraConnectionIntegrationTest {
     @ClassRule

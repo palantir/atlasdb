@@ -15,23 +15,20 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import static org.mockito.Mockito.mock;
-
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.CONSERVATIVE;
 import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.THOROUGH;
-
-import java.util.Arrays;
-import java.util.stream.IntStream;
-
-import org.junit.Before;
-import org.junit.Test;
+import static org.mockito.Mockito.mock;
 
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
+import java.util.Arrays;
+import java.util.stream.IntStream;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SweepOutcomeMetricsTest {
     private MetricsManager metricsManager;

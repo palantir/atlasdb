@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.util;
 
+import com.google.common.base.Preconditions;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.google.common.base.Preconditions;
 
 public final class MetricNameUtils {
 

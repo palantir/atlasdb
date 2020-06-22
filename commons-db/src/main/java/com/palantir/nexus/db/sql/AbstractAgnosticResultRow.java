@@ -15,19 +15,17 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.palantir.common.base.Throwables;
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.DBType;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.common.base.Throwables;
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
 
 public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
 

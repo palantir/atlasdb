@@ -16,18 +16,16 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl.LockWatchCreatedEventReplayer;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public class ArrayLockEventSlidingWindow {

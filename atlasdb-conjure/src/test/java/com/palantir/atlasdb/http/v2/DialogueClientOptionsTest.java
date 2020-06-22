@@ -18,11 +18,6 @@ package com.palantir.atlasdb.http.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.file.Paths;
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -32,6 +27,9 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.nio.file.Paths;
+import java.util.List;
+import org.junit.Test;
 
 public class DialogueClientOptionsTest {
     private static final String SERVICE_NAME = "service";

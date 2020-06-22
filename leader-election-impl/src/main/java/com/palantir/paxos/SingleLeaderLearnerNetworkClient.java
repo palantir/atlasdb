@@ -16,19 +16,17 @@
 
 package com.palantir.paxos;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.BaseEncoding;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.BaseEncoding;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClient {
 

@@ -15,13 +15,11 @@
  */
 package com.palantir.nexus.db;
 
-import java.sql.Connection;
-
-import javax.annotation.Nullable;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.sql.Connections;
+import java.sql.Connection;
+import javax.annotation.Nullable;
 
 /**
  * Extensibility point for adding more type of databases.

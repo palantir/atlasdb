@@ -23,6 +23,11 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.google.common.util.concurrent.Futures;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.proxy.DelegatingInvocationHandler;
+import com.palantir.leader.LeaderElectionService.LeadershipToken;
+import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -32,18 +37,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Futures;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.proxy.DelegatingInvocationHandler;
-import com.palantir.leader.LeaderElectionService.LeadershipToken;
-import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
 public class PaxosConsensusFastTest {
     private PaxosTestState state;
@@ -327,4 +325,3 @@ public class PaxosConsensusFastTest {
         }
     }
 }
-

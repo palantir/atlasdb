@@ -16,12 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -34,6 +28,11 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
     private final PaxosUseCase paxosUseCase;

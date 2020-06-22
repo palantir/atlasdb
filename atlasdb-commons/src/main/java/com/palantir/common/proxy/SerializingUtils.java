@@ -15,16 +15,14 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.util.ByteArrayIOStream;
+import com.palantir.util.ObjectInputStreamFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.util.ByteArrayIOStream;
-import com.palantir.util.ObjectInputStreamFactory;
 
 public class SerializingUtils {
     protected static final Logger log = LoggerFactory.getLogger(SerializingUtils.class);

@@ -15,20 +15,17 @@
  */
 package com.palantir.leader;
 
-import java.util.List;
-
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.apache.commons.lang3.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Meter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.List;
+import javax.annotation.concurrent.ThreadSafe;
+import org.apache.commons.lang3.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 class LeadershipEvents {

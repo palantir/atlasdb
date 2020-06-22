@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.concurrent.Executor;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -35,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowStreamAccumulato
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.concurrent.Executor;
 
 public final class CqlClientImpl implements CqlClient {
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {

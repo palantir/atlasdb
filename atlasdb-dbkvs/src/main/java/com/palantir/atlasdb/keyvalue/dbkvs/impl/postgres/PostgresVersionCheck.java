@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import org.slf4j.Logger;
-
 import com.palantir.util.AssertUtils;
 import com.palantir.util.VersionStrings;
+import org.slf4j.Logger;
 
 public final class PostgresVersionCheck {
     static final String MIN_POSTGRES_VERSION = "9.6";

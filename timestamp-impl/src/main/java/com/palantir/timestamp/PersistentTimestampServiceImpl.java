@@ -15,16 +15,14 @@
  */
 package com.palantir.timestamp;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.logsafe.SafeArg;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class PersistentTimestampServiceImpl implements PersistentTimestampService {

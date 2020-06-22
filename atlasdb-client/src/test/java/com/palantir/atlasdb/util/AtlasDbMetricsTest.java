@@ -17,20 +17,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
 import com.google.common.collect.ImmutableMap;
@@ -42,6 +28,18 @@ import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.awaitility.Awaitility;
+import org.junit.After;
+import org.junit.Test;
 
 public final class AtlasDbMetricsTest {
 

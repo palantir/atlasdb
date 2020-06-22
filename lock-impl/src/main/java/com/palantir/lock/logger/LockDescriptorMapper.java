@@ -16,12 +16,11 @@
 package com.palantir.lock.logger;
 
 
+import com.google.common.collect.Maps;
+import com.palantir.lock.LockDescriptor;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.Maps;
-import com.palantir.lock.LockDescriptor;
 
 
 /**

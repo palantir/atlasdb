@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class SweepPerformanceResults {

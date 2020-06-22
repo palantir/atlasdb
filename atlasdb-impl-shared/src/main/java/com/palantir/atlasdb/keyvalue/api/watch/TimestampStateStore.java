@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
@@ -34,6 +27,11 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 final class TimestampStateStore {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();

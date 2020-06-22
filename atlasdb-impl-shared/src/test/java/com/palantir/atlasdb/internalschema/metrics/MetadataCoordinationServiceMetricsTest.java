@@ -22,11 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.BoundType;
@@ -40,6 +35,9 @@ import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked") // Mocks
 public class MetadataCoordinationServiceMetricsTest {

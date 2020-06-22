@@ -15,20 +15,17 @@
  */
 package com.palantir.processors;
 
+import static com.palantir.processors.TestingUtils.extractMethodsSatisfyingPredicate;
+import static com.palantir.processors.TestingUtils.extractNonStaticMethods;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import static com.palantir.processors.TestingUtils.extractMethodsSatisfyingPredicate;
-import static com.palantir.processors.TestingUtils.extractNonStaticMethods;
-
+import com.google.common.collect.Sets;
 import java.lang.reflect.Modifier;
 import java.util.Set;
-
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 public class AutoDelegateInterfaceTests {
 

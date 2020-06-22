@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "fetch", description = "Fetches a timestamp. By default"
         + " this will be a fresh timestamp unless otherwise specified.")

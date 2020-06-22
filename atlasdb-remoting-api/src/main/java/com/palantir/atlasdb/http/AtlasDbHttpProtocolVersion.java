@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.http;
 
+import com.palantir.common.streams.KeyedStream;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
-
-import com.palantir.common.streams.KeyedStream;
 
 public enum AtlasDbHttpProtocolVersion {
     LEGACY_OR_UNKNOWN("1.0"),

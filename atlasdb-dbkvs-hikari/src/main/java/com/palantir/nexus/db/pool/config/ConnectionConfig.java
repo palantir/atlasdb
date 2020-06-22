@@ -15,15 +15,6 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import java.sql.Connection;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-
-import javax.sql.DataSource;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -34,6 +25,12 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.InterceptorDataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.util.DriverDataSource;
+import java.sql.Connection;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({

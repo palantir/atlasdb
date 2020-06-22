@@ -19,15 +19,6 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Stream;
-
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -37,6 +28,13 @@ import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.errors.QosException;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.util;
 
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -33,6 +27,11 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 public class TestProxies {
 

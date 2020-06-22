@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import java.util.SortedSet;
-
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import java.util.SortedSet;
 
 public class NamedColumnRenderer extends Renderer {
     private final String namedColumn;

@@ -16,10 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosLearnerRpcClient;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
@@ -28,6 +24,9 @@ import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class TimelockPaxosLearnerAdapters {
     private TimelockPaxosLearnerAdapters() {

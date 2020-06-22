@@ -15,20 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.palantir.common.base.Throwables;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
@@ -42,6 +28,18 @@ import com.palantir.nexus.streaming.PTInputStream;
 import com.palantir.sql.PreparedStatements;
 import com.palantir.sql.ResultSets;
 import com.palantir.util.streams.PTStreams;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.concurrent.ExecutorService;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Routines for issuing SQL statements to the database.

@@ -15,16 +15,15 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;

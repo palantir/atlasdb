@@ -15,12 +15,6 @@
  */
 package com.palantir.common.collect;
 
-import java.util.AbstractCollection;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
@@ -28,6 +22,11 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.util.AbstractCollection;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 public class IterableUtils {
     private IterableUtils() { /* */ }

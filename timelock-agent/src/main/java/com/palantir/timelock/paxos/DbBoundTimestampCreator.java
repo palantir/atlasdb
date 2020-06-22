@@ -15,9 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -32,6 +29,8 @@ import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public class DbBoundTimestampCreator implements TimestampCreator {
 

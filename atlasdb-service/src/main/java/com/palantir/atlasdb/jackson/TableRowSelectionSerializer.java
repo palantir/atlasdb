@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -24,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
 
 public class TableRowSelectionSerializer extends StdSerializer<TableRowSelection> {
     private static final long serialVersionUID = 1L;

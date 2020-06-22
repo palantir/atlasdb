@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.server;
 
-import java.util.Optional;
-
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
@@ -24,10 +22,10 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
-
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.util.Optional;
 
 public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
 

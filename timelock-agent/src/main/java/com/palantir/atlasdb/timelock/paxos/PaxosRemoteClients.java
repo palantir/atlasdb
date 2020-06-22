@@ -16,16 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.Path;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -39,6 +29,13 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+import javax.ws.rs.Path;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class PaxosRemoteClients {

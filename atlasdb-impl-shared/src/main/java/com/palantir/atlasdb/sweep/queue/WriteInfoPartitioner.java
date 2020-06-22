@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -36,6 +27,13 @@ import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);

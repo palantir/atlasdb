@@ -16,17 +16,6 @@
 
 package com.palantir.atlasdb.util;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
@@ -35,6 +24,14 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
 import com.palantir.tritium.event.InvocationContext;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A modified version of {@link com.palantir.tritium.event.metrics.MetricsInvocationEventHandler} that uses a

@@ -19,13 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
 
 public class MetricsBasedTimelockHealthCheckTest {
     private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toMillis(5);

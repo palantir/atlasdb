@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Supplier;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -56,6 +51,10 @@ import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;

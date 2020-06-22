@@ -15,21 +15,6 @@
  */
 package com.palantir.lock;
 
-import java.io.File;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -42,6 +27,19 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.logger.LockServiceTestUtils;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
+import java.io.File;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Tests for the Lock Server.

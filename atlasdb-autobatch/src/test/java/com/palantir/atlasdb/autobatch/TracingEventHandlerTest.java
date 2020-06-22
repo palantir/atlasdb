@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.lmax.disruptor.EventHandler;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.tracing.RenderTracingRule;
 import com.palantir.tracing.Tracers;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TracingEventHandlerTest {

@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class AbstractDefinition {
     private static final Logger log = LoggerFactory.getLogger(AbstractDefinition.class);
@@ -122,4 +121,3 @@ abstract class AbstractDefinition {
         }
     }
 }
-

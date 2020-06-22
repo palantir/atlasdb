@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -49,6 +47,7 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
 
 /**
  * Provides a mechanism for accessing services that use Dialogue for communication. A service is defined as a cluster of

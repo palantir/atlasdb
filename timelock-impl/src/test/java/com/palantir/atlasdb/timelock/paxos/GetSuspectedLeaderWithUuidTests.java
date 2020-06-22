@@ -24,6 +24,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.paxos.LeaderPingerContext;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -35,18 +41,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.Answers;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.palantir.atlasdb.autobatch.BatchElement;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.paxos.LeaderPingerContext;
 
 public class GetSuspectedLeaderWithUuidTests {
 

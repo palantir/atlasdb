@@ -20,15 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 public class DistributingModulusGeneratorTest {
     private DistributingModulusGenerator generator;

@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -36,6 +31,10 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tracing.Tracers;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public final class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
     public static final CassandraAsyncKeyValueServiceFactory DEFAULT =
@@ -105,4 +104,3 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 MetricRegistry.name(AsyncKeyValueService.class, "cassandra.executorService"));
     }
 }
-

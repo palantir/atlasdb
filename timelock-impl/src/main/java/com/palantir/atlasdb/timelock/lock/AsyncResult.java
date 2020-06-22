@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
 import javax.annotation.concurrent.ThreadSafe;
-
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @ThreadSafe
 public class AsyncResult<T> {

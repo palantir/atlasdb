@@ -16,20 +16,18 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagnosticDigest;
+import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ConflictTrace;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-
 import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagnosticDigest;
-import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ConflictTrace;
-import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.

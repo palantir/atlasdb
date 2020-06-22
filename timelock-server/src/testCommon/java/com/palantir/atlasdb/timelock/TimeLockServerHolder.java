@@ -19,13 +19,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import org.junit.rules.ExternalResource;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -40,9 +33,13 @@ import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-
 import io.dropwizard.jackson.Jackson;
 import io.dropwizard.testing.DropwizardTestSupport;
+import java.io.File;
+import java.io.IOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import org.junit.rules.ExternalResource;
 
 public class TimeLockServerHolder extends ExternalResource {
 

@@ -16,18 +16,6 @@
 
 package com.palantir.timelock.invariants;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -36,6 +24,16 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.paxos.HealthCheckDigest;
+import java.time.Duration;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class NoSimultaneousServiceCheck {
     private static final Logger log = LoggerFactory.getLogger(NoSimultaneousServiceCheck.class);

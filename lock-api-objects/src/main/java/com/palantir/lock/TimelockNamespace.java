@@ -16,11 +16,10 @@
 
 package com.palantir.lock;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableTimelockNamespace.class)
 @JsonDeserialize(as = ImmutableTimelockNamespace.class)

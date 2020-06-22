@@ -19,10 +19,9 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import org.junit.Test;
 
 public class ColumnRangeSelectionTest {
     private static final byte[] BYTES_1 = PtBytes.toBytes("aaaaaaa");

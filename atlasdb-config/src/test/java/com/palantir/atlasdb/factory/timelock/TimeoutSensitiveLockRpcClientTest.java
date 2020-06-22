@@ -20,14 +20,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
+import org.junit.Test;
 
 public class TimeoutSensitiveLockRpcClientTest {
     private static final String NAMESPACE = "namespace";

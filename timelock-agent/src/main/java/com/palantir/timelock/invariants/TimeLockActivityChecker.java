@@ -16,15 +16,13 @@
 
 package com.palantir.timelock.invariants;
 
-import java.util.OptionalLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.OptionalLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TimeLockActivityChecker {
     private static final Logger log = LoggerFactory.getLogger(TimeLockActivityChecker.class);

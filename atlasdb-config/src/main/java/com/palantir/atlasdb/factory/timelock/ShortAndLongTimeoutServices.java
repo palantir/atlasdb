@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import com.palantir.atlasdb.factory.ServiceCreator;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
 import org.immutables.value.Value;
-
-import com.palantir.atlasdb.factory.ServiceCreator;
 
 @Value.Immutable
 public interface ShortAndLongTimeoutServices<T> {

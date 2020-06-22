@@ -16,16 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -38,6 +28,15 @@ import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Note on concurrency:

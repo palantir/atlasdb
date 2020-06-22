@@ -23,10 +23,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OverflowSequenceSupplier;
 import com.palantir.nexus.db.sql.SqlConnection;
+import org.junit.Test;
 
 public class OverflowSequenceSupplierTest {
 

@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -32,6 +24,12 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosValue;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Entry<Client, PaxosValue>, PaxosResponse> {
 

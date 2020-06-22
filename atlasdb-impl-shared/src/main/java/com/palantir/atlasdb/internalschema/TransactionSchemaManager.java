@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
@@ -33,6 +26,11 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionSchemaManager {
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaManager.class);

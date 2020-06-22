@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -28,6 +24,8 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class TimelockPaxosMetrics {

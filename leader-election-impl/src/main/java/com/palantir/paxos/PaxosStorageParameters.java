@@ -17,9 +17,7 @@
 package com.palantir.paxos;
 
 import java.util.Optional;
-
 import javax.sql.DataSource;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

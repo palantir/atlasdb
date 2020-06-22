@@ -16,17 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.immutables.value.Value;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -51,6 +40,15 @@ import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.zaxxer.hikari.HikariDataSource;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.immutables.value.Value;
 
 public final class PaxosResourcesFactory {
 

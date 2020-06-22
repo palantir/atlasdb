@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import java.util.Collection;
+import java.util.Set;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 public interface LockEvents {
     void registerRequest(RequestInfo request);

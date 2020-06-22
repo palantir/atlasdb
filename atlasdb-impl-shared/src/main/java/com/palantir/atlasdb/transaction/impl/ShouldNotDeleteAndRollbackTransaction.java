@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.AbstractExecutorService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -32,6 +25,12 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * This will read the values of all committed transactions.

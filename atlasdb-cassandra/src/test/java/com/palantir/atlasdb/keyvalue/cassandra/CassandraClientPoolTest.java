@@ -25,29 +25,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.OngoingStubbing;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -62,6 +39,27 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.OngoingStubbing;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;

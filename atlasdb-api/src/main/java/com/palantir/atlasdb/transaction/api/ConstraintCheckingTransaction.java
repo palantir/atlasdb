@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
 
 public interface ConstraintCheckingTransaction extends Transaction {
     /**

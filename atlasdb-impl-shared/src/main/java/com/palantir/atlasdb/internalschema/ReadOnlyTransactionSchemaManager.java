@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ReadOnlyTransactionSchemaManager {
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaManager.class);

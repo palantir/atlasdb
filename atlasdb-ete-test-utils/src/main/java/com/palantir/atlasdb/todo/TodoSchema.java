@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.todo;
 
-import java.io.File;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.io.File;
 
 public class TodoSchema implements AtlasSchema {
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();

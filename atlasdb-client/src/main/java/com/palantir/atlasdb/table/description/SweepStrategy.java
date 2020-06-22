@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.table.description;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
 
 /**
  * Represents the properties that the user has picked wrt sweep. The sweeper strategy is the mode of sweep that the

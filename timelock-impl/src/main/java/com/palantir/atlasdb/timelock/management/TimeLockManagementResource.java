@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,6 +30,9 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class TimeLockManagementResource implements UndertowTimeLockManagementService {
     private final Set<PersistentNamespaceLoader> namespaceLoaders;

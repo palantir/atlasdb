@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.palantir.tritium.api.event.InstrumentationFilter;
@@ -33,6 +25,12 @@ import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.proxy.Instrumentation;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);

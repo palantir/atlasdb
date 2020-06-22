@@ -15,19 +15,17 @@
  */
 package com.palantir.atlasdb.cli.runner;
 
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
-
-import org.apache.commons.lang3.ArrayUtils;
-
 import com.palantir.atlasdb.cli.AtlasCli;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import org.apache.commons.lang3.ArrayUtils;
 
 public abstract class AbstractTestRunner<S extends AtlasDbServices> implements SingleBackendCliTestRunner {
 

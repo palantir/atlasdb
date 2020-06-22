@@ -22,18 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
@@ -56,6 +44,16 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LockLeaseServiceTest {
@@ -237,4 +235,3 @@ public class LockLeaseServiceTest {
         return LeaderTime.of(LEADER_ID, time.get());
     }
 }
-

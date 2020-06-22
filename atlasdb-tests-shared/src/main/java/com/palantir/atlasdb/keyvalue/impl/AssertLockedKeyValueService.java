@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.SortedMap;
-
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -33,6 +29,9 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.SortedMap;
 
 public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     final KeyValueService delegate;

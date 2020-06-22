@@ -19,10 +19,6 @@ package com.palantir.atlasdb.metrics;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Map;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
@@ -32,6 +28,8 @@ import com.google.common.collect.Maps;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import org.junit.Test;
 
 public class DisjointUnionTaggedMetricSetTest {
     private static final MetricName METRIC_NAME_1 = MetricName.builder()

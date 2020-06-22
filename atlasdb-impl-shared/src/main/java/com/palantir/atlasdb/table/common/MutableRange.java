@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.table.common;
 
-import java.util.Arrays;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
 
 public class MutableRange {
     private byte[] startRow;

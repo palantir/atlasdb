@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.Callable;
-
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
@@ -33,10 +27,13 @@ import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Callable;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {

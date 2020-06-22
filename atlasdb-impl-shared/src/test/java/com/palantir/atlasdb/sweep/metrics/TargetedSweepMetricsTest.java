@@ -15,19 +15,12 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
+import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
-
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
@@ -39,6 +32,10 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.util.concurrent.TimeUnit;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class TargetedSweepMetricsTest {
     private static final long RECOMPUTE_MILLIS = 10;

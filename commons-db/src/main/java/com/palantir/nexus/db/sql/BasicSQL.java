@@ -15,6 +15,26 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.concurrent.ThreadNamingCallable;
+import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.db.oracle.JdbcHandler.BlobHandler;
+import com.palantir.exception.PalantirInterruptedException;
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.monitoring.timer.SqlTimer;
+import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
+import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
+import com.palantir.sql.Connections;
+import com.palantir.sql.PreparedStatements;
+import com.palantir.sql.ResultSets;
+import com.palantir.util.sql.VerboseSQLException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -45,33 +65,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
 import javax.annotation.Nullable;
-
 import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
-
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.concurrent.ThreadNamingCallable;
-import com.palantir.db.oracle.JdbcHandler;
-import com.palantir.db.oracle.JdbcHandler.BlobHandler;
-import com.palantir.exception.PalantirInterruptedException;
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.monitoring.timer.SqlTimer;
-import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
-import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
-import com.palantir.sql.Connections;
-import com.palantir.sql.PreparedStatements;
-import com.palantir.sql.ResultSets;
-import com.palantir.util.sql.VerboseSQLException;
 
 public abstract class BasicSQL {
 

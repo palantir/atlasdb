@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.encoding.PtBytes;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableSweepResults.class)
 @JsonSerialize(as = ImmutableSweepResults.class)

@@ -16,16 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
@@ -35,6 +25,14 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class LockWatchManagerImpl extends LockWatchManager implements AutoCloseable {
 

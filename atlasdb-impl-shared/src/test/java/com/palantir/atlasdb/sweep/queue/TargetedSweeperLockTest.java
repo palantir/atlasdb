@@ -23,15 +23,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.Test;
 
 public class TargetedSweeperLockTest {
     private TimelockService mockLockService = mock(TimelockService.class);

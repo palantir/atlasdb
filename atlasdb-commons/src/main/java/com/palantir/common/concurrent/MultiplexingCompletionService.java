@@ -15,6 +15,9 @@
  */
 package com.palantir.common.concurrent;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -24,10 +27,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * A MultiplexingCompletionService is much like a {@link java.util.concurrent.ExecutorCompletionService}, but

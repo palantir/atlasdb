@@ -16,6 +16,14 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.atlasdb.autobatch.Autobatchers;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.LeaderPingResult;
+import com.palantir.paxos.LeaderPingResults;
+import com.palantir.paxos.LeaderPinger;
+import com.palantir.paxos.LeaderPingerContext;
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
@@ -29,19 +37,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.autobatch.Autobatchers;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.LeaderPingResult;
-import com.palantir.paxos.LeaderPingResults;
-import com.palantir.paxos.LeaderPinger;
-import com.palantir.paxos.LeaderPingerContext;
 
 public class AutobatchingPingableLeaderFactory implements Closeable {
 

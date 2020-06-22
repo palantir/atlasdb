@@ -17,16 +17,6 @@
 package com.palantir.lock.client.metrics;
 
 
-import java.time.Duration;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -37,6 +27,14 @@ import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(

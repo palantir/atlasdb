@@ -20,18 +20,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.util.Pair;
+import java.util.List;
+import java.util.Map;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
+import org.junit.Test;
 
 public class CassandraTimestampUtilsTest {
     private static final byte[] KEY_1 = {120};

@@ -18,13 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.wrap;
 
-import java.io.Closeable;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
-
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -36,6 +29,12 @@ import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
+import java.io.Closeable;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
 public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
 

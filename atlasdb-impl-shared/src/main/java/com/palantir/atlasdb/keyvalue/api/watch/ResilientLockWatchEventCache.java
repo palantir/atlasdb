@@ -16,18 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Counter;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
 

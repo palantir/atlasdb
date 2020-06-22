@@ -18,13 +18,11 @@ package com.palantir.atlasdb.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.timestamp.TimestampService;
+import java.util.Optional;
+import org.junit.Test;
 
 public class InMemoryAtlasDbFactoryTest {
     private final AtlasDbFactory factory = new InMemoryAtlasDbFactory();

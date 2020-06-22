@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -52,6 +44,13 @@ import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public final class ProfilingKeyValueService implements KeyValueService {
 

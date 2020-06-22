@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.io.InputStream;
-import java.util.Map;
-
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.InputStream;
+import java.util.Map;
 
 /**
  * Interface for storing streams specifically for atlasdb.

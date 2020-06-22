@@ -18,13 +18,6 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Optional;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
@@ -35,6 +28,11 @@ import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 /**
  * This test creates a single TimeLock server that is configured in a three node configuration.

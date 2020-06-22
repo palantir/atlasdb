@@ -21,20 +21,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.InetSocketAddress;
-import java.time.Clock;
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.common.base.FunctionCheckedException;
+import java.net.InetSocketAddress;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BlacklistTest {
     private static final InetSocketAddress ADDRESS_1 = InetSocketAddress.createUnresolved("NW16XE", 123);

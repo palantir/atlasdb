@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingPingableLeaderFactory.PingRequest;
@@ -27,6 +23,9 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 final class PingCoalescingFunction implements CoalescingRequestFunction<PingRequest, LeaderPingResult> {
 

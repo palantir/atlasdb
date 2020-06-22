@@ -18,6 +18,8 @@ package com.palantir.common.concurrent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -26,13 +28,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 
 public class MultiplexingCompletionServiceTest {
     private static final String KEY_1 = "key_1";

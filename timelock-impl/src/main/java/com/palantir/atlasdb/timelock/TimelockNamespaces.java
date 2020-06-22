@@ -18,6 +18,13 @@ package com.palantir.atlasdb.timelock;
 
 import static java.util.stream.Collectors.toSet;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,17 +32,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.palantir.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class TimelockNamespaces {
     @VisibleForTesting static final String ACTIVE_CLIENTS = "activeClients";

@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
@@ -36,6 +28,13 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class LockEventLogImpl implements LockEventLog {
     private final UUID logId;

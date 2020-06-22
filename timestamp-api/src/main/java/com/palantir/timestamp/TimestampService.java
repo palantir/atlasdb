@@ -15,15 +15,14 @@
  */
 package com.palantir.timestamp;
 
+import com.palantir.logsafe.Safe;
+import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.logsafe.Safe;
-import com.palantir.processors.AutoDelegate;
-import com.palantir.processors.DoDelegate;
 
 /**
  * A {@link TimestampService} serves a sequence of timestamps. Requests to {@link TimestampService#getFreshTimestamp()}

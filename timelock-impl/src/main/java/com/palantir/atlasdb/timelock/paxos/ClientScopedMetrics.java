@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -29,6 +25,9 @@ import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 public class ClientScopedMetrics {
 

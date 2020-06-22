@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.coordination;
 
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 /**
  * A {@link TransformingCoordinationService} is a {@link CoordinationService} for T2 objects that uses an underlying
