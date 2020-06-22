@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: break
+break:
   description: '`enableDialogue` is no longer configurable: Dialogue is sufficiently
     stable that we believe forcing it for all TimeLock users is acceptable. We believe
     that this configuration option has not ever been used in production. Please contact
