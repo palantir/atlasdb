@@ -44,6 +44,7 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
+import com.palantir.atlasdb.timelock.adjudicate.TimeLockHealthProvider;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -89,6 +90,7 @@ public class TimeLockAgent {
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
+    private final TimeLockHealthProvider timeLockHealthProvider;
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
@@ -180,6 +182,8 @@ public class TimeLockAgent {
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
+
+        this.timeLockHealthProvider = TimeLockHealthProvider.create();
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
@@ -340,5 +344,6 @@ public class TimeLockAgent {
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
         sqliteDataSource.close();
+        timeLockHealthProvider.close();
     }
 }
