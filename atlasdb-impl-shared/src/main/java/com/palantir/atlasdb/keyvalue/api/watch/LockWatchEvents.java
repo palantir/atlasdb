@@ -26,7 +26,6 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.Streams;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface LockWatchEvents {

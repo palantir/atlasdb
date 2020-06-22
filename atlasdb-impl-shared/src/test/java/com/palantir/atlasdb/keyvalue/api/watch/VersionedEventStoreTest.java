@@ -17,18 +17,16 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class VersionedEventStoreTest {
 
@@ -45,57 +43,31 @@ public final class VersionedEventStoreTest {
     }
 
     @Test
-    public void cannotGetFirstKeyFromEmptyStore() {
-//        assertThatThrownBy(() -> eventStore.getFirstKey())
-//                .isExactlyInstanceOf(SafeIllegalStateException.class)
-//                .hasMessage("Cannot get first key from empty map");
+    public void getAndRemoveElementsUpToExclusiveDoesNotIncludeEndVersion() {
+        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3));
+        LockWatchEvents events = eventStore.getAndRemoveElementsUpToExclusive(3L);
+        assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
+        assertThat(events.latestSequence()).hasValue(2L);
+        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
     }
 
     @Test
-    public void cannotGetLastKeyFromEmptyStore() {
-//        assertThatThrownBy(() -> eventStore.getLastKey())
-//                .isExactlyInstanceOf(SafeIllegalStateException.class)
-//                .hasMessage("Cannot get last key from empty map");
-    }
-
-    @Test
-    public void getElementsUpToExclusiveDoesNotIncludeEndVersion() {
-//        eventStore.putAll(events);
-//        eventStore.putAll(events);
-//        eventStore.putAll(events);
-//        Set<Map.Entry<Long, LockWatchEvent>> elements = eventStore.getAndRemoveElementsUpToExclusive(3L);
-//        assertThat(elements.stream().map(Map.Entry::getKey)).containsExactly(1L, 2L);
-    }
-
-    @Test
-    public void clearElementsUpToExclusiveDoesNotIncludeEndVersion() {
-//        eventStore.putAll(events);
-//        eventStore.putAll(events);
-//        eventStore.putAll(events);
-//        eventStore.clearElementsUpToExclusive(3L);
-//        assertThat(eventStore.getFirstKey()).isEqualTo(3L);
-    }
-
-    @Test
-    public void hasFloorKeyReturnsFalseWhenKeyBelowFirstKey() {
-//        eventStore.putAll(events);
-        assertThat(eventStore.contains(9L)).isFalse();
-    }
-
-    @Test
-    public void hasFloorKeyReturnsTrueForAnyLargerOrEqualKey() {
-//        eventStore.putAll(events);
-        assertThat(eventStore.contains(10L)).isTrue();
-        assertThat(eventStore.contains(9999L)).isTrue();
+    public void containsReturnsTrueForValuesLargerThanFirstKey() {
+        eventStore.putAll(ImmutableList.of(EVENT_4));
+        assertThat(eventStore.contains(1L)).isFalse();
+        assertThat(eventStore.contains(5L)).isTrue();
     }
 
     @Test
     public void getEventsBetweenVersionsReturnsInclusiveOnBounds() {
-//        eventStore.putAll(events);
-//        eventStore.putAll(events);
-//        eventStore.putAll(events);
-//        eventStore.putAll(events);
+        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.of(2L), 3L)).containsExactly(EVENT_2, EVENT_3);
+    }
 
-//        assertThat(eventStore.getEventsBetweenVersionsInclusive(2L, 3L)).containsExactly(EVENT_2, EVENT_3);
+    @Test
+    public void getEventsBetweenVersionsStartsFromFirstKeyIfNotSpecified() {
+        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), 3L))
+                .containsExactly(EVENT_1, EVENT_2, EVENT_3);
     }
 }

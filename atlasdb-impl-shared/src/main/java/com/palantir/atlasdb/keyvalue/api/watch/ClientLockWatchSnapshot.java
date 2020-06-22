@@ -17,16 +17,12 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
@@ -65,7 +61,7 @@ final class ClientLockWatchSnapshot {
     }
 
     void processEvents(LockWatchEvents events, UUID versionId) {
-        if(!events.latestSequence().isPresent()) {
+        if (!events.latestSequence().isPresent()) {
             return;
         }
 

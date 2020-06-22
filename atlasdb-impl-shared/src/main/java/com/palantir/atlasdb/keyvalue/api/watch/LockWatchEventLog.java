@@ -82,9 +82,9 @@ final class LockWatchEventLog {
     }
 
     void removeEventsBefore(long earliestSequence) {
-        getLatestKnownVersion().ifPresent(latestVersion -> {
+        getLatestKnownVersion().ifPresent(version -> {
             LockWatchEvents eventsToBeRemoved = eventStore.getAndRemoveElementsUpToExclusive(earliestSequence);
-            snapshot.processEvents(eventsToBeRemoved, latestVersion.id());
+            snapshot.processEvents(eventsToBeRemoved, version.id());
         });
     }
 

@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -126,7 +127,7 @@ public class LockWatchEventCacheIntegrationTest {
                 mapper.writeValue(path.toFile(), eventCacheState);
             } else {
                 String ourJson = mapper.writeValueAsString(eventCacheState);
-                String theirJson = new String(Files.readAllBytes(path), Charset.defaultCharset());
+                String theirJson = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
                 assertThat(ourJson).isEqualTo(theirJson);
             }
             part++;
