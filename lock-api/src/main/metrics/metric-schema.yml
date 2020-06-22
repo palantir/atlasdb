@@ -11,4 +11,8 @@ namespaces:
       startTransactions:
         type: timer
         docs: how long it takes to start transaction in timelock
+      startTransactionErrors:
+        type: meter
+        docs: error rate for start transaction in timelock
+
 
