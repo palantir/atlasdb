@@ -225,7 +225,6 @@ public class TransactionManagersTest {
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
 
         availablePort = availableServer.port();
-
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
 
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
@@ -919,7 +918,6 @@ public class TransactionManagersTest {
         AuthHeader authHeader = AuthHeader.valueOf("Bearer omitted");
         SettableRefreshable<AtlasDbRuntimeConfig> refreshableRuntimeConfig =
                 Refreshable.create(mockAtlasDbRuntimeConfig);
-
         Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
                         config, refreshableRuntimeConfig, USER_AGENT);

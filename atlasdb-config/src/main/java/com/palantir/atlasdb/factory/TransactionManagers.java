@@ -364,6 +364,7 @@ public abstract class TransactionManagers {
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = setUpMetricsAndGetMetricsManager();
+
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
