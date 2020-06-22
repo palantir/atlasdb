@@ -57,6 +57,7 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
     }
 
     @Override
+    @JsonIgnore
     public LockWatchStateUpdate.Snapshot getSnapshot() {
         Preconditions.checkState(snapshotVersion.isPresent(),
                 "Snapshot was reset on fail and has not been seeded since");
@@ -68,7 +69,6 @@ final class ClientLockWatchSnapshotImpl implements ClientLockWatchSnapshot {
     }
 
     @Override
-    @JsonIgnore
     public void processEvents(LockWatchEvents events, UUID versionId) {
         if(!events.latestSequence().isPresent()) {
             return;

@@ -23,13 +23,6 @@
             "bytes" : "dGFibGUAAQ=="
           } ]
         },
-        "5" : {
-          "type" : "unlock",
-          "sequence" : 5,
-          "lockDescriptors" : [ {
-            "bytes" : "dGFibGUAAg=="
-          } ]
-        },
         "6" : {
           "type" : "lock",
           "sequence" : 6,
@@ -49,12 +42,17 @@
           "lockToken" : {
             "requestId" : "888fcd7a-b3d7-4d2a-9d2c-3d61cde1ba44"
           }
+        },
+        "20" : {
+          "type" : "unlock",
+          "sequence" : 20,
+          "lockDescriptors" : [ ]
         }
       }
     },
     "latestVersion" : {
       "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
-      "version" : 10
+      "version" : 20
     }
   },
   "timestampStateStore" : {
@@ -65,10 +63,33 @@
           "version" : 10
         },
         "commitInfo" : null
+      },
+      "1" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 3
+        },
+        "commitInfo" : null
+      },
+      "23" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 20
+        },
+        "commitInfo" : null
+      },
+      "55" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 20
+        },
+        "commitInfo" : null
       }
     },
     "aliveVersions" : {
-      "10" : [ 16 ]
+      "3" : [ 1 ],
+      "10" : [ 16 ],
+      "20" : [ 23, 55 ]
     }
   }
 }

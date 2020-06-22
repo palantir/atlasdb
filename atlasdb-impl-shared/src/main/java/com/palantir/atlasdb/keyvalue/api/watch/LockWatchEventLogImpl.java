@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.watch.CacheStatus;
@@ -88,6 +89,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
     }
 
     @Override
+    @JsonIgnore
     public Optional<IdentifiedVersion> getLatestKnownVersion() {
         return latestVersion;
     }
@@ -119,7 +121,7 @@ final class LockWatchEventLogImpl implements LockWatchEventLog {
 
     private void processSnapshot(LockWatchStateUpdate.Snapshot snapshotUpdate) {
         eventStore.clear();
-        this.snapshot.resetWithSnapshot(snapshotUpdate);
+        snapshot.resetWithSnapshot(snapshotUpdate);
         latestVersion = Optional.of(IdentifiedVersion.of(snapshotUpdate.logId(), snapshotUpdate.lastKnownVersion()));
     }
 

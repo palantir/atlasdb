@@ -1,8 +1,0 @@
-{
-  "eventLog" : {
-    "snapshot" : {
-      "watches" : [ ],
-      "locked" : [ ],
-      "snapshotVersion" : {
-        "present" : false
-      }

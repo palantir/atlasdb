@@ -48,7 +48,32 @@
     }
   },
   "timestampStateStore" : {
-    "timestampMap" : { },
-    "aliveVersions" : { }
+    "timestampMap" : {
+      "1" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 3
+        },
+        "commitInfo" : null
+      },
+      "5" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 6
+        },
+        "commitInfo" : null
+      },
+      "123" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 6
+        },
+        "commitInfo" : null
+      }
+    },
+    "aliveVersions" : {
+      "3" : [ 1 ],
+      "6" : [ 5, 123 ]
+    }
   }
 }

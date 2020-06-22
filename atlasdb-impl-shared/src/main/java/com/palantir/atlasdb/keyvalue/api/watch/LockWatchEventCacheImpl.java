@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -73,6 +74,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
+    @JsonIgnore
     public Optional<IdentifiedVersion> lastKnownVersion() {
         return eventLog.getLatestKnownVersion();
     }
@@ -83,7 +85,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
         latestVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
-        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeEventsBefore);
     }
 
     @Override
@@ -127,6 +128,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
+        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeEventsBefore);
     }
 
     @VisibleForTesting

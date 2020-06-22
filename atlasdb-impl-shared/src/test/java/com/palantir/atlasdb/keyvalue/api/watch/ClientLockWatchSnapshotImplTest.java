@@ -66,7 +66,7 @@ public final class ClientLockWatchSnapshotImplTest {
 
     @Test
     public void eventsProcessedAsExpected() {
-//        snapshot.processEvents(events, versionId);
+//        snapshot.processEvents(LWEvents, versionId);
         LockWatchStateUpdate.Snapshot snapshotUpdate = snapshot.getSnapshot();
         assertThat(snapshotUpdate.locked()).containsExactlyInAnyOrderElementsOf(INITIAL_DESCRIPTORS);
         assertThat(snapshotUpdate.lockWatches()).containsExactlyInAnyOrder(REFERENCE_1);
