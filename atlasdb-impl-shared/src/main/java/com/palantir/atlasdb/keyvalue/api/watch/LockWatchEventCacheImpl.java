@@ -85,6 +85,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> latestVersion = processEventLogUpdate(update);
         latestVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
+        getEarliestVersion().map(IdentifiedVersion::version).ifPresent(eventLog::removeEventsBefore);
     }
 
     @Override
