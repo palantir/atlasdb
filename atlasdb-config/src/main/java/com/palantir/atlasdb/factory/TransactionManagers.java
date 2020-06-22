@@ -1083,46 +1083,23 @@ public abstract class TransactionManagers {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingClientConfig);
 
-        LockRpcClient cjrLockRpcClient = new TimeoutSensitiveLockRpcClient(
-                ShortAndLongTimeoutServices.create(creator, LockRpcClient.class));
-        LockRpcClient dialogueLockRpcClient = serviceProvider.getLockRpcClient();
-        LockRpcClient lockRpcClient = ImmutableRemoteProxies.<LockRpcClient>builder()
-                .conjureJavaRuntimeProxy(cjrLockRpcClient)
-                .dialogueProxy(dialogueLockRpcClient)
-                .remotingClientConfig(remotingClientConfig)
-                .build()
-                .getConfigSwitchedProxy(LockRpcClient.class);
-
+        LockRpcClient lockRpcClient = serviceProvider.getLockRpcClient();
         LockService lockService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService cjrTimelockService = new TimeoutSensitiveConjureTimelockService(
-                ShortAndLongTimeoutServices.create(creator, ConjureTimelockService.class));
-        ConjureTimelockService dialogueTimelockService = serviceProvider.getConjureTimelockService();
-        ConjureTimelockService switchableService = ImmutableRemoteProxies.<ConjureTimelockService>builder()
-                .conjureJavaRuntimeProxy(cjrTimelockService)
-                .dialogueProxy(dialogueTimelockService)
-                .remotingClientConfig(remotingClientConfig)
-                .build()
-                .getConfigSwitchedProxy(ConjureTimelockService.class);
-
-        TimelockRpcClient timelockClient = ImmutableRemoteProxies.<TimelockRpcClient>builder()
-                .conjureJavaRuntimeProxy(creator.createService(TimelockRpcClient.class))
-                .dialogueProxy(serviceProvider.getTimelockRpcClient())
-                .remotingClientConfig(remotingClientConfig)
-                .build()
-                .getConfigSwitchedProxy(TimelockRpcClient.class);
+        ConjureTimelockService conjureTimelockService = serviceProvider.getConjureTimelockService();
+        TimelockRpcClient timelockClient = serviceProvider.getTimelockRpcClient();
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticComponents
                 .<ConjureTimelockService>map(components ->
                         new LockDiagnosticConjureTimelockService(
-                                switchableService,
+                                conjureTimelockService,
                                 components.clientLockDiagnosticCollector(),
                                 components.localLockTracker()))
-                .orElse(switchableService);
+                .orElse(conjureTimelockService);
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
@@ -1136,14 +1113,7 @@ public abstract class TransactionManagers {
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
-                ImmutableRemoteProxies.<TimestampManagementRpcClient>builder()
-                        .conjureJavaRuntimeProxy(
-                                creator.createServiceWithShortTimeout(TimestampManagementRpcClient.class))
-                        .dialogueProxy(serviceProvider.getTimestampManagementRpcClient())
-                        .remotingClientConfig(remotingClientConfig)
-                        .build()
-                        .getConfigSwitchedProxy(TimestampManagementRpcClient.class),
-                timelockNamespace);
+                serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -1381,21 +1351,5 @@ public abstract class TransactionManagers {
     public interface TransactionComponents {
         TransactionService transactionService();
         Optional<TransactionSchemaInstaller> schemaInstaller();
-    }
-
-    @Value.Immutable
-    @Value.Style(stagedBuilder = false)
-    public interface RemoteProxies<T> {
-        T conjureJavaRuntimeProxy();
-        T dialogueProxy();
-        Refreshable<RemotingClientConfig> remotingClientConfig();
-
-        default T getConfigSwitchedProxy(Class<T> type) {
-            return PredicateSwitchedProxy.newProxyInstance(
-                    dialogueProxy(),
-                    conjureJavaRuntimeProxy(),
-                    remotingClientConfig().map(RemotingClientConfig::enableDialogue),
-                    type);
-        }
     }
 }
