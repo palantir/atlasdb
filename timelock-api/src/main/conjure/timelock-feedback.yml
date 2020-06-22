@@ -12,7 +12,8 @@ types:
       EndpointStatistics:
         fields:
           p99: double
-          oneMin: double
+          minRate: double
+          errorRate: double
 
 services:
   TimeLockClientFeedbackService:

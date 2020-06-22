@@ -112,8 +112,16 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private EndpointStatistics getEndpointStatsForLeaderTime() {
-        return EndpointStatistics.of(getP99ForLeaderTime(),
-                getOneMinuteRateForLeaderTime());
+        return EndpointStatistics
+                .builder()
+                .p99(getP99ForLeaderTime())
+                .minRate(getOneMinuteRateForLeaderTime())
+                .errorRate(getErrorRateForLeaderTime())
+                .build();
+    }
+
+    private double getErrorRateForLeaderTime() {
+        return conjureTimelockServiceBlockingMetrics.leaderTimeErrors().getOneMinuteRate();
     }
 
     private double getOneMinuteRateForLeaderTime() {
@@ -126,8 +134,16 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private EndpointStatistics getEndpointStatsForStartTxn() {
-        return EndpointStatistics.of(getP99ForStartTxn(),
-                getOneMinuteRateForStartTxn());
+        return EndpointStatistics
+                .builder()
+                .p99(getP99ForStartTxn())
+                .minRate(getOneMinuteRateForStartTxn())
+                .errorRate(getErrorRateForStartTxn())
+                .build();
+    }
+
+    private double getErrorRateForStartTxn() {
+        return conjureTimelockServiceBlockingMetrics.startTransactionErrors().getOneMinuteRate();
     }
 
     private double getOneMinuteRateForStartTxn() {
