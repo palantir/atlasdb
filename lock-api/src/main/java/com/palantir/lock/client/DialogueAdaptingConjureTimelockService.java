@@ -49,7 +49,8 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        return executeInTimerContext(() -> dialogueDelegate.startTransactions(authHeader, namespace, request));
+        return executeInTimerContext(() -> dialogueDelegate.startTransactions(authHeader, namespace, request),
+                () -> conjureTimelockServiceBlockingMetrics.startTransactions().time());
     }
 
     @Override
@@ -60,7 +61,8 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return executeInTimerContext(() -> dialogueDelegate.leaderTime(authHeader, namespace));
+        return executeInTimerContext(() -> dialogueDelegate.leaderTime(authHeader, namespace),
+                () -> conjureTimelockServiceBlockingMetrics.leaderTime().time());
     }
 
     @Override
@@ -91,8 +93,8 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
     }
 
-    private <T> T executeInTimerContext(Supplier<T> supplier) {
-        try (Timer.Context timer = conjureTimelockServiceBlockingMetrics.startTransactions().time()) {
+    private <T> T executeInTimerContext(Supplier<T> supplier, Supplier<Timer.Context> timerSupplier) {
+        try (Timer.Context timer = timerSupplier.get()) {
             return supplier.get();
         }
     }
