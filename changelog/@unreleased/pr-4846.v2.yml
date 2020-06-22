@@ -1,0 +1,9 @@
+type: break
+break:
+  description: 'AtlasDB now publishes all of its metrics with `metricOrigin: atlasdb`.
+    _This also means that AtlasDB publishes all metrics as tagged metrics: this may
+    break users that have workflows that involve reading values directly from a `MetricRegistry`.
+    The same metric will be published in the `TaggedMetricRegistry` that users would
+    have provided to AtlasDB._'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4846
