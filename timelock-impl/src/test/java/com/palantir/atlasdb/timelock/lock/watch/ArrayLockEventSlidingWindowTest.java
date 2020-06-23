@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -26,22 +28,28 @@ import org.immutables.value.Value;
 import org.junit.Test;
 
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public class ArrayLockEventSlidingWindowTest {
-    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(10);
+    private static final int WINDOW_SIZE = 10;
+
+    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(WINDOW_SIZE);
 
     @Test
     public void whenLastKnownVersionIsAfterCurrentThrows() {
         int numEntries = 5;
         addEvents(numEntries);
-//        assertThat(slidingWindow.getFromVersion(numEntries + 1)).isEmpty();
+        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getFromVersion(numEntries + 1))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasLogMessage("Version not in the log");
     }
 
     @Test
-    public void whenLastKnownVersionIsTooThrows() {
-        int numEntries = 15;
-        addEvents(numEntries);
-//        assertThat(slidingWindow.getFromVersion(2)).isEmpty();
+    public void whenLastKnownVersionIsTooOldThrows() {
+        addEvents(WINDOW_SIZE + 5);
+        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getFromVersion(2))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasLogMessage("Version not in the log");
     }
 
     @Test
