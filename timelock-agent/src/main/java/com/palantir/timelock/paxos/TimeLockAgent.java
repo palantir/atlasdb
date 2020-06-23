@@ -43,6 +43,7 @@ import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.adjudicate.HealthStatus;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockHealthProvider;
 import com.palantir.atlasdb.timelock.lock.LockLog;
@@ -341,9 +342,12 @@ public class TimeLockAgent {
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 
+    public HealthStatus getTimeLockAdjudicationEndpointHealthStatus() {
+        return timeLockHealthProvider.pointEstimateTimeLockHealth();
+    }
+
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
         sqliteDataSource.close();
-        timeLockHealthProvider.close();
     }
 }

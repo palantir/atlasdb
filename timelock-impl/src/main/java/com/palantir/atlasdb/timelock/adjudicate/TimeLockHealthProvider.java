@@ -17,42 +17,19 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.util.Collection;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-
 public class TimeLockHealthProvider {
-    private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("TimeLockHealthProvider", true));
-
     private static final Logger log = LoggerFactory.getLogger(TimeLockHealthProvider.class);
 
     public static TimeLockHealthProvider create() {
-        TimeLockHealthProvider timeLockHealthProvider = new TimeLockHealthProvider();
-        timeLockHealthProvider.scheduleWithFixedDelay();
-        return timeLockHealthProvider;
+        return new TimeLockHealthProvider();
     }
 
-    private void scheduleWithFixedDelay() {
-        executor.scheduleWithFixedDelay(() -> {
-                    try {
-                        pointEstimateTimeLockHealth();
-                    } catch (Exception e) {
-                        log.warn("Failed to analyze metrics while adjudicating TimeLock.", e);
-                    }
-                },
-                90,
-                30,
-                TimeUnit.SECONDS);
-    }
-
-    private HealthStatus pointEstimateTimeLockHealth() {
+    public HealthStatus pointEstimateTimeLockHealth() {
         Collection<ServiceHealthTracker.Service> services = FeedbackReportsSink.getTrackedServices();
         int targetUnhealthyServices = services.size() / 3;
         services = services.stream().filter(
@@ -62,9 +39,5 @@ public class TimeLockHealthProvider {
                 .stream()
                 .filter(service -> ServiceHealthTracker.getHealthStatus(service) == HealthStatus.UNHEALTHY).count()
                 >= targetUnhealthyServices ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
-    }
-
-    public void close() {
-        executor.shutdown();
     }
 }
