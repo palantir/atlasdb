@@ -13,6 +13,7 @@ types:
         fields:
           p99: double
           oneMin: double
+          errorRate: optional<double>
 
 services:
   TimeLockClientFeedbackService:

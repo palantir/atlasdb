@@ -15,8 +15,10 @@
  */
 
 package com.palantir.lock.client;
+
 import java.util.function.Supplier;
 
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -49,8 +51,9 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        return executeInTimerContext(() -> dialogueDelegate.startTransactions(authHeader, namespace, request),
-                () -> conjureTimelockServiceBlockingMetrics.startTransactions().time());
+        return executeInstrumented(() -> dialogueDelegate.startTransactions(authHeader, namespace, request),
+                () -> conjureTimelockServiceBlockingMetrics.startTransactions().time(),
+                () -> conjureTimelockServiceBlockingMetrics.startTransactionErrors());
     }
 
     @Override
@@ -61,8 +64,9 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return executeInTimerContext(() -> dialogueDelegate.leaderTime(authHeader, namespace),
-                () -> conjureTimelockServiceBlockingMetrics.leaderTime().time());
+        return executeInstrumented(() -> dialogueDelegate.leaderTime(authHeader, namespace),
+                () -> conjureTimelockServiceBlockingMetrics.leaderTime().time(),
+                () -> conjureTimelockServiceBlockingMetrics.leaderTimeErrors());
     }
 
     @Override
@@ -93,9 +97,13 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
     }
 
-    private <T> T executeInTimerContext(Supplier<T> supplier, Supplier<Timer.Context> timerSupplier) {
+    private <T> T executeInstrumented(Supplier<T> supplier, Supplier<Timer.Context> timerSupplier,
+            Supplier<Meter> meterSupplier) {
         try (Timer.Context timer = timerSupplier.get()) {
             return supplier.get();
+        } catch (RuntimeException e) {
+            meterSupplier.get().mark();
+            throw e;
         }
     }
 }
