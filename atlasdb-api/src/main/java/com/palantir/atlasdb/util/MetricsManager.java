@@ -38,10 +38,18 @@ import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
+import com.palantir.atlasdb.metrics.FilteredTaggedMetricSet;
+import com.palantir.atlasdb.metrics.MetricPublicationArbiter;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
 public class MetricsManager {
 
@@ -51,6 +59,8 @@ public class MetricsManager {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
     private final Set<MetricName> registeredTaggedMetrics;
+    private final MetricPublicationArbiter publicationArbiter;
+    private final TaggedMetricSet publishableMetricsView;
     private final Predicate<TableReference> isSafeToLog;
     private final ReadWriteLock lock;
     private final MetricNameCache metricNameCache;
@@ -58,13 +68,34 @@ public class MetricsManager {
     public MetricsManager(MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
             Predicate<TableReference> isSafeToLog) {
+        this(metricRegistry, taggedMetricRegistry, Refreshable.only(false), isSafeToLog);
+    }
+
+    public MetricsManager(MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
+            Refreshable<Boolean> performFiltering,
+            Predicate<TableReference> isSafeToLog) {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
         this.registeredMetrics = ConcurrentHashMap.newKeySet();
         this.registeredTaggedMetrics = ConcurrentHashMap.newKeySet();
         this.isSafeToLog = isSafeToLog;
+        this.publicationArbiter = new MetricPublicationArbiter(Maps.newConcurrentMap());
+        this.publishableMetricsView = createPublishableMetricsView(
+                metricRegistry, taggedMetricRegistry, publicationArbiter, performFiltering);
         this.lock = new ReentrantReadWriteLock();
         this.metricNameCache = new MetricNameCache();
+    }
+
+    private static TaggedMetricSet createPublishableMetricsView(
+            MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
+            MetricPublicationArbiter arbiter,
+            Refreshable<Boolean> performFiltering) {
+        TaggedMetricSet legacyMetricsAsTaggedSet = new DropwizardTaggedMetricSet(metricRegistry);
+        TaggedMetricSet unfilteredUnion
+                = new DisjointUnionTaggedMetricSet(legacyMetricsAsTaggedSet, taggedMetricRegistry);
+        return new FilteredTaggedMetricSet(unfilteredUnion, arbiter, performFiltering);
     }
 
     public MetricRegistry getRegistry() {
@@ -73,6 +104,14 @@ public class MetricsManager {
 
     public TaggedMetricRegistry getTaggedRegistry() {
         return taggedMetricRegistry;
+    }
+
+    public void addMetricFilter(MetricName metricName, MetricPublicationFilter publicationFilter) {
+        publicationArbiter.registerMetricsFilter(metricName, publicationFilter);
+    }
+
+    public TaggedMetricSet getPublishableMetrics() {
+        return publishableMetricsView;
     }
 
     public void registerMetric(Class clazz, String metricName, Gauge gauge) {

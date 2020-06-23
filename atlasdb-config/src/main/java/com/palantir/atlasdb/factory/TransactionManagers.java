@@ -102,7 +102,6 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -195,9 +194,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -557,14 +554,18 @@ public abstract class TransactionManagers {
     private MetricsManager setUpMetricsAndGetMetricsManager() {
         MetricRegistry internalAtlasDbMetrics = new MetricRegistry();
         TaggedMetricRegistry internalTaggedAtlasDbMetrics = new DefaultTaggedMetricRegistry();
-        MetricsManager metricsManager = MetricsManagers.of(internalAtlasDbMetrics, internalTaggedAtlasDbMetrics);
-
-        // TODO (jkong): Add filtering here
-        TaggedMetricSet taggedLegacyMetrics = new DropwizardTaggedMetricSet(internalAtlasDbMetrics);
+        MetricsManager metricsManager = MetricsManagers.of(
+                internalAtlasDbMetrics,
+                internalTaggedAtlasDbMetrics,
+                runtimeConfig()
+                        .map(runtimeConfigRefreshable -> runtimeConfigRefreshable.map(
+                                maybeRuntime -> maybeRuntime.map(AtlasDbRuntimeConfig::enableMetricFiltering)
+                                        .orElse(true)))
+                        .orElseGet(() -> Refreshable.only(true)));
         globalTaggedMetricRegistry().addMetrics(
                 AtlasDbMetricNames.LIBRARY_ORIGIN_TAG,
                 AtlasDbMetricNames.LIBRARY_ORIGIN_VALUE,
-                new DisjointUnionTaggedMetricSet(taggedLegacyMetrics, internalTaggedAtlasDbMetrics));
+                metricsManager.getPublishableMetrics());
         return metricsManager;
     }
 

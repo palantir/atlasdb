@@ -48,6 +48,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
@@ -168,6 +169,7 @@ public class TargetedSweepMetrics {
         private final AccumulatingValueMetric abortedWritesDeleted;
         private final CurrentValueMetric<Long> sweepTimestamp;
         private final AggregatingVersionedMetric<Long> lastSweptTs;
+        private final Gauge<Long> millisSinceLastSwept;
         private final SweepOutcomeMetrics outcomeMetrics;
         private final SlidingWindowMeanGauge batchSizeMean;
 
@@ -175,39 +177,60 @@ public class TargetedSweepMetrics {
                 Clock wallClock, long recomputeMillis) {
             tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
             this.manager = manager;
-            enqueuedWrites = registerAccumulating(AtlasDbMetricNames.ENQUEUED_WRITES);
-            entriesRead = registerAccumulating(AtlasDbMetricNames.ENTRIES_READ);
-            tombstonesPut = registerAccumulating(AtlasDbMetricNames.TOMBSTONES_PUT);
-            abortedWritesDeleted = registerAccumulating(AtlasDbMetricNames.ABORTED_WRITES_DELETED);
-            sweepTimestamp = register(AtlasDbMetricNames.SWEEP_TS, new CurrentValueMetric<>());
-            lastSweptTs = registerLastSweptTsMetric(recomputeMillis);
-            registerMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
+            enqueuedWrites = new AccumulatingValueMetric();
+            entriesRead = new AccumulatingValueMetric();
+            tombstonesPut = new AccumulatingValueMetric();
+            abortedWritesDeleted = new AccumulatingValueMetric();
+            sweepTimestamp = new CurrentValueMetric<>();
+            lastSweptTs = createLastSweptTsMetric(recomputeMillis);
+            millisSinceLastSwept = createMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
+            batchSizeMean = new SlidingWindowMeanGauge();
+            registerProgressMetrics(strategy);
             outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag);
-            batchSizeMean = register(AtlasDbMetricNames.BATCH_SIZE_MEAN, new SlidingWindowMeanGauge());
         }
 
-        private AccumulatingValueMetric registerAccumulating(String name) {
-            return register(name, new AccumulatingValueMetric());
+        private void registerProgressMetrics(String strategy) {
+            TargetedSweepMetricPublicationFilter filter = new TargetedSweepMetricPublicationFilter(
+                    ImmutableDecisionMetrics.builder()
+                            .enqueuedWrites(enqueuedWrites::getValue)
+                            .entriesRead(entriesRead::getValue)
+                            .millisSinceLastSweptTs(
+                                    () -> Optional.ofNullable(millisSinceLastSwept.getValue()).orElse(0L))
+                            .build());
+            // This is kind of against the point of metrics-filter, but is needed for our filtering
+            AtlasDbMetricNames.TARGETED_SWEEP_PROGRESS_METRIC_NAMES
+                    .stream()
+                    .map(operationName -> MetricName.builder()
+                            .safeName("targetedSweepProgress." + operationName)
+                            .putSafeTags("strategy", strategy)
+                            .build())
+                    .forEach(metricName -> manager.addMetricFilter(metricName, filter));
+
+            TargetedSweepProgressMetrics progressMetrics = TargetedSweepProgressMetrics.of(manager.getTaggedRegistry());
+            progressMetrics.enqueuedWrites().strategy(strategy).build(enqueuedWrites);
+            progressMetrics.entriesRead().strategy(strategy).build(entriesRead);
+            progressMetrics.tombstonesPut().strategy(strategy).build(tombstonesPut);
+            progressMetrics.abortedWritesDeleted().strategy(strategy).build(abortedWritesDeleted);
+            progressMetrics.sweepTimestamp().strategy(strategy).build(sweepTimestamp);
+            progressMetrics.lastSweptTimestamp().strategy(strategy).build(lastSweptTs);
+            progressMetrics.millisSinceLastSweptTs().strategy(strategy).build(millisSinceLastSwept);
+            progressMetrics.batchSizeMean().strategy(strategy).build(batchSizeMean);
         }
 
-        @SuppressWarnings("unchecked")
-        private <T extends Gauge<?>> T register(String name, T metric) {
-            return (T) manager.registerOrGet(TargetedSweepMetrics.class, name, metric, tag);
-        }
-
-        private AggregatingVersionedMetric<Long> registerLastSweptTsMetric(long millis) {
+        private AggregatingVersionedMetric<Long> createLastSweptTsMetric(long millis) {
             AggregatingVersionedSupplier<Long> lastSweptTimestamp = AggregatingVersionedSupplier.min(millis);
-            return register(AtlasDbMetricNames.LAST_SWEPT_TS, new AggregatingVersionedMetric<>(lastSweptTimestamp));
+            return new AggregatingVersionedMetric<>(lastSweptTimestamp);
         }
 
-        private void registerMillisSinceLastSweptMetric(Function<Long, Long> tsToMillis, Clock wallClock, long millis) {
+        private Gauge<Long> createMillisSinceLastSweptMetric(
+                Function<Long, Long> tsToMillis, Clock wallClock, long millis) {
             Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
                     sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis),
                     lastSweptTs::getVersionedValue,
                     millis,
                     wallClock);
 
-            register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get);
+            return millisSinceLastSweptTs::get;
         }
 
         private Long estimateMillisSinceTs(Long sweptTs, Clock clock, Function<Long, Long> tsToMillis) {
