@@ -27,10 +27,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -317,7 +317,7 @@ public class TableClassRendererV2 {
                 .addCode("\n")
                 .addStatement("$T<byte[], $T<byte[]>> results = "
                                 + "t.getRows(tableRef, $T.persistAll(rows), colSelection)",
-                        SortedMap.class, RowResult.class, Persistables.class)
+                        NavigableMap.class, RowResult.class, Persistables.class)
                 .addStatement("return results\n"
                                 + ".values()\n"
                                 + ".stream()\n"
@@ -353,7 +353,7 @@ public class TableClassRendererV2 {
                 .addCode("\n")
                 .addStatement("$T<byte[], $T<byte[]>> results = "
                                 + "t.getRows(tableRef, $T.persistAll(rowKeys), colSelection)",
-                        SortedMap.class, RowResult.class, Persistables.class)
+                        NavigableMap.class, RowResult.class, Persistables.class)
                 .addStatement("return results\n"
                                 + ".values()\n"
                                 + ".stream()\n"

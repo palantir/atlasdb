@@ -56,6 +56,7 @@ import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -179,7 +180,7 @@ public class PaxosTimestampBoundStoreTest {
             learnerNetworkClientFactories.forEach(closer::register);
         } else {
             acceptorClient = new SingleLeaderAcceptorNetworkClient(
-                    acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), true);
+                    acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
 
             learnerClientsByNode = learners.stream()
                     .map(learner -> new SingleLeaderLearnerNetworkClient(
@@ -187,7 +188,7 @@ public class PaxosTimestampBoundStoreTest {
                             learners.stream().filter(otherLearners -> otherLearners != learner).collect(toList()),
                             QUORUM_SIZE,
                             Maps.toMap(learners, $ -> executor),
-                            true))
+                            PaxosConstants.CANCEL_REMAINING_CALLS))
                     .collect(toList());
         }
 

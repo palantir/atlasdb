@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -131,6 +132,11 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
     @Override
     public CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
         return config.asyncKeyValueServiceFactory();
+    }
+
+    @Override
+    public Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory() {
+        return config.thriftExecutorServiceFactory();
     }
 
     @Override

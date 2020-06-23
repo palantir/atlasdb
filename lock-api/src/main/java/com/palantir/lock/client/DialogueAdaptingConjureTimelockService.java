@@ -16,6 +16,10 @@
 
 package com.palantir.lock.client;
 
+import java.util.function.Supplier;
+
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -36,15 +40,20 @@ import com.palantir.tokens.auth.AuthHeader;
 
 public class DialogueAdaptingConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockServiceBlocking dialogueDelegate;
+    private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
 
-    public DialogueAdaptingConjureTimelockService(ConjureTimelockServiceBlocking dialogueDelegate) {
+    public DialogueAdaptingConjureTimelockService(ConjureTimelockServiceBlocking dialogueDelegate,
+            ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics) {
         this.dialogueDelegate = dialogueDelegate;
+        this.conjureTimelockServiceBlockingMetrics = conjureTimelockServiceBlockingMetrics;
     }
 
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        return dialogueDelegate.startTransactions(authHeader, namespace, request);
+        return executeInstrumented(() -> dialogueDelegate.startTransactions(authHeader, namespace, request),
+                () -> conjureTimelockServiceBlockingMetrics.startTransactions().time(),
+                () -> conjureTimelockServiceBlockingMetrics.startTransactionErrors());
     }
 
     @Override
@@ -55,7 +64,9 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return dialogueDelegate.leaderTime(authHeader, namespace);
+        return executeInstrumented(() -> dialogueDelegate.leaderTime(authHeader, namespace),
+                () -> conjureTimelockServiceBlockingMetrics.leaderTime().time(),
+                () -> conjureTimelockServiceBlockingMetrics.leaderTimeErrors());
     }
 
     @Override
@@ -84,5 +95,15 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
+    }
+
+    private <T> T executeInstrumented(Supplier<T> supplier, Supplier<Timer.Context> timerSupplier,
+            Supplier<Meter> meterSupplier) {
+        try (Timer.Context timer = timerSupplier.get()) {
+            return supplier.get();
+        } catch (RuntimeException e) {
+            meterSupplier.get().mark();
+            throw e;
+        }
     }
 }

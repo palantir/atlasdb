@@ -1,0 +1,7 @@
+type: break
+break:
+  description: Transaction#getRows return type was changed to NavigableMap (which
+    extends SortedMap). ResultsExtractor, Cells and RowResults have been adjusted
+    accordingly.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4856

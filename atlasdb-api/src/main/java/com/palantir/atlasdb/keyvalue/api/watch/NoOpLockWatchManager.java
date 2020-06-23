@@ -23,7 +23,7 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 
 public final class NoOpLockWatchManager extends LockWatchManager {
     public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
@@ -39,8 +39,8 @@ public final class NoOpLockWatchManager extends LockWatchManager {
     }
 
     @Override
-    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+    TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
             Optional<IdentifiedVersion> version) {
-        return NoOpLockWatchEventCache.INSTANCE.getEventsForTransactions(startTimestamps, version);
+        return NoOpLockWatchEventCache.INSTANCE.getUpdateForTransactions(startTimestamps, version);
     }
 }

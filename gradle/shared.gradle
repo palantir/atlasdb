@@ -54,6 +54,7 @@ license {
     exclude '**/RateLimiter.java'
     exclude '**/SmoothRateLimiter.java'
     exclude '**/DiscoverableSubtypeResolver.java'
+    exclude '**/ConjureTimelockServiceBlockingMetrics.java'
 }
 
 ext {

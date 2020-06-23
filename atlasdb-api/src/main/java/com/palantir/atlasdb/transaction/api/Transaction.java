@@ -17,8 +17,8 @@ package com.palantir.atlasdb.transaction.api;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -37,22 +37,79 @@ import com.palantir.common.base.BatchingVisitable;
 
 /**
  * Provides the methods for a transaction with the key-value store.
+ *
+ * In general: users may assume that if maps (including sorted maps) keyed on byte[] are returned to the user,
+ * they may be accessed via any byte array that is equivalent in terms of
+ * {@link java.util.Arrays#equals(byte[], byte[])}.
+ *
  * @see TransactionManager
  */
 public interface Transaction {
 
+    /**
+     * Returns a mapping of rows to {@link RowResult}s within {@code tableRef} for the specified {@code rows}, loading
+     * columns according to the provided {@link ColumnSelection}. Duplicate rows are permitted (but there will be just
+     * one key-value pair for that row in the returned {@link NavigableMap}).
+     *
+     * The returned {@link NavigableMap} is sorted on the byte order of row keys; the ordering of the input parameter
+     * {@code rows} is irrelevant.
+     *
+     * If there are rows with no cells matching the provided {@link ColumnSelection}, they will not be present in the
+     * {@link Map#keySet()} of the output map at all. This accounts for writes and deletes done in this transaction:
+     * a row written to in this transaction will be present, and a row which is deleted in this transaction will be
+     * absent.
+     *
+     * @param tableRef table to load rows from
+     * @param rows rows to be loaded
+     * @param columnSelection columns to load from the given rows
+     * @return a mapping of rows to the columns matching the provided column selection
+     */
     @Idempotent
-    SortedMap<byte[], RowResult<byte[]>> getRows(
+    NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnSelection columnSelection);
 
+    /**
+     * Returns a mapping of requested {@code rows} to corresponding columns from the queried table.
+     * Only columns matching the provided predicate will be returned, and the single predicate provided applies across
+     * all of the rows. Users should provide unique rows: behaviour is undefined if this is not the case.
+     *
+     * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
+     * by column on byte ordering.
+     *
+     * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
+     * input {@code rows}, even if there are rows where no columns match the predicate.
+     *
+     * @param tableRef table to load values from
+     * @param rows unique rows to apply the column range selection to
+     * @param columnRangeSelection range of columns and batch size to load for each of the rows provided
+     * @return a mapping of rows to cells matching the predicate in the row, following the ordering outlined above
+     */
     @Idempotent
     Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection);
 
+    /**
+     * Returns a single iterator over the cell-value pairs in {@code tableRef} for the specified {@code rows}, where the
+     * columns fall within the provided {@link ColumnRangeSelection}. The single provided {@link ColumnRangeSelection}
+     * applies to all of the rows.
+     *
+     * The returned iterator is guaranteed to return cell-value pairs in a lexicographic ordering over rows and columns
+     * where rows are sorted according to the provided {@code rows} {@link Iterable} and then columns on byte ordering.
+     * If the {@link Iterable} does not have a stable ordering (i.e. iteration order can change across iterators
+     * returned) then the returned iterator is sorted lexicographically with columns sorted on byte ordering, but
+     * the ordering of rows is undefined.
+     *
+     * @param tableRef table to load values from
+     * @param rows unique rows to apply the column range selection to
+     * @param columnRangeSelection range of columns to load for each of the rows provided
+     * @param batchHint number of columns that should be loaded from the underlying database at once
+     * @return an iterator over cell-value pairs, guaranteed to follow the ordering outlined above
+     * @throws IllegalArgumentException if {@code rows} contains duplicates
+     */
     @Idempotent
     Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
             TableReference tableRef,
@@ -60,18 +117,42 @@ public interface Transaction {
             ColumnRangeSelection columnRangeSelection,
             int batchHint);
 
+    /**
+     * Returns a mapping of rows to {@link Iterator}s over cell-value pairs within {@code tableRef} for the specified
+     * {@code rows}, where the columns fall within the provided {@link BatchColumnRangeSelection}. The single provided
+     * {@link BatchColumnRangeSelection} applies to all of the rows.
+     *
+     * The returned iterators are guaranteed to return cells matching the predicate. These are sorted by column on
+     * byte ordering.
+     *
+     * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
+     * input {@code rows}, even if there are rows where no columns match the predicate.
+     *
+     * @param tableRef table to load values from
+     * @param rows unique rows to apply the column range selection to
+     * @param columnRangeSelection range of columns and batch size to load for each of the rows provided
+     * @return a mapping of rows to cells matching the predicate in the row, following the ordering outlined above
+     * @throws IllegalArgumentException if {@code rows} contains duplicates
+     */
     @Idempotent
     Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection);
 
+    /**
+     * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}.
+     *
+     * @param tableRef the table from which to get the values
+     * @param cells the cells for which we want to get the values
+     * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
+     */
     @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
-     * Gets the values associated for each {@code cells} from table specified by {@code tableRef}. It is not guaranteed
-     * that the actual implementations are in fact asynchronous.
+     * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not
+     * guaranteed that the actual implementations are in fact asynchronous.
      *
      * @param tableRef the table from which to get the values
      * @param cells the cells for which we want to get the values

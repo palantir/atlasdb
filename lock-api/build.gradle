@@ -1,6 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
+apply plugin: 'com.palantir.metric-schema'
 
 repositories {
     mavenCentral()
@@ -11,6 +12,8 @@ dependencies {
     compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
     compile project(':lock-api-objects')
+    compile project(':lock-conjure-api:lock-conjure-api-dialogue')
+    compile project(':lock-conjure-api:lock-conjure-api-jersey')
     compile project(':timelock-api:timelock-api-dialogue')
     compile project(':timelock-api:timelock-api-jersey')
     compile project(":timestamp-api")
@@ -20,6 +23,7 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
+    compile group: 'com.palantir.refreshable', name: 'refreshable'
 
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")

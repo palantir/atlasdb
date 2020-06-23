@@ -19,6 +19,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
@@ -48,6 +50,13 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
 
+    /**
+     * These are only the initial 'contact points' that will be used in connecting with the cluster. AtlasDB will
+     * subsequently discover additional hosts in the cluster. (This is true for both Thrift and CQL endpoints.)
+     *
+     * This value, or values derived from it (e.g. the number of Thrift hosts) must ONLY be used on KVS initialization
+     * to generate the initial connection(s) to the cluster, or as part of startup checks.
+     */
     CassandraServersConfigs.CassandraServersConfig servers();
 
     @Value.Default
@@ -189,6 +198,13 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
         return DefaultCassandraAsyncKeyValueServiceFactory.DEFAULT;
     }
+
+    /**
+     * If provided, will be used to create executor service used to perform some blocking calls to Cassandra.
+     * Otherwise, a new executor service will be created with default configuration.
+     */
+    @JsonIgnore
+    Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory();
 
     int replicationFactor();
 

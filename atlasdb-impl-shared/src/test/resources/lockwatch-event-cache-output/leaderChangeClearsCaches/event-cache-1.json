@@ -1,0 +1,17 @@
+{
+  "logState" : {
+    "snapshotState" : {
+      "watches" : [ ],
+      "locked" : [ ],
+      "snapshotVersion" : null
+    },
+    "eventStoreState" : {
+      "eventMap" : { }
+    },
+    "latestVersion" : null
+  },
+  "timestampStoreState" : {
+    "timestampMap" : { },
+    "aliveVersions" : { }
+  }
+}

@@ -53,4 +53,8 @@ public abstract class LockWatchCreatedEvent implements LockWatchEvent {
                 .lockDescriptors(descriptors);
         return seq -> builder.sequence(seq).build();
     }
+
+    public static LockWatchEvent fromSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
+        return builder(snapshot.lockWatches(), snapshot.locked()).build(snapshot.lastKnownVersion());
+    }
 }

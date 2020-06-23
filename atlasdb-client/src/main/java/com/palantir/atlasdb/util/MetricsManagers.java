@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.util;
 
+import java.util.function.BooleanSupplier;
+
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -25,6 +28,13 @@ public final class MetricsManagers {
 
     public static MetricsManager of(MetricRegistry metrics, TaggedMetricRegistry taggedMetrics) {
         return new MetricsManager(metrics, taggedMetrics, LoggingArgs::isSafe);
+    }
+
+    public static MetricsManager of(
+            MetricRegistry metrics,
+            TaggedMetricRegistry taggedMetrics,
+            Refreshable<Boolean> performMetricFiltering) {
+        return new MetricsManager(metrics, taggedMetrics, performMetricFiltering, LoggingArgs::isSafe);
     }
 
     public static MetricsManager createForTests() {

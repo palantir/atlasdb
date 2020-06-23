@@ -1,0 +1,42 @@
+{
+  "logState" : {
+    "snapshotState" : {
+      "watches" : [ ],
+      "locked" : [ {
+        "bytes" : "dGFibGUAAQ=="
+      } ],
+      "snapshotVersion" : {
+        "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+        "version" : 7
+      }
+    },
+    "eventStoreState" : {
+      "eventMap" : { }
+    },
+    "latestVersion" : {
+      "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+      "version" : 7
+    }
+  },
+  "timestampStoreState" : {
+    "timestampMap" : {
+      "1255" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 7
+        },
+        "commitInfo" : null
+      },
+      "123" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 7
+        },
+        "commitInfo" : null
+      }
+    },
+    "aliveVersions" : {
+      "7" : [ 123, 1255 ]
+    }
+  }
+}

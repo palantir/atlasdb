@@ -46,6 +46,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction
 import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.LeaderPingerContext;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponsesWithRemote;
 
@@ -108,7 +109,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
                         leaderPingResponseWait,
                         state -> state.responses().values().stream().map(PaxosContainer::get).collect(toSet())
                                 .containsAll(uncachedUuids),
-                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
+                        PaxosConstants.CANCEL_REMAINING_CALLS);
 
         for (Map.Entry<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> resultEntries : results.responses().entrySet()) {
             LeaderPingerContext<BatchPingableLeader> pingable = resultEntries.getKey();

@@ -19,7 +19,6 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.function.Supplier;
 
@@ -137,7 +136,7 @@ public class DbKvsGetRanges {
         SortedSetMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(connectionSupplier, query, args);
         Map<Cell, Value> cells = kvs.getRows(tableRef, rowsForBatches.values(),
                 ColumnSelection.all(), timestamp);
-        NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
+        NavigableMap<byte[], NavigableMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
         log.debug("getRange actualRowsReturned: {}", cellsByRow.size());
         return breakUpByBatch(requests, rowsForBatches, cellsByRow);
     }
@@ -225,7 +224,7 @@ public class DbKvsGetRanges {
     private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> breakUpByBatch(
             List<RangeRequest> requests,
             SortedSetMultimap<Integer, byte[]> rowsForBatches,
-            NavigableMap<byte[], SortedMap<byte[], Value>>   cellsByRow) {
+            NavigableMap<byte[], NavigableMap<byte[], Value>>   cellsByRow) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newHashMap();
         for (int i = 0; i < requests.size(); i++) {
             RangeRequest request = requests.get(i);
@@ -233,7 +232,7 @@ public class DbKvsGetRanges {
                 continue;
             }
             SortedSet<byte[]> rowNames = rowsForBatches.get(i);
-            SortedMap<byte[], SortedMap<byte[], Value>> cellsForBatch = Maps.filterKeys(
+            NavigableMap<byte[], NavigableMap<byte[], Value>> cellsForBatch = Maps.filterKeys(
                     request.isReverse() ? cellsByRow.descendingMap() : cellsByRow,
                     Predicates.in(rowNames));
 

@@ -135,5 +135,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public void close() {
         transactionStarter.close();
+        commitTimestampGetter.close();
     }
 }

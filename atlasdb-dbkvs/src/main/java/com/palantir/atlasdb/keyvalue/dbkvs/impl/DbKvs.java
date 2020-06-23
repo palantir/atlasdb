@@ -32,7 +32,6 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -762,7 +761,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 range.isReverse(),
                 token);
 
-        NavigableMap<byte[], SortedMap<byte[], Set<Long>>> cellsByRow =
+        NavigableMap<byte[], NavigableMap<byte[], Set<Long>>> cellsByRow =
                 Cells.breakCellsUpByRow(Multimaps.asMap(result.entries));
         if (range.isReverse()) {
             cellsByRow = cellsByRow.descendingMap();

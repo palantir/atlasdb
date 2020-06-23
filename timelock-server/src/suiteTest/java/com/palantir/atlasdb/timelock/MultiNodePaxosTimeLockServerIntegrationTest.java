@@ -54,7 +54,10 @@ import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -365,6 +368,43 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(client.legacyLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token)))
                 .as("a token unlocked through the conjure API stays unlocked even in the legacy API")
                 .isFalse();
+    }
+
+    @Test
+    public void lockAcquiredByConjureLockServiceIsAlsoAcquiredInLegacy() throws InterruptedException {
+        com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
+                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                        .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                        .build())
+                .doNotBlock()
+                .build();
+        String anonymousId = LockClient.ANONYMOUS.getClientId();
+        ConjureLockV1Request conjureLockRequest = ConjureLockV1Request.builder()
+                .lockClient(anonymousId)
+                .lockRequest(lockRequest)
+                .build();
+
+        HeldLocksToken token = client.conjureLegacyLockService().lockAndGetHeldLocks(
+                AuthHeader.valueOf("Bearer unused"),
+                client.namespace(),
+                conjureLockRequest)
+                .orElseThrow(() -> new RuntimeException("We should have been able to get the lock"));
+
+        assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
+                .as("if the conjure impl has taken a lock, the legacy impl mustn't be able to take it")
+                .isNull();
+        assertThat(client.legacyLockService().unlock(token.getLockRefreshToken()))
+                .as("legacy impl can unlock a lock taken by conjure impl")
+                .isTrue();
+        assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
+                .as("lock taken by conjure impl that was unlocked can now be acquired by legacy impl")
+                .isNotNull();
+        assertThat(client.conjureLegacyLockService().lockAndGetHeldLocks(
+                AuthHeader.valueOf("Bearer unused"),
+                client.namespace(),
+                conjureLockRequest))
+                .as("if the legacy impl has taken a lock, the conjure impl mustn't be able to take it")
+                .isEmpty();
     }
 
     @Test

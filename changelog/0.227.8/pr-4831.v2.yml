@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: AtlasDB is now more resilient to Cassandra migrations involving changes
+    in the cluster size relative to the original install config. Previously, if a
+    Cassandra cluster was downsized at runtime, schema operations would consistently
+    fail until the service was bounced.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4831
