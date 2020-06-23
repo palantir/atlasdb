@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Upgrade dialogue to get rid of hc4 constraint
+  links:
+  - https://github.com/palantir/atlasdb/pull/4859
