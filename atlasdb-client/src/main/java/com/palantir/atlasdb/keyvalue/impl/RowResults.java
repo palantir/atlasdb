@@ -37,21 +37,21 @@ import com.palantir.logsafe.Preconditions;
 public class RowResults {
     private RowResults() { /* */ }
 
-    public static <T> IterableView<RowResult<T>> viewOfMap(Map<byte[], SortedMap<byte[], T>> map) {
+    public static <T> IterableView<RowResult<T>> viewOfMap(Map<byte[], NavigableMap<byte[], T>> map) {
         return viewOfEntries(map.entrySet());
     }
 
     public static <T> IterableView<RowResult<T>> viewOfEntries(
-            Iterable<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
+            Iterable<Map.Entry<byte[], NavigableMap<byte[], T>>> mapEntries) {
         return IterableView.of(mapEntries).transform(RowResults.<T>createRowResultFunction());
     }
 
     public static <T> Iterator<RowResult<T>> viewOfEntries(
-            Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
+            Iterator<Map.Entry<byte[], NavigableMap<byte[], T>>> mapEntries) {
         return Iterators.transform(mapEntries, createRowResultFunction());
     }
 
-    private static <T> Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
+    private static <T> Function<Entry<byte[], NavigableMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
         return entry -> RowResult.create(entry.getKey(), entry.getValue());
     }
 
