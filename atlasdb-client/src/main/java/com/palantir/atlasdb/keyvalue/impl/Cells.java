@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
 
 import javax.annotation.Nullable;
@@ -105,7 +104,7 @@ public final class Cells {
         NavigableMap<byte[], NavigableMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
-            SortedMap<byte[], T> sortedMap = ret.computeIfAbsent(row,
+            NavigableMap<byte[], T> sortedMap = ret.computeIfAbsent(row,
                     rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
             sortedMap.put(e.getKey().getColumnName(), e.getValue());
         }
@@ -121,12 +120,12 @@ public final class Cells {
      */
     public static <T> Iterator<RowResult<T>> createRowView(final Collection<Map.Entry<Cell, T>> sortedIterator) {
         final PeekingIterator<Entry<Cell, T>> it = Iterators.peekingIterator(sortedIterator.iterator());
-        Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> resultIt =
-                new AbstractIterator<Map.Entry<byte[], SortedMap<byte[], T>>>() {
+        Iterator<Map.Entry<byte[], NavigableMap<byte[], T>>> resultIt =
+                new AbstractIterator<Map.Entry<byte[], NavigableMap<byte[], T>>>() {
             byte[] row = null;
-            SortedMap<byte[], T> map = null;
+            NavigableMap<byte[], T> map = null;
             @Override
-            protected Entry<byte[], SortedMap<byte[], T>> computeNext() {
+            protected Entry<byte[], NavigableMap<byte[], T>> computeNext() {
                 if (!it.hasNext()) {
                     return endOfData();
                 }
