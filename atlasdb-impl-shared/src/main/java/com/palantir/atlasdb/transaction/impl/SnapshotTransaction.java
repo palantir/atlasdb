@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -334,7 +335,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
@@ -345,7 +346,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
+        NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
@@ -355,7 +356,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // We don't need to do work postFiltering if we have a write locally.
         rawResults.keySet().removeAll(result.build().keySet());
 
-        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
+        NavigableMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
@@ -619,7 +620,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
-    private SortedMap<byte[], RowResult<byte[]>> filterRowResults(
+    private NavigableMap<byte[], RowResult<byte[]>> filterRowResults(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             ImmutableMap.Builder<Cell, byte[]> resultCollector) {

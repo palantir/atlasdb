@@ -17,8 +17,8 @@ package com.palantir.atlasdb.transaction.api;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -49,9 +49,9 @@ public interface Transaction {
     /**
      * Returns a mapping of rows to {@link RowResult}s within {@code tableRef} for the specified {@code rows}, loading
      * columns according to the provided {@link ColumnSelection}. Duplicate rows are permitted (but there will be just
-     * one key-value pair for that row in the returned {@link SortedMap}).
+     * one key-value pair for that row in the returned {@link NavigableMap}).
      *
-     * The returned {@link SortedMap} is sorted on the byte order of row keys; the ordering of the input parameter
+     * The returned {@link NavigableMap} is sorted on the byte order of row keys; the ordering of the input parameter
      * {@code rows} is irrelevant.
      *
      * If there are rows with no cells matching the provided {@link ColumnSelection}, they will not be present in the
@@ -65,7 +65,7 @@ public interface Transaction {
      * @return a mapping of rows to the columns matching the provided column selection
      */
     @Idempotent
-    SortedMap<byte[], RowResult<byte[]>> getRows(
+    NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnSelection columnSelection);
