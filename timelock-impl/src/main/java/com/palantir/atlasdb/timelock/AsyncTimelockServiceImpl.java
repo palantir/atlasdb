@@ -30,7 +30,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
-import com.palantir.atlasdb.timelock.lock.watch.AtomicValue;
+import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
@@ -209,15 +209,15 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 
-        AtomicValue<PartitionedTimestamps> timestampsAndVersion = lockService.getLockWatchingService()
-                .runTaskAndAtomicallyReturnLockWatchStateUpdate(request.lastKnownLockLogVersion(), () ->
+        ValueAndLockWatchStateUpdate<PartitionedTimestamps> timestampsAndUpdate = lockService.getLockWatchingService()
+                .runTask(request.lastKnownLockLogVersion(), () ->
                         timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions()));
 
         return StartTransactionResponseV5.of(
                 leasedLockImmutableTimestampResponse.value(),
-                timestampsAndVersion.value(),
+                timestampsAndUpdate.value(),
                 leasedLockImmutableTimestampResponse.lease(),
-                timestampsAndVersion.lockWatchStateUpdate());
+                timestampsAndUpdate.lockWatchStateUpdate());
     }
 
     @Override
@@ -271,8 +271,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public <T> AtomicValue<T> runTaskAndAtomicallyReturnLockWatchStateUpdate(
-            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
+    public <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
         throw new UnsupportedOperationException("Exposing this method is too dangerous.");
     }
 

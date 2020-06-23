@@ -59,30 +59,21 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public synchronized <T> AtomicValue<T> runTaskAndAtomicallyReturnLockWatchStateUpdate(
+    public synchronized <T> ValueAndLockWatchStateUpdate<T> runTask(
             Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
         T t = task.get();
         LockWatchStateUpdate logDiff = getLogDiff(lastKnownVersion);
-        return AtomicValue.of(logDiff, t);
+        return ValueAndLockWatchStateUpdate.of(logDiff, t);
     }
 
     @Override
     public synchronized void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken) {
-        // I feel like this would be simpler if the isEmpty check was done somewhere else, it's weird API
-        if (!locksTakenOut.isEmpty()) {
-            synchronized (this) {
-                slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken));
-            }
-        }
+        slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken));
     }
 
     @Override
-    public void logUnlock(Set<LockDescriptor> locksUnlocked) {
-        if (!locksUnlocked.isEmpty()) {
-            synchronized (this) {
-                slidingWindow.add(UnlockEvent.builder(locksUnlocked));
-            }
-        }
+    public synchronized void logUnlock(Set<LockDescriptor> locksUnlocked) {
+        slidingWindow.add(UnlockEvent.builder(locksUnlocked));
     }
 
     @Override
@@ -112,11 +103,7 @@ public class LockEventLogImpl implements LockEventLog {
      * Iterates through all currently held locks and returns the set of all locks matching the watched ranges.
      * <p>
      * Note that the set of held locks can be modified during the execution of this method. Therefore, this method is
-     * NOT guaranteed to return a consistent snapshot of the world. If the given set of ranges is being watched, i.e.,
-     * every lock and unlock pertaining to watchedRanges is being appropriately logged, then any potential
-     * inconsistencies can be corrected by replaying the events logged in the lock event log that occurred during
-     * execution of this method. This is important to keep in mind if removing lock watches is something we wish to
-     * implement.
+     * NOT guaranteed to return a consistent snapshot of the world.
      */
     private Set<LockDescriptor> calculateOpenLocks(RangeSet<LockDescriptor> watchedRanges) {
         return heldLocksCollection.locksHeld().stream()

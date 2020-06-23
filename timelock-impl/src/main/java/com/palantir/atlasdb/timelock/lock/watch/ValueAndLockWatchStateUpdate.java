@@ -22,13 +22,13 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public interface AtomicValue<T> {
+public interface ValueAndLockWatchStateUpdate<T> {
     @Value.Parameter
     LockWatchStateUpdate lockWatchStateUpdate();
     @Value.Parameter
     T value();
 
-    static <R> AtomicValue<R> of(LockWatchStateUpdate lockWatchStateUpdate, R result) {
-        return ImmutableAtomicValue.of(lockWatchStateUpdate, result);
+    static <R> ValueAndLockWatchStateUpdate<R> of(LockWatchStateUpdate lockWatchStateUpdate, R result) {
+        return ImmutableValueAndLockWatchStateUpdate.of(lockWatchStateUpdate, result);
     }
 }

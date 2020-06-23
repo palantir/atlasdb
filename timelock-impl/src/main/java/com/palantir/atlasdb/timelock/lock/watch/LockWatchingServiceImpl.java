@@ -82,19 +82,19 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public <T> AtomicValue<T> runTaskAndAtomicallyReturnLockWatchStateUpdate(
+    public <T> ValueAndLockWatchStateUpdate<T> runTask(
             Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
-        return lockEventLog.runTaskAndAtomicallyReturnLockWatchStateUpdate(lastKnownVersion, task);
+        return lockEventLog.runTask(lastKnownVersion, task);
     }
 
     @Override
     public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
-        runWithFilteredDescriptors(locksTakenOut, filteredLocks -> lockEventLog.logLock(filteredLocks, token));
+        runIfDescriptorsMatchLockWatches(locksTakenOut, filteredLocks -> lockEventLog.logLock(filteredLocks, token));
     }
 
     @Override
     public void registerUnlock(Set<LockDescriptor> unlocked) {
-        runWithFilteredDescriptors(unlocked, lockEventLog::logUnlock);
+        runIfDescriptorsMatchLockWatches(unlocked, lockEventLog::logUnlock);
     }
 
     private synchronized Optional<LockWatches> addToWatches(LockWatchRequest request) {
@@ -129,12 +129,15 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         lockEventLog.logLockWatchCreated(newWatches);
     }
 
-    private void runWithFilteredDescriptors(Set<LockDescriptor> unfiltered, Consumer<Set<LockDescriptor>> consumer) {
+    private void runIfDescriptorsMatchLockWatches(Set<LockDescriptor> unfiltered,
+            Consumer<Set<LockDescriptor>> consumer) {
         watchesLock.readLock().lock();
         try {
             RangeSet<LockDescriptor> ranges = watches.get().ranges();
             Set<LockDescriptor> filtered = unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
-            consumer.accept(filtered);
+            if (!filtered.isEmpty()) {
+                consumer.accept(filtered);
+            }
         } finally {
             watchesLock.readLock().unlock();
         }
