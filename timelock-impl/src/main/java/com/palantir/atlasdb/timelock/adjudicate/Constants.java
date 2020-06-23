@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.util.List;
+import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 public final class Constants {
     private Constants() {
@@ -33,5 +33,5 @@ public final class Constants {
     public static final int MAX_ACCEPTABLE_START_TXN_P99_MILLI = 0;
 
 
-    public static final List<String> ATLAS_BLACKLISTED_VERSIONS = ImmutableList.of();
+    public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = Sets.newHashSet();
 }

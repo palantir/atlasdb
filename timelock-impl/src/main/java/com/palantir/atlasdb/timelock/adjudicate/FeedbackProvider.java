@@ -104,7 +104,6 @@ public final class FeedbackProvider {
     }
 
     static HealthStatus pointFeedbackHealthStatus(ConjureTimeLockClientFeedback healthReport) {
-        // todo Sudiksha : hash versions | check constraints
         if (Constants.ATLAS_BLACKLISTED_VERSIONS.contains(healthReport.getAtlasVersion())) {
             return HealthStatus.UNKNOWN;
         }
