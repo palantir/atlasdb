@@ -37,19 +37,15 @@ public class ArrayLockEventSlidingWindowTest {
 
     @Test
     public void whenLastKnownVersionIsAfterCurrentThrows() {
-        int numEntries = 5;
-        addEvents(numEntries);
-        // Log contains events [0,1,2,3,4]
-        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getNextEvents(numEntries))
+        whenLogContainsEvents0To4();
+        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getNextEvents(5))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("Version not in the log");
     }
 
     @Test
     public void whenLastKnownVersionIsTooOldThrows() {
-        addEvents(WINDOW_SIZE + 5);
-        // Added events [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
-        // Log contains [5,6,7,8,9,10,11,12,13,14]
+        whenLogContainsEvents5to14();
         assertThatLoggableExceptionThrownBy(() -> slidingWindow.getNextEvents(3))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("Version not in the log");
@@ -57,38 +53,42 @@ public class ArrayLockEventSlidingWindowTest {
 
     @Test
     public void whenNoNewEventsReturnEmptyList() {
-        int numEntries = 5;
-        addEvents(numEntries);
-        List<LockWatchEvent> result = slidingWindow.getNextEvents(numEntries - 1);
-        assertThat(result).isEmpty();
+        whenLogContainsEvents0To4();
+        assertThat(slidingWindow.getNextEvents(4)).isEmpty();
     }
 
     @Test
     public void returnConsecutiveRange() {
-        int numEntries = 5;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(2, 3, numEntries - 1);
+        whenLogContainsEvents0To4();
+        assertContainsNextEventsInOrder(2, 3, 4);
     }
 
     @Test
     public void returnWrappingRange() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(8, 9, numEntries - 1);
+        whenLogContainsEvents5to14();
+        assertContainsNextEventsInOrder(8, 9, 14);
     }
 
     @Test
     public void returnWrappingRangeOnBoundary() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(9, 10, numEntries - 1);
+        whenLogContainsEvents5to14();
+        assertContainsNextEventsInOrder(9, 10, 14);
     }
 
     @Test
     public void returnRangeAfterBoundary() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(10, 11, numEntries - 1);
+        whenLogContainsEvents5to14();
+        assertContainsNextEventsInOrder(10, 11, 14);
+    }
+
+    private void whenLogContainsEvents0To4() {
+        // Log contains events [0,1,2,3,4]
+        addEvents(5);
+    }
+
+    private void whenLogContainsEvents5to14() {
+        // Log contains events [5,6,7,8,9,10,11,12,13,14]
+        addEvents(15);
     }
 
     private void addEvent() {
@@ -101,7 +101,7 @@ public class ArrayLockEventSlidingWindowTest {
         }
     }
 
-    private void assertContainsEventsInOrderFromTo(long version, int startInclusive, int endInclusive) {
+    private void assertContainsNextEventsInOrder(long version, int startInclusive, int endInclusive) {
         List<LockWatchEvent> result = slidingWindow.getNextEvents(version);
         assertThat(result).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
