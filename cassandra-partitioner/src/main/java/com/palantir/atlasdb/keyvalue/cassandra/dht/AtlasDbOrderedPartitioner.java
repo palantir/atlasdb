@@ -63,8 +63,9 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     @Override
     public AtlasBytesToken getToken(ByteBuffer key)
     {
-        if (key.remaining() == 0)
+        if (key.remaining() == 0) {
             return MINIMUM;
+        }
         return new AtlasBytesToken(key);
     }
 
@@ -89,6 +90,7 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
         return new AtlasBytesToken(bytesForBig(midpair.left, sigbytes, midpair.right));
     }
 
+    @SuppressWarnings("NarrowingCompoundAssignment")
     @Override
     public AtlasBytesToken getRandomToken() {
         byte[] buffer = new byte[16];
@@ -135,7 +137,7 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
      */
     @Override
     public Map<Token, Float> describeOwnership(final List<Token> sortedTokens) {
-        return Maps.asMap(ImmutableSet.copyOf(sortedTokens), token -> {
+        return Maps.asMap(ImmutableSet.copyOf(sortedTokens), _token -> {
             if (sortedTokens.size() > 0) {
                 return 1f / sortedTokens.size();
             } else {
@@ -174,24 +176,33 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     }
 
     private static int computeRawVarint64Size(final long value) {
-        if ((value & (0xffffffffffffffffL << 7)) == 0)
+        if ((value & (0xffffffffffffffffL << 7)) == 0) {
             return 1;
-        if ((value & (0xffffffffffffffffL << 14)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 14)) == 0) {
             return 2;
-        if ((value & (0xffffffffffffffffL << 21)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 21)) == 0) {
             return 3;
-        if ((value & (0xffffffffffffffffL << 28)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 28)) == 0) {
             return 4;
-        if ((value & (0xffffffffffffffffL << 35)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 35)) == 0) {
             return 5;
-        if ((value & (0xffffffffffffffffL << 42)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 42)) == 0) {
             return 6;
-        if ((value & (0xffffffffffffffffL << 49)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 49)) == 0) {
             return 7;
-        if ((value & (0xffffffffffffffffL << 56)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 56)) == 0) {
             return 8;
-        if ((value & (0xffffffffffffffffL << 63)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 63)) == 0) {
             return 9;
+        }
         return 10;
     }
 

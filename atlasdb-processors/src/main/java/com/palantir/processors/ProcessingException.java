@@ -17,6 +17,7 @@ package com.palantir.processors;
 
 import javax.lang.model.element.Element;
 
+@SuppressWarnings("AnnotateFormatMethod")
 public class ProcessingException extends Exception {
     final Element element;
 

@@ -131,6 +131,7 @@ public class ExecutorInheritableThreadLocal<T> {
         return null;
     }
 
+    @SuppressWarnings({"MixedMutabilityReturnType", "ModifyCollectionInEnhancedForLoop"})
     static Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> getMapForNewThread() {
         ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> currentMap =
                 mapForThisThread.get();
