@@ -100,8 +100,9 @@ public final class Cells {
         return collector;
     }
 
-    public static <T> NavigableMap<byte[], SortedMap<byte[], T>> breakCellsUpByRow(Iterable<Map.Entry<Cell, T>> map) {
-        NavigableMap<byte[], SortedMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+    public static <T> NavigableMap<byte[], NavigableMap<byte[], T>> breakCellsUpByRow(
+            Iterable<Map.Entry<Cell, T>> map) {
+        NavigableMap<byte[], NavigableMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
             SortedMap<byte[], T> sortedMap = ret.computeIfAbsent(row,
@@ -111,7 +112,7 @@ public final class Cells {
         return ret;
     }
 
-    public static <T> NavigableMap<byte[], SortedMap<byte[], T>> breakCellsUpByRow(Map<Cell, T> map) {
+    public static <T> NavigableMap<byte[], NavigableMap<byte[], T>> breakCellsUpByRow(Map<Cell, T> map) {
         return breakCellsUpByRow(map.entrySet());
     }
 

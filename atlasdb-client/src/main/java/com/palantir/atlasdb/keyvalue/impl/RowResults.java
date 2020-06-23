@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.SortedMap;
 
 import com.google.common.base.Function;
@@ -59,7 +60,8 @@ public class RowResults {
         return IterableView.of(rows).transform(row -> Maps.immutableEntry(row.getRowName(), row.getColumns()));
     }
 
-    public static <T> SortedMap<byte[], RowResult<T>> viewOfSortedMap(SortedMap<byte[], SortedMap<byte[], T>> map) {
+    public static <T> NavigableMap<byte[], RowResult<T>> viewOfSortedMap(
+            NavigableMap<byte[], NavigableMap<byte[], T>> map) {
         return Maps.transformEntries(map, (key, value) -> RowResult.create(key, value));
     }
 
