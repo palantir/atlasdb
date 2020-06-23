@@ -6,6 +6,7 @@ dependencies {
 
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.dialogue:dialogue-clients'
+  implementation 'com.palantir.dialogue:dialogue-serde'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
   implementation 'com.palantir.tritium:tritium-lib'
 
