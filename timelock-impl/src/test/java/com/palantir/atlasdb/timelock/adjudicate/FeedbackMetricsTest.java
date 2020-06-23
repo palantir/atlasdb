@@ -56,6 +56,7 @@ public class FeedbackMetricsTest {
         when(conjureTimelockServiceBlocking.leaderTime(AUTH_HEADER, NAMESPACE)).thenReturn(leaderTime);
         service.leaderTime(AUTH_HEADER, NAMESPACE);
         assertThat(metrics.leaderTime().getCount()).isEqualTo(1L);
+        assertThat(metrics.leaderTime().getSnapshot().get99thPercentile()).isNotZero();
         assertThat(metrics.leaderTimeErrors().getCount()).isEqualTo(0);
     }
 
@@ -68,6 +69,7 @@ public class FeedbackMetricsTest {
             // no op
         }
         assertThat(metrics.leaderTime().getCount()).isEqualTo(1);
+        assertThat(metrics.leaderTime().getSnapshot().get99thPercentile()).isNotZero();
         assertThat(metrics.leaderTimeErrors().getCount()).isEqualTo(1);
     }
 
@@ -77,6 +79,7 @@ public class FeedbackMetricsTest {
                 .thenReturn(conjureStartTransactionsResponse);
         service.startTransactions(AUTH_HEADER, NAMESPACE, request);
         assertThat(metrics.startTransactions().getCount()).isEqualTo(1L);
+        assertThat(metrics.startTransactions().getSnapshot().get99thPercentile()).isNotZero();
         assertThat(metrics.startTransactionErrors().getCount()).isEqualTo(0);
     }
 
@@ -91,6 +94,7 @@ public class FeedbackMetricsTest {
             // no op
         }
         assertThat(metrics.startTransactions().getCount()).isEqualTo(1);
+        assertThat(metrics.startTransactions().getSnapshot().get99thPercentile()).isNotZero();
         assertThat(metrics.startTransactionErrors().getCount()).isEqualTo(1);
     }
 }
