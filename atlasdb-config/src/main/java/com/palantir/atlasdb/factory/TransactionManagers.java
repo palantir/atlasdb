@@ -130,7 +130,6 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
-import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;

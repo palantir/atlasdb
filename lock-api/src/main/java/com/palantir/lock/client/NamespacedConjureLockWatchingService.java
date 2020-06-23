@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
-import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
 import com.palantir.tokens.auth.AuthHeader;
 
