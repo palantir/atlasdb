@@ -83,8 +83,9 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     private boolean shouldCalculateSnapshot(Optional<IdentifiedVersion> fromVersion) {
-        return !fromVersion.isPresent() || !fromVersion.get().id().equals(logId) || !slidingWindow.hasNextEvents(
-                fromVersion.get().version());
+        return !fromVersion.isPresent()
+                || !fromVersion.get().id().equals(logId)
+                || !slidingWindow.hasNextEvents(fromVersion.get().version());
     }
 
     private LockWatchStateUpdate calculateSnapshot() {
