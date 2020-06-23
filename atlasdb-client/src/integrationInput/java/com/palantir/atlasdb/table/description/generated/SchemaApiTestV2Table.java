@@ -25,10 +25,10 @@ import java.lang.SuppressWarnings;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Generated;
@@ -96,7 +96,7 @@ public class SchemaApiTestV2Table {
                 .map(SchemaApiTestTable.SchemaApiTestRow::of)
                 .collect(Collectors.toList());
 
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
+        NavigableMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
         return results
                 .values()
                 .stream()
@@ -194,7 +194,7 @@ public class SchemaApiTestV2Table {
                 .map(SchemaApiTestTable.SchemaApiTestRow::of)
                 .collect(Collectors.toList());
 
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
+        NavigableMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
         return results
                 .values()
                 .stream()
