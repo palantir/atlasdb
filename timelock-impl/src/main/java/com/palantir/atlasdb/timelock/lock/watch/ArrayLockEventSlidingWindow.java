@@ -44,12 +44,12 @@ public class ArrayLockEventSlidingWindow {
         nextSequence++;
     }
 
-    boolean contains(long version) {
+    boolean hasNextEvents(long version) {
         return !validateVersion(version);
     }
 
-    public List<LockWatchEvent> getFromVersion(long version) {
-        Preconditions.checkArgument(contains(version), "Version not in the log");
+    public List<LockWatchEvent> getNextEvents(long version) {
+        Preconditions.checkArgument(hasNextEvents(version), "Version not in the log");
         int startIndex = LongMath.mod(version + 1, maxSize);
         int windowSize = Ints.saturatedCast(lastVersion() - version);
         List<LockWatchEvent> events = new ArrayList<>(windowSize);

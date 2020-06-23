@@ -39,7 +39,8 @@ public class ArrayLockEventSlidingWindowTest {
     public void whenLastKnownVersionIsAfterCurrentThrows() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getFromVersion(numEntries + 1))
+        // Log contains events [0,1,2,3,4]
+        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getNextEvents(numEntries))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("Version not in the log");
     }
@@ -47,7 +48,9 @@ public class ArrayLockEventSlidingWindowTest {
     @Test
     public void whenLastKnownVersionIsTooOldThrows() {
         addEvents(WINDOW_SIZE + 5);
-        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getFromVersion(2))
+        // Added events [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+        // Log contains [5,6,7,8,9,10,11,12,13,14]
+        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getNextEvents(3))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("Version not in the log");
     }
@@ -56,7 +59,7 @@ public class ArrayLockEventSlidingWindowTest {
     public void whenNoNewEventsReturnEmptyList() {
         int numEntries = 5;
         addEvents(numEntries);
-        List<LockWatchEvent> result = slidingWindow.getFromVersion(numEntries - 1);
+        List<LockWatchEvent> result = slidingWindow.getNextEvents(numEntries - 1);
         assertThat(result).isEmpty();
     }
 
@@ -99,7 +102,7 @@ public class ArrayLockEventSlidingWindowTest {
     }
 
     private void assertContainsEventsInOrderFromTo(long version, int startInclusive, int endInclusive) {
-        List<LockWatchEvent> result = slidingWindow.getFromVersion(version);
+        List<LockWatchEvent> result = slidingWindow.getNextEvents(version);
         assertThat(result).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()

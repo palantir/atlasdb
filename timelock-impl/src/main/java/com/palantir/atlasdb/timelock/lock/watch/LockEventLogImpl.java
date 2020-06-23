@@ -54,7 +54,7 @@ public class LockEventLogImpl implements LockEventLog {
         if (shouldCalculateSnapshot(fromVersion)) {
             return calculateSnapshot();
         }
-        List<LockWatchEvent> events = slidingWindow.getFromVersion(fromVersion.get().version());
+        List<LockWatchEvent> events = slidingWindow.getNextEvents(fromVersion.get().version());
         return LockWatchStateUpdate.success(logId, slidingWindow.lastVersion(), events);
     }
 
@@ -83,7 +83,7 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     private boolean shouldCalculateSnapshot(Optional<IdentifiedVersion> fromVersion) {
-        return !fromVersion.isPresent() || !fromVersion.get().id().equals(logId) || !slidingWindow.contains(
+        return !fromVersion.isPresent() || !fromVersion.get().id().equals(logId) || !slidingWindow.hasNextEvents(
                 fromVersion.get().version());
     }
 
