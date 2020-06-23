@@ -18,15 +18,16 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class NamespacedConjureLockWatchingService {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
-    private final ConjureLockWatchingService lockWatcher;
+    private final ConjureLockWatchingServiceBlocking lockWatcher;
     private final String namespace;
 
-    public NamespacedConjureLockWatchingService(ConjureLockWatchingService lockWatcher, String namespace) {
+    public NamespacedConjureLockWatchingService(ConjureLockWatchingServiceBlocking lockWatcher, String namespace) {
         this.lockWatcher = lockWatcher;
         this.namespace = namespace;
     }

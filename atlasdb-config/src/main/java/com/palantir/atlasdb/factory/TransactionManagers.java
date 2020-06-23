@@ -1115,9 +1115,6 @@ public abstract class TransactionManagers {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
-        ServiceCreator creator = ServiceCreator.withPayloadLimiter(
-                metricsManager, timelockServerListConfig, userAgent, remotingClientConfig);
-
         LockRpcClient lockRpcClient = serviceProvider.getLockRpcClient();
         LockService lockService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
@@ -1143,7 +1140,7 @@ public abstract class TransactionManagers {
 
         LockWatchEventCache lockWatchEventCache = LockWatchEventCacheImpl.create(metricsManager);
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
-                creator.createService(ConjureLockWatchingService.class), timelockNamespace);
+                serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
