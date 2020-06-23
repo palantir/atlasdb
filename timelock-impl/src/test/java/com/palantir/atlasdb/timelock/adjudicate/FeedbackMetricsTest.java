@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,12 +63,11 @@ public class FeedbackMetricsTest {
 
     @Test
     public void leaderTimeErrorMetricsAreRecordedOnException() {
-        when(conjureTimelockServiceBlocking.leaderTime(AUTH_HEADER, NAMESPACE)).thenThrow(new RuntimeException());
-        try {
-            service.leaderTime(AUTH_HEADER, NAMESPACE);
-        } catch (RuntimeException e) {
-            // no op
-        }
+        when(conjureTimelockServiceBlocking.leaderTime(AUTH_HEADER, NAMESPACE))
+                .thenThrow(new RuntimeException("Failed to get leader time."));
+        assertThatThrownBy(() -> service.leaderTime(AUTH_HEADER, NAMESPACE))
+                .isInstanceOf(RuntimeException.class).hasMessage("Failed to get leader time.");
+
         assertThat(metrics.leaderTime().getCount()).isEqualTo(1);
         assertThat(metrics.leaderTime().getSnapshot().get99thPercentile()).isNotZero();
         assertThat(metrics.leaderTimeErrors().getCount()).isEqualTo(1);
@@ -87,12 +87,11 @@ public class FeedbackMetricsTest {
     @Test
     public void startTransactionErrorMetricsAreRecordedOnException() {
         when(conjureTimelockServiceBlocking.startTransactions(AUTH_HEADER, NAMESPACE, request))
-                .thenThrow(new RuntimeException());
-        try {
-            service.startTransactions(AUTH_HEADER, NAMESPACE, request);
-        } catch (RuntimeException e) {
-            // no op
-        }
+                .thenThrow(new RuntimeException("Failed to start transaction."));
+
+        assertThatThrownBy(() -> service.startTransactions(AUTH_HEADER, NAMESPACE, request))
+                .isInstanceOf(RuntimeException.class).hasMessage("Failed to start transaction.");
+
         assertThat(metrics.startTransactions().getCount()).isEqualTo(1);
         assertThat(metrics.startTransactions().getSnapshot().get99thPercentile()).isNotZero();
         assertThat(metrics.startTransactionErrors().getCount()).isEqualTo(1);
