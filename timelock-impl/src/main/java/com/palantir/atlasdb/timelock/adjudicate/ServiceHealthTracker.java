@@ -27,7 +27,7 @@ public class ServiceHealthTracker {
 
     static HealthStatus getHealthStatus(Service service) {
         List<HealthStatus> majorityHealthStatusList =
-                Utils.getMajority(service.nodes().values().stream().map(NodeHealthTracker::getHealthStatus));
+                Utils.getModalElements(service.nodes().values().stream().map(NodeHealthTracker::getHealthStatus));
         if (majorityHealthStatusList.size() == 1) {
             return majorityHealthStatusList.get(0);
         }

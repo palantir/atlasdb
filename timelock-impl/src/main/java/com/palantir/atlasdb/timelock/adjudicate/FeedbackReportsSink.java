@@ -25,7 +25,7 @@ import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
-public class FeedbackReportsSink {
+public final class FeedbackReportsSink {
     private FeedbackReportsSink() {
         // no op
     }

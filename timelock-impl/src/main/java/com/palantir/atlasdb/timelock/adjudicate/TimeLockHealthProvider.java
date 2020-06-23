@@ -54,14 +54,14 @@ public class TimeLockHealthProvider {
 
     private HealthStatus pointEstimateTimeLockHealth() {
         Collection<ServiceHealthTracker.Service> services = FeedbackReportsSink.getTrackedServices();
-        int targetHealthyServices = services.size() * 2 / 3;
+        int targetUnhealthyServices = services.size() / 3;
         services = services.stream().filter(
                 service -> !service.nodes().isEmpty()).collect(Collectors.toList());
 
         return services
                 .stream()
-                .filter(service -> ServiceHealthTracker.getHealthStatus(service) == HealthStatus.HEALTHY).count()
-                >= targetHealthyServices ? HealthStatus.HEALTHY : HealthStatus.UNHEALTHY;
+                .filter(service -> ServiceHealthTracker.getHealthStatus(service) == HealthStatus.UNHEALTHY).count()
+                >= targetUnhealthyServices ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
     }
 
     public void close() {

@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Utils {
-    static <T> List<T> getMajority(Stream<T> streamOfStuff) {
+    static <T> List<T> getModalElements(Stream<T> streamOfStuff) {
         Map<T, Long> mapGroup = streamOfStuff
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         long max = mapGroup.values().stream().max(Comparator.naturalOrder()).get();

@@ -40,7 +40,6 @@ public class NodeHealthTracker {
     @Value.Immutable
     interface Node {
         UUID nodeId();
-        // todo sudiksha this has to time based
         EvictingQueue<ConjureTimeLockClientFeedback> reports();
     }
 }
