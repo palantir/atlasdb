@@ -115,7 +115,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
         return EndpointStatistics
                 .builder()
                 .p99(getP99ForLeaderTime())
-                .minRate(getOneMinuteRateForLeaderTime())
+                .oneMin(getOneMinuteRateForLeaderTime())
                 .errorRate(getErrorRateForLeaderTime())
                 .build();
     }
@@ -137,7 +137,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
         return EndpointStatistics
                 .builder()
                 .p99(getP99ForStartTxn())
-                .minRate(getOneMinuteRateForStartTxn())
+                .oneMin(getOneMinuteRateForStartTxn())
                 .errorRate(getErrorRateForStartTxn())
                 .build();
     }
