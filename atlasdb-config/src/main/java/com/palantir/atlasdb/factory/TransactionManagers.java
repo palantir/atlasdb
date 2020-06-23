@@ -1075,7 +1075,6 @@ public abstract class TransactionManagers {
                 getLockAndTimestampServices(
                         metricsManager,
                         serverListConfigSupplier,
-                        runtimeConfig.map(AtlasDbRuntimeConfig::remotingClient),
                         userAgent,
                         timelockNamespace,
                         lockDiagnosticComponents,
@@ -1106,7 +1105,6 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices getLockAndTimestampServices(
             MetricsManager metricsManager,
             Refreshable<ServerListConfig> timelockServerListConfig,
-            Refreshable<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             String timelockNamespace,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
