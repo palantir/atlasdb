@@ -17,17 +17,18 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.immutables.value.Value;
+
+import com.github.benmanes.caffeine.cache.Cache;
 
 
 public class ServiceHealthTracker {
 
     static HealthStatus getHealthStatus(Service service) {
         List<HealthStatus> majorityHealthStatusList =
-                Utils.getModalElements(service.nodes().values().stream().map(NodeHealthTracker::getHealthStatus));
+                Utils.getModalElements(service.nodes().asMap().values().stream().map(NodeHealthTracker::getHealthStatus));
         if (majorityHealthStatusList.size() == 1) {
             return majorityHealthStatusList.get(0);
         }
@@ -38,6 +39,6 @@ public class ServiceHealthTracker {
     interface Service {
         String serviceName();
 
-        Map<UUID, NodeHealthTracker.Node> nodes();
+        Cache<UUID, NodeHealthTracker.Node> nodes();
     }
 }

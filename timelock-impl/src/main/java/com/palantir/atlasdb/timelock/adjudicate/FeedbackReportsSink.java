@@ -17,12 +17,11 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.util.Collection;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.collect.EvictingQueue;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public final class FeedbackReportsSink {
@@ -36,11 +35,36 @@ public final class FeedbackReportsSink {
             .build();
 
     public static void registerFeedbackReport(ConjureTimeLockClientFeedback feedback) {
-        ServiceHealthTracker.Service service = trackedServices.asMap().getOrDefault(feedback.getServiceName(),
-                ImmutableService.builder().serviceName(feedback.getServiceName()).nodes(ImmutableMap.of()).build());
-        NodeHealthTracker.Node node = service.nodes().getOrDefault(feedback.getNodeId(),
-                ImmutableNode.builder().nodeId(feedback.getNodeId()).reports(EvictingQueue.create(10)).build());
-        node.reports().add(feedback);
+        ServiceHealthTracker.Service service = getServiceWithName(feedback.getServiceName());
+        NodeHealthTracker.Node node = getNodeForService(feedback.getNodeId(), service);
+        node.reports().put(feedback.hashCode(), feedback);
+    }
+
+    private static NodeHealthTracker.Node getNodeForService(UUID nodeId,
+            ServiceHealthTracker.Service service) {
+        return service.nodes().asMap().getOrDefault(
+                nodeId,
+                ImmutableNode
+                        .builder()
+                        .nodeId(nodeId)
+                        .reports(Caffeine
+                                .newBuilder()
+                                .expireAfterAccess(2, TimeUnit.MINUTES)
+                                .build())
+                        .build());
+    }
+
+    private static ServiceHealthTracker.Service getServiceWithName(String serviceName) {
+        return trackedServices.asMap().getOrDefault(
+                serviceName,
+                ImmutableService
+                        .builder()
+                        .serviceName(serviceName)
+                        .nodes(Caffeine
+                                .newBuilder()
+                                .expireAfterAccess(2, TimeUnit.MINUTES)
+                                .build())
+                        .build());
     }
 
     public static Collection<ServiceHealthTracker.Service> getTrackedServices() {

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +31,6 @@ public class TimeLockHealthProvider {
     public HealthStatus pointEstimateTimeLockHealth() {
         Collection<ServiceHealthTracker.Service> services = FeedbackReportsSink.getTrackedServices();
         int targetUnhealthyServices = services.size() / 3;
-        services = services.stream().filter(
-                service -> !service.nodes().isEmpty()).collect(Collectors.toList());
-
         return services
                 .stream()
                 .filter(service -> ServiceHealthTracker.getHealthStatus(service) == HealthStatus.UNHEALTHY).count()

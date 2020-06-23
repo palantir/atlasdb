@@ -20,14 +20,14 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.EvictingQueue;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public class NodeHealthTracker {
 
     static HealthStatus getHealthStatus(Node node) {
         int badSoFar = 0;
-        for (ConjureTimeLockClientFeedback report : node.reports()) {
+        for (ConjureTimeLockClientFeedback report : node.reports().asMap().values()) {
             if (ReportPointHealthAnalysis.isHealthyHealthReport(report).equals(HealthStatus.UNHEALTHY)) {
                 badSoFar ++;
             } else {
@@ -40,6 +40,6 @@ public class NodeHealthTracker {
     @Value.Immutable
     interface Node {
         UUID nodeId();
-        EvictingQueue<ConjureTimeLockClientFeedback> reports();
+        Cache<Integer, ConjureTimeLockClientFeedback> reports();
     }
 }
