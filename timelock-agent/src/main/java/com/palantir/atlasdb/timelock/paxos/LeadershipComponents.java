@@ -47,7 +47,6 @@ public class LeadershipComponents {
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
     private final Factory<LeadershipContext> leadershipContextFactory;
-//    private final List<HealthCheckPinger> oldHealthCheckPingers;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
 
     LeadershipComponents(
