@@ -16,35 +16,41 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.function.Function;
+
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackServiceEndpoints;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.UndertowTimeLockClientFeedbackService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
+    private Function<Client, Boolean> leadershipCheck;
 
-    private TimeLockClientFeedbackResource() {
-        // no op for now
+    private TimeLockClientFeedbackResource(Function<Client, Boolean> leadershipCheck) {
+        this.leadershipCheck = leadershipCheck;
     }
 
-    public static TimeLockClientFeedbackResource create() {
-        return new TimeLockClientFeedbackResource();
+    public static TimeLockClientFeedbackResource create(Function<Client, Boolean> leadershipCheck) {
+        return new TimeLockClientFeedbackResource(leadershipCheck);
     }
 
-    public static UndertowService undertow() {
-        return TimeLockClientFeedbackServiceEndpoints.of(TimeLockClientFeedbackResource.create());
+    public static UndertowService undertow(Function<Client, Boolean> leadershipCheck) {
+        return TimeLockClientFeedbackServiceEndpoints.of(TimeLockClientFeedbackResource.create(leadershipCheck));
     }
 
-    public static TimeLockClientFeedbackService jersey() {
-        return new JerseyAdapter(TimeLockClientFeedbackResource.create());
+    public static TimeLockClientFeedbackService jersey(Function<Client, Boolean> leadershipCheck) {
+        return new JerseyAdapter(TimeLockClientFeedbackResource.create(leadershipCheck));
     }
     @Override
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
-        // collect and assess feedback report
+        // todo - this will not work for Alta
+        // todo - drop messages for the first minute of leadership
+        leadershipCheck.apply(Client.of(feedbackReport.getServiceName()));
         return Futures.immediateVoidFuture();
     }
 

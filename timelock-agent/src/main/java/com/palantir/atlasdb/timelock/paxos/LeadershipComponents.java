@@ -47,11 +47,12 @@ public class LeadershipComponents {
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
     private final Factory<LeadershipContext> leadershipContextFactory;
-    private final List<HealthCheckPinger> healthCheckPingers;
+//    private final List<HealthCheckPinger> oldHealthCheckPingers;
+    private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
-            List<HealthCheckPinger> healthCheckPingers) {
+            LocalAndRemotes<HealthCheckPinger> healthCheckPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
     }
@@ -71,8 +72,12 @@ public class LeadershipComponents {
         closer.shutdown();
     }
 
+    public HealthCheckPinger getLocalHealthCheckPinger() {
+        return healthCheckPingers.local();
+    }
+
     public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
-        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers);
+        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
     }
 
     public boolean requestHostileTakeover(Client client) {

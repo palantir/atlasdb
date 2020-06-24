@@ -18,6 +18,7 @@ package com.palantir.timelock.paxos;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -28,6 +29,7 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -241,10 +243,16 @@ public class TimeLockAgent {
 
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow());
+            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(this::isLeaderForClients));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey());
+            registrar.accept(TimeLockClientFeedbackResource.jersey(this::isLeaderForClients));
         }
+    }
+
+    private boolean isLeaderForClients(Client client) {
+        Map<Client, HealthCheckResponse> healthCheckResponseMap = paxosResources.leadershipComponents().getLocalHealthCheckPinger().apply(
+                ImmutableSet.of(client));
+        return healthCheckResponseMap.get(client).isLeader();
     }
 
     private void registerManagementResource() {

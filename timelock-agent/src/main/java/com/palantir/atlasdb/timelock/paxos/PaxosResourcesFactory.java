@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
@@ -45,6 +44,7 @@ import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -98,9 +98,12 @@ public final class PaxosResourcesFactory {
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             BatchPingableLeader local = dependencies.components().batchPingableLeader();
             List<BatchPingableLeader> remotes = dependencies.remoteClients().batchPingableLeaders();
-            return Stream.concat(Stream.of(local), remotes.stream())
+            return LocalAndRemotes.of(new MultiLeaderHealthCheckPinger(local), remotes.stream()
                     .map(MultiLeaderHealthCheckPinger::new)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList()));
+//            return Stream.concat(Stream.of(local), remotes.stream())
+//                    .map(MultiLeaderHealthCheckPinger::new)
+//                    .collect(Collectors.toList());
         };
 
         // we do *not* use CoalescingPaxosLatestRoundVerifier because any coalescing will happen in the
@@ -141,9 +144,11 @@ public final class PaxosResourcesFactory {
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
             List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
-            return Stream.concat(Stream.of(local), remotes.stream())
+            List<HealthCheckPinger> collect = remotes.stream()
                     .map(SingleLeaderHealthCheckPinger::new)
                     .collect(Collectors.toList());
+            SingleLeaderHealthCheckPinger local1 = new SingleLeaderHealthCheckPinger(local);
+            return LocalAndRemotes.of(local1, collect);
         };
 
         Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
