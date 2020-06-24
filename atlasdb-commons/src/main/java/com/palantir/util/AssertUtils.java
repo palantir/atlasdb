@@ -15,6 +15,7 @@
  */
 package com.palantir.util;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -120,9 +121,8 @@ public class AssertUtils {
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String format, Throwable t,
             Object... args) {
         if (!cheapTest) {
-            Object[] newArgs = new Object[args.length + 1];
-            newArgs[0] = t;
-            System.arraycopy(args,0, newArgs, 1, args.length);
+            Object[] newArgs = Arrays.copyOf(args, args.length + 1);
+            newArgs[args.length] = t;
             log.error("Assertion " + format + " with exception ", newArgs);
             assert false : format;
         }
