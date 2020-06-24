@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: The TimeLock client feedback resource should only process feedback
+    for clients for which it is the leader.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4863
