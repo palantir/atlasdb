@@ -50,7 +50,9 @@ public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFee
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
         // todo - this will not work for Alta
         // todo - drop messages for the first minute of leadership
-        leadershipCheck.apply(Client.of(feedbackReport.getServiceName()));
+        if (leadershipCheck.apply(Client.of(feedbackReport.getServiceName()))) {
+            // process feedback
+        }
         return Futures.immediateVoidFuture();
     }
 

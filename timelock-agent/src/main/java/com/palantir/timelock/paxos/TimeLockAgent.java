@@ -250,8 +250,10 @@ public class TimeLockAgent {
     }
 
     private boolean isLeaderForClients(Client client) {
-        Map<Client, HealthCheckResponse> healthCheckResponseMap = paxosResources.leadershipComponents().getLocalHealthCheckPinger().apply(
-                ImmutableSet.of(client));
+        Map<Client, HealthCheckResponse> healthCheckResponseMap = paxosResources
+                .leadershipComponents()
+                .getLocalHealthCheckPinger()
+                .apply(ImmutableSet.of(client));
         return healthCheckResponseMap.get(client).isLeader();
     }
 
