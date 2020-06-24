@@ -48,7 +48,6 @@ public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFee
     }
     @Override
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
-        // todo - this will not work for Alta
         if (leadershipCheck.apply(Client.of(feedbackReport.getServiceName()))) {
             // process feedback
         }
