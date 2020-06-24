@@ -18,8 +18,6 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -28,7 +26,6 @@ import org.immutables.value.Value;
 import org.junit.Test;
 
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public class ArrayLockEventSlidingWindowTest {
     private static final int WINDOW_SIZE = 10;
@@ -36,25 +33,21 @@ public class ArrayLockEventSlidingWindowTest {
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(WINDOW_SIZE);
 
     @Test
-    public void whenLastKnownVersionIsAfterCurrentThrows() {
+    public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
         whenLogContainsEvents0To4();
-        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getNextEvents(5))
-                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasLogMessage("Version not in the log");
+        assertThat(slidingWindow.getNextEvents(5)).isEmpty();
     }
 
     @Test
-    public void whenLastKnownVersionIsTooOldThrows() {
+    public void whenLastKnownVersionIsTooOldReturnEmpty() {
         whenLogContainsEvents5to14();
-        assertThatLoggableExceptionThrownBy(() -> slidingWindow.getNextEvents(3))
-                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasLogMessage("Version not in the log");
+        assertThat(slidingWindow.getNextEvents(3)).isEmpty();
     }
 
     @Test
     public void whenNoNewEventsReturnEmptyList() {
         whenLogContainsEvents0To4();
-        assertThat(slidingWindow.getNextEvents(4)).isEmpty();
+        assertThat(slidingWindow.getNextEvents(4).get()).isEmpty();
     }
 
     @Test
@@ -102,7 +95,7 @@ public class ArrayLockEventSlidingWindowTest {
     }
 
     private void assertContainsNextEventsInOrder(long version, int startInclusive, int endInclusive) {
-        List<LockWatchEvent> result = slidingWindow.getNextEvents(version);
+        List<LockWatchEvent> result = slidingWindow.getNextEvents(version).get();
         assertThat(result).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()

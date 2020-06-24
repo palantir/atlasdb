@@ -18,12 +18,15 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import javax.annotation.concurrent.NotThreadSafe;
 
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.logsafe.Preconditions;
 
+@NotThreadSafe
 public class ArrayLockEventSlidingWindow {
     private final LockWatchEvent[] buffer;
     private final int maxSize;
@@ -44,12 +47,10 @@ public class ArrayLockEventSlidingWindow {
         nextSequence++;
     }
 
-    boolean hasNextEvents(long version) {
-        return !validateVersion(version);
-    }
-
-    public List<LockWatchEvent> getNextEvents(long version) {
-        Preconditions.checkArgument(hasNextEvents(version), "Version not in the log");
+    public Optional<List<LockWatchEvent>> getNextEvents(long version) {
+        if (versionInTheFuture(version) || versionTooOld(version)) {
+            return Optional.empty();
+        }
         int startIndex = LongMath.mod(version + 1, maxSize);
         int windowSize = Ints.saturatedCast(lastVersion() - version);
         List<LockWatchEvent> events = new ArrayList<>(windowSize);
@@ -58,16 +59,12 @@ public class ArrayLockEventSlidingWindow {
             events.add(buffer[i]);
         }
 
-        return events;
+        return Optional.of(events);
     }
 
     private int incrementAndMod(int num) {
         num++;
         return num >= maxSize ? num % maxSize : num;
-    }
-
-    private boolean validateVersion(long version) {
-        return versionInTheFuture(version) || versionTooOld(version);
     }
 
     private boolean versionInTheFuture(long version) {

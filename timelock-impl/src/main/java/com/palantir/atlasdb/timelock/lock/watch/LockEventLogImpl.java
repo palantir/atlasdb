@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -32,7 +31,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -51,11 +49,7 @@ public class LockEventLogImpl implements LockEventLog {
 
     @Override
     public synchronized LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion) {
-        if (shouldCalculateSnapshot(fromVersion)) {
-            return calculateSnapshot();
-        }
-        List<LockWatchEvent> events = slidingWindow.getNextEvents(fromVersion.get().version());
-        return LockWatchStateUpdate.success(logId, slidingWindow.lastVersion(), events);
+        return tryGetNextEvents(fromVersion).orElseGet(this::calculateSnapshot);
     }
 
     @Override
@@ -82,10 +76,13 @@ public class LockEventLogImpl implements LockEventLog {
         slidingWindow.add(LockWatchCreatedEvent.builder(newWatches.references(), openLocks));
     }
 
-    private boolean shouldCalculateSnapshot(Optional<IdentifiedVersion> fromVersion) {
-        return !fromVersion.isPresent()
-                || !fromVersion.get().id().equals(logId)
-                || !slidingWindow.hasNextEvents(fromVersion.get().version());
+    private Optional<LockWatchStateUpdate> tryGetNextEvents(Optional<IdentifiedVersion> fromVersion) {
+        if (!fromVersion.isPresent() || !fromVersion.get().id().equals(logId)) {
+            return Optional.empty();
+        }
+
+        return slidingWindow.getNextEvents(fromVersion.get().version())
+                .map(events -> LockWatchStateUpdate.success(logId, slidingWindow.lastVersion(), events));
     }
 
     private LockWatchStateUpdate calculateSnapshot() {
