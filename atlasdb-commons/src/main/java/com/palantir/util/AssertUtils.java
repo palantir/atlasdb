@@ -85,7 +85,7 @@ public class AssertUtils {
 
     public static void assertAndLog(Logger log, boolean cheapTest, String format, Object... args) {
         if (!cheapTest) {
-            assertAndLog(log, false, String.format(format, args));
+            assertAndLogWithException(log, false, format, getDebuggingException(), args);
         }
     }
 
@@ -101,6 +101,7 @@ public class AssertUtils {
 
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
+            assertAndLogWithException(log, cheapTest, msg, t, new Object[] {});
             log.error("Assertion {} with exception ", msg, t);
             assert false : msg;
         }
@@ -119,7 +120,11 @@ public class AssertUtils {
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String format, Throwable t,
             Object... args) {
         if (!cheapTest) {
-            assertAndLogWithException(log, false, String.format(format, args), t);
+            Object[] newArgs = new Object[args.length + 1];
+            newArgs[0] = t;
+            System.arraycopy(args,0, newArgs, 1, args.length);
+            log.error("Assertion " + format + " with exception ", newArgs);
+            assert false : format;
         }
     }
 
