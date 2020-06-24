@@ -29,8 +29,8 @@ public final class Constants {
     public static final double UNHEALTHY_CLIENTS_PROPORTION_LIMIT = 0.34;
     public static final int MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE = 60;
     public static final int MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI = 200;
-    public static final int MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE = 1000; // todo Sudiksha
-    public static final int MAX_ACCEPTABLE_START_TXN_P99_MILLI = 0;
+    public static final int MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE = 60;
+    public static final int MAX_ACCEPTABLE_START_TXN_P99_MILLI = 500;
 
 
     public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = Sets.newHashSet();

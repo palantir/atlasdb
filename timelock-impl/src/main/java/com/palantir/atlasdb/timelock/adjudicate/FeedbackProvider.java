@@ -22,6 +22,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
@@ -70,7 +71,7 @@ public final class FeedbackProvider {
                 > maxAllowedUnhealthyServices ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
     }
 
-    static HealthStatus getHealthStatusForService(Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseStats) {
+    private static HealthStatus getHealthStatusForService(Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseStats) {
         // only the status that appears majority number of times is considered,
         // otherwise the health status for service is 'unknown'
 
@@ -79,7 +80,7 @@ public final class FeedbackProvider {
                 nodeWiseStats.size() / 2);
     }
 
-    static HealthStatus getHealthStatusForNode(List<ConjureTimeLockClientFeedback> feedbackForNode) {
+    private static HealthStatus getHealthStatusForNode(List<ConjureTimeLockClientFeedback> feedbackForNode) {
         // only the status that appears majority number of times is considered,
         // otherwise the health status for node is 'unknown'
 
@@ -99,6 +100,7 @@ public final class FeedbackProvider {
                 .orElse(HealthStatus.UNKNOWN);
     }
 
+    @VisibleForTesting
     static HealthStatus pointFeedbackHealthStatus(ConjureTimeLockClientFeedback healthReport) {
         if (Constants.ATLAS_BLACKLISTED_VERSIONS.contains(healthReport.getAtlasVersion())) {
             return HealthStatus.UNKNOWN;
@@ -123,7 +125,7 @@ public final class FeedbackProvider {
         return healthStatus;
     }
 
-    static private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
+    private static  HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
             int rateThreshold,
             int p99Limit) {
 
