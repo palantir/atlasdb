@@ -1,0 +1,12 @@
+type: fix
+fix:
+  description: "Name key count logged safe parameter\n\n**Goals (and why)**:\nAvoid
+    incorrect duplicate `rowCount` safe logging parameter\n\n**Implementation Description
+    (bullets)**: \nDefine new `keyCount` logging argument\n\n**Testing (What was existing
+    testing like?  What have you done to improve it?)**: \nUnit tests\n\n**Concerns
+    (what feedback would you like?)**:\n\n**Where should we start reviewing?**:\n\n**Priority
+    (whenever / two weeks / yesterday)**:\nWhenever\n\n<!---\nPlease remember to:\n-
+    Add any necessary release notes (including breaking changes)\n- Make sure the
+    documentation is up to date for your change\n--->"
+  links:
+  - https://github.com/palantir/atlasdb/pull/4865
