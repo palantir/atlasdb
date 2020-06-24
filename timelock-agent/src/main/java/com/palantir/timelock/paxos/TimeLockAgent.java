@@ -243,13 +243,13 @@ public class TimeLockAgent {
 
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(this::isLeaderForClients));
+            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(this::isLeaderForClient));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey(this::isLeaderForClients));
+            registrar.accept(TimeLockClientFeedbackResource.jersey(this::isLeaderForClient));
         }
     }
 
-    private boolean isLeaderForClients(Client client) {
+    private boolean isLeaderForClient(Client client) {
         Map<Client, HealthCheckResponse> healthCheckResponseMap = paxosResources
                 .leadershipComponents()
                 .getLocalHealthCheckPinger()
