@@ -143,9 +143,11 @@ public final class PaxosResourcesFactory {
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
             List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
-            return LocalAndRemotes.of(new SingleLeaderHealthCheckPinger(local), remotes.stream()
-                    .map(SingleLeaderHealthCheckPinger::new)
-                    .collect(Collectors.toList()));
+            return LocalAndRemotes.of(new SingleLeaderHealthCheckPinger(local),
+                    remotes
+                            .stream()
+                            .map(SingleLeaderHealthCheckPinger::new)
+                            .collect(Collectors.toList()));
         };
 
         Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->
