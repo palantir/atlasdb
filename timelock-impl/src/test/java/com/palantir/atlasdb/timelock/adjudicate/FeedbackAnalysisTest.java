@@ -20,18 +20,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
 public class FeedbackAnalysisTest {
+    private static TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
+            .create(Caffeine.newBuilder()
+                    .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+                    .build());
 
     @Test
     public void timeLockIsHealthyIfNoFeedbackIsRegister() {
-        assertThat(FeedbackProvider.getTimeLockHealthStatus()).isEqualTo(HealthStatus.HEALTHY);
+        assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
+                .isEqualTo(HealthStatus.HEALTHY);
     }
 
     @Test

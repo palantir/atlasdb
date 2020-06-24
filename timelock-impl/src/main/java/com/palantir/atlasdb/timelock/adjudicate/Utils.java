@@ -16,22 +16,15 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-public enum HealthStatus {
-    HEALTHY(true),
-    UNKNOWN(true),
-    UNHEALTHY(false);
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-    private final boolean isHealthy;
+public class Utils {
 
-    HealthStatus(boolean isHealthy) {
-        this.isHealthy = isHealthy;
-    }
-
-    public boolean isHealthy() {
-        return isHealthy;
-    }
-
-    public static HealthStatus getWorseState(HealthStatus statusA, HealthStatus statusB) {
-        return statusA.ordinal() > statusB.ordinal() ? statusA : statusB;
+    static <T> Map<T, Long> getFrequencyMap(Stream<T> streamOfStuff) {
+        return streamOfStuff
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     }
 }

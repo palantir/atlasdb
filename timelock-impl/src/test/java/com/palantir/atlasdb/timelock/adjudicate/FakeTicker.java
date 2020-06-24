@@ -16,22 +16,23 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-public enum HealthStatus {
-    HEALTHY(true),
-    UNKNOWN(true),
-    UNHEALTHY(false);
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
-    private final boolean isHealthy;
+import com.github.benmanes.caffeine.cache.Ticker;
 
-    HealthStatus(boolean isHealthy) {
-        this.isHealthy = isHealthy;
+class FakeTicker implements Ticker {
+
+    private final AtomicLong nanos = new AtomicLong();
+
+    public FakeTicker advance(long time, TimeUnit timeUnit) {
+        nanos.addAndGet(timeUnit.toNanos(time));
+        return this;
     }
 
-    public boolean isHealthy() {
-        return isHealthy;
-    }
-
-    public static HealthStatus getWorseState(HealthStatus statusA, HealthStatus statusB) {
-        return statusA.ordinal() > statusB.ordinal() ? statusA : statusB;
+    @Override
+    public long read() {
+        long value = nanos.getAndAdd(0);
+        return value;
     }
 }

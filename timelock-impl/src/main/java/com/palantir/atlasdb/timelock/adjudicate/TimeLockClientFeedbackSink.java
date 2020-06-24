@@ -17,27 +17,28 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public final class TimeLockClientFeedbackSink {
-    private static Cache<Integer, ConjureTimeLockClientFeedback> trackedFeedbackReports = Caffeine.newBuilder()
-            .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
-            .build();
+    private Cache<Integer, ConjureTimeLockClientFeedback> trackedFeedbackReports;
 
-    private TimeLockClientFeedbackSink() {
-        // no op
+    private TimeLockClientFeedbackSink(Cache<Integer, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
+        this.trackedFeedbackReports = trackedFeedbackReports;
     }
 
-    public static void registerFeedback(ConjureTimeLockClientFeedback feedback) {
+    public static TimeLockClientFeedbackSink create(
+            Cache<Integer, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
+        return new TimeLockClientFeedbackSink(trackedFeedbackReports);
+    }
+
+    public void registerFeedback(ConjureTimeLockClientFeedback feedback) {
         trackedFeedbackReports.put(feedback.hashCode(), feedback);
     }
 
-    public static List<ConjureTimeLockClientFeedback> getTrackedFeedbackReports() {
+    public List<ConjureTimeLockClientFeedback> getTrackedFeedbackReports() {
         return ImmutableList.copyOf(trackedFeedbackReports.asMap().values());
     }
 }

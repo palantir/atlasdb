@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,6 +29,7 @@ import java.util.function.Supplier;
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -45,9 +47,11 @@ import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.adjudicate.Constants;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackProvider;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatus;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
+import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackSink;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -96,6 +100,12 @@ public class TimeLockAgent {
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
+
+    private final TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
+            .create(Caffeine
+                    .newBuilder()
+                    .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+                    .build());
 
     public static TimeLockAgent create(
             MetricsManager metricsManager,
@@ -245,9 +255,11 @@ public class TimeLockAgent {
 
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(this::isLeaderForClient));
+            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(timeLockClientFeedbackSink,
+                    this::isLeaderForClient));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey(this::isLeaderForClient));
+            registrar.accept(TimeLockClientFeedbackResource.jersey(timeLockClientFeedbackSink,
+                    this::isLeaderForClient));
         }
     }
 
@@ -350,7 +362,7 @@ public class TimeLockAgent {
     }
 
     public HealthStatus timeLockAdjudicationFeedback() {
-        return FeedbackProvider.getTimeLockHealthStatus();
+        return FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink);
     }
 
     public void shutdown() {

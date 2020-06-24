@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -36,9 +35,9 @@ public final class FeedbackProvider {
         // no op
     }
 
-    public static HealthStatus getTimeLockHealthStatus() {
+    public static HealthStatus getTimeLockHealthStatus(TimeLockClientFeedbackSink timeLockClientFeedbackSink) {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
-                TimeLockClientFeedbackSink.getTrackedFeedbackReports();
+                timeLockClientFeedbackSink.getTrackedFeedbackReports();
 
         Map<String, Map<UUID, List<ConjureTimeLockClientFeedback>>> organizedFeedback =
                 organizeFeedbackReports(trackedFeedbackReports);
@@ -95,7 +94,7 @@ public final class FeedbackProvider {
     private static <T> HealthStatus getHealthStatusOfMajority(Stream<T> feedbackForNode,
             Function<T, HealthStatus> mapper,
             int minThresholdToBeMajority) {
-        return KeyedStream.stream(getFrequencyMap(feedbackForNode
+        return KeyedStream.stream(Utils.getFrequencyMap(feedbackForNode
                 .map(mapper)))
                 .filterEntries((key, val) -> val > minThresholdToBeMajority)
                 .keys()
@@ -107,26 +106,24 @@ public final class FeedbackProvider {
         if (Constants.ATLAS_BLACKLISTED_VERSIONS.contains(healthReport.getAtlasVersion())) {
             return HealthStatus.UNKNOWN;
         }
-
         // considering the worst performing metric only, the health check should fail even if one end-point is unhealthy
-        int healthNumericValue = 0;
+        HealthStatus healthStatus = HealthStatus.HEALTHY;
+
         if (healthReport.getLeaderTime().isPresent()) {
-            healthNumericValue = Math.max(healthNumericValue,
+            healthStatus = HealthStatus.getWorseState(healthStatus,
                     getHealthStatusForService(healthReport.getLeaderTime().get(),
-                    Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE,
-                    Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI)
-                            .getNumericValue());
+                            Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE,
+                            Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI));
         }
 
         if (healthReport.getStartTransaction().isPresent()) {
-            healthNumericValue = Math.max(healthNumericValue,
+            healthStatus = HealthStatus.getWorseState(healthStatus,
                     getHealthStatusForService(healthReport.getStartTransaction().get(),
-                    Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE,
-                    Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI)
-                    .getNumericValue());
+                            Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE,
+                            Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI));
         }
 
-        return healthStatusForNumericValue(healthNumericValue);
+        return healthStatus;
     }
 
     static private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
@@ -140,16 +137,4 @@ public final class FeedbackProvider {
         return endpointStatistics.getP99() > p99Limit
                 ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
     }
-
-
-    private static HealthStatus healthStatusForNumericValue(int majorityStatus) {
-        return majorityStatus > 1 ? (majorityStatus > 2 ? HealthStatus.UNHEALTHY : HealthStatus.UNKNOWN)
-                : HealthStatus.HEALTHY;
-    }
-
-    static <T> Map<T, Long> getFrequencyMap(Stream<T> streamOfStuff) {
-        return streamOfStuff
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-    }
-
 }
