@@ -26,7 +26,7 @@ public final class Constants {
     }
 
     public static final int HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES = 2;
-    public static final double UNHEALTHY_CLIENTS_PROPORTION_LIMIT = 0.33;
+    public static final double UNHEALTHY_CLIENTS_PROPORTION_LIMIT = 0.34;
     public static final int MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE = 60;
     public static final int MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI = 200;
     public static final int MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE = 1000; // todo Sudiksha
