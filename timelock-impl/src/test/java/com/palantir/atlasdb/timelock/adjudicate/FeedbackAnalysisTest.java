@@ -83,7 +83,7 @@ public class FeedbackAnalysisTest {
     }
 
     @Test
-    public void timeLockIsHealthyIfThresholdClientStatusesAreHealthy() {
+    public void timeLockIsHealthyIfLessThanThresholdClientStatusesAreUnHealthy() {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getHealthyClientFeedbackReport(CLIENT_2, UUID.randomUUID()),
@@ -94,7 +94,7 @@ public class FeedbackAnalysisTest {
     }
 
     @Test
-    public void timeLockIsUnhealthyIfThresholdClientStatusesAreUnHealthy() {
+    public void timeLockIsUnhealthyIfMoreThanThresholdClientStatusesAreUnHealthy() {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT_2, UUID.randomUUID()),
@@ -106,7 +106,7 @@ public class FeedbackAnalysisTest {
 
     // Client Level analysis
     @Test
-    public void serviceIsHealthyIfMajorityClientsHealthy() {
+    public void serviceIsHealthyIfMajorityNodesAreHealthy() {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
@@ -117,7 +117,7 @@ public class FeedbackAnalysisTest {
     }
 
     @Test
-    public void serviceIsUnhealthyIfMajorityClientsUnhealthy() {
+    public void serviceIsUnhealthyIfMajorityNodesAreUnhealthy() {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
