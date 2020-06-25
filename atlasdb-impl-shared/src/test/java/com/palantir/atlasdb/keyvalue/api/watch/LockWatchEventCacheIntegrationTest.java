@@ -238,13 +238,6 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void failedUpdateClearsAllCaches() {
-        setupInitialState();
-        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, LockWatchStateUpdate.failed(LEADER));
-        verifyStage();
-    }
-
-    @Test
     public void leaderChangeClearsCaches() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,

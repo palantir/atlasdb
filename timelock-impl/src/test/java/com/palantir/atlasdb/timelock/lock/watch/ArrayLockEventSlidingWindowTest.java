@@ -19,67 +19,69 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.immutables.value.Value;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.lock.watch.LockWatchEvent;
 
 public class ArrayLockEventSlidingWindowTest {
-    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(10);
+    private static final int WINDOW_SIZE = 10;
+
+    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(WINDOW_SIZE);
 
     @Test
     public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
-        int numEntries = 5;
-        addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(numEntries + 1)).isEmpty();
+        whenLogContainsEvents0To4();
+        assertThat(slidingWindow.getNextEvents(5)).isEmpty();
     }
 
     @Test
     public void whenLastKnownVersionIsTooOldReturnEmpty() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(2)).isEmpty();
+        whenLogContainsEvents5to14();
+        assertThat(slidingWindow.getNextEvents(3)).isEmpty();
     }
 
     @Test
     public void whenNoNewEventsReturnEmptyList() {
-        int numEntries = 5;
-        addEvents(numEntries);
-        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(numEntries - 1);
-        assertThat(result).contains(ImmutableList.of());
+        whenLogContainsEvents0To4();
+        assertThat(slidingWindow.getNextEvents(4).get()).isEmpty();
     }
 
     @Test
     public void returnConsecutiveRange() {
-        int numEntries = 5;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(2, 3, numEntries - 1);
+        whenLogContainsEvents0To4();
+        assertContainsNextEventsInOrder(2, 3, 4);
     }
 
     @Test
     public void returnWrappingRange() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(8, 9, numEntries - 1);
+        whenLogContainsEvents5to14();
+        assertContainsNextEventsInOrder(8, 9, 14);
     }
 
     @Test
     public void returnWrappingRangeOnBoundary() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(9, 10, numEntries - 1);
+        whenLogContainsEvents5to14();
+        assertContainsNextEventsInOrder(9, 10, 14);
     }
 
     @Test
     public void returnRangeAfterBoundary() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(10, 11, numEntries - 1);
+        whenLogContainsEvents5to14();
+        assertContainsNextEventsInOrder(10, 11, 14);
+    }
+
+    private void whenLogContainsEvents0To4() {
+        // Log contains events [0,1,2,3,4]
+        addEvents(5);
+    }
+
+    private void whenLogContainsEvents5to14() {
+        // Log contains events [5,6,7,8,9,10,11,12,13,14]
+        addEvents(15);
     }
 
     private void addEvent() {
@@ -92,10 +94,9 @@ public class ArrayLockEventSlidingWindowTest {
         }
     }
 
-    private void assertContainsEventsInOrderFromTo(long version, int startInclusive, int endInclusive) {
-        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(version);
-        assertThat(result).isPresent();
-        assertThat(result.get()).containsExactlyElementsOf(
+    private void assertContainsNextEventsInOrder(long version, int startInclusive, int endInclusive) {
+        List<LockWatchEvent> result = slidingWindow.getNextEvents(version).get();
+        assertThat(result).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()
                         .map(ArrayLockEventSlidingWindowTest::createEvent)
