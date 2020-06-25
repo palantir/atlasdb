@@ -27,16 +27,13 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
-public final class FeedbackProvider {
+public final class FeedbackProcessor {
 
-    private FeedbackProvider() {
+    private FeedbackProcessor() {
         // no op
     }
 
-    public static HealthStatus getTimeLockHealthStatus(TimeLockClientFeedbackSink timeLockClientFeedbackSink) {
-        List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
-                timeLockClientFeedbackSink.getTrackedFeedbackReports();
-
+    public static HealthStatus getTimeLockHealthStatus(List<ConjureTimeLockClientFeedback> trackedFeedbackReports) {
         Map<String, ServiceFeedback> organizedFeedback =
                 organizeFeedbackReportsByService(trackedFeedbackReports);
 
@@ -75,7 +72,7 @@ public final class FeedbackProvider {
         // otherwise the health status for service is 'unknown'
 
         return getHealthStatusOfMajority(serviceFeedback.values().stream(),
-                FeedbackProvider::getHealthStatusForNode,
+                FeedbackProcessor::getHealthStatusForNode,
                 serviceFeedback.numberOfNodes() / 2);
     }
 
@@ -84,7 +81,7 @@ public final class FeedbackProvider {
         // otherwise the health status for node is 'unknown'
 
         return getHealthStatusOfMajority(feedbackForNode.stream(),
-                FeedbackProvider::pointFeedbackHealthStatus,
+                FeedbackProcessor::pointFeedbackHealthStatus,
                 feedbackForNode.size() / 2);
     }
 
