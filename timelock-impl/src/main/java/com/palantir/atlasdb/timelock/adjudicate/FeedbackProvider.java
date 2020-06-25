@@ -58,13 +58,16 @@ public final class FeedbackProvider {
 
     private static HealthStatus healthStateOfTimeLock(
             Map<String, ServiceFeedback> organizedFeedbackByServiceName) {
-        int maxAllowedUnhealthyServices = (organizedFeedbackByServiceName.size()
-                * Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getNumerator())
-                / Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getDenominator();
+        int maxAllowedUnhealthyServices = getMaxAllowedUnhealthyServices(organizedFeedbackByServiceName.size());
 
         return KeyedStream.stream(organizedFeedbackByServiceName).values().filter(
                 serviceFeedback -> getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY).count()
                 > maxAllowedUnhealthyServices ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
+    }
+
+    private static int getMaxAllowedUnhealthyServices(int numberOfServices) {
+        return Math.max((numberOfServices * Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getNumerator())
+                / Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getDenominator(), Constants.MIN_UNHEALTHY_SERVICES);
     }
 
     private static HealthStatus getHealthStatusForService(ServiceFeedback serviceFeedback) {
@@ -117,7 +120,7 @@ public final class FeedbackProvider {
                     getHealthStatusForService(healthReport.getStartTransaction().get(),
                             Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE,
                             Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI.toMillis(),
-                            Constants.LEADER_TIME_ERROR_RATE_THRESHOLD));
+                            Constants.START_TXN_ERROR_RATE_THRESHOLD));
         }
 
         return healthStatus;
