@@ -40,7 +40,7 @@ public class FeedbackAnalysisTest {
     public void timeLockIsHealthyIfNoFeedbackIsRegistered() {
         FeedbackHandler feedbackHandler = getFeedbackHandlerWithReports(ImmutableList.of());
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -55,7 +55,7 @@ public class FeedbackAnalysisTest {
         FeedbackHandler feedbackHandler = getFeedbackHandlerWithReports(ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID())));
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -64,7 +64,7 @@ public class FeedbackAnalysisTest {
         FeedbackHandler feedbackHandler = getFeedbackHandlerWithReports(ImmutableList.of(
                 getUnknownClientFeedbackReport(CLIENT, UUID.randomUUID())));
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -75,7 +75,7 @@ public class FeedbackAnalysisTest {
                 getHealthyClientFeedbackReport(CLIENT_2, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT_3, UUID.randomUUID())));
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -89,7 +89,7 @@ public class FeedbackAnalysisTest {
                 index -> feedbackHandler
                         .handle(getHealthyClientFeedbackReport("Client_" + index, UUID.randomUUID())));
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -104,7 +104,7 @@ public class FeedbackAnalysisTest {
                 index -> feedbackHandler
                         .handle(getHealthyClientFeedbackReport("Client_" + index, UUID.randomUUID())));
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 
@@ -117,7 +117,7 @@ public class FeedbackAnalysisTest {
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID())));
 
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -130,7 +130,7 @@ public class FeedbackAnalysisTest {
                 getUnhealthyClientFeedbackReport(CLIENT_2, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT_3, UUID.randomUUID())));
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 
@@ -141,7 +141,7 @@ public class FeedbackAnalysisTest {
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID())));
 
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -155,7 +155,7 @@ public class FeedbackAnalysisTest {
                 getUnhealthyClientFeedbackReport(CLIENT, nodeId)));
 
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
@@ -169,7 +169,7 @@ public class FeedbackAnalysisTest {
                 getReportWithStartTxnMetricInUnHealthyState(CLIENT_2, nodeId),
                 getReportWithStartTxnMetricInUnHealthyState(CLIENT_3, nodeId)));
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 
@@ -182,7 +182,7 @@ public class FeedbackAnalysisTest {
                 getUnhealthyClientFeedbackReport(CLIENT, nodeId)));
 
 
-        assertThat(feedbackHandler.getTimeLockHealthStatus())
+        assertThat(feedbackHandler.getTimeLockHealthStatus().status())
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
