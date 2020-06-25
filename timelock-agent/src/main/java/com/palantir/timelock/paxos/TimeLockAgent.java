@@ -355,7 +355,7 @@ public class TimeLockAgent {
     }
 
     public HealthStatus timeLockAdjudicationFeedback() {
-        return feedbackHandler.getTimeLockHealthStatus();
+        return feedbackHandler.getStatusForTrackedReports();
     }
 
     public void shutdown() {
