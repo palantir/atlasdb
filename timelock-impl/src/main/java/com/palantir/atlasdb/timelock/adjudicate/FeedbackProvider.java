@@ -18,12 +18,10 @@ package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
@@ -39,45 +37,43 @@ public final class FeedbackProvider {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
                 timeLockClientFeedbackSink.getTrackedFeedbackReports();
 
-        Map<String, Map<UUID, List<ConjureTimeLockClientFeedback>>> organizedFeedback =
-                organizeFeedbackReports(trackedFeedbackReports);
+        Map<String, ServiceFeedback> organizedFeedback =
+                organizeFeedbackReportsByService(trackedFeedbackReports);
 
         return healthStateOfTimeLock(organizedFeedback);
     }
 
-    private static Map<String, Map<UUID, List<ConjureTimeLockClientFeedback>>> organizeFeedbackReports(
+    private static Map<String, ServiceFeedback> organizeFeedbackReportsByService(
             List<ConjureTimeLockClientFeedback> trackedFeedbackReports) {
-        Map<String, Map<UUID, List<ConjureTimeLockClientFeedback>>> organizedFeedback = Maps.newHashMap();
+        Map<String, ServiceFeedback> serviceWiseOrganizedFeedback = Maps.newHashMap();
 
         for (ConjureTimeLockClientFeedback feedback : trackedFeedbackReports) {
-            Map<UUID, List<ConjureTimeLockClientFeedback>> nodesForService = organizedFeedback.computeIfAbsent(
-                    feedback.getServiceName(), service -> Maps.newHashMap());
+            ServiceFeedback feedbackForService = serviceWiseOrganizedFeedback.computeIfAbsent(
+                    feedback.getServiceName(), service -> new ServiceFeedback());
 
-            List<ConjureTimeLockClientFeedback> feedbackForNode = nodesForService
-                    .computeIfAbsent(feedback.getNodeId(), nodeId -> Lists.newLinkedList());
-
-            feedbackForNode.add(feedback);
+            feedbackForService.addFeedbackForNode(feedback.getNodeId(), feedback);
         }
-        return organizedFeedback;
+        return serviceWiseOrganizedFeedback;
     }
 
     private static HealthStatus healthStateOfTimeLock(
-            Map<String, Map<UUID, List<ConjureTimeLockClientFeedback>>> organizedFeedback) {
-        int maxAllowedUnhealthyServices = (int) (organizedFeedback.size()
-                * Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT);
+            Map<String, ServiceFeedback> organizedFeedbackByServiceName) {
+        int maxAllowedUnhealthyServices = (organizedFeedbackByServiceName.size()
+                * Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getNumerator())
+                / Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getDenominator();
 
-        return KeyedStream.stream(organizedFeedback).values().filter(
-                nodeWiseStats -> getHealthStatusForService(nodeWiseStats) == HealthStatus.UNHEALTHY).count()
+        return KeyedStream.stream(organizedFeedbackByServiceName).values().filter(
+                serviceFeedback -> getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY).count()
                 > maxAllowedUnhealthyServices ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
     }
 
-    private static HealthStatus getHealthStatusForService(Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseStats) {
+    private static HealthStatus getHealthStatusForService(ServiceFeedback serviceFeedback) {
         // only the status that appears majority number of times is considered,
         // otherwise the health status for service is 'unknown'
 
-        return getHealthStatusOfMajority(nodeWiseStats.values().stream(),
+        return getHealthStatusOfMajority(serviceFeedback.values().stream(),
                 FeedbackProvider::getHealthStatusForNode,
-                nodeWiseStats.size() / 2);
+                serviceFeedback.numberOfNodes() / 2);
     }
 
     private static HealthStatus getHealthStatusForNode(List<ConjureTimeLockClientFeedback> feedbackForNode) {
@@ -109,25 +105,25 @@ public final class FeedbackProvider {
         HealthStatus healthStatus = HealthStatus.HEALTHY;
 
         if (healthReport.getLeaderTime().isPresent()) {
-            healthStatus = HealthStatus.getWorseState(healthStatus,
+            healthStatus = HealthStatus.getWorst(healthStatus,
                     getHealthStatusForService(healthReport.getLeaderTime().get(),
                             Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE,
-                            Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI));
+                            Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI.toMillis()));
         }
 
         if (healthReport.getStartTransaction().isPresent()) {
-            healthStatus = HealthStatus.getWorseState(healthStatus,
+            healthStatus = HealthStatus.getWorst(healthStatus,
                     getHealthStatusForService(healthReport.getStartTransaction().get(),
                             Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE,
-                            Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI));
+                            Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI.toMillis()));
         }
 
         return healthStatus;
     }
 
-    private static  HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
+    private static HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
             int rateThreshold,
-            int p99Limit) {
+            long p99Limit) {
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
             return HealthStatus.UNKNOWN;

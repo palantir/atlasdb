@@ -23,8 +23,7 @@ import java.util.stream.Stream;
 
 public class Utils {
 
-    static <T> Map<T, Long> getFrequencyMap(Stream<T> streamOfStuff) {
-        return streamOfStuff
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+    static <T> Map<T, Long> getFrequencyMap(Stream<T> stream) {
+        return stream.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     }
 }

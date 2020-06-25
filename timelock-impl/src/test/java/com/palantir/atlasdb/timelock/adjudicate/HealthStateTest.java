@@ -24,15 +24,15 @@ public class HealthStateTest {
 
     @Test
     public void worstStatusOfAllOptions() {
-        assertThat(HealthStatus.getWorseState(HealthStatus.HEALTHY, HealthStatus.UNKNOWN))
+        assertThat(HealthStatus.getWorst(HealthStatus.HEALTHY, HealthStatus.UNKNOWN))
                 .isEqualTo(HealthStatus.UNKNOWN);
-        assertThat(HealthStatus.getWorseState(HealthStatus.HEALTHY, HealthStatus.UNHEALTHY))
+        assertThat(HealthStatus.getWorst(HealthStatus.HEALTHY, HealthStatus.UNHEALTHY))
                 .isEqualTo(HealthStatus.UNHEALTHY);
-        assertThat(HealthStatus.getWorseState(HealthStatus.HEALTHY, HealthStatus.HEALTHY))
+        assertThat(HealthStatus.getWorst(HealthStatus.HEALTHY, HealthStatus.HEALTHY))
                 .isEqualTo(HealthStatus.HEALTHY);
-        assertThat(HealthStatus.getWorseState(HealthStatus.UNKNOWN, HealthStatus.UNHEALTHY))
+        assertThat(HealthStatus.getWorst(HealthStatus.UNKNOWN, HealthStatus.UNHEALTHY))
                 .isEqualTo(HealthStatus.UNHEALTHY);
-        assertThat(HealthStatus.getWorseState(HealthStatus.UNKNOWN, HealthStatus.UNHEALTHY, HealthStatus.HEALTHY))
+        assertThat(HealthStatus.getWorst(HealthStatus.UNKNOWN, HealthStatus.UNHEALTHY, HealthStatus.HEALTHY))
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 }

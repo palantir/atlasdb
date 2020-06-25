@@ -17,25 +17,26 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.ImmutableList;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public final class TimeLockClientFeedbackSink {
-    private Cache<Integer, ConjureTimeLockClientFeedback> trackedFeedbackReports;
+    private Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports;
 
-    private TimeLockClientFeedbackSink(Cache<Integer, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
+    private TimeLockClientFeedbackSink(Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
         this.trackedFeedbackReports = trackedFeedbackReports;
     }
 
     public static TimeLockClientFeedbackSink create(
-            Cache<Integer, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
+            Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
         return new TimeLockClientFeedbackSink(trackedFeedbackReports);
     }
 
     public void registerFeedback(ConjureTimeLockClientFeedback feedback) {
-        trackedFeedbackReports.put(feedback.hashCode(), feedback);
+        trackedFeedbackReports.put(UUID.randomUUID(), feedback);
     }
 
     public List<ConjureTimeLockClientFeedback> getTrackedFeedbackReports() {

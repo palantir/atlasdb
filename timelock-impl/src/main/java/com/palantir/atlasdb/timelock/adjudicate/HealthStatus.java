@@ -16,28 +16,33 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.util.HashSet;
-
-import com.google.common.collect.Sets;
+import java.util.Arrays;
+import java.util.Comparator;
 
 public enum HealthStatus {
-    HEALTHY(true),
-    UNKNOWN(true),
-    UNHEALTHY(false);
+    HEALTHY(true, 1),
+    UNKNOWN(true, 2),
+    UNHEALTHY(false, 3);
 
     private final boolean isHealthy;
+    private final int severity;
 
-    HealthStatus(boolean isHealthy) {
+    HealthStatus(boolean isHealthy, int severity) {
         this.isHealthy = isHealthy;
+        this.severity = severity;
     }
 
     public boolean isHealthy() {
         return isHealthy;
     }
 
-    public static HealthStatus getWorseState(HealthStatus... statuses) {
-        HashSet<HealthStatus> healthStatusSet = Sets.newHashSet(statuses);
-        return healthStatusSet.contains(HealthStatus.UNHEALTHY) ? HealthStatus.UNHEALTHY
-                : (healthStatusSet.contains(HealthStatus.UNKNOWN) ? HealthStatus.UNKNOWN : HealthStatus.HEALTHY);
+    public static HealthStatus getWorst(HealthStatus... statuses) {
+        return Arrays.stream(statuses)
+                .max(Comparator.comparingLong(HealthStatus::severity))
+                .orElse(HealthStatus.UNKNOWN);
+    }
+
+    private static long severity(HealthStatus status) {
+        return status.severity;
     }
 }

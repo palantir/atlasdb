@@ -16,7 +16,10 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.time.Duration;
 import java.util.Set;
+
+import org.apache.commons.lang3.math.Fraction;
 
 import com.google.common.collect.Sets;
 
@@ -26,12 +29,11 @@ public final class Constants {
     }
 
     public static final int HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES = 2;
-    public static final double UNHEALTHY_CLIENTS_PROPORTION_LIMIT = 0.34;
+    public static final Fraction UNHEALTHY_CLIENTS_PROPORTION_LIMIT = Fraction.ONE_THIRD;
     public static final int MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE = 60;
-    public static final int MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI = 200;
+    public static final Duration MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI = Duration.ofMillis(200);
     public static final int MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE = 60;
-    public static final int MAX_ACCEPTABLE_START_TXN_P99_MILLI = 500;
-
+    public static final Duration MAX_ACCEPTABLE_START_TXN_P99_MILLI = Duration.ofMillis(500);
 
     public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = Sets.newHashSet();
 }
