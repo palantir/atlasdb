@@ -34,6 +34,7 @@ import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
+import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
@@ -144,6 +145,15 @@ public final class AtlasDbDialogueServiceProvider {
 
     TimelockRpcClient getTimelockRpcClient() {
         return createDialogueProxyWithShortTimeout(TimelockRpcClient.class);
+    }
+
+    ConjureLockWatchingServiceBlocking getConjureLockWatchingService() {
+        ConjureLockWatchingServiceBlocking blockingService
+                = dialogueClientFactory.get(ConjureLockWatchingServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                taggedMetricRegistry,
+                ConjureLockWatchingServiceBlocking.class,
+                FastFailoverProxy.newProxyInstance(ConjureLockWatchingServiceBlocking.class, () -> blockingService));
     }
 
     private <T> T createDialogueProxyWithShortTimeout(Class<T> type) {
