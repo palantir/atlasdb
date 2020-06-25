@@ -1001,9 +1001,9 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices) {
         TimelockService timelockServiceWithBatching = lockAndTimestampServices.timelock();
-        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
+        TimelockService instrumentedTimelockService = InstrumentedTimelockService.create(
                 timelockServiceWithBatching,
-                metricsManager.getRegistry());
+                metricsManager);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)

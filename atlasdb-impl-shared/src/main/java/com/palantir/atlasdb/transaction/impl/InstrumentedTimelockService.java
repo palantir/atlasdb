@@ -21,7 +21,9 @@ import java.util.function.Supplier;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -31,16 +33,35 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class InstrumentedTimelockService implements TimelockService {
     private final TimelockService timelockService;
     private final Meter success;
     private final Meter fail;
 
-    public InstrumentedTimelockService(TimelockService timelockService, MetricRegistry metricRegistry) {
+    private InstrumentedTimelockService(TimelockService timelockService, MetricsManager metricsManager) {
         this.timelockService = timelockService;
-        this.success = metricRegistry.meter(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST);
-        this.fail = metricRegistry.meter(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST);
+        this.success = metricsManager.registerOrGetTaggedMeter(
+                InstrumentedTimelockService.class,
+                AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST,
+                ImmutableMap.of());
+        this.fail = metricsManager.registerOrGetTaggedMeter(
+                InstrumentedTimelockService.class,
+                AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST,
+                ImmutableMap.of());
+    }
+
+    public static TimelockService create(TimelockService timelockService, MetricsManager metricsManager) {
+        // The instrumentation here is used primarily for the health check, not for external viewing.
+        metricsManager.addMetricFilter(
+                MetricName.builder().safeName(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST).build(),
+                () -> false);
+        metricsManager.addMetricFilter(
+                MetricName.builder().safeName(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST).build(),
+                () -> false);
+        return new InstrumentedTimelockService(timelockService, metricsManager);
     }
 
     @Override
