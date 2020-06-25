@@ -25,13 +25,15 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 
 public class MetricsBasedTimelockHealthCheckTest {
     private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toMillis(5);
 
-    private final MetricRegistry metricRegistry = new MetricRegistry();
-    private final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricRegistry);
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager);
     private static TimelockService timelockService = mock(TimelockService.class);
 
     @Test
@@ -80,9 +82,9 @@ public class MetricsBasedTimelockHealthCheckTest {
 
     private TimelockService getFreshInstrumentedTimelockService() {
         timelockService = mock(TimelockService.class);
-        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
+        TimelockService instrumentedTimelockService = InstrumentedTimelockService.create(
                 timelockService,
-                metricRegistry);
+                metricsManager);
 
         return instrumentedTimelockService;
     }
