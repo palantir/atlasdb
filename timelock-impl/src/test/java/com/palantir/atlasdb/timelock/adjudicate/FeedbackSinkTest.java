@@ -48,7 +48,7 @@ public class FeedbackSinkTest {
                 sink.getTrackedFeedbackReports();
         assertThat(trackedFeedbackReports.size()).isEqualTo(100);
 
-        FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+        FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES);
         assertThat(sink.getTrackedFeedbackReports().size()).isEqualTo(0);
     }
 
@@ -67,14 +67,14 @@ public class FeedbackSinkTest {
                 sink.getTrackedFeedbackReports();
         assertThat(trackedFeedbackReports.size()).isEqualTo(1);
 
-        FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+        FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES);
         assertThat(sink.getTrackedFeedbackReports().size()).isEqualTo(0);
     }
 
     TimeLockClientFeedbackSink createSinkAndAddTestReport() {
         TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
                 .create(Caffeine.newBuilder()
-                        .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+                        .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
                         .ticker(FAKE_TICKER)
                         .build());
         registerTestReport(timeLockClientFeedbackSink);

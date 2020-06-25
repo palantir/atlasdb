@@ -37,7 +37,7 @@ public class FeedbackHandler {
     private final TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
             .create(Caffeine
             .newBuilder()
-            .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+            .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
                         .build());
 
     public void handle(ConjureTimeLockClientFeedback feedback) {
@@ -80,7 +80,7 @@ public class FeedbackHandler {
                     .builder()
                     .status(HealthStatus.UNHEALTHY)
                     .params(ImmutableMap.of("unhealthyClients", unhealthyClients))
-                    .message(String.format("TimeLock is unhealthy as %d of %d clients were healthy unhealthy"
+                    .message(String.format("TimeLock is unhealthy as %d of %d clients are unhealthy"
                             + ". The highest acceptable number of unhealthy clients is - %d",
                             unhealthyClients.size(),
                             organizedFeedbackByServiceName.size(),

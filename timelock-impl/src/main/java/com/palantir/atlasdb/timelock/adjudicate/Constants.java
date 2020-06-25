@@ -28,7 +28,7 @@ public final class Constants {
         // no op
     }
 
-    public static final int HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES = 2;
+    public static final Duration HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES = Duration.ofMinutes(2);
     public static final Fraction UNHEALTHY_CLIENTS_PROPORTION_LIMIT = Fraction.ONE_THIRD;
     public static final int MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE = 60;
     public static final Duration MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI = Duration.ofMillis(200);
