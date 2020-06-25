@@ -20,12 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
@@ -37,17 +40,13 @@ public class FeedbackHandler {
             .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
                         .build());
 
-    public HealthStatus getTimeLockHealthStatus() {
-        return getStatusForTrackedReports(timeLockClientFeedbackSink.getTrackedFeedbackReports());
-    }
-
     public void handle(ConjureTimeLockClientFeedback feedback) {
         timeLockClientFeedbackSink.registerFeedback(feedback);
     }
 
-    private HealthStatus getStatusForTrackedReports(List<ConjureTimeLockClientFeedback> trackedFeedbackReports) {
+    public ReportHealthStatus getTimeLockHealthStatus() {
         Map<String, ServiceFeedback> organizedFeedback =
-                organizeFeedbackReportsByService(trackedFeedbackReports);
+                organizeFeedbackReportsByService(timeLockClientFeedbackSink.getTrackedFeedbackReports());
 
         return healthStateOfTimeLock(organizedFeedback);
     }
@@ -65,13 +64,30 @@ public class FeedbackHandler {
         return serviceWiseOrganizedFeedback;
     }
 
-    private HealthStatus healthStateOfTimeLock(
+    private ReportHealthStatus healthStateOfTimeLock(
             Map<String, ServiceFeedback> organizedFeedbackByServiceName) {
         int maxAllowedUnhealthyServices = getMaxAllowedUnhealthyServices(organizedFeedbackByServiceName.size());
 
-        return KeyedStream.stream(organizedFeedbackByServiceName).values().filter(
-                serviceFeedback -> getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY).count()
-                > maxAllowedUnhealthyServices ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
+        List<Client> unhealthyClients = KeyedStream.stream(organizedFeedbackByServiceName)
+                .filterEntries((serviceName, serviceFeedback) ->
+                        getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY)
+                .keys()
+                .map(serviceName -> Client.of(serviceName))
+                .collect(Collectors.toList());
+
+        if (unhealthyClients.size() > maxAllowedUnhealthyServices) {
+            return ImmutableReportHealthStatus
+                    .builder()
+                    .status(HealthStatus.UNHEALTHY)
+                    .params(ImmutableMap.of("unhealthyClients", unhealthyClients))
+                    .message(String.format("TimeLock is unhealthy as %d of %d clients were healthy unhealthy"
+                            + ". The highest acceptable number of unhealthy clients is - %d",
+                            unhealthyClients.size(),
+                            organizedFeedbackByServiceName.size(),
+                            maxAllowedUnhealthyServices))
+                    .build();
+        }
+        return ImmutableReportHealthStatus.builder().status(HealthStatus.HEALTHY).build();
     }
 
     private int getMaxAllowedUnhealthyServices(int numberOfServices) {

@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.Map;
 import java.util.Optional;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface HealthResponse {
+public interface ReportHealthStatus {
     HealthStatus status();
     Optional<String> message();
+    Map<String, Object> params();
 }

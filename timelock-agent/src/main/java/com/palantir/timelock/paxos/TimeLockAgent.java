@@ -46,7 +46,7 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
-import com.palantir.atlasdb.timelock.adjudicate.HealthStatus;
+import com.palantir.atlasdb.timelock.adjudicate.ReportHealthStatus;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
@@ -354,8 +354,8 @@ public class TimeLockAgent {
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 
-    public HealthStatus timeLockAdjudicationFeedback() {
-        return feedbackHandler.getStatusForTrackedReports();
+    public ReportHealthStatus timeLockAdjudicationFeedback() {
+        return feedbackHandler.getTimeLockHealthStatus();
     }
 
     public void shutdown() {
