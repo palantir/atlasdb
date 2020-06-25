@@ -22,8 +22,12 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 public final class AdjustableSweepBatchConfigSource {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -42,8 +46,13 @@ public final class AdjustableSweepBatchConfigSource {
             Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         AdjustableSweepBatchConfigSource configSource = new AdjustableSweepBatchConfigSource(rawSweepBatchConfig);
 
+        Gauge<Double> gauge = AdjustableSweepBatchConfigSource::getBatchSizeMultiplier;
+        metricsManager.addMetricFilter(AdjustableSweepBatchConfigSource.class,
+                "batchSizeMultiplier",
+                ImmutableMap.of(),
+                () -> gauge.getValue() != 1.0);
         metricsManager.registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
-                () -> getBatchSizeMultiplier());
+                gauge);
 
         return configSource;
     }

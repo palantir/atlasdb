@@ -110,6 +110,14 @@ public class MetricsManager {
         publicationArbiter.registerMetricsFilter(metricName, publicationFilter);
     }
 
+    public void addMetricFilter(
+            Class clazz,
+            String metricName,
+            Map<String, String> tags,
+            MetricPublicationFilter publicationFilter) {
+        addMetricFilter(getTaggedMetricName(clazz, metricName, tags), publicationFilter);
+    }
+
     public TaggedMetricSet getPublishableMetrics() {
         return publishableMetricsView;
     }
