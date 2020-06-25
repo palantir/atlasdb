@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.HashSet;
+
+import com.google.common.collect.Sets;
+
 public enum HealthStatus {
     HEALTHY(true),
     UNKNOWN(true),
@@ -31,7 +35,9 @@ public enum HealthStatus {
         return isHealthy;
     }
 
-    public static HealthStatus getWorseState(HealthStatus statusA, HealthStatus statusB) {
-        return statusA.ordinal() > statusB.ordinal() ? statusA : statusB;
+    public static HealthStatus getWorseState(HealthStatus... statuses) {
+        HashSet<HealthStatus> healthStatusSet = Sets.newHashSet(statuses);
+        return healthStatusSet.contains(HealthStatus.UNHEALTHY) ? HealthStatus.UNHEALTHY
+                : (healthStatusSet.contains(HealthStatus.UNKNOWN) ? HealthStatus.UNKNOWN : HealthStatus.HEALTHY);
     }
 }
