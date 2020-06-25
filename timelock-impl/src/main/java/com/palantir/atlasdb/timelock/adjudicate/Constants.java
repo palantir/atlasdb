@@ -32,8 +32,11 @@ public final class Constants {
     public static final Fraction UNHEALTHY_CLIENTS_PROPORTION_LIMIT = Fraction.ONE_THIRD;
     public static final int MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE = 60;
     public static final Duration MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI = Duration.ofMillis(200);
+    public static final double LEADER_TIME_ERROR_RATE_THRESHOLD = 30;
+
     public static final int MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE = 60;
     public static final Duration MAX_ACCEPTABLE_START_TXN_P99_MILLI = Duration.ofMillis(500);
+    public static final double START_TXN_ERROR_RATE_THRESHOLD = 30;
 
     public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = Sets.newHashSet();
 }

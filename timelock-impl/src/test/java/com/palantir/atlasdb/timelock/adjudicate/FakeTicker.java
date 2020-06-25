@@ -32,7 +32,7 @@ class FakeTicker implements Ticker {
 
     @Override
     public long read() {
-        long value = nanos.getAndAdd(0);
+        long value = nanos.get();
         return value;
     }
 }
