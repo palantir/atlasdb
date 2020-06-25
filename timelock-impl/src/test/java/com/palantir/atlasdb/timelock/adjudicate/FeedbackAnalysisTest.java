@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
 import org.junit.Test;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -39,69 +38,81 @@ public class FeedbackAnalysisTest {
     long maxAcceptableLeaderTimeP99Milli = Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI.toMillis();
     long maxAcceptableStartTxnTime = Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI.toMillis();
 
-    private static TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
-            .create(Caffeine.newBuilder()
-                    .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
-                    .ticker(FAKE_TICKER)
-                    .build());
-
-    @After
-    public void resetCache() {
-        FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+    private static TimeLockClientFeedbackSink getTimeLockClientFeedbackSink() {
+        return TimeLockClientFeedbackSink
+                .create(Caffeine.newBuilder()
+                        .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+                        .ticker(FAKE_TICKER)
+                        .build());
     }
 
     // TimeLock Level analysis
     @Test
-    public void timeLockIsHealthyIfNoFeedbackIsRegister() {
-        assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
+    public void timeLockIsHealthyIfNoFeedbackIsRegistered() {
+        assertThat(FeedbackProvider.getTimeLockHealthStatus(getTimeLockClientFeedbackSink()))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
     @Test
     public void timeLockIsHealthyIfAllClientsAreHealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
     @Test
-    public void timeLockIsHealthyIfAllClientsAreUnhealthy() {
+    public void timeLockIsUnhealthyIfAllClientsAreUnhealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 
     @Test
     public void timeLockIsHealthyIfAllClientStatusesAreUnknown() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getUnknownClientFeedbackReport(CLIENT, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
     @Test
     public void timeLockIsHealthyIfLessThanThresholdClientStatusesAreUnHealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getHealthyClientFeedbackReport(CLIENT_2, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT_3, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
     @Test
     public void timeLockIsUnhealthyIfMoreThanThresholdClientStatusesAreUnHealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT_2, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT_3, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
@@ -109,32 +120,40 @@ public class FeedbackAnalysisTest {
     // Client Level analysis
     @Test
     public void serviceIsHealthyIfMajorityNodesAreHealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
     @Test
     public void serviceIsUnhealthyIfMajorityNodesAreUnhealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 
     @Test
     public void fallbackToHealthyIfThereIsNoMajority() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID()),
                 getUnhealthyClientFeedbackReport(CLIENT, UUID.randomUUID()));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
@@ -142,36 +161,45 @@ public class FeedbackAnalysisTest {
     // node level analysis
     @Test
     public void nodeIsHealthyIfMajorityReportsHealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         UUID nodeId = UUID.randomUUID();
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, nodeId),
                 getHealthyClientFeedbackReport(CLIENT, nodeId),
                 getUnhealthyClientFeedbackReport(CLIENT, nodeId));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
 
     @Test
     public void nodeIsUnhealthyIfMajorityReportsUnhealthy() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         UUID nodeId = UUID.randomUUID();
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getHealthyClientFeedbackReport(CLIENT, nodeId),
                 getReportWithLeaderTimeMetricInUnhealthyState(CLIENT, nodeId),
                 getReportWithStartTxnMetricInUnHealthyState(CLIENT, nodeId));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 
     @Test
     public void fallbackToHealthyIfNoMajority() {
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = getTimeLockClientFeedbackSink();
+
         UUID nodeId = UUID.randomUUID();
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = ImmutableList.of(
                 getUnknownClientFeedbackReport(CLIENT, nodeId),
                 getUnknownClientFeedbackReport(CLIENT, nodeId),
                 getUnhealthyClientFeedbackReport(CLIENT, nodeId));
         trackedFeedbackReports.forEach(timeLockClientFeedbackSink::registerFeedback);
+
         assertThat(FeedbackProvider.getTimeLockHealthStatus(timeLockClientFeedbackSink))
                 .isEqualTo(HealthStatus.HEALTHY);
     }
@@ -273,20 +301,20 @@ public class FeedbackAnalysisTest {
     }
 
     private ConjureTimeLockClientFeedback getClientFeedbackReport(String serviceName, UUID nodeId,
-            long i1, long i2, long i3, long i4) {
+            long leaderTimeMinRate, long leaderTimeP99, long startTxnMinRate, long startTxnP99) {
         return ConjureTimeLockClientFeedback.builder()
                 .nodeId(nodeId)
                 .serviceName(serviceName)
                 .atlasVersion("0.1.0")
                 .leaderTime(EndpointStatistics
                         .builder()
-                        .oneMin(i1)
-                        .p99(i2)
+                        .oneMin(leaderTimeMinRate)
+                        .p99(leaderTimeP99)
                         .build())
                 .startTransaction(EndpointStatistics
                         .builder()
-                        .oneMin(i3)
-                        .p99(i4)
+                        .oneMin(startTxnMinRate)
+                        .p99(startTxnP99)
                         .build())
                 .build();
     }

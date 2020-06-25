@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import org.junit.Test;
 
@@ -37,7 +38,18 @@ public class FeedbackSinkTest {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
                 createSinkAndAddTestReport().getTrackedFeedbackReports();
         assertThat(trackedFeedbackReports.size()).isEqualTo(1);
-        assertThat(trackedFeedbackReports).containsExactly(TEST_REPORT);
+    }
+
+    @Test
+    public void multipleFeedbackReportsAreRegistered() {
+        TimeLockClientFeedbackSink sink = createSinkAndAddTestReport();
+        IntStream.range(1, 100).forEach(index -> registerTestReport(sink));
+        List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
+                sink.getTrackedFeedbackReports();
+        assertThat(trackedFeedbackReports.size()).isEqualTo(100);
+
+        FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+        assertThat(sink.getTrackedFeedbackReports().size()).isEqualTo(0);
     }
 
     @Test
@@ -54,20 +66,23 @@ public class FeedbackSinkTest {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
                 sink.getTrackedFeedbackReports();
         assertThat(trackedFeedbackReports.size()).isEqualTo(1);
-        assertThat(trackedFeedbackReports).containsExactly(TEST_REPORT);
 
         FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES);
         assertThat(sink.getTrackedFeedbackReports().size()).isEqualTo(0);
     }
 
-    static TimeLockClientFeedbackSink createSinkAndAddTestReport() {
+    TimeLockClientFeedbackSink createSinkAndAddTestReport() {
         TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
                 .create(Caffeine.newBuilder()
                         .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES, TimeUnit.MINUTES)
                         .ticker(FAKE_TICKER)
                         .build());
-        timeLockClientFeedbackSink.registerFeedback(TEST_REPORT);
+        registerTestReport(timeLockClientFeedbackSink);
         return timeLockClientFeedbackSink;
+    }
+
+    private void registerTestReport(TimeLockClientFeedbackSink sink) {
+        sink.registerFeedback(getTestReport());
     }
 
     static ConjureTimeLockClientFeedback getTestReport() {
