@@ -18,7 +18,6 @@ package com.palantir.atlasdb.internalschema.persistence;
 
 import java.util.function.LongSupplier;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
@@ -27,13 +26,9 @@ import com.palantir.atlasdb.coordination.TransformingCoordinationService;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.metrics.MetricPublicationFilter;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricNameUtils;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.MetricName;
 
 public final class CoordinationServices {
     private CoordinationServices() {

@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;

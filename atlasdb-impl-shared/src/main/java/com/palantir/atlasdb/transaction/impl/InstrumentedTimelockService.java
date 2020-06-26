@@ -20,8 +20,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -34,11 +32,15 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class InstrumentedTimelockService implements TimelockService {
-    public static final MetricName SUCCESSFUL_REQUEST_METRIC_NAME = MetricName.builder().safeName(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST).build();
-    public static final MetricName FAILED_REQUEST_METRIC_NAME = MetricName.builder().safeName(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST).build();
+    private static final MetricName SUCCESSFUL_REQUEST_METRIC_NAME = MetricName.builder()
+            .safeName(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST)
+            .build();
+    private static final MetricName FAILED_REQUEST_METRIC_NAME = MetricName.builder()
+            .safeName(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST)
+            .build();
+
     private final TimelockService timelockService;
     private final Meter success;
     private final Meter fail;
@@ -51,8 +53,8 @@ public class InstrumentedTimelockService implements TimelockService {
 
     public static TimelockService create(TimelockService timelockService, MetricsManager metricsManager) {
         // The instrumentation here is used primarily for the health check, not for external viewing.
-        metricsManager.addMetricFilter(SUCCESSFUL_REQUEST_METRIC_NAME, () -> false);
-        metricsManager.addMetricFilter(FAILED_REQUEST_METRIC_NAME, () -> false);
+        metricsManager.doNotPublish(SUCCESSFUL_REQUEST_METRIC_NAME);
+        metricsManager.doNotPublish(FAILED_REQUEST_METRIC_NAME);
         return new InstrumentedTimelockService(timelockService, metricsManager);
     }
 
