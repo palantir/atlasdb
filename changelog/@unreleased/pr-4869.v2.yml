@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |2
+
+    Client feedback report for TimeLock can now have the original namespace along with the overridden service name.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4869
