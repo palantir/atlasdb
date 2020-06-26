@@ -16,13 +16,13 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
@@ -80,7 +80,7 @@ public class FeedbackHandler {
             return ImmutableHealthStatusReport
                     .builder()
                     .status(HealthStatus.UNHEALTHY)
-                    .params(ImmutableMap.of("unhealthyClients", unhealthyClients))
+                    .unhealthyClients(unhealthyClients)
                     .message(String.format("TimeLock is unhealthy as %d of %d clients are unhealthy"
                             + ". The highest acceptable number of unhealthy clients is - %d",
                             unhealthyClients.size(),
@@ -100,26 +100,24 @@ public class FeedbackHandler {
         // only the status that appears majority number of times is considered,
         // otherwise the health status for service is 'unknown'
 
-        return getHealthStatusOfMajority(serviceFeedback.values().stream(),
-                this::getHealthStatusForNode,
-                serviceFeedback.numberOfNodes() / 2);
+        return getHealthStatusOfMajority(serviceFeedback.values(),
+                this::getHealthStatusForNode);
     }
 
     private HealthStatus getHealthStatusForNode(List<ConjureTimeLockClientFeedback> feedbackForNode) {
         // only the status that appears majority number of times is considered,
         // otherwise the health status for node is 'unknown'
 
-        return getHealthStatusOfMajority(feedbackForNode.stream(),
-                this::pointFeedbackHealthStatus,
-                feedbackForNode.size() / 2);
+        return getHealthStatusOfMajority(feedbackForNode,
+                this::pointFeedbackHealthStatus);
     }
 
-    private <T> HealthStatus getHealthStatusOfMajority(Stream<T> feedbackForNode,
-            Function<T, HealthStatus> mapper,
-            int minThresholdToBeMajority) {
-        return KeyedStream.stream(Utils.getFrequencyMap(feedbackForNode
+    private <T> HealthStatus getHealthStatusOfMajority(Collection<T> feedbacks,
+            Function<T, HealthStatus> mapper) {
+        int majorityThreshold = (feedbacks.size() / 2) + 1;
+        return KeyedStream.stream(Utils.getFrequencyMap(feedbacks.stream()
                 .map(mapper)))
-                .filterEntries((key, val) -> val > minThresholdToBeMajority)
+                .filterEntries((key, val) -> val >= majorityThreshold)
                 .keys()
                 .findFirst()
                 .orElse(HealthStatus.UNKNOWN);

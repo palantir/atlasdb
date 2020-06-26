@@ -16,14 +16,16 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 import org.immutables.value.Value;
+
+import com.palantir.paxos.Client;
 
 @Value.Immutable
 public interface HealthStatusReport {
     HealthStatus status();
     Optional<String> message();
-    Map<String, Object> params();
+    List<Client> unhealthyClients();
 }

@@ -22,6 +22,8 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
 public class HealthStateTest {
 
     @Test
@@ -41,6 +43,6 @@ public class HealthStateTest {
     private HealthStatus getWorst(HealthStatus... healthStatuses) {
         return Arrays.stream(healthStatuses)
                 .max(HealthStatus.getHealthStatusComparator())
-                .orElseThrow(() -> new IllegalStateException("Attempted to get the worst of zero health statuses"));
+                .orElseThrow(() -> new SafeIllegalStateException("Attempted to get the worst of zero health statuses"));
     }
 }

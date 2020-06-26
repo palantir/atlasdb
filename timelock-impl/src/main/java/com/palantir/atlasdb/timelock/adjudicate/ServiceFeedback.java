@@ -27,7 +27,7 @@ import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public class ServiceFeedback {
 
-    private Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseFeedback = Maps.newHashMap();
+    private Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseFeedback = Maps.newConcurrentMap();
 
     public void addFeedbackForNode(UUID nodeId, ConjureTimeLockClientFeedback feedback) {
         nodeWiseFeedback.computeIfAbsent(nodeId, node -> Lists.newArrayList()).add(feedback);
