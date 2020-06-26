@@ -9,6 +9,7 @@ types:
           nodeId: uuid
           startTransaction: optional<EndpointStatistics>
           leaderTime: optional<EndpointStatistics>
+          namespace: optional<string>
       EndpointStatistics:
         fields:
           p99: double

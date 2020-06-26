@@ -53,26 +53,31 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private Supplier<String> versionSupplier;
     private String serviceName;
+    private String namespace;
     private Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
 
     private TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry,
             Supplier<String> versionSupplier,
             String serviceName,
-            Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
+            Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices,
+            String namespace) {
         this.conjureTimelockServiceBlockingMetrics = ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
         this.versionSupplier = versionSupplier;
         this.serviceName = serviceName;
         this.timeLockClientFeedbackServices = timeLockClientFeedbackServices;
+        this.namespace = namespace;
     }
 
     public static TimeLockFeedbackBackgroundTask create(TaggedMetricRegistry taggedMetricRegistry,
             Supplier<String> versionSupplier,
             String serviceName,
-            Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices) {
+            Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices,
+            String namespace) {
         TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(taggedMetricRegistry,
                 versionSupplier,
                 serviceName,
-                timeLockClientFeedbackServices);
+                timeLockClientFeedbackServices,
+                namespace);
         task.scheduleWithFixedDelay();
         return task;
     }
@@ -88,6 +93,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                         .atlasVersion(versionSupplier.get())
                         .nodeId(nodeId)
                         .serviceName(serviceName)
+                        .namespace(namespace)
                         .build();
                 timeLockClientFeedbackServices
                         .current()
