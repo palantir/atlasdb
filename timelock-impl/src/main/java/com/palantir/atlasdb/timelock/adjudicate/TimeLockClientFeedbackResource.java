@@ -30,26 +30,38 @@ import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
     private Predicate<Client> leadershipCheck;
+    private FeedbackHandler feedbackHandler;
 
-    private TimeLockClientFeedbackResource(Predicate<Client> leadershipCheck) {
+    private TimeLockClientFeedbackResource(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        this.feedbackHandler = feedbackHandler;
         this.leadershipCheck = leadershipCheck;
     }
 
-    public static TimeLockClientFeedbackResource create(Predicate<Client> leadershipCheck) {
-        return new TimeLockClientFeedbackResource(leadershipCheck);
+    public static TimeLockClientFeedbackResource create(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        return new TimeLockClientFeedbackResource(feedbackHandler, leadershipCheck);
     }
 
-    public static UndertowService undertow(Predicate<Client> leadershipCheck) {
-        return TimeLockClientFeedbackServiceEndpoints.of(TimeLockClientFeedbackResource.create(leadershipCheck));
+    public static UndertowService undertow(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        return TimeLockClientFeedbackServiceEndpoints.of(TimeLockClientFeedbackResource.create(
+                feedbackHandler,
+                leadershipCheck));
     }
 
-    public static TimeLockClientFeedbackService jersey(Predicate<Client> leadershipCheck) {
-        return new JerseyAdapter(TimeLockClientFeedbackResource.create(leadershipCheck));
+    public static TimeLockClientFeedbackService jersey(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        return new JerseyAdapter(TimeLockClientFeedbackResource.create(feedbackHandler, leadershipCheck));
     }
     @Override
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
         if (leadershipCheck.test(Client.of(feedbackReport.getServiceName()))) {
-            // process feedback
+            feedbackHandler.handle(feedbackReport);
         }
         return Futures.immediateVoidFuture();
     }

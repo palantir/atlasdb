@@ -45,6 +45,8 @@ import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
+import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
@@ -91,6 +93,7 @@ public class TimeLockAgent {
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
+    private final FeedbackHandler feedbackHandler;
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
@@ -182,6 +185,8 @@ public class TimeLockAgent {
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
+
+        this.feedbackHandler = new FeedbackHandler();
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
@@ -243,9 +248,11 @@ public class TimeLockAgent {
 
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(this::isLeaderForClient));
+            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(feedbackHandler,
+                    this::isLeaderForClient));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey(this::isLeaderForClient));
+            registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler,
+                    this::isLeaderForClient));
         }
     }
 
@@ -345,6 +352,10 @@ public class TimeLockAgent {
                 .createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
+    }
+
+    public HealthStatusReport timeLockAdjudicationFeedback() {
+        return feedbackHandler.getTimeLockHealthStatus();
     }
 
     public void shutdown() {
