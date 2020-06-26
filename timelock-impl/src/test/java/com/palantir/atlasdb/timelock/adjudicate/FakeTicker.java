@@ -25,14 +25,12 @@ class FakeTicker implements Ticker {
 
     private final AtomicLong nanos = new AtomicLong();
 
-    public FakeTicker advance(long time, TimeUnit timeUnit) {
+    public void advance(long time, TimeUnit timeUnit) {
         nanos.addAndGet(timeUnit.toNanos(time));
-        return this;
     }
 
     @Override
     public long read() {
-        long value = nanos.get();
-        return value;
+        return nanos.get();
     }
 }
