@@ -93,7 +93,6 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                         .atlasVersion(versionSupplier.get())
                         .nodeId(nodeId)
                         .serviceName(serviceName)
-                        .namespace(namespace)
                         .build();
                 timeLockClientFeedbackServices
                         .current()

@@ -618,8 +618,6 @@ public abstract class TransactionManagers {
         return serviceIdentifierOverride().orElseGet(this::namespace);
     }
 
-    // todo sudiksha should namespace be a property?
-    @Value.Default
     private String namespace() {
         return Stream.of(config().namespace(),
                 config().timelock().flatMap(TimeLockClientConfig::client),
