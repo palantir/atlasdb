@@ -136,7 +136,7 @@ public class FeedbackHandler {
             healthStatus = HealthStatus.getWorst(healthStatus,
                     getHealthStatusForService(healthReport.getLeaderTime().get(),
                             Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE,
-                            Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI.toMillis(),
+                            Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI.toNanos(),
                             Constants.LEADER_TIME_ERROR_RATE_THRESHOLD));
         }
 
@@ -144,7 +144,7 @@ public class FeedbackHandler {
             healthStatus = HealthStatus.getWorst(healthStatus,
                     getHealthStatusForService(healthReport.getStartTransaction().get(),
                             Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE,
-                            Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI.toMillis(),
+                            Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI.toNanos(),
                             Constants.START_TXN_ERROR_RATE_THRESHOLD));
         }
 
