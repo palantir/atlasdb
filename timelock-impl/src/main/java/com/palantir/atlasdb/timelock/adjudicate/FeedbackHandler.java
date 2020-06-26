@@ -164,6 +164,7 @@ public class FeedbackHandler {
     }
 
     private double getErrorProportion(EndpointStatistics endpointStatistics) {
-        return endpointStatistics.getErrorRate().orElse(Double.MIN_VALUE) / endpointStatistics.getOneMin();
+        double oneMin = endpointStatistics.getOneMin();
+        return (oneMin == 0) ? 0 : endpointStatistics.getErrorRate().orElse(Double.MIN_VALUE) / oneMin;
     }
 }
