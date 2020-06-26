@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,7 +45,7 @@ public class FeedbackHandler {
         timeLockClientFeedbackSink.registerFeedback(feedback);
     }
 
-    public ReportHealthStatus getTimeLockHealthStatus() {
+    public HealthStatusReport getTimeLockHealthStatus() {
         Map<String, ServiceFeedback> organizedFeedback =
                 organizeFeedbackReportsByService(timeLockClientFeedbackSink.getTrackedFeedbackReports());
 
@@ -66,7 +65,7 @@ public class FeedbackHandler {
         return serviceWiseOrganizedFeedback;
     }
 
-    private ReportHealthStatus healthStateOfTimeLock(
+    private HealthStatusReport healthStateOfTimeLock(
             Map<String, ServiceFeedback> organizedFeedbackByServiceName) {
         int maxAllowedUnhealthyServices = getMaxAllowedUnhealthyServices(organizedFeedbackByServiceName.size());
 
@@ -78,7 +77,7 @@ public class FeedbackHandler {
                 .collect(Collectors.toList());
 
         if (unhealthyClients.size() > maxAllowedUnhealthyServices) {
-            return ImmutableReportHealthStatus
+            return ImmutableHealthStatusReport
                     .builder()
                     .status(HealthStatus.UNHEALTHY)
                     .params(ImmutableMap.of("unhealthyClients", unhealthyClients))
@@ -89,7 +88,7 @@ public class FeedbackHandler {
                             maxAllowedUnhealthyServices))
                     .build();
         }
-        return ImmutableReportHealthStatus.builder().status(HealthStatus.HEALTHY).build();
+        return ImmutableHealthStatusReport.builder().status(HealthStatus.HEALTHY).build();
     }
 
     private int getMaxAllowedUnhealthyServices(int numberOfServices) {
@@ -150,17 +149,21 @@ public class FeedbackHandler {
     private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
             double rateThreshold,
             long p99Limit,
-            double errorRateLimit) {
+            double errorRateProportion) {
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
             return HealthStatus.UNKNOWN;
         }
 
-        if (endpointStatistics.getErrorRate().orElse(Double.MIN_VALUE) > errorRateLimit) {
+        if (getErrorProportion(endpointStatistics) > errorRateProportion) {
             return HealthStatus.UNHEALTHY;
         }
 
         return endpointStatistics.getP99() > p99Limit
                 ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
+    }
+
+    private double getErrorProportion(EndpointStatistics endpointStatistics) {
+        return endpointStatistics.getErrorRate().orElse(Double.MIN_VALUE) / endpointStatistics.getOneMin();
     }
 }

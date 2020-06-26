@@ -22,7 +22,7 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ReportHealthStatus {
+public interface HealthStatusReport {
     HealthStatus status();
     Optional<String> message();
     Map<String, Object> params();
