@@ -36,10 +36,8 @@ public enum HealthStatus {
         return isHealthy;
     }
 
-    public static HealthStatus getWorst(HealthStatus... statuses) {
-        return Arrays.stream(statuses)
-                .max(Comparator.comparingLong(HealthStatus::severity))
-                .orElse(HealthStatus.UNKNOWN);
+    public static Comparator<HealthStatus> getHealthStatusComparator() {
+        return Comparator.comparingLong(HealthStatus::severity);
     }
 
     private static long severity(HealthStatus status) {

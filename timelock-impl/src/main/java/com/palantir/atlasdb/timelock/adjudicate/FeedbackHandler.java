@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -129,30 +131,24 @@ public class FeedbackHandler {
         if (Constants.ATLAS_BLACKLISTED_VERSIONS.contains(healthReport.getAtlasVersion())) {
             return HealthStatus.UNKNOWN;
         }
+
         // considering the worst performing metric only, the health check should fail even if one end-point is unhealthy
-        HealthStatus healthStatus = HealthStatus.HEALTHY;
-
-        if (healthReport.getLeaderTime().isPresent()) {
-            healthStatus = HealthStatus.getWorst(healthStatus,
-                    getHealthStatusForService(healthReport.getLeaderTime().get(),
-                            Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE,
-                            Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI.toNanos(),
-                            Constants.LEADER_TIME_ERROR_RATE_THRESHOLD));
-        }
-
-        if (healthReport.getStartTransaction().isPresent()) {
-            healthStatus = HealthStatus.getWorst(healthStatus,
-                    getHealthStatusForService(healthReport.getStartTransaction().get(),
-                            Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE,
-                            Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI.toNanos(),
-                            Constants.START_TXN_ERROR_RATE_THRESHOLD));
-        }
-
-        return healthStatus;
+        return KeyedStream.stream(ImmutableMap.of(
+                healthReport.getLeaderTime(), Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES,
+                healthReport.getStartTransaction(), Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES))
+                .filterKeys(Optional::isPresent)
+                .mapKeys(Optional::get)
+                .map((userStats, sloSpec) -> getHealthStatusForService(userStats,
+                        sloSpec.minimumRequestRateForConsideration(),
+                        sloSpec.maximumPermittedP99().toNanos(),
+                        sloSpec.maximumPermittedErrorProportion()))
+                .values()
+                .max(HealthStatus.getHealthStatusComparator())
+                .orElse(HealthStatus.HEALTHY);
     }
 
     private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
-            int rateThreshold,
+            double rateThreshold,
             long p99Limit,
             double errorRateLimit) {
 

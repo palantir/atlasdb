@@ -32,8 +32,12 @@ public class FeedbackAnalysisTest {
     private static final String CLIENT_2 = "client_2";
     private static final String CLIENT_3 = "client_3";
 
-    long maxAcceptableLeaderTimeP99Milli = Constants.MAX_ACCEPTABLE_LEADER_TIME_P99_MILLI.toMillis();
-    long maxAcceptableStartTxnTime = Constants.MAX_ACCEPTABLE_START_TXN_P99_MILLI.toMillis();
+    private static final long LEADER_TIME_MAX_P99 = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
+            .maximumPermittedP99()
+            .toNanos();
+    private static final long START_TRANSACTION_MAX_P99 = Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES
+            .maximumPermittedP99()
+            .toNanos();
 
     // TimeLock Level analysis
     @Test
@@ -225,68 +229,68 @@ public class FeedbackAnalysisTest {
     private ConjureTimeLockClientFeedback getUnhealthyClientFeedbackReport(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE + 1,
-                maxAcceptableLeaderTimeP99Milli + 1,
-                Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE + 1,
-                maxAcceptableStartTxnTime + 1);
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MAX_P99 + 1,
+                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TRANSACTION_MAX_P99 + 1);
     }
 
     private ConjureTimeLockClientFeedback getHealthyClientFeedbackReport(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE + 1,
-                maxAcceptableLeaderTimeP99Milli - 1,
-                Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE + 1,
-                maxAcceptableStartTxnTime - 1);
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MAX_P99 - 1,
+                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getUnknownClientFeedbackReport(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE - 1,
-                maxAcceptableLeaderTimeP99Milli - 1,
-                Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE - 1,
-                maxAcceptableStartTxnTime - 1);
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                LEADER_TIME_MAX_P99 - 1,
+                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithLeaderTimeMetricInUnknownState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE - 1,
-                maxAcceptableLeaderTimeP99Milli - 1,
-                Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE + 1,
-                maxAcceptableStartTxnTime - 1);
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                LEADER_TIME_MAX_P99 - 1,
+                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithStartTxnMetricInUnknownState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE + 1,
-                maxAcceptableLeaderTimeP99Milli - 1,
-                Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE - 1,
-                maxAcceptableStartTxnTime - 1);
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MAX_P99 - 1,
+                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithLeaderTimeMetricInUnhealthyState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE + 1,
-                maxAcceptableLeaderTimeP99Milli + 1,
-                Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE + 1,
-                maxAcceptableStartTxnTime - 1);
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MAX_P99 + 1,
+                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithStartTxnMetricInUnHealthyState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.MIN_REQUIRED_LEADER_TIME_ONE_MINUTE_RATE + 1,
-                maxAcceptableLeaderTimeP99Milli - 1,
-                Constants.MIN_REQUIRED_START_TXN_ONE_MINUTE_RATE + 1,
-                maxAcceptableStartTxnTime + 1);
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MAX_P99 - 1,
+                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TRANSACTION_MAX_P99 + 1);
     }
 
     private ConjureTimeLockClientFeedback getClientFeedbackReport(String serviceName, UUID nodeId,
-            long leaderTimeMinRate, long leaderTimeP99, long startTxnMinRate, long startTxnP99) {
+            double leaderTimeMinRate, double leaderTimeP99, double startTxnMinRate, double startTxnP99) {
         return ConjureTimeLockClientFeedback.builder()
                 .nodeId(nodeId)
                 .serviceName(serviceName)
