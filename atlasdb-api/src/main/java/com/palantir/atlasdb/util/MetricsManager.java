@@ -110,16 +110,16 @@ public class MetricsManager {
         publicationArbiter.registerMetricsFilter(metricName, publicationFilter);
     }
 
-    public void doNotPublish(MetricName metricName) {
-        publicationArbiter.registerMetricsFilter(metricName, MetricPublicationFilter.NEVER_PUBLISH);
-    }
-
     public void addMetricFilter(
             Class clazz,
             String metricName,
             Map<String, String> tags,
             MetricPublicationFilter publicationFilter) {
         addMetricFilter(getTaggedMetricName(clazz, metricName, tags), publicationFilter);
+    }
+
+    public void doNotPublish(MetricName metricName) {
+        publicationArbiter.registerMetricsFilter(metricName, MetricPublicationFilter.NEVER_PUBLISH);
     }
 
     public TaggedMetricSet getPublishableMetrics() {

@@ -33,7 +33,7 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.metrics.registry.MetricName;
 
-public class InstrumentedTimelockService implements TimelockService {
+public final class InstrumentedTimelockService implements TimelockService {
     private static final MetricName SUCCESSFUL_REQUEST_METRIC_NAME = MetricName.builder()
             .safeName(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST)
             .build();
