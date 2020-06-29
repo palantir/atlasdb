@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: TimeLock Adjudication now handles cases where the reports for leaderTime
+    and startTransaction were *completely identical*. Previously we would throw an
+    exception when trying to build a KeyedStream - health checks would go red, though
+    users would not be affected.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4871

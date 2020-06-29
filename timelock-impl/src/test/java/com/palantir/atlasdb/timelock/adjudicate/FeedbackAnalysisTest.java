@@ -225,6 +225,15 @@ public class FeedbackAnalysisTest {
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }
 
+    @Test
+    public void isAbleToHandleReportsWhereLeaderTimeAndStartTransactionAreEqual() {
+        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        ConjureTimeLockClientFeedback report = getClientFeedbackReport(CLIENT, UUID.randomUUID(),
+                0, 0, 0, 0);
+
+        assertThat(feedbackHandler.pointFeedbackHealthStatus(report)).isEqualTo(HealthStatus.UNKNOWN);
+    }
+
     // utils
     private ConjureTimeLockClientFeedback getUnhealthyClientFeedbackReport(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
