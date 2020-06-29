@@ -311,7 +311,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         registerPoolMetric("numActive", pool::getNumActive);
         registerPoolMetric("created", pool::getCreatedCount);
         registerPoolMetric("destroyedByEvictor", pool::getDestroyedByEvictorCount);
-        registerPoolMetric("destroyedByBorrower", pool::getDestroyedByBorrowValidationCount);
     }
 
     private void registerPoolMetric(String metricName, Gauge gauge) {
