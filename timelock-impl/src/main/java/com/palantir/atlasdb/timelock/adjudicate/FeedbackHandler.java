@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
@@ -130,9 +131,10 @@ public class FeedbackHandler {
         }
 
         // considering the worst performing metric only, the health check should fail even if one end-point is unhealthy
-        return KeyedStream.stream(ImmutableMap.of(
-                healthReport.getLeaderTime(), Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES,
-                healthReport.getStartTransaction(), Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES))
+        return KeyedStream.ofEntries(Stream.of(
+                Maps.immutableEntry(healthReport.getLeaderTime(), Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES),
+                Maps.immutableEntry(healthReport.getStartTransaction(),
+                        Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES)))
                 .filterKeys(Optional::isPresent)
                 .mapKeys(Optional::get)
                 .map((userStats, sloSpec) -> getHealthStatusForService(userStats,
