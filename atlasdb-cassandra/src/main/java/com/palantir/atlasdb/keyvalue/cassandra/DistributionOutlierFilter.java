@@ -16,17 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Gauge;
-import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
@@ -34,22 +34,21 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * If any values are more than the provided maximum threshold or minimum threshold
  */
 public class DistributionOutlierFilter {
-    private final List<Gauge<Long>> gaugeList;
-    private final double maximumMeanMultiple;
+    private final Set<Gauge<Long>> gauges;
     private final double minimumMeanMultiple;
+    private final double maximumMeanMultiple;
     private final Gauge<Double> meanGauge;
 
     public DistributionOutlierFilter(
-            List<Gauge<Long>> gaugeList,
-            double maximumMeanMultiple,
-            double minimumMeanMultiple) {
-        this.gaugeList = gaugeList;
-        this.maximumMeanMultiple = maximumMeanMultiple;
+            double minimumMeanMultiple,
+            double maximumMeanMultiple) {
+        this.gauges = new HashSet<>();
         this.minimumMeanMultiple = minimumMeanMultiple;
+        this.maximumMeanMultiple = maximumMeanMultiple;
         this.meanGauge = new CachedGauge<Double>(30, TimeUnit.SECONDS) {
             @Override
             protected Double loadValue() {
-                List<Long> gaugeValues = gaugeList.stream()
+                List<Long> gaugeValues = gauges.stream()
                         .map(Gauge::getValue)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -68,7 +67,8 @@ public class DistributionOutlierFilter {
         return meanGauge;
     }
 
-    public MetricPublicationFilter createFilter(Gauge<Long> gauge) {
+    public MetricPublicationFilter registerAndCreateFilter(Gauge<Long> gauge) {
+        gauges.add(gauge);
         return () -> shouldPublishIndividualGaugeMetric(gauge);
     }
 

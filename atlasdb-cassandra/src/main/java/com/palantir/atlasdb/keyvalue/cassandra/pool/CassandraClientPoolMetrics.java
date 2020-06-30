@@ -16,21 +16,28 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.atlasdb.keyvalue.cassandra.DistributionOutlierFilter;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+    private final Map<CassandraClientPoolHostLevelMetric, DistributionOutlierFilter> filters;
 
     // Tracks occurrences of client pool exhaustions.
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
@@ -41,6 +48,25 @@ public class CassandraClientPoolMetrics {
         this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
         this.poolExhaustionCounter
                 = metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
+        this.filters = createFilterMap(metricsManager);
+    }
+
+    private Map<CassandraClientPoolHostLevelMetric, DistributionOutlierFilter> createFilterMap(
+            MetricsManager metricsManager) {
+        ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierFilter> builder
+                = ImmutableMap.builder();
+        Arrays.stream(CassandraClientPoolHostLevelMetric.values())
+                .forEach(metric -> {
+                    DistributionOutlierFilter distributionOutlierFilter = new DistributionOutlierFilter(
+                            metric.minimumMeanThreshold, metric.maximumMeanThreshold);
+                    metricsManager.registerOrGet(
+                            CassandraClientPoolingContainer.class,
+                            metric.metricName,
+                            distributionOutlierFilter.getMeanGauge(),
+                            ImmutableMap.of("pool", "mean"));
+                    builder.put(metric, distributionOutlierFilter);
+                });
+        return builder.build();
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
@@ -70,6 +96,28 @@ public class CassandraClientPoolMetrics {
 
     public void recordPoolExhaustion() {
         poolExhaustionCounter.inc();
+    }
+
+    @SuppressWarnings("unchecked") // Guaranteed to have the correct type
+    public void registerPoolMetric(
+            CassandraClientPoolHostLevelMetric metric,
+            Gauge<Long> gauge,
+            int poolNumber) {
+        MetricPublicationFilter filter = filters.computeIfAbsent(
+                metric,
+                metricOfInterest -> new DistributionOutlierFilter(
+                        metricOfInterest.minimumMeanThreshold, metricOfInterest.maximumMeanThreshold))
+                .registerAndCreateFilter(gauge);
+        metricsManager.addMetricFilter(
+                CassandraClientPoolingContainer.class,
+                metric.metricName,
+                ImmutableMap.of("pool", "pool" + poolNumber),
+                filter);
+        metricsManager.registerOrGet(
+                CassandraClientPoolingContainer.class,
+                metric.metricName,
+                gauge,
+                ImmutableMap.of("pool", "pool" + poolNumber));
     }
 
     private void updateMetricOnAggregateAndHost(
