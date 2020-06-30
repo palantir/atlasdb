@@ -115,7 +115,7 @@ public class CassandraClientPoolTest {
 
     private MetricName getPoolMetricName(String poolName) {
         return MetricName.builder()
-                .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class, "proportionDestroyedByBorrower"))
+                .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class, "created"))
                 .safeTags(ImmutableMap.of("pool", poolName))
                 .build();
     }
