@@ -26,10 +26,9 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
-import com.palantir.atlasdb.keyvalue.cassandra.DistributionOutlierFilter;
+import com.palantir.atlasdb.keyvalue.cassandra.DistributionOutlierController;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
 
@@ -37,7 +36,7 @@ public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
-    private final Map<CassandraClientPoolHostLevelMetric, DistributionOutlierFilter> filters;
+    private final Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> filters;
 
     // Tracks occurrences of client pool exhaustions.
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
@@ -51,16 +50,16 @@ public class CassandraClientPoolMetrics {
         this.filters = createFilterMap(metricsManager);
     }
 
-    private Map<CassandraClientPoolHostLevelMetric, DistributionOutlierFilter> createFilterMap(
+    private Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createFilterMap(
             MetricsManager metricsManager) {
-        ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierFilter> builder
+        ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierController> builder
                 = ImmutableMap.builder();
         Arrays.stream(CassandraClientPoolHostLevelMetric.values())
                 .forEach(metric -> {
-                    DistributionOutlierFilter distributionOutlierFilter = new DistributionOutlierFilter(
+                    DistributionOutlierController distributionOutlierController = new DistributionOutlierController(
                             metric.minimumMeanThreshold, metric.maximumMeanThreshold);
-                    registerPoolMeanMetrics(metricsManager, metric, distributionOutlierFilter.getMeanGauge());
-                    builder.put(metric, distributionOutlierFilter);
+                    registerPoolMeanMetrics(metricsManager, metric, distributionOutlierController.getMeanGauge());
+                    builder.put(metric, distributionOutlierController);
                 });
         return builder.build();
     }

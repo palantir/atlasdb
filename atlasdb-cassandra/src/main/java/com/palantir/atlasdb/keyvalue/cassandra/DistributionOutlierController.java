@@ -26,20 +26,19 @@ import java.util.stream.Collectors;
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
- * Given a series of gauge metrics, publishes only the average of these values.
- * If any values are more than the provided maximum threshold or minimum threshold
+ * Given a series of gauge metrics, allows for the retrieval for the mean. Furthermore allows for the generation of
+ * {@link MetricPublicationFilter}s that identify whether any specific values exceed a tolerance value from the mean.
  */
-public class DistributionOutlierFilter {
+public class DistributionOutlierController {
     private final Set<Gauge<Long>> gauges;
     private final double minimumMeanMultiple;
     private final double maximumMeanMultiple;
     private final Gauge<Double> meanGauge;
 
-    public DistributionOutlierFilter(
+    public DistributionOutlierController(
             double minimumMeanMultiple,
             double maximumMeanMultiple) {
         this.gauges = new HashSet<>();
