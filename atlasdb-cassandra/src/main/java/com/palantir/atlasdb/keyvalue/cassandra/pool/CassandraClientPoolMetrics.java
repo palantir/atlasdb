@@ -59,14 +59,20 @@ public class CassandraClientPoolMetrics {
                 .forEach(metric -> {
                     DistributionOutlierFilter distributionOutlierFilter = new DistributionOutlierFilter(
                             metric.minimumMeanThreshold, metric.maximumMeanThreshold);
-                    metricsManager.registerOrGet(
-                            CassandraClientPoolingContainer.class,
-                            metric.metricName,
-                            distributionOutlierFilter.getMeanGauge(),
-                            ImmutableMap.of("pool", "mean"));
+                    registerPoolMeanMetrics(metricsManager, metric, distributionOutlierFilter.getMeanGauge());
                     builder.put(metric, distributionOutlierFilter);
                 });
         return builder.build();
+    }
+
+    private static void registerPoolMeanMetrics(MetricsManager metricsManager,
+            CassandraClientPoolHostLevelMetric metric,
+            Gauge<Double> meanGauge) {
+        metricsManager.registerOrGet(
+                CassandraClientPoolingContainer.class,
+                metric.metricName,
+                meanGauge,
+                ImmutableMap.of("pool", "mean"));
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
@@ -103,11 +109,15 @@ public class CassandraClientPoolMetrics {
             CassandraClientPoolHostLevelMetric metric,
             Gauge<Long> gauge,
             int poolNumber) {
-        MetricPublicationFilter filter = filters.computeIfAbsent(
-                metric,
-                metricOfInterest -> new DistributionOutlierFilter(
-                        metricOfInterest.minimumMeanThreshold, metricOfInterest.maximumMeanThreshold))
-                .registerAndCreateFilter(gauge);
+        MetricPublicationFilter filter = filters.get(metric).registerAndCreateFilter(gauge);
+        registerPoolMetricsToRegistry(metric, gauge, poolNumber, filter);
+    }
+
+    private void registerPoolMetricsToRegistry(
+            CassandraClientPoolHostLevelMetric metric,
+            Gauge<Long> gauge,
+            int poolNumber,
+            MetricPublicationFilter filter) {
         metricsManager.addMetricFilter(
                 CassandraClientPoolingContainer.class,
                 metric.metricName,
