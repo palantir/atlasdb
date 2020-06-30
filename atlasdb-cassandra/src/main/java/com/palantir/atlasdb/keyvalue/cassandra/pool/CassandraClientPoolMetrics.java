@@ -36,7 +36,7 @@ public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
-    private final Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> filters;
+    private final Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> outlierControllers;
 
     // Tracks occurrences of client pool exhaustions.
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
@@ -47,10 +47,10 @@ public class CassandraClientPoolMetrics {
         this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
         this.poolExhaustionCounter
                 = metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
-        this.filters = createFilterMap(metricsManager);
+        this.outlierControllers = createOutlierControllers(metricsManager);
     }
 
-    private Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createFilterMap(
+    private Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
             MetricsManager metricsManager) {
         ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierController> builder
                 = ImmutableMap.builder();
@@ -108,7 +108,7 @@ public class CassandraClientPoolMetrics {
             CassandraClientPoolHostLevelMetric metric,
             Gauge<Long> gauge,
             int poolNumber) {
-        MetricPublicationFilter filter = filters.get(metric).registerAndCreateFilter(gauge);
+        MetricPublicationFilter filter = outlierControllers.get(metric).registerAndCreateFilter(gauge);
         registerPoolMetricsToRegistry(metric, gauge, poolNumber, filter);
     }
 
