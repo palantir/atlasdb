@@ -3,7 +3,7 @@ fix:
   description: We now no longer use exactly the same metric name for the tagged and
     legacy invocation handlers. Previously, these used the same metric name, meaning
     that which metric was logged was non-deterministic, and furthermore once an error
-    occurred once on *both* a tagged and legacy-instrumented object, getting metrics
-    from AtlasDB would cause an error.
+    occurred once each on *both* a tagged and legacy-instrumented object, getting
+    metrics from AtlasDB would cause an error.
   links:
   - https://github.com/palantir/atlasdb/pull/4876
