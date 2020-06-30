@@ -53,12 +53,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
 public class MetricsManager {
-
-    // TODO (jkong): Remove once issues with internal security product have been resolved.
-    private static final Set<String> INTERESTING_LEGACY_METRIC_NAMES = ImmutableSet.of("failures");
-    private static final Set<MetricName> INTERESTING_TAGGED_METRIC_NAMES = ImmutableSet.of(
-            MetricName.builder().safeName("failures").build());
-
     private static final Logger log = LoggerFactory.getLogger(MetricsManager.class);
 
     private final MetricRegistry metricRegistry;
