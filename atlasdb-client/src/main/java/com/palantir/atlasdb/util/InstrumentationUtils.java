@@ -31,7 +31,7 @@ import com.palantir.tritium.metrics.registry.MetricName;
 final class InstrumentationUtils {
     private static final String FAILURES_NAME = "failures";
 
-    static final MetricName FAILURES_METRIC_NAME = MetricName.builder()
+    static final MetricName TAGGED_FAILURES_METRIC_NAME = MetricName.builder()
             .safeName(FAILURES_NAME)
             .safeTags(ImmutableMap.of("serviceUsesTaggedMetrics", "true"))
             .build();

@@ -52,17 +52,19 @@ public class InstrumentationUtilsTest {
         assertThatThrownBy(legacySupplier::getAsLong).isEqualTo(EXCEPTION);
         assertThatThrownBy(legacySupplier::getAsLong).isEqualTo(EXCEPTION);
 
-        assertThat(metricsManager.getTaggedRegistry().meter(InstrumentationUtils.FAILURES_METRIC_NAME).getCount())
+        assertThat(metricsManager.getTaggedRegistry().meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME)
+                .getCount())
                 .isEqualTo(4);
-        assertThat(metricsManager.getRegistry().meter(InstrumentationUtils.FAILURES_METRIC_NAME.safeName()).getCount())
+        assertThat(metricsManager.getRegistry().meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName())
+                .getCount())
                 .isEqualTo(3);
     }
 
     @Test
     public void untaggedAndTaggedMetricRegistryFailureMetricsHaveDifferentNames() {
         MetricName legacyFailureMetricName = MetricName.builder()
-                .safeName(InstrumentationUtils.FAILURES_METRIC_NAME.safeName())
+                .safeName(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName())
                 .build();
-        assertThat(InstrumentationUtils.FAILURES_METRIC_NAME).isNotEqualTo(legacyFailureMetricName);
+        assertThat(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME).isNotEqualTo(legacyFailureMetricName);
     }
 }

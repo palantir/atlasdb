@@ -183,6 +183,6 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
     }
 
     private void markGlobalFailure() {
-        taggedMetricRegistry.meter(InstrumentationUtils.FAILURES_METRIC_NAME).mark();
+        taggedMetricRegistry.meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME).mark();
     }
 }
