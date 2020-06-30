@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
@@ -51,7 +50,7 @@ public class LeaderPingHealthCheck {
         this.pingers = pingers;
         this.executorService = PTExecutors.newFixedThreadPool(
                 pingers.size(),
-                new NamedThreadFactory("leader-ping-healthcheck", true));
+                "leader-ping-healthcheck");
     }
 
     public HealthCheckDigest getStatus() {
