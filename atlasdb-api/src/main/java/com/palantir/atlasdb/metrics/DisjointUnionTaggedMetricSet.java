@@ -19,8 +19,13 @@ package com.palantir.atlasdb.metrics;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
@@ -28,6 +33,8 @@ import com.palantir.tritium.metrics.registry.TaggedMetricSet;
  * Combines two {@link TaggedMetricSet}s. It is expected that the metric names present from the two sets are disjoint.
  */
 public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
+    private static final Logger log = LoggerFactory.getLogger(DisjointUnionTaggedMetricSet.class);
+
     private final TaggedMetricSet first;
     private final TaggedMetricSet second;
 
@@ -38,10 +45,17 @@ public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
 
     @Override
     public Map<MetricName, Metric> getMetrics() {
-        return ImmutableMap.<MetricName, Metric>builder()
-                .putAll(first.getMetrics())
-                .putAll(second.getMetrics())
-                .build();
+        Map<MetricName, Metric> metrics = Maps.newHashMap();
+        first.forEachMetric(metrics::put);
+        second.forEachMetric((metricName, metric) -> {
+            if (metrics.containsKey(metricName)) {
+                log.warn("Found duplicate metrics in a disjoint-union set. This is likely to be a product bug."
+                        + " In this case, which metric will actually be reported is nondeterministic.",
+                        SafeArg.of("metricName", metricName));
+            }
+            metrics.put(metricName, metric);
+        });
+        return metrics;
     }
 
     @Override
