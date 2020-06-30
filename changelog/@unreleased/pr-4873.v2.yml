@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Some Cassandra client pool metrics have been removed, to save costs:
+    - `approximatePoolSize`: please use `numIdle + numActive` instead.
+    - `proportionDestroyedByEvictor`: please use `destroyedByEvictor / created` instead.
+    - `destroyedByBorrower` and `proportionDestroyedByBorrower`: these have been 0 everywhere in production for the past year, because we do not do any validation on objects returned from the pool (at least, within the object pooling framework).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4873

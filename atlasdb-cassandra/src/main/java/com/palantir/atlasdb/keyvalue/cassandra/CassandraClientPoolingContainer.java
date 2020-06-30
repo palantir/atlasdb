@@ -305,18 +305,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void registerMetrics(GenericObjectPool<CassandraClient> pool) {
         registerPoolMetric("meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
-        registerPoolMetric("meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
-        registerPoolMetric("meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
         registerPoolMetric("numIdle", pool::getNumIdle);
         registerPoolMetric("numActive", pool::getNumActive);
-        registerPoolMetric("approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
         registerPoolMetric("created", pool::getCreatedCount);
         registerPoolMetric("destroyedByEvictor", pool::getDestroyedByEvictorCount);
-        registerPoolMetric("destroyedByBorrower", pool::getDestroyedByBorrowValidationCount);
-        registerPoolMetric("proportionDestroyedByEvictor",
-                () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
-        registerPoolMetric("proportionDestroyedByBorrower",
-                () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
     }
 
     private void registerPoolMetric(String metricName, Gauge gauge) {
