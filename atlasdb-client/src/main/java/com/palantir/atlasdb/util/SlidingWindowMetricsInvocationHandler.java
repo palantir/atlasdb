@@ -94,6 +94,6 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     }
 
     private void markGlobalFailure() {
-        metricRegistry.meter(InstrumentationUtils.FAILURES_METRIC_NAME).mark();
+        metricRegistry.meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName()).mark();
     }
 }
