@@ -23,11 +23,18 @@ import java.util.function.BooleanSupplier;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.event.InstrumentationProperties;
 import com.palantir.tritium.event.InvocationContext;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 final class InstrumentationUtils {
-    static final String FAILURES_METRIC_NAME = "failures";
+    private static final String FAILURES_NAME = "failures";
+
+    static final MetricName FAILURES_METRIC_NAME = MetricName.builder()
+            .safeName(FAILURES_NAME)
+            .safeTags(ImmutableMap.of("serviceUsesTaggedMetrics", "true"))
+            .build();
 
     private InstrumentationUtils() {
         // utility
@@ -50,6 +57,6 @@ final class InstrumentationUtils {
     }
 
     static String getFailuresMetricName(InvocationContext context, String serviceName) {
-        return MetricRegistry.name(getBaseMetricName(context, serviceName), FAILURES_METRIC_NAME);
+        return MetricRegistry.name(getBaseMetricName(context, serviceName), FAILURES_NAME);
     }
 }
