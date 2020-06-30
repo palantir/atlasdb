@@ -305,8 +305,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void registerMetrics(GenericObjectPool<CassandraClient> pool) {
         registerPoolMetric("meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
-        registerPoolMetric("meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
-        registerPoolMetric("meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
         registerPoolMetric("numIdle", pool::getNumIdle);
         registerPoolMetric("numActive", pool::getNumActive);
         registerPoolMetric("created", pool::getCreatedCount);
