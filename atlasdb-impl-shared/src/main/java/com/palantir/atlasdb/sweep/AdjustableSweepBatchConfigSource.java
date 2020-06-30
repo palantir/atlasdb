@@ -22,6 +22,8 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
@@ -42,8 +44,15 @@ public final class AdjustableSweepBatchConfigSource {
             Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         AdjustableSweepBatchConfigSource configSource = new AdjustableSweepBatchConfigSource(rawSweepBatchConfig);
 
+        Gauge<Double> gauge = AdjustableSweepBatchConfigSource::getBatchSizeMultiplier;
+
+        // We are generally only interested in the batch size if an error occurred, i.e. it was less than 1.
+        metricsManager.addMetricFilter(AdjustableSweepBatchConfigSource.class,
+                "batchSizeMultiplier",
+                ImmutableMap.of(),
+                () -> gauge.getValue() < 1.0);
         metricsManager.registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
-                () -> getBatchSizeMultiplier());
+                gauge);
 
         return configSource;
     }

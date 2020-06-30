@@ -47,7 +47,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     private final TimelockHealthCheck timelockHealthCheck;
 
     AbstractTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
-        this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager.getRegistry());
+        this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager);
         this.timestampValidationReadCache = timestampCache;
     }
 

@@ -26,7 +26,6 @@ import com.palantir.atlasdb.coordination.TransformingCoordinationService;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.timestamp.TimestampService;
@@ -51,13 +50,7 @@ public final class CoordinationServices {
                 boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
                 createCoordinationStore(keyValueService, timestampSupplier, initializeAsync));
-
-        @SuppressWarnings("unchecked") // The service has the same type as the version-hiding service.
-        CoordinationService<InternalSchemaMetadata> instrumentedService = AtlasDbMetrics.instrumentTimed(
-                metricsManager.getRegistry(),
-                CoordinationService.class,
-                wrapHidingVersionSerialization(versionedService));
-        return instrumentedService;
+        return wrapHidingVersionSerialization(versionedService);
     }
 
     private static CoordinationStore<VersionedInternalSchemaMetadata> createCoordinationStore(

@@ -1,0 +1,12 @@
+type: fix
+fix:
+  description: |-
+    Four small metrics cuts:
+    - Only log the background sweep batch multiplier if <1.
+    - Don't instrument `TimestampManagementService` endpoints (used only in timelock migration): saves 10 series.
+    - Don't instrument `CoordinationService` endpoints (used only in transactions2 migration): saves 10 series.
+    - Don't publish `timelockSuccessfulRequest` and `timelockFailedRequest`: saves 4 series.
+
+    Please contact the AtlasDB team if the removal of these series will be an issue.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4867

@@ -20,5 +20,7 @@ package com.palantir.atlasdb.metrics;
  * Determines whether a metric should be published.
  */
 public interface MetricPublicationFilter {
+    MetricPublicationFilter NEVER_PUBLISH = () -> false;
+
     boolean shouldPublish();
 }
