@@ -220,7 +220,7 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
     public static ThreadPoolExecutor newFixedThreadPool(int numThreads, String name) {
-        return newFixedThreadPool(numThreads, new NamedThreadFactory(name));
+        return newFixedThreadPool(numThreads, new NamedThreadFactory(name, true));
     }
 
     /**
