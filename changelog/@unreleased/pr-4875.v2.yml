@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    Remove duplicate metrics from TimelockAgent.createSharedExecutor. Removes the untagged variants of instrumentation, but leaves the tagged executor and thread-factory instrumentation provided by PTExecutors.
+    The tagged metrics are useful more broadly because they can be used with general purpose dashboards and alerts.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4875
