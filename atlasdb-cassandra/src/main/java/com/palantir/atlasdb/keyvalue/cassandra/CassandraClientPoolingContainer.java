@@ -72,8 +72,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.host = host;
         this.config = config;
         this.poolNumber = poolNumber;
-        this.clientPool = createClientPool();
         this.poolMetrics = poolMetrics;
+        this.clientPool = createClientPool();
     }
 
     public InetSocketAddress getHost() {
