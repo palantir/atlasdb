@@ -28,7 +28,6 @@ import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
-import com.palantir.atlasdb.keyvalue.cassandra.DistributionOutlierController;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
 
@@ -56,7 +55,7 @@ public class CassandraClientPoolMetrics {
                 = ImmutableMap.builder();
         Arrays.stream(CassandraClientPoolHostLevelMetric.values())
                 .forEach(metric -> {
-                    DistributionOutlierController distributionOutlierController = new DistributionOutlierController(
+                    DistributionOutlierController distributionOutlierController = DistributionOutlierController.create(
                             metric.minimumMeanThreshold, metric.maximumMeanThreshold);
                     registerPoolMeanMetrics(metricsManager, metric, distributionOutlierController.getMeanGauge());
                     builder.put(metric, distributionOutlierController);
@@ -117,16 +116,17 @@ public class CassandraClientPoolMetrics {
             Gauge<Long> gauge,
             int poolNumber,
             MetricPublicationFilter filter) {
+        Map<String, String> poolTag = ImmutableMap.of("pool", "pool" + poolNumber);
         metricsManager.addMetricFilter(
                 CassandraClientPoolingContainer.class,
                 metric.metricName,
-                ImmutableMap.of("pool", "pool" + poolNumber),
+                poolTag,
                 filter);
         metricsManager.registerOrGet(
                 CassandraClientPoolingContainer.class,
                 metric.metricName,
                 gauge,
-                ImmutableMap.of("pool", "pool" + poolNumber));
+                poolTag);
     }
 
     private void updateMetricOnAggregateAndHost(

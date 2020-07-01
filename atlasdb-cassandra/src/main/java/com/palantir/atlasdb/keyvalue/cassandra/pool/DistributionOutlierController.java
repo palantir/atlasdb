@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -24,7 +25,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -32,19 +35,24 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * Given a series of gauge metrics, allows for the retrieval for the mean. Furthermore allows for the generation of
  * {@link MetricPublicationFilter}s that identify whether any specific values exceed a tolerance value from the mean.
  */
-public class DistributionOutlierController {
+class DistributionOutlierController {
+    @VisibleForTesting
+    static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
+
     private final Set<Gauge<Long>> gauges;
     private final double minimumMeanMultiple;
     private final double maximumMeanMultiple;
     private final Gauge<Double> meanGauge;
 
-    public DistributionOutlierController(
+    @VisibleForTesting
+    DistributionOutlierController(
+            Clock clock,
             double minimumMeanMultiple,
             double maximumMeanMultiple) {
         this.gauges = new HashSet<>();
         this.minimumMeanMultiple = minimumMeanMultiple;
         this.maximumMeanMultiple = maximumMeanMultiple;
-        this.meanGauge = new CachedGauge<Double>(30, TimeUnit.SECONDS) {
+        this.meanGauge = new CachedGauge<Double>(clock,REFRESH_INTERVAL.toNanos(), TimeUnit.NANOSECONDS) {
             @Override
             protected Double loadValue() {
                 List<Long> gaugeValues = gauges.stream()
@@ -62,18 +70,22 @@ public class DistributionOutlierController {
         };
     }
 
-    public Gauge<Double> getMeanGauge() {
+    static DistributionOutlierController create(double minimumMeanMultiple, double maximumMeanMultiple) {
+        return new DistributionOutlierController(Clock.defaultClock(), minimumMeanMultiple, maximumMeanMultiple);
+    }
+
+    Gauge<Double> getMeanGauge() {
         return meanGauge;
     }
 
-    public MetricPublicationFilter registerAndCreateFilter(Gauge<Long> gauge) {
+    MetricPublicationFilter registerAndCreateFilter(Gauge<Long> gauge) {
         gauges.add(gauge);
         return () -> shouldPublishIndividualGaugeMetric(gauge);
     }
 
     private boolean shouldPublishIndividualGaugeMetric(Gauge<Long> constituentGauge) {
         long value = constituentGauge.getValue();
-        double mean = meanGauge.getValue();
-        return value > mean * maximumMeanMultiple || value < mean * minimumMeanMultiple;
+        Double mean = meanGauge.getValue();
+        return mean != null && (value > mean * maximumMeanMultiple || value < mean * minimumMeanMultiple);
     }
 }
