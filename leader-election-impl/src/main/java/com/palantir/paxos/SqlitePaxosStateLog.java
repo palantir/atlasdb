@@ -46,7 +46,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
         this.jdbi = jdbi;
     }
 
-    public static <V extends Persistable & Versionable> SqlitePaxosStateLog<V> create(
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> create(
             NamespaceAndUseCase namespaceAndUseCase,
             DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());

@@ -105,14 +105,4 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
     public long getVersion() {
         return version;
     }
-
-    @Override
-    public String toString() {
-        return "PaxosAcceptorState{" +
-                "lastPromisedId=" + lastPromisedId +
-                ", lastAcceptedId=" + lastAcceptedId +
-                ", lastAcceptedValue=" + lastAcceptedValue +
-                ", version=" + version +
-                '}';
-    }
 }

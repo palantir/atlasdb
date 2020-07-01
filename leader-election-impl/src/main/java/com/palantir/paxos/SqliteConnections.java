@@ -58,24 +58,6 @@ public final class SqliteConnections {
         return new HikariDataSource(hikariConfig);
     }
 
-    public static HikariDataSource getPooledDataSource2(Path path) {
-        String target = String.format("jdbc:sqlite:%s", path.toString());
-
-        SQLiteConfig config = new SQLiteConfig();
-        config.setPragma(SQLiteConfig.Pragma.JOURNAL_MODE, SQLiteConfig.JournalMode.WAL.getValue());
-        config.setPragma(SQLiteConfig.Pragma.LOCKING_MODE, SQLiteConfig.LockingMode.EXCLUSIVE.getValue());
-        config.setPragma(SQLiteConfig.Pragma.SYNCHRONOUS, "EXTRA");
-
-        SQLiteConnectionPoolDataSource dataSource = new SQLiteConnectionPoolDataSource();
-        dataSource.setUrl(target);
-        dataSource.setConfig(config);
-
-        HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setDataSource(dataSource);
-        hikariConfig.setMaximumPoolSize(1);
-        return new HikariDataSource(hikariConfig);
-    }
-
     private static void createDirectoryIfNotExists(Path path) {
         try {
             FileUtils.forceMkdir(path.toFile());

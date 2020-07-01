@@ -49,15 +49,15 @@ public class CassandraClientPoolMetrics {
         this.outlierControllers = createOutlierControllers(metricsManager);
     }
 
-    private static Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
-            MetricsManager manager) {
+    private Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
+            MetricsManager metricsManager) {
         ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierController> builder
                 = ImmutableMap.builder();
         Arrays.stream(CassandraClientPoolHostLevelMetric.values())
                 .forEach(metric -> {
                     DistributionOutlierController distributionOutlierController = DistributionOutlierController.create(
                             metric.minimumMeanThreshold, metric.maximumMeanThreshold);
-                    registerPoolMeanMetrics(manager, metric, distributionOutlierController.getMeanGauge());
+                    registerPoolMeanMetrics(metricsManager, metric, distributionOutlierController.getMeanGauge());
                     builder.put(metric, distributionOutlierController);
                 });
         return builder.build();
