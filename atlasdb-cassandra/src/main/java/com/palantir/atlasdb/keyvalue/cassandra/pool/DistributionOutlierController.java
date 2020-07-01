@@ -52,7 +52,7 @@ class DistributionOutlierController {
         this.gauges = new HashSet<>();
         this.minimumMeanMultiple = minimumMeanMultiple;
         this.maximumMeanMultiple = maximumMeanMultiple;
-        this.meanGauge = new CachedGauge<Double>(clock,REFRESH_INTERVAL.toNanos(), TimeUnit.NANOSECONDS) {
+        this.meanGauge = new CachedGauge<Double>(clock, REFRESH_INTERVAL.toNanos(), TimeUnit.NANOSECONDS) {
             @Override
             protected Double loadValue() {
                 List<Long> gaugeValues = gauges.stream()
