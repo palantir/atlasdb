@@ -30,8 +30,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
-import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 
 public class CassandraClientPoolMetricsTest {
     private final MetricsManager metricsManager = MetricsManagers.of(
