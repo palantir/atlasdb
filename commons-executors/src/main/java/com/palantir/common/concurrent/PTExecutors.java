@@ -196,11 +196,31 @@ public final class PTExecutors {
      * @return the newly created thread pool
      * @throws NullPointerException if threadFactory is null
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
+     * @deprecated Prefer {@link #newFixedThreadPool(int, String)}.
      */
+    @Deprecated
     public static ThreadPoolExecutor newFixedThreadPool(int numThreads, ThreadFactory threadFactory) {
         return newThreadPoolExecutor(numThreads, numThreads,
                 DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(), threadFactory);
+    }
+
+    /**
+     * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
+     * queue.  At any point, at most <tt>numThreads</tt> threads will be active processing tasks.  If
+     * additional tasks are submitted when all threads are active, they will wait in the queue until
+     * a thread is available.  If any thread terminates due to a failure during execution prior to
+     * shutdown, a new one will take its place if needed to execute subsequent tasks.  The threads
+     * in the pool will exist until it is explicitly {@link
+     * ExecutorService#shutdown shutdown}.
+     *
+     * @param numThreads the number of threads in the pool
+     * @param name Executor name used for thread naming and instrumentation
+     * @return the newly created thread pool
+     * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
+     */
+    public static ThreadPoolExecutor newFixedThreadPool(int numThreads, String name) {
+        return newFixedThreadPool(numThreads, new NamedThreadFactory(name, true));
     }
 
     /**
@@ -256,7 +276,9 @@ public final class PTExecutors {
      * @return the newly created single-threaded Executor
      */
     public static ExecutorService newSingleThreadExecutor(boolean isDaemon) {
-        return Executors.unconfigurableExecutorService(newFixedThreadPool(1, newNamedThreadFactory(isDaemon)));
+        return Executors.unconfigurableExecutorService(isDaemon
+                ? newFixedThreadPool(1)
+                : newFixedThreadPool(1, newNamedThreadFactory(false)));
     }
 
     /**
@@ -268,7 +290,9 @@ public final class PTExecutors {
      * @param threadFactory the factory to use when creating new threads
      * @return the newly created single-threaded Executor
      * @throws NullPointerException if threadFactory is null
+     * @deprecated Prefer {@link #newSingleThreadExecutor()}
      */
+    @Deprecated
     public static ExecutorService newSingleThreadExecutor(ThreadFactory threadFactory) {
         return Executors.unconfigurableExecutorService(newFixedThreadPool(1, threadFactory));
     }

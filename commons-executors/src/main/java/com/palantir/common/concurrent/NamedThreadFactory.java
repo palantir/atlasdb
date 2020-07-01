@@ -42,7 +42,7 @@ public class NamedThreadFactory implements ThreadFactory {
      * @param prefix The prefix for each constructed thread.
      */
     public NamedThreadFactory(String prefix) {
-        this(prefix, false);
+        this(prefix, true);
     }
 
     /**

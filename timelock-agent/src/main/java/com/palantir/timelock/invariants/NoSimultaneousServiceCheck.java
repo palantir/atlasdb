@@ -60,8 +60,7 @@ public final class NoSimultaneousServiceCheck {
     }
 
     public static NoSimultaneousServiceCheck create(List<TimeLockActivityChecker> timeLockActivityCheckers) {
-        ExecutorService executorService = PTExecutors.newSingleThreadExecutor(
-                PTExecutors.newNamedThreadFactory(false));
+        ExecutorService executorService = PTExecutors.newSingleThreadExecutor();
         return new NoSimultaneousServiceCheck(timeLockActivityCheckers,
                 client -> {
                     // TODO (jkong): Gather confidence and then change to ServerKiller, so that we ACTUALLY shoot

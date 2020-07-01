@@ -107,7 +107,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
-        this.executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true));
+        this.executor = PTExecutors.newSingleThreadExecutor();
         this.leadershipTokenRef = new AtomicReference<>();
         this.delegateRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;

@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Consolidate PTExexutors fixed executor usage into string-based factories
+
+    This new API will allow us to optimize thread utilization in a
+    future change without impacting callers.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4874
