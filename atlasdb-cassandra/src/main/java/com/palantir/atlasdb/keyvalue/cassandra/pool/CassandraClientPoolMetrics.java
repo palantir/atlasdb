@@ -49,7 +49,7 @@ public class CassandraClientPoolMetrics {
         this.outlierControllers = createOutlierControllers(metricsManager);
     }
 
-    private Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
+    private static Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
             MetricsManager metricsManager) {
         ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierController> builder
                 = ImmutableMap.builder();

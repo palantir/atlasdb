@@ -27,35 +27,47 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 
 public class CassandraClientPoolMetricsTest {
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.of(
+            new MetricRegistry(),
+            new DefaultTaggedMetricRegistry(),
+            Refreshable.only(true));
 
     @Test
     public void metricsProducible() {
         CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics(metricsManager);
-        AtomicLong poolOne = new AtomicLong();
-        AtomicLong poolTwo = new AtomicLong();
-        AtomicLong poolThree = new AtomicLong();
-        metrics.registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, poolOne::get, 1);
-        metrics.registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, poolTwo::get, 2);
-        metrics.registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, poolThree::get, 3);
+        AtomicLong poolOne = new AtomicLong(3);
+        AtomicLong poolTwo = new AtomicLong(4);
+        AtomicLong poolThree = new AtomicLong(20);
 
-        poolOne.set(3);
-        poolTwo.set(4);
-        poolThree.set(100);
+        metrics.registerPoolMetric(CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS, poolOne::get, 1);
+        metrics.registerPoolMetric(CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS, poolTwo::get, 2);
+        metrics.registerPoolMetric(CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS, poolThree::get, 3);
 
         assertThat(metricsManager.getTaggedRegistry().getMetrics())
-                .containsKey(MetricName.builder()
-                        .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class, CassandraClientPoolHostLevelMetric.CREATED.metricName))
-                        .safeTags(ImmutableMap.of("pool", "pool1"))
-                        .build());
+                .containsKey(createMeanActiveTimeMillisMetric("pool1"))
+                .containsKey(createMeanActiveTimeMillisMetric("pool2"))
+                .containsKey(createMeanActiveTimeMillisMetric("pool3"))
+                .containsKey(createMeanActiveTimeMillisMetric("mean"));
 
         assertThat(metricsManager.getPublishableMetrics().getMetrics())
-                .containsKey(MetricName.builder()
-                        .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class, CassandraClientPoolHostLevelMetric.CREATED.metricName))
-                        .safeTags(ImmutableMap.of("pool", "pool1"))
-                        .build());
+                .doesNotContainKey(createMeanActiveTimeMillisMetric("pool1"))
+                .doesNotContainKey(createMeanActiveTimeMillisMetric("pool2"))
+                .containsKey(createMeanActiveTimeMillisMetric("pool3"))
+                .containsKey(createMeanActiveTimeMillisMetric("mean"));
+    }
+
+    public MetricName createMeanActiveTimeMillisMetric(String pool1) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class,
+                        CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS.metricName))
+                .safeTags(ImmutableMap.of("pool", pool1))
+                .build();
     }
 }
