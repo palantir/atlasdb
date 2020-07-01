@@ -618,7 +618,8 @@ public abstract class TransactionManagers {
         return serviceIdentifierOverride().orElseGet(this::namespace);
     }
 
-    private String namespace() {
+    @Value.Derived
+    String namespace() {
         return Stream.of(config().namespace(),
                 config().timelock().flatMap(TimeLockClientConfig::client),
                 config().keyValueService().namespace())
