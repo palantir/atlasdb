@@ -246,10 +246,7 @@ public class TargetedSweepMetricsTest {
     }
 
     @Test
-    public void secondMetricsInstanceUsesSameMetrics() {
-        TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
-                .createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
-
+    public void canReportMetricsSeparatelyToDifferentManagers() {
         metrics.updateEnqueuedWrites(CONS_ZERO, 10);
         metrics.updateEntriesRead(CONS_ZERO, 21);
         metrics.updateNumberOfTombstones(CONS_ZERO, 1);
@@ -257,12 +254,9 @@ public class TargetedSweepMetricsTest {
         metrics.updateSweepTimestamp(CONS_ZERO, 7);
         metrics.registerEntriesReadInBatch(CONS_ZERO, 20);
 
-        assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(10);
-        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(21);
-        assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
-        assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
-        assertThat(metricsManager).containsEntriesReadInBatchConservative(20L);
+        MetricsManager anotherMetricsManager = MetricsManagers.createForTests();
+        TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
+                .createWithClock(anotherMetricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
 
         secondMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
         secondMetrics.updateEntriesRead(CONS_ZERO, 5);
@@ -271,12 +265,19 @@ public class TargetedSweepMetricsTest {
         secondMetrics.updateSweepTimestamp(CONS_ZERO, 5);
         secondMetrics.registerEntriesReadInBatch(CONS_ZERO, 15);
 
-        assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(10 + 5);
-        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(21 + 5);
-        assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1 + 5);
-        assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2 + 5);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5L);
-        assertThat(metricsManager).containsEntriesReadInBatchConservative(20L, 15L);
+        assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(10);
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(21);
+        assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
+        assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(20L);
+
+        assertThat(anotherMetricsManager).hasEnqueuedWritesConservativeEqualTo(5);
+        assertThat(anotherMetricsManager).hasEntriesReadConservativeEqualTo(5);
+        assertThat(anotherMetricsManager).hasTombstonesPutConservativeEqualTo(5);
+        assertThat(anotherMetricsManager).hasAbortedWritesDeletedConservativeEquals(5);
+        assertThat(anotherMetricsManager).hasSweepTimestampConservativeEqualTo(5L);
+        assertThat(anotherMetricsManager).containsEntriesReadInBatchConservative(15L);
     }
 
     @Test

@@ -18,16 +18,15 @@ package com.palantir.timelock.paxos;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.codahale.metrics.InstrumentedExecutorService;
-import com.codahale.metrics.InstrumentedThreadFactory;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -43,6 +42,8 @@ import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
+import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
@@ -52,13 +53,11 @@ import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationCon
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
@@ -76,8 +75,6 @@ import com.zaxxer.hikari.HikariDataSource;
 public class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 2L;
 
-    private static final String PAXOS_SHARED_EXECUTOR = "paxos-shared-executor";
-
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
@@ -89,6 +86,7 @@ public class TimeLockAgent {
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
+    private final FeedbackHandler feedbackHandler;
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
@@ -102,7 +100,7 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar) {
-        ExecutorService executor = createSharedExecutor(metricsManager);
+        ExecutorService executor = createSharedExecutor();
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
                 metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
@@ -180,15 +178,12 @@ public class TimeLockAgent {
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
+
+        this.feedbackHandler = new FeedbackHandler();
     }
 
-    private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
-        return new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new InstrumentedThreadFactory(
-                        new NamedThreadFactory("paxos-timestamp-creator", true),
-                        metricsManager.getRegistry())),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, PAXOS_SHARED_EXECUTOR, "executor"));
+    private static ExecutorService createSharedExecutor() {
+        return PTExecutors.newCachedThreadPool("paxos-timestamp-creator");
     }
 
     private TimestampCreator getTimestampCreator() {
@@ -241,10 +236,20 @@ public class TimeLockAgent {
 
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow());
+            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(feedbackHandler,
+                    this::isLeaderForClient));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey());
+            registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler,
+                    this::isLeaderForClient));
         }
+    }
+
+    private boolean isLeaderForClient(Client client) {
+        Map<Client, HealthCheckResponse> healthCheckResponseMap = paxosResources
+                .leadershipComponents()
+                .getLocalHealthCheckPinger()
+                .apply(ImmutableSet.of(client));
+        return healthCheckResponseMap.get(client).isLeader();
     }
 
     private void registerManagementResource() {
@@ -335,6 +340,10 @@ public class TimeLockAgent {
                 .createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
+    }
+
+    public HealthStatusReport timeLockAdjudicationFeedback() {
+        return feedbackHandler.getTimeLockHealthStatus();
     }
 
     public void shutdown() {

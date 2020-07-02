@@ -1,11 +1,16 @@
 
 apply from: "../gradle/shared.gradle"
+apply plugin: 'com.palantir.metric-schema'
 
 repositories {
     mavenCentral()
 }
 
 libsDirName = file('build/artifacts')
+
+license {
+  exclude '**/TargetedSweepProgressMetrics.java'
+}
 
 dependencies {
   compile project(":atlasdb-client")

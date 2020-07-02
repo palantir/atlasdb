@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedMap;
+import java.util.NavigableMap;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
@@ -78,15 +78,15 @@ public abstract class ResultsExtractor<T> {
             ColumnSelection selection,
             byte[] endExclusive) {
         byte[] lastRow = extractResults(colsByKey, startTs, selection);
-        SortedMap<byte[], SortedMap<byte[], T>> resultsByRow = Cells.breakCellsUpByRow(asMap());
+        NavigableMap<byte[], NavigableMap<byte[], T>> resultsByRow = Cells.breakCellsUpByRow(asMap());
         return getRowResults(endExclusive, lastRow, resultsByRow);
     }
 
     public static <T> TokenBackedBasicResultsPage<RowResult<T>, byte[]> getRowResults(
             byte[] endExclusive,
             byte[] lastRow,
-            SortedMap<byte[], SortedMap<byte[], T>> resultsByRow) {
-        SortedMap<byte[], RowResult<T>> ret = RowResults.viewOfSortedMap(resultsByRow);
+            NavigableMap<byte[], NavigableMap<byte[], T>> resultsByRow) {
+        NavigableMap<byte[], RowResult<T>> ret = RowResults.viewOfSortedMap(resultsByRow);
         if (lastRow == null || RangeRequests.isLastRowName(lastRow)) {
             return new SimpleTokenBackedResultsPage<>(endExclusive, ret.values(), false);
         }

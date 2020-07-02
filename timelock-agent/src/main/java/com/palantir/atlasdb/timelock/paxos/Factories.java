@@ -43,7 +43,7 @@ public interface Factories {
     }
 
     interface LeaderPingHealthCheckFactory {
-        List<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
+        LocalAndRemotes<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
     }
 
     interface PaxosLatestRoundVerifierFactory {

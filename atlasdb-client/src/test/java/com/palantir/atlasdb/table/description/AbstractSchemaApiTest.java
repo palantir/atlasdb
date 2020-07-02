@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -108,7 +109,7 @@ public abstract class AbstractSchemaApiTest {
     @Test
     public void testGetSingleRowFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        SortedMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         addToResultsMap(resultsMap, TEST_ROW_KEY, FIRST_COL_SHORT_NAME, encodeLong(TEST_VALUE_LONG));
         when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);
 
@@ -128,7 +129,7 @@ public abstract class AbstractSchemaApiTest {
     @Test
     public void testGetMultipleRowsFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        SortedMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         addToResultsMap(resultsMap, TEST_ROW_KEY, FIRST_COL_SHORT_NAME, encodeLong(TEST_VALUE_LONG));
         addToResultsMap(resultsMap, TEST_ROW_KEY2, FIRST_COL_SHORT_NAME, encodeLong(TEST_VALUE_LONG2));
         when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);

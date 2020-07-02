@@ -16,35 +16,53 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.function.Predicate;
+
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackServiceEndpoints;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.UndertowTimeLockClientFeedbackService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
+    private Predicate<Client> leadershipCheck;
+    private FeedbackHandler feedbackHandler;
 
-    private TimeLockClientFeedbackResource() {
-        // no op for now
+    private TimeLockClientFeedbackResource(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        this.feedbackHandler = feedbackHandler;
+        this.leadershipCheck = leadershipCheck;
     }
 
-    public static TimeLockClientFeedbackResource create() {
-        return new TimeLockClientFeedbackResource();
+    public static TimeLockClientFeedbackResource create(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        return new TimeLockClientFeedbackResource(feedbackHandler, leadershipCheck);
     }
 
-    public static UndertowService undertow() {
-        return TimeLockClientFeedbackServiceEndpoints.of(TimeLockClientFeedbackResource.create());
+    public static UndertowService undertow(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        return TimeLockClientFeedbackServiceEndpoints.of(TimeLockClientFeedbackResource.create(
+                feedbackHandler,
+                leadershipCheck));
     }
 
-    public static TimeLockClientFeedbackService jersey() {
-        return new JerseyAdapter(TimeLockClientFeedbackResource.create());
+    public static TimeLockClientFeedbackService jersey(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck) {
+        return new JerseyAdapter(TimeLockClientFeedbackResource.create(feedbackHandler, leadershipCheck));
     }
     @Override
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
-        // collect and assess feedback report
+        if (leadershipCheck.test(Client.of(feedbackReport.getServiceName()))) {
+            feedbackHandler.handle(feedbackReport);
+        }
         return Futures.immediateVoidFuture();
     }
 

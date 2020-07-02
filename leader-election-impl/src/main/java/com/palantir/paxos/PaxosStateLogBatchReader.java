@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistable;
 
@@ -40,7 +39,7 @@ public class PaxosStateLogBatchReader<V extends Persistable & Versionable> imple
         this.delegate = delegate;
         this.hydrator = hydrator;
         this.executor = MoreExecutors.listeningDecorator(
-                PTExecutors.newFixedThreadPool(numThreads, new NamedThreadFactory("psl-reader", true)));
+                PTExecutors.newFixedThreadPool(numThreads, "psl-reader"));
     }
 
     /**

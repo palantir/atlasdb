@@ -18,8 +18,8 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -51,7 +51,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     public abstract Transaction delegate();
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
                                                         Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         return delegate().getRows(tableRef, rows, columnSelection);

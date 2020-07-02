@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: TimeLock analyzes feedback from clients to adjudicate itself.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4861

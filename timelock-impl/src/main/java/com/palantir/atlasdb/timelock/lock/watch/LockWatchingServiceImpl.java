@@ -23,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -40,17 +41,19 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 /**
- * Note on concurrency:
- * We use a fair read write lock mechanism and synchronisation as follows:
- * 1. Registering locks and unlocks requires a read lock.
- * 2. Updating watches requires a write lock to swap the actual reference. This ensures that, as soon as an update is
- *    made, any registered locks and unlocks onwards will use updated ranges for filtering. This is necessary to
- *    guarantee that the log will contain any locks/unlocks of newly watched locks; see
- *    {@link LockEventLogImpl#calculateOpenLocks} for more details.
- * 3. Updating in {@link #addToWatches(LockWatchRequest)} is synchronised to minimise the scope of holding the write
- *    lock above while still preventing concurrent updates.
- * 4. Fairness of the lock ensures that updates are eventually granted, even in the presence of constant locks and
- *    unlocks.
+ * Note on concurrency: We use a fair read write lock mechanism and synchronisation as follows:
+ *
+ * <ol>
+ *     <li>Registering locks and unlocks requires a read lock.</li>
+ *     <li>Updating watches requires a write lock to swap the actual reference. This ensures that, as soon as an update
+ *     is made, any registered locks and unlocks onwards will use updated ranges for filtering. This is necessary to
+ *     guarantee that the log will contain any locks/unlocks of newly watched locks; see
+ *     {@link LockEventLogImpl#calculateOpenLocks} for more details.</li>
+ *     <li>Updating in {@link #addToWatches(LockWatchRequest)} is synchronised to minimise the scope of holding
+ *     the write lock above while still preventing concurrent updates.</li>
+ *     <li>Fairness of the lock ensures that updates are eventually granted, even in the presence of constant locks and
+ *     unlocks.</li>
+ * </ol>
  */
 @SuppressWarnings("UnstableApiUsage")
 public class LockWatchingServiceImpl implements LockWatchingService {
@@ -79,37 +82,19 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion, long endVersion) {
-        return lockEventLog.getLogDiff(lastKnownVersion, endVersion);
-    }
-
-    /**
-     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
-     * result in a deadlock.
-     */
-    @Override
-    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnLockWatchVersion(Supplier<T> task) {
-        return lockEventLog.runTaskAndAtomicallyReturnVersion(task);
+    public <T> ValueAndLockWatchStateUpdate<T> runTask(
+            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
+        return lockEventLog.runTask(lastKnownVersion, task);
     }
 
     @Override
     public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
-        watchesLock.readLock().lock();
-        try {
-            lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch).collect(Collectors.toSet()), token);
-        } finally {
-            watchesLock.readLock().unlock();
-        }
+        runIfDescriptorsMatchLockWatches(locksTakenOut, filteredLocks -> lockEventLog.logLock(filteredLocks, token));
     }
 
     @Override
     public void registerUnlock(Set<LockDescriptor> unlocked) {
-        watchesLock.readLock().lock();
-        try {
-            lockEventLog.logUnlock(unlocked.stream().filter(this::hasLockWatch).collect(Collectors.toSet()));
-        } finally {
-            watchesLock.readLock().unlock();
-        }
+        runIfDescriptorsMatchLockWatches(unlocked, lockEventLog::logUnlock);
     }
 
     private synchronized Optional<LockWatches> addToWatches(LockWatchRequest request) {
@@ -144,7 +129,17 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         lockEventLog.logLockWatchCreated(newWatches);
     }
 
-    private boolean hasLockWatch(LockDescriptor lockDescriptor) {
-        return watches.get().ranges().contains(lockDescriptor);
+    private void runIfDescriptorsMatchLockWatches(Set<LockDescriptor> unfiltered,
+            Consumer<Set<LockDescriptor>> consumer) {
+        watchesLock.readLock().lock();
+        try {
+            RangeSet<LockDescriptor> ranges = watches.get().ranges();
+            Set<LockDescriptor> filtered = unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
+            if (!filtered.isEmpty()) {
+                consumer.accept(filtered);
+            }
+        } finally {
+            watchesLock.readLock().unlock();
+        }
     }
 }

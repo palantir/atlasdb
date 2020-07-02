@@ -175,10 +175,10 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     @Idempotent
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
                                                         Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
-        SortedMap<byte[], RowResult<byte[]>> ret = super.getRows(tableRef, rows, columnSelection);
+        NavigableMap<byte[], RowResult<byte[]>> ret = super.getRows(tableRef, rows, columnSelection);
         markRowsRead(tableRef, rows, columnSelection, ret.values());
         return ret;
     }

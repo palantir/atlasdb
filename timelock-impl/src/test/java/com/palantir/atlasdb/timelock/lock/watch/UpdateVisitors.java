@@ -37,10 +37,6 @@ public final class UpdateVisitors {
     }
 
     private static class AssertSuccessVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
-        @Override
-        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Failed failed) {
-            return fail("Failed update");
-        }
 
         @Override
         public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Success success) {
@@ -55,10 +51,6 @@ public final class UpdateVisitors {
     }
 
     public static class AssertSnapshotVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Snapshot> {
-        @Override
-        public LockWatchStateUpdate.Snapshot visit(LockWatchStateUpdate.Failed failed) {
-            return fail("Failed update");
-        }
 
         @Override
         public LockWatchStateUpdate.Snapshot visit(LockWatchStateUpdate.Success success) {

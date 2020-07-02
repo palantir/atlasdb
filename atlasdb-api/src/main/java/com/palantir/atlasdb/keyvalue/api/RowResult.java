@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -65,7 +66,7 @@ public final class RowResult<T> implements Serializable {
         return row.clone();
     }
 
-    public SortedMap<byte[], T> getColumns() {
+    public NavigableMap<byte[], T> getColumns() {
         return columns;
     }
 

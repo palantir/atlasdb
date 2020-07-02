@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: AtlasDB now reports metrics of endpoints used for TimeLock adjudication
+    to TimeLock feedback service.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4845

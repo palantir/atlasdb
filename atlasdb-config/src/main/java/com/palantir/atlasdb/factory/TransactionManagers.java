@@ -66,7 +66,6 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
-import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
@@ -80,9 +79,6 @@ import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timelock.ShortAndLongTimeoutServices;
-import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveConjureTimelockService;
-import com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -105,7 +101,6 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -131,8 +126,8 @@ import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
-import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -155,7 +150,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
-import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -194,14 +188,11 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
-import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -372,16 +363,13 @@ public abstract class TransactionManagers {
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = setUpMetricsAndGetMetricsManager();
 
-        TimeLockFeedbackBackgroundTask timeLockFeedbackBackgroundTask = initializeCloseable(
-                () -> TimeLockFeedbackBackgroundTask.create(
-                        globalTaggedMetricRegistry(),
-                        () -> AtlasDbVersion.readVersion(),
-                        serviceName()), closeables);
-
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable = initializeCloseable(
                 () -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
 
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
+
+        Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask =
+                getTimeLockFeedbackBackgroundTask(closeables, config(), runtime);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -521,7 +509,7 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
 
-        transactionManager.registerClosingCallback(timeLockFeedbackBackgroundTask::close);
+        timeLockFeedbackBackgroundTask.ifPresent(task -> transactionManager.registerClosingCallback(task::close));
 
         lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
         transactionManager.registerClosingCallback(transactionService::close);
@@ -564,15 +552,61 @@ public abstract class TransactionManagers {
     private MetricsManager setUpMetricsAndGetMetricsManager() {
         MetricRegistry internalAtlasDbMetrics = new MetricRegistry();
         TaggedMetricRegistry internalTaggedAtlasDbMetrics = new DefaultTaggedMetricRegistry();
-        MetricsManager metricsManager = MetricsManagers.of(internalAtlasDbMetrics, internalTaggedAtlasDbMetrics);
-
-        // TODO (jkong): Add filtering here
-        TaggedMetricSet taggedLegacyMetrics = new DropwizardTaggedMetricSet(internalAtlasDbMetrics);
+        MetricsManager metricsManager = MetricsManagers.of(
+                internalAtlasDbMetrics,
+                internalTaggedAtlasDbMetrics,
+                runtimeConfig()
+                        .map(runtimeConfigRefreshable -> runtimeConfigRefreshable.map(
+                                maybeRuntime -> maybeRuntime.map(AtlasDbRuntimeConfig::enableMetricFiltering)
+                                        .orElse(true)))
+                        .orElseGet(() -> Refreshable.only(true)));
         globalTaggedMetricRegistry().addMetrics(
                 AtlasDbMetricNames.LIBRARY_ORIGIN_TAG,
                 AtlasDbMetricNames.LIBRARY_ORIGIN_VALUE,
-                new DisjointUnionTaggedMetricSet(taggedLegacyMetrics, internalTaggedAtlasDbMetrics));
+                metricsManager.getPublishableMetrics());
         return metricsManager;
+    }
+
+    private Optional<TimeLockFeedbackBackgroundTask> getTimeLockFeedbackBackgroundTask(
+            @Output List<AutoCloseable> closeables,
+            AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
+        if (isUsingTimeLock(config, runtimeConfig.current())) {
+            Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices
+                    = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent());
+            return Optional.of(initializeCloseable(
+                    () -> TimeLockFeedbackBackgroundTask.create(
+                            globalTaggedMetricRegistry(),
+                            () -> AtlasDbVersion.readVersion(),
+                            serviceName(),
+                            refreshableTimeLockClientFeedbackServices), closeables));
+        }
+        return Optional.empty();
+    }
+
+    @VisibleForTesting
+    static Refreshable<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
+            UserAgent userAgent) {
+        Refreshable<ServerListConfig> serverListConfigSupplier =
+                getServerListConfigSupplierForTimeLock(config, runtimeConfig);
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
+                Refreshable.only(ServicesConfigBlock.builder().build()));
+
+        BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
+                reloadingFactory,
+                serverListConfigSupplier,
+                userAgent,
+                AuxiliaryRemotingParameters
+                        .builder()
+                        .shouldRetry(true)
+                        .userAgent(userAgent)
+                        .shouldLimitPayload(true)
+                        .build());
+
+        return broadcastDialogueClientFactory.getSingleNodeProxies(
+                TimeLockClientFeedbackService.class,
+                true);
     }
 
     abstract Optional<String> serviceIdentifierOverride();
@@ -965,9 +999,9 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices) {
         TimelockService timelockServiceWithBatching = lockAndTimestampServices.timelock();
-        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
+        TimelockService instrumentedTimelockService = InstrumentedTimelockService.create(
                 timelockServiceWithBatching,
-                metricsManager.getRegistry());
+                metricsManager);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -1041,7 +1075,6 @@ public abstract class TransactionManagers {
                 getLockAndTimestampServices(
                         metricsManager,
                         serverListConfigSupplier,
-                        runtimeConfig.map(AtlasDbRuntimeConfig::remotingClient),
                         userAgent,
                         timelockNamespace,
                         lockDiagnosticComponents,
@@ -1072,7 +1105,6 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices getLockAndTimestampServices(
             MetricsManager metricsManager,
             Refreshable<ServerListConfig> timelockServerListConfig,
-            Refreshable<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             String timelockNamespace,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
@@ -1080,49 +1112,23 @@ public abstract class TransactionManagers {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
-        ServiceCreator creator = ServiceCreator.withPayloadLimiter(
-                metricsManager, timelockServerListConfig, userAgent, remotingClientConfig);
-
-        LockRpcClient cjrLockRpcClient = new TimeoutSensitiveLockRpcClient(
-                ShortAndLongTimeoutServices.create(creator, LockRpcClient.class));
-        LockRpcClient dialogueLockRpcClient = serviceProvider.getLockRpcClient();
-        LockRpcClient lockRpcClient = ImmutableRemoteProxies.<LockRpcClient>builder()
-                .conjureJavaRuntimeProxy(cjrLockRpcClient)
-                .dialogueProxy(dialogueLockRpcClient)
-                .remotingClientConfig(remotingClientConfig)
-                .build()
-                .getConfigSwitchedProxy(LockRpcClient.class);
-
+        LockRpcClient lockRpcClient = serviceProvider.getLockRpcClient();
         LockService lockService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService cjrTimelockService = new TimeoutSensitiveConjureTimelockService(
-                ShortAndLongTimeoutServices.create(creator, ConjureTimelockService.class));
-        ConjureTimelockService dialogueTimelockService = serviceProvider.getConjureTimelockService();
-        ConjureTimelockService switchableService = ImmutableRemoteProxies.<ConjureTimelockService>builder()
-                .conjureJavaRuntimeProxy(cjrTimelockService)
-                .dialogueProxy(dialogueTimelockService)
-                .remotingClientConfig(remotingClientConfig)
-                .build()
-                .getConfigSwitchedProxy(ConjureTimelockService.class);
-
-        TimelockRpcClient timelockClient = ImmutableRemoteProxies.<TimelockRpcClient>builder()
-                .conjureJavaRuntimeProxy(creator.createService(TimelockRpcClient.class))
-                .dialogueProxy(serviceProvider.getTimelockRpcClient())
-                .remotingClientConfig(remotingClientConfig)
-                .build()
-                .getConfigSwitchedProxy(TimelockRpcClient.class);
+        ConjureTimelockService conjureTimelockService = serviceProvider.getConjureTimelockService();
+        TimelockRpcClient timelockClient = serviceProvider.getTimelockRpcClient();
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticComponents
                 .<ConjureTimelockService>map(components ->
                         new LockDiagnosticConjureTimelockService(
-                                switchableService,
+                                conjureTimelockService,
                                 components.clientLockDiagnosticCollector(),
                                 components.localLockTracker()))
-                .orElse(switchableService);
+                .orElse(conjureTimelockService);
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
@@ -1131,19 +1137,12 @@ public abstract class TransactionManagers {
 
         LockWatchEventCache lockWatchEventCache = LockWatchEventCacheImpl.create(metricsManager);
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
-                creator.createService(ConjureLockWatchingService.class), timelockNamespace);
+                serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
-                ImmutableRemoteProxies.<TimestampManagementRpcClient>builder()
-                        .conjureJavaRuntimeProxy(
-                                creator.createServiceWithShortTimeout(TimestampManagementRpcClient.class))
-                        .dialogueProxy(serviceProvider.getTimestampManagementRpcClient())
-                        .remotingClientConfig(remotingClientConfig)
-                        .build()
-                        .getConfigSwitchedProxy(TimestampManagementRpcClient.class),
-                timelockNamespace);
+                serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -1381,21 +1380,5 @@ public abstract class TransactionManagers {
     public interface TransactionComponents {
         TransactionService transactionService();
         Optional<TransactionSchemaInstaller> schemaInstaller();
-    }
-
-    @Value.Immutable
-    @Value.Style(stagedBuilder = false)
-    public interface RemoteProxies<T> {
-        T conjureJavaRuntimeProxy();
-        T dialogueProxy();
-        Refreshable<RemotingClientConfig> remotingClientConfig();
-
-        default T getConfigSwitchedProxy(Class<T> type) {
-            return PredicateSwitchedProxy.newProxyInstance(
-                    dialogueProxy(),
-                    conjureJavaRuntimeProxy(),
-                    remotingClientConfig().map(RemotingClientConfig::enableDialogue),
-                    type);
-        }
     }
 }

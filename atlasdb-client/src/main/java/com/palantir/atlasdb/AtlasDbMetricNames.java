@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb;
 
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+
 public final class AtlasDbMetricNames {
 
     private AtlasDbMetricNames() {
@@ -61,6 +65,15 @@ public final class AtlasDbMetricNames {
     public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
     public static final String BATCH_SIZE_MEAN = "batchSizeMean";
+    public static final Set<String> TARGETED_SWEEP_PROGRESS_METRIC_NAMES = ImmutableSet.of(
+            ENQUEUED_WRITES,
+            ENTRIES_READ,
+            TOMBSTONES_PUT,
+            ABORTED_WRITES_DELETED,
+            SWEEP_TS,
+            LAST_SWEPT_TS,
+            LAG_MILLIS,
+            BATCH_SIZE_MEAN);
 
     public static final String SWEEP_OUTCOME = "outcome";
     public static final String TAG_OUTCOME = "status";

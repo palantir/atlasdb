@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
@@ -98,9 +97,12 @@ public final class PaxosResourcesFactory {
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             BatchPingableLeader local = dependencies.components().batchPingableLeader();
             List<BatchPingableLeader> remotes = dependencies.remoteClients().batchPingableLeaders();
-            return Stream.concat(Stream.of(local), remotes.stream())
-                    .map(MultiLeaderHealthCheckPinger::new)
-                    .collect(Collectors.toList());
+            return LocalAndRemotes.of(
+                    new MultiLeaderHealthCheckPinger(local),
+                    remotes
+                            .stream()
+                            .map(MultiLeaderHealthCheckPinger::new)
+                            .collect(Collectors.toList()));
         };
 
         // we do *not* use CoalescingPaxosLatestRoundVerifier because any coalescing will happen in the
@@ -141,9 +143,11 @@ public final class PaxosResourcesFactory {
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
             List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
-            return Stream.concat(Stream.of(local), remotes.stream())
-                    .map(SingleLeaderHealthCheckPinger::new)
-                    .collect(Collectors.toList());
+            return LocalAndRemotes.of(new SingleLeaderHealthCheckPinger(local),
+                    remotes
+                            .stream()
+                            .map(SingleLeaderHealthCheckPinger::new)
+                            .collect(Collectors.toList()));
         };
 
         Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory = acceptorClient ->

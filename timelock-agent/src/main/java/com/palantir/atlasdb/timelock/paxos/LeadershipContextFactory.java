@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -30,6 +29,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.timelock.paxos.HealthCheckPinger;
 
 @Value.Immutable
 public abstract class LeadershipContextFactory implements
@@ -88,7 +88,7 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Derived
-    List<com.palantir.timelock.paxos.HealthCheckPinger> healthCheckPingers() {
+    LocalAndRemotes<HealthCheckPinger> healthCheckPingers() {
         return healthCheckPingersFactory().create(this);
     }
 

@@ -17,8 +17,8 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -53,7 +53,7 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
                                                         Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         checkTableName(tableRef);

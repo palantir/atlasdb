@@ -188,6 +188,10 @@ public final class LoggingArgs {
         return getArg("tableCount", tableCount, true);
     }
 
+    public static Arg<Integer> keyCount(int keyCount) {
+        return getArg("keyCount", keyCount, true);
+    }
+
     public static Arg<Integer> rowCount(int rowCount) {
         return getArg("rowCount", rowCount, true);
     }

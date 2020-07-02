@@ -7,11 +7,13 @@ types:
           atlasVersion: string
           serviceName: string
           nodeId: uuid
-          stats: map<string, EndpointStatistics>
+          startTransaction: optional<EndpointStatistics>
+          leaderTime: optional<EndpointStatistics>
       EndpointStatistics:
         fields:
           p99: double
           oneMin: double
+          errorRate: optional<double>
 
 services:
   TimeLockClientFeedbackService:

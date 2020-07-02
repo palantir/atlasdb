@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.lock.watch;
+package com.palantir.atlasdb.timelock.adjudicate;
 
-import org.immutables.value.Value;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-@Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public interface ValueAndVersion<T> {
-    @Value.Parameter
-    long version();
-    @Value.Parameter
-    T value();
+public class Utils {
 
-    static <R> ValueAndVersion<R> of(long version, R result) {
-        return ImmutableValueAndVersion.of(version, result);
+    static <T> Map<T, Long> getFrequencyMap(Stream<T> stream) {
+        return stream.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     }
 }

@@ -159,11 +159,6 @@ final class LockWatchEventLog {
     }
 
     private class ProcessingVisitor implements LockWatchStateUpdate.Visitor<CacheUpdate> {
-        @Override
-        public CacheUpdate visit(LockWatchStateUpdate.Failed failed) {
-            processFailed();
-            return CacheUpdate.FAILED;
-        }
 
         @Override
         public CacheUpdate visit(LockWatchStateUpdate.Success success) {
@@ -180,11 +175,6 @@ final class LockWatchEventLog {
     }
 
     private class NewLeaderVisitor implements LockWatchStateUpdate.Visitor<CacheUpdate> {
-        @Override
-        public CacheUpdate visit(LockWatchStateUpdate.Failed failed) {
-            processFailed();
-            return CacheUpdate.FAILED;
-        }
 
         @Override
         public CacheUpdate visit(LockWatchStateUpdate.Success success) {
