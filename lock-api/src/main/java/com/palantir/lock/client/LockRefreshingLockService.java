@@ -21,9 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -86,12 +84,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
         toRefresh = ConcurrentHashMap.newKeySet();
         failedRefreshCallbacks = ConcurrentHashMap.newKeySet();
         exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
-        // the callbackExec must use a SynchronousQueue so it actually creates new threads on demand
-        callbackExec = PTExecutors.newThreadPoolExecutor(0,
-                Integer.MAX_VALUE,
-                0,
-                TimeUnit.NANOSECONDS,
-                new SynchronousQueue<>());
+        callbackExec = PTExecutors.newCachedThreadPool("LockRefreshingLockService callbacks");
     }
 
     @Override
