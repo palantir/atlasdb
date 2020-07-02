@@ -140,7 +140,7 @@ final class LockWatchEventLog {
         if (latestVersion.isPresent()) {
             LockWatchEvent firstEvent = Iterables.getFirst(events, null);
             Preconditions.checkNotNull(firstEvent, "First element not preset in list of events");
-            Preconditions.checkArgument(firstEvent.sequence() < latestVersion.get().version()
+            Preconditions.checkArgument(firstEvent.sequence() <= latestVersion.get().version()
                             || latestVersion.get().version() + 1 == firstEvent.sequence(),
                     "Events missing between last snapshot and this batch of events");
         }

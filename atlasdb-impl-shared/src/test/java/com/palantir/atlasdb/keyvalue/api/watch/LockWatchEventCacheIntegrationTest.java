@@ -75,9 +75,11 @@ public class LockWatchEventCacheIntegrationTest {
     private static final UUID EVENT2_UUID = UUID.fromString("888fcd7a-b3d7-4d2a-9d2c-3d61cde1ba44");
     private static final LockWatchEvent LOCK_EVENT_2 =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR), LockToken.of(EVENT2_UUID)).build(7L);
+    private static final LockWatchEvent EARLY_LOCK_EVENT =
+            LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), COMMIT_TOKEN).build(3L);
 
     private static final UUID LEADER = UUID.fromString("470c855e-f77b-44df-b56a-14d3df085dbc");
-    public static final LockWatchStateUpdate.Success SUCCESS_2 = LockWatchStateUpdate.success(LEADER, 7L,
+    private static final LockWatchStateUpdate.Success SUCCESS_2 = LockWatchStateUpdate.success(LEADER, 7L,
             ImmutableList.of(LOCK_EVENT_2));
     private static final LockWatchStateUpdate SNAPSHOT =
             LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
@@ -268,7 +270,7 @@ public class LockWatchEventCacheIntegrationTest {
     public void missedEventThrows() {
         setupInitialState();
         assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,
-                LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(UNLOCK_EVENT))))
+                LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(EARLY_LOCK_EVENT, WATCH_EVENT, UNLOCK_EVENT))))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Events missing between last snapshot and this batch of events");
     }
