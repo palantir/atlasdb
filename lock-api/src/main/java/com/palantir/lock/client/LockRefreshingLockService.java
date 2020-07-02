@@ -191,6 +191,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     public void dispose() {
         exec.shutdown();
+        callbackExec.shutdown();
         isClosed = true;
     }
 
