@@ -47,7 +47,7 @@ public class PostgresVersionCheckTest {
     @SuppressWarnings("Slf4jConstantLogMessage")
     private void verifyLowVersionLogsError(String lowVersion) {
         Logger log = mock(Logger.class);
-        String expectedMessage = "The minimum supported version is " + PostgresVersionCheck.MIN_POSTGRES_VERSION;
+        String expectedMessage = "The minimum supported version is";
         assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion(lowVersion, log))
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining(expectedMessage);
