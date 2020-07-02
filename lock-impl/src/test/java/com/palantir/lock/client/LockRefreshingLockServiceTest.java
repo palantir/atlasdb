@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.awaitility.Awaitility;
@@ -94,5 +96,54 @@ public class LockRefreshingLockServiceTest {
         Awaitility.waitAtMost(20, TimeUnit.SECONDS)
                 .until(() -> failedTokens.get() != null);
         assertThat(failedTokens.get()).containsExactlyInAnyOrder(lock.getLockRefreshToken());
+    }
+
+    @Test
+    public void testFailedRefreshCallbackMultithreaded() throws InterruptedException {
+        AtomicReference<Set<LockRefreshToken>> failedTokens = new AtomicReference<>();
+        server.registerRefreshFailedCallback(failedTokens::set);
+        // register a callback that simply waits and then increments a counter
+        AtomicInteger callbackFinishedCount = new AtomicInteger(0);
+        AtomicInteger callbackStartedCount = new AtomicInteger(0);
+        CountDownLatch callbackLatch = new CountDownLatch(1);
+        server.registerRefreshFailedCallback(unused -> {
+            callbackStartedCount.incrementAndGet();
+            try {
+                callbackLatch.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            callbackFinishedCount.incrementAndGet();
+        });
+        // create two locks
+        LockRequest request1 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
+                .timeoutAfter(SimpleTimeDuration.of(5, TimeUnit.SECONDS))
+                .build();
+        LockResponse lock1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request1);
+        LockRequest request2 = LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock2"), LockMode.WRITE))
+                .timeoutAfter(SimpleTimeDuration.of(5, TimeUnit.SECONDS))
+                .build();
+        LockResponse lock2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
+        // unlock lock1 on the internal server so refresh fails
+        internalServer.unlock(lock1.getToken());
+        Awaitility.waitAtMost(20, TimeUnit.SECONDS)
+                .until(() -> failedTokens.get() != null);
+        assertThat(failedTokens.get()).containsExactlyInAnyOrder(lock1.getLockRefreshToken());
+        // now reset failedTokens and unlock lock2 so that it should also fail
+        failedTokens.set(null);
+        internalServer.unlock(lock2.getToken());
+        Awaitility.waitAtMost(20, TimeUnit.SECONDS)
+                .until(() -> failedTokens.get() != null);
+        assertThat(failedTokens.get()).containsExactlyInAnyOrder(lock2.getLockRefreshToken());
+        // by this point the latch callbacks should be still running and not finished
+        assertThat(callbackFinishedCount.get()).isEqualTo(0);
+        // make sure the callbacks have actually started (before we let either finish)
+        // we want to assert that the callbacks are actually being run in parallel
+        Awaitility.waitAtMost(2, TimeUnit.SECONDS)
+                .until(() -> callbackStartedCount.get() == 2);
+        // allow those callbacks to finish
+        callbackLatch.countDown();
+        Awaitility.waitAtMost(2, TimeUnit.SECONDS)
+                .until(() -> callbackFinishedCount.get() == 2);
     }
 }
