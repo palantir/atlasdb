@@ -38,7 +38,7 @@ public class CassandraClientPoolMetricsTest {
             Refreshable.only(true));
 
     @Test
-    public void metricsProducible() {
+    public void metricsAreProducedAndFiltered() {
         CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics(metricsManager);
         AtomicLong poolOne = new AtomicLong(3);
         AtomicLong poolTwo = new AtomicLong(4);
@@ -61,11 +61,11 @@ public class CassandraClientPoolMetricsTest {
                 .containsKey(createMeanActiveTimeMillisMetric("mean"));
     }
 
-    public MetricName createMeanActiveTimeMillisMetric(String pool1) {
+    private static MetricName createMeanActiveTimeMillisMetric(String pool) {
         return MetricName.builder()
                 .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class,
                         CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS.metricName))
-                .safeTags(ImmutableMap.of("pool", pool1))
+                .safeTags(ImmutableMap.of("pool", pool))
                 .build();
     }
 }
