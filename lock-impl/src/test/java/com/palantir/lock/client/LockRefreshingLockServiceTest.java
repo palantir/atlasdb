@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,8 +91,8 @@ public class LockRefreshingLockServiceTest {
         LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
         // use the internal server to unlock (refreshing service will still try to refresh but fail)
         internalServer.unlock(lock.getToken());
-        Thread.sleep(10000);
-        // this assert implies the callback was called correctly when the lock failed to refresh
+        Awaitility.waitAtMost(20, TimeUnit.SECONDS)
+                .until(() -> failedTokens.get() != null);
         assertThat(failedTokens.get()).containsExactlyInAnyOrder(lock.getLockRefreshToken());
     }
 }

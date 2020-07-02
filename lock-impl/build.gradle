@@ -22,4 +22,5 @@ dependencies {
     exclude group: 'org.hamcrest'
   }
   testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'org.awaitility', name: 'awaitility'
 }
