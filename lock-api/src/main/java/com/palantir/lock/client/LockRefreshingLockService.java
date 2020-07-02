@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.client;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +46,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     final LockService delegate;
     final Set<LockRefreshToken> toRefresh;
+    final Set<FailedRefreshCallback> failedRefreshCallbacks;
     final ScheduledExecutorService exec;
     final long refreshFrequencyMillis = 5000;
     volatile boolean isClosed = false;
@@ -75,6 +77,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     private LockRefreshingLockService(LockService delegate) {
         this.delegate = delegate;
         toRefresh = ConcurrentHashMap.newKeySet();
+        failedRefreshCallbacks = ConcurrentHashMap.newKeySet();
         exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     }
 
@@ -135,11 +138,25 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
         for (List<LockRefreshToken> tokenBatch : Lists.partition(refreshCopy, REFRESH_BATCH_SIZE)) {
             refreshedTokens.addAll(delegate.refreshLockRefreshTokens(tokenBatch));
         }
+        // Avoid the overhead of constructing a set if we don't need it. Failures should only happen if lock server
+        // fails over (e.g. a new leader was elected), or locks are not being refreshed frequently enough.
+        Set<LockRefreshToken> failedTokens = null;
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token)
                     && toRefresh.contains(token)) {
                 log.warn("failed to refresh lock: {}", token);
                 toRefresh.remove(token);
+                if (failedTokens == null) {
+                    failedTokens = new HashSet<>();
+                }
+                failedTokens.add(token);
+            }
+        }
+        if (failedTokens != null && !failedTokens.isEmpty()) {
+            Set<LockRefreshToken> unmodifiableFailedTokens = Collections.unmodifiableSet(failedTokens);
+            // submit callbacks to the executor so a slow callback doesn't prevent future refreshes
+            for (FailedRefreshCallback callback : failedRefreshCallbacks) {
+                exec.submit(() -> callback.onFailedRefresh(unmodifiableFailedTokens));
             }
         }
     }
@@ -182,5 +199,24 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     // visible for debugging clients at runtime
     public Set<LockRefreshToken> getAllRefreshingTokens() {
         return ImmutableSet.copyOf(toRefresh);
+    }
+
+    @FunctionalInterface
+    public interface FailedRefreshCallback {
+        void onFailedRefresh(Set<LockRefreshToken> tokens);
+    }
+
+    /**
+     * Register a callback function to get called any time tokens fail to be refreshed.
+     */
+    public void registerRefreshFailedCallback(FailedRefreshCallback callback) {
+        failedRefreshCallbacks.add(callback);
+    }
+
+    /**
+     * Remove a callback function that was previously registered to be called when tokens fail to be refreshed.
+     */
+    public void removeRefreshFailedCallback(FailedRefreshCallback callback) {
+        failedRefreshCallbacks.remove(callback);
     }
 }

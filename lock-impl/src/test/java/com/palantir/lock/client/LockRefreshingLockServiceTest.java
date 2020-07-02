@@ -15,10 +15,12 @@
  */
 package com.palantir.lock.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -31,6 +33,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRequest.Builder;
 import com.palantir.lock.LockResponse;
@@ -41,13 +44,15 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class LockRefreshingLockServiceTest {
+    private LockServiceImpl internalServer;
     private LockRefreshingLockService server;
     private LockDescriptor lock1;
 
     @Before public void setUp() {
-        server = LockRefreshingLockService.create(LockServiceImpl.create(LockServerOptions.builder()
+        internalServer = LockServiceImpl.create(LockServerOptions.builder()
                 .isStandaloneServer(false)
-                .build()));
+                .build());
+        server = LockRefreshingLockService.create(internalServer);
         lock1 = StringLockDescriptor.of("lock1");
     }
 
@@ -73,5 +78,20 @@ public class LockRefreshingLockServiceTest {
         assertThatThrownBy(() -> server.currentTimeMillis())
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("LockRefreshingLockService is closed");
+    }
+
+    @Test
+    public void testFailedRefreshCallback() throws InterruptedException {
+        AtomicReference<Set<LockRefreshToken>> failedTokens = new AtomicReference<>();
+        server.registerRefreshFailedCallback(failedTokens::set);
+        LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
+                .timeoutAfter(SimpleTimeDuration.of(5, TimeUnit.SECONDS))
+                .build();
+        LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
+        // use the internal server to unlock (refreshing service will still try to refresh but fail)
+        internalServer.unlock(lock.getToken());
+        Thread.sleep(10000);
+        // this assert implies the callback was called correctly when the lock failed to refresh
+        assertThat(failedTokens.get()).containsExactlyInAnyOrder(lock.getLockRefreshToken());
     }
 }
