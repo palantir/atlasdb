@@ -23,41 +23,41 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import com.codahale.metrics.Gauge;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * Given a provided number of metrics, ensures that only the top {@code maxPermittedRank} are published in the steady
  * state.
  */
-public final class TopNMetricPublicationController<T extends Comparable> {
+public final class TopNMetricPublicationController<T> {
     static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
 
     private final Set<Gauge<T>> gauges;
     private final Comparator<T> comparator;
     private final int maxPermittedRank;
-    private final Supplier<Optional<T>> orderStatisticSupplier;
+    private final Supplier<Optional<T>> lowerBoundSupplier;
 
     private TopNMetricPublicationController(Comparator<T> comparator, int maxPermittedRank) {
         this.comparator = comparator;
         this.maxPermittedRank = maxPermittedRank;
         this.gauges = Sets.newConcurrentHashSet();
-        this.orderStatisticSupplier = Suppliers.memoizeWithExpiration(
-                this::calculateOrderStatistic,
+        this.lowerBoundSupplier = Suppliers.memoizeWithExpiration(
+                this::calculateLowerBound,
                 REFRESH_INTERVAL.toNanos(),
                 TimeUnit.NANOSECONDS);
     }
 
-    private Optional<T> calculateOrderStatistic() {
-        return gauges.stream()
-                .map(Gauge::getValue)
-                .filter(Objects::nonNull)
-                .sorted(comparator.reversed())
-                .skip(maxPermittedRank - 1)
-                .findFirst();
+    @SuppressWarnings("unchecked") // Guaranteed correct
+    public static <T extends Comparable> TopNMetricPublicationController<T> create(int maxPermittedRank) {
+        return new TopNMetricPublicationController<T>(Comparator.naturalOrder(), maxPermittedRank);
     }
 
     MetricPublicationFilter registerAndCreateFilter(Gauge<T> gauge) {
@@ -67,12 +67,31 @@ public final class TopNMetricPublicationController<T extends Comparable> {
 
     private boolean shouldPublishIndividualGaugeMetric(Gauge<T> constituentGauge) {
         T value = constituentGauge.getValue();
-        return orderStatisticSupplier.get()
-                .map(orderStatistic -> isAtLeastAsLargeAsOrderStatistic(value, orderStatistic))
-                .orElse(false);
+        return lowerBoundSupplier.get()
+                .map(lowerBound -> isAtLeastLowerBound(value, lowerBound))
+                .orElse(true); // This means there aren't maxPermittedRank series, so we should publish the metric.
     }
 
-    private boolean isAtLeastAsLargeAsOrderStatistic(T value, T orderStatistic) {
-        return comparator.compare(value, orderStatistic) >= 0;
+    private boolean isAtLeastLowerBound(T value, T lowerBound) {
+        return comparator.compare(value, lowerBound) >= 0;
+    }
+
+    private Optional<T> calculateLowerBound() {
+        return calculateOrderStatistic(gauges.stream().map(Gauge::getValue), comparator, maxPermittedRank);
+    }
+
+    @VisibleForTesting
+    static <T> Optional<T> calculateOrderStatistic(
+            Stream<T> values, Comparator<T> comparator, int orderStatistic) {
+        Preconditions.checkState(orderStatistic > 0,
+                "The order statistic to be queried for must be positive",
+                SafeArg.of("queriedOrderStatistic", orderStatistic));
+
+        // O(N log N) sorting algorithm. The number of gauges is not expected to be large.
+        // If performance is bad: consider switching to a heap O(n log orderStatistic) or quick-select algorithms.
+        return values.filter(Objects::nonNull)
+                .sorted(comparator.reversed())
+                .skip(orderStatistic - 1)
+                .findFirst();
     }
 }
