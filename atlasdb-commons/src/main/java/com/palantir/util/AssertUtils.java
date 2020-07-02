@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class AssertUtils {
@@ -103,8 +104,6 @@ public class AssertUtils {
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
             assertAndLogWithException(log, cheapTest, msg, t, new Object[] {});
-            log.error("Assertion {} with exception ", msg, t);
-            assert false : msg;
         }
     }
 
@@ -121,9 +120,10 @@ public class AssertUtils {
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String format, Throwable t,
             Object... args) {
         if (!cheapTest) {
-            Object[] newArgs = Arrays.copyOf(args, args.length + 1);
-            newArgs[args.length] = t;
-            log.error("Assertion " + format + " with exception ", newArgs);
+            Object[] newArgs = Arrays.copyOf(args, args.length + 2);
+            newArgs[args.length] = SafeArg.of("format", format);
+            newArgs[args.length + 1] = t;
+            log.error("Assertion with exception!", newArgs);
             assert false : format;
         }
     }
