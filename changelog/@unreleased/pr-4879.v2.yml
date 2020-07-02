@@ -1,40 +1,8 @@
 type: improvement
 improvement:
   description: |-
-    add refresh failure callbacks
-
-    **Goals (and why)**:
-
     Adds an option to register callback functions that get called whenever a
     LockRefreshingLockService stops refreshing a lock because it failed to
     refresh.
-
-    This helps with situations where a client intentionally will be holding
-    locks for a long time, and they want to be nofied immediately as soon as
-    refreshing the lock fails. Without this callback, clients would need to
-    implement their own background thread to check if the locks were still
-    valid.
-
-    We have an internal product that would already like to use this feature, and this will save us an additional background task that would currently be used to repeatedly check that locks are still valid.
-
-    **Implementation Description (bullets)**:
-
-    Adds methods to register and remove callbacks from LockRefreshingLockService, and calls the callback when lock tokens fail to refresh. To avoid problems where a callback is very slow, the callbacks are only called on a new thread that is submitted to the same executor that runs refreshes. The executor service already has an unbounded max number of threads so it will create new threads and for these callbacks and then dispose of the threads when not needed.
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-
-    Added a simple test.
-
-    **Concerns (what feedback would you like?)**:
-
-    N/A (simple change)
-
-    **Where should we start reviewing?**:
-
-    simple change
-
-    **Priority (whenever / two weeks / yesterday)**:
-
-    normal
   links:
   - https://github.com/palantir/atlasdb/pull/4879
