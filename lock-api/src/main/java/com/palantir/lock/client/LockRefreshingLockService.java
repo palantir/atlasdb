@@ -39,6 +39,9 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.refreshable.Disposable;
 
 public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
@@ -156,7 +159,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
             Set<LockRefreshToken> unmodifiableFailedTokens = Collections.unmodifiableSet(failedTokens);
             // submit callbacks to the executor so a slow callback doesn't prevent future refreshes
             for (FailedRefreshCallback callback : failedRefreshCallbacks) {
-                exec.submit(() -> callback.onFailedRefresh(unmodifiableFailedTokens));
+                exec.execute(() -> callback.onFailedRefresh(unmodifiableFailedTokens));
             }
         }
     }
@@ -208,15 +211,18 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     /**
      * Register a callback function to get called any time tokens fail to be refreshed.
+     *
+     * <p>Call {@link Disposable#dispose} on the returned value to remove the callback.
+     *
+     * @throws SafeIllegalArgumentException if the callback was already registered.
      */
-    public void registerRefreshFailedCallback(FailedRefreshCallback callback) {
-        failedRefreshCallbacks.add(callback);
-    }
-
-    /**
-     * Remove a callback function that was previously registered to be called when tokens fail to be refreshed.
-     */
-    public void removeRefreshFailedCallback(FailedRefreshCallback callback) {
-        failedRefreshCallbacks.remove(callback);
+    public Disposable registerRefreshFailedCallback(FailedRefreshCallback callback) {
+        if (failedRefreshCallbacks.add(callback)) {
+            return () -> failedRefreshCallbacks.remove(callback);
+        } else {
+            throw new SafeIllegalArgumentException(
+                    "The callback function was already registered",
+                    UnsafeArg.of("callback", callback));
+        }
     }
 }
