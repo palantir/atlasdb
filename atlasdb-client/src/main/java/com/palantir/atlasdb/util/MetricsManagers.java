@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.util.function.BooleanSupplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.refreshable.Refreshable;
