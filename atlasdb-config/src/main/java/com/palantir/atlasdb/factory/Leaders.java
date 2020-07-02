@@ -23,17 +23,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.InstrumentedExecutorService;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -49,7 +44,6 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -59,7 +53,6 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
-import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
@@ -239,20 +232,7 @@ public final class Leaders {
     // TODO (jkong): Make the limits configurable.
     // Current use cases tend to have not more than 10 (<< 100) inflight tasks under normal circumstances.
     private static ExecutorService createExecutor(MetricsManager metricsManager, String useCase, int corePoolSize) {
-        return new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        corePoolSize,
-                        100,
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
-                        daemonThreadFactory("atlas-leaders-election-" + useCase)),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
-    }
-
-    private static ThreadFactory daemonThreadFactory(String name) {
-        return new NamedThreadFactory(name, true);
+        return PTExecutors.newCachedThreadPoolWithMaxThreads(100, "atlas-leaders-election-" + useCase);
     }
 
     public static <T> List<T> createProxyAndLocalList(
