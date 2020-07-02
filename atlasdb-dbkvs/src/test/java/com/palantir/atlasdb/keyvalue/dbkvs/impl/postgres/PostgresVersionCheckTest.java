@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -27,6 +28,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
+
+import com.palantir.logsafe.SafeArg;
 
 public class PostgresVersionCheckTest {
 
@@ -52,8 +55,10 @@ public class PostgresVersionCheckTest {
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining(expectedMessage);
         verify(log).error(
-                eq("Assertion {} with exception "),
-                contains(expectedMessage),
+                eq("Assertion with exception!"),
+                eq(lowVersion),
+                eq(PostgresVersionCheck.MIN_POSTGRES_VERSION),
+                isA(SafeArg.class),
                 Mockito.any(Exception.class));
         verifyNoMoreInteractions(log);
     }
