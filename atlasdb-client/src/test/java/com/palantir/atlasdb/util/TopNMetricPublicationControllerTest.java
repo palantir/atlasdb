@@ -145,4 +145,20 @@ public class TopNMetricPublicationControllerTest {
         assertThat(filtersInOrder.get(94).shouldPublish()).isTrue();
         assertThat(filtersInOrder.get(99).shouldPublish()).isTrue();
     }
+
+    @Test
+    public void publishesAllGaugesIfThereAreFewerThanTheThreshold() {
+        AtomicLong value1 = new AtomicLong(42);
+        AtomicLong value2 = new AtomicLong(157);
+
+        Gauge<Long> gauge1 = value1::get;
+        Gauge<Long> gauge2 = value2::get;
+
+        TopNMetricPublicationController<Long> controller = TopNMetricPublicationController.create(50);
+        MetricPublicationFilter filter1 = controller.registerAndCreateFilter(gauge1);
+        MetricPublicationFilter filter2 = controller.registerAndCreateFilter(gauge2);
+
+        assertThat(filter1.shouldPublish()).isTrue();
+        assertThat(filter2.shouldPublish()).isTrue();
+    }
 }
