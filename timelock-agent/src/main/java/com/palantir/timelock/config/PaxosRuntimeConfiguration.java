@@ -32,7 +32,7 @@ public interface PaxosRuntimeConfiguration {
     @JsonProperty("ping-rate-in-ms")
     @Value.Default
     default long pingRateMs() {
-        return 50L;
+        return 500L;
     }
 
     @JsonIgnore
@@ -45,7 +45,7 @@ public interface PaxosRuntimeConfiguration {
     @JsonProperty("maximum-wait-before-proposal-in-ms")
     @Value.Default
     default long maximumWaitBeforeProposalMs() {
-        return 300L;
+        return 1000L;
     }
 
     @JsonIgnore
