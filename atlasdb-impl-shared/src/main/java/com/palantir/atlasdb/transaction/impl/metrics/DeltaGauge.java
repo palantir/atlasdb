@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 import com.codahale.metrics.Gauge;

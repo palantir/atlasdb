@@ -246,7 +246,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         validateLocksOnReads,
                         transactionConfig,
                         ConflictTracer.NO_OP,
-                        new SimpleTableLevelMetricsController(metricsManager)),
+                        tableLevelMetricsController),
                 pathTypeTracker);
     }
 
