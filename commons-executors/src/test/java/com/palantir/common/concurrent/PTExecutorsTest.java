@@ -18,6 +18,8 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,6 +31,8 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
+import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Runnables;
 import com.google.common.util.concurrent.SettableFuture;
@@ -137,11 +141,23 @@ public class PTExecutorsTest {
         withExecutor(() -> PTExecutors.newCachedThreadPool(executorName), executor -> {
             executor.submit(Runnables.doNothing());
         });
-        Meter submitted = metrics.meter(MetricName.builder()
+        Meter submitted = findMetric(metrics, MetricName.builder()
                 .safeName("executor.submitted")
                 .putSafeTags("executor", executorName)
-                .build());
+                .build(), Meter.class);
         assertThat(submitted.getCount()).isOne();
+    }
+
+    private static <T extends Metric> T findMetric(TaggedMetricRegistry metrics, MetricName name, Class<T> type) {
+        return metrics.getMetrics().entrySet().stream()
+                .filter(entry -> {
+                    MetricName metricName = entry.getKey();
+                    return Objects.equals(name.safeName(), metricName.safeName())
+                            && metricName.safeTags().entrySet().containsAll(name.safeTags().entrySet());
+                })
+                .map(Map.Entry::getValue)
+                .map(type::cast)
+                .collect(MoreCollectors.onlyElement());
     }
 
     private static <T extends ExecutorService> void withExecutor(Supplier<T> factory, ThrowingConsumer<T> test) {
