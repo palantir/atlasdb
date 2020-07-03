@@ -114,7 +114,8 @@ public final class AtlasDbDialogueServiceProvider {
     }
 
     TimestampManagementRpcClient getTimestampManagementRpcClient() {
-        return createDialogueProxyWithShortTimeout(TimestampManagementRpcClient.class);
+        return AtlasDbHttpClients.createUninstrumentedDialogueProxy(
+                TimestampManagementRpcClient.class, dialogueClientFactory.getChannel(TIMELOCK_SHORT_TIMEOUT));
     }
 
     LockRpcClient getLockRpcClient() {

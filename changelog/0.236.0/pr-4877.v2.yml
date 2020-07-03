@@ -1,0 +1,14 @@
+changes:
+  - type: improvement
+    improvement:
+      description: |-
+        PTExecutors simple cached and fixed executor factories (those which don't consume a ThreadFactory) use views
+        over a shared executor service to reduce total thread count and promote resource reuse.
+      links:
+      - https://github.com/palantir/atlasdb/pull/4877
+  - type: break
+    break:
+      description: |-
+        `PTExecutors.newFixedThreadPool` overloads return `ExecutorService` instead of the concrete `ThreadPoolExecutor` type.
+      links:
+        - https://github.com/palantir/atlasdb/pull/4877

@@ -42,7 +42,7 @@ public class NamedThreadFactory implements ThreadFactory {
      * @param prefix The prefix for each constructed thread.
      */
     public NamedThreadFactory(String prefix) {
-        this(prefix, false);
+        this(prefix, true);
     }
 
     /**
@@ -69,6 +69,7 @@ public class NamedThreadFactory implements ThreadFactory {
         Thread thread = threadFactory.newThread(runnable);
         thread.setName(prefix + "-" + count.getAndIncrement());
         thread.setDaemon(isDaemon);
+        thread.setUncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE);
         return thread;
     }
 

@@ -116,8 +116,7 @@ public class AtlasDbTestCase {
     }
 
     protected KeyValueService getBaseKeyValueService() {
-        ExecutorService executor = PTExecutors.newSingleThreadExecutor(
-                PTExecutors.newNamedThreadFactory(true));
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
         InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
         KeyValueService tracingKvs = TracingKeyValueService.create(inMemoryKvs);
         return AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class, tracingKvs);

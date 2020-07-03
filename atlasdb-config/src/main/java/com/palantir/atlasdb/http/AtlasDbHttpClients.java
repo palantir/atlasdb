@@ -84,11 +84,15 @@ public final class AtlasDbHttpClients {
     }
 
     public static <T> T createDialogueProxy(TaggedMetricRegistry registry, Class<T> type, Channel channel) {
-        T proxy = DialogueShimFactory.create(type, channel);
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 registry,
                 type,
-                FastFailoverProxy.newProxyInstance(type, () -> proxy));
+                createUninstrumentedDialogueProxy(type, channel));
+    }
+
+    public static <T> T createUninstrumentedDialogueProxy(Class<T> type, Channel channel) {
+        T proxy = DialogueShimFactory.create(type, channel);
+        return FastFailoverProxy.newProxyInstance(type, () -> proxy);
     }
 
     @VisibleForTesting

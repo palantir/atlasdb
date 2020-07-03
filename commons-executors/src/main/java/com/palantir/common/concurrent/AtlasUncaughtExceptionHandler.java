@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.metrics;
+package com.palantir.common.concurrent;
 
-/**
- * Determines whether a metric should be published.
- */
-public interface MetricPublicationFilter {
-    MetricPublicationFilter NEVER_PUBLISH = () -> false;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    boolean shouldPublish();
+enum AtlasUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+    INSTANCE;
+
+    private static final Logger log = LoggerFactory.getLogger(AtlasUncaughtExceptionHandler.class);
+
+    @Override
+    public void uncaughtException(@SuppressWarnings("unused") Thread thread, Throwable throwable) {
+        log.error("Uncaught Exception", throwable);
+    }
 }
