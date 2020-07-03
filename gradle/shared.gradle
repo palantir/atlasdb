@@ -5,7 +5,7 @@ apply plugin: 'checkstyle'
 apply plugin: 'com.github.hierynomus.license'
 
 apply from: "${rootDir}/gradle/versions.gradle"
-apply from: "${rootDir}/gradle/baseline.gradle"
+//apply from: "${rootDir}/gradle/baseline.gradle"
 
 sourceCompatibility = 1.8
 

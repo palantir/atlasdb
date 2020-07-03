@@ -1,10 +1,10 @@
 apply plugin: 'com.palantir.baseline-checkstyle'
 
 // ./gradlew compileJava compileTestJava -PenableErrorProne=true
-if (enableErrorProne.toBoolean()) {
+//if (enableErrorProne.toBoolean()) {
         // installs the "processor" configuration needed for baseline-error-prone
     apply plugin: 'com.palantir.baseline-error-prone'
-
+/*
     plugins.withId('com.palantir.baseline-error-prone', {
         dependencies {
             compileOnly 'com.google.code.findbugs:jsr305'
@@ -35,8 +35,8 @@ if (enableErrorProne.toBoolean()) {
                 '-Xep:ReturnValueIgnored:OFF',
             ]
         }
-    })
-}
+    })*/
+//}
 
 apply plugin: 'com.palantir.baseline-eclipse'
 apply plugin: 'com.palantir.baseline-idea'

@@ -37,6 +37,6 @@ configurations {
     }
 }
 
-artifacts {
-    testArtifacts testJarForPublishing
-}
+//artifacts {
+//    testArtifacts testJarForPublishing
+//}

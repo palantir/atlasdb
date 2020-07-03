@@ -17,7 +17,7 @@ buildscript {
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
-        classpath 'com.palantir.baseline:gradle-baseline-java:1.8.2'
+        classpath 'com.palantir.baseline:gradle-baseline-java:3.33.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
         classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.10.1'
@@ -29,16 +29,14 @@ buildscript {
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '5.1.0'
-    id 'com.palantir.configuration-resolver' version '0.4.0'
+   // id 'com.palantir.configuration-resolver' version '0.4.0'
     id 'com.palantir.consistent-versions' version '1.17.3'
     id 'org.unbroken-dome.test-sets' version '2.1.1'
     id 'com.google.protobuf' version '0.8.10'
 }
 
-apply plugin: 'com.palantir.baseline-config'
-apply plugin: 'com.palantir.baseline-circleci'
 apply plugin: 'com.palantir.git-version'
-
+apply plugin: 'com.palantir.baseline'
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
@@ -65,14 +63,6 @@ allprojects {
 
     apply plugin: 'java-library'
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
-
-    // temporary until this is merged/fixed inside gradle-processors
-    configurations.allProcessors {
-        canBeConsumed = false
-        attributes {
-            attribute Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_API)
-        }
-    }
 
     configurations.all {
 
@@ -106,10 +96,10 @@ allprojects {
     }
 }
 
-subprojects {
+/*subprojects {
     apply plugin: 'com.palantir.configuration-resolver'
     task allDeps(type: DependencyReportTask) {}
-}
+}*/
 
 configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
     apply from: "$rootDir/gradle/publish-jars.gradle"
