@@ -38,7 +38,7 @@ import com.palantir.logsafe.SafeArg;
  * state.
  */
 public final class TopNMetricPublicationController<T> {
-    static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
+    private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
 
     private final Set<Gauge<T>> gauges;
     private final Comparator<T> comparator;
@@ -57,6 +57,8 @@ public final class TopNMetricPublicationController<T> {
 
     @SuppressWarnings("unchecked") // Guaranteed correct
     public static <T extends Comparable> TopNMetricPublicationController<T> create(int maxPermittedRank) {
+        Preconditions.checkState(maxPermittedRank > 0, "maxPermittedRank must be positive",
+                SafeArg.of("maxPermittedRank", maxPermittedRank));
         return new TopNMetricPublicationController<T>(Comparator.naturalOrder(), maxPermittedRank);
     }
 

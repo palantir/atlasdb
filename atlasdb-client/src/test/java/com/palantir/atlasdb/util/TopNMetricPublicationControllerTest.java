@@ -161,4 +161,14 @@ public class TopNMetricPublicationControllerTest {
         assertThat(filter1.shouldPublish()).isTrue();
         assertThat(filter2.shouldPublish()).isTrue();
     }
+
+    @Test
+    public void throwsWhenCreatingControllerWithNonPositiveArguments() {
+        assertThatThrownBy(() -> TopNMetricPublicationController.create(0))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("maxPermittedRank must be positive");
+        assertThatThrownBy(() -> TopNMetricPublicationController.create(-29359))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("maxPermittedRank must be positive");
+    }
 }
