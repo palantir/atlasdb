@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: fix
+fix:
   description: Fix baseline error prone ExecutorSubmitRunnableFutureIgnored
   links:
   - https://github.com/palantir/atlasdb/pull/4882
