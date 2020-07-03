@@ -59,6 +59,8 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.metrics.FilteringTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -100,6 +102,7 @@ import com.palantir.util.SafeShutdownRunner;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
     private final ConflictTracer conflictTracer;
+    final TableLevelMetricsController tableLevelMetricsController;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -147,6 +150,7 @@ import com.palantir.util.SafeShutdownRunner;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.conflictTracer = conflictTracer;
+        this.tableLevelMetricsController = new FilteringTableLevelMetricsController(metricsManager);
     }
 
     @Override
@@ -300,7 +304,8 @@ import com.palantir.util.SafeShutdownRunner;
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                tableLevelMetricsController);
     }
 
     @Override
@@ -341,7 +346,8 @@ import com.palantir.util.SafeShutdownRunner;
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                tableLevelMetricsController);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

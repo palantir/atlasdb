@@ -62,7 +62,7 @@ public final class TopNMetricPublicationController<T> {
         return new TopNMetricPublicationController<T>(Comparator.naturalOrder(), maxPermittedRank);
     }
 
-    MetricPublicationFilter registerAndCreateFilter(Gauge<T> gauge) {
+    public MetricPublicationFilter registerAndCreateFilter(Gauge<T> gauge) {
         gauges.add(gauge);
         return () -> shouldPublishIndividualGaugeMetric(gauge);
     }

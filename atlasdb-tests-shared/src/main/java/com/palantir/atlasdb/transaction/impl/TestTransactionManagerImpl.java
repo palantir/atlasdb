@@ -39,6 +39,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
@@ -207,7 +208,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         () -> TRANSACTION_CONFIG,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        new SimpleTableLevelMetricsController(metricsManager)),
                 pathTypeTracker);
     }
 
@@ -243,7 +245,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        new SimpleTableLevelMetricsController(metricsManager)),
                 pathTypeTracker);
     }
 
