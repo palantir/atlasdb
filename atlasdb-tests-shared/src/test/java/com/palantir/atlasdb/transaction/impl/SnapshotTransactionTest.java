@@ -430,7 +430,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        new SimpleTableLevelMetricsController(metricsManager)),
+                        tableLevelMetricsController),
                 pathTypeTracker);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
@@ -503,7 +503,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        new SimpleTableLevelMetricsController(metricsManager)),
+                        tableLevelMetricsController),
                 pathTypeTracker);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
