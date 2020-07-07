@@ -579,7 +579,8 @@ public abstract class TransactionManagers {
                             globalTaggedMetricRegistry(),
                             () -> AtlasDbVersion.readVersion(),
                             serviceName(),
-                            refreshableTimeLockClientFeedbackServices), closeables));
+                            refreshableTimeLockClientFeedbackServices,
+                            namespace()), closeables));
         }
         return Optional.empty();
     }
@@ -614,13 +615,18 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     @Value.Derived
     String serviceName() {
-        return serviceIdentifierOverride().orElseGet(() -> Stream.of(config().namespace(),
+        return serviceIdentifierOverride().orElseGet(this::namespace);
+    }
+
+    @Value.Derived
+    String namespace() {
+        return Stream.of(config().namespace(),
                 config().timelock().flatMap(TimeLockClientConfig::client),
                 config().keyValueService().namespace())
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst()
-                .orElse("UNKNOWN"));
+                .orElse("UNKNOWN");
     }
 
     private static Callback<TransactionManager> createClearsTable() {

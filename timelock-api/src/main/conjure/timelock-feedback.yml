@@ -9,6 +9,9 @@ types:
           nodeId: uuid
           startTransaction: optional<EndpointStatistics>
           leaderTime: optional<EndpointStatistics>
+          namespace:
+            type: optional<string>
+            docs: The namespace the client uses to make timestamp/lock requests
       EndpointStatistics:
         fields:
           p99: double
