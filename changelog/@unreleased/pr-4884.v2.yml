@@ -1,6 +1,7 @@
 type: fix
 fix:
   description: Fixed fixed-size executor view thread safety. State is always updated
-    under a lock.
+    under a lock. Previously this could result in awaitTermination waiting the full
+    duration or tasks failing to be interrupted.
   links:
   - https://github.com/palantir/atlasdb/pull/4884
