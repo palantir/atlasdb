@@ -16,9 +16,14 @@
 package com.palantir.async.initializer;
 
 import java.util.List;
+import java.util.stream.IntStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * A Callback is a potentially retryable operation on a resource R. The intended use is to specify a task to be run on
@@ -121,6 +126,8 @@ public abstract class Callback<R> {
      * Please see the examples in CallChainTest for more detail.
      */
     public static class CallChain<T> extends Callback<T> {
+        private static final Logger log = LoggerFactory.getLogger(CallChain.class);
+
         private final List<Callback<T>> callbacks;
 
         public CallChain(List<Callback<T>> callbacks) {
@@ -133,7 +140,22 @@ public abstract class Callback<R> {
 
         @Override
         public void init(T resource) {
-            callbacks.forEach(callback -> callback.runWithRetry(resource));
+            IntStream.range(0, callbacks.size())
+                    .forEach(index -> {
+                        log.info("Now beginning to run callback {} of {} in a call chain",
+                                SafeArg.of("index", index + 1),
+                                SafeArg.of("totalCallbacks", callbacks.size()));
+                        try {
+                            callbacks.get(index).runWithRetry(resource);
+                            log.info("Successfully ran callback {} of {} in a call chain",
+                                    SafeArg.of("index", index + 1),
+                                    SafeArg.of("totalCallbacks", callbacks.size()));
+                        } catch (RuntimeException e) {
+                            log.info("Failed to run callback {} of {} in a call chain",
+                                    SafeArg.of("index", index + 1),
+                                    SafeArg.of("totalCallbacks", callbacks.size()));
+                        }
+            });
         }
 
         @Override

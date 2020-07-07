@@ -546,6 +546,7 @@ public abstract class TransactionManagers {
                         runtime.map(AtlasDbRuntimeConfig::compact)),
                 closeables);
 
+        log.info("Successfully created, and now returning a transaction manager: this may not be fully initialised.");
         return transactionManager;
     }
 
