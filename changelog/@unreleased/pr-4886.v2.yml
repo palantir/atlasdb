@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: AtlasDB logs more information on its initialisation path, especially
+    when working with callback chains.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4886
