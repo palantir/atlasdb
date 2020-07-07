@@ -38,4 +38,12 @@ public final class MetricsManagers {
     public static MetricsManager createForTests() {
         return MetricsManagers.of(new MetricRegistry(), new DefaultTaggedMetricRegistry());
     }
+
+    public static MetricsManager createAlwaysSafeAndFilteringForTests() {
+        return new MetricsManager(
+                new MetricRegistry(),
+                new DefaultTaggedMetricRegistry(),
+                Refreshable.only(true),
+                tableRef -> true);
+    }
 }

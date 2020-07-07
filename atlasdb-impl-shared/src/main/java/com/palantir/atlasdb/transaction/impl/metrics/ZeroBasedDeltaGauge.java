@@ -22,13 +22,16 @@ import com.codahale.metrics.Gauge;
 
 /**
  * Reports the difference between measurements of a supplier of long values.
+ *
+ * The first value is returned as is. Users of this gauge should be very careful when attempting to evaluate deltas of
+ * sequences that do not start at zero, as they will on their first measurement not give an accurate delta.
  */
-public class DeltaGauge implements Gauge<Long> {
+public class ZeroBasedDeltaGauge implements Gauge<Long> {
     private final LongSupplier underlying;
 
     private long previousValue = 0;
 
-    public DeltaGauge(LongSupplier underlying) {
+    public ZeroBasedDeltaGauge(LongSupplier underlying) {
         this.underlying = underlying;
     }
 

@@ -150,7 +150,7 @@ import com.palantir.util.SafeShutdownRunner;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.conflictTracer = conflictTracer;
-        this.tableLevelMetricsController = new FilteringTableLevelMetricsController(metricsManager);
+        this.tableLevelMetricsController = FilteringTableLevelMetricsController.create(metricsManager);
     }
 
     @Override

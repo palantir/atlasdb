@@ -16,10 +16,15 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
+import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -28,17 +33,34 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
 public final class FilteringTableLevelMetricsController implements TableLevelMetricsController {
-    private static final int MAXIMUM_NUMBER_OF_TABLES_TO_PUBLISH_SERIES_FOR = 10;
+    private static final int DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS = 10;
     private static final String CONTROLLER_GENERATED = "controllerGenerated";
     private static final String TRUE = "true";
 
+    @VisibleForTesting
+    static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
+
     private final Map<String, TopNMetricPublicationController<Long>> metricNameToPublicationController;
     private final MetricsManager metricsManager;
+    private final int maximumNumberOfTables;
+    private final Clock clock;
 
-    public FilteringTableLevelMetricsController(
-            MetricsManager metricsManager) {
+    @VisibleForTesting
+    FilteringTableLevelMetricsController(
+            MetricsManager metricsManager,
+            int maximumNumberOfTables,
+            Clock clock) {
         this.metricNameToPublicationController = Maps.newConcurrentMap();
         this.metricsManager = metricsManager;
+        this.maximumNumberOfTables = maximumNumberOfTables;
+        this.clock = clock;
+    }
+
+    public static TableLevelMetricsController create(MetricsManager metricsManager) {
+        return new FilteringTableLevelMetricsController(
+                metricsManager,
+                DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS,
+                Clock.defaultClock());
     }
 
     @Override
@@ -53,10 +75,18 @@ public final class FilteringTableLevelMetricsController implements TableLevelMet
                 getTagsForTableReference(tableReference),
                 MetricPublicationFilter.NEVER_PUBLISH);
 
-        Gauge<Long> gauge = new DeltaGauge(counter::getCount);
+
+        Gauge<Long> gauge = new ZeroBasedDeltaGauge(counter::getCount);
+        Gauge<Long> memoizedGauge = new CachedGauge<Long>(clock, REFRESH_INTERVAL.toNanos(), TimeUnit.NANOSECONDS) {
+            @Override
+            protected Long loadValue() {
+                return gauge.getValue();
+            }
+        };
+
         MetricPublicationFilter filter = metricNameToPublicationController.computeIfAbsent(metricName,
-                _name -> TopNMetricPublicationController.create(MAXIMUM_NUMBER_OF_TABLES_TO_PUBLISH_SERIES_FOR))
-                .registerAndCreateFilter(gauge);
+                _name -> TopNMetricPublicationController.create(maximumNumberOfTables))
+                .registerAndCreateFilter(memoizedGauge);
         metricsManager.addMetricFilter(
                 clazz,
                 metricName,
