@@ -155,6 +155,7 @@ public abstract class Callback<R> {
                                     SafeArg.of("index", index + 1),
                                     SafeArg.of("totalCallbacks", callbacks.size()),
                                     e);
+                            throw e;
                         }
             });
         }
