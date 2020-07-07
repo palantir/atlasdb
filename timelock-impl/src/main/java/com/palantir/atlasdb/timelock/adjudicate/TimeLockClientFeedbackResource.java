@@ -68,7 +68,7 @@ public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFee
     }
 
     public Client getClient(ConjureTimeLockClientFeedback feedbackReport) {
-        return Client.of(feedbackReport.getNamespace().orElse(feedbackReport.getServiceName()));
+        return Client.of(feedbackReport.getNamespace().orElseGet(() -> feedbackReport.getServiceName()));
     }
 
     public static final class JerseyAdapter implements TimeLockClientFeedbackService {
