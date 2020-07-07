@@ -196,7 +196,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
     private final TableLevelMetricsController tableLevelMetricsController
-            = new FilteringTableLevelMetricsController(metricsManager);
+            = FilteringTableLevelMetricsController.create(metricsManager);
 
     private TransactionConfig transactionConfig;
 
