@@ -89,7 +89,7 @@ public final class NoSimultaneousServiceCheck {
     }
 
     private void scheduleCheckOnSpecificClient(Client client) {
-        executorService.submit(() -> {
+        executorService.execute(() -> {
             try {
                 performCheckOnSpecificClientUnsafe(client);
             } catch (Exception e) {

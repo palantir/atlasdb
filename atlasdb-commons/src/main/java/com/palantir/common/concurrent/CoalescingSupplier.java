@@ -72,7 +72,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         }
         return Futures.transformAsync(present.done(), next -> {
             if (next.isFirstToArrive()) {
-                executor.submit(next::execute);
+                executor.execute(next::execute);
             }
             return next.getResultAsync();
         }, MoreExecutors.directExecutor());
