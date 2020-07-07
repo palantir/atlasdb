@@ -23,7 +23,6 @@ dependencies {
     compileOnly project(":atlasdb-processors")
 }
 
-
 recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.timelock'

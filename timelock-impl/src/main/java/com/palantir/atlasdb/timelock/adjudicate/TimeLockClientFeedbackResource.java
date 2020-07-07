@@ -58,13 +58,17 @@ public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFee
             Predicate<Client> leadershipCheck) {
         return new JerseyAdapter(TimeLockClientFeedbackResource.create(feedbackHandler, leadershipCheck));
     }
+
     @Override
     public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
-        Client client = Client.of(feedbackReport.getNamespace().orElse(feedbackReport.getServiceName()));
-        if (leadershipCheck.test(client)) {
+        if (leadershipCheck.test(getClient(feedbackReport))) {
             feedbackHandler.handle(feedbackReport);
         }
         return Futures.immediateVoidFuture();
+    }
+
+    public Client getClient(ConjureTimeLockClientFeedback feedbackReport) {
+        return Client.of(feedbackReport.getNamespace().orElse(feedbackReport.getServiceName()));
     }
 
     public static final class JerseyAdapter implements TimeLockClientFeedbackService {
