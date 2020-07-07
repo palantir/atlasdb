@@ -150,6 +150,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -286,7 +287,7 @@ public abstract class TransactionManagers {
      */
     @Value.Default
     DialogueClients.ReloadingFactory reloadingFactory() {
-        return DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
+        return newMinimalDialogueFactory();
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
@@ -591,8 +592,7 @@ public abstract class TransactionManagers {
             UserAgent userAgent) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
-        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
-                Refreshable.only(ServicesConfigBlock.builder().build()));
+        DialogueClients.ReloadingFactory reloadingFactory = newMinimalDialogueFactory();
 
         BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
                 reloadingFactory,
@@ -608,6 +608,11 @@ public abstract class TransactionManagers {
         return broadcastDialogueClientFactory.getSingleNodeProxies(
                 TimeLockClientFeedbackService.class,
                 true);
+    }
+
+    private static DialogueClients.ReloadingFactory newMinimalDialogueFactory() {
+        return DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()))
+                .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
     }
 
     abstract Optional<String> serviceIdentifierOverride();
@@ -936,7 +941,7 @@ public abstract class TransactionManagers {
                         invalidator,
                         UserAgents.tryParse(userAgent),
                         Optional.empty(),
-                        DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build())));
+                        newMinimalDialogueFactory());
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
