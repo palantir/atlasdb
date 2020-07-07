@@ -153,7 +153,8 @@ public abstract class Callback<R> {
                         } catch (RuntimeException e) {
                             log.info("Failed to run callback {} of {} in a call chain",
                                     SafeArg.of("index", index + 1),
-                                    SafeArg.of("totalCallbacks", callbacks.size()));
+                                    SafeArg.of("totalCallbacks", callbacks.size()),
+                                    e);
                         }
             });
         }
