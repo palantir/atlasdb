@@ -34,14 +34,14 @@ public final class Constants {
     public static final ServiceLevelObjectiveSpecification LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
             = ServiceLevelObjectiveSpecification.builder()
             .maximumPermittedP99(Duration.ofMillis(200))
-            .minimumRequestRateForConsideration(1)
+            .minimumRequestRateForConsideration(0.1)
             .maximumPermittedErrorProportion(0.5)
             .build();
 
     public static final ServiceLevelObjectiveSpecification START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES
             = ServiceLevelObjectiveSpecification.builder()
             .maximumPermittedP99(Duration.ofMillis(500))
-            .minimumRequestRateForConsideration(1)
+            .minimumRequestRateForConsideration(0.1)
             .maximumPermittedErrorProportion(0.5)
             .build();
 

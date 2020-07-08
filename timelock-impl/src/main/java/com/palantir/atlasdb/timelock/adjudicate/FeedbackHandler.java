@@ -25,16 +25,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
 public class FeedbackHandler {
+    private static final Logger log = LoggerFactory.getLogger(FeedbackHandler.class);
 
     private final TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
             .create(Caffeine
@@ -142,8 +146,18 @@ public class FeedbackHandler {
                         sloSpec.maximumPermittedP99().toNanos(),
                         sloSpec.maximumPermittedErrorProportion()))
                 .values()
+                .map(healthState -> logHealthStatusForReport(healthReport, healthState))
                 .max(HealthStatus.getHealthStatusComparator())
                 .orElse(HealthStatus.HEALTHY);
+    }
+
+    private HealthStatus logHealthStatusForReport(
+            ConjureTimeLockClientFeedback healthReport, HealthStatus healthState) {
+        log.info("Point health status for service - {}, node - {} is - {}",
+                SafeArg.of("service", healthReport.getServiceName()),
+                SafeArg.of("node", healthReport.getNodeId()),
+                SafeArg.of("healthState", healthState.toString()));
+        return healthState;
     }
 
     private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
