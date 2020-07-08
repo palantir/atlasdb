@@ -141,24 +141,26 @@ public class FeedbackHandler {
                         Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES)))
                 .filterKeys(Optional::isPresent)
                 .mapKeys(Optional::get)
-                .map((userStats, sloSpec) -> getHealthStatusForMetric(userStats,
+                .map((userStats, sloSpec) -> getHealthStatusForMetric(healthReport.getServiceName(),
+                        userStats,
                         sloSpec.name(),
                         sloSpec.minimumRequestRateForConsideration(),
                         sloSpec.maximumPermittedSteadyStateP99().toNanos(),
-                        sloSpec.maximumPermittedErrorProportion(),
-                        sloSpec.maximumPermittedQuietP99().toNanos()))
+                        sloSpec.maximumPermittedQuietP99().toNanos(),
+                        sloSpec.maximumPermittedErrorProportion()))
                 .values()
                 .max(HealthStatus.getHealthStatusComparator())
                 .orElse(HealthStatus.HEALTHY);
     }
 
     @VisibleForTesting
-    HealthStatus getHealthStatusForMetric(EndpointStatistics endpointStatistics,
-            String metric,
-            double rateThreshold,
-            long p99Limit,
-            double errorRateProportion,
-            long quietP99Limit) {
+    HealthStatus getHealthStatusForMetric(String serviceName,
+                    EndpointStatistics endpointStatistics,
+                    String metricName,
+                    double rateThreshold,
+                    long steadyStateP99Limit,
+                    long quietP99Limit,
+                    double errorRateProportion) {
 
         // Outliers indicate badness even with low request rates. The request rate should be greater than
         // zero to counter lingering badness from a single slow request
@@ -168,8 +170,9 @@ public class FeedbackHandler {
 
         double oneMin = endpointStatistics.getOneMin();
         if (oneMin < rateThreshold) {
-            log.info("Point health status for {} is UNKNOWN as request rate is low - {}",
-                    SafeArg.of("metricName", metric),
+            log.info("[Service - {}] | Point health status for {} is UNKNOWN as request rate is low - {}",
+                    SafeArg.of("service", serviceName),
+                    SafeArg.of("metricName", metricName),
                     SafeArg.of("oneMinRate", oneMin));
             return HealthStatus.UNKNOWN;
         }
@@ -177,14 +180,14 @@ public class FeedbackHandler {
         double errorProportion = getErrorProportion(endpointStatistics);
         if (errorProportion > errorRateProportion) {
             log.info("Point health status for {} is UNHEALTHY due to high error proportion - {}",
-                    SafeArg.of("metricName", metric),
+                    SafeArg.of("metricName", metricName),
                     SafeArg.of("errorProportion", errorProportion));
             return HealthStatus.UNHEALTHY;
         }
 
-        if (endpointStatistics.getP99() > p99Limit) {
+        if (endpointStatistics.getP99() > steadyStateP99Limit) {
             log.info("Point health status for {} is UNHEALTHY due to high p99 - {}",
-                    SafeArg.of("metricName", metric),
+                    SafeArg.of("metricName", metricName),
                     SafeArg.of("p99", endpointStatistics.getP99()));
             return HealthStatus.UNHEALTHY;
         }

@@ -23,12 +23,14 @@ import org.junit.Test;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
 public class PointHealthReportAnalysisTest {
-    private static final String name = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.name();
-    private static final double rate =
+    private static final String NAME = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.name();
+    private static final String CLIENT_1 = "Client1";
+
+    private static final double RATE =
             Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration();
-    private static final long p99 =
+    private static final long P_99 =
             Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.maximumPermittedP99().toNanos();
-    private static final double error =
+    private static final double ERROR_PROPORTION =
             Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.maximumPermittedErrorProportion();
 
     @Test
@@ -36,11 +38,14 @@ public class PointHealthReportAnalysisTest {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
-                .p99(p99 - 1)
-                .oneMin(rate + 1)
+                .p99(P_99 - 1)
+                .oneMin(RATE + 1)
                 .errorRate(0)
                 .build();
-        PointHealthStatusReport healthStatusForMetric = feedbackHandler.getHealthStatusForMetric(statistics, name, rate, p99, error);
+        PointHealthStatusReport healthStatusForMetric = feedbackHandler.getHealthStatusForMetric(
+                CLIENT_1,
+                statistics,
+                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES);
         assertThat(healthStatusForMetric.status()).isEqualTo(HealthStatus.HEALTHY);
         assertThat(healthStatusForMetric.message().isPresent()).isFalse();
     }
@@ -50,16 +55,18 @@ public class PointHealthReportAnalysisTest {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
-                .p99(p99 - 1)
-                .oneMin(rate - 0.01)
+                .p99(P_99 - 1)
+                .oneMin(RATE - 0.01)
                 .errorRate(0)
                 .build();
         PointHealthStatusReport healthStatusForMetric =
-                feedbackHandler.getHealthStatusForMetric(statistics, name, rate, p99, error);
+                feedbackHandler.getHealthStatusForMetric(CLIENT_1,
+                        statistics,
+                        Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES);
         assertThat(healthStatusForMetric.status()).isEqualTo(HealthStatus.UNKNOWN);
         assertThat(healthStatusForMetric.message().isPresent()).isTrue();
         assertThat(healthStatusForMetric.message().get())
-                .isEqualTo("Point health status for leaderTime is UNKNOWN as request rate is low - 0.99");
+                .isEqualTo("[Client1] | Point health status for leaderTime is UNKNOWN as request rate is low - 0.99");
     }
 
     @Test
@@ -67,16 +74,18 @@ public class PointHealthReportAnalysisTest {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
-                .p99(p99 - 1)
-                .oneMin(rate + 0.01)
-                .errorRate(error * rate + 0.1)
+                .p99(P_99 - 1)
+                .oneMin(RATE + 0.01)
+                .errorRate(ERROR_PROPORTION * RATE + 0.1)
                 .build();
         PointHealthStatusReport healthStatusForMetric =
-                feedbackHandler.getHealthStatusForMetric(statistics, name, rate, p99, error);
+                feedbackHandler.getHealthStatusForMetric(CLIENT_1,
+                        statistics,
+                        Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES);
         assertThat(healthStatusForMetric.status()).isEqualTo(HealthStatus.UNHEALTHY);
         assertThat(healthStatusForMetric.message().isPresent()).isTrue();
         assertThat(healthStatusForMetric.message().get())
-                .isEqualTo("Point health status for leaderTime is UNHEALTHY due to high error proportion - 0.59");
+                .isEqualTo("[Client1] | Point health status for leaderTime is UNHEALTHY due to high error proportion - 0.59");
     }
 
     @Test
@@ -84,15 +93,17 @@ public class PointHealthReportAnalysisTest {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
-                .p99(p99 + 1)
-                .oneMin(rate + 0.01)
-                .errorRate(error * rate)
+                .p99(P_99 + 1)
+                .oneMin(RATE + 0.01)
+                .errorRate(ERROR_PROPORTION * RATE)
                 .build();
         PointHealthStatusReport healthStatusForMetric =
-                feedbackHandler.getHealthStatusForMetric(statistics, name, rate, p99, error);
+                feedbackHandler.getHealthStatusForMetric(CLIENT_1,
+                        statistics,
+                        Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES);
         assertThat(healthStatusForMetric.status()).isEqualTo(HealthStatus.UNHEALTHY);
         assertThat(healthStatusForMetric.message().isPresent()).isTrue();
         assertThat(healthStatusForMetric.message().get())
-                .isEqualTo("Point health status for leaderTime is UNHEALTHY due to high p99 - 200000001.00ns");
+                .isEqualTo("[Client1] | Point health status for leaderTime is UNHEALTHY due to high p99 - 200000001.00ns");
     }
 }
