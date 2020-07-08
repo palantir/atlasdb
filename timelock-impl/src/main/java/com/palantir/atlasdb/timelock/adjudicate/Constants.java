@@ -36,6 +36,7 @@ public final class Constants {
             .maximumPermittedP99(Duration.ofMillis(200))
             .minimumRequestRateForConsideration(0.1)
             .maximumPermittedErrorProportion(0.5)
+            .p99Multiplier(100)
             .build();
 
     public static final ServiceLevelObjectiveSpecification START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES
@@ -43,6 +44,7 @@ public final class Constants {
             .maximumPermittedP99(Duration.ofMillis(500))
             .minimumRequestRateForConsideration(0.1)
             .maximumPermittedErrorProportion(0.5)
+            .p99Multiplier(100)
             .build();
 
     public static final int MIN_UNHEALTHY_SERVICES = 2;

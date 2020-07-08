@@ -144,7 +144,8 @@ public class FeedbackHandler {
                 .map((userStats, sloSpec) -> getHealthStatusForService(userStats,
                         sloSpec.minimumRequestRateForConsideration(),
                         sloSpec.maximumPermittedP99().toNanos(),
-                        sloSpec.maximumPermittedErrorProportion()))
+                        sloSpec.maximumPermittedErrorProportion(),
+                        sloSpec.p99Multiplier()))
                 .values()
                 .map(healthState -> logHealthStatusForReport(healthReport, healthState))
                 .max(HealthStatus.getHealthStatusComparator())
@@ -163,7 +164,13 @@ public class FeedbackHandler {
     private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
             double rateThreshold,
             long p99Limit,
-            double errorRateProportion) {
+            double errorRateProportion,
+            double p99Multiplier) {
+
+        // Outliers indicate badness, regardless of request rate
+        if (endpointStatistics.getP99() > p99Limit * p99Multiplier) {
+            return HealthStatus.UNHEALTHY;
+        }
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
             return HealthStatus.UNKNOWN;

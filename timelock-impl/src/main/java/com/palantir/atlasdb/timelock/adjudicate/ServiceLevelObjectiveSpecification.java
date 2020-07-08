@@ -27,6 +27,7 @@ public interface ServiceLevelObjectiveSpecification {
     Duration maximumPermittedP99();
     double maximumPermittedErrorProportion();
     double minimumRequestRateForConsideration();
+    double p99Multiplier();
 
     @Value.Check
     default void check() {
@@ -36,6 +37,8 @@ public interface ServiceLevelObjectiveSpecification {
                 "Permitted error proportion must be between 0 and 1.");
         Preconditions.checkState(minimumRequestRateForConsideration() >= 0,
                 "Cannot declare negative min request rate");
+        Preconditions.checkState(p99Multiplier() >= 1,
+                "P99 multiplier must be greater than or equal to 1");
     }
 
     static ImmutableServiceLevelObjectiveSpecification.Builder builder() {
