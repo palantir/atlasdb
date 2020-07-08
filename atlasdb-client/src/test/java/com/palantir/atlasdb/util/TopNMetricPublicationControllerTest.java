@@ -36,75 +36,54 @@ public class TopNMetricPublicationControllerTest {
     @Test
     public void orderStatisticOfNothingIsAbsent() {
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                Stream.<Integer>of(),
-                Comparator.naturalOrder(),
-                1)).isEmpty();
+                Stream.<Integer>of(), Comparator.naturalOrder(), 1)).isEmpty();
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                Stream.<Integer>of(null, null),
-                Comparator.naturalOrder(),
-                1)).isEmpty();
+                Stream.<Integer>of(null, null), Comparator.naturalOrder(), 1)).isEmpty();
     }
 
     @Test
     public void calculatesSecondElementCorrectly() {
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                IntStream.rangeClosed(1, 50).boxed(),
-                Comparator.naturalOrder(),
-                2)).contains(49);
+                IntStream.rangeClosed(1, 50).boxed(), Comparator.naturalOrder(), 2)).contains(49);
     }
 
     @Test
     public void handlesDuplicates() {
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                Stream.of(8, 8, 8, 8, 8),
-                Comparator.naturalOrder(),
-                2)).contains(8);
+                Stream.of(8, 8, 8, 8, 8), Comparator.naturalOrder(), 2)).contains(8);
     }
 
     @Test
     public void orderStatisticAtEdgesOfStreamCanBeRetrieved() {
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                IntStream.rangeClosed(1, 50).boxed(),
-                Comparator.naturalOrder(),
-                50)).contains(1);
+                IntStream.rangeClosed(1, 50).boxed(), Comparator.naturalOrder(), 50)).contains(1);
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                IntStream.rangeClosed(1, 50).boxed(),
-                Comparator.naturalOrder(),
-                51)).isEmpty();
+                IntStream.rangeClosed(1, 50).boxed(), Comparator.naturalOrder(), 51)).isEmpty();
     }
 
     @Test
     public void skipsNullsInOrderStatisticComputation() {
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                Stream.of(null, null, 3, 7),
-                Comparator.naturalOrder(),
-                2)).contains(3);
+                Stream.of(null, null, 3, 7), Comparator.naturalOrder(), 2)).contains(3);
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                Stream.of(null, null, 3, 7),
-                Comparator.naturalOrder(),
-                3)).isEmpty();
+                Stream.of(null, null, 3, 7), Comparator.naturalOrder(), 3)).isEmpty();
     }
 
     @Test
     public void canSpecifyCustomComparator() {
         assertThat(TopNMetricPublicationController.calculateOrderStatistic(
-                Stream.of("a", "bcd", "efghi", "jk"),
-                Comparator.comparingInt(String::length),
-                1)).contains("efghi");
+                Stream.of("a", "bcd", "efghi", "jk"), Comparator.comparingInt(String::length), 1))
+                .contains("efghi");
     }
 
     @Test
     public void throwsIfAttemptingToRetrieveNonPositiveOrderStatistics() {
         assertThatThrownBy(() -> TopNMetricPublicationController.calculateOrderStatistic(
-                IntStream.rangeClosed(1, 50).boxed(),
-                Comparator.naturalOrder(),
-                0))
+                IntStream.rangeClosed(1, 50).boxed(), Comparator.naturalOrder(), 0))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("The order statistic to be queried for must be positive");
         assertThatThrownBy(() -> TopNMetricPublicationController.calculateOrderStatistic(
-                IntStream.rangeClosed(1, 50).boxed(),
-                Comparator.naturalOrder(),
-                -1))
+                IntStream.rangeClosed(1, 50).boxed(), Comparator.naturalOrder(), -1))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("The order statistic to be queried for must be positive");
     }
