@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Adjust AssertUtils to be safelogging compatible
+  links:
+  - https://github.com/palantir/atlasdb/pull/4866

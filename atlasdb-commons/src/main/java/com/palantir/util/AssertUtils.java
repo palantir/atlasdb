@@ -15,6 +15,7 @@
  */
 package com.palantir.util;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class AssertUtils {
@@ -85,7 +87,7 @@ public class AssertUtils {
 
     public static void assertAndLog(Logger log, boolean cheapTest, String format, Object... args) {
         if (!cheapTest) {
-            assertAndLog(log, false, String.format(format, args));
+            assertAndLogWithException(log, false, format, getDebuggingException(), args);
         }
     }
 
@@ -101,8 +103,7 @@ public class AssertUtils {
 
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
-            log.error("Assertion {} with exception ", msg, t);
-            assert false : msg;
+            assertAndLogWithException(log, cheapTest, msg, t, new Object[] {});
         }
     }
 
@@ -119,7 +120,11 @@ public class AssertUtils {
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String format, Throwable t,
             Object... args) {
         if (!cheapTest) {
-            assertAndLogWithException(log, false, String.format(format, args), t);
+            Object[] newArgs = Arrays.copyOf(args, args.length + 2);
+            newArgs[args.length] = SafeArg.of("format", format);
+            newArgs[args.length + 1] = t;
+            log.error("Assertion with exception!", newArgs);
+            assert false : format;
         }
     }
 
