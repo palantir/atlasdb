@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: 'We now publish fewer Cassandra client pool metrics. We publish `pool:
+    mean`, and the metrics for individual pools if they diverge by more than a certain
+    tolerance from said mean. Consult `CassandraClientPoolHostLevelMetric` for details
+    on these tolerances.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4878
