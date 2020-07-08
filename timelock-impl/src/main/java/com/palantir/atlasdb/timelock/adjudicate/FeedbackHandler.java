@@ -141,7 +141,7 @@ public class FeedbackHandler {
                         Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES)))
                 .filterKeys(Optional::isPresent)
                 .mapKeys(Optional::get)
-                .map((userStats, sloSpec) -> getHealthStatusForService(userStats,
+                .map((userStats, sloSpec) -> getHealthStatusForMetric(userStats,
                         sloSpec.name(),
                         sloSpec.minimumRequestRateForConsideration(),
                         sloSpec.maximumPermittedSteadyStateP99().toNanos(),
@@ -152,7 +152,8 @@ public class FeedbackHandler {
                 .orElse(HealthStatus.HEALTHY);
     }
 
-    private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
+    @VisibleForTesting
+    HealthStatus getHealthStatusForMetric(EndpointStatistics endpointStatistics,
             String metric,
             double rateThreshold,
             long p99Limit,
