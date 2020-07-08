@@ -146,17 +146,19 @@ public class FeedbackHandler {
                         sloSpec.maximumPermittedP99().toNanos(),
                         sloSpec.maximumPermittedErrorProportion(),
                         sloSpec.p99Multiplier()))
+                .map((stats, healthState) -> logHealthStatusForReport(healthReport, stats, healthState))
                 .values()
-                .map(healthState -> logHealthStatusForReport(healthReport, healthState))
                 .max(HealthStatus.getHealthStatusComparator())
                 .orElse(HealthStatus.HEALTHY);
     }
 
     private HealthStatus logHealthStatusForReport(
-            ConjureTimeLockClientFeedback healthReport, HealthStatus healthState) {
-        log.info("Point health status for service - {}, node - {} is - {}",
+            ConjureTimeLockClientFeedback healthReport,
+            EndpointStatistics stats,
+            HealthStatus healthState) {
+        log.info("Point health status for service - {} with endpoint stats - {} is - {}",
                 SafeArg.of("service", healthReport.getServiceName()),
-                SafeArg.of("node", healthReport.getNodeId()),
+                SafeArg.of("endpointStats", stats),
                 SafeArg.of("healthState", healthState.toString()));
         return healthState;
     }
