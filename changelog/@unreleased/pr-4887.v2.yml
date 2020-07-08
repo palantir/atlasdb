@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: PTExecutors fixed executor views handle shutdown after termination
+  links:
+  - https://github.com/palantir/atlasdb/pull/4887
