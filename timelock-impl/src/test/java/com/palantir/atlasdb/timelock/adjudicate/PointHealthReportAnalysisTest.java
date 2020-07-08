@@ -23,7 +23,6 @@ import org.junit.Test;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
 public class PointHealthReportAnalysisTest {
-    private static final String NAME = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.name();
     private static final String CLIENT_1 = "Client1";
 
     private static final double RATE =
@@ -34,7 +33,7 @@ public class PointHealthReportAnalysisTest {
             Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.maximumPermittedErrorProportion();
 
     @Test
-    public void healthyFeedback() {
+    public void reportIsHealthyWhenEverythingIsRight() {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
@@ -51,13 +50,13 @@ public class PointHealthReportAnalysisTest {
     }
 
     @Test
-    public void lowRequestRate() {
+    public void reportStatusIsUnknownIfReqRateIsBelowThreshold() {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
-                .p99(P_99 - 1)
+                .p99(P_99 + 1)
                 .oneMin(RATE - 0.01)
-                .errorRate(0)
+                .errorRate(ERROR_PROPORTION * RATE + 0.1)
                 .build();
         PointHealthStatusReport healthStatusForMetric =
                 feedbackHandler.getHealthStatusForMetric(CLIENT_1,
@@ -70,11 +69,11 @@ public class PointHealthReportAnalysisTest {
     }
 
     @Test
-    public void highErrorProportion() {
+    public void reportStatusIsUnhealthyIfErrProportionIsHigh() {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
-                .p99(P_99 - 1)
+                .p99(P_99 + 1)
                 .oneMin(RATE + 0.01)
                 .errorRate(ERROR_PROPORTION * RATE + 0.1)
                 .build();
@@ -89,7 +88,7 @@ public class PointHealthReportAnalysisTest {
     }
 
     @Test
-    public void lowP99() {
+    public void reportStatusIsUnhealthyIfP99IsAboveThreshold() {
         FeedbackHandler feedbackHandler = new FeedbackHandler();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
