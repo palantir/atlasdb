@@ -25,15 +25,21 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
 public class FeedbackHandler {
+    private static final Logger log = LoggerFactory.getLogger(FeedbackHandler.class);
+
     private final TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
             .create(Caffeine
             .newBuilder()
@@ -136,6 +142,7 @@ public class FeedbackHandler {
                 .filterKeys(Optional::isPresent)
                 .mapKeys(Optional::get)
                 .map((userStats, sloSpec) -> getHealthStatusForService(userStats,
+                        sloSpec.name(),
                         sloSpec.minimumRequestRateForConsideration(),
                         sloSpec.maximumPermittedSteadyStateP99().toNanos(),
                         sloSpec.maximumPermittedErrorProportion(),
@@ -146,6 +153,7 @@ public class FeedbackHandler {
     }
 
     private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
+            String metric,
             double rateThreshold,
             long p99Limit,
             double errorRateProportion,
@@ -157,16 +165,30 @@ public class FeedbackHandler {
             return HealthStatus.UNHEALTHY;
         }
 
-        if (endpointStatistics.getOneMin() < rateThreshold) {
+        double oneMin = endpointStatistics.getOneMin();
+        if (oneMin < rateThreshold) {
+            log.info("Point health status for {} is UNKNOWN as request rate is low - {}",
+                    SafeArg.of("metricName", metric),
+                    SafeArg.of("oneMinRate", oneMin));
             return HealthStatus.UNKNOWN;
         }
 
-        if (getErrorProportion(endpointStatistics) > errorRateProportion) {
+        double errorProportion = getErrorProportion(endpointStatistics);
+        if (errorProportion > errorRateProportion) {
+            log.info("Point health status for {} is UNHEALTHY due to high error proportion - {}",
+                    SafeArg.of("metricName", metric),
+                    SafeArg.of("errorProportion", errorProportion));
             return HealthStatus.UNHEALTHY;
         }
 
-        return endpointStatistics.getP99() > p99Limit
-                ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
+        if (endpointStatistics.getP99() > p99Limit) {
+            log.info("Point health status for {} is UNHEALTHY due to high p99 - {}",
+                    SafeArg.of("metricName", metric),
+                    SafeArg.of("p99", endpointStatistics.getP99()));
+            return HealthStatus.UNHEALTHY;
+        }
+
+        return HealthStatus.HEALTHY;
     }
 
     private double getErrorProportion(EndpointStatistics endpointStatistics) {

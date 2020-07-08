@@ -16,30 +16,16 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.util.Comparator;
+import java.util.Optional;
 
-public enum HealthStatus {
-    HEALTHY(true, 1),
-    UNKNOWN(true, 2),
-    UNHEALTHY(false, 3);
+import org.immutables.value.Value;
 
-    private final boolean isHealthy;
-    private final int severity;
+@Value.Immutable
+public interface PointHealthStatusReport {
+    HealthStatus status();
+    Optional<String> message();
 
-    HealthStatus(boolean isHealthy, int severity) {
-        this.isHealthy = isHealthy;
-        this.severity = severity;
-    }
-
-    public boolean isHealthy() {
-        return isHealthy;
-    }
-
-    public static Comparator<HealthStatus> getHealthStatusComparator() {
-        return Comparator.comparingLong(HealthStatus::severity);
-    }
-
-    private static long severity(HealthStatus status) {
-        return status.severity;
+    static ImmutablePointHealthStatusReport.Builder builder() {
+        return ImmutablePointHealthStatusReport.builder();
     }
 }
