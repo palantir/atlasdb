@@ -1,4 +1,3 @@
-
 /*
  * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *

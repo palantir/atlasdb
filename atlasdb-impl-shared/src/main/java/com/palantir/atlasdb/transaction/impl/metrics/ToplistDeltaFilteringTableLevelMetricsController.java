@@ -38,7 +38,7 @@ import com.palantir.atlasdb.util.TopNMetricPublicationController;
  * highest values are equal), all tying values are published.
  *
  * This controller makes decisions based on deltas (in an attempt to be able to detect load spikes) measured over the
- * last {@@code REFRESH_INTERVAL} period.
+ * last {@code REFRESH_INTERVAL} period.
  */
 public final class ToplistDeltaFilteringTableLevelMetricsController implements TableLevelMetricsController {
     private static final int DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS = 10;
