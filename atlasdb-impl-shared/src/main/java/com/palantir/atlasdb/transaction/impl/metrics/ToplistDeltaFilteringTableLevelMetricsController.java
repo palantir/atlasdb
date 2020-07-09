@@ -73,16 +73,15 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
 
     @Override
     public <T> Counter createAndRegisterCounter(Class<T> clazz, String metricName, TableReference tableReference) {
-        Counter counter = metricsManager.registerOrGetTaggedCounter(
-                clazz,
-                metricName,
-                getTagsForTableReference(tableReference));
         metricsManager.addMetricFilter(
                 clazz,
                 metricName,
                 getTagsForTableReference(tableReference),
                 MetricPublicationFilter.NEVER_PUBLISH);
-
+        Counter counter = metricsManager.registerOrGetTaggedCounter(
+                clazz,
+                metricName,
+                getTagsForTableReference(tableReference));
 
         Gauge<Long> gauge = new ZeroBasedDeltaGauge(counter::getCount);
         Gauge<Long> memoizedGauge = new CachedGauge<Long>(clock, REFRESH_INTERVAL.toNanos(), TimeUnit.NANOSECONDS) {
