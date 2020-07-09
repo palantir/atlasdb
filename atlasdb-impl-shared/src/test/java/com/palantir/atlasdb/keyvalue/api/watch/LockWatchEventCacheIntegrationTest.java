@@ -266,7 +266,8 @@ public class LockWatchEventCacheIntegrationTest {
         assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(secondTimestamps,
                 LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(earlyEvent))))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
-                .hasMessage("Cannot process events before the oldest event");
+                .hasMessage("Cannot process events before the oldest event. The transaction should be retried, "
+                        + "although this should only happen very rarely.");
     }
 
     @Test
