@@ -33,18 +33,18 @@ public final class Constants {
 
     public static final ServiceLevelObjectiveSpecification LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
             = ServiceLevelObjectiveSpecification.builder()
-            .maximumPermittedP99(Duration.ofMillis(200))
-            .minimumRequestRateForConsideration(0.1)
+            .maximumPermittedSteadyStateP99(Duration.ofMillis(200))
+            .minimumRequestRateForConsideration(0.025)
             .maximumPermittedErrorProportion(0.5)
-            .p99Multiplier(100)
+            .maximumPermittedQuietP99(Duration.ofSeconds(40))
             .build();
 
     public static final ServiceLevelObjectiveSpecification START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES
             = ServiceLevelObjectiveSpecification.builder()
-            .maximumPermittedP99(Duration.ofMillis(500))
-            .minimumRequestRateForConsideration(0.1)
+            .maximumPermittedSteadyStateP99(Duration.ofMillis(500))
+            .minimumRequestRateForConsideration(0.02)
             .maximumPermittedErrorProportion(0.5)
-            .p99Multiplier(100)
+            .maximumPermittedQuietP99(Duration.ofSeconds(50))
             .build();
 
     public static final int MIN_UNHEALTHY_SERVICES = 2;

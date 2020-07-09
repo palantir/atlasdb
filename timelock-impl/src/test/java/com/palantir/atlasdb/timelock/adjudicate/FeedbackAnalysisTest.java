@@ -33,16 +33,17 @@ public class FeedbackAnalysisTest {
     private static final String CLIENT_3 = "client_3";
 
     private static final long LEADER_TIME_MAX_P99 = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
-            .maximumPermittedP99()
+            .maximumPermittedSteadyStateP99()
             .toNanos();
     private static final long START_TRANSACTION_MAX_P99 = Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES
-            .maximumPermittedP99()
+            .maximumPermittedSteadyStateP99()
             .toNanos();
     private static final double LEADER_TIME_MIN_RATE =
             Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration();
     private static final double START_TXN_MIN_RATE =
             Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration();
-    private static final double P_99_MULTIPLIER = Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.p99Multiplier();
+    private static final long START_TXN_QUIET_P99_LIMIT =
+            Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.maximumPermittedQuietP99().toNanos();
 
     // TimeLock Level analysis
     @Test
@@ -314,8 +315,8 @@ public class FeedbackAnalysisTest {
                 nodeId,
                 LEADER_TIME_MIN_RATE + 1,
                 LEADER_TIME_MAX_P99 - 1,
-                START_TXN_MIN_RATE - 1, // Outliers are bad, even if req rate is low
-                START_TRANSACTION_MAX_P99 * P_99_MULTIPLIER + 1);
+                START_TXN_MIN_RATE - 0.001, // Outliers are bad, even if req rate is low
+                START_TXN_QUIET_P99_LIMIT + 1);
     }
 
     private ConjureTimeLockClientFeedback getClientFeedbackReport(String serviceName, UUID nodeId,

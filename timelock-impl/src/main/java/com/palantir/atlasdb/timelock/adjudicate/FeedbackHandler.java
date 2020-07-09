@@ -137,9 +137,9 @@ public class FeedbackHandler {
                 .mapKeys(Optional::get)
                 .map((userStats, sloSpec) -> getHealthStatusForService(userStats,
                         sloSpec.minimumRequestRateForConsideration(),
-                        sloSpec.maximumPermittedP99().toNanos(),
+                        sloSpec.maximumPermittedSteadyStateP99().toNanos(),
                         sloSpec.maximumPermittedErrorProportion(),
-                        sloSpec.p99Multiplier()))
+                        sloSpec.maximumPermittedQuietP99().toNanos()))
                 .values()
                 .max(HealthStatus.getHealthStatusComparator())
                 .orElse(HealthStatus.HEALTHY);
@@ -149,10 +149,11 @@ public class FeedbackHandler {
             double rateThreshold,
             long p99Limit,
             double errorRateProportion,
-            double p99Multiplier) {
+            long quietP99Limit) {
 
-        // Outliers indicate badness, regardless of request rate
-        if (endpointStatistics.getP99() > p99Limit * p99Multiplier) {
+        // Outliers indicate badness even with low request rates. The request rate should not be zero to counter
+        // lingering badness from a single request
+        if (endpointStatistics.getP99() > quietP99Limit && endpointStatistics.getOneMin() > 0) {
             return HealthStatus.UNHEALTHY;
         }
 

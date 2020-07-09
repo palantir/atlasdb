@@ -24,21 +24,19 @@ import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface ServiceLevelObjectiveSpecification {
-    Duration maximumPermittedP99();
+    Duration maximumPermittedSteadyStateP99();
+    Duration maximumPermittedQuietP99();
     double maximumPermittedErrorProportion();
     double minimumRequestRateForConsideration();
-    double p99Multiplier();
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!maximumPermittedP99().isNegative(),
+        Preconditions.checkState(!maximumPermittedSteadyStateP99().isNegative(),
                 "Cannot declare negative p99 service level objective");
         Preconditions.checkState(maximumPermittedErrorProportion() >= 0 && maximumPermittedErrorProportion() <= 1,
                 "Permitted error proportion must be between 0 and 1.");
         Preconditions.checkState(minimumRequestRateForConsideration() >= 0,
                 "Cannot declare negative min request rate");
-        Preconditions.checkState(p99Multiplier() >= 1,
-                "P99 multiplier must be greater than or equal to 1");
     }
 
     static ImmutableServiceLevelObjectiveSpecification.Builder builder() {
