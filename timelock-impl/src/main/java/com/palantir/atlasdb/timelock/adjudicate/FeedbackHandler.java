@@ -151,8 +151,8 @@ public class FeedbackHandler {
             double errorRateProportion,
             long quietP99Limit) {
 
-        // Outliers indicate badness even with low request rates. The request rate should not be zero to counter
-        // lingering badness from a single request
+        // Outliers indicate badness even with low request rates. The request rate should be greater than
+        // zero to counter lingering badness from a single slow request
         if (endpointStatistics.getP99() > quietP99Limit && endpointStatistics.getOneMin() > 0) {
             return HealthStatus.UNHEALTHY;
         }
