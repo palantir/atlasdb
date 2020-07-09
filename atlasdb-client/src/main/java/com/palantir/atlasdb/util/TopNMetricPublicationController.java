@@ -18,11 +18,13 @@ package com.palantir.atlasdb.util;
 
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.codahale.metrics.Gauge;
@@ -30,12 +32,15 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 /**
  * Given a provided number of metrics, ensures that only the top {@code maxPermittedRank} are published in the steady
- * state.
+ * state. If there are ties (e.g. the 9th, 10th, 11th and 12th highest value are equal in a controller configured to
+ * permit the top 10 metrics), which of the tying metrics are selected is undefined, though it is guaranteed that
+ * the correct number will be selected so that the total number of metrics published equals the max permitted rank.
  */
 public final class TopNMetricPublicationController<T> {
     private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
@@ -43,15 +48,19 @@ public final class TopNMetricPublicationController<T> {
     private final Set<Gauge<T>> gauges;
     private final Comparator<T> comparator;
     private final int maxPermittedRank;
-    private final Supplier<Optional<T>> lowerBoundSupplier;
+    private final Supplier<Set<Gauge<T>>> publishableGauges;
 
-    private TopNMetricPublicationController(Comparator<T> comparator, int maxPermittedRank) {
+    @VisibleForTesting
+    TopNMetricPublicationController(
+            Comparator<T> comparator,
+            int maxPermittedRank,
+            Duration refreshInterval) {
         this.comparator = comparator;
         this.maxPermittedRank = maxPermittedRank;
         this.gauges = Sets.newConcurrentHashSet();
-        this.lowerBoundSupplier = Suppliers.memoizeWithExpiration(
-                this::calculateLowerBound,
-                REFRESH_INTERVAL.toNanos(),
+        this.publishableGauges = Suppliers.memoizeWithExpiration(
+                this::getEligibleGauges,
+                refreshInterval.toNanos(),
                 TimeUnit.NANOSECONDS);
     }
 
@@ -59,7 +68,7 @@ public final class TopNMetricPublicationController<T> {
     public static <T extends Comparable> TopNMetricPublicationController<T> create(int maxPermittedRank) {
         Preconditions.checkState(maxPermittedRank > 0, "maxPermittedRank must be positive",
                 SafeArg.of("maxPermittedRank", maxPermittedRank));
-        return new TopNMetricPublicationController<T>(Comparator.naturalOrder(), maxPermittedRank);
+        return new TopNMetricPublicationController<T>(Comparator.naturalOrder(), maxPermittedRank, REFRESH_INTERVAL);
     }
 
     public MetricPublicationFilter registerAndCreateFilter(Gauge<T> gauge) {
@@ -68,32 +77,17 @@ public final class TopNMetricPublicationController<T> {
     }
 
     private boolean shouldPublishIndividualGaugeMetric(Gauge<T> constituentGauge) {
-        T value = constituentGauge.getValue();
-        return lowerBoundSupplier.get()
-                .map(lowerBound -> isAtLeastLowerBound(value, lowerBound))
-                .orElse(true); // This means there aren't maxPermittedRank series, so we should publish the metric.
+        return publishableGauges.get().contains(constituentGauge);
     }
 
-    private boolean isAtLeastLowerBound(T value, T lowerBound) {
-        return comparator.compare(value, lowerBound) >= 0;
-    }
-
-    private Optional<T> calculateLowerBound() {
-        return calculateOrderStatistic(gauges.stream().map(Gauge::getValue), comparator, maxPermittedRank);
-    }
-
-    @VisibleForTesting
-    static <T> Optional<T> calculateOrderStatistic(
-            Stream<T> values, Comparator<T> comparator, int orderStatistic) {
-        Preconditions.checkState(orderStatistic > 0,
-                "The order statistic to be queried for must be positive",
-                SafeArg.of("queriedOrderStatistic", orderStatistic));
-
-        // O(N log N) sorting algorithm. The number of gauges is not expected to be large.
-        // If performance is bad: consider switching to a heap O(n log orderStatistic) or quick-select algorithms.
-        return values.filter(Objects::nonNull)
-                .sorted(comparator.reversed())
-                .skip(orderStatistic - 1)
-                .findFirst();
+    private Set<Gauge<T>> getEligibleGauges() {
+        return KeyedStream.of(gauges.stream())
+                .map(Gauge::getValue)
+                .filter(Objects::nonNull)
+                .entries()
+                .sorted(Comparator.comparing(Map.Entry::getValue, comparator.reversed()))
+                .limit(maxPermittedRank)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 }
