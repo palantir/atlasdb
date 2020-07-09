@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: 'TimeLock now considers p99 outliers, even with low request rate, while
+    analyzing client feedback. The threshold for minimum request rate is also lowered. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/4889
