@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -120,6 +121,13 @@ final class LockWatchEventLog {
 
     private void processSuccess(LockWatchStateUpdate.Success success) {
         Preconditions.checkState(latestVersion.isPresent(), "Must have a known version to process successful updates");
+        Optional<IdentifiedVersion> snapshotVersion = snapshot.getSnapshotVersion();
+        Preconditions.checkState(snapshotVersion.isPresent(),
+                "Must have a snapshot before processing successful updates");
+
+        if (success.lastKnownVersion() < snapshotVersion.get().version()) {
+            throw new TransactionLockWatchFailedException("Cannot process events before the oldest event");
+        }
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
             assertEventsAreContiguousAndNoEventsMissing(success.events());

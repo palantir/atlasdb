@@ -39,6 +39,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -77,7 +78,7 @@ public class LockWatchEventCacheIntegrationTest {
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR), LockToken.of(EVENT2_UUID)).build(7L);
 
     private static final UUID LEADER = UUID.fromString("470c855e-f77b-44df-b56a-14d3df085dbc");
-    public static final LockWatchStateUpdate.Success SUCCESS_2 = LockWatchStateUpdate.success(LEADER, 7L,
+    private static final LockWatchStateUpdate.Success SUCCESS_2 = LockWatchStateUpdate.success(LEADER, 7L,
             ImmutableList.of(LOCK_EVENT_2));
     private static final LockWatchStateUpdate SNAPSHOT =
             LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
@@ -253,6 +254,19 @@ public class LockWatchEventCacheIntegrationTest {
 
         eventCache.removeTransactionStateFromCache(START_TS);
         verifyStage();
+    }
+
+    @Test
+    public void veryOldSuccessfulUpdateThrowsRetriableException() {
+        setupInitialState();
+        Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
+
+        LockWatchEvent earlyEvent = LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), COMMIT_TOKEN).build(2L);
+
+        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(secondTimestamps,
+                LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(earlyEvent))))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Cannot process events before the oldest event");
     }
 
     @Test
