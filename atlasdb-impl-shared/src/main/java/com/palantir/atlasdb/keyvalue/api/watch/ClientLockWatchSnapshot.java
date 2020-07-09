@@ -82,6 +82,10 @@ final class ClientLockWatchSnapshot {
         locked.clear();
     }
 
+    Optional<IdentifiedVersion> getSnapshotVersion() {
+        return snapshotVersion;
+    }
+
     @VisibleForTesting
     ClientLockWatchSnapshotState getStateForTesting() {
         return ImmutableClientLockWatchSnapshotState.builder()
