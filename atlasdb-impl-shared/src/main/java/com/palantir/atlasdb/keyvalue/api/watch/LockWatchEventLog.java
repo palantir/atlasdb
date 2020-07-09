@@ -126,7 +126,9 @@ final class LockWatchEventLog {
                 "Must have a snapshot before processing successful updates");
 
         if (success.lastKnownVersion() < snapshotVersion.get().version()) {
-            throw new TransactionLockWatchFailedException("Cannot process events before the oldest event");
+            throw new TransactionLockWatchFailedException(
+                    "Cannot process events before the oldest event. The transaction should be retried, although this"
+                            + " should only happen very rarely.");
         }
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
