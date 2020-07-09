@@ -25,6 +25,7 @@ import com.palantir.logsafe.Preconditions;
 @Value.Immutable
 public interface ServiceLevelObjectiveSpecification {
     Duration maximumPermittedSteadyStateP99();
+    // This is to catch badness when one request takes too much time, dropping the request rate below min threshold
     Duration maximumPermittedQuietP99();
     double maximumPermittedErrorProportion();
     double minimumRequestRateForConsideration();
