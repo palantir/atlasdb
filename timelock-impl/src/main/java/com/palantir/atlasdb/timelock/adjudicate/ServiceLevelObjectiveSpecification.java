@@ -44,7 +44,7 @@ public interface ServiceLevelObjectiveSpecification {
                 "Cannot declare negative min request rate");
         Preconditions.checkState(maximumPermittedQuietP99().toNanos()
                         > maximumPermittedSteadyStateP99().toNanos(),
-                "p99 limit in when request rate is low must be greater than the p99 limit in steady state.");
+                "p99 limit when request rate is low must be greater than the p99 limit in steady state.");
     }
 
     static ImmutableServiceLevelObjectiveSpecification.Builder builder() {
