@@ -58,10 +58,9 @@ abstract class BatchingNetworkClientFactories implements
         BatchPaxosLearner local = components().batchLearner();
         List<WithDedicatedExecutor<BatchPaxosLearnerRpcClient>> batchLearners = remoteClients().batchLearner();
         List<WithDedicatedExecutor<BatchPaxosLearner>> remoteLearners = batchLearners.stream()
-                .map(withDedicatedExecutor -> withDedicatedExecutor.transformService(
-                        rpcClient -> UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), rpcClient)))
-                .map(withDedicatedExecutor -> withDedicatedExecutor.transformService(
-                        rpcClient -> metrics().instrument(BatchPaxosLearner.class, rpcClient)))
+                .map(withDedicatedExecutor -> withDedicatedExecutor
+                        .transformService(rpcClient -> UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), rpcClient))
+                        .transformService(rpcClient -> metrics().instrument(BatchPaxosLearner.class, rpcClient)))
                 .collect(Collectors.toList());
 
         LocalAndRemotes<WithDedicatedExecutor<BatchPaxosLearner>> allBatchLearners
