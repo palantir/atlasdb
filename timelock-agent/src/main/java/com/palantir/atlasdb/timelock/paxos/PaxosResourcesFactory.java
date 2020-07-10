@@ -112,7 +112,6 @@ public final class PaxosResourcesFactory {
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
-                .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_EACH_CLIENT)
@@ -155,7 +154,6 @@ public final class PaxosResourcesFactory {
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
-                .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
@@ -202,7 +200,6 @@ public final class PaxosResourcesFactory {
                 .remoteClients(remoteClients)
                 .components(paxosComponents)
                 .quorumSize(install.quorumSize())
-                .sharedExecutor(sharedExecutor)
                 .build();
 
         NetworkClientFactories singleLeaderClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
@@ -211,7 +208,6 @@ public final class PaxosResourcesFactory {
                 .remoteClients(remoteClients)
                 .components(paxosComponents)
                 .quorumSize(install.quorumSize())
-                .sharedExecutor(sharedExecutor)
                 .build();
 
         Supplier<Boolean> useBatchPaxosForTimestamps = Suppliers.compose(
