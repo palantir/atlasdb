@@ -82,7 +82,10 @@ public class FeedbackHandler {
                 .collect(Collectors.toList());
 
         log.info("List of services on which TimeLock is unhealthy - {}",
-                SafeArg.of("unhealthyClients", (Object) unhealthyClients));
+                SafeArg.of("unhealthyClients", unhealthyClients
+                        .stream()
+                        .map(client -> client.value())
+                        .collect(Collectors.joining(", ", "[", "]"))));
 
         if (unhealthyClients.size() > maxAllowedUnhealthyServices) {
             return ImmutableHealthStatusReport
