@@ -16,11 +16,14 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 import org.immutables.value.Value;
+
+import com.palantir.common.streams.KeyedStream;
 
 @Value.Immutable
 public interface WithDedicatedExecutor<T> {
@@ -36,5 +39,12 @@ public interface WithDedicatedExecutor<T> {
                 .service(service)
                 .executor(executor)
                 .build();
+    }
+
+    static <T> Map<T, ExecutorService> convert(Collection<WithDedicatedExecutor<T>> services) {
+        return KeyedStream.of(services)
+                .map(WithDedicatedExecutor::executor)
+                .mapKeys(WithDedicatedExecutor::service)
+                .collectToMap();
     }
 }

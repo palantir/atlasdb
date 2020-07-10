@@ -16,6 +16,8 @@
 
 package com.palantir.paxos;
 
+import java.util.concurrent.ExecutorService;
+
 import org.immutables.value.Value;
 
 import com.google.common.net.HostAndPort;
