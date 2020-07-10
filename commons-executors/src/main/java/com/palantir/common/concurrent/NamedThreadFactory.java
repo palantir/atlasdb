@@ -19,7 +19,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.codahale.metrics.Timer;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 /**
@@ -66,7 +68,11 @@ public class NamedThreadFactory implements ThreadFactory {
     /** {@inheritDoc} */
     @Override
     public Thread newThread(Runnable runnable) {
-        Thread thread = threadFactory.newThread(runnable);
+        Thread thread;
+        try (Timer.Context _time = SharedTaggedMetricRegistries.getSingleton().timer(
+                MetricName.builder().safeName("executor.threads.creation").build()).time()) {
+            thread = threadFactory.newThread(runnable);
+        }
         thread.setName(prefix + "-" + count.getAndIncrement());
         thread.setDaemon(isDaemon);
         thread.setUncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE);
