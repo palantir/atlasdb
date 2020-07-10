@@ -54,6 +54,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
  *
  * Copy pasta
  */
+@SuppressWarnings("all")
 public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEventHandler<InvocationContext> {
     private static final Logger logger = LoggerFactory.getLogger(TaggedMetricsInvocationEventHandler.class);
 
