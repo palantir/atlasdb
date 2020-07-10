@@ -33,6 +33,7 @@ import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class SqliteNamespaceLoaderTest {
     private static final Client NAMESPACE_1 = Client.of("eins");
@@ -76,7 +77,8 @@ public class SqliteNamespaceLoaderTest {
     }
 
     private void initializeLog(Client namespace, String sequenceId) {
-        SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(namespace, sequenceId), dataSource)
+        SqlitePaxosStateLog.create(new DefaultTaggedMetricRegistry(),
+                ImmutableNamespaceAndUseCase.of(namespace, sequenceId), dataSource)
                 .writeRound(1, PAXOS_VALUE);
     }
 }

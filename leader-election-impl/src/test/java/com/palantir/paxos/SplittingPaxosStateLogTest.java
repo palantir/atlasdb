@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class SplittingPaxosStateLogTest {
     @Rule
@@ -52,8 +53,8 @@ public class SplittingPaxosStateLogTest {
     public void setup() throws IOException {
         DataSource legacy = SqliteConnections.getPooledDataSource(tempFolder.newFolder("legacy").toPath());
         DataSource current = SqliteConnections.getPooledDataSource(tempFolder.newFolder("current").toPath());
-        legacyLog = spy(SqlitePaxosStateLog.create(NAMESPACE, legacy));
-        currentLog = spy(SqlitePaxosStateLog.create(NAMESPACE, current));
+        legacyLog = spy(SqlitePaxosStateLog.create(new DefaultTaggedMetricRegistry(), NAMESPACE, legacy));
+        currentLog = spy(SqlitePaxosStateLog.create(new DefaultTaggedMetricRegistry(), NAMESPACE, current));
     }
 
     @Test

@@ -43,6 +43,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.paxos.Versionable;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class PaxosStateLogMigrationIntegrationTest {
     private static final Client CLIENT = Client.of("test");
@@ -287,6 +288,7 @@ public class PaxosStateLogMigrationIntegrationTest {
     }
 
     private <T extends Persistable & Versionable>  PaxosStateLog<T> createSqliteLog(PaxosStorageParameters parameters) {
-        return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), parameters.sqliteDataSource());
+        return SqlitePaxosStateLog.create(new DefaultTaggedMetricRegistry(), parameters.namespaceAndUseCase(),
+                parameters.sqliteDataSource());
     }
 }
