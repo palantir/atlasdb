@@ -171,12 +171,11 @@ public class FeedbackHandler {
             return HealthStatus.UNHEALTHY;
         }
 
-        double oneMin = endpointStatistics.getOneMin();
-        if (oneMin < rateThreshold) {
+        if (endpointStatistics.getOneMin() < rateThreshold) {
             log.info("[Service - {}] | Point health status for {} is UNKNOWN as request rate is low - {}",
                     SafeArg.of("service", serviceName),
                     SafeArg.of("metricName", metricName),
-                    SafeArg.of("oneMinRate", oneMin));
+                    SafeArg.of("oneMinRate", endpointStatistics.getOneMin()));
             return HealthStatus.UNKNOWN;
         }
 
