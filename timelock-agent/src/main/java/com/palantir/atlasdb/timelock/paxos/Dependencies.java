@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 import com.palantir.leader.PaxosLeadershipEventRecorder;
