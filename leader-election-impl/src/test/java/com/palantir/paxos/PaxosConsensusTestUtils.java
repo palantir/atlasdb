@@ -42,6 +42,7 @@ import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public final class PaxosConsensusTestUtils {
 
@@ -144,6 +145,7 @@ public final class PaxosConsensusTestUtils {
                 .fileBasedLogDirectory(getLearnerLogDir(num))
                 .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "learner"))
+                .taggedMetricRegistry(new DefaultTaggedMetricRegistry())
                 .build();
     }
 
