@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class SqlitePaxosStateLogTest {
     @Rule
@@ -59,7 +58,7 @@ public class SqlitePaxosStateLogTest {
     @Before
     public void setup() {
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
-        stateLog = createLogUseCase1();
+        stateLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
     }
 
     @Test
@@ -105,7 +104,7 @@ public class SqlitePaxosStateLogTest {
         PaxosValue v1 = writeValueForRound(5L);
         PaxosValue v2 = valueForRound(5L);
 
-        PaxosStateLog<PaxosValue> otherLog = createLog(CLIENT_2, USE_CASE_1);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, USE_CASE_1), dataSource);
         otherLog.writeRound(5L, v2);
 
         assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L))).isEqualTo(v1);
@@ -120,8 +119,8 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void extremeQueriesIgnoreEntriesFromOtherSequences() {
-        PaxosStateLog<PaxosValue> otherLog = createLog(CLIENT_2, USE_CASE_1);
-        PaxosStateLog<PaxosValue> anotherLog = createLog(CLIENT_1, USE_CASE_2);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, USE_CASE_1), dataSource);
+        PaxosStateLog<PaxosValue> anotherLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_2), dataSource);
         otherLog.writeRound(1L, valueForRound(1L));
         otherLog.writeRound(5L, valueForRound(5L));
         anotherLog.writeRound(2L, valueForRound(2L));
@@ -166,17 +165,16 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
-        PaxosStateLog<PaxosValue> otherLog = createLog(CLIENT_2, USE_CASE_1);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, USE_CASE_1), dataSource);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
         assertThat(otherLog.readRound(1L)).isNull();
     }
 
-
     @Test
     public void valuesAreDistinguishedAcrossSequenceIdentifiers() throws IOException {
-        PaxosStateLog<PaxosValue> otherLog = createLog(CLIENT_1, USE_CASE_2);
+        PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_2), dataSource);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
@@ -185,7 +183,8 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void differentLogsToTheSameNamespaceShareState() throws IOException {
-        PaxosStateLog<PaxosValue> otherLogWithSameNamespace = createLogUseCase1();
+        PaxosStateLog<PaxosValue> otherLogWithSameNamespace = SqlitePaxosStateLog
+                .create(wrap(CLIENT_1, USE_CASE_1), dataSource);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
@@ -198,16 +197,12 @@ public class SqlitePaxosStateLogTest {
         ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
         List<Future<?>> futures = IntStream.range(0, numThreads)
                 .mapToObj(ignore -> executor.submit(() -> {
-                    PaxosStateLog<PaxosValue> log = createLogUseCase1();
+                    PaxosStateLog<PaxosValue> log = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
                     for (int i = 0; i < 200; i++) {
                         log.writeRound(i, valueForRound(i));
                     }
                 })).collect(Collectors.toList());
         futures.forEach(future -> assertThatCode(() -> Futures.getUnchecked(future)).doesNotThrowAnyException());
-    }
-
-    private PaxosStateLog<PaxosValue> createLogUseCase1() {
-        return createLog(CLIENT_1, USE_CASE_1);
     }
 
     @Test
@@ -216,17 +211,12 @@ public class SqlitePaxosStateLogTest {
         ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
         List<Future<?>> futures = IntStream.range(0, numThreads)
                 .mapToObj(ignore -> executor.submit(() -> {
-                    PaxosStateLog<PaxosValue> log = createLogUseCase1();
+                    PaxosStateLog<PaxosValue> log = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
                     for (int i = 0; i < 2; i++) {
                         log.writeRound(i, valueForRound(i));
                     }
                 })).collect(Collectors.toList());
         futures.forEach(future -> assertThatCode(() -> Futures.getUnchecked(future)).doesNotThrowAnyException());
-    }
-
-    private PaxosStateLog<PaxosValue> createLog(Client client2, String useCase1) {
-        return SqlitePaxosStateLog.create(new DefaultTaggedMetricRegistry(),
-                wrap(client2, useCase1), dataSource);
     }
 
     private PaxosValue writeValueForRound(long round) {

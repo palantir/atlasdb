@@ -33,7 +33,6 @@ import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.common.persist.Persistable;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
@@ -48,13 +47,11 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
     }
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> create(
-            TaggedMetricRegistry taggedMetricRegistry,
             NamespaceAndUseCase namespaceAndUseCase,
             DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
-        SqlitePaxosStateLog<V> log = AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetricRegistry,
-                SqlitePaxosStateLog.class, new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi));
+        SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
         log.initialize();
         return log;
     }

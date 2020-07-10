@@ -54,7 +54,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class PaxosStateLogMigratorTest {
     @Rule
@@ -70,8 +69,8 @@ public class PaxosStateLogMigratorTest {
                 .getPooledDataSource(tempFolder.newFolder("source").toPath());
         DataSource targetConn = SqliteConnections
                 .getPooledDataSource(tempFolder.newFolder("target").toPath());
-        source = SqlitePaxosStateLog.create(new DefaultTaggedMetricRegistry(), NAMESPACE, sourceConn);
-        target = spy(SqlitePaxosStateLog.create(new DefaultTaggedMetricRegistry(), NAMESPACE, targetConn));
+        source = SqlitePaxosStateLog.create(NAMESPACE, sourceConn);
+        target = spy(SqlitePaxosStateLog.create(NAMESPACE, targetConn));
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConn);
     }
 

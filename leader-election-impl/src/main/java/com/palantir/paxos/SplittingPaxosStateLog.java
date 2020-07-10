@@ -82,8 +82,9 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
 
         PaxosStateLogMigrator.MigrationContext<V> migrationContext = ImmutableMigrationContext.<V>builder()
                 .sourceLog(PaxosStateLogImpl.createFileBacked(logDirectory))
-                .destinationLog(SqlitePaxosStateLog.create(params.taggedMetricRegistry(), namespaceUseCase,
-                        params.sqliteDataSource()))
+                .destinationLog(AtlasDbMetrics.instrumentWithTaggedMetrics(params.taggedMetricRegistry(),
+                        PaxosStateLog.class, SqlitePaxosStateLog.create(namespaceUseCase,
+                                params.sqliteDataSource())))
                 .hydrator(hydrator)
                 .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, params.sqliteDataSource()))
                 .migrateFrom(migrateFrom)
