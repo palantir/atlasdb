@@ -22,7 +22,6 @@ import java.util.List;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
