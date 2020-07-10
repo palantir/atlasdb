@@ -49,7 +49,11 @@ public class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
 
     public static List<BatchPaxosLearner> wrap(PaxosUseCase useCase, List<BatchPaxosLearnerRpcClient> remotes) {
         return remotes.stream()
-                .map(rpcClient -> new UseCaseAwareBatchPaxosLearnerAdapter(useCase, rpcClient))
+                .map(rpcClient -> wrap(useCase, rpcClient))
                 .collect(Collectors.toList());
+    }
+
+    public static BatchPaxosLearner wrap(PaxosUseCase useCase, BatchPaxosLearnerRpcClient remote) {
+        return new UseCaseAwareBatchPaxosLearnerAdapter(useCase, remote);
     }
 }

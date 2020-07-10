@@ -66,13 +66,13 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
-    public List<TimelockPaxosAcceptorRpcClient> nonBatchTimestampAcceptor() {
-        return createInstrumentedRemoteProxyList(TimelockPaxosAcceptorRpcClient.class, true);
+    public List<WithDedicatedExecutor<TimelockPaxosAcceptorRpcClient>> nonBatchTimestampAcceptor() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(TimelockPaxosAcceptorRpcClient.class, true);
     }
 
     @Value.Derived
-    public List<TimelockPaxosLearnerRpcClient> nonBatchTimestampLearner() {
-        return createInstrumentedRemoteProxyList(TimelockPaxosLearnerRpcClient.class, true);
+    public List<WithDedicatedExecutor<TimelockPaxosLearnerRpcClient>> nonBatchTimestampLearner() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(TimelockPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
@@ -84,8 +84,9 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
-    public List<TimelockSingleLeaderPaxosLearnerRpcClient> singleLeaderLearner() {
-        return createInstrumentedRemoteProxyList(TimelockSingleLeaderPaxosLearnerRpcClient.class, true);
+    public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosLearnerRpcClient>> singleLeaderLearner() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+                TimelockSingleLeaderPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
@@ -95,8 +96,8 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
-    public List<BatchPaxosLearnerRpcClient> batchLearner() {
-        return createInstrumentedRemoteProxyList(BatchPaxosLearnerRpcClient.class, true);
+    public List<WithDedicatedExecutor<BatchPaxosLearnerRpcClient>> batchLearner() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(BatchPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
@@ -138,8 +139,12 @@ public abstract class PaxosRemoteClients {
     private <T> List<WithDedicatedExecutor<T>> createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
             Class<T> clazz,
             boolean shouldRetry) {
-        return createInstrumentedRemoteProxies(clazz, shouldRetry)
-                .mapKeys(uri -> dedicatedExecutors().get(uri))
+        return assignDedicatedExecutors(createInstrumentedRemoteProxies(clazz, shouldRetry));
+    }
+
+    private <T> List<WithDedicatedExecutor<T>> assignDedicatedExecutors(
+            KeyedStream<String, T> remotes) {
+        return remotes.mapKeys(uri -> dedicatedExecutors().get(uri))
                 .entries()
                 .map(entry -> WithDedicatedExecutor.<T>of(entry.getValue(), entry.getKey()))
                 .collect(Collectors.toList());

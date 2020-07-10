@@ -27,7 +27,7 @@ import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
     @VisibleForTesting
-    static final int MAXIMUM_POOL_SIZE = 100;
+    static final int MAXIMUM_POOL_SIZE = 256;
 
     private TimeLockPaxosExecutors() {
         // no
