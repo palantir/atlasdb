@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -63,18 +64,23 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
     public void learn(long seq, PaxosValue value) {
         // broadcast learned value
         for (final PaxosLearner learner : remoteLearners) {
-            executors.get(learner).execute(() -> {
-                try {
-                    learner.learn(seq, value);
-                } catch (Throwable e) {
-                    log.warn("Failed to teach learner the value {} at sequence {}",
-                            UnsafeArg.of("value", Optional.ofNullable(value.data)
-                                    .map(bytes -> BaseEncoding.base16().encode(bytes))
-                                    .orElse(null)),
-                            SafeArg.of("sequence", seq),
-                            e);
-                }
-            });
+            try {
+                executors.get(learner).execute(() -> {
+                    try {
+                        learner.learn(seq, value);
+                    } catch (Throwable e) {
+                        log.warn("Failed to teach learner the value {} at sequence {}, after attempting execution.",
+                                UnsafeArg.of("value", base16EncodePaxosValue(value)),
+                                SafeArg.of("sequence", seq),
+                                e);
+                    }
+                });
+            } catch (RejectedExecutionException e) {
+                log.warn("Failed to teach learner the value {} at sequence {}, because we could not execute the task.",
+                        UnsafeArg.of("value", base16EncodePaxosValue(value)),
+                        SafeArg.of("sequence", seq),
+                        e);
+            }
         }
 
         // force local learner to update
@@ -103,5 +109,11 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
                 cancelRemainingCalls).withoutRemotes();
+    }
+
+    private static String base16EncodePaxosValue(PaxosValue value) {
+        return Optional.ofNullable(value.data)
+                .map(bytes -> BaseEncoding.base16().encode(bytes))
+                .orElse(null);
     }
 }
