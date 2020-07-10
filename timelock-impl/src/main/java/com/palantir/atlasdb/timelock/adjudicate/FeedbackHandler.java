@@ -181,14 +181,16 @@ public class FeedbackHandler {
 
         double errorProportion = getErrorProportion(endpointStatistics);
         if (errorProportion > errorRateProportion) {
-            log.info("Point health status for {} is UNHEALTHY due to high error proportion - {}",
+            log.info("[Service - {}] | Point health status for {} is UNHEALTHY due to high error proportion - {}",
+                    SafeArg.of("service", serviceName),
                     SafeArg.of("metricName", metricName),
                     SafeArg.of("errorProportion", errorProportion));
             return HealthStatus.UNHEALTHY;
         }
 
         if (endpointStatistics.getP99() > steadyStateP99Limit) {
-            log.info("Point health status for {} is UNHEALTHY due to high p99 - {}",
+            log.info("[Service - {}] | Point health status for {} is UNHEALTHY due to high p99 - {}",
+                    SafeArg.of("service", serviceName),
                     SafeArg.of("metricName", metricName),
                     SafeArg.of("p99", endpointStatistics.getP99()));
             return HealthStatus.UNHEALTHY;
