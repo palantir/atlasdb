@@ -17,7 +17,6 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -27,7 +26,6 @@ import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.timelock.paxos.WithDedicatedExecutor;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
