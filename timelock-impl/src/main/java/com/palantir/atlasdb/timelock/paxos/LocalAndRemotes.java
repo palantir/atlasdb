@@ -56,10 +56,6 @@ interface LocalAndRemotes<T> {
         return ImmutableLocalAndRemotes.of(local(), remotes().stream().map(mapper).collect(Collectors.toList()));
     }
 
-    default Map<T, ExecutorService> withSharedExecutor(ExecutorService sharedExecutor) {
-        return Maps.asMap(ImmutableSet.copyOf(all()), $ -> sharedExecutor);
-    }
-
     static <T> LocalAndRemotes<T> of(T local, List<T> remotes) {
         return ImmutableLocalAndRemotes.of(local, remotes);
     }
