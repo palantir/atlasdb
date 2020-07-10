@@ -100,7 +100,6 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar) {
-        ExecutorService executor = createSharedExecutor();
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
                 metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
@@ -109,8 +108,7 @@ public class TimeLockAgent {
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
                 metricsManager,
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                executor);
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
@@ -181,10 +179,6 @@ public class TimeLockAgent {
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler();
-    }
-
-    private static ExecutorService createSharedExecutor() {
-        return PTExecutors.newCachedThreadPool("paxos-timestamp-creator");
     }
 
     private TimestampCreator getTimestampCreator() {
