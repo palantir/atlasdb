@@ -22,9 +22,12 @@ import javax.sql.DataSource;
 
 import org.immutables.value.Value;
 
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+
 @Value.Immutable
 public interface PaxosStorageParameters {
     NamespaceAndUseCase namespaceAndUseCase();
     DataSource sqliteDataSource();
     Optional<String> fileBasedLogDirectory();
+    TaggedMetricRegistry taggedMetricRegistry();
 }

@@ -192,6 +192,7 @@ public class LocalPaxosComponents {
                 .fileBasedLogDirectory(learnerLogDir.toString())
                 .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, learnerUseCase))
+                .taggedMetricRegistry(metrics.clientScopedMetrics().metricRegistryForClient(client))
                 .build();
     }
 
@@ -204,6 +205,7 @@ public class LocalPaxosComponents {
                 .fileBasedLogDirectory(acceptorLogDir.toString())
                 .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, acceptorUseCase))
+                .taggedMetricRegistry(metrics.clientScopedMetrics().metricRegistryForClient(client))
                 .build();
     }
 
