@@ -154,6 +154,7 @@ public final class PaxosConsensusTestUtils {
                 .fileBasedLogDirectory(getAcceptorLogDir(num))
                 .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of(Integer.toString(num)), "acceptor"))
+                .taggedMetricRegistry(new DefaultTaggedMetricRegistry())
                 .build();
     }
 
