@@ -17,11 +17,14 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosAcceptor;
@@ -49,7 +52,7 @@ abstract class SingleLeaderNetworkClientFactories implements
     public Factory<PaxosAcceptorNetworkClient> acceptor() {
         return client -> {
             List<WithDedicatedExecutor<PaxosAcceptor>> remoteAcceptors = TimelockPaxosAcceptorAdapters
-                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client, sharedExecutor());
+                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client);
 
             PaxosAcceptor localAcceptor = components().acceptor(client);
             LocalAndRemotes<WithDedicatedExecutor<PaxosAcceptor>> paxosAcceptors = LocalAndRemotes.of(
@@ -75,17 +78,30 @@ abstract class SingleLeaderNetworkClientFactories implements
     @Override
     public Factory<PaxosLearnerNetworkClient> learner() {
         return client -> {
-            List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapters
-                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client);
+            List<WithDedicatedExecutor<PaxosLearner>> remoteLearners = TimelockPaxosLearnerAdapters
+                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client)
+                    .stream()
+                    .map(withExecutor -> withExecutor.transformService(
+                            remote -> metrics().instrument(PaxosLearner.class, remote, client)))
+                    .collect(Collectors.toList());
             PaxosLearner localLearner = components().learner(client);
 
-            LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner, remoteLearners)
-                    .enhanceRemotes(remote -> metrics().instrument(PaxosLearner.class, remote, client));
+            LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner,
+                    remoteLearners.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()));
+
+            Map<PaxosLearner, ExecutorService> executorMap = ImmutableMap.<PaxosLearner, ExecutorService>builder()
+                    .putAll(KeyedStream.of(remoteLearners)
+                            .mapKeys(WithDedicatedExecutor::service)
+                            .map(WithDedicatedExecutor::executor)
+                            .collectToMap())
+                    .put(localLearner, sharedExecutor())
+                    .build();
+
             SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(
                     allLearners.local(),
                     allLearners.remotes(),
                     quorumSize(),
-                    allLearners.withSharedExecutor(sharedExecutor()),
+                    executorMap,
                     PaxosConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosLearnerNetworkClient.class, uninstrumentedLearner);
         };
