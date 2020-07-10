@@ -481,7 +481,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 WireMock.any(WireMock.anyUrl())
                         .atPriority(Integer.MAX_VALUE - 1)
                         .willReturn(WireMock.serviceUnavailable().withFixedDelay(
-                                Ints.checkedCast(Duration.ofSeconds(222).toMillis()))).build());
+                                Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
