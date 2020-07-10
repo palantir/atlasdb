@@ -94,7 +94,7 @@ abstract class SingleLeaderNetworkClientFactories implements
                             .mapKeys(WithDedicatedExecutor::service)
                             .map(WithDedicatedExecutor::executor)
                             .collectToMap())
-                    .put(localLearner, sharedExecutor())
+                    .put(localLearner, MoreExecutors.newDirectExecutorService())
                     .build();
 
             SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(
