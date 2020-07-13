@@ -25,7 +25,6 @@ import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +111,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
                 && ListenableFuture.class.isAssignableFrom(result.getClass())) {
             Futures.addCallback((ListenableFuture<?>) result, new FutureCallback<Object>() {
                         @Override
-                        public void onSuccess(@NullableDecl Object result) {
+                        public void onSuccess(Object result) {
                             update(context);
                         }
 
@@ -184,9 +183,6 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
     }
 
     private void markGlobalFailure() {
-        taggedMetricRegistry.meter(MetricName.builder()
-                .safeName(InstrumentationUtils.FAILURES_METRIC_NAME)
-                .build())
-                .mark();
+        taggedMetricRegistry.meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME).mark();
     }
 }

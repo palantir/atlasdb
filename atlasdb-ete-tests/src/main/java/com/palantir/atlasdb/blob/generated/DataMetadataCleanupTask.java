@@ -40,11 +40,13 @@ public class DataMetadataCleanupTask implements OnCleanupTask {
             rows.add(DataStreamMetadataTable.DataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         DataStreamIdxTable indexTable = tables.getDataStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<DataStreamMetadataTable.DataStreamMetadataRow> rowsWithNoIndexEntries =
+                        executeUnreferencedStreamDiagnostics(indexTable, rows);
         Set<Long> toDelete = Sets.newHashSet();
+        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> currentMetadata =
+                metaTable.getMetadatas(rows);
         for (Map.Entry<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
@@ -88,7 +90,7 @@ public class DataMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(DataStreamIdxTable indexTable, Set<DataStreamMetadataTable.DataStreamMetadataRow> metadataRows) {
+    private static Set<DataStreamMetadataTable.DataStreamMetadataRow> executeUnreferencedStreamDiagnostics(DataStreamIdxTable indexTable, Set<DataStreamMetadataTable.DataStreamMetadataRow> metadataRows) {
         Set<DataStreamIdxTable.DataStreamIdxRow> indexRows = metadataRows.stream()
                 .map(DataStreamMetadataTable.DataStreamMetadataRow::getId)
                 .map(DataStreamIdxTable.DataStreamIdxRow::of)
@@ -99,9 +101,11 @@ public class DataMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+            return Sets.newHashSet();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
+            return unreferencedStreamsByIterator;
         }
     }
 }

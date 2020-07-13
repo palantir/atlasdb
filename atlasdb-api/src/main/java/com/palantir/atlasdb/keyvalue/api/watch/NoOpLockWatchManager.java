@@ -16,28 +16,31 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Optional;
 import java.util.Set;
 
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 
-public final class NoOpLockWatchManager implements LockWatchManager {
+public final class NoOpLockWatchManager extends LockWatchManager {
     public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
-
-    private NoOpLockWatchManager() {
-        // ...
-    }
 
     @Override
     public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
-        throw new UnsupportedOperationException("Lock watch registration not supported");
+        // Ignored
     }
 
     @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
-            IdentifiedVersion lastKnownVersion) {
-        return NoOpLockWatchEventCache.INSTANCE.getEventsForTransactions(startTimestamps, lastKnownVersion);
+    CommitUpdate getCommitUpdate(long startTs) {
+        return NoOpLockWatchEventCache.INSTANCE.getCommitUpdate(startTs);
+    }
+
+    @Override
+    TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> version) {
+        return NoOpLockWatchEventCache.INSTANCE.getUpdateForTransactions(startTimestamps, version);
     }
 }

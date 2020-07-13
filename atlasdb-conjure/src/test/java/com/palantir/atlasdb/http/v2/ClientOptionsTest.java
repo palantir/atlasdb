@@ -49,38 +49,38 @@ public class ClientOptionsTest {
             .build();
 
     @Test
-    public void proxyShouldSupportBlockingReadTimeoutIfUnspecified() {
+    public void proxyShouldSupportLongReadTimeoutIfUnspecified() {
         ClientOptions clientOptions = ClientOptions.fromRemotingParameters(AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
                 .shouldRetry(true)
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.BLOCKING_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptionsConstants.LONG_READ_TIMEOUT.toJavaDuration());
     }
 
     @Test
-    public void proxyShouldSupportBlockingReadTimeoutIfExplicitlyConfigured() {
+    public void proxyShouldSupportLongReadTimeoutIfExplicitlyConfigured() {
         ClientOptions clientOptions = ClientOptions.fromRemotingParameters(AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
                 .shouldRetry(true)
-                .shouldSupportBlockingOperations(true)
+                .shouldUseExtendedTimeout(true)
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.BLOCKING_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptionsConstants.LONG_READ_TIMEOUT.toJavaDuration());
     }
 
     @Test
-    public void proxyShouldSupportNonBlockingReadTimeoutIfExplicitlyConfigured() {
+    public void proxyShouldSupportShortReadTimeoutIfExplicitlyConfigured() {
         ClientOptions clientOptions = ClientOptions.fromRemotingParameters(AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
                 .shouldRetry(true)
-                .shouldSupportBlockingOperations(false)
+                .shouldUseExtendedTimeout(false)
                 .userAgent(USER_AGENT)
                 .build());
 
-        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptions.NON_BLOCKING_READ_TIMEOUT);
+        assertThat(clientOptions.readTimeout()).isEqualTo(ClientOptionsConstants.SHORT_READ_TIMEOUT.toJavaDuration());
     }
 
     @Test

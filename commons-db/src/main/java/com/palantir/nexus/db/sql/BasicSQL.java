@@ -65,7 +65,6 @@ import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
@@ -361,15 +360,12 @@ public abstract class BasicSQL {
 
     private static final String SELECT_THREAD_NAME = "SQL select statement"; //$NON-NLS-1$
     private static final String EXECUTE_THREAD_NAME = "SQL execute statement"; //$NON-NLS-1$
-    private static final int KEEP_SQL_THREAD_ALIVE_TIMEOUT = 3000; //3 seconds
 
     // TODO (jkong): Should these be lazily initialized?
     private static final Supplier<ExecutorService> DEFAULT_SELECT_EXECUTOR =
-            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
-                    new NamedThreadFactory(SELECT_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(SELECT_THREAD_NAME));
     static final Supplier<ExecutorService> DEFAULT_EXECUTE_EXECUTOR =
-            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
-                    new NamedThreadFactory(EXECUTE_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(EXECUTE_THREAD_NAME));
 
     private ExecutorService selectStatementExecutor;
     private ExecutorService executeStatementExecutor;
@@ -661,9 +657,7 @@ public abstract class BasicSQL {
             SqlLoggers.LOGGER.trace("SQL light result set selection query: {}", sql.getQuery());
         }
 
-        final ResourceCreationLocation alrsCreationException = new ResourceCreationLocation("This is where the AgnosticLightResultSet wrapper was created"); //$NON-NLS-1$
         PreparedStatementVisitor<AgnosticLightResultSet> preparedStatementVisitor = ps -> {
-            final ResourceCreationLocation creationException = new ResourceCreationLocation("This is where the ResultsSet was created", alrsCreationException); //$NON-NLS-1$
             final ResultSetVisitor<AgnosticLightResultSet> resultSetVisitor = rs -> {
                 try {
                     return new AgnosticLightResultSetImpl(
@@ -673,8 +667,7 @@ public abstract class BasicSQL {
                             ps,
                             "selectList", //$NON-NLS-1$
                             sql,
-                            getSqlTimer(),
-                            creationException);
+                            getSqlTimer());
                 } catch (Exception e) {
                     closeSilently(rs);
                     BasicSQLUtils.throwUncheckedIfSQLException(e);

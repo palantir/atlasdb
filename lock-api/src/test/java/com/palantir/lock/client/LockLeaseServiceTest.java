@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -202,7 +203,8 @@ public class LockLeaseServiceTest {
                         LockToken.of(lockToken.getRequestId())))
                 .timestamps(partitionedTimestamps)
                 .lease(lease)
-                .lockWatchUpdate(LockWatchStateUpdate.failed(UUID.randomUUID()))
+                .lockWatchUpdate(LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1, Collections.emptySet(),
+                        Collections.emptySet()))
                 .build();
     }
 

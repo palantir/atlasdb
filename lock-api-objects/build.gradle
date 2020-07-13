@@ -11,7 +11,7 @@ dependencies {
     compile project(":atlasdb-commons")
     compile project(":timestamp-api")
     compile project(":timestamp-client")
-    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
+    compile group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
@@ -27,7 +27,7 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.timelock'
         productName = 'timelock-server'
-        minimumVersion = '0.137.0'
+        minimumVersion = '0.218.0'
         maximumVersion = '0.x.x'
     }
 }

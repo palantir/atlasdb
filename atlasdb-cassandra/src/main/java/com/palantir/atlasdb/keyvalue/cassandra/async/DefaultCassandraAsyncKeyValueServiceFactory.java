@@ -18,8 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
@@ -33,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tracing.Tracers;
 
@@ -88,10 +85,7 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
      * @return a new dynamic thread pool with a thread keep alive time of 1 minute
      */
     private static ExecutorService createThreadPool(int maxPoolSize) {
-        LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
-        NamedThreadFactory threadFactory = new NamedThreadFactory("Atlas Cassandra Async KVS", false);
-
-        return PTExecutors.newThreadPoolExecutor(0, maxPoolSize, 1, TimeUnit.MINUTES, workQueue, threadFactory);
+        return PTExecutors.newFixedThreadPool(maxPoolSize, "Atlas Cassandra Async KVS");
     }
 
     private ExecutorService tracingExecutorService(ExecutorService executorService) {

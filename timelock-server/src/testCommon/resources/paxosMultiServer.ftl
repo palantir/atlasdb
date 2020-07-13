@@ -1,6 +1,8 @@
 install:
   paxos:
     data-directory: "${dataDirectory}"
+    sqlite-persistence:
+      data-directory: "${sqliteDataDirectory}"
     is-new-service: false
     leader-mode: ${leaderMode}
   cluster:
@@ -12,17 +14,18 @@ install:
         keyStorePassword: "keystore"
         keyStoreType: "JKS"
       uris:
-<#list serverPorts as serverPort>
-      - "localhost:${serverPort?c}"
+<#list serverProxyPorts as serverProxyPort>
+      - "localhost:${serverProxyPort?c}"
 </#list>
-    local-server: "localhost:${localServerPort?c}"
+    local-server: "localhost:${localProxyPort?c}"
   timestampBoundPersistence:
 
 runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
     timestamp-paxos:
-      use-batch-paxos: ${clientPaxos.useBatchPaxos?c}
+      use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
+    enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
 
 logging:
   appenders:

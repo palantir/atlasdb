@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: 'AtlasDB no longer publishes `transactionsReadFromDB`: it was a high
+    cardinality metric of limited value. Consider using `TransactionService.get` if
+    attempting to determine the total number of start-commit timestamp mappings looked
+    up from the transactions tables. Otherwise, consider enabling TRACE logging to
+    get this data.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4838

@@ -31,16 +31,36 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 @Value.Enclosing
 @Value.Style(attributeBuilderDetection = true)
 public interface TemplateVariables {
+    int PROXY_OFFSET = 100;
+
     @Nullable
     String getDataDirectory();
+    @Nullable
+    String getSqliteDataDirectory();
     List<Integer> getServerPorts();
     Integer getLocalServerPort();
     TimestampPaxos getClientPaxos();
     PaxosLeaderMode getLeaderMode();
 
+    @Value.Default
+    default Integer getLocalProxyPort() {
+        return doProxyTransform(getLocalServerPort());
+    }
+
+    @Value.Derived
+    default List<Integer> getServerProxyPorts() {
+        return getServerPorts().stream().map(TemplateVariables::doProxyTransform).collect(Collectors.toList());
+    }
+
+    static int doProxyTransform(int port) {
+        return port + PROXY_OFFSET;
+    }
+
     @Value.Check
     default TemplateVariables putLocalServerPortAmongstAllServerPorts() {
-        if (getServerPorts().contains(getLocalServerPort())) {
+        // It is guaranteed that the transform ensures that after this runs once, the local proxy port will be present
+        // in the server proxy ports.
+        if (getServerProxyPorts().contains(getLocalProxyPort())) {
             return this;
         }
 
@@ -51,7 +71,11 @@ public interface TemplateVariables {
 
     @Value.Immutable
     interface TimestampPaxos {
-        boolean isUseBatchPaxos();
+        boolean isUseBatchPaxosTimestamp();
+        @Value.Default
+        default boolean isBatchSingleLeader() {
+            return false;
+        }
     }
 
     static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.debug;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -48,6 +49,7 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
@@ -64,17 +66,20 @@ public class TransactionPostMortemRunner {
     private final ClientLockDiagnosticCollector clientLockDiagnosticCollector;
     private final WritesDigestEmitter writesDigestEmitter;
     private final LockDiagnosticInfoService timelockDiagnosticService;
+    private final LocalLockTracker localLockTracker;
 
     public TransactionPostMortemRunner(
             TransactionManager transactionManager,
             TableReference tableReference,
             AtlasDbConfig install,
-            Supplier<AtlasDbRuntimeConfig> runtime,
-            ClientLockDiagnosticCollector clientLockDiagnosticCollector) {
+            Refreshable<AtlasDbRuntimeConfig> runtime,
+            ClientLockDiagnosticCollector clientLockDiagnosticCollector,
+            LocalLockTracker localLockTracker) {
         this.timelockNamespace = timelockNamespace(install);
         this.clientLockDiagnosticCollector = clientLockDiagnosticCollector;
         this.timelockDiagnosticService = createRpcClient(install, runtime);
         this.writesDigestEmitter = new WritesDigestEmitter(transactionManager, tableReference);
+        this.localLockTracker = localLockTracker;
     }
 
     public FullDiagnosticDigest<String> conductPostMortem(Persistable row, byte[] columnName) {
@@ -102,11 +107,15 @@ public class TransactionPostMortemRunner {
 
         log.info("transaction digests", SafeArg.of("transactionDigests", transactionDigests));
 
+        List<LocalLockTracker.TrackedLockEvent> locallyTrackedLockEvents
+                = localLockTracker.getLocalLockHistory();
+
         return ImmutableFullDiagnosticDigest.<String>builder()
                 .rawData(ImmutableRawData.of(digest, lockDiagnosticInfo, snapshot))
                 .addAllInProgressTransactions(digest.inProgressTransactions())
                 .lockRequestIdsEvictedMidLockRequest(lockRequestIdsEvictedMidLockRequest)
                 .completedTransactionDigests(transactionDigests)
+                .trackedLockEvents(locallyTrackedLockEvents)
                 .build();
     }
 
@@ -176,7 +185,7 @@ public class TransactionPostMortemRunner {
 
     private static LockDiagnosticInfoService createRpcClient(
             AtlasDbConfig config,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
@@ -198,13 +207,11 @@ public class TransactionPostMortemRunner {
 
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
-        return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
+        return ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,
-                () -> runtimeConfigSupplier.get().timelockRuntime());
+                runtimeConfigSupplier.map(AtlasDbRuntimeConfig::timelockRuntime));
     }
-
-
 }

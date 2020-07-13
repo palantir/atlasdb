@@ -19,7 +19,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
@@ -32,7 +31,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
-import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
+import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.table.description.Schema;
@@ -64,7 +63,7 @@ public final class TimeLockTestUtils {
             TestableTimelockCluster cluster,
             String agent,
             AtlasDbRuntimeConfig runtimeConfigTemplate,
-            Optional<ClientLockDiagnosticCollector> diagnosticCollector,
+            Optional<LockDiagnosticComponents> diagnosticComponents,
             Schema... schemas) {
         List<String> serverUris = cluster.servers().stream()
                 .map(server -> server.serverHolder().getTimelockUri())
@@ -90,7 +89,7 @@ public final class TimeLockTestUtils {
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .runtimeConfigSupplier(() -> Optional.of(runtimeConfig))
-                .lockDiagnosticInfoCollector(diagnosticCollector)
+                .lockDiagnosticComponents(diagnosticComponents)
                 .addSchemas(schemas)
                 .build()
                 .serializable();
@@ -107,10 +106,6 @@ public final class TimeLockTestUtils {
         AtlasDbConfig install();
         AtlasDbRuntimeConfig runtime();
         TransactionManager transactionManager();
-
-        default Supplier<AtlasDbRuntimeConfig> runtimeSupplier() {
-            return this::runtime;
-        }
     }
 
 }

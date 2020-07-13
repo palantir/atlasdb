@@ -16,21 +16,26 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+    private final Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> outlierControllers;
 
     // Tracks occurrences of client pool exhaustions.
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
@@ -41,6 +46,31 @@ public class CassandraClientPoolMetrics {
         this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
         this.poolExhaustionCounter
                 = metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
+        this.outlierControllers = createOutlierControllers(metricsManager);
+    }
+
+    private static Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
+            MetricsManager metricsManager) {
+        ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierController> builder
+                = ImmutableMap.builder();
+        Arrays.stream(CassandraClientPoolHostLevelMetric.values())
+                .forEach(metric -> {
+                    DistributionOutlierController distributionOutlierController = DistributionOutlierController.create(
+                            metric.minimumMeanThreshold, metric.maximumMeanThreshold);
+                    registerPoolMeanMetrics(metricsManager, metric, distributionOutlierController.getMeanGauge());
+                    builder.put(metric, distributionOutlierController);
+                });
+        return builder.build();
+    }
+
+    private static void registerPoolMeanMetrics(MetricsManager metricsManager,
+            CassandraClientPoolHostLevelMetric metric,
+            Gauge<Double> meanGauge) {
+        metricsManager.registerOrGet(
+                CassandraClientPoolingContainer.class,
+                metric.metricName,
+                meanGauge,
+                ImmutableMap.of("pool", "mean"));
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
@@ -70,6 +100,33 @@ public class CassandraClientPoolMetrics {
 
     public void recordPoolExhaustion() {
         poolExhaustionCounter.inc();
+    }
+
+    @SuppressWarnings("unchecked") // Guaranteed to have the correct type
+    public void registerPoolMetric(
+            CassandraClientPoolHostLevelMetric metric,
+            Gauge<Long> gauge,
+            int poolNumber) {
+        MetricPublicationFilter filter = outlierControllers.get(metric).registerAndCreateFilter(gauge);
+        registerPoolMetricsToRegistry(metric, gauge, poolNumber, filter);
+    }
+
+    private void registerPoolMetricsToRegistry(
+            CassandraClientPoolHostLevelMetric metric,
+            Gauge<Long> gauge,
+            int poolNumber,
+            MetricPublicationFilter filter) {
+        Map<String, String> poolTag = ImmutableMap.of("pool", "pool" + poolNumber);
+        metricsManager.addMetricFilter(
+                CassandraClientPoolingContainer.class,
+                metric.metricName,
+                poolTag,
+                filter);
+        metricsManager.registerOrGet(
+                CassandraClientPoolingContainer.class,
+                metric.metricName,
+                gauge,
+                poolTag);
     }
 
     private void updateMetricOnAggregateAndHost(

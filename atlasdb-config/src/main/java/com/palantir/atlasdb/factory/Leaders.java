@@ -23,24 +23,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.InstrumentedExecutorService;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
@@ -59,7 +53,6 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
-import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
@@ -68,6 +61,7 @@ import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
@@ -162,7 +156,7 @@ public final class Leaders {
                 remoteLearners,
                 config.quorumSize(),
                 createExecutorsForService(metricsManager, learners, "knowledge-update"),
-                true);
+                PaxosConstants.CANCEL_REMAINING_CALLS);
 
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
                 ourAcceptor,
@@ -175,7 +169,7 @@ public final class Leaders {
                 acceptors,
                 config.quorumSize(),
                 createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"),
-                true);
+                PaxosConstants.CANCEL_REMAINING_CALLS);
 
         List<LeaderPingerContext<PingableLeader>> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(),
@@ -187,7 +181,7 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
                 config.leaderPingResponseWait(),
                 leaderUuid,
-                true);
+                PaxosConstants.CANCEL_REMAINING_CALLS);
 
         LeaderElectionService uninstrumentedLeaderElectionService = new LeaderElectionServiceBuilder()
                 .leaderUuid(leaderUuid)
@@ -238,23 +232,7 @@ public final class Leaders {
     // TODO (jkong): Make the limits configurable.
     // Current use cases tend to have not more than 10 (<< 100) inflight tasks under normal circumstances.
     private static ExecutorService createExecutor(MetricsManager metricsManager, String useCase, int corePoolSize) {
-        return new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        corePoolSize,
-                        100,
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
-                        daemonThreadFactory("atlas-leaders-election-" + useCase)),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
-    }
-
-    private static ThreadFactory daemonThreadFactory(String name) {
-        return new ThreadFactoryBuilder()
-                .setNameFormat(name + "-%d")
-                .setDaemon(true)
-                .build();
+        return PTExecutors.newCachedThreadPoolWithMaxThreads(100, "atlas-leaders-election-" + useCase);
     }
 
     public static <T> List<T> createProxyAndLocalList(
@@ -275,7 +253,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldLimitPayload(false)
                                 .shouldRetry(true)
-                                .shouldSupportBlockingOperations(false)
+                                .shouldUseExtendedTimeout(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .collect(Collectors.toList());
@@ -299,7 +277,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldLimitPayload(false) // Guaranteed to be small, no need to limit.
                                 .shouldRetry(false)
-                                .shouldSupportBlockingOperations(false)
+                                .shouldUseExtendedTimeout(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .map(Leaders::convertAddressToHostAndPort)

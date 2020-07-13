@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: 'Added further protections around thread explosion when a non-leader
+    node goes down. Previously this was limited at `100 * num_clients`: we now will
+    not spin up more than `100` threads per remote across clients when talking to
+    a remote acceptor.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4708

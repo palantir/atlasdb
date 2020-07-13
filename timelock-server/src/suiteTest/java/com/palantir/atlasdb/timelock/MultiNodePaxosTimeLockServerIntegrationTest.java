@@ -19,35 +19,49 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.http.v2.ClientOptions;
+import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
+import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
+import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureLockV1Request;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.ConjureLockRequests;
 import com.palantir.lock.v2.LeaderTime;
@@ -56,13 +70,14 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.tokens.auth.AuthHeader;
 
 @RunWith(Parameterized.class)
 public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> MultiLeaderPaxosSuite.MULTI_LEADER_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.NON_BATCHED_TIMESTAMP_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -72,18 +87,22 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         return injector.getParameter();
     }
 
+    private static final TestableTimelockCluster FIRST_CLUSTER = params().iterator().next();
+
     private static final LockDescriptor LOCK = StringLockDescriptor.of("foo");
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
-    private static final int LONG_LOCK_TIMEOUT_MS =
-            Ints.saturatedCast(ClientOptions.NON_BLOCKING_READ_TIMEOUT.plus(Duration.ofSeconds(1)).toMillis());
+    private static final int LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS =
+            Ints.saturatedCast(ClientOptionsConstants.SHORT_READ_TIMEOUT
+                    .toJavaDuration()
+                    .plus(Duration.ofSeconds(1)).toMillis());
 
     private NamespacedClients client;
 
     @Before
     public void bringAllNodesOnline() {
-        client = cluster.clientForRandomNamespace();
+        client = cluster.clientForRandomNamespace().throughWireMockProxy();
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
     }
 
@@ -127,7 +146,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void canUseNamespaceStartingWithTlOnLegacyEndpoints() {
-        cluster.client("tl" + "suffix").getFreshTimestamp();
+        cluster.client("tl" + "suffix").throughWireMockProxy().getFreshTimestamp();
     }
 
     @Test
@@ -227,7 +246,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void canCreateNewClientsDynamically() {
         for (int i = 0; i < 5; i++) {
-            NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
+            NamespacedClients randomNamespace = cluster.clientForRandomNamespace().throughWireMockProxy();
 
             randomNamespace.getFreshTimestamp();
             LockToken token = randomNamespace.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
@@ -237,10 +256,11 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
+        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            LockResponse response = client.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            LockResponse response = client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);
@@ -249,10 +269,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
+        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS,
+                    LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);
@@ -280,6 +302,159 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .collect(Collectors.toSet());
             client.namespacedConjureTimelockService().unlock(ConjureUnlockRequest.of(tokens));
         }
+    }
+
+    @Test
+    public void canGetAllNamespaces() {
+        String randomNamespace = UUID.randomUUID().toString();
+        cluster.client(randomNamespace).throughWireMockProxy().getFreshTimestamp();
+
+        Set<String> knownNamespaces = getKnownNamespaces();
+        assertThat(knownNamespaces).contains(randomNamespace);
+
+        for (TestableTimelockServer server : cluster.servers()) {
+            server.killSync();
+            server.start();
+        }
+
+        cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(
+                ImmutableList.of(cluster.clientForRandomNamespace().namespace()));
+
+        Set<String> namespacesAfterRestart = getKnownNamespaces();
+        assertThat(namespacesAfterRestart).contains(randomNamespace);
+        assertThat(Sets.difference(knownNamespaces, namespacesAfterRestart)).isEmpty();
+    }
+
+    private Set<String> getKnownNamespaces() {
+        return cluster.servers()
+                .stream()
+                .map(TestableTimelockServer::timeLockManagementService)
+                .map(resource -> resource.getNamespaces(AuthHeader.valueOf("Bearer omitted")))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
+
+    @Test
+    public void directLegacyAndConjureLockServicesInteractCorrectly() throws InterruptedException {
+        LockRefreshToken token = client.legacyLockService().lock("tom", com.palantir.lock.LockRequest.builder(
+                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                .build())
+                .build());
+        ConjureLockRefreshToken conjureAnalogue = ConjureLockRefreshToken.of(
+                token.getTokenId(), token.getExpirationDateMs());
+
+        // Cannot assert equality because tokens can have different expiration dates.
+        assertThat(client.legacyLockService().refreshLockRefreshTokens(ImmutableList.of(token)))
+                .as("refreshing a live token should succeed")
+                .hasOnlyOneElementSatisfying(refreshed ->
+                        assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
+        AuthHeader authHeader = AuthHeader.valueOf("Bearer unused");
+        assertThat(client.conjureLegacyLockService().refreshLockRefreshTokens(
+                authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
+                .as("it is possible to refresh a live token through the conjure API")
+                .hasOnlyOneElementSatisfying(refreshed ->
+                        assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
+
+        ConjureSimpleHeldLocksToken conjureHeldLocksToken = ConjureSimpleHeldLocksToken.of(token.getTokenId(), 0L);
+        assertThat(client.conjureLegacyLockService().unlockSimple(
+                authHeader, client.namespace(), conjureHeldLocksToken))
+                .as("it is possible to unlock a live token through the conjure API")
+                .isTrue();
+        assertThat(client.conjureLegacyLockService().unlockSimple(
+                authHeader, client.namespace(), conjureHeldLocksToken))
+                .as("a token unlocked through the conjure API stays unlocked")
+                .isFalse();
+        assertThat(client.legacyLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token)))
+                .as("a token unlocked through the conjure API stays unlocked even in the legacy API")
+                .isFalse();
+    }
+
+    @Test
+    public void lockAcquiredByConjureLockServiceIsAlsoAcquiredInLegacy() throws InterruptedException {
+        com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
+                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                        .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                        .build())
+                .doNotBlock()
+                .build();
+        String anonymousId = LockClient.ANONYMOUS.getClientId();
+        ConjureLockV1Request conjureLockRequest = ConjureLockV1Request.builder()
+                .lockClient(anonymousId)
+                .lockRequest(lockRequest)
+                .build();
+
+        HeldLocksToken token = client.conjureLegacyLockService().lockAndGetHeldLocks(
+                AuthHeader.valueOf("Bearer unused"),
+                client.namespace(),
+                conjureLockRequest)
+                .orElseThrow(() -> new RuntimeException("We should have been able to get the lock"));
+
+        assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
+                .as("if the conjure impl has taken a lock, the legacy impl mustn't be able to take it")
+                .isNull();
+        assertThat(client.legacyLockService().unlock(token.getLockRefreshToken()))
+                .as("legacy impl can unlock a lock taken by conjure impl")
+                .isTrue();
+        assertThat(client.legacyLockService().lockAndGetHeldLocks(anonymousId, lockRequest))
+                .as("lock taken by conjure impl that was unlocked can now be acquired by legacy impl")
+                .isNotNull();
+        assertThat(client.conjureLegacyLockService().lockAndGetHeldLocks(
+                AuthHeader.valueOf("Bearer unused"),
+                client.namespace(),
+                conjureLockRequest))
+                .as("if the legacy impl has taken a lock, the conjure impl mustn't be able to take it")
+                .isEmpty();
+    }
+
+    @Test
+    public void stressTest() {
+        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
+        TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
+        int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
+        boolean isNonLeaderTakenOut = false;
+        try {
+            for (int i = 0; i < 10_000; i++) { // Needed as it takes a while for the thread buildup to occur
+                client.getFreshTimestamp();
+                assertNumberOfThreadsReasonable(
+                        startingNumThreads,
+                        ManagementFactory.getThreadMXBean().getThreadCount(),
+                        isNonLeaderTakenOut);
+                if (i == 1_000) {
+                    makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
+                    isNonLeaderTakenOut = true;
+                }
+            }
+        } finally {
+            nonLeader.serverHolder().resetWireMock();
+        }
+    }
+
+    private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
+        // TODO (jkong): Lower the amount over the threshold. This needs to be slightly higher for now because of the
+        // current threading model in batch mode, where separate threads may be spun up on the autobatcher.
+        int threadLimit = startingThreads + 400;
+        if (nonLeaderDown) {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads after a non-leader failed")
+                    .isLessThanOrEqualTo(threadLimit);
+        } else {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads in the absence of failures")
+                    .isLessThanOrEqualTo(threadLimit);
+        }
+    }
+
+    private void abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere() {
+        Assume.assumeTrue(cluster == FIRST_CLUSTER);
+    }
+
+    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
+        nonLeader.serverHolder().wireMock().register(
+                WireMock.any(WireMock.anyUrl())
+                        .atPriority(Integer.MAX_VALUE - 1)
+                        .willReturn(WireMock.serviceUnavailable().withFixedDelay(
+                                Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {

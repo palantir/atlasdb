@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.util.List;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
@@ -39,6 +40,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final NamespacedConjureTimelockService conjureTimelockService;
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
+    private final CommitTimestampGetter commitTimestampGetter;
 
     private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
@@ -46,6 +48,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
+        this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
 
@@ -70,6 +73,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public long getFreshTimestamp() {
         return getFreshTimestamps(1).getLowerBound();
+    }
+
+    @Override
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        return commitTimestampGetter.getCommitTimestamp(startTs, commitLocksToken);
     }
 
     @Override
@@ -100,8 +108,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return transactionStarter.startIdentifiedAtlasDbTransaction();
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return transactionStarter.startIdentifiedAtlasDbTransactionBatch(count);
     }
 
     @Override
@@ -127,5 +135,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public void close() {
         transactionStarter.close();
+        commitTimestampGetter.close();
     }
 }

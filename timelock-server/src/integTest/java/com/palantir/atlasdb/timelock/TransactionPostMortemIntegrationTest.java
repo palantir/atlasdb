@@ -30,12 +30,13 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollectorImpl;
 import com.palantir.atlasdb.debug.FullDiagnosticDigest;
+import com.palantir.atlasdb.debug.ImmutableLockDiagnosticComponents;
 import com.palantir.atlasdb.debug.ImmutableLockDiagnosticConfig;
+import com.palantir.atlasdb.debug.LocalLockTracker;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.debug.TransactionPostMortemRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.timelock.TimeLockTestUtils.TransactionManagerContext;
-import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.example.profile.schema.ProfileSchema;
@@ -43,6 +44,8 @@ import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserProfileTable;
 import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStreamId;
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
+import com.palantir.paxos.Client;
+import com.palantir.refreshable.Refreshable;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -61,10 +64,12 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
             .build();
     private static final ProfileTableFactory TABLE_FACTORY = ProfileTableFactory.of();
     private static final TableReference TABLE_REFERENCE = TABLE_FACTORY.getUserProfileTable(null).getTableRef();
+    private static final int LOCK_TRACKER_SIZE = 10_000;
 
     private TransactionManagerContext transactionManagerContext;
-    private ClientLockDiagnosticCollector diagnosticCollector =
-            new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG);
+    private ClientLockDiagnosticCollector diagnosticCollector
+            = new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG);
+    private LocalLockTracker lockTracker = new LocalLockTracker(LOCK_TRACKER_SIZE);
     private TransactionPostMortemRunner runner;
 
     @Before
@@ -75,14 +80,18 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
                 cluster,
                 TIMELOCK_CLIENT.value(),
                 runtimeConfig,
-                Optional.of(diagnosticCollector),
+                Optional.of(ImmutableLockDiagnosticComponents.builder()
+                        .clientLockDiagnosticCollector(diagnosticCollector)
+                        .localLockTracker(lockTracker)
+                        .build()),
                 ProfileSchema.INSTANCE.getLatestSchema());
         runner = new TransactionPostMortemRunner(
                 transactionManagerContext.transactionManager(),
                 TABLE_REFERENCE,
                 transactionManagerContext.install(),
-                transactionManagerContext.runtimeSupplier(),
-                diagnosticCollector);
+                Refreshable.only(transactionManagerContext.runtime()),
+                diagnosticCollector,
+                lockTracker);
     }
 
     @Test

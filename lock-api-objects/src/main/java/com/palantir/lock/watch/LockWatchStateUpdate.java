@@ -32,16 +32,11 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = LockWatchStateUpdate.Failed.class, name = LockWatchStateUpdate.Failed.TYPE),
         @JsonSubTypes.Type(value = LockWatchStateUpdate.Success.class, name = LockWatchStateUpdate.Success.TYPE),
         @JsonSubTypes.Type(value = LockWatchStateUpdate.Snapshot.class, name = LockWatchStateUpdate.Snapshot.TYPE)})
 public interface LockWatchStateUpdate {
     UUID logId();
     <T> T accept(Visitor<T> visitor);
-
-    static Failed failed(UUID logId) {
-        return ImmutableFailed.builder().logId(logId).build();
-    }
 
     static Success success(UUID logId, long version, List<LockWatchEvent> events) {
         return ImmutableSuccess.builder().logId(logId).lastKnownVersion(version).events(events).build();
@@ -55,24 +50,6 @@ public interface LockWatchStateUpdate {
                 .locked(locked)
                 .lockWatches(lockWatches)
                 .build();
-    }
-
-    /**
-     * A failed update denotes that we were unable to get the difference since last known version, and we were also
-     * unable to compute a snapshot update.
-     */
-    @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-    @JsonSerialize(as = ImmutableFailed.class)
-    @JsonDeserialize(as = ImmutableFailed.class)
-    @JsonTypeName(Failed.TYPE)
-    interface Failed extends LockWatchStateUpdate {
-        String TYPE = "failed";
-
-        @Override
-        default <T> T accept(Visitor<T> visitor) {
-            return visitor.visit(this);
-        }
     }
 
     /**
@@ -119,7 +96,6 @@ public interface LockWatchStateUpdate {
     }
 
     interface Visitor<T> {
-        T visit(Failed failed);
         T visit(Success success);
         T visit(Snapshot snapshot);
     }

@@ -29,6 +29,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 
 public class AcceptorCacheImplTests {
 

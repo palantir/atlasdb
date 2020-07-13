@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: TimeLock internode communications now takes place via Dialogue over
+    the JAX-RS shim. In this way, we should go down from piles of different clients
+    to just six.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4809

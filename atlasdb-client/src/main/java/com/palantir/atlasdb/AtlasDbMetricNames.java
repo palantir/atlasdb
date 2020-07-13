@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb;
 
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+
 public final class AtlasDbMetricNames {
 
     private AtlasDbMetricNames() {
@@ -33,11 +37,13 @@ public final class AtlasDbMetricNames {
         public static final String EMPTY_VALUE = "emptyValuesCellFilterCount";
     }
 
+    public static final String LIBRARY_ORIGIN_TAG = "libraryOrigin";
+    public static final String LIBRARY_ORIGIN_VALUE = "atlasdb";
+
     public static final String SNAPSHOT_TRANSACTION_CELLS_READ = "numCellsRead";
     public static final String SNAPSHOT_TRANSACTION_CELLS_RETURNED = "numCellsReturnedAfterFiltering";
     public static final String SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ = "tooManyBytesRead";
     public static final String SNAPSHOT_TRANSACTION_BYTES_WRITTEN = "bytesWritten";
-    public static final String NUMBER_OF_TRANSACTIONS_READ_FROM_DB = "transactionsReadFromDB";
 
     public static final String CELLS_EXAMINED = "cellTimestampPairsExamined";
     public static final String CELLS_SWEPT = "staleValuesDeleted";
@@ -59,6 +65,15 @@ public final class AtlasDbMetricNames {
     public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
     public static final String BATCH_SIZE_MEAN = "batchSizeMean";
+    public static final Set<String> TARGETED_SWEEP_PROGRESS_METRIC_NAMES = ImmutableSet.of(
+            ENQUEUED_WRITES,
+            ENTRIES_READ,
+            TOMBSTONES_PUT,
+            ABORTED_WRITES_DELETED,
+            SWEEP_TS,
+            LAST_SWEPT_TS,
+            LAG_MILLIS,
+            BATCH_SIZE_MEAN);
 
     public static final String SWEEP_OUTCOME = "outcome";
     public static final String TAG_OUTCOME = "status";
@@ -71,10 +86,12 @@ public final class AtlasDbMetricNames {
     public static final String TAG_CURRENT_SUSPECTED_LEADER = "isCurrentSuspectedLeader";
     public static final String TAG_CLIENT = "client";
     public static final String TAG_PAXOS_USE_CASE = "paxosUseCase";
+    public static final String TAG_REMOTE_HOST = "remoteHost";
 
     public static final String COORDINATION_LAST_VALID_BOUND = "lastValidBound";
     public static final String COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION = "currentTransactionsSchemaVersion";
     public static final String COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION = "eventualTransactionsSchemaVersion";
 
-    public static final String EXPERIMENT_ERRORS = "experimentErrors";
+    public static final String LEGACY_READ = "legacyRead";
+    public static final String LEGACY_WRITE = "legacyWrite";
 }

@@ -54,6 +54,10 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         return new SweepMetricsAssert(metricsManager);
     }
 
+    public void hasNotRegisteredEnqueuedWritesConservativeMetric() {
+        objects.assertNull(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES));
+    }
+
     public void hasEnqueuedWritesConservativeEqualTo(long value) {
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
     }
@@ -152,7 +156,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
 
     private <N> Gauge<N> getGaugeForTargetedSweep(String strategy, String name) {
         Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
-        return getGauge(TargetedSweepMetrics.class, name, tag);
+        return getGauge("targetedSweepProgress", name, tag);
     }
 
     private Gauge<Long> getGaugeForLegacyOutcome(SweepOutcome outcome) {
@@ -194,6 +198,15 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
 
     private <T, N> Gauge<N> getGauge(Class<T> metricClass, String name, Map<String, String> tag) {
         MetricName metricName = getMetricName(metricClass, name, tag);
+
+        return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
+    }
+
+    private <T, N> Gauge<N> getGauge(String metricNamespace, String name, Map<String, String> tag) {
+        MetricName metricName = MetricName.builder()
+                .safeName(metricNamespace + "." + name)
+                .safeTags(tag)
+                .build();
 
         return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
     }

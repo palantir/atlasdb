@@ -18,8 +18,8 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
+import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -50,7 +51,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     public abstract Transaction delegate();
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
                                                         Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         return delegate().getRows(tableRef, rows, columnSelection);
@@ -109,6 +110,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
             Iterable<RangeRequest> rangeRequests,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
         return delegate().getRanges(tableRef, rangeRequests, visitableProcessor);
+    }
+
+    @Override
+    public <T> Stream<T> getRanges(GetRangesQuery<T> getRangesQuery) {
+        return delegate().getRanges(getRangesQuery);
     }
 
     @Override

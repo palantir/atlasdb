@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutionException;
@@ -74,14 +75,14 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
 
         if (columnSelection.allColumnsSelected()) {
-            SortedMap<byte[], RowResult<byte[]>> loaded = super.getRows(tableRef, rows, columnSelection);
+            NavigableMap<byte[], RowResult<byte[]>> loaded = super.getRows(tableRef, rows, columnSelection);
             cacheLoadedRows(tableRef, loaded.values());
             return loaded;
         } else {

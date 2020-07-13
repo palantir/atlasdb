@@ -1,6 +1,7 @@
-apply plugin: 'com.palantir.sls-recommended-dependencies'
-
 apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.palantir.sls-recommended-dependencies'
+apply plugin: 'com.palantir.metric-schema'
 
 repositories {
     mavenCentral()
@@ -11,14 +12,18 @@ dependencies {
     compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
     compile project(':lock-api-objects')
+    compile project(':lock-conjure-api:lock-conjure-api-dialogue')
+    compile project(':lock-conjure-api:lock-conjure-api-jersey')
+    compile project(':timelock-api:timelock-api-dialogue')
     compile project(':timelock-api:timelock-api-jersey')
     compile project(":timestamp-api")
     compile project(":timestamp-client")
-    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
+    compile group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
+    compile group: 'com.palantir.refreshable', name: 'refreshable'
 
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
@@ -38,13 +43,4 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
-}
-
-recommendedProductDependencies {
-    productDependency {
-        productGroup = 'com.palantir.timelock'
-        productName = 'timelock-server'
-        minimumVersion = '0.144.0'
-        maximumVersion = '0.x.x'
-    }
 }

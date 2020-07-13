@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -418,35 +419,20 @@ public interface TransactionManager extends AutoCloseable {
     void registerClosingCallback(Runnable closingCallback);
 
     /**
-     * This method can be used for direct control of a transaction's life cycle. For example, if the work done in
-     * the transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method
-     * allows for a long lived transaction object. For the any data read or written to the transaction to be valid,
-     * the transaction must be committed, preferably by calling
-     * {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock, TransactionTask)} to also perform
-     * additional cleanup.
+     * This method can be used for direct control over the lifecycle of a batch of transactions. For example, if the
+     * work done in each given transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of
+     * time, this method allows for a long lived transaction object. For any data read or written to the transaction to
+     * be valid, the transaction must be committed by calling {@link OpenTransaction#finish(TransactionTask)} to
+     * also perform additional cleanup. Note that this does not clean up the pre commit condition associated with that
+     * task. The order of transactions returned corresponds with the pre commit conditions passed in, however there are
+     * no guarantees on the ordering of transactions returned with respect to their start timestamp.
      *
+     * @return a batch of transactions with associated immutable timestamp locks
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
-     *
-     * @return the transaction and associated immutable timestamp lock for the task
      */
     @Deprecated
     @Timed
-    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
-
-    /**
-     * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
-     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}. If no further work needs to be done with
-     * the transaction, a no-op task can be passed in.
-     *
-     * @deprecated Similar functionality will exist, but this method is likely to change in the future
-     *
-     * @return value returned by the task
-     */
-    @Deprecated
-    @Timed
-    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
-            TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException;
+    List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> condition);
 
     /**
      * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.

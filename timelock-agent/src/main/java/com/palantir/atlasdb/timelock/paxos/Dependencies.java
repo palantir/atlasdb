@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 
@@ -50,6 +51,12 @@ public interface Dependencies {
         PaxosRemoteClients remoteClients();
         LocalPaxosComponents components();
         int quorumSize();
+
+        /**
+         * Caution! The shared executor should only be used for tasks that are expected to complete quickly.
+         * DO NOT use the shared executor when the concurrency of requests may be very high (e.g. for Paxos round
+         * verification).
+         */
         ExecutorService sharedExecutor();
     }
 
@@ -62,6 +69,7 @@ public interface Dependencies {
         com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
         Supplier<PaxosRuntimeConfiguration> runtime();
         AutobatchingLeadershipObserverFactory leadershipObserverFactory();
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
     }
 
     interface LeaderElectionService {
@@ -73,6 +81,7 @@ public interface Dependencies {
         PaxosLeadershipEventRecorder eventRecorder();
         PaxosLearner localLearner();
         com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
+        Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
     }
 
     interface HealthCheckPinger {

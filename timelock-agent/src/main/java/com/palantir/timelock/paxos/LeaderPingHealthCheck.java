@@ -26,12 +26,11 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
-import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.timelock.TimeLockStatus;
@@ -51,7 +50,7 @@ public class LeaderPingHealthCheck {
         this.pingers = pingers;
         this.executorService = PTExecutors.newFixedThreadPool(
                 pingers.size(),
-                new NamedThreadFactory("leader-ping-healthcheck", true));
+                "leader-ping-healthcheck");
     }
 
     public HealthCheckDigest getStatus() {
@@ -63,7 +62,7 @@ public class LeaderPingHealthCheck {
                         pinger -> PaxosContainer.of(pinger.apply(namespacesToCheck)),
                         executorService,
                         HEALTH_CHECK_TIME_LIMIT,
-                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
+                        PaxosConstants.CANCEL_REMAINING_CALLS);
 
         Map<Client, PaxosResponses<HealthCheckResponse>> responsesByClient = responses.stream()
                 .map(PaxosContainer::get)

@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -38,6 +40,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -46,6 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -55,6 +59,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
 
@@ -69,7 +74,7 @@ public class SnapshotTransactionManagerTest {
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
@@ -78,6 +83,7 @@ public class SnapshotTransactionManagerTest {
             new LegacyTimelockService(timestampService, closeableLockService,
                     LockClient.of("lock")),
             NoOpLockWatchManager.INSTANCE,
+            NoOpLockWatchEventCache.INSTANCE,
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -90,7 +96,7 @@ public class SnapshotTransactionManagerTest {
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
             DefaultTimestampCache.createForTests(),
             MultiTableSweepQueueWriter.NO_OP,
-            executorService,
+            deleteExecutor,
             true,
             () -> ImmutableTransactionConfig.builder().build(),
             ConflictTracer.NO_OP);
@@ -119,6 +125,12 @@ public class SnapshotTransactionManagerTest {
     }
 
     @Test
+    public void closesDeleteExecutorOnClosingTransactionManager() {
+        snapshotTransactionManager.close();
+        assertThat(deleteExecutor.isTerminated()).isTrue();
+    }
+
+    @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
@@ -127,6 +139,7 @@ public class SnapshotTransactionManagerTest {
                 new LegacyTimelockService(ts, closeableLockService,
                         LockClient.of("lock")),
                 NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchEventCache.INSTANCE,
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -139,7 +152,7 @@ public class SnapshotTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                executorService,
+                deleteExecutor,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP);
@@ -223,10 +236,10 @@ public class SnapshotTransactionManagerTest {
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
 
         transactionManager.runTaskReadOnly(tx -> "ignored");
-        verify(timelockService).startIdentifiedAtlasDbTransaction();
+        verify(timelockService).startIdentifiedAtlasDbTransactionBatch(1);
 
         transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
-        verify(timelockService, times(2)).startIdentifiedAtlasDbTransaction();
+        verify(timelockService, times(2)).startIdentifiedAtlasDbTransactionBatch(1);
     }
 
     @Test
@@ -237,7 +250,18 @@ public class SnapshotTransactionManagerTest {
 
         transactionManager.runTaskReadOnly(tx -> "ignored");
         transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
-        verify(timelockService, never()).startIdentifiedAtlasDbTransaction();
+        verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(1);
+    }
+
+    @Test
+    public void startEmptyBatchOfTransactionsDoesNotCallTimelockService() {
+        TimelockService timelockService =
+                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
+        List<OpenTransaction> transactions = transactionManager.startTransactions(ImmutableList.of());
+
+        assertThat(transactions).isEmpty();
+        verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(anyInt());
     }
 
     private SnapshotTransactionManager createSnapshotTransactionManager(
@@ -247,6 +271,7 @@ public class SnapshotTransactionManagerTest {
                 keyValueService,
                 timelockService,
                 NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchEventCache.INSTANCE,
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -259,7 +284,7 @@ public class SnapshotTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                executorService,
+                deleteExecutor,
                 true,
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)

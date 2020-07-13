@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -50,6 +51,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -241,6 +243,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 keyValueService,
                 timelock,
                 NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchEventCache.INSTANCE,
                 timeManagement,
                 mockLockService,
                 transactionService,
@@ -261,11 +264,11 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp()).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-        when(timelock.startIdentifiedAtlasDbTransaction()).thenReturn(
-                StartIdentifiedAtlasDbTransactionResponse.of(
+        when(timelock.startIdentifiedAtlasDbTransactionBatch(1)).thenReturn(
+                ImmutableList.of(StartIdentifiedAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
                         TimestampAndPartition.of(1L, 1)
-                ));
+                )));
         TRM.registerTransactionManager(txnManagerWithMocks);
         return txnManagerWithMocks;
     }

@@ -40,9 +40,9 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevelMetric;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -72,8 +72,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.host = host;
         this.config = config;
         this.poolNumber = poolNumber;
-        this.clientPool = createClientPool();
         this.poolMetrics = poolMetrics;
+        this.clientPool = createClientPool();
     }
 
     public InetSocketAddress getHost() {
@@ -113,7 +113,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             return runWithGoodResource(fn);
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}",
-                    SafeArg.of("host", CassandraLogHelper.host(host)), UnsafeArg.of("exception", t.toString()));
+                    SafeArg.of("host", CassandraLogHelper.host(host)), t);
             if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
                 log.warn("Extra information about exhausted pool",
                         SafeArg.of("numActive", clientPool.getNumActive()),
@@ -304,26 +304,14 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     }
 
     private void registerMetrics(GenericObjectPool<CassandraClient> pool) {
-        registerPoolMetric("meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
-        registerPoolMetric("meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
-        registerPoolMetric("meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
-        registerPoolMetric("numIdle", pool::getNumIdle);
-        registerPoolMetric("numActive", pool::getNumActive);
-        registerPoolMetric("approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
-        registerPoolMetric("created", pool::getCreatedCount);
-        registerPoolMetric("destroyedByEvictor", pool::getDestroyedByEvictorCount);
-        registerPoolMetric("destroyedByBorrower", pool::getDestroyedByBorrowValidationCount);
-        registerPoolMetric("proportionDestroyedByEvictor",
-                () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
-        registerPoolMetric("proportionDestroyedByBorrower",
-                () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS, pool::getMeanActiveTimeMillis);
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_IDLE, () -> (long) pool.getNumIdle());
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_ACTIVE, () -> (long) pool.getNumActive());
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, pool::getCreatedCount);
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.DESTROYED_BY_EVICTOR, pool::getDestroyedByEvictorCount);
     }
 
-    private void registerPoolMetric(String metricName, Gauge gauge) {
-        metricsManager.registerOrGet(
-                CassandraClientPoolingContainer.class,
-                metricName,
-                gauge,
-                ImmutableMap.of("pool", "pool" + poolNumber));
+    private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {
+        poolMetrics.registerPoolMetric(metric, gauge, poolNumber);
     }
 }

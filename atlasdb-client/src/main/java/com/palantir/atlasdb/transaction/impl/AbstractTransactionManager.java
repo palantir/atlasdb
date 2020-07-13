@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.RateLimiter;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.health.MetricsBasedTimelockHealthCheck;
 import com.palantir.atlasdb.health.TimelockHealthCheck;
@@ -35,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.Preconditions;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
@@ -47,7 +47,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     private final TimelockHealthCheck timelockHealthCheck;
 
     AbstractTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
-        this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager.getRegistry());
+        this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager);
         this.timestampValidationReadCache = timestampCache;
     }
 
@@ -115,8 +115,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         };
         return new ThreadPoolExecutor(
                 numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, workQueue,
-                new ThreadFactoryBuilder().setNameFormat(
-                        AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges-%d").build());
+                new NamedThreadFactory(AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges"));
     }
 
     @Override

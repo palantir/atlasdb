@@ -417,7 +417,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createInstrumentedFixedThreadPool(config, metricsManager.getTaggedRegistry()));
+        super(createBlockingThreadpool(config, metricsManager));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -446,16 +446,25 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.runtimeConfigSupplier = runtimeConfigSupplier;
     }
 
-    private static ExecutorService createInstrumentedFixedThreadPool(
+    private static ExecutorService createBlockingThreadpool(CassandraKeyValueServiceConfig config,
+            MetricsManager metricsManager) {
+        return config.thriftExecutorServiceFactory()
+                .orElseGet(() -> instrumentedFixedThreadPoolSupplier(config, metricsManager.getTaggedRegistry()))
+                .get();
+    }
+
+    private static Supplier<ExecutorService> instrumentedFixedThreadPoolSupplier(
             CassandraKeyValueServiceConfig config,
             TaggedMetricRegistry registry) {
-        int numberOfThriftHosts = config.servers().numberOfThriftHosts();
-        int corePoolSize = config.poolSize() * numberOfThriftHosts;
-        int maxPoolSize = config.maxConnectionBurstSize() * numberOfThriftHosts;
-        return Tracers.wrap(
-                MetricRegistries.instrument(registry,
-                        createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
-                        "Atlas Cassandra KVS"));
+        return () -> {
+            int numberOfThriftHosts = config.servers().numberOfThriftHosts();
+            int corePoolSize = config.poolSize() * numberOfThriftHosts;
+            int maxPoolSize = config.maxConnectionBurstSize() * numberOfThriftHosts;
+            return Tracers.wrap(
+                    MetricRegistries.instrument(registry,
+                            createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
+                            "Atlas Cassandra KVS"));
+        };
     }
 
     @Override
@@ -1641,7 +1650,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         client.system_update_column_family(cf);
                     }
 
-                    CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                    CassandraKeyValueServices.waitForSchemaVersions(
+                            config.schemaMutationTimeoutMillis(),
+                            client,
                             schemaChangeDescriptionForPutMetadataForTables(updatedCfs));
                 }
                 // Done with actual schema mutation, push the metadata

@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.v2;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.QueryParam;
@@ -40,12 +41,14 @@ public interface TimelockService {
 
     long getFreshTimestamp();
 
+    long getCommitTimestamp(long startTs, LockToken commitLocksToken);
+
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp();
 
-    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction();
+    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count);
 
     long getImmutableTimestamp();
 

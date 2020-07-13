@@ -29,4 +29,5 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
 }

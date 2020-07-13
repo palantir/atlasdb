@@ -35,7 +35,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.SettableFuture;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CoalescingBatchingEventHandlerTests {
@@ -204,8 +203,8 @@ public class CoalescingBatchingEventHandlerTests {
 
         @Value.Derived
         @Override
-        default SettableFuture<Response> result() {
-            return SettableFuture.create();
+        default DisruptorAutobatcher.DisruptorFuture<Response> result() {
+            return new DisruptorAutobatcher.DisruptorFuture<>("test");
         }
     }
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -31,8 +32,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -45,7 +46,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
+public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(ReadOnlyTransactionManager.class);
 
     private final MetricsManager metricsManager;
@@ -157,13 +158,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        throw new UnsupportedOperationException("Not supported on this transaction manager");
-    }
-
-    @Override
-    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
-            TransactionTask<T, E> task) throws TransactionFailedRetriableException {
+    public List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> condition) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 

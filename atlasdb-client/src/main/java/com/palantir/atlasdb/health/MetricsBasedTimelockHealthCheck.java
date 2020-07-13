@@ -18,27 +18,33 @@ package com.palantir.atlasdb.health;
 import java.util.Map;
 
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 public class MetricsBasedTimelockHealthCheck implements TimelockHealthCheck{
-    private final MetricRegistry metricRegistry;
+    private final MetricsManager metricsManager;
 
-    public MetricsBasedTimelockHealthCheck(MetricRegistry metricRegistry) {
-        this.metricRegistry = metricRegistry;
+    public MetricsBasedTimelockHealthCheck(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
     }
 
     @Override public TimelockServiceStatus getStatus() {
-        Map<String, Meter> meters = metricRegistry.getMeters();
-        if (!meters.containsKey(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST)
-                || !meters.containsKey(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST)) {
+        Map<MetricName, Metric> metrics = metricsManager.getTaggedRegistry().getMetrics();
+        Metric success = metrics.get(MetricName.builder().safeName(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST)
+                .build());
+        Metric failure = metrics.get(MetricName.builder().safeName(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST).build());
+
+        if (!(success instanceof Meter) || !(failure instanceof Meter)) {
             throw new SafeIllegalStateException("Timelock client metrics is not properly set");
         }
 
-        double successfulRequestRate = meters.get(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST).getFiveMinuteRate();
-        double failedRequestRate = meters.get(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST).getFiveMinuteRate();
+        double successfulRequestRate = ((Meter) success).getFiveMinuteRate();
+        double failedRequestRate = ((Meter) failure).getFiveMinuteRate();
         if (successfulRequestRate >= failedRequestRate) {
             return TimelockServiceStatus.HEALTHY;
         } else {

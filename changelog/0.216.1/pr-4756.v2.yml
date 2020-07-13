@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: SetupRunTask properly uses generics in argument
+  links:
+  - https://github.com/palantir/atlasdb/pull/4756

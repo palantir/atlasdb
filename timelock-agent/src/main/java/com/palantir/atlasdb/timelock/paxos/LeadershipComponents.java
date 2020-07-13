@@ -34,6 +34,7 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.timelock.paxos.NamespaceTracker;
@@ -46,11 +47,11 @@ public class LeadershipComponents {
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
     private final Factory<LeadershipContext> leadershipContextFactory;
-    private final List<HealthCheckPinger> healthCheckPingers;
+    private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
-            List<HealthCheckPinger> healthCheckPingers) {
+            LocalAndRemotes<HealthCheckPinger> healthCheckPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
     }
@@ -70,8 +71,12 @@ public class LeadershipComponents {
         closer.shutdown();
     }
 
+    public HealthCheckPinger getLocalHealthCheckPinger() {
+        return healthCheckPingers.local();
+    }
+
     public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
-        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers);
+        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
     }
 
     public boolean requestHostileTakeover(Client client) {

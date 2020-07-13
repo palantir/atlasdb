@@ -1,0 +1,8 @@
+type: break
+break:
+  description: 'AtlasDB now publishes Targeted Sweep metrics for a given strategy only after it is deemed to be
+    active: that is, if 1000 cells have been written, 1000 cells have been read, or if Targeted Sweep is believed to
+    be 4 hours behind. This should ease metric loads for users that only use CONSERVATIVE or THOROUGH tables,
+    especially if they run multiple TransactionManagers.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4847

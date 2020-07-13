@@ -16,33 +16,29 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.concurrent.Callable;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.lmax.disruptor.EventHandler;
-import com.palantir.tracing.Observability;
-import com.palantir.tracing.Tracers;
 
 final class TracingEventHandler<I, O> implements EventHandler<BatchElement<I, O>> {
     private final EventHandler<BatchElement<I, O>> handler;
-    private final String purpose;
-    private final Observability observability;
+    private final List<BatchElement<I, O>> pending;
 
     TracingEventHandler(
             EventHandler<BatchElement<I, O>> delegate,
-            String purpose,
-            Observability observability) {
+            int bufferSize) {
         this.handler = delegate;
-        this.purpose = purpose;
-        this.observability = observability;
+        this.pending = new ArrayList<>(bufferSize);
     }
 
     @Override
     public void onEvent(BatchElement<I, O> event, long sequence, boolean endOfBatch) throws Exception {
+        pending.add(event);
         if (endOfBatch) {
-            Tracers.wrapWithNewTrace(purpose, observability, (Callable<Void>) () -> {
-                handler.onEvent(event, sequence, true);
-                return null;
-            }).call();
+            pending.forEach(e -> e.result().running());
+            handler.onEvent(event, sequence, true);
+            pending.clear();
         } else {
             handler.onEvent(event, sequence, false);
         }

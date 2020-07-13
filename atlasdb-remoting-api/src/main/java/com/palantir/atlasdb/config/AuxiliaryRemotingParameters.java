@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Additional parameters for clients to specify when connecting to remote services.
@@ -35,16 +37,22 @@ public interface AuxiliaryRemotingParameters {
      * Whether clients should retry in the event of connection failures.
      * This value may be ignored and assumed to be true for proxies that implement failover.
      */
-    boolean shouldRetry();
+    Optional<Boolean> shouldRetry();
+
+    @Value.Lazy
+    default boolean definitiveRetryIndication() {
+        return shouldRetry().orElseThrow(() -> new SafeIllegalStateException("Attempted to determine"
+                    + " definitively if we should retry, but this was unknown."));
+    }
 
     /**
-     * Whether this client should support operations that block on the server side.
-     * In practice, this means that read and idle connection timeouts may be longer.
+     * Whether this client should support operations that may potentially require a longer connection timeout,
+     * e.g. because they are dependent on external resources like a lock.
      *
      * This is set to true by default, to support legacy behaviour.
      */
     @Value.Default
-    default boolean shouldSupportBlockingOperations() {
+    default boolean shouldUseExtendedTimeout() {
         return true;
     }
 

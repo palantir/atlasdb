@@ -32,8 +32,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.base.Throwables;
 import com.palantir.conjure.java.api.errors.QosException;
-
-import feign.RetryableException;
+import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 
 /**
  * This proxy exists to support "fast failover" behaviour with no limit as to the number of attempts made; instead,
@@ -98,17 +97,20 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
         }
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
-        if (!(cause instanceof RetryableException) || !isCausedByRetryOther((RetryableException) cause)) {
+        if (!isCausedByRetryOther(cause)) {
             return ResultOrThrowable.failure(cause);
         }
         return ResultOrThrowable.success(null);
     }
 
     @VisibleForTesting
-    static boolean isCausedByRetryOther(RetryableException ex) {
-        Throwable cause = ex;
+    static boolean isCausedByRetryOther(Throwable throwable) {
+        Throwable cause = throwable;
         while (cause != null) {
             if (cause instanceof QosException.RetryOther) {
+                return true;
+            }
+            if (cause instanceof UnknownRemoteException && ((UnknownRemoteException) cause).getStatus() == 308) {
                 return true;
             }
             cause = cause.getCause();

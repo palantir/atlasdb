@@ -34,7 +34,6 @@ dependencies {
   explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
-  explicitShadow group: 'io.netty', name: 'netty-handler-proxy'
   explicitShadow group: 'com.google.guava', name: 'guava'
 
   explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
@@ -101,6 +100,6 @@ recommendedProductDependencies {
         productGroup = 'com.palantir.cassandra'
         productName = 'sls-cassandra'
         minimumVersion = '3.31.0'
-        maximumVersion = '4.x.x'
+        maximumVersion = '6.x.x'
     }
 }

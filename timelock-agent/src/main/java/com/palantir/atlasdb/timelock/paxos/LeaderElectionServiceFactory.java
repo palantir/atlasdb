@@ -22,6 +22,8 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 
 public class LeaderElectionServiceFactory {
@@ -35,6 +37,9 @@ public class LeaderElectionServiceFactory {
     }
 
     private static BatchingLeaderElectionService createNewInstance(Dependencies.LeaderElectionService dependencies) {
+        PaxosAcceptorNetworkClient acceptorClient = dependencies.networkClientFactories().acceptor()
+                .create(dependencies.paxosClient());
+
         return new BatchingLeaderElectionService(new LeaderElectionServiceBuilder()
                 .leaderPinger(dependencies.leaderPinger())
                 .leaderUuid(dependencies.leaderUuid())
@@ -43,8 +48,9 @@ public class LeaderElectionServiceFactory {
                         dependencies.runtime().get().maximumWaitBeforeProposingLeadership())
                 .eventRecorder(dependencies.eventRecorder())
                 .knowledge(dependencies.localLearner())
-                .acceptorClient(dependencies.networkClientFactories().acceptor().create(dependencies.paxosClient()))
+                .acceptorClient(acceptorClient)
                 .learnerClient(dependencies.networkClientFactories().learner().create(dependencies.paxosClient()))
+                .latestRoundVerifier(dependencies.latestRoundVerifierFactory().create(acceptorClient))
                 .decorateProposer(uninstrumentedPaxosProposer -> instrumentProposer(
                         dependencies.paxosClient(),
                         dependencies.metrics(),

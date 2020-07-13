@@ -704,11 +704,13 @@ public class StreamStoreRenderer {
                         line("rows.add(", StreamMetadataRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
                     line(StreamIndexTable, " indexTable = tables.get", StreamIndexTable, "(t);");
-                    line("executeUnreferencedStreamDiagnostics(indexTable, rows);");
-                    line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);");
+                    line("Set<", StreamMetadataRow, "> rowsWithNoIndexEntries =");
+                    line("                executeUnreferencedStreamDiagnostics(indexTable, rows);");
                     line("Set<", StreamId, "> toDelete = Sets.newHashSet();");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata =");
+                    line("        metaTable.getMetadatas(rows);");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
-                        line("if (e.getValue().getStatus() != Status.STORED) {"); {
+                        line("if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {"); {
                             line("toDelete.add(e.getKey().getId());");
                         } line("}");
                     } line("}");
@@ -728,7 +730,7 @@ public class StreamStoreRenderer {
             }
 
             private void evaluation() {
-                line("private static void executeUnreferencedStreamDiagnostics(", StreamIndexTable, " indexTable, Set<", StreamMetadataRow, "> metadataRows) {"); {
+                line("private static Set<", StreamMetadataRow, "> executeUnreferencedStreamDiagnostics(", StreamIndexTable, " indexTable, Set<", StreamMetadataRow, "> metadataRows) {"); {
                     line("Set<", StreamIndexRow, "> indexRows = metadataRows.stream()");
                     line("        .map(", StreamMetadataRow, "::getId)");
                     line("        .map(", StreamIndexRow, "::of)");
@@ -741,9 +743,11 @@ public class StreamStoreRenderer {
                         line("log.info(\"We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.\",");
                         line("        SafeArg.of(\"unreferencedByIterator\", convertToIdsForLogging(unreferencedStreamsByIterator)),");
                         line("        SafeArg.of(\"unreferencedByMultimap\", convertToIdsForLogging(unreferencedStreamsByMultimap)));");
+                        line("return Sets.newHashSet();");
                     } line("} else {"); {
                         line("log.info(\"We searched for unreferenced streams and consistently found {}.\",");
                         line("        SafeArg.of(\"unreferencedStreamIds\", convertToIdsForLogging(unreferencedStreamsByIterator)));");
+                        line("return unreferencedStreamsByIterator;");
                     } line("}");
                 } line("}");
             }

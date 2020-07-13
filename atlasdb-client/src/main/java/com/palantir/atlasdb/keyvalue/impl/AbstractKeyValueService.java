@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -89,10 +88,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createThreadPool(String threadNamePrefix, int corePoolSize, int maxPoolSize) {
-        return PTExecutors.newThreadPoolExecutor(corePoolSize, maxPoolSize,
-                1, TimeUnit.MINUTES,
-                new LinkedBlockingQueue<>(), new NamedThreadFactory(threadNamePrefix, false));
+    protected static ExecutorService createThreadPool(String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
+        return PTExecutors.newFixedThreadPool(maxPoolSize, threadNamePrefix);
     }
 
     @Override

@@ -32,13 +32,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -83,6 +91,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -94,6 +103,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -101,6 +111,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    private static final BatchColumnRangeSelection ALL_COLUMNS = BatchColumnRangeSelection.create(
+            PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 3);
 
     public AbstractTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
@@ -703,7 +715,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 101));
-        verifyMatchingResult(expected, row, columnRange);
+        verifyMatchingResult(expected, PtBytes.toBytes("row1"), columnRange);
 
         columnRange =
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
@@ -1310,6 +1322,258 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
+    public void getRowsAccessibleThroughCopies() {
+        Transaction t = startTransaction();
+        byte[] rowKey = row(0);
+        byte[] value = value(0);
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(rowKey, column(0)), value));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> result =
+                t.getRows(TEST_TABLE, ImmutableList.of(rowKey), ColumnSelection.all());
+        assertThat(result.get(rowKey))
+                .as("it should be possible to get a row from getRows with a passed-in byte array")
+                .isNotNull()
+                .satisfies(rowResult ->
+                        assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
+
+        byte[] rowKeyCopy = rowKey.clone();
+        assertThat(rowKeyCopy).isNotSameAs(rowKey);
+        assertThat(result.get(rowKeyCopy))
+                .as("it should be possible to get a row from getRows with a copy of a passed-in byte array")
+                .isNotNull()
+                .satisfies(rowResult ->
+                        assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
+    }
+
+    @Test
+    public void getRowsSortedByByteOrder() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] row1 = row(1);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0), Cell.create(row1, col0), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                t.getRows(TEST_TABLE, ImmutableList.of(row0, row1), ColumnSelection.all());
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows.lastKey()).containsExactly(row1);
+    }
+
+    @Test
+    public void getRowsWithDuplicateQueries() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] anotherRow0 = row(0);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                t.getRows(TEST_TABLE, ImmutableList.of(row0, anotherRow0), ColumnSelection.all());
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows).hasSize(1);
+    }
+
+    @Test
+    public void getRowsAppliesColumnSelection() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] col0 = column(0);
+        byte[] col1 = column(1);
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(row0, col0), value(0),
+                Cell.create(row0, col1), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                t.getRows(TEST_TABLE, ImmutableList.of(row0), ColumnSelection.create(ImmutableList.of(col0)));
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows.get(row0).getColumns().keySet()).containsExactly(col0);
+        assertThat(readRows.get(row0).getColumns().get(col0)).containsExactly(value(0));
+    }
+
+    @Test
+    public void getRowsIncludesLocalWrites() {
+        Transaction t = startTransaction();
+        byte[] rowKey = row(0);
+        byte[] value = value(0);
+        SortedMap<byte[], RowResult<byte[]>> prePut =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0)), ColumnSelection.all());
+        assertThat(prePut).isEmpty();
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(rowKey, column(0)), value));
+        SortedMap<byte[], RowResult<byte[]>> postPut =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0)), ColumnSelection.all());
+        assertThat(postPut)
+                .hasSize(1)
+                .containsKey(row(0));
+    }
+
+    @Test
+    public void getRowsDoesNotIncludePersistedRowsWithLocalDeletes() {
+        Transaction t = startTransaction();
+        t.put(TEST_TABLE, ImmutableMap.of(
+                Cell.create(row(0), column(0)), value(0),
+                Cell.create(row(1), column(0)), value(1),
+                Cell.create(row(1), column(1)), value(2)));
+        t.commit();
+
+        t = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> preDelete =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0), row(1)), ColumnSelection.all());
+        // cannot use containsOnlyKeys because that internally uses a LinkedHashSet
+        assertThat(preDelete)
+                .hasSize(2)
+                .containsKey(row(0))
+                .containsKey(row(1));
+        t.delete(TEST_TABLE, ImmutableSet.of(Cell.create(row(0), column(0)), Cell.create(row(1), column(0))));
+        SortedMap<byte[], RowResult<byte[]>> postDelete =
+                t.getRows(TEST_TABLE, ImmutableList.of(row(0), row(1)), ColumnSelection.all());
+        assertThat(postDelete)
+                .hasSize(1)
+                .containsKey(row(1));
+        assertThat(postDelete.get(row(1)))
+                .isNotNull()
+                .satisfies(rowResult -> assertThat(
+                        Arrays.equals(rowResult.getColumns().get(column(1)), value(2))).isTrue());
+    }
+
+    @Test
+    public void lookupFromGetRowsColumnRange() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] row1 = row(1);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0), Cell.create(row1, col0), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRange(
+                TEST_TABLE, ImmutableList.of(row0, row1), ALL_COLUMNS);
+
+        Map<Cell, byte[]> directLookupResults = KeyedStream.ofEntries(
+                BatchingVisitables.copyToList(result.get(row0)).stream()).collectToMap();
+        assertThat(directLookupResults).hasSize(1);
+        assertThat(Arrays.equals(directLookupResults.get(Cell.create(row0, col0)), value(0))).isTrue();
+
+        Map<Cell, byte[]> indirectLookupResults = KeyedStream.ofEntries(
+                BatchingVisitables.copyToList(result.get(row1.clone())).stream()).collectToMap();
+        assertThat(indirectLookupResults).hasSize(1);
+        assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row1.clone(), col0)), value(1))).isTrue();
+    }
+
+    @Test
+    public void getRowsColumnRangeAbsentRow() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRange(
+                TEST_TABLE, ImmutableList.of(row0), ALL_COLUMNS);
+
+        assertThat(result.keySet()).containsExactly(row0);
+
+        Map<Cell, byte[]> results = KeyedStream.ofEntries(
+                BatchingVisitables.copyToList(result.get(row0)).stream()).collectToMap();
+        assertThat(results).hasSize(0);
+    }
+
+    @Test
+    public void lookupFromGetRowsColumnRangeIterator() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        byte[] row1 = row(1);
+        byte[] col0 = column(0);
+        t.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0), Cell.create(row1, col0), value(1)));
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRangeIterator(
+                TEST_TABLE, ImmutableList.of(row0, row1), ALL_COLUMNS);
+
+        Map<Cell, byte[]> directLookupResults = Maps.newHashMap();
+        result.get(row0).forEachRemaining(entry -> directLookupResults.put(entry.getKey(), entry.getValue()));
+        assertThat(directLookupResults).hasSize(1);
+        assertThat(Arrays.equals(directLookupResults.get(Cell.create(row0, col0)), value(0))).isTrue();
+
+        Map<Cell, byte[]> indirectLookupResults = Maps.newHashMap();
+        result.get(row1.clone()).forEachRemaining(entry -> indirectLookupResults.put(entry.getKey(), entry.getValue()));
+        assertThat(indirectLookupResults).hasSize(1);
+        assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row1.clone(), col0)), value(1))).isTrue();
+    }
+
+    @Test
+    public void getRowsColumnRangeIteratorAbsentLookup() {
+        Transaction t = startTransaction();
+        byte[] row0 = row(0);
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> result = t.getRowsColumnRangeIterator(
+                TEST_TABLE, ImmutableList.of(row0), ALL_COLUMNS);
+
+        assertThat(result.keySet()).containsExactly(row0);
+
+        Map<Cell, byte[]> results = Maps.newHashMap();
+        result.get(row0).forEachRemaining(entry -> results.put(entry.getKey(), entry.getValue()));
+        assertThat(results).hasSize(0);
+    }
+
+    @Test
+    public void resilientToUnstableRowOrderingsForGetRowsColumnRange() {
+        Assume.assumeTrue(canGetRowsColumnRangeOnTestTable());
+        Transaction t = startTransaction();
+
+        Map<Cell, byte[]> valuesToPut = KeyedStream.of(IntStream.range(0, 100).boxed())
+                .flatMapKeys(index ->
+                        Stream.of(Cell.create(row(index), column(0)), Cell.create(row(index), column(1))))
+                .map(AbstractTransactionTest::value)
+                .collectToMap();
+
+        t.put(TEST_TABLE, valuesToPut);
+        t.commit();
+
+        t = startTransaction();
+        Set<byte[]> rowNames = valuesToPut.keySet().stream().map(Cell::getRowName).collect(Collectors.toCollection(
+                () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator())));
+        Iterator<Map.Entry<Cell, byte[]>> result = t.getRowsColumnRange(
+                TEST_TABLE,
+                UnstableOrderedIterable.create(rowNames, UnsignedBytes.lexicographicalComparator()),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                5);
+
+        List<Map.Entry<Cell, byte[]>> resultAsList = Lists.newArrayList(result);
+        assertThat(resultAsList).hasSize(200);
+        for (int index = 0; index < 200; index += 2) {
+            Map.Entry<Cell, byte[]> first = resultAsList.get(index);
+            Map.Entry<Cell, byte[]> second = resultAsList.get(index + 1);
+            assertMatchingRowAndInColumnOrder(first, second);
+        }
+    }
+
+    private boolean canGetRowsColumnRangeOnTestTable() {
+        try {
+            Transaction t = startTransaction();
+            t.getRowsColumnRange(
+                    TEST_TABLE,
+                    ImmutableList.of(row(0)),
+                    new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                    42);
+            return true;
+        } catch (UnsupportedOperationException e) {
+            return false;
+        }
+    }
+
+    @Test
     public void testTableMetadata() {
         keyValueService.dropTable(TEST_TABLE);
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -1335,6 +1599,57 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
+    }
+
+    @Test
+    public void getRangesProcessesVisitableOnOriginalElements() {
+        UnaryOperator<RangeRequest> fiveElementLimit = range -> range.withBatchHint(5);
+        RangeRequest sevenElementRequest = RangeRequest.builder()
+                .startRowInclusive(PtBytes.toBytes("tom"))
+                .batchHint(7)
+                .build();
+        RangeRequest nineElementRequest = RangeRequest.builder()
+                .startRowInclusive(PtBytes.toBytes("tom"))
+                .batchHint(9)
+                .build();
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, RangeRequest> exposingProcessor
+                = (rangeRequest, $) -> rangeRequest;
+
+        Transaction transaction = startTransaction();
+        List<RangeRequest> visited = transaction.getRanges(ImmutableGetRangesQuery.<RangeRequest>builder()
+                .tableRef(TEST_TABLE)
+                .rangeRequests(ImmutableList.of(sevenElementRequest, nineElementRequest))
+                .rangeRequestOptimizer(fiveElementLimit)
+                .visitableProcessor(exposingProcessor)
+                .build())
+                .collect(Collectors.toList());
+
+        assertThat(visited).containsExactlyInAnyOrder(sevenElementRequest, nineElementRequest);
+    }
+
+    @Test
+    public void getRangesSendsQueriesThatHaveGoneThroughTheOptimizer() {
+        RangeRequest goldenRequest = RangeRequest.builder().startRowInclusive(PtBytes.toBytes("tom")).build();
+        RangeRequest otherRequest = RangeRequest.builder().startRowInclusive(PtBytes.toBytes("zzzz")).build();
+
+        // Contract is not entirely valid, but we don't have a good way of mocking out the KVS.
+        UnaryOperator<RangeRequest> goldenForcingOperator = $ -> goldenRequest;
+
+        putDirect("tom", "col", "value", 0);
+
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> singleValueExtractor
+                = ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))
+                        .getOnlyColumnValue();
+
+        Transaction transaction = startTransaction();
+        List<byte[]> extractedValue = transaction.getRanges(ImmutableGetRangesQuery.<byte[]>builder()
+                .tableRef(TEST_TABLE)
+                .rangeRequests(ImmutableList.of(otherRequest))
+                .rangeRequestOptimizer(goldenForcingOperator)
+                .visitableProcessor(singleValueExtractor)
+                .build())
+                .collect(Collectors.toList());
+        assertThat(extractedValue).containsExactly(PtBytes.toBytes("value"));
     }
 
     private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {
@@ -1375,5 +1690,27 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .transform(RowResult::getOnlyColumnValue)
                 .transform(bytes -> new String(bytes, StandardCharsets.UTF_8))
                 .immutableCopy();
+    }
+
+    private static byte[] row(int index) {
+        return toBytes("row" + index);
+    }
+
+    private static byte[] column(int index) {
+        return toBytes("col" + index);
+    }
+
+    private static byte[] value(int index) {
+        return toBytes("value" + index);
+    }
+
+    private static byte[] toBytes(String string) {
+        return PtBytes.toBytes(string);
+    }
+
+    private static void assertMatchingRowAndInColumnOrder(Map.Entry<Cell, byte[]> fst, Map.Entry<Cell, byte[]> snd) {
+        assertThat(Arrays.equals(fst.getKey().getRowName(), snd.getKey().getRowName())).isTrue();
+        assertThat(UnsignedBytes.lexicographicalComparator().compare(
+                fst.getKey().getColumnName(), snd.getKey().getColumnName())).isLessThan(0);
     }
 }

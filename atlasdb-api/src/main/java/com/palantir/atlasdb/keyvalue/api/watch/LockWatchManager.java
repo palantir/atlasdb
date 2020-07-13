@@ -16,25 +16,38 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.TransactionsLockWatchEvents;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 
-public interface LockWatchManager {
+public abstract class LockWatchManager {
     /**
      * Registers a set of lock watches.
      */
     @Idempotent
-    void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
+    public abstract void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
+
+    // These methods are hidden on purpose as they should not be generally available, only for brave souls!
 
     /**
-     * Returns a condensed view of new lock watch events since lastKnownVersion for a set of transactions identified by
-     * their start timestamps.
-     * @param startTimestamps a set of start timestamps identifying transactions
-     * @param lastKnownVersion exclusive start version to get events from
+     * Gets the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the
+     * transaction, excluding the transaction's own commit locks.
+     *
+     * @param startTs start timestamp of the transaction
+     * @return the commit update for this transaction
      */
-    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion lastKnownVersion);
+    abstract CommitUpdate getCommitUpdate(long startTs);
+
+    /**
+     * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
+     * that version, and a map associating each start timestamp with its respective lock watch state version, and a flag
+     * that is true if a snapshot or timelock leader election occurred.
+     */
+    abstract TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
+            Optional<IdentifiedVersion> version);
 }

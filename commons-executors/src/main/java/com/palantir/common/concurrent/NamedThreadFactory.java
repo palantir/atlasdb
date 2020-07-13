@@ -19,6 +19,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+
 /**
  * A {@link ThreadFactory} that lets you specify threads with a default name
  * and an auto-generated sequence number.
@@ -29,7 +32,7 @@ public class NamedThreadFactory implements ThreadFactory {
     private final String prefix;
     private final boolean isDaemon;
     private final AtomicLong count = new AtomicLong();
-    private final ThreadFactory threadFactory = Executors.defaultThreadFactory();
+    private final ThreadFactory threadFactory;
 
     /**
      * Creates a new thread factory that will construct non-daemon threads with names like
@@ -39,7 +42,7 @@ public class NamedThreadFactory implements ThreadFactory {
      * @param prefix The prefix for each constructed thread.
      */
     public NamedThreadFactory(String prefix) {
-        this(prefix, false);
+        this(prefix, true);
     }
 
     /**
@@ -50,9 +53,14 @@ public class NamedThreadFactory implements ThreadFactory {
      * @param prefix The prefix for each constructed thread.
      * @param isDaemon {@code true} iff the constructed threads should be daemon threads.
      */
+    @SuppressWarnings("deprecation") // No reasonable way to pass a TaggedMetricRegistry
     public NamedThreadFactory(String prefix, boolean isDaemon) {
         this.prefix = prefix;
         this.isDaemon = isDaemon;
+        this.threadFactory = MetricRegistries.instrument(
+                SharedTaggedMetricRegistries.getSingleton(),
+                Executors.defaultThreadFactory(),
+                prefix);
     }
 
     /** {@inheritDoc} */
@@ -61,6 +69,7 @@ public class NamedThreadFactory implements ThreadFactory {
         Thread thread = threadFactory.newThread(runnable);
         thread.setName(prefix + "-" + count.getAndIncrement());
         thread.setDaemon(isDaemon);
+        thread.setUncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE);
         return thread;
     }
 

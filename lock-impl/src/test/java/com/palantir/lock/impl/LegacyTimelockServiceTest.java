@@ -155,7 +155,7 @@ public class LegacyTimelockServiceTest {
                 .thenThrow(illegalStateException);
         when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertThatThrownBy(timelock::startIdentifiedAtlasDbTransaction).isEqualTo(illegalStateException);
+        assertThatThrownBy(() -> timelock.startIdentifiedAtlasDbTransactionBatch(1)).isEqualTo(illegalStateException);
         verify(lockService).unlock(LOCK_REFRESH_TOKEN);
     }
 

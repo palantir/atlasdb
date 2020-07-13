@@ -30,6 +30,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableRemotingClientConfig.class)
 @JsonIgnoreProperties({
         "maximumConjureRemotingProbability",
-        "enableLegacyClientFallback"})
+        "enableLegacyClientFallback",
+        "enableDialogue"})
 @Value.Immutable
-public interface RemotingClientConfig {}
+public interface RemotingClientConfig {
+}

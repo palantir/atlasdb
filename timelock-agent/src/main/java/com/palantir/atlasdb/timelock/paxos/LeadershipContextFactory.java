@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -27,8 +26,10 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.timelock.paxos.HealthCheckPinger;
 
 @Value.Immutable
 public abstract class LeadershipContextFactory implements
@@ -42,6 +43,7 @@ public abstract class LeadershipContextFactory implements
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
+    public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
 
     @Value.Derived
     @Override
@@ -51,10 +53,13 @@ public abstract class LeadershipContextFactory implements
 
     @Value.Derived
     public LocalPaxosComponents components() {
-        return new LocalPaxosComponents(
+        return LocalPaxosComponents.createWithBlockingMigration(
                 metrics(),
-                useCase().logDirectoryRelativeToDataDirectory(install().dataDirectory()),
-                leaderUuid());
+                useCase(),
+                install().dataDirectory(),
+                install().sqliteDataSource(),
+                leaderUuid(),
+                install().install().paxos().canCreateNewClients());
     }
 
     @Value.Derived
@@ -83,7 +88,7 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Derived
-    List<com.palantir.timelock.paxos.HealthCheckPinger> healthCheckPingers() {
+    LocalAndRemotes<HealthCheckPinger> healthCheckPingers() {
         return healthCheckPingersFactory().create(this);
     }
 

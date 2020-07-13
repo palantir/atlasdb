@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 @JsonDeserialize(as = ImmutableTargetedSweepInstallConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepInstallConfig.class)
@@ -72,6 +73,14 @@ public class TargetedSweepInstallConfig {
                 "Number of thorough targeted sweep threads must be between 0 and %s inclusive, but is %s instead.",
                 AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS,
                 thoroughThreads());
+    }
+
+    /**
+     * Specifies how metrics are tracked for this instance of Targeted Sweep.
+     */
+    @Value.Default
+    public TargetedSweepMetrics.MetricsConfiguration metricsConfiguration() {
+        return TargetedSweepMetrics.MetricsConfiguration.DEFAULT;
     }
 
     public static TargetedSweepInstallConfig defaultTargetedSweepConfig() {

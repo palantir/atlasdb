@@ -8,6 +8,7 @@ libsDirName = file('build/artifacts')
 dependencies {
     compile project(":commons-executors-api")
     compile "com.palantir.tracing:tracing"
+    implementation "com.palantir.tritium:tritium-metrics"
 
     testCompile group: 'com.google.guava', name: 'guava'
 }

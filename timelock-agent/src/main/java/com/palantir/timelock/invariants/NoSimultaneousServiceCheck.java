@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.paxos.HealthCheckDigest;
 
@@ -60,8 +60,7 @@ public final class NoSimultaneousServiceCheck {
     }
 
     public static NoSimultaneousServiceCheck create(List<TimeLockActivityChecker> timeLockActivityCheckers) {
-        ExecutorService executorService = PTExecutors.newSingleThreadExecutor(
-                PTExecutors.newNamedThreadFactory(false));
+        ExecutorService executorService = PTExecutors.newSingleThreadExecutor();
         return new NoSimultaneousServiceCheck(timeLockActivityCheckers,
                 client -> {
                     // TODO (jkong): Gather confidence and then change to ServerKiller, so that we ACTUALLY shoot
@@ -90,7 +89,7 @@ public final class NoSimultaneousServiceCheck {
     }
 
     private void scheduleCheckOnSpecificClient(Client client) {
-        executorService.submit(() -> {
+        executorService.execute(() -> {
             try {
                 performCheckOnSpecificClientUnsafe(client);
             } catch (Exception e) {

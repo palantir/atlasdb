@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.SetMultimap;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.paxos.BooleanPaxosResponse;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
@@ -97,9 +98,14 @@ public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor
         }
     }
 
-    public static List<BatchPaxosAcceptor> wrap(PaxosUseCase useCase, List<BatchPaxosAcceptorRpcClient> remotes) {
+    public static List<WithDedicatedExecutor<BatchPaxosAcceptor>> wrap(
+            PaxosUseCase useCase, List<WithDedicatedExecutor<BatchPaxosAcceptorRpcClient>> remotes) {
         return remotes.stream()
-                .map(rpcClient -> new UseCaseAwareBatchPaxosAcceptorAdapter(useCase, rpcClient))
+                .map(withExecutor -> withExecutor.transformService(rpcClient -> wrapInAdapter(useCase, rpcClient)))
                 .collect(Collectors.toList());
+    }
+
+    private static BatchPaxosAcceptor wrapInAdapter(PaxosUseCase useCase, BatchPaxosAcceptorRpcClient rpcClient) {
+        return new UseCaseAwareBatchPaxosAcceptorAdapter(useCase, rpcClient);
     }
 }

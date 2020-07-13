@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
-import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.paxos.Client;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.
@@ -50,5 +50,12 @@ public interface TimeLockInstallConfiguration {
     @Value.Default
     default TsBoundPersisterConfiguration timestampBoundPersistence() {
         return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
+    }
+
+    @Value.Check
+    default void check() {
+        TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
+                paxos().isNewService() || cluster().knownNewServers().contains(cluster().localServer()),
+                paxos().doDataDirectoriesExist());
     }
 }

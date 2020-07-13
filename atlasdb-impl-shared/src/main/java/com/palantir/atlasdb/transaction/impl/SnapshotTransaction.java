@@ -15,14 +15,17 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -110,6 +113,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.GetRangesQuery;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -330,7 +335,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
@@ -341,7 +346,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
+        NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
@@ -351,7 +356,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // We don't need to do work postFiltering if we have a write locally.
         rawResults.keySet().removeAll(result.build().keySet());
 
-        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
+        NavigableMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
@@ -379,10 +384,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
+        Iterable<byte[]> stableRows = ImmutableList.copyOf(rows);
         hasReads = true;
         RowColumnRangeIterator rawResults =
                 keyValueService.getRowsColumnRange(tableRef,
-                                                   rows,
+                                                   stableRows,
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
@@ -390,16 +396,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
-        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
-        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
-            BatchColumnRangeSelection batchColumnRangeSelection =
-                    BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-            return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
-        });
-
-        return Iterators.concat(postFiltered);
+        BatchColumnRangeSelection batchColumnRangeSelection =
+                BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
+        return getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults);
     }
 
     @Override
@@ -413,8 +412,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
-        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
-                Maps.newHashMapWithExpectedSize(rawResults.size());
+        ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
+                ImmutableSortedMap.orderedBy(PtBytes.BYTES_COMPARATOR);
         for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
@@ -422,7 +421,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
             postFilteredResults.put(row, postFilteredIterator);
         }
-        return postFilteredResults;
+        return postFilteredResults.build();
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
@@ -444,6 +443,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return filterDeletedValues(mergedIterator, tableRef);
     }
 
+    private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
+            TableReference tableRef,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            RowColumnRangeIterator rawIterator) {
+        Iterator<Map.Entry<Cell, Value>> postFilterIterator =
+                getRowColumnRangePostFiltered(tableRef, rawIterator, batchColumnRangeSelection.getBatchHint());
+        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(postFilterIterator);
+        Iterator<Map.Entry<Cell, byte[]>> merged = Iterators.concat(Iterators.transform(rawResultsByRow, row -> {
+            SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(
+                    tableRef, batchColumnRangeSelection, row.getKey());
+            Iterator<Map.Entry<Cell, byte[]>> remoteIterator = Iterators.transform(
+                    row.getValue(), entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
+            Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
+            return IteratorUtils.mergeIterators(localIterator,
+                    remoteIterator,
+                    Ordering.from(UnsignedBytes.lexicographicalComparator())
+                            .onResultOf(entry -> entry.getKey().getColumnName()),
+                    from -> from.getLhSide());
+        }));
+
+        return filterDeletedValues(merged, tableRef);
+    }
+
     private Iterator<Map.Entry<Cell, byte[]>> filterDeletedValues(
             Iterator<Map.Entry<Cell, byte[]>> unfiltered,
             TableReference tableReference) {
@@ -455,6 +477,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             return true;
         });
+    }
+
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
+            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
+        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
+            ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+            batch.forEach(rawBuilder::put);
+            Map<Cell, Value> raw = rawBuilder.build();
+
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            if (raw.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+
+            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
+                    getWithPostFilteringSync(
+                            tableRef,
+                            raw,
+                            x -> x),
+                    preserveInputRowOrder(batch));
+            return postFiltered.entrySet().iterator();
+        }));
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
@@ -492,13 +536,30 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.concat(postFilteredBatches);
     }
 
+    private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
+        // N.B. This batch could be spread across multiple rows, and those rows might extend into other
+        // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
+        // is to preserve the original row order.
+        return Comparator
+                .comparing(
+                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                        Ordering.explicit(inputEntries.stream()
+                                .map(Map.Entry::getKey)
+                                .map(Cell::getRowName)
+                                .map(ByteBuffer::wrap)
+                                .distinct()
+                                .collect(ImmutableList.toImmutableList())))
+                .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR);
+    }
+
     /**
      * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name.
      * {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees
      * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
      * entry per non-empty row.
      */
-    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(RowColumnRangeIterator rawResults) {
+    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(
+            Iterator<Map.Entry<Cell, Value>> rawResults) {
         PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
         return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
             byte[] prevRowName;
@@ -559,7 +620,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
-    private SortedMap<byte[], RowResult<byte[]>> filterRowResults(
+    private NavigableMap<byte[], RowResult<byte[]>> filterRowResults(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             ImmutableMap.Builder<Cell, byte[]> resultCollector) {
@@ -803,19 +864,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!Iterables.isEmpty(rangeRequests)) {
             hasReads = true;
         }
-        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
-                StreamSupport.stream(rangeRequests.spliterator(), false)
-                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
-
-        if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
-            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
-        }
-
-        return MoreStreams.blockingStreamWithParallelism(
-                requestAndVisitables,
-                pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
-                getRangesExecutor,
-                concurrencyLevel);
+        return getRanges(ImmutableGetRangesQuery.<T>builder()
+                .tableRef(tableRef)
+                .rangeRequests(rangeRequests)
+                .concurrencyLevel(concurrencyLevel)
+                .visitableProcessor(visitableProcessor)
+                .build());
     }
 
     @Override
@@ -827,6 +881,31 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             hasReads = true;
         }
         return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
+    }
+
+    @Override
+    public <T> Stream<T> getRanges(GetRangesQuery<T> query) {
+        if (!Iterables.isEmpty(query.rangeRequests())) {
+            hasReads = true;
+        }
+        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
+                StreamSupport.stream(query.rangeRequests().spliterator(), false)
+                        .map(rangeRequest -> Pair.of(
+                                rangeRequest,
+                                getLazyRange(query.tableRef(), query.rangeRequestOptimizer().apply(rangeRequest))));
+
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> processor = query.visitableProcessor();
+        int concurrencyLevel = query.concurrencyLevel().orElse(defaultGetRangesConcurrency);
+
+        if (concurrencyLevel == 1 || isSingleton(query.rangeRequests())) {
+            return requestAndVisitables.map(pair -> processor.apply(pair.getLeft(), pair.getRight()));
+        }
+
+        return MoreStreams.blockingStreamWithParallelism(
+                requestAndVisitables,
+                pair -> processor.apply(pair.getLeft(), pair.getRight()),
+                getRangesExecutor,
+                concurrencyLevel);
     }
 
     private static boolean isSingleton(Iterable<?> elements) {
@@ -1581,6 +1660,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // Acquire row locks and a lock on the start timestamp row in the transactions table.
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
+            // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
             LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
             try {
                 // Conflict checking. We can actually do this later without compromising correctness, but there is no
@@ -1599,7 +1679,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
-                long commitTimestamp = timedAndTraced("getCommitTimestamp", timelockService::getFreshTimestamp);
+                // Timing is still useful, as this may perform operations pertaining to lock watches.
+                long commitTimestamp = timedAndTraced("getCommitTimestamp",
+                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
                 commitTsForScrubbing = commitTimestamp;
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
@@ -1607,7 +1689,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // scrub timestamp (same as the hard delete transaction's start timestamp).
                 // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
                 // might well cost more.
-                timedAndTraced("microsForPunch", () -> cleaner.punch(commitTimestamp));
+                // Not timed as this is generally an asynchronous operation.
+                traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
 
                 // Serializable transactions need to check their reads haven't changed, by reading again at
                 // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
@@ -1621,25 +1704,34 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
-                timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
-                timedAndTraced("commitPutCommitTs",
+                // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
+                // timed.
+                traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
+                // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
+                traced("commitPutCommitTs",
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
             } finally {
-                timedAndTraced("postCommitUnlock",
-                        () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
+                // Not timed because tryUnlock() is an asynchronous operation.
+                traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
             }
         });
     }
 
-    private void timedAndTraced(String timerName, Runnable runnable) {
-        try (Timer.Context timer = getTimer(timerName).time();
-                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+    private void traced(String spanName, Runnable runnable) {
+        try (CloseableTracer tracer = CloseableTracer.startSpan(spanName)) {
             runnable.run();
+        }
+    }
+
+    private void timedAndTraced(String timerName, Runnable runnable) {
+        try (Timer.Context timer = getTimer(timerName).time()) {
+            traced(timerName, runnable);
         }
     }
 
@@ -1917,7 +2009,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            deleteExecutor.execute(() -> deleteCells(tableRef, keysToDelete));
+            deleteExecutor.execute(() -> deleteCells(keyValueService, tableRef, keysToDelete));
         } catch (RejectedExecutionException rejected) {
             log.info("Could not delete keys {} for table {}, because the delete executor's queue was full."
                     + " Sweep should eventually clean these values.",
@@ -1928,7 +2020,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return true;
     }
 
-    private void deleteCells(TableReference tableRef, Map<Cell, Long> keysToDelete) {
+    /**
+     * This method is made static so it loses reference to the SnapshotTransaction reference
+     * when passed to deleteExecutor::execute in a lambda reducing its retained memory size.
+     */
+    private static void deleteCells(
+            KeyValueService keyValueService,
+            TableReference tableRef,
+            Map<Cell, Long> keysToDelete) {
         try {
             log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
                     LoggingArgs.tableRef(tableRef),
@@ -2147,8 +2246,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (gets.size() > transactionConfig.get().getThresholdForLoggingLargeNumberOfTransactionLookups()) {
             logLargeNumberOfTransactions(tableRef, gets);
         }
-
-        getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).update(gets.size());
 
         return Futures.transform(loadCommitTimestamps(asyncTransactionService, gets),
                 rawResults -> {

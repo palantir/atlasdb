@@ -18,6 +18,9 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -27,8 +30,15 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
+import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Runnables;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Name matches the class we're testing
 public class PTExecutorsTest {
@@ -119,6 +129,35 @@ public class PTExecutorsTest {
                     .describedAs("Executor inheritable state should not be propagated to recurring tasks")
                     .isNull();
         });
+    }
+
+    @Test
+    @SuppressWarnings("deprecation") // Testing a component that relies on the singleton TaggedMetricRegistry
+    public void testCachedExecutorMetricsRecorded() {
+        // Metrics are recorded to the global singleton registry, so we generate a random name to avoid
+        // clobbering state from other tests.
+        String executorName = UUID.randomUUID().toString();
+        TaggedMetricRegistry metrics = SharedTaggedMetricRegistries.getSingleton();
+        withExecutor(() -> PTExecutors.newCachedThreadPool(executorName), executor -> {
+            executor.submit(Runnables.doNothing());
+        });
+        Meter submitted = findMetric(metrics, MetricName.builder()
+                .safeName("executor.submitted")
+                .putSafeTags("executor", executorName)
+                .build(), Meter.class);
+        assertThat(submitted.getCount()).isOne();
+    }
+
+    private static <T extends Metric> T findMetric(TaggedMetricRegistry metrics, MetricName name, Class<T> type) {
+        return metrics.getMetrics().entrySet().stream()
+                .filter(entry -> {
+                    MetricName metricName = entry.getKey();
+                    return Objects.equals(name.safeName(), metricName.safeName())
+                            && metricName.safeTags().entrySet().containsAll(name.safeTags().entrySet());
+                })
+                .map(Map.Entry::getValue)
+                .map(type::cast)
+                .collect(MoreCollectors.onlyElement());
     }
 
     private static <T extends ExecutorService> void withExecutor(Supplier<T> factory, ThrowingConsumer<T> test) {

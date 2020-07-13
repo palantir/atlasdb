@@ -180,9 +180,8 @@ public class Scrubber {
         this.followers = followers;
         this.metricsManager = metricsManager;
 
-        NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
-        this.readerExec = PTExecutors.newFixedThreadPool(readThreadCount, threadFactory);
-        this.exec = PTExecutors.newFixedThreadPool(threadCount, threadFactory);
+        this.readerExec = PTExecutors.newFixedThreadPool(readThreadCount, SCRUBBER_THREAD_PREFIX);
+        this.exec = PTExecutors.newFixedThreadPool(threadCount, SCRUBBER_THREAD_PREFIX);
     }
 
     public boolean isInitialized() {

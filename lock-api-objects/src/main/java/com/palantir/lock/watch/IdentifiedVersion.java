@@ -16,15 +16,23 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
+@JsonDeserialize(as = ImmutableIdentifiedVersion.class)
+@JsonSerialize(as = ImmutableIdentifiedVersion.class)
 public interface IdentifiedVersion {
     @Value.Parameter
     UUID id();
     @Value.Parameter
-    Optional<Long> version();
+    long version();
+
+    static IdentifiedVersion of(UUID id, long version) {
+        return ImmutableIdentifiedVersion.of(id, version);
+    }
 }

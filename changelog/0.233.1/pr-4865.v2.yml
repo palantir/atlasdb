@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: ProfilingCassandraClient no longer uses a duplicate `rowCount` safe
+    logging parameter - we now call the number of keys supplied to the Thrift endpoints
+    the `keyCount`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4865
