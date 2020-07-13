@@ -116,7 +116,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             return new ByteArrayInputStream(new byte[0]);
         } else if (metadata.getLength() <= Math.min(getInMemoryThreshold(), BLOCK_SIZE_IN_BYTES)) {
             ByteArrayIOStream ios = new ByteArrayIOStream(Ints.saturatedCast(metadata.getLength()));
-            loadSingleBlockToOutputStream(transaction, id, 0, ios);
+            loadBlocksToOutputStream(transaction, id, 0, 1, ios);
             return ios.getInputStream();
         } else {
             return makeStream(transaction, id, metadata);
@@ -131,10 +131,10 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             @Override
             public void get(long firstBlock, long numBlocks, OutputStream destination) {
                 if (parent.isUncommitted()) {
-                    loadNBlocksToOutputStream(parent, id, firstBlock, numBlocks, destination);
+                    loadBlocksToOutputStream(parent, id, firstBlock, numBlocks, destination);
                 } else {
                     txnMgr.runTaskReadOnly(txn -> {
-                        loadNBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
+                        loadBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
                         return null;
                     });
                 }
@@ -204,17 +204,6 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         }
     }
 
-    private void loadNBlocksToOutputStream(
-            Transaction tx,
-            T streamId,
-            long firstBlock,
-            long numBlocks,
-            OutputStream os) {
-        for (long i = 0; i < numBlocks; i++) {
-            loadSingleBlockToOutputStream(tx, streamId, firstBlock + i, os);
-        }
-    }
-
     private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         try (InputStream in = loadStream(transaction, id)) {
@@ -225,7 +214,8 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
 
     protected abstract File createTempFile(T id) throws IOException;
 
-    protected abstract void loadSingleBlockToOutputStream(Transaction tx, T streamId, long blockId, OutputStream os);
+    protected abstract void loadBlocksToOutputStream(Transaction tx, T streamId, long firstBlock, long numBlocks,
+            OutputStream os);
 
     protected abstract Map<T, StreamMetadata> getMetadata(Transaction tx, Set<T> streamIds);
 
