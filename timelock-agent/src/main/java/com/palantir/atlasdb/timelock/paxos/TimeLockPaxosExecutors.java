@@ -32,7 +32,7 @@ import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
     @VisibleForTesting
-    static final int MAXIMUM_POOL_SIZE = 256;
+    static final int MAXIMUM_POOL_SIZE = 384;
 
     private static final Duration THREAD_KEEP_ALIVE = Duration.ofSeconds(5);
     private static final int SINGLE_THREAD_FOR_MOSTLY_AUTOBATCHED_OPERATIONS = 1;
