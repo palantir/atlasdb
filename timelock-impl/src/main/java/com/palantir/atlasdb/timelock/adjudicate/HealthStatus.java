@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.util.Arrays;
 import java.util.Comparator;
 
 public enum HealthStatus {

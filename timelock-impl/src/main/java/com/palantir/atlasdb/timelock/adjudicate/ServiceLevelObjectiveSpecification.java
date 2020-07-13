@@ -30,6 +30,8 @@ public interface ServiceLevelObjectiveSpecification {
     // dropping the request rate below min threshold
     Duration maximumPermittedQuietP99();
 
+    String name();
+
     double maximumPermittedErrorProportion();
 
     double minimumRequestRateForConsideration();
