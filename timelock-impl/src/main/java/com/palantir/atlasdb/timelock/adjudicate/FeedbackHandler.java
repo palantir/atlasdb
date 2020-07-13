@@ -168,36 +168,45 @@ public class FeedbackHandler {
         // Outliers indicate badness even with low request rates. The request rate should be greater than
         // zero to counter lingering badness from a single slow request
         if (endpointStatistics.getP99() > quietP99Limit && endpointStatistics.getOneMin() > 0) {
-            logHealthStatus(serviceName, endpointStatistics, metricName,
-                    "[Service - {}] | Point health status for {} is UNHEALTHY as the p99 is "
-                                    + "higher than what we allow in quiet state - {}");
+            logHealthInfo("[Service - {}] | Point health status for {} is UNHEALTHY as the p99 is "
+                                    + "higher than what we allow in quiet state - {}",
+                    serviceName,
+                    metricName,
+                    endpointStatistics);
             return HealthStatus.UNHEALTHY;
         }
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
-            logHealthStatus(serviceName, endpointStatistics, metricName,
-                    "[Service - {}] | Point health status for {} is UNKNOWN as the request rate is low - {}");
+            logHealthInfo("[Service - {}] | Point health status for {} is UNKNOWN "
+                    + "as the request rate is low - {}",
+                    serviceName,
+                    metricName,
+                    endpointStatistics);
             return HealthStatus.UNKNOWN;
         }
 
         double errorProportion = getErrorProportion(endpointStatistics);
         if (errorProportion > errorRateProportion) {
-            logHealthStatus(serviceName, endpointStatistics, metricName,
-                    "[Service - {}] | Point health status for {} is UNHEALTHY due to high error proportion - {}");
+            logHealthInfo("[Service - {}] | Point health status for {} is UNHEALTHY "
+                            + "due to high error proportion - {}",
+                    serviceName,
+                    metricName,
+                    endpointStatistics);
             return HealthStatus.UNHEALTHY;
         }
 
         if (endpointStatistics.getP99() > steadyStateP99Limit) {
-            logHealthStatus(serviceName, endpointStatistics, metricName,
-                    "[Service - {}] | Point health status for {} is UNHEALTHY due to high p99 - {}");
+            logHealthInfo("[Service - {}] | Point health status for {} is UNHEALTHY due to high p99 - {}",
+                    serviceName,
+                    metricName,
+                    endpointStatistics);
             return HealthStatus.UNHEALTHY;
         }
 
         return HealthStatus.HEALTHY;
     }
 
-    private void logHealthStatus(String serviceName, EndpointStatistics endpointStatistics, String metricName,
-            String message) {
+    private void logHealthInfo(String message, String serviceName, String metricName, EndpointStatistics endpointStatistics) {
         log.info(message,
                 SafeArg.of("service", serviceName),
                 SafeArg.of("metricName", metricName),
