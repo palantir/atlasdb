@@ -87,6 +87,19 @@ public class PointHealthReportAnalysisTest {
         assertThat(healthStatus).isEqualTo(HealthStatus.UNHEALTHY);
     }
 
+    @Test
+    public void reportStatusIsUnhealthyIfQuietP99IsAboveThreshold() {
+        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        EndpointStatistics statistics = EndpointStatistics
+                .builder()
+                .p99(QUIET_P99 + 1)
+                .oneMin(RATE - 0.01)
+                .errorRate(0)
+                .build();
+        HealthStatus healthStatus = getHealthStatus(feedbackHandler, statistics);
+        assertThat(healthStatus).isEqualTo(HealthStatus.UNHEALTHY);
+    }
+
 
     public HealthStatus getHealthStatus(FeedbackHandler feedbackHandler, EndpointStatistics statistics) {
         return feedbackHandler.getHealthStatusForMetric(
