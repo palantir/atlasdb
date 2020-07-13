@@ -114,19 +114,17 @@ public class KeyValueServiceValidator {
     private void validateTable(final TableReference table) {
         final int limit = getBatchSize(table);
         // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-        // not using retries as each attempt could take up to 8 hours
         byte[] nextRowName = new byte[0];
         while (nextRowName != null) {
-            nextRowName = validateNextRow(table, limit, nextRowName);
+            nextRowName = validateNextBatchOfRows(table, limit, nextRowName);
         }
         KeyValueServiceMigratorUtils
                 .processMessage(messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
 
-    private byte[] validateNextRow(TableReference table, int limit, byte[] nextRowName) {
+    private byte[] validateNextBatchOfRows(TableReference table, int limit, byte[] nextRowName) {
         try {
             // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-            // not using retries as each attempt could take up to 8 hours
             return validationFromTransactionManager.runTaskWithRetry(t1 ->
                     validationToTransactionManager.runTaskWithRetry(t2 -> {
                                 RangeRequest range = RangeRequest.builder()
