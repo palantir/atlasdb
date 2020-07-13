@@ -171,11 +171,15 @@ public class FeedbackHandler {
         // Outliers indicate badness even with low request rates. The request rate should be greater than
         // zero to counter lingering badness from a single slow request
         if (endpointStatistics.getP99() > quietP99Limit && endpointStatistics.getOneMin() > 0) {
+            log.info("[Service - {}] | Point health status for {} is UNHEALTHY as the quiet state p99 is very high - {}",
+                    SafeArg.of("service", serviceName),
+                    SafeArg.of("metricName", metricName),
+                    SafeArg.of("quietP99Limit", endpointStatistics.getP99()));
             return HealthStatus.UNHEALTHY;
         }
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
-            log.info("[Service - {}] | Point health status for {} is UNKNOWN as request rate is low - {}",
+            log.info("[Service - {}] | Point health status for {} is UNKNOWN as the request rate is low - {}",
                     SafeArg.of("service", serviceName),
                     SafeArg.of("metricName", metricName),
                     SafeArg.of("oneMinRate", endpointStatistics.getOneMin()));
