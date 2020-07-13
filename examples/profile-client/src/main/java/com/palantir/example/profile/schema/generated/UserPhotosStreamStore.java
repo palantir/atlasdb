@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.stream.LongStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -30,7 +31,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -62,6 +65,8 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.Pair;
@@ -179,22 +184,35 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     }
 
     @Override
-    protected void loadSingleBlockToOutputStream(Transaction t, Long streamId, long blockId, OutputStream os) {
-        UserPhotosStreamValueTable.UserPhotosStreamValueRow row = UserPhotosStreamValueTable.UserPhotosStreamValueRow.of(streamId, blockId);
+    protected void loadBlocksToOutputStream(Transaction t, Long streamId, long firstBlock, long numBlocks, OutputStream os) {
         try {
-            os.write(getBlock(t, row));
+            BiMap<UserPhotosStreamValueTable.UserPhotosStreamValueRow, Long> blockRows
+                    = KeyedStream.of(
+                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    .mapKeys(blockId -> UserPhotosStreamValueTable.UserPhotosStreamValueRow.of(streamId, blockId))
+                    .collectTo(HashBiMap::create);
+            Map<UserPhotosStreamValueTable.UserPhotosStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());
+            for (long blockId = 0; blockId < numBlocks; blockId++) {
+                os.write(blocks.get(blockRows.inverse().get(blockId)));
+            }
         } catch (RuntimeException e) {
-            log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
+            log.error("Error loading blocks for stream",
+                    SafeArg.of("firstBlock", firstBlock),
+                    SafeArg.of("numBlocks", numBlocks),
+                    SafeArg.of("streamId", streamId), e);
             throw e;
         } catch (IOException e) {
-            log.error("Error writing block {} to file when getting stream id {}", row.getBlockId(), row.getId(), e);
-            throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks to file when creating stream.", e);
+            log.error("Error writing blocks to output stream",
+                    SafeArg.of("firstBlock", firstBlock),
+                    SafeArg.of("numBlocks", numBlocks),
+                    SafeArg.of("streamId", streamId), e);
+            throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks to output stream.", e);
         }
     }
 
-    private byte[] getBlock(Transaction t, UserPhotosStreamValueTable.UserPhotosStreamValueRow row) {
+    private Map<UserPhotosStreamValueTable.UserPhotosStreamValueRow, byte[]> getBlocks(Transaction t, Collection<UserPhotosStreamValueTable.UserPhotosStreamValueRow> rows) {
         UserPhotosStreamValueTable valueTable = tables.getUserPhotosStreamValueTable(t);
-        return valueTable.getValues(ImmutableSet.of(row)).get(row);
+        return valueTable.getValues(rows);
     }
 
     @Override
