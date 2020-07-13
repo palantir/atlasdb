@@ -214,12 +214,8 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
 
     protected abstract File createTempFile(T id) throws IOException;
 
-    protected void loadSingleBlockToOutputStream(Transaction t, Long streamId, long blockId, OutputStream os) {
-
-    }
-
-    protected void loadBlocksToOutputStream(Transaction tx, T streamId, long firstBlock, long numBlocks,
-            OutputStream os) {}
+    protected abstract void loadBlocksToOutputStream(Transaction tx, T streamId, long firstBlock, long numBlocks,
+            OutputStream os);
 
     protected abstract Map<T, StreamMetadata> getMetadata(Transaction tx, Set<T> streamIds);
 
