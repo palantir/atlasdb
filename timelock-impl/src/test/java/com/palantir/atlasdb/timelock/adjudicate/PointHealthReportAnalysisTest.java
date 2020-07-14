@@ -37,7 +37,7 @@ public class PointHealthReportAnalysisTest {
 
     @Test
     public void reportIsHealthyWhenEverythingIsRight() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler(metricsManager);
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
                 .p99(P_99 - 1)
@@ -50,7 +50,7 @@ public class PointHealthReportAnalysisTest {
 
     @Test
     public void reportStatusIsUnknownIfReqRateIsBelowThreshold() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler(metricsManager);
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
                 .p99(P_99 + 1)
@@ -63,7 +63,7 @@ public class PointHealthReportAnalysisTest {
 
     @Test
     public void reportStatusIsUnhealthyIfErrProportionIsHigh() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler(metricsManager);
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
                 .p99(P_99 + 1)
@@ -76,7 +76,7 @@ public class PointHealthReportAnalysisTest {
 
     @Test
     public void reportStatusIsUnhealthyIfP99IsAboveThreshold() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler(metricsManager);
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
                 .p99(P_99 + 1)
@@ -89,7 +89,7 @@ public class PointHealthReportAnalysisTest {
 
     @Test
     public void reportStatusIsUnhealthyIfQuietP99IsAboveThreshold() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler(metricsManager);
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics
                 .builder()
                 .p99(QUIET_P99 + 1)
