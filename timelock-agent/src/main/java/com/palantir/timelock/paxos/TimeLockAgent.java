@@ -177,7 +177,7 @@ public class TimeLockAgent {
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
-        this.feedbackHandler = new FeedbackHandler();
+        this.feedbackHandler = new FeedbackHandler(metricsManager);
     }
 
     private TimestampCreator getTimestampCreator() {
