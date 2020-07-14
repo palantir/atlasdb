@@ -46,6 +46,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * Fairness is admittedly compromised, but this is a closer approximation than the previous behaviour.
  */
 final class BlockEnforcingLockService {
+    // This timeout has to be less than conjure async request timeout of 3 minutes
+    private static final Duration ASYNC_REQUEST_TIMEOUT = Duration.ofMinutes(2);
+
     private final NamespacedConjureTimelockService namespacedConjureTimelockService;
     private final RemoteTimeoutRetryer timeoutRetryer;
 
@@ -81,7 +84,8 @@ final class BlockEnforcingLockService {
     private static ConjureLockRequest clampLockRequestToDeadline(ConjureLockRequest request, Duration remainingTime) {
         return ConjureLockRequest.builder()
                 .from(request)
-                .acquireTimeoutMs(Ints.checkedCast(remainingTime.toMillis()))
+                .acquireTimeoutMs(Ints.checkedCast(
+                        Math.min(remainingTime.toMillis(), ASYNC_REQUEST_TIMEOUT.toMillis())))
                 .build();
     }
 
