@@ -180,7 +180,7 @@ public class TimeLockAgent {
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
-        this.feedbackHandler = new FeedbackHandler(metricsManager);
+        this.feedbackHandler = new FeedbackHandler(metricsManager, () -> runtime.get().adjudication().enabled());
     }
 
     private static ExecutorService createSharedExecutor() {

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,8 +44,15 @@ public class FeedbackHandler {
     private static final Logger log = LoggerFactory.getLogger(FeedbackHandler.class);
 
     private final TimeLockClientFeedbackSink timeLockClientFeedbackSink;
+    private final BooleanSupplier useAdjudication;
 
-    public FeedbackHandler(MetricsManager metricsManager) {
+    @VisibleForTesting
+    FeedbackHandler(TimeLockClientFeedbackSink sink, BooleanSupplier useAdjudication) {
+        this.timeLockClientFeedbackSink = sink;
+        this.useAdjudication = useAdjudication;
+    }
+
+    public FeedbackHandler(MetricsManager metricsManager, BooleanSupplier useAdjudication) {
         this.timeLockClientFeedbackSink = TimeLockClientFeedbackSink
                 .createAndInstrument(metricsManager,
                         Caffeine.newBuilder()
@@ -52,14 +60,17 @@ public class FeedbackHandler {
                                         Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(),
                                         TimeUnit.MINUTES)
                                 .build());
+        this.useAdjudication = useAdjudication;
     }
 
     public static FeedbackHandler createForTests() {
-        return new FeedbackHandler(MetricsManagers.createForTests());
+        return new FeedbackHandler(MetricsManagers.createForTests(), () -> true);
     }
 
     public void handle(ConjureTimeLockClientFeedback feedback) {
-        timeLockClientFeedbackSink.registerFeedback(feedback);
+        if (useAdjudication.getAsBoolean()) {
+            timeLockClientFeedbackSink.registerFeedback(feedback);
+        }
     }
 
     public HealthStatusReport getTimeLockHealthStatus() {

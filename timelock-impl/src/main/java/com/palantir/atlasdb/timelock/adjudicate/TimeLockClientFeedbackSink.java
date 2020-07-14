@@ -35,7 +35,7 @@ public final class TimeLockClientFeedbackSink {
             MetricsManager metricsManager,
             Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
         metricsManager.registerOrGetGauge(TimeLockClientFeedbackSink.class,
-                "estimatedSize",
+                "numberOfFeedbackReports",
                 () -> trackedFeedbackReports::estimatedSize);
         return create(trackedFeedbackReports);
     }
