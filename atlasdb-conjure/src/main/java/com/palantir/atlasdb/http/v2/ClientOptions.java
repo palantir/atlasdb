@@ -40,7 +40,7 @@ public abstract class ClientOptions {
             .backoffSlotSize(Duration.ofMillis(5))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(5)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
+            .clientQoS(ClientConfiguration.ClientQoS.ENABLED)
             .build();
 
     public abstract Duration connectTimeout();
@@ -116,7 +116,7 @@ public abstract class ClientOptions {
         setupTimeouts(builder, parameters);
         setupRetrying(builder, parameters);
 
-        return builder.clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
+        return builder.clientQoS(ClientConfiguration.ClientQoS.ENABLED)
                 .build();
     }
 

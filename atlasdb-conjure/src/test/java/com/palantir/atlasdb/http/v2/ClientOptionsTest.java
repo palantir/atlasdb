@@ -36,7 +36,7 @@ public class ClientOptionsTest {
             .backoffSlotSize(Duration.ofMillis(10))
             .failedUrlCooldown(Duration.ofMillis(100))
             .maxNumRetries(13)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
+            .clientQoS(ClientConfiguration.ClientQoS.ENABLED)
             .build();
 
     private static final ClientOptions DEFAULT_NO_RETRYING = ImmutableClientOptions.builder()
@@ -45,7 +45,7 @@ public class ClientOptionsTest {
             .backoffSlotSize(Duration.ofMillis(10))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(0)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
+            .clientQoS(ClientConfiguration.ClientQoS.ENABLED)
             .build();
 
     @Test
