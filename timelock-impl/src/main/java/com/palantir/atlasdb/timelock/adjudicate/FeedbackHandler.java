@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
@@ -40,11 +42,21 @@ import com.palantir.timelock.feedback.EndpointStatistics;
 public class FeedbackHandler {
     private static final Logger log = LoggerFactory.getLogger(FeedbackHandler.class);
 
-    private final TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
-            .create(Caffeine
-            .newBuilder()
-            .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
-                        .build());
+    private final TimeLockClientFeedbackSink timeLockClientFeedbackSink;
+
+    public FeedbackHandler(MetricsManager metricsManager) {
+        this.timeLockClientFeedbackSink = TimeLockClientFeedbackSink
+                .createAndInstrument(metricsManager,
+                        Caffeine.newBuilder()
+                                .expireAfterWrite(
+                                        Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(),
+                                        TimeUnit.MINUTES)
+                                .build());
+    }
+
+    public static FeedbackHandler createForTests() {
+        return new FeedbackHandler(MetricsManagers.createForTests());
+    }
 
     public void handle(ConjureTimeLockClientFeedback feedback) {
         timeLockClientFeedbackSink.registerFeedback(feedback);

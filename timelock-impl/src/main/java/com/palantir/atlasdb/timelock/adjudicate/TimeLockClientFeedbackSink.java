@@ -21,13 +21,23 @@ import java.util.UUID;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public final class TimeLockClientFeedbackSink {
-    private Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports;
+    private final Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports;
 
     private TimeLockClientFeedbackSink(Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
         this.trackedFeedbackReports = trackedFeedbackReports;
+    }
+
+    static TimeLockClientFeedbackSink createAndInstrument(
+            MetricsManager metricsManager,
+            Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
+        metricsManager.registerOrGetGauge(TimeLockClientFeedbackSink.class,
+                "estimatedSize",
+                () -> trackedFeedbackReports::estimatedSize);
+        return create(trackedFeedbackReports);
     }
 
     public static TimeLockClientFeedbackSink create(
