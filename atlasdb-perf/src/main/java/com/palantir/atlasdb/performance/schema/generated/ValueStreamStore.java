@@ -192,8 +192,8 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
                     .mapKeys(blockId -> ValueStreamValueTable.ValueStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<ValueStreamValueTable.ValueStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());
-            for (long blockId = 0; blockId < numBlocks; blockId++) {
-                os.write(blocks.get(blockRows.inverse().get(blockId)));
+            for (long i = 0; i < numBlocks; i++) {
+                os.write(blocks.get(blockRows.inverse().get(firstBlock + i)));
             }
         } catch (RuntimeException e) {
             log.error("Error loading blocks for stream",

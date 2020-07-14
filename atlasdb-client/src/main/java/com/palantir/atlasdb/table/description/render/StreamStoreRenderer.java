@@ -341,9 +341,9 @@ public class StreamStoreRenderer {
 
                         line("Map<", StreamValueRow, ", byte[]> blocks = getBlocks(t, blockRows.keySet());");
 
-                        line("for (long blockId = 0; blockId < numBlocks; blockId++) {");
+                        line("for (long i = 0; i < numBlocks; i++) {");
                         {
-                            line("os.write(blocks.get(blockRows.inverse().get(blockId)));");
+                            line("os.write(blocks.get(blockRows.inverse().get(firstBlock + i)));");
                         }
                         line("}");
                     }
