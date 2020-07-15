@@ -24,9 +24,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -49,8 +46,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * Fairness is admittedly compromised, but this is a closer approximation than the previous behaviour.
  */
 final class BlockEnforcingLockService {
-    private static final Logger log = LoggerFactory.getLogger(BlockEnforcingLockService.class);
-
      /**
       * Conjure cancels async requests taking longer than 3 minutes to execute. Thus, the acquire timeout
       * should be less than conjure async request timeout. Note: the request will be retried up until the
@@ -72,7 +67,6 @@ final class BlockEnforcingLockService {
     }
 
     LockResponse lock(LockRequest request) {
-        log.info("blah blah");
         // The addition of a UUID takes place only at the Conjure level, so we must retry the same request.
         return timeoutRetryer.attemptUntilTimeLimitOrException(
                 ConjureLockRequests.toConjure(request),
@@ -83,7 +77,6 @@ final class BlockEnforcingLockService {
     }
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        log.info("blah blah");
         return timeoutRetryer.attemptUntilTimeLimitOrException(
                 ConjureLockRequests.toConjure(request),
                 Duration.ofMillis(request.getAcquireTimeoutMs()),
@@ -155,11 +148,8 @@ final class BlockEnforcingLockService {
             while (!now.isAfter(deadline)) {
                 Duration remainingTime = Duration.between(now, deadline);
                 currentRequest = durationLimiter.apply(currentRequest, remainingTime);
-                log.info("Updated request - " + currentRequest.toString() + "for remaining time - " + remainingTime.toMillis()
-                );
                 try {
                     currentResponse = query.apply(currentRequest);
-                    log.info("Got a response - " + currentResponse.toString());
                     if (!isTimedOutResponse.test(currentResponse)) {
                         return currentResponse;
                     }
@@ -169,7 +159,6 @@ final class BlockEnforcingLockService {
                     if (!isPlausiblyTimeout(e) || now.isAfter(deadline)) {
                         throw e;
                     }
-                    log.info("Retrying now - " + currentRequest.toString());
                 }
             }
 
