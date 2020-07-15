@@ -44,6 +44,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosConstants;
@@ -62,7 +63,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
 
     private static final Logger log = LoggerFactory.getLogger(GetSuspectedLeaderWithUuid.class);
 
-    private final Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors;
+    private final Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors;
     private final BiMap<LeaderPingerContext<BatchPingableLeader>, ClientAwareLeaderPinger> clientAwareLeaders;
     private final UUID localUuid;
     private final Duration leaderPingResponseWait;
@@ -70,7 +71,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
     private final Map<UUID, LeaderPingerContext<BatchPingableLeader>> cache = Maps.newHashMap();
 
     GetSuspectedLeaderWithUuid(
-            Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
+            Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors,
             Set<ClientAwareLeaderPinger> clientAwareLeaderPingers,
             UUID localUuid,
             Duration leaderPingResponseWait) {

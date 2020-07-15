@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPingResult;
@@ -61,7 +62,7 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
     }
 
     public static AutobatchingPingableLeaderFactory create(
-            Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
+            Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors,
             Duration pingRate,
             Duration pingResponseWait,
             UUID localUuid) {

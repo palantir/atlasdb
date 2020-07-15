@@ -21,23 +21,37 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
+import com.palantir.common.streams.KeyedStream;
 
 public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkClient {
 
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
-    private final Map<PaxosAcceptor, ExecutorService> executors;
+    private final Map<PaxosAcceptor, CheckedRejectionExecutorService> executors;
     private final boolean cancelRemainingCalls;
 
     public SingleLeaderAcceptorNetworkClient(
             List<PaxosAcceptor> acceptors,
             int quorumSize,
-            Map<PaxosAcceptor, ExecutorService> executors,
+            Map<PaxosAcceptor, CheckedRejectionExecutorService> executors,
             boolean cancelRemainingCalls) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
         this.executors = executors;
         this.cancelRemainingCalls = cancelRemainingCalls;
+    }
+
+    public static SingleLeaderAcceptorNetworkClient createLegacy(
+            List<PaxosAcceptor> acceptors,
+            int quorumSize,
+            Map<PaxosAcceptor, ExecutorService> executors,
+            boolean cancelRemainingCalls) {
+        return new SingleLeaderAcceptorNetworkClient(
+                acceptors,
+                quorumSize,
+                KeyedStream.stream(executors).map(CheckedRejectionExecutorService::new).collectToMap(),
+                cancelRemainingCalls);
     }
 
     @Override

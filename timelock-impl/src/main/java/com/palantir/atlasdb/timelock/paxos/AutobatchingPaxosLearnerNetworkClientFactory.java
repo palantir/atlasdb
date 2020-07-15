@@ -31,6 +31,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.Client;
@@ -72,7 +73,7 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
                         .safeLoggablePurpose("batch-paxos-learner.learn")
                         .build();
 
-        Map<BatchPaxosLearner, ExecutorService> executors = KeyedStream.of(learners.all())
+        Map<BatchPaxosLearner, CheckedRejectionExecutorService> executors = KeyedStream.of(learners.all())
                 .map(WithDedicatedExecutor::executor)
                 .mapKeys(WithDedicatedExecutor::service)
                 .collectToMap();

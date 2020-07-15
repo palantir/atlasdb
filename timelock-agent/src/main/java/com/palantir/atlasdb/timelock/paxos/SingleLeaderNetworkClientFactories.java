@@ -26,6 +26,7 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -89,12 +90,13 @@ abstract class SingleLeaderNetworkClientFactories implements
             LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner,
                     remoteLearners.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()));
 
-            Map<PaxosLearner, ExecutorService> executorMap = ImmutableMap.<PaxosLearner, ExecutorService>builder()
-                    .putAll(KeyedStream.of(remoteLearners)
+            Map<PaxosLearner, CheckedRejectionExecutorService> executorMap
+                    = ImmutableMap.<PaxosLearner, CheckedRejectionExecutorService>builder()
+                            .putAll(KeyedStream.of(remoteLearners)
                             .mapKeys(WithDedicatedExecutor::service)
                             .map(WithDedicatedExecutor::executor)
                             .collectToMap())
-                    .put(localLearner, MoreExecutors.newDirectExecutorService())
+                    .put(localLearner, new CheckedRejectionExecutorService(MoreExecutors.newDirectExecutorService()))
                     .build();
 
             SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.Path;
@@ -31,6 +30,7 @@ import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
@@ -50,16 +50,14 @@ public abstract class PaxosRemoteClients {
     public abstract MetricsManager metrics();
 
     @Value.Derived
-    Map<String, ExecutorService> dedicatedExecutors() {
+    Map<String, CheckedRejectionExecutorService> dedicatedExecutors() {
         List<String> remoteUris = context().remoteUris();
         int executorIndex = 0;
 
-        ImmutableMap.Builder<String, ExecutorService> builder = ImmutableMap.builder();
+        ImmutableMap.Builder<String, CheckedRejectionExecutorService> builder = ImmutableMap.builder();
         for (String remoteUri : remoteUris) {
             builder.put(remoteUri, TimeLockPaxosExecutors.createBoundedExecutor(
-                    metrics().getRegistry(),
-                    "paxos-remote-clients-dedicated-executors",
-                    executorIndex));
+                    "paxos-remote-clients-dedicated-executors", executorIndex));
             executorIndex++;
         }
         return builder.build();

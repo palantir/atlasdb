@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
@@ -88,7 +89,7 @@ public final class PaxosConsensusTestUtils {
                     exception));
         }
 
-        PaxosAcceptorNetworkClient acceptorNetworkClient = new SingleLeaderAcceptorNetworkClient(
+        PaxosAcceptorNetworkClient acceptorNetworkClient = SingleLeaderAcceptorNetworkClient.createLegacy(
                 acceptors,
                 quorumSize,
                 Maps.toMap(acceptors, $ -> executor),
@@ -101,8 +102,11 @@ public final class PaxosConsensusTestUtils {
             List<PaxosLearner> remoteLearners = learners.stream()
                     .filter(learner -> !learner.equals(ourLearner))
                     .collect(ImmutableList.toImmutableList());
-            PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
-                    ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor),
+            PaxosLearnerNetworkClient learnerNetworkClient = SingleLeaderLearnerNetworkClient.createLegacy(
+                    ourLearner,
+                    remoteLearners,
+                    quorumSize,
+                    Maps.toMap(learners, $ -> executor),
                     PaxosConstants.CANCEL_REMAINING_CALLS);
 
             LeaderElectionService leader = new LeaderElectionServiceBuilder()

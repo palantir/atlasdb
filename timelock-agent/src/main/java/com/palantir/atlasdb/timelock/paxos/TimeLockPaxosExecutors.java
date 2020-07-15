@@ -23,6 +23,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
@@ -39,15 +40,17 @@ final class TimeLockPaxosExecutors {
      *
      * It is assumed that tasks run on the local node will return quickly (hence the use of the direct executor).
      */
-    static <T> Map<T, ExecutorService> createBoundedExecutors(
-            MetricRegistry metricRegistry, LocalAndRemotes<T> localAndRemotes, String useCase) {
+    static <T> Map<T, CheckedRejectionExecutorService> createBoundedExecutors(
+            LocalAndRemotes<T> localAndRemotes, String useCase) {
         int numRemotes = localAndRemotes.remotes().size();
-        ImmutableMap.Builder<T, ExecutorService> remoteExecutors = ImmutableMap.builderWithExpectedSize(numRemotes);
+        ImmutableMap.Builder<T, CheckedRejectionExecutorService> remoteExecutors
+                = ImmutableMap.builderWithExpectedSize(numRemotes);
         for (int index = 0; index < numRemotes; index++) {
             T remote = localAndRemotes.remotes().get(index);
-            remoteExecutors.put(remote, createBoundedExecutor(metricRegistry, useCase, index));
+            remoteExecutors.put(remote, createBoundedExecutor(useCase, index));
         }
-        remoteExecutors.put(localAndRemotes.local(), MoreExecutors.newDirectExecutorService());
+        remoteExecutors.put(localAndRemotes.local(), new CheckedRejectionExecutorService(
+                MoreExecutors.newDirectExecutorService()));
         return remoteExecutors.build();
     }
 
@@ -60,9 +63,10 @@ final class TimeLockPaxosExecutors {
      *
      * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
      */
-    static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase, int index) {
+    static CheckedRejectionExecutorService createBoundedExecutor(String useCase, int index) {
         // metricRegistry is ignored because TExecutors.newCachedThreadPoolWithMaxThreads provides instrumentation.
-        return PTExecutors.newCachedThreadPoolWithMaxThreads(
+        ExecutorService underlying = PTExecutors.newCachedThreadPoolWithMaxThreads(
                 MAXIMUM_POOL_SIZE, "timelock-executors-" + useCase + "-" + index);
+        return new CheckedRejectionExecutorService(underlying);
     }
 }

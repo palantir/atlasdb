@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
@@ -55,6 +56,13 @@ public class MultiplexingCompletionService<K, V> {
     public static <K, V> MultiplexingCompletionService<K, V> create(
             Map<? extends K, ExecutorService> executors) {
         return new MultiplexingCompletionService<>(ImmutableMap.copyOf(executors), new LinkedBlockingQueue<>());
+    }
+
+    public static <K, V> MultiplexingCompletionService<K, V> createFromCheckedExecutors(
+            Map<? extends K, CheckedRejectionExecutorService> executors) {
+        return create(KeyedStream.stream(executors)
+                .map(CheckedRejectionExecutorService::getUnderlyingExecutor)
+                .collectToMap());
     }
 
     /**

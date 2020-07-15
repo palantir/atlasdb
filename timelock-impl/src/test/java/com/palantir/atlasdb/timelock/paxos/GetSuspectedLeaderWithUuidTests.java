@@ -46,6 +46,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.paxos.LeaderPingerContext;
 
 public class GetSuspectedLeaderWithUuidTests {
@@ -141,8 +142,8 @@ public class GetSuspectedLeaderWithUuidTests {
                 .map(ClientAwareLeaderPinger::underlyingRpcClient)
                 .collect(Collectors.toSet());
 
-        Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors =
-                Maps.toMap(ImmutableList.copyOf(rpcClients), $ -> executorService);
+        Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors =
+                Maps.toMap(ImmutableList.copyOf(rpcClients), $ -> new CheckedRejectionExecutorService(executorService));
 
         return new GetSuspectedLeaderWithUuid(executors, clientAwareLeaders, LOCAL_UUID, Duration.ofSeconds(1));
     }

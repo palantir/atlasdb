@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
@@ -50,13 +51,13 @@ public class PaxosQuorumCheckingCoalescingFunction<
         CoalescingRequestFunction<REQ, PaxosResponsesWithRemote<FUNC, RESP>> {
 
     private final List<FUNC> delegates;
-    private final Map<FUNC, ExecutorService> executors;
+    private final Map<FUNC, CheckedRejectionExecutorService> executors;
     private final int quorumSize;
     private final PaxosResponsesWithRemote<FUNC, RESP> defaultValue;
 
     public PaxosQuorumCheckingCoalescingFunction(
             List<FUNC> delegateFunctions,
-            Map<FUNC, ExecutorService> executors,
+            Map<FUNC, CheckedRejectionExecutorService> executors,
             int quorumSize) {
         this.delegates = delegateFunctions;
         this.executors = executors;
@@ -111,7 +112,7 @@ public class PaxosQuorumCheckingCoalescingFunction<
     public static <REQ, RESP extends PaxosResponse, SERVICE, F extends CoalescingRequestFunction<REQ, RESP>>
     PaxosQuorumCheckingCoalescingFunction<REQ, RESP, F> wrapWithRemotes(
             List<SERVICE> services,
-            Map<SERVICE, ExecutorService> executors,
+            Map<SERVICE, CheckedRejectionExecutorService> executors,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
         List<FunctionAndExecutor<F>> functionsAndExecutors = KeyedStream.of(services)
@@ -121,7 +122,7 @@ public class PaxosQuorumCheckingCoalescingFunction<
                 .<FunctionAndExecutor<F>>map(entry -> ImmutableFunctionAndExecutor.of(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
         List<F> functions = new ArrayList<>(services.size());
-        Map<F, ExecutorService> executorMap = new HashMap<>(services.size());
+        Map<F, CheckedRejectionExecutorService> executorMap = new HashMap<>(services.size());
         for (SERVICE service: services) {
             F function = functionFactory.apply(service);
             functions.add(function);
@@ -133,7 +134,7 @@ public class PaxosQuorumCheckingCoalescingFunction<
     public static <REQ, RESP extends PaxosResponse, SERVICE, FUNCTION extends CoalescingRequestFunction<REQ, RESP>>
     CoalescingRequestFunction<REQ, PaxosResponses<RESP>> wrap(
             List<SERVICE> services,
-            Map<SERVICE, ExecutorService> executorMap,
+            Map<SERVICE, CheckedRejectionExecutorService> executorMap,
             int quorumSize,
             Function<SERVICE, FUNCTION> functionFactory) {
 
@@ -165,7 +166,7 @@ public class PaxosQuorumCheckingCoalescingFunction<
         F function();
 
         @Value.Parameter
-        ExecutorService executor();
+        CheckedRejectionExecutorService executor();
     }
 
 }

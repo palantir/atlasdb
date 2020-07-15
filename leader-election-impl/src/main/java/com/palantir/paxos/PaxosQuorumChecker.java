@@ -36,6 +36,8 @@ import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.palantir.common.concurrent.CheckedRejectedExecutionException;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -83,7 +85,7 @@ public final class PaxosQuorumChecker {
             ImmutableList<SERVICE> remotes,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Map<? extends SERVICE, ExecutorService> executors,
+            Map<? extends SERVICE, CheckedRejectionExecutorService> executors,
             Duration remoteRequestTimeout,
             boolean cancelRemainingCalls) {
         Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
@@ -92,10 +94,10 @@ public final class PaxosQuorumChecker {
                 remotes,
                 request,
                 quorumSize,
-                executors,
                 remoteRequestTimeout,
                 quorumShortcutPredicate(quorumSize),
-                cancelRemainingCalls);
+                cancelRemainingCalls,
+                MultiplexingCompletionService.createFromCheckedExecutors(executors));
     }
 
     private static <SERVICE, RESPONSE> Predicate<InProgressResponseState<SERVICE, RESPONSE>>
@@ -134,7 +136,7 @@ public final class PaxosQuorumChecker {
     public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE> collectUntil(
             ImmutableList<SERVICE> remotes,
             Function<SERVICE, RESPONSE> request,
-            Map<SERVICE, ExecutorService> executors,
+            Map<SERVICE, CheckedRejectionExecutorService> executors,
             Duration remoteRequestTimeout,
             Predicate<InProgressResponseState<SERVICE, RESPONSE>> predicate,
             boolean cancelRemainingCalls) {
@@ -142,10 +144,10 @@ public final class PaxosQuorumChecker {
                 remotes,
                 request,
                 remotes.size(),
-                executors,
                 remoteRequestTimeout,
                 predicate,
-                cancelRemainingCalls);
+                cancelRemainingCalls,
+                MultiplexingCompletionService.createFromCheckedExecutors(executors));
     }
 
     private static <SERVICE> Map<SERVICE, ExecutorService> mapToSingleExecutorService(
@@ -179,6 +181,20 @@ public final class PaxosQuorumChecker {
         MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService =
                 MultiplexingCompletionService.create(executors);
 
+        return collectResponses(remotes, request, quorumSize, remoteRequestTimeout, shouldSkipNextRequest,
+                cancelRemainingCalls,
+                responseCompletionService);
+    }
+
+    private static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
+    collectResponses(
+            ImmutableList<SERVICE> remotes,
+            Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Duration remoteRequestTimeout,
+            Predicate<InProgressResponseState<SERVICE, RESPONSE>> shouldSkipNextRequest,
+            boolean cancelRemainingCalls,
+            MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService) {
         PaxosResponseAccumulator<SERVICE, RESPONSE> receivedResponses = PaxosResponseAccumulator.newResponse(
                 remotes.size(),
                 quorumSize,
@@ -188,7 +204,7 @@ public final class PaxosQuorumChecker {
         for (SERVICE remote : remotes) {
             try {
                 allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
-            } catch (RejectedExecutionException e) {
+            } catch (CheckedRejectedExecutionException e) {
                 requestExecutionRejection.mark();
                 receivedResponses.markFailure();
                 if (shouldLogDiagnosticInformation()) {

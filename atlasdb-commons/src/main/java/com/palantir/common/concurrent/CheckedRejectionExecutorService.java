@@ -16,9 +16,39 @@
 
 package com.palantir.common.concurrent;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+
 /**
  * A {@link CheckedRejectionExecutorService} is an executor where submitters of tasks MUST be prepared to handle
  * execution being rejected - and we thus throw a checked exception when submitting tasks.
  */
 public final class CheckedRejectionExecutorService {
+    private final ExecutorService underlying;
+
+    public CheckedRejectionExecutorService(ExecutorService underlying) {
+        this.underlying = underlying;
+    }
+
+    public void execute(Runnable runnable) throws CheckedRejectedExecutionException {
+        try {
+            underlying.execute(runnable);
+        } catch (RejectedExecutionException ex) {
+            throw new CheckedRejectedExecutionException(ex);
+        }
+    }
+
+    public <T> Future<T> submit(Callable<T> callable) throws CheckedRejectedExecutionException {
+        try {
+            return underlying.submit(callable);
+        } catch (RejectedExecutionException ex) {
+            throw new CheckedRejectedExecutionException(ex);
+        }
+    }
+
+    ExecutorService getUnderlyingExecutor() {
+        return underlying;
+    }
 }

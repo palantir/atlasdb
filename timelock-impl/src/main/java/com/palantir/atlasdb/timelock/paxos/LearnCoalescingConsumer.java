@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
@@ -62,7 +63,7 @@ final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Ent
                         log.warn("Failed to teach learner after scheduling the task.", e);
                     }
                 });
-            } catch (RejectedExecutionException e) {
+            } catch (CheckedRejectedExecutionException e) {
                 log.warn("Failed to teach learner, because we could not schedule the task at all", e);
             }
         }
