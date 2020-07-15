@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 @JsonDeserialize(as = ImmutableTimeLockAdjudicationConfiguration.class)
 @Value.Immutable
 public interface TimeLockAdjudicationConfiguration {
+    @Value.Default
     default boolean enabled() {
         return true;
     }
