@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -65,7 +66,7 @@ public class MultiplexingCompletionService<K, V> {
      *
      * @throws IllegalStateException if the key provided is not associated with any executor
      */
-    public Future<Map.Entry<K, V>> submit(K key, Callable<V> task) {
+    public Future<Map.Entry<K, V>> submit(K key, Callable<V> task) throws CheckedRejectedExecutionException {
         ExecutorService targetExecutor = executors.get(key);
         if (targetExecutor == null) {
             throw new SafeIllegalStateException("The key provided to the multiplexing completion service doesn't exist!");
@@ -84,9 +85,13 @@ public class MultiplexingCompletionService<K, V> {
     private Future<Map.Entry<K, V>> submitAndPrepareForQueueing(
             ExecutorService delegate,
             K key,
-            Callable<V> callable) {
+            Callable<V> callable) throws CheckedRejectedExecutionException {
         FutureTask<Map.Entry<K, V>> futureTask = new FutureTask<>(() -> Maps.immutableEntry(key, callable.call()));
-        delegate.submit(new QueueTask(futureTask), null);
+        try {
+            delegate.submit(new QueueTask(futureTask), null);
+        } catch (RejectedExecutionException e) {
+            throw new CheckedRejectedExecutionException(e);
+        }
         return futureTask;
     }
 

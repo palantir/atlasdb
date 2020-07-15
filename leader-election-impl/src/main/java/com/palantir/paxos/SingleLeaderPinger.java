@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -81,7 +82,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(ex);
-        } catch (RejectedExecutionException ex) {
+        } catch (CheckedRejectedExecutionException ex) {
             log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", ex);
             return LeaderPingResults.pingCallFailure(ex);
         }
