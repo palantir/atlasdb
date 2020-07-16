@@ -75,31 +75,6 @@ public class ToplistDeltaFilteringTableLevelMetricsControllerTest {
                 .containsOnlyKeys(getMetricName("table2"), getMetricName("table3"), getMetricName("table4"));
     }
 
-    @Test
-    public void detectsSpikeInMetrics() {
-        List<Counter> counters = IntStream.range(0, 5)
-                .mapToObj(index -> controller.createAndRegisterCounter(
-                        Class.class,
-                        "metricName",
-                        TableReference.create(Namespace.create("namespace"), "table" + index)))
-                .collect(Collectors.toList());
-
-        IntStream.range(0, 5)
-                .forEach(index -> counters.get(index).inc(index));
-
-        when(mockClock.getTick()).thenReturn(
-                ToplistDeltaFilteringTableLevelMetricsController.REFRESH_INTERVAL.toNanos() + 1);
-        counters.get(1).inc(1_000_000L);
-        assertThat(metricsManager.getPublishableMetrics().getMetrics())
-                .containsKey(getMetricName("table1"));
-
-        when(mockClock.getTick()).thenReturn(
-                ToplistDeltaFilteringTableLevelMetricsController.REFRESH_INTERVAL.toNanos() * 2 + 1);
-        IntStream.range(0, 5).forEach(index -> counters.get(index).inc(index));
-        assertThat(metricsManager.getPublishableMetrics().getMetrics())
-                .doesNotContainKey(getMetricName("table1"));
-    }
-
     private static MetricName getMetricName(String tableName) {
         return MetricName.builder().safeName(Class.class.getName() + ".metricName")
                 .safeTags(ImmutableMap.of("tableName", tableName))
