@@ -18,6 +18,8 @@ package com.palantir.leader;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -27,6 +29,10 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
@@ -354,6 +360,33 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private static long getNextSequenceNumber(Optional<PaxosValue> paxosValue) {
         return paxosValue.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+    }
+
+    // todo sudiksha
+    @Override
+    public void forcefullyTakeoverLeadershipIfAdjudicating() {
+        if (leaderPinger.isCurrentAdjudicating()) {
+            requestHostileTakeover();
+        }
+    }
+
+    private boolean requestHostileTakeover() {
+        Duration randomBackoff = Duration.ofMillis(500);
+        Retryer<Boolean> takeoverRetryer = new Retryer<>(
+                StopStrategies.stopAfterAttempt(5),
+                WaitStrategies.randomWait(randomBackoff.toMillis(), TimeUnit.MILLISECONDS),
+                attempt -> !attempt.hasResult() || !attempt.getResult());
+        try {
+            return takeoverRetryer.call(this::hostileTakeover);
+        } catch (ExecutionException e) {
+            log.info("request failed, should not reach here", e);
+            return false;
+        } catch (RetryException e) {
+            log.info("failed repeatedly",
+                    SafeArg.of("numberOfAttempts", e.getNumberOfFailedAttempts()),
+                    e);
+            return false;
+        }
     }
 
     @Value.Immutable

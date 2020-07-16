@@ -47,17 +47,20 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final Map<LeaderPingerContext<PingableLeader>, ExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;
+    private final String timeLockVersion;
     private final boolean cancelRemainingCalls;
 
     public SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, ExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid,
-            boolean cancelRemainingCalls) {
+            boolean cancelRemainingCalls,
+            String timeLockVersion) {
         this.leaderPingExecutors = otherPingableExecutors;
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.localUuid = localUuid;
         this.cancelRemainingCalls = cancelRemainingCalls;
+        this.timeLockVersion = timeLockVersion;
     }
 
     @Override
@@ -84,8 +87,15 @@ public class SingleLeaderPinger implements LeaderPinger {
         }
     }
 
-    public Optional<String> pingLeaderForVersion(UUID uuid) {
-
+    //todo sudiksha | blah correctness
+    @Override
+    public Boolean isCurrentAdjudicating() {
+        return !leaderPingExecutors.keySet()
+                .stream()
+                .map(LeaderPingerContext::pinger)
+                .filter(remote -> (timeLockVersion.compareTo(remote.getTimeLockVersion()) <= 0))
+                .findFirst()
+                .isPresent();
     }
 
     private static LeaderPingResult getLeaderPingResult(

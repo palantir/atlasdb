@@ -22,6 +22,8 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
 
 public interface LeaderElectionService {
+    // todo sudiksha
+    void forcefullyTakeoverLeadershipIfAdjudicating();
     interface LeadershipToken extends Serializable {
         boolean sameAs(LeadershipToken token);
     }

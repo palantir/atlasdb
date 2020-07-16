@@ -299,7 +299,6 @@ public final class Leaders {
         LeaderElectionService leaderElectionService();
         PingableLeader localPingableLeader();
         Set<PingableLeader> remotePingableLeaders();
-        String version();
 
         @Value.Derived
         default Supplier<Boolean> isCurrentSuspectedLeader() {
@@ -309,15 +308,6 @@ public final class Leaders {
         @Value.Derived
         default Set<PingableLeader> allPingableLeaders() {
             return Sets.union(ImmutableSet.of(localPingableLeader()), remotePingableLeaders());
-        }
-
-        @Value.Derived
-        default Boolean isCurrentAdjudicating() {
-           return !remotePingableLeaders()
-                   .stream()
-                   .filter(remote -> (version().compareTo(remote.getTimeLockVersion()) <= 0))
-                   .findFirst()
-                   .isPresent();
         }
     }
 

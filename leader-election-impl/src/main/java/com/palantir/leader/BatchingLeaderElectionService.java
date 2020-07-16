@@ -39,6 +39,11 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
     }
 
     @Override
+    public void forcefullyTakeoverLeadershipIfAdjudicating() {
+        delegate.forcefullyTakeoverLeadershipIfAdjudicating();
+    }
+
+    @Override
     public void markNotEligibleForLeadership() {
         delegate.markNotEligibleForLeadership();
     }
