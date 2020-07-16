@@ -31,6 +31,15 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
+    /**
+     * The size of the thread pool used for remote calls to each TimeLock remote (and, thus, a limiter on the number of
+     * concurrent requests that can be made to each remote).
+     *
+     * This number was chosen based on analysing past loads on internal metrics platform. It was selected to permit
+     * most instances where a spike in executor tasks was successfully serviced and the system recovered thereafter.
+     * Choosing too large of a value leads to an unnecessary build up of threads when an individual node is slow;
+     * choosing too small of a value may lead to unnecessary leader elections or add overhead to the Paxos protocol.
+     */
     @VisibleForTesting
     static final int MAXIMUM_POOL_SIZE = 384;
 

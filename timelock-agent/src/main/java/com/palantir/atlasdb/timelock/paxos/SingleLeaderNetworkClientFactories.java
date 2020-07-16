@@ -86,9 +86,6 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .collect(Collectors.toList());
             PaxosLearner localLearner = components().learner(client);
 
-            LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner,
-                    remoteLearners.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()));
-
             Map<PaxosLearner, ExecutorService> executorMap = ImmutableMap.<PaxosLearner, ExecutorService>builder()
                     .putAll(KeyedStream.of(remoteLearners)
                             .mapKeys(WithDedicatedExecutor::service)
@@ -98,8 +95,8 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .build();
 
             SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(
-                    allLearners.local(),
-                    allLearners.remotes(),
+                    localLearner,
+                    remoteLearners.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()),
                     quorumSize(),
                     executorMap,
                     PaxosConstants.CANCEL_REMAINING_CALLS);
