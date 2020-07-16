@@ -45,4 +45,13 @@ public interface PingableLeader {
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
     @Timed
     String getUUID();
+
+    /**
+     * Returns the version of TimeLock on server.
+     */
+    @GET
+    @Path("version")
+    @Produces(MediaType.TEXT_PLAIN)
+    @Timed
+    String getTimeLockVersion();
 }

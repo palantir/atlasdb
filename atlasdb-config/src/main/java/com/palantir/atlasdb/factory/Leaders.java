@@ -17,6 +17,7 @@ package com.palantir.atlasdb.factory;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -298,6 +299,7 @@ public final class Leaders {
         LeaderElectionService leaderElectionService();
         PingableLeader localPingableLeader();
         Set<PingableLeader> remotePingableLeaders();
+        String version();
 
         @Value.Derived
         default Supplier<Boolean> isCurrentSuspectedLeader() {
@@ -307,6 +309,15 @@ public final class Leaders {
         @Value.Derived
         default Set<PingableLeader> allPingableLeaders() {
             return Sets.union(ImmutableSet.of(localPingableLeader()), remotePingableLeaders());
+        }
+
+        @Value.Derived
+        default Boolean isCurrentAdjudicating() {
+           return !remotePingableLeaders()
+                   .stream()
+                   .filter(remote -> (version().compareTo(remote.getTimeLockVersion()) <= 0))
+                   .findFirst()
+                   .isPresent();
         }
     }
 

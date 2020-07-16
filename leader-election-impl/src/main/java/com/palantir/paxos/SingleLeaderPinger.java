@@ -84,6 +84,10 @@ public class SingleLeaderPinger implements LeaderPinger {
         }
     }
 
+    public Optional<String> pingLeaderForVersion(UUID uuid) {
+
+    }
+
     private static LeaderPingResult getLeaderPingResult(
             UUID uuid,
             @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture) {
