@@ -22,8 +22,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -32,6 +34,10 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -79,7 +85,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 leaderElectionService,
                 interfaceClass);
         proxy.tryToGainLeadership();
-
+        if (leaderElectionService.isCurrentAdjudicating()) {
+            proxy.requestHostileTakeover();
+        }
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
                 new Class<?>[] { interfaceClass, Closeable.class },
@@ -161,6 +169,25 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             log.error("problem blocking on leadership", e);
         }
         return false;
+    }
+
+    private boolean requestHostileTakeover() {
+        Duration randomBackoff = Duration.ofMillis(500);
+        Retryer<Boolean> takeoverRetryer = new Retryer<>(
+                StopStrategies.stopAfterAttempt(5),
+                WaitStrategies.randomWait(randomBackoff.toMillis(), TimeUnit.MILLISECONDS),
+                attempt -> !attempt.hasResult() || !attempt.getResult());
+        try {
+            return takeoverRetryer.call(leaderElectionService::hostileTakeover);
+        } catch (ExecutionException e) {
+            log.info("request failed, should not reach here", e);
+            return false;
+        } catch (RetryException e) {
+            log.info("failed repeatedly",
+                    SafeArg.of("numberOfAttempts", e.getNumberOfFailedAttempts()),
+                    e);
+            return false;
+        }
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken)  {
