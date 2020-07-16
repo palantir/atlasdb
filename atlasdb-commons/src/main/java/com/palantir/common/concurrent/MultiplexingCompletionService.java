@@ -73,6 +73,7 @@ public class MultiplexingCompletionService<K, V> {
      * @return future associated with submitting the task to the correct executor
      *
      * @throws IllegalStateException if the key provided is not associated with any executor
+     * @throws CheckedRejectedExecutionException if the task could not be submitted to the relevant executor
      */
     public Future<Map.Entry<K, V>> submit(K key, Callable<V> task) throws CheckedRejectedExecutionException {
         ExecutorService targetExecutor = executors.get(key);

@@ -24,6 +24,8 @@ import java.util.concurrent.RejectedExecutionException;
 /**
  * A {@link CheckedRejectionExecutorService} is an executor where submitters of tasks MUST be prepared to handle
  * execution being rejected - and we thus throw a checked exception when submitting tasks.
+ *
+ * The methods of this class are guaranteed to not throw a standard {@link RejectedExecutionException}.
  */
 public final class CheckedRejectionExecutorService {
     private final ExecutorService underlying;
@@ -48,6 +50,12 @@ public final class CheckedRejectionExecutorService {
         }
     }
 
+    /**
+     * Users of this method MUST handle {@link RejectedExecutionException} themselves. This method is not intended
+     * to be used by external consumers (hence package visibility).
+     *
+     * Be VERY careful.
+     */
     ExecutorService getUnderlyingExecutor() {
         return underlying;
     }
