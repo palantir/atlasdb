@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.ArrayList;
@@ -28,9 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -63,17 +60,6 @@ public class PaxosQuorumCheckingCoalescingFunction<
         this.executors = executors;
         this.quorumSize = quorumSize;
         this.defaultValue = PaxosResponsesWithRemote.of(quorumSize, ImmutableMap.of());
-    }
-
-    private PaxosQuorumCheckingCoalescingFunction(
-            List<FunctionAndExecutor<FUNC>> functionsAndExecutors,
-            int quorumSize) {
-        this(functionsAndExecutors.stream().map(FunctionAndExecutor::function).collect(toList()),
-                KeyedStream.of(functionsAndExecutors.stream())
-                        .mapKeys(FunctionAndExecutor::function)
-                        .map(FunctionAndExecutor::executor)
-                        .collectToMap(),
-                quorumSize);
     }
 
     @Override
@@ -115,12 +101,6 @@ public class PaxosQuorumCheckingCoalescingFunction<
             Map<SERVICE, CheckedRejectionExecutorService> executors,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
-        List<FunctionAndExecutor<F>> functionsAndExecutors = KeyedStream.of(services)
-                .map(executors::get)
-                .mapKeys(functionFactory)
-                .entries()
-                .<FunctionAndExecutor<F>>map(entry -> ImmutableFunctionAndExecutor.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
         List<F> functions = new ArrayList<>(services.size());
         Map<F, CheckedRejectionExecutorService> executorMap = new HashMap<>(services.size());
         for (SERVICE service: services) {

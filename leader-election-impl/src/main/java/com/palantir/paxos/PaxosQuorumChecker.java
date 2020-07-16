@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -187,7 +186,7 @@ public final class PaxosQuorumChecker {
     }
 
     private static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
-    collectResponses(
+            collectResponses(
             ImmutableList<SERVICE> remotes,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,

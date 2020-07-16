@@ -22,7 +22,6 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
