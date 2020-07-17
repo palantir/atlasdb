@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
+import com.palantir.leader.PingResult;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -74,13 +75,12 @@ public class SingleLeaderPinger implements LeaderPinger {
 
         MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, Boolean> multiplexingCompletionService
                 = MultiplexingCompletionService.create(leaderPingExecutors);
-
-        multiplexingCompletionService.submit(leader, () -> leader.pinger().ping());
-
+//        multiplexingCompletionService.submit(leader, () -> leader.pinger().pingV2());
         try {
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture = multiplexingCompletionService
                     .poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
-            return getLeaderPingResult(uuid, pingFuture);
+//            return getLeaderPingResult(uuid, pingFuture);
+            return null;
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(ex);
@@ -93,21 +93,23 @@ public class SingleLeaderPinger implements LeaderPinger {
         return !leaderPingExecutors.keySet()
                 .stream()
                 .map(LeaderPingerContext::pinger)
-                .filter(remote -> (timeLockVersion.compareTo(remote.getTimeLockVersion()) <= 0))
+                .filter(remote -> (timeLockVersion.compareTo(remote.pingV2().timeLockVersion()) <= 0))
                 .findFirst()
                 .isPresent();
     }
 
     private static LeaderPingResult getLeaderPingResult(
             UUID uuid,
-            @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture) {
+            @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture,
+            String timeLockVersion) {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
 
         try {
-            boolean isLeader = Futures.getDone(pingFuture).getValue();
-            if (isLeader) {
+            PingResult pingResult = Futures.getDone(pingFuture).getValue();
+            // todo sudiksha wrong
+            if (pingResult.isLeader() && timeLockVersion.compareTo(pingResult.timeLockVersion()) <= 0) {
                 return LeaderPingResults.pingReturnedTrue(uuid, Futures.getDone(pingFuture).getKey().hostAndPort());
             } else {
                 return LeaderPingResults.pingReturnedFalse();

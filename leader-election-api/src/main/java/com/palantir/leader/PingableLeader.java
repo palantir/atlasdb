@@ -50,8 +50,8 @@ public interface PingableLeader {
      * Returns the version of TimeLock on server.
      */
     @GET
-    @Path("version")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Path("pingV2")
+    @Produces(MediaType.APPLICATION_JSON)
     @Timed
-    String getTimeLockVersion();
+    PingResult pingV2();
 }

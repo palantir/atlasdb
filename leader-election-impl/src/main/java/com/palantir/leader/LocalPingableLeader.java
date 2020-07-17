@@ -46,8 +46,8 @@ public final class LocalPingableLeader implements PingableLeader {
     }
 
     @Override
-    public String getTimeLockVersion() {
-        return timeLockVersion;
+    public PingResult pingV2() {
+        return ImmutablePingResult.builder().isLeader(ping()).timeLockVersion(timeLockVersion).build();
     }
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {

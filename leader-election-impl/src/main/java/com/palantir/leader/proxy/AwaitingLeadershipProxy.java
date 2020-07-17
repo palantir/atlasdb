@@ -117,6 +117,14 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         this.isClosed = false;
     }
 
+    private void forcefullyGainLeadership() {
+        leaderElectionService.forcefullyTakeoverLeadershipIfAdjudicating();
+        Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
+        if (currentToken.isPresent()) {
+            onGainedLeadership(currentToken.get());
+        }
+    }
+
     private void tryToGainLeadership() {
         Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
         if (currentToken.isPresent()) {
@@ -338,7 +346,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             } catch (Throwable t) {
                 // If close fails we should still try to gain leadership
             }
-            //todo sudiksha | should check if adjudicating again ?
+            //todo sudiksha | should check if adjudicating again | takeover after backoff
+            forcefullyGainLeadership();
             tryToGainLeadership();
         }
         throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
