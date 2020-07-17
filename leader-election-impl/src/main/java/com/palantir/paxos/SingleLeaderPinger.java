@@ -97,7 +97,6 @@ public class SingleLeaderPinger implements LeaderPinger {
         }
         try {
             PingResult pingResult = Futures.getDone(pingFuture).getValue();
-            // todo sudiksha wrong
             if (pingResult.isLeader() && isAtLeastOurVersion(timeLockVersion, pingResult)) {
                 return LeaderPingResults.pingReturnedTrue(uuid, Futures.getDone(pingFuture).getKey().hostAndPort());
             } else {

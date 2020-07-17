@@ -103,7 +103,8 @@ public class PaxosLeaderEventsTest {
                 ImmutableMap.of(ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT), executorService),
                 leaderPingResponseWait,
                 LOCAL_UUID,
-                true);
+                true,
+                "0.000.1");
     }
 
 }
