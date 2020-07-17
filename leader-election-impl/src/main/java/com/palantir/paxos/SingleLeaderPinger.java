@@ -39,6 +39,8 @@ import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.leader.PingResult;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.sls.versions.OrderableSlsVersion;
+import com.palantir.sls.versions.VersionComparator;
 
 public class SingleLeaderPinger implements LeaderPinger {
 
@@ -48,7 +50,7 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final Map<LeaderPingerContext<PingableLeader>, ExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;
-    private final String timeLockVersion;
+    private final OrderableSlsVersion timeLockVersion;
     private final boolean cancelRemainingCalls;
 
     public SingleLeaderPinger(
@@ -61,7 +63,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.localUuid = localUuid;
         this.cancelRemainingCalls = cancelRemainingCalls;
-        this.timeLockVersion = timeLockVersion;
+        this.timeLockVersion = OrderableSlsVersion.valueOf(timeLockVersion);
     }
 
     @Override
@@ -73,43 +75,30 @@ public class SingleLeaderPinger implements LeaderPinger {
 
         LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
 
-        MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, Boolean> multiplexingCompletionService
+        MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService
                 = MultiplexingCompletionService.create(leaderPingExecutors);
-//        multiplexingCompletionService.submit(leader, () -> leader.pinger().pingV2());
+        multiplexingCompletionService.submit(leader, () -> leader.pinger().pingV2());
         try {
-            Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture = multiplexingCompletionService
+            Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture = multiplexingCompletionService
                     .poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
-//            return getLeaderPingResult(uuid, pingFuture);
-            return null;
+            return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(ex);
         }
     }
 
-    //todo sudiksha | blah correctness
-    @Override
-    public Boolean isCurrentAdjudicating() {
-        return !leaderPingExecutors.keySet()
-                .stream()
-                .map(LeaderPingerContext::pinger)
-                .filter(remote -> (timeLockVersion.compareTo(remote.pingV2().timeLockVersion()) <= 0))
-                .findFirst()
-                .isPresent();
-    }
-
     private static LeaderPingResult getLeaderPingResult(
             UUID uuid,
             @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture,
-            String timeLockVersion) {
+            OrderableSlsVersion timeLockVersion) {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
-
         try {
             PingResult pingResult = Futures.getDone(pingFuture).getValue();
             // todo sudiksha wrong
-            if (pingResult.isLeader() && timeLockVersion.compareTo(pingResult.timeLockVersion()) <= 0) {
+            if (pingResult.isLeader() && isAtLeastOurVersion(timeLockVersion, pingResult)) {
                 return LeaderPingResults.pingReturnedTrue(uuid, Futures.getDone(pingFuture).getKey().hostAndPort());
             } else {
                 return LeaderPingResults.pingReturnedFalse();
@@ -117,6 +106,12 @@ public class SingleLeaderPinger implements LeaderPinger {
         } catch (ExecutionException ex) {
             return LeaderPingResults.pingCallFailure(ex.getCause());
         }
+    }
+
+    private static boolean isAtLeastOurVersion(OrderableSlsVersion timeLockVersion, PingResult pingResult) {
+        return VersionComparator.INSTANCE
+                .compare(timeLockVersion,
+                        OrderableSlsVersion.valueOf(pingResult.timeLockVersion())) <= 0;
     }
 
     private Optional<LeaderPingerContext<PingableLeader>> getSuspectedLeader(UUID uuid) {
@@ -155,14 +150,12 @@ public class SingleLeaderPinger implements LeaderPinger {
                         state -> state.responses().values().stream().map(PaxosString::get).anyMatch(
                                 uuid.toString()::equals),
                         cancelRemainingCalls);
-
         for (Map.Entry<LeaderPingerContext<PingableLeader>, PaxosString> cacheEntry :
                 responses.responses().entrySet()) {
             UUID uuidFromRequest = UUID.fromString(cacheEntry.getValue().get());
             LeaderPingerContext<PingableLeader> service =
                     uuidToServiceCache.putIfAbsent(uuidFromRequest, cacheEntry.getKey());
             throwIfInvalidSetup(service, cacheEntry.getKey(), uuidFromRequest);
-
             // return the leader if it matches
             if (uuid.equals(uuidFromRequest)) {
                 return Optional.of(cacheEntry.getKey());

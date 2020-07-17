@@ -28,6 +28,4 @@ public interface LeaderPinger {
      * result
      */
     LeaderPingResult pingLeaderWithUuid(UUID uuid);
-
-    Boolean isCurrentAdjudicating();
 }
