@@ -33,6 +33,8 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.LeaderElectionConstants;
+import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
@@ -51,7 +53,7 @@ public class LocalPaxosComponentsTest {
     private static final PaxosValue PAXOS_VALUE = new PaxosValue(PAXOS_UUID, PAXOS_ROUND_ONE, PAXOS_DATA);
     private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
             new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
-    private static final String TIMELOCK_VERSION = "0.0.0";
+    private static final String TIMELOCK_VERSION = "1.2.7";
 
     @Rule
     public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
@@ -64,14 +66,7 @@ public class LocalPaxosComponentsTest {
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
         sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
-        paxosComponents = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
-                PaxosUseCase.TIMESTAMP,
-                legacyDirectory,
-                sqlite,
-                UUID.randomUUID(),
-                true,
-                TIMELOCK_VERSION);
+        paxosComponents = createPaxosComponents(true);
     }
 
     @Test
@@ -100,14 +95,7 @@ public class LocalPaxosComponentsTest {
 
     @Test
     public void newClientCannotBeCreatedIfCreatingClientsIsNotPermitted() {
-        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
-                PaxosUseCase.TIMESTAMP,
-                legacyDirectory,
-                sqlite,
-                UUID.randomUUID(),
-                false,
-                TIMELOCK_VERSION);
+        LocalPaxosComponents rejectingComponents = createPaxosComponents(false);
         assertThatThrownBy(() -> rejectingComponents.learner(CLIENT))
                 .isInstanceOf(ServiceNotAvailableException.class)
                 .hasMessageContaining("not allowed to create new clients at this time")
@@ -117,14 +105,42 @@ public class LocalPaxosComponentsTest {
     @Test
     public void newClientCanBeCreatedIfItAlreadyExistsInTheDirectory() {
         paxosComponents.learner(CLIENT);
-        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
+        LocalPaxosComponents rejectingComponents = createPaxosComponents(false);
+        assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
+    }
+
+    @Test
+    public void returnsTimeLockVersionWithIsLeaderBoolean() {
+        // return default when timeLock version not provided
+        PingableLeader pingableLeader = paxosComponents.pingableLeader(CLIENT);
+        assertThat(pingableLeader.pingV2().timeLockVersion())
+                .isEqualTo(LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
+        assertThat(pingableLeader.pingV2().isLeader()).isNotNull();
+
+        pingableLeader = createPaxosComponentsWithVersion(true, TIMELOCK_VERSION)
+                .pingableLeader(CLIENT);
+        assertThat(pingableLeader.pingV2().timeLockVersion()).isEqualTo(TIMELOCK_VERSION);
+    }
+
+    // utils
+    public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients) {
+        return LocalPaxosComponents.createWithBlockingMigration(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                false,
-                TIMELOCK_VERSION);
-        assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
+                canCreateNewClients);
+    }
+
+    public LocalPaxosComponents createPaxosComponentsWithVersion(boolean canCreateNewClients, String timeLockVersion) {
+        return LocalPaxosComponents.createWithBlockingMigrationWithVersion(
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
+                legacyDirectory,
+                sqlite,
+                UUID.randomUUID(),
+                canCreateNewClients,
+                timeLockVersion);
     }
 }
