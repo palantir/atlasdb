@@ -113,8 +113,13 @@ public class LocalPaxosComponents {
             UUID leaderUuid,
             boolean canCreateNewClients,
             String timeLockVersion) {
-        LocalPaxosComponents components = new LocalPaxosComponents(metrics, paxosUseCase, legacyLogDirectory,
-                sqliteDataSource, leaderUuid, canCreateNewClients, timeLockVersion);
+        LocalPaxosComponents components = new LocalPaxosComponents(metrics,
+                paxosUseCase,
+                legacyLogDirectory,
+                sqliteDataSource,
+                leaderUuid,
+                canCreateNewClients,
+                timeLockVersion);
 
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
         PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);

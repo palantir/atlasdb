@@ -31,6 +31,7 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
@@ -111,7 +112,7 @@ public class TimeLockAgent {
                 blockingTimeoutMs,
                 registrar,
                 undertowRegistrar,
-                "0.0.0");
+                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static TimeLockAgent createWithVersion(MetricsManager metricsManager,
@@ -128,7 +129,7 @@ public class TimeLockAgent {
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
                 ImmutableTimelockPaxosInstallationContext.of(install, userAgent, timeLockDialogueServiceProvider);
 
-        PaxosResources paxosResources = PaxosResourcesFactory.create(
+        PaxosResources paxosResources = PaxosResourcesFactory.createWithVersion(
                 installationContext,
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
