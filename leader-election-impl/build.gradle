@@ -18,9 +18,9 @@ dependencies {
   compile group: "org.jdbi", name: 'jdbi3-core'
   compile group: "org.jdbi", name: 'jdbi3-sqlobject'
   compile group: 'org.xerial', name: 'sqlite-jdbc'
+  compile group: 'com.palantir.sls.versions', name: 'sls-versions'
 
   implementation group: 'com.palantir.common', name: 'streams'
-  implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
