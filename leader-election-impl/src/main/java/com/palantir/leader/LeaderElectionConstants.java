@@ -16,6 +16,10 @@
 
 package com.palantir.leader;
 
-public class LeaderElectionConstants {
+public final class LeaderElectionConstants {
+    private LeaderElectionConstants() {
+        // no op
+    }
+
     public static final String DEFAULT_TIMELOCK_VERSION = "0.0.0";
 }
