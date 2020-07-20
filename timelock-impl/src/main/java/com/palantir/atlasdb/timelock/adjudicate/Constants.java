@@ -35,6 +35,7 @@ public final class Constants {
             = ServiceLevelObjectiveSpecification.builder()
             .maximumPermittedSteadyStateP99(Duration.ofMillis(200))
             .minimumRequestRateForConsideration(0.025)
+            .name("leaderTime")
             .maximumPermittedErrorProportion(0.5)
             .maximumPermittedQuietP99(Duration.ofSeconds(40))
             .build();
@@ -43,6 +44,7 @@ public final class Constants {
             = ServiceLevelObjectiveSpecification.builder()
             .maximumPermittedSteadyStateP99(Duration.ofMillis(500))
             .minimumRequestRateForConsideration(0.02)
+            .name("startTransaction")
             .maximumPermittedErrorProportion(0.5)
             .maximumPermittedQuietP99(Duration.ofSeconds(50))
             .build();
