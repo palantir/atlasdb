@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -57,11 +58,13 @@ public final class PaxosResourcesFactory {
     public static PaxosResources create(
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
-            Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
+            ExecutorService sharedExecutor,
+            String timeLockVersion) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
         ImmutablePaxosResources.Builder resourcesBuilder = setupTimestampResources(
-                install, metrics, paxosRuntime, remoteClients);
+                install, metrics, paxosRuntime, sharedExecutor, remoteClients, timeLockVersion);
 
         if (install.useLeaderForEachClient()) {
             return configureLeaderForEachClient(
@@ -175,7 +178,9 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            PaxosRemoteClients remoteClients) {
+            ExecutorService sharedExecutor,
+            PaxosRemoteClients remoteClients,
+            String timeLockVersion) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 
@@ -185,7 +190,8 @@ public final class PaxosResourcesFactory {
                 install.dataDirectory(),
                 install.sqliteDataSource(),
                 install.nodeUuid(),
-                install.install().paxos().canCreateNewClients());
+                install.install().paxos().canCreateNewClients(),
+                timeLockVersion);
 
         NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
                 .useCase(PaxosUseCase.TIMESTAMP)

@@ -59,7 +59,8 @@ public abstract class LeadershipContextFactory implements
                 install().dataDirectory(),
                 install().sqliteDataSource(),
                 leaderUuid(),
-                install().install().paxos().canCreateNewClients());
+                install().install().paxos().canCreateNewClients(),
+                "0.000.0"); //todo Sudiksha
     }
 
     @Value.Derived

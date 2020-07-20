@@ -68,13 +68,15 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
+    private final String timeLockVersion;
 
     private LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
             DataSource sqliteDataSource,
             UUID leaderUuid,
-            boolean canCreateNewClients) {
+            boolean canCreateNewClients,
+            String timeLockVersion) {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
         this.baseLogDirectory = legacyLogDirectory;
@@ -84,6 +86,7 @@ public class LocalPaxosComponents {
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
         this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
         this.canCreateNewClients = canCreateNewClients;
+        this.timeLockVersion = timeLockVersion;
     }
 
     public static LocalPaxosComponents createWithBlockingMigration(
@@ -92,9 +95,10 @@ public class LocalPaxosComponents {
             Path legacyLogDirectory,
             DataSource sqliteDataSource,
             UUID leaderUuid,
-            boolean canCreateNewClients) {
+            boolean canCreateNewClients,
+            String timeLockVersion) {
         LocalPaxosComponents components = new LocalPaxosComponents(metrics, paxosUseCase, legacyLogDirectory,
-                sqliteDataSource, leaderUuid, canCreateNewClients);
+                sqliteDataSource, leaderUuid, canCreateNewClients, timeLockVersion);
 
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
         PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
@@ -154,7 +158,7 @@ public class LocalPaxosComponents {
         PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(getAcceptorParameters(client),
                 createMetrics(PaxosAcceptor.class),
                 learner.getGreatestLearnedValue().map(PaxosValue::getRound));
-        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
+        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid, timeLockVersion);
 
         return ImmutableComponents.builder()
                 .acceptor(acceptor)

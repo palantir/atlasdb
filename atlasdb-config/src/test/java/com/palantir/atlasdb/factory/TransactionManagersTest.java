@@ -144,6 +144,7 @@ public class TransactionManagersTest {
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
     private static final String EXPECTED_USER_AGENT_STRING = UserAgents.format(USER_AGENT);
     private static final String USER_AGENT_HEADER = "User-Agent";
+    private static final String TIMELOCK_VERSION = "0.000.0";
 
     private static final long EMBEDDED_BOUND = 3;
 
@@ -340,7 +341,8 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory);
+                        reloadingFactory,
+                        TIMELOCK_VERSION);
 
         LockRequest lockRequest = LockRequest
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
@@ -548,7 +550,8 @@ public class TransactionManagersTest {
                         .learnerLogDir(temporaryFolder.newFolder())
                         .build(),
                 () -> ImmutableLeaderRuntimeConfig.builder().build(),
-                USER_AGENT);
+                USER_AGENT,
+                TIMELOCK_VERSION);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService lockService = LockServiceImpl.create();
         LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
@@ -871,7 +874,8 @@ public class TransactionManagersTest {
                 invalidator,
                 USER_AGENT,
                 Optional.empty(),
-                reloadingFactory);
+                reloadingFactory,
+                TIMELOCK_VERSION);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -891,7 +895,8 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory);
+                        reloadingFactory,
+                        TIMELOCK_VERSION);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 

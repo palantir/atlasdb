@@ -25,10 +25,12 @@ public final class LocalPingableLeader implements PingableLeader {
 
     private final PaxosLearner knowledge;
     private final String localUuid;
+    private final String timeLockVersion;
 
-    public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid) {
+    public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid, String timeLockVersion) {
         this.knowledge = knowledge;
         this.localUuid = localUuid.toString();
+        this.timeLockVersion = timeLockVersion;
     }
 
     @Override
@@ -41,6 +43,15 @@ public final class LocalPingableLeader implements PingableLeader {
     @Override
     public String getUUID() {
         return localUuid;
+    }
+
+    @Override
+    public PingResult pingV2() {
+        return PingResult
+                .builder()
+                .isLeader(ping())
+                .timeLockVersion(timeLockVersion)
+                .build();
     }
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {

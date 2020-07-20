@@ -50,6 +50,7 @@ public class PaxosStateLogMigrationIntegrationTest {
     private static final long LATEST_ROUND_BEFORE_MIGRATING = 100;
     private static final long CUTOFF = LATEST_ROUND_BEFORE_MIGRATING - PaxosStateLogMigrator.SAFETY_BUFFER;
     private static final long ROUND_BEFORE_CUTOFF = CUTOFF - 1;
+    private static final String TIMELOCK_VERSION = "0.000.0";
 
     private Path legacyDirectory;
     private DataSource sqlite;
@@ -263,7 +264,8 @@ public class PaxosStateLogMigrationIntegrationTest {
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                true);
+                true,
+                TIMELOCK_VERSION);
     }
 
     private PaxosValue valueForRound(long num) {

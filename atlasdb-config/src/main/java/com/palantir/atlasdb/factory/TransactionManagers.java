@@ -245,6 +245,11 @@ public abstract class TransactionManagers {
         return false;
     }
 
+    @Value.Default
+    String timeLockVersion() {
+        return "0.000.0";
+    }
+
     abstract UserAgent userAgent();
 
     /**
@@ -394,7 +399,8 @@ public abstract class TransactionManagers {
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent(),
                 lockDiagnosticComponents(),
-                reloadingFactory());
+                reloadingFactory(),
+                timeLockVersion());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -930,7 +936,8 @@ public abstract class TransactionManagers {
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            String userAgent,
+            String timeLockVersion) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(
                         metricsManager,
@@ -942,7 +949,8 @@ public abstract class TransactionManagers {
                         invalidator,
                         UserAgents.tryParse(userAgent),
                         Optional.empty(),
-                        newMinimalDialogueFactory());
+                        newMinimalDialogueFactory(),
+                        timeLockVersion);
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -963,7 +971,8 @@ public abstract class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
-            DialogueClients.ReloadingFactory reloadingFactory) {
+            DialogueClients.ReloadingFactory reloadingFactory,
+            String timeLockVersion) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -974,7 +983,8 @@ public abstract class TransactionManagers {
                 invalidator,
                 userAgent,
                 lockDiagnosticComponents,
-                reloadingFactory);
+                reloadingFactory,
+                timeLockVersion);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
                         withRefreshingLockService(lockAndTimestampServices)));
@@ -1032,11 +1042,12 @@ public abstract class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
-            DialogueClients.ReloadingFactory reloadingFactory) {
+            DialogueClients.ReloadingFactory reloadingFactory,
+            String timeLockVersion) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent);
+            return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent, timeLockVersion);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, runtimeConfig, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
@@ -1174,7 +1185,8 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            String timeLockVersion) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
@@ -1182,7 +1194,8 @@ public abstract class TransactionManagers {
                 env,
                 leaderConfig,
                 () -> defaultRuntime,
-                userAgent);
+                userAgent,
+                timeLockVersion);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),

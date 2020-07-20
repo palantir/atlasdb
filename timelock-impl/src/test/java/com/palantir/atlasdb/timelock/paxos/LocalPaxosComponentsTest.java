@@ -51,6 +51,7 @@ public class LocalPaxosComponentsTest {
     private static final PaxosValue PAXOS_VALUE = new PaxosValue(PAXOS_UUID, PAXOS_ROUND_ONE, PAXOS_DATA);
     private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
             new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
+    private static final String TIMELOCK_VERSION = "0.000.0";
 
     @Rule
     public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
@@ -69,7 +70,8 @@ public class LocalPaxosComponentsTest {
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                true);
+                true,
+                TIMELOCK_VERSION);
     }
 
     @Test
@@ -104,7 +106,8 @@ public class LocalPaxosComponentsTest {
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                false);
+                false,
+                TIMELOCK_VERSION);
         assertThatThrownBy(() -> rejectingComponents.learner(CLIENT))
                 .isInstanceOf(ServiceNotAvailableException.class)
                 .hasMessageContaining("not allowed to create new clients at this time")
@@ -120,7 +123,8 @@ public class LocalPaxosComponentsTest {
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                false);
+                false,
+                TIMELOCK_VERSION);
         assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
     }
 }

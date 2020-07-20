@@ -84,9 +84,10 @@ public final class Leaders {
             Consumer<Object> env,
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            String timeLockVersion) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(
-                metricsManager, config, userAgent);
+                metricsManager, config, userAgent, timeLockVersion);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -98,7 +99,8 @@ public final class Leaders {
     public static LocalPaxosServices createInstrumentedLocalServices(
             MetricsManager metricsManager,
             LeaderConfig config,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            String timeLockVersion) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -113,7 +115,8 @@ public final class Leaders {
                 remotePaxosServerSpec,
                 () -> RemotingClientConfigs.DEFAULT,
                 userAgent,
-                LeadershipObserver.NO_OP);
+                LeadershipObserver.NO_OP,
+                timeLockVersion);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
@@ -122,7 +125,8 @@ public final class Leaders {
             RemotePaxosServerSpec remotePaxosServerSpec,
             Supplier<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
-            LeadershipObserver leadershipObserver) {
+            LeadershipObserver leadershipObserver,
+            String timeLockVersion) {
         UUID leaderUuid = UUID.randomUUID();
 
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
@@ -203,7 +207,7 @@ public final class Leaders {
                 uninstrumentedLeaderElectionService);
         PingableLeader pingableLeader = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
                 PingableLeader.class,
-                new LocalPingableLeader(ourLearner, leaderUuid));
+                new LocalPingableLeader(ourLearner, leaderUuid, timeLockVersion));
 
         List<PingableLeader> remotePingableLeaders = otherLeaders.stream()
                 .map(LeaderPingerContext::pinger)
