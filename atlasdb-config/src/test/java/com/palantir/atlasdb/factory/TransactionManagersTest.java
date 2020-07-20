@@ -549,9 +549,7 @@ public class TransactionManagersTest {
                         .acceptorLogDir(temporaryFolder.newFolder())
                         .learnerLogDir(temporaryFolder.newFolder())
                         .build(),
-                () -> ImmutableLeaderRuntimeConfig.builder().build(),
-                USER_AGENT,
-                TIMELOCK_VERSION);
+                USER_AGENT);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService lockService = LockServiceImpl.create();
         LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(

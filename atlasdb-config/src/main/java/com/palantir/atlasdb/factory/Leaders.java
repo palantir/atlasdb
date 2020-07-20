@@ -37,7 +37,6 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -83,11 +82,25 @@ public final class Leaders {
             MetricsManager metricsManager,
             Consumer<Object> env,
             LeaderConfig config,
-            Supplier<LeaderRuntimeConfig> runtime,
+            UserAgent userAgent) {
+        return createAndRegisterLocalServicesWithVersion(
+                metricsManager,
+                env,
+                config,
+                userAgent,
+                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+    }
+
+    public static LocalPaxosServices createAndRegisterLocalServicesWithVersion(MetricsManager metricsManager,
+            Consumer<Object> env,
+            LeaderConfig config,
             UserAgent userAgent,
             String timeLockVersion) {
-        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(
-                metricsManager, config, userAgent, timeLockVersion);
+        LocalPaxosServices localPaxosServices = createInstrumentedLocalServicesWithVersion(
+                metricsManager,
+                config,
+                userAgent,
+                timeLockVersion);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -99,8 +112,13 @@ public final class Leaders {
     public static LocalPaxosServices createInstrumentedLocalServices(
             MetricsManager metricsManager,
             LeaderConfig config,
-            UserAgent userAgent,
-            String timeLockVersion) {
+            UserAgent userAgent) {
+        return createInstrumentedLocalServicesWithVersion(metricsManager, config, userAgent,
+                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+    }
+
+    public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(MetricsManager metricsManager,
+            LeaderConfig config, UserAgent userAgent, String timeLockVersion) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -109,7 +127,7 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createInstrumentedLocalServices(
+        return createInstrumentedLocalServicesWithVersion(
                 metricsManager,
                 config,
                 remotePaxosServerSpec,
@@ -120,6 +138,22 @@ public final class Leaders {
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
+            MetricsManager metricsManager,
+            LeaderConfig config,
+            RemotePaxosServerSpec remotePaxosServerSpec,
+            Supplier<RemotingClientConfig> remotingClientConfig,
+            UserAgent userAgent,
+            LeadershipObserver leadershipObserver) {
+        return createInstrumentedLocalServicesWithVersion(metricsManager,
+                config,
+                remotePaxosServerSpec,
+                remotingClientConfig,
+                userAgent,
+                leadershipObserver,
+                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+    }
+
+    public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(
             MetricsManager metricsManager,
             LeaderConfig config,
             RemotePaxosServerSpec remotePaxosServerSpec,

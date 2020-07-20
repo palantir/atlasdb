@@ -201,6 +201,7 @@ import com.palantir.util.OptionalResolver;
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
+    public static String DEFAULT_TIMELOCK_VERSION = "0.0.0";
 
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
@@ -247,7 +248,7 @@ public abstract class TransactionManagers {
 
     @Value.Default
     String timeLockVersion() {
-        return "0.0.0";
+        return DEFAULT_TIMELOCK_VERSION;
     }
 
     abstract UserAgent userAgent();
@@ -1189,11 +1190,10 @@ public abstract class TransactionManagers {
             String timeLockVersion) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
-        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
+        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServicesWithVersion(
                 metricsManager,
                 env,
                 leaderConfig,
-                () -> defaultRuntime,
                 userAgent,
                 timeLockVersion);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
