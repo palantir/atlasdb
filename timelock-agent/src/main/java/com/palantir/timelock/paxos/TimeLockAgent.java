@@ -31,7 +31,6 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
@@ -61,6 +60,7 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
+import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
@@ -112,7 +112,7 @@ public class TimeLockAgent {
                 blockingTimeoutMs,
                 registrar,
                 undertowRegistrar,
-                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static TimeLockAgent createWithVersion(MetricsManager metricsManager,

@@ -22,8 +22,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
 public final class LocalPingableLeader implements PingableLeader {
-    public static String DEFAULT_TIMELOCK_VERSION = "0.0.0";
-
     private final PaxosLearner knowledge;
     private final String localUuid;
     private final String timeLockVersion;
@@ -31,7 +29,7 @@ public final class LocalPingableLeader implements PingableLeader {
     public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid) {
         this.knowledge = knowledge;
         this.localUuid = localUuid.toString();
-        this.timeLockVersion = DEFAULT_TIMELOCK_VERSION;
+        this.timeLockVersion = LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION;
     }
 
     public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid, String timeLockVersion) {

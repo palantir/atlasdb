@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
@@ -58,7 +59,7 @@ public class LockAndTimestampModule {
                 managedTimestampService,
                 config.atlasDbSupplier(metricsManager).getTimestampStoreInvalidator(),
                 "cli",
-                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     @Provides

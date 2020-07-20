@@ -48,6 +48,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.BatchingLeaderElectionService;
+import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.leader.LeadershipObserver;
@@ -88,7 +89,7 @@ public final class Leaders {
                 env,
                 config,
                 userAgent,
-                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static LocalPaxosServices createAndRegisterLocalServicesWithVersion(MetricsManager metricsManager,
@@ -116,7 +117,7 @@ public final class Leaders {
         return createInstrumentedLocalServicesWithVersion(metricsManager,
                 config,
                 userAgent,
-                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(MetricsManager metricsManager,
@@ -154,7 +155,7 @@ public final class Leaders {
                 remotingClientConfig,
                 userAgent,
                 leadershipObserver,
-                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(

@@ -157,6 +157,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -201,8 +202,6 @@ import com.palantir.util.OptionalResolver;
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-    public static String DEFAULT_TIMELOCK_VERSION = "0.0.0";
-
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     abstract AtlasDbConfig config();
@@ -248,7 +247,7 @@ public abstract class TransactionManagers {
 
     @Value.Default
     String timeLockVersion() {
-        return DEFAULT_TIMELOCK_VERSION;
+        return LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION;
     }
 
     abstract UserAgent userAgent();

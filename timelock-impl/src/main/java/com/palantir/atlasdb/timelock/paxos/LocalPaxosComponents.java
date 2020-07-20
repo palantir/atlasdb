@@ -35,10 +35,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.PingableLeader;
@@ -103,7 +103,7 @@ public class LocalPaxosComponents {
                 sqliteDataSource,
                 leaderUuid,
                 canCreateNewClients,
-                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static LocalPaxosComponents createWithBlockingMigrationWithVersion(TimelockPaxosMetrics metrics,

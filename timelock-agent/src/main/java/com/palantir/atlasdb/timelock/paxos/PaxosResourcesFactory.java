@@ -27,13 +27,13 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -63,7 +63,7 @@ public final class PaxosResourcesFactory {
         return createWithVersion(install,
                 metrics,
                 paxosRuntime,
-                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static PaxosResources createWithVersion(TimelockPaxosInstallationContext install,

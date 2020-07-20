@@ -21,10 +21,10 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
+import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.Client;
@@ -48,7 +48,7 @@ public abstract class LeadershipContextFactory implements
 
     @Value.Default
     String timeLockVersion() {
-        return TransactionManagers.DEFAULT_TIMELOCK_VERSION;
+        return LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION;
     }
 
     @Value.Derived
