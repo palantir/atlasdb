@@ -236,7 +236,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 case NORMAL:
                     if (log.isDebugEnabled()) {
                         log.debug(
-                                "Closing connection pool: {}",
+                                "Closing connection pool",
                                 UnsafeArg.of("connConfig", connConfig),
                                 new SafeRuntimeException("Closing connection pool"));
                     }
@@ -282,7 +282,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     private HikariDataSource getDataSourcePool() {
         // Print a stack trace whenever we initialize a pool
         if (log.isDebugEnabled()) {
-            log.debug("Initializing connection pool: {}",
+            log.debug("Initializing connection pool",
                     UnsafeArg.of("connConfig", connConfig),
                     new SafeRuntimeException("Initializing connection pool"));
         }
@@ -304,7 +304,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 }
             }
         } catch (PoolInitializationException e) {
-            log.error("[{}] Failed to initialize hikari data source: {}",
+            log.error("Failed to initialize hikari data source",
                     SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                     UnsafeArg.of("url", connConfig.getUrl()),
                     e);
