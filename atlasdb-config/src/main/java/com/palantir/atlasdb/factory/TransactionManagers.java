@@ -247,7 +247,7 @@ public abstract class TransactionManagers {
 
     @Value.Default
     String timeLockVersion() {
-        return "0.000.0";
+        return "0.0.0";
     }
 
     abstract UserAgent userAgent();

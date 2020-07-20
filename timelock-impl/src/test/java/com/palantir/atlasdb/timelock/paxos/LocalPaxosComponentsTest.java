@@ -51,7 +51,7 @@ public class LocalPaxosComponentsTest {
     private static final PaxosValue PAXOS_VALUE = new PaxosValue(PAXOS_UUID, PAXOS_ROUND_ONE, PAXOS_DATA);
     private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
             new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
-    private static final String TIMELOCK_VERSION = "0.000.0";
+    private static final String TIMELOCK_VERSION = "0.0.0";
 
     @Rule
     public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

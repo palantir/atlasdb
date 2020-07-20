@@ -83,7 +83,7 @@ public class PaxosTimestampBoundStoreTest {
             ImmutableSequenceAndBound.of(1, FORTY_TWO);
 
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
-    private static final String TIMELOCK_VERSION = "0.000.0";
+    private static final String TIMELOCK_VERSION = "0.0.0";
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
     private final List<PaxosLearner> learners = Lists.newArrayList();
