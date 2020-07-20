@@ -120,6 +120,22 @@ public final class Leaders {
                 LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
+    public static LocalPaxosServices createInstrumentedLocalServices(
+            MetricsManager metricsManager,
+            LeaderConfig config,
+            RemotePaxosServerSpec remotePaxosServerSpec,
+            Supplier<RemotingClientConfig> remotingClientConfig,
+            UserAgent userAgent,
+            LeadershipObserver leadershipObserver) {
+        return createInstrumentedLocalServicesWithVersion(metricsManager,
+                config,
+                remotePaxosServerSpec,
+                remotingClientConfig,
+                userAgent,
+                leadershipObserver,
+                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
+    }
+
     public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(MetricsManager metricsManager,
             LeaderConfig config,
             UserAgent userAgent,
@@ -140,22 +156,6 @@ public final class Leaders {
                 userAgent,
                 LeadershipObserver.NO_OP,
                 timeLockVersion);
-    }
-
-    public static LocalPaxosServices createInstrumentedLocalServices(
-            MetricsManager metricsManager,
-            LeaderConfig config,
-            RemotePaxosServerSpec remotePaxosServerSpec,
-            Supplier<RemotingClientConfig> remotingClientConfig,
-            UserAgent userAgent,
-            LeadershipObserver leadershipObserver) {
-        return createInstrumentedLocalServicesWithVersion(metricsManager,
-                config,
-                remotePaxosServerSpec,
-                remotingClientConfig,
-                userAgent,
-                leadershipObserver,
-                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(

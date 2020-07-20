@@ -1047,9 +1047,18 @@ public abstract class TransactionManagers {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent, timeLockVersion);
+            return createRawLeaderServices(metricsManager,
+                    config.leader().get(),
+                    env,
+                    lock,
+                    time,
+                    userAgent,
+                    timeLockVersion);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
-            return createRawRemoteServices(metricsManager, config, runtimeConfig, userAgent);
+            return createRawRemoteServices(metricsManager,
+                    config,
+                    runtimeConfig,
+                    userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
             return createRawServicesFromTimeLock(
                     metricsManager,
