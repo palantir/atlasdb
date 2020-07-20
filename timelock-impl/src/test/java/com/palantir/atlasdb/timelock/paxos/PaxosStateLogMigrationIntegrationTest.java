@@ -258,7 +258,7 @@ public class PaxosStateLogMigrationIntegrationTest {
     }
 
     private LocalPaxosComponents createPaxosComponents() {
-        return LocalPaxosComponents.createWithBlockingMigration(
+        return LocalPaxosComponents.createWithBlockingMigrationWithVersion(
                 TimelockPaxosMetrics.of(useCase, MetricsManagers.createForTests()),
                 useCase,
                 legacyDirectory,

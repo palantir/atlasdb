@@ -35,6 +35,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
 import com.palantir.common.remoting.ServiceNotAvailableException;
@@ -91,6 +92,21 @@ public class LocalPaxosComponents {
 
     public static LocalPaxosComponents createWithBlockingMigration(
             TimelockPaxosMetrics metrics,
+            PaxosUseCase paxosUseCase,
+            Path legacyLogDirectory,
+            DataSource sqliteDataSource,
+            UUID leaderUuid,
+            boolean canCreateNewClients) {
+        return createWithBlockingMigrationWithVersion(metrics,
+                paxosUseCase,
+                legacyLogDirectory,
+                sqliteDataSource,
+                leaderUuid,
+                canCreateNewClients,
+                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
+    }
+
+    public static LocalPaxosComponents createWithBlockingMigrationWithVersion(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
             DataSource sqliteDataSource,

@@ -64,7 +64,7 @@ public class LocalPaxosComponentsTest {
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
         sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
-        paxosComponents = LocalPaxosComponents.createWithBlockingMigration(
+        paxosComponents = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
@@ -100,7 +100,7 @@ public class LocalPaxosComponentsTest {
 
     @Test
     public void newClientCannotBeCreatedIfCreatingClientsIsNotPermitted() {
-        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigration(
+        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
@@ -117,7 +117,7 @@ public class LocalPaxosComponentsTest {
     @Test
     public void newClientCanBeCreatedIfItAlreadyExistsInTheDirectory() {
         paxosComponents.learner(CLIENT);
-        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigration(
+        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,

@@ -58,7 +58,7 @@ public class LockAndTimestampModule {
                 managedTimestampService,
                 config.atlasDbSupplier(metricsManager).getTimestampStoreInvalidator(),
                 "cli",
-                "0.0.0"); // todo Sudiksha
+                TransactionManagers.DEFAULT_TIMELOCK_VERSION);
     }
 
     @Provides

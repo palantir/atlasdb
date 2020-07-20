@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
@@ -45,6 +46,11 @@ public abstract class LeadershipContextFactory implements
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
     public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
 
+    @Value.Default
+    String timeLockVersion() {
+        return TransactionManagers.DEFAULT_TIMELOCK_VERSION;
+    }
+
     @Value.Derived
     @Override
     public int quorumSize() {
@@ -53,14 +59,14 @@ public abstract class LeadershipContextFactory implements
 
     @Value.Derived
     public LocalPaxosComponents components() {
-        return LocalPaxosComponents.createWithBlockingMigration(
+        return LocalPaxosComponents.createWithBlockingMigrationWithVersion(
                 metrics(),
                 useCase(),
                 install().dataDirectory(),
                 install().sqliteDataSource(),
                 leaderUuid(),
                 install().install().paxos().canCreateNewClients(),
-                "0.0.0"); //todo Sudiksha
+                timeLockVersion());
     }
 
     @Value.Derived

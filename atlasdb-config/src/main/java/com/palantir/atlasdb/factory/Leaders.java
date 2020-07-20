@@ -113,12 +113,16 @@ public final class Leaders {
             MetricsManager metricsManager,
             LeaderConfig config,
             UserAgent userAgent) {
-        return createInstrumentedLocalServicesWithVersion(metricsManager, config, userAgent,
+        return createInstrumentedLocalServicesWithVersion(metricsManager,
+                config,
+                userAgent,
                 TransactionManagers.DEFAULT_TIMELOCK_VERSION);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(MetricsManager metricsManager,
-            LeaderConfig config, UserAgent userAgent, String timeLockVersion) {
+            LeaderConfig config,
+            UserAgent userAgent,
+            String timeLockVersion) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
