@@ -245,10 +245,7 @@ public abstract class TransactionManagers {
         return false;
     }
 
-    @Value.Default
-    Optional<OrderableSlsVersion> timeLockVersion() {
-        return Optional.empty();
-    }
+    abstract Optional<OrderableSlsVersion> timeLockVersion();
 
     abstract UserAgent userAgent();
 

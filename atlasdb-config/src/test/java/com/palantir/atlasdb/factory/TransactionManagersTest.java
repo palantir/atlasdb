@@ -492,7 +492,6 @@ public class TransactionManagersTest {
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build();
-
         assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
     }
 

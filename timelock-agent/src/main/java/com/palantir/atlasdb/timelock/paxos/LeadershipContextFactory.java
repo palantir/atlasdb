@@ -45,12 +45,9 @@ public abstract class LeadershipContextFactory implements
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
-    public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
+    abstract Optional<OrderableSlsVersion> timeLockVersion();
 
-    @Value.Default
-    Optional<OrderableSlsVersion> timeLockVersion() {
-        return Optional.empty();
-    }
+    public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
 
     @Value.Derived
     @Override
