@@ -48,7 +48,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.BatchingLeaderElectionService;
-import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.leader.LeadershipObserver;
@@ -69,6 +68,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 public final class Leaders {
     private Leaders() {
@@ -89,14 +89,14 @@ public final class Leaders {
                 env,
                 config,
                 userAgent,
-                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
+                Optional.empty());
     }
 
     public static LocalPaxosServices createAndRegisterLocalServicesWithVersion(MetricsManager metricsManager,
             Consumer<Object> env,
             LeaderConfig config,
             UserAgent userAgent,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServicesWithVersion(
                 metricsManager,
                 config,
@@ -117,7 +117,7 @@ public final class Leaders {
         return createInstrumentedLocalServicesWithVersion(metricsManager,
                 config,
                 userAgent,
-                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
+                Optional.empty());
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
@@ -133,13 +133,13 @@ public final class Leaders {
                 remotingClientConfig,
                 userAgent,
                 leadershipObserver,
-                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
+                Optional.empty());
     }
 
     public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(MetricsManager metricsManager,
             LeaderConfig config,
             UserAgent userAgent,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -165,7 +165,7 @@ public final class Leaders {
             Supplier<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             LeadershipObserver leadershipObserver,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         UUID leaderUuid = UUID.randomUUID();
 
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(

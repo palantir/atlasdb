@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -120,7 +121,7 @@ public class PaxosTimestampBoundStoreTest {
                     SqliteConnections.getPooledDataSource(Paths.get(root, i + "sqlite")),
                     UUID.randomUUID(),
                     true,
-                    TIMELOCK_VERSION);
+                    Optional.empty());
 
             AtomicBoolean failureController = new AtomicBoolean(false);
             failureToggles.add(failureController);

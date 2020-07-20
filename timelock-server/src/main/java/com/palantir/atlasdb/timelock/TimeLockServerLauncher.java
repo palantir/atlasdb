@@ -101,6 +101,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 registrar,
+                Optional.empty(),
                 Optional.empty());
 
         environment.lifecycle().manage(new Managed() {

@@ -60,10 +60,10 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
-import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -95,27 +95,7 @@ public class TimeLockAgent {
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
-    public static TimeLockAgent create(
-            MetricsManager metricsManager,
-            TimeLockInstallConfiguration install,
-            Supplier<TimeLockRuntimeConfiguration> runtime,
-            UserAgent userAgent,
-            int threadPoolSize,
-            long blockingTimeoutMs,
-            Consumer<Object> registrar,
-            Optional<Consumer<UndertowService>> undertowRegistrar) {
-        return createWithVersion(metricsManager,
-                install,
-                runtime,
-                userAgent,
-                threadPoolSize,
-                blockingTimeoutMs,
-                registrar,
-                undertowRegistrar,
-                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
-    }
-
-    public static TimeLockAgent createWithVersion(MetricsManager metricsManager,
+    public static TimeLockAgent create(MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             UserAgent userAgent,
@@ -123,7 +103,7 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
                 metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =

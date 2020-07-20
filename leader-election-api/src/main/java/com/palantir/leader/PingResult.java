@@ -16,12 +16,16 @@
 
 package com.palantir.leader;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
+
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 @Value.Immutable
 public interface PingResult {
     boolean isLeader();
-    String timeLockVersion();
+    Optional<OrderableSlsVersion> timeLockVersion();
 
     static ImmutablePingResult.Builder builder() {
         return ImmutablePingResult.builder();

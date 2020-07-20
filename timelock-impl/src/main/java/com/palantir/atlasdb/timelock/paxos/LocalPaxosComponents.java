@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -38,7 +39,6 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.PingableLeader;
@@ -54,6 +54,7 @@ import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosStorageParameters;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SplittingPaxosStateLog;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 @SuppressWarnings("FinalClass") // mocks
 public class LocalPaxosComponents {
@@ -69,7 +70,7 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
-    private final String timeLockVersion;
+    private final Optional<OrderableSlsVersion> timeLockVersion;
 
     private LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
@@ -77,7 +78,7 @@ public class LocalPaxosComponents {
             DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
         this.baseLogDirectory = legacyLogDirectory;
@@ -103,7 +104,7 @@ public class LocalPaxosComponents {
                 sqliteDataSource,
                 leaderUuid,
                 canCreateNewClients,
-                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
+                Optional.empty());
     }
 
     public static LocalPaxosComponents createWithBlockingMigrationWithVersion(TimelockPaxosMetrics metrics,
@@ -112,7 +113,7 @@ public class LocalPaxosComponents {
             DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         LocalPaxosComponents components = new LocalPaxosComponents(metrics,
                 paxosUseCase,
                 legacyLogDirectory,

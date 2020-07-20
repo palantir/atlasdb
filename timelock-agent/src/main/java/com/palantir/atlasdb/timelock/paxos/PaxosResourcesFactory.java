@@ -33,7 +33,6 @@ import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -42,6 +41,7 @@ import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -63,13 +63,13 @@ public final class PaxosResourcesFactory {
         return createWithVersion(install,
                 metrics,
                 paxosRuntime,
-                LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION);
+                Optional.empty());
     }
 
     public static PaxosResources createWithVersion(TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
         ImmutablePaxosResources.Builder resourcesBuilder = setupTimestampResources(
@@ -104,7 +104,7 @@ public final class PaxosResourcesFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             PaxosRemoteClients remoteClients,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics);
 
@@ -149,7 +149,7 @@ public final class PaxosResourcesFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             PaxosRemoteClients remoteClients,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
@@ -196,7 +196,7 @@ public final class PaxosResourcesFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             PaxosRemoteClients remoteClients,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 

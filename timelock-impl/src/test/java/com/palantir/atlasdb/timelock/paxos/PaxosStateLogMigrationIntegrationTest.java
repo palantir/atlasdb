@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -265,7 +266,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 sqlite,
                 UUID.randomUUID(),
                 true,
-                TIMELOCK_VERSION);
+                Optional.empty());
     }
 
     private PaxosValue valueForRound(long num) {

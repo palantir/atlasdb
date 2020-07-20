@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -24,12 +25,12 @@ import org.immutables.value.Value;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
-import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 
 @Value.Immutable
@@ -47,8 +48,8 @@ public abstract class LeadershipContextFactory implements
     public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
 
     @Value.Default
-    String timeLockVersion() {
-        return LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION;
+    Optional<OrderableSlsVersion> timeLockVersion() {
+        return Optional.empty();
     }
 
     @Value.Derived

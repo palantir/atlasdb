@@ -16,23 +16,25 @@
 
 package com.palantir.leader;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 public final class LocalPingableLeader implements PingableLeader {
     private final PaxosLearner knowledge;
     private final String localUuid;
-    private final String timeLockVersion;
+    private final Optional<OrderableSlsVersion> timeLockVersion;
 
     public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid) {
         this.knowledge = knowledge;
         this.localUuid = localUuid.toString();
-        this.timeLockVersion = LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION;
+        this.timeLockVersion = Optional.empty();
     }
 
-    public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid, String timeLockVersion) {
+    public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid, Optional<OrderableSlsVersion> timeLockVersion) {
         this.knowledge = knowledge;
         this.localUuid = localUuid.toString();
         this.timeLockVersion = timeLockVersion;

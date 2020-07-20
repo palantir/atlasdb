@@ -157,7 +157,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.leader.LeaderElectionConstants;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -187,6 +186,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
@@ -246,8 +246,8 @@ public abstract class TransactionManagers {
     }
 
     @Value.Default
-    String timeLockVersion() {
-        return LeaderElectionConstants.DEFAULT_TIMELOCK_VERSION;
+    Optional<OrderableSlsVersion> timeLockVersion() {
+        return Optional.empty();
     }
 
     abstract UserAgent userAgent();
@@ -937,7 +937,7 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(
                         metricsManager,
@@ -972,7 +972,7 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -1043,7 +1043,7 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             DialogueClients.ReloadingFactory reloadingFactory,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -1195,7 +1195,7 @@ public abstract class TransactionManagers {
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             UserAgent userAgent,
-            String timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServicesWithVersion(
