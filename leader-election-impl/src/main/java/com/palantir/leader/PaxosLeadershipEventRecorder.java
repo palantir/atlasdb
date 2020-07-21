@@ -53,7 +53,9 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     }
 
     @VisibleForTesting
-    PaxosLeadershipEventRecorder(LeadershipEvents events, String leaderUuid, Optional<LeadershipObserver> observer) {
+    PaxosLeadershipEventRecorder(LeadershipEvents events,
+            String leaderUuid,
+            Optional<LeadershipObserver> observer) {
         this.events = events;
         this.leaderId = leaderUuid;
         this.leadershipObserver = observer;

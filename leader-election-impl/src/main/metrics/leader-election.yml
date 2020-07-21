@@ -1,0 +1,31 @@
+options:
+  javaPackage: 'com.palantir.leader'
+
+namespaces:
+  leaderElectionService:
+    docs: Metrics helpful for TimeLock adjudication.
+    metrics:
+      gainedLeadership:
+        type: meter
+        docs: rate of successful leadership gain
+      lostLeadership:
+        type: meter
+        docs: rate of leadership loss
+      noQuorum:
+        type: meter
+        docs: rate of proposals failure due to no quorum
+      proposedLeadership:
+        type: meter
+        docs: rate of leadership proposal
+      proposalFailure:
+        type: meter
+        docs: rate of proposal failure
+      leaderPingFailure:
+        type: meter
+        docs: rate of ping failure
+      leaderPingTimeout:
+        type: meter
+        docs: leader ping timeout rate
+      leaderPingReturnedFalse:
+        type: meter
+        docs: rate of false leader ping
