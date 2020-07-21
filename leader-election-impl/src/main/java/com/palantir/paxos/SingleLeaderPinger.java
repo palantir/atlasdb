@@ -78,12 +78,12 @@ public class SingleLeaderPinger implements LeaderPinger {
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture = multiplexingCompletionService
                     .poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture);
-        } catch (InterruptedException ex) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return LeaderPingResults.pingCallFailure(ex);
-        } catch (RejectedExecutionException ex) {
-            log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", ex);
-            return LeaderPingResults.pingCallFailure(ex);
+            return LeaderPingResults.pingCallFailure(e);
+        } catch (RejectedExecutionException e) {
+            log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", e);
+            return LeaderPingResults.pingCallFailure(e);
         }
     }
 
@@ -101,8 +101,8 @@ public class SingleLeaderPinger implements LeaderPinger {
             } else {
                 return LeaderPingResults.pingReturnedFalse();
             }
-        } catch (ExecutionException ex) {
-            return LeaderPingResults.pingCallFailure(ex.getCause());
+        } catch (ExecutionException e) {
+            return LeaderPingResults.pingCallFailure(e.getCause());
         }
     }
 
