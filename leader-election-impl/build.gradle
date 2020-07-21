@@ -1,6 +1,10 @@
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.metric-schema'
 
+license {
+  exclude '**/LeaderElectionServiceMetrics.java'
+}
+
 dependencies {
   compile project(":leader-election-api")
   compile project(":atlasdb-autobatch")
