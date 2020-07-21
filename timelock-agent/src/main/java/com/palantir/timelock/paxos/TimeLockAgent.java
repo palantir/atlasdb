@@ -58,6 +58,7 @@ import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.leader.LeadershipHealthCheck;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
@@ -87,6 +88,7 @@ public class TimeLockAgent {
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
+    private final LeadershipHealthCheck leadershipHealthCheck;
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
@@ -181,6 +183,7 @@ public class TimeLockAgent {
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler();
+        this.leadershipHealthCheck = new LeadershipHealthCheck(metricsManager.getTaggedRegistry());
     }
 
     private static ExecutorService createSharedExecutor() {
@@ -345,6 +348,10 @@ public class TimeLockAgent {
 
     public HealthStatusReport timeLockAdjudicationFeedback() {
         return feedbackHandler.getTimeLockHealthStatus();
+    }
+
+    public boolean timeLockLeadershipHealthCheck() {
+        return leadershipHealthCheck.leaderElectionHealthStatus();
     }
 
     public void shutdown() {

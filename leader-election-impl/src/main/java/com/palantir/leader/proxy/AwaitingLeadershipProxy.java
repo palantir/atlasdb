@@ -51,8 +51,10 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.LeaderElectionServiceMetrics;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
@@ -73,11 +75,13 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
-                                         LeaderElectionService leaderElectionService) {
+                                         LeaderElectionService leaderElectionService,
+                                         TaggedMetricRegistry taggedMetricRegistry) {
         AwaitingLeadershipProxy<U> proxy = new AwaitingLeadershipProxy<>(
                 delegateSupplier,
                 leaderElectionService,
-                interfaceClass);
+                interfaceClass,
+                taggedMetricRegistry);
         proxy.tryToGainLeadership();
 
         return (U) Proxy.newProxyInstance(
@@ -97,12 +101,14 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private final AtomicReference<LeadershipToken> leadershipTokenRef;
     private final AtomicReference<T> delegateRef;
     private final Class<T> interfaceClass;
+    private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
     private volatile boolean isClosed;
 
     private AwaitingLeadershipProxy(
             Supplier<T> delegateSupplier,
             LeaderElectionService leaderElectionService,
-            Class<T> interfaceClass) {
+            Class<T> interfaceClass,
+            TaggedMetricRegistry taggedMetricRegistry) {
         com.palantir.logsafe.Preconditions.checkNotNull(delegateSupplier,
                 "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
@@ -112,6 +118,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         this.delegateRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
+        this.leaderElectionServiceMetrics = LeaderElectionServiceMetrics.of(taggedMetricRegistry);
     }
 
     private void tryToGainLeadership() {
@@ -322,6 +329,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
+        leaderElectionServiceMetrics.lostLeadership().mark(); // does not record shut down?
+
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             // this is fine in the case that this node has been elected leader again (i.e. with a different leadership
             // token). `onGainedLeadership` guarantees that the delegate will be refreshed *before* we get a new

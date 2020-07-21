@@ -1186,11 +1186,17 @@ public abstract class TransactionManagers {
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader),
+                AwaitingLeadershipProxy.newProxyInstance(LockService.class,
+                        lock::get,
+                        leader,
+                        metricsManager.getTaggedRegistry()),
                 LockService.class);
 
         ManagedTimestampService managedTimestampProxy =
-                AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
+                AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class,
+                        time::get,
+                        leader,
+                        metricsManager.getTaggedRegistry());
 
         TimestampService localTime = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),

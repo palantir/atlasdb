@@ -1,0 +1,22 @@
+options:
+  javaPackage: 'com.palantir.paxos'
+
+namespaces:
+  leaderElectionService:
+    docs: Metrics helpful for TimeLock adjudication.
+    metrics:
+      lostLeadership:
+        type: meter
+        docs: rate of leadership loss
+      proposedTakeovers:
+        type: meter
+        docs: rate of takeover proposals
+      successfulTakeovers:
+        type: meter
+        docs: successful takeover rate
+      takeoverFailures:
+        type: meter
+        docs: takeover failure rate
+      noQuorumFailures:
+        type: meter
+        docs: rate of takeover failures due to no quorum
