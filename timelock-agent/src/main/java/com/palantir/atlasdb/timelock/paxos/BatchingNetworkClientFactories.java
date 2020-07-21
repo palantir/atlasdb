@@ -56,16 +56,18 @@ abstract class BatchingNetworkClientFactories implements
     @Value.Derived
     AutobatchingPaxosLearnerNetworkClientFactory learnerNetworkClientFactory() {
         BatchPaxosLearner local = components().batchLearner();
-        List<BatchPaxosLearner> remotes =
-                UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner());
+        List<WithDedicatedExecutor<BatchPaxosLearnerRpcClient>> batchLearners = remoteClients().batchLearner();
+        List<WithDedicatedExecutor<BatchPaxosLearner>> remoteLearners = batchLearners.stream()
+                .map(withDedicatedExecutor -> withDedicatedExecutor
+                        .transformService(rpcClient -> UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), rpcClient))
+                        .transformService(rpcClient -> metrics().instrument(BatchPaxosLearner.class, rpcClient)))
+                .collect(Collectors.toList());
 
-        LocalAndRemotes<BatchPaxosLearner> allBatchLearners = LocalAndRemotes.of(local, remotes)
-                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosLearner.class, remote));
+        LocalAndRemotes<WithDedicatedExecutor<BatchPaxosLearner>> allBatchLearners
+                = LocalAndRemotes.of(
+                        WithDedicatedExecutor.of(local, MoreExecutors.newDirectExecutorService()), remoteLearners);
 
-        return AutobatchingPaxosLearnerNetworkClientFactory.create(
-                allBatchLearners,
-                sharedExecutor(),
-                quorumSize());
+        return AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, quorumSize());
     }
 
     @Value.Auxiliary

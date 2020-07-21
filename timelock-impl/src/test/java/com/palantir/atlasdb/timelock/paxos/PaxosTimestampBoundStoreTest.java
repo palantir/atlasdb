@@ -166,7 +166,7 @@ public class PaxosTimestampBoundStoreTest {
                             batchPaxosLearners.stream()
                                     .filter(remoteLearners -> remoteLearners != localLearner)
                                     .collect(toList())))
-                    .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.create(
+                    .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.createForTests(
                             localAndRemotes,
                             executor,
                             QUORUM_SIZE))

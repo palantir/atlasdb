@@ -31,8 +31,7 @@ public class LockCreator {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final long blockingTimeoutMs;
     private final Semaphore sharedThreadPool;
-    private final ExecutorService sharedExecutor = PTExecutors
-            .newCachedThreadPool(LockServiceImpl.class.getName());
+    private final ExecutorService sharedExecutor = PTExecutors.newCachedThreadPool(LockServiceImpl.class.getName());
 
     public LockCreator(Supplier<TimeLockRuntimeConfiguration> runtime, int threadPoolSize, long blockingTimeoutMs) {
         this.runtime = runtime;

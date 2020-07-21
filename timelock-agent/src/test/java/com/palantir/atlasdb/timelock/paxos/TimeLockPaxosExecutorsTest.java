@@ -40,8 +40,8 @@ import com.palantir.common.concurrent.PTExecutors;
 
 public class TimeLockPaxosExecutorsTest {
     private static final String TEST = "test";
-    private static final Callable<Integer> SLEEP_FOR_ONE_SECOND = () -> {
-        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+    private static final Callable<Integer> BLOCKING_TASK = () -> {
+        Uninterruptibles.sleepUninterruptibly(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         return 42;
     };
 
@@ -65,18 +65,18 @@ public class TimeLockPaxosExecutorsTest {
     @Test
     public void remoteExecutorsAreBounded() {
         for (int i = 0; i < TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE; i++) {
-            executors.get(remote1).submit(SLEEP_FOR_ONE_SECOND);
+            executors.get(remote1).submit(BLOCKING_TASK);
         }
-        assertThatThrownBy(() -> executors.get(remote1).submit(SLEEP_FOR_ONE_SECOND))
+        assertThatThrownBy(() -> executors.get(remote1).submit(BLOCKING_TASK))
                 .isInstanceOf(RejectedExecutionException.class);
     }
 
     @Test
     public void remoteExecutorsAreLimitedSeparately() {
         for (int i = 0; i < TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE; i++) {
-            executors.get(remote1).submit(SLEEP_FOR_ONE_SECOND);
+            executors.get(remote1).submit(BLOCKING_TASK);
         }
-        assertThatCode(() -> executors.get(remote2).submit(SLEEP_FOR_ONE_SECOND))
+        assertThatCode(() -> executors.get(remote2).submit(BLOCKING_TASK))
                 .doesNotThrowAnyException();
     }
     @Test
@@ -91,6 +91,6 @@ public class TimeLockPaxosExecutorsTest {
     }
 
     private Integer submitToLocalAndGetUnchecked() {
-        return AtlasFutures.getUnchecked(executors.get(local).submit(SLEEP_FOR_ONE_SECOND));
+        return AtlasFutures.getUnchecked(executors.get(local).submit(() -> 1));
     }
 }
