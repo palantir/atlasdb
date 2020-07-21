@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 import com.palantir.leader.PaxosLeadershipEventRecorder;
@@ -39,7 +38,6 @@ public interface Dependencies {
 
     interface LeaderPinger {
         PaxosRemoteClients remoteClients();
-        ExecutorService sharedExecutor();
         UUID leaderUuid();
         Duration leaderPingRate();
         Duration leaderPingResponseWait();
@@ -51,13 +49,6 @@ public interface Dependencies {
         PaxosRemoteClients remoteClients();
         LocalPaxosComponents components();
         int quorumSize();
-
-        /**
-         * Caution! The shared executor should only be used for tasks that are expected to complete quickly.
-         * DO NOT use the shared executor when the concurrency of requests may be very high (e.g. for Paxos round
-         * verification).
-         */
-        ExecutorService sharedExecutor();
     }
 
     interface ClientAwareComponents {

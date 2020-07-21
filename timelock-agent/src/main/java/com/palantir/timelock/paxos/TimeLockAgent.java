@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -107,7 +106,6 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar) {
-        ExecutorService executor = createSharedExecutor(metricsManager);
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
                 metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
@@ -116,8 +114,7 @@ public class TimeLockAgent {
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
                 metricsManager,
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                executor);
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
@@ -187,15 +184,6 @@ public class TimeLockAgent {
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler();
-    }
-
-    private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
-        return new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new InstrumentedThreadFactory(
-                        new NamedThreadFactory("paxos-timestamp-creator", true),
-                        metricsManager.getRegistry())),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, PAXOS_SHARED_EXECUTOR, "executor"));
     }
 
     private TimestampCreator getTimestampCreator() {

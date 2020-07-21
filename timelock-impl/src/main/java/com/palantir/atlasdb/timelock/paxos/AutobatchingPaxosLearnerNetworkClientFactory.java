@@ -19,16 +19,20 @@ package com.palantir.atlasdb.timelock.paxos;
 import static com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.wrap;
 
 import java.io.Closeable;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
@@ -52,20 +56,31 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
         this.getLearnedValuesSince = getLearnedValuesSince;
     }
 
-    public static AutobatchingPaxosLearnerNetworkClientFactory create(
+    public static AutobatchingPaxosLearnerNetworkClientFactory createForTests(
             LocalAndRemotes<BatchPaxosLearner> learners,
-            ExecutorService executor,
+            ExecutorService executorService,
+            int quorumSize) {
+        return create(
+                learners.map(batchPaxosLearner -> WithDedicatedExecutor.of(batchPaxosLearner, executorService)),
+                quorumSize);
+    }
+
+    public static AutobatchingPaxosLearnerNetworkClientFactory create(
+            LocalAndRemotes<WithDedicatedExecutor<BatchPaxosLearner>> learners,
             int quorumSize) {
         DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponse> learn =
-                Autobatchers.coalescing(new LearnCoalescingConsumer(learners.local(), learners.remotes(), executor))
+                Autobatchers.coalescing(new LearnCoalescingConsumer(learners.local(), learners.remotes()))
                         .safeLoggablePurpose("batch-paxos-learner.learn")
                         .build();
+
+        Map<BatchPaxosLearner, ExecutorService> executors = WithDedicatedExecutor.convert(learners.all());
+        List<BatchPaxosLearner> remotes = ImmutableList.copyOf(executors.keySet());
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> learnedValues =
                 Autobatchers.coalescing(
                         wrap(
-                                learners.all(),
-                                learners.withSharedExecutor(executor),
+                                remotes,
+                                executors,
                                 quorumSize,
                                 LearnedValuesCoalescingFunction::new))
                 .safeLoggablePurpose("batch-paxos-learner.learned-values")
@@ -74,8 +89,8 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> learnedValuesSince =
                 Autobatchers.coalescing(
                         wrap(
-                                learners.all(),
-                                learners.withSharedExecutor(executor),
+                                remotes,
+                                executors,
                                 quorumSize,
                                 LearnedValuesSinceCoalescingFunction::new))
                 .safeLoggablePurpose("batch-paxos-learner.learned-values-since")
