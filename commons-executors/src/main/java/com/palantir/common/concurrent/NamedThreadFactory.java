@@ -69,7 +69,6 @@ public class NamedThreadFactory implements ThreadFactory {
         Thread thread = threadFactory.newThread(runnable);
         thread.setName(prefix + "-" + count.getAndIncrement());
         thread.setDaemon(isDaemon);
-        thread.setUncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE);
         return thread;
     }
 

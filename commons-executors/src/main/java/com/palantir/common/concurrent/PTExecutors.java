@@ -36,19 +36,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.Beta;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Runnables;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -64,10 +61,6 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public final class PTExecutors {
     private static Logger log = LoggerFactory.getLogger(PTExecutors.class);
-
-    private static final Supplier<ExecutorService> SHARED_EXECUTOR = Suppliers.memoize(() ->
-            // Shared pool uses 60 second idle thread timeouts for greater reuse
-            Executors.newCachedThreadPool(new NamedThreadFactory("ptexecutors-shared", true)));
 
     private static final String FILE_NAME_FOR_THIS_CLASS = PTExecutors.class.getSimpleName() + ".java";
 
@@ -116,7 +109,7 @@ public final class PTExecutors {
     public static ExecutorService newCachedThreadPool(String name) {
         Preconditions.checkNotNull(name, "Name is required");
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
-        return newCachedThreadPoolWithMaxThreads(Short.MAX_VALUE, name);
+        return newCachedThreadPool(new NamedThreadFactory(name, true));
     }
 
     /**
@@ -158,27 +151,6 @@ public final class PTExecutors {
                 threadFactory), threadFactory);
     }
 
-    /** Specialized cached executor which throws
-     * {@link java.util.concurrent.RejectedExecutionException} once max-threads have been exceeded.
-     *
-     * If you have any doubt, this probably isn't what you're looking for. Best of luck, friend.
-     */
-    @Beta
-    public static ExecutorService newCachedThreadPoolWithMaxThreads(int maxThreads, String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
-        Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
-        return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, new AtlasRenamingExecutorService(AtlasViewExecutor.builder(SHARED_EXECUTOR.get())
-                        .setMaxSize(Math.min(Short.MAX_VALUE, maxThreads))
-                        .setQueueLimit(0)
-                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                        .build(),
-                        AtlasUncaughtExceptionHandler.INSTANCE,
-                        AtlasRenamingExecutorService.threadNameSupplier(name))),
-                name);
-    }
-
     /**
      * Instruments the provided {@link ExecutorService} if the {@link ThreadFactory} is a {@link NamedThreadFactory}.
      */
@@ -204,8 +176,10 @@ public final class PTExecutors {
      * @return the newly created thread pool
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
-    public static ExecutorService newFixedThreadPool(int numThreads) {
-        return newFixedThreadPool(numThreads, computeBaseThreadName());
+    public static ThreadPoolExecutor newFixedThreadPool(int numThreads) {
+        return newThreadPoolExecutor(numThreads, numThreads,
+                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<Runnable>(), newNamedThreadFactory());
     }
 
     /**
@@ -245,16 +219,8 @@ public final class PTExecutors {
      * @return the newly created thread pool
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
-    public static ExecutorService newFixedThreadPool(int numThreads, String name) {
-        return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, new AtlasRenamingExecutorService(AtlasViewExecutor.builder(SHARED_EXECUTOR.get())
-                .setMaxSize(numThreads)
-                .setQueueLimit(Integer.MAX_VALUE)
-                .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                .build(),
-                AtlasUncaughtExceptionHandler.INSTANCE,
-                AtlasRenamingExecutorService.threadNameSupplier(name))),
-                name);
+    public static ThreadPoolExecutor newFixedThreadPool(int numThreads, String name) {
+        return newFixedThreadPool(numThreads, new NamedThreadFactory(name, true));
     }
 
     /**

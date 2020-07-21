@@ -16,13 +16,18 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
+import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
@@ -37,6 +42,9 @@ final class TimeLockPaxosExecutors {
      */
     @VisibleForTesting
     static final int MAXIMUM_POOL_SIZE = 384;
+
+    private static final Duration THREAD_KEEP_ALIVE = Duration.ofSeconds(5);
+    private static final int SINGLE_THREAD_FOR_MOSTLY_AUTOBATCHED_OPERATIONS = 1;
 
     private TimeLockPaxosExecutors() {
         // no
@@ -70,8 +78,15 @@ final class TimeLockPaxosExecutors {
      * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
      */
     static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase, int index) {
-        // metricRegistry is ignored because TExecutors.newCachedThreadPoolWithMaxThreads provides instrumentation.
-        return PTExecutors.newCachedThreadPoolWithMaxThreads(
-                MAXIMUM_POOL_SIZE, "timelock-executors-" + useCase + "-" + index);
+        return new InstrumentedExecutorService(
+                PTExecutors.newThreadPoolExecutor(
+                        SINGLE_THREAD_FOR_MOSTLY_AUTOBATCHED_OPERATIONS,
+                        MAXIMUM_POOL_SIZE,
+                        THREAD_KEEP_ALIVE.toMillis(),
+                        TimeUnit.MILLISECONDS,
+                        new SynchronousQueue<>(),
+                        new NamedThreadFactory("timelock-executors-" + useCase, true)),
+                metricRegistry,
+                MetricRegistry.name(TimeLockPaxosExecutors.class, useCase, "executor-" + index));
     }
 }

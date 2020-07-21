@@ -36,6 +36,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -119,6 +121,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
@@ -245,8 +248,14 @@ public final class DbKvs extends AbstractKeyValueService {
         this.getCandidateCellsForSweepingStrategy = getCandidateCellsForSweepingStrategy;
     }
 
-    private static ExecutorService newFixedThreadPool(int maxPoolSize) {
-        return PTExecutors.newFixedThreadPool(maxPoolSize, "Atlas DbKvs reader");
+    private static ThreadPoolExecutor newFixedThreadPool(int maxPoolSize) {
+        ThreadPoolExecutor pool = PTExecutors.newThreadPoolExecutor(maxPoolSize, maxPoolSize,
+                15L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<Runnable>(),
+                new NamedThreadFactory("Atlas DbKvs reader", true /* daemon */));
+
+        pool.allowCoreThreadTimeOut(false);
+        return pool;
     }
 
     private void init() {
