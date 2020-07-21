@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,35 +39,36 @@ final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Ent
     private static final Logger log = LoggerFactory.getLogger(LearnCoalescingConsumer.class);
     private static final PaxosResponse SUCCESSFUL_RESPONSE = new PaxosResponseImpl(true);
 
-    private final BatchPaxosLearner localLearner;
-    private final List<BatchPaxosLearner> remoteLearners;
-    private final ExecutorService executor;
+    private final WithDedicatedExecutor<BatchPaxosLearner> localLearner;
+    private final List<WithDedicatedExecutor<BatchPaxosLearner>> remoteLearners;
 
     LearnCoalescingConsumer(
-            BatchPaxosLearner localLearner,
-            List<BatchPaxosLearner> remoteLearners,
-            ExecutorService executor) {
+            WithDedicatedExecutor<BatchPaxosLearner> localLearner,
+            List<WithDedicatedExecutor<BatchPaxosLearner>> remoteLearners) {
         this.localLearner = localLearner;
         this.remoteLearners = remoteLearners;
-        this.executor = executor;
     }
 
     @Override
     public Map<Map.Entry<Client, PaxosValue>, PaxosResponse> apply(Set<Map.Entry<Client, PaxosValue>> request) {
         SetMultimap<Client, PaxosValue> requestAsMultimap = ImmutableSetMultimap.copyOf(request);
 
-        for (BatchPaxosLearner remoteLearner : remoteLearners) {
-            executor.execute(() -> {
-                try {
-                    remoteLearner.learn(requestAsMultimap);
-                } catch (Throwable e) {
-                    log.warn("Failed to teach learner.", e);
-                }
-            });
+        for (WithDedicatedExecutor<BatchPaxosLearner> remoteLearner : remoteLearners) {
+            try {
+                remoteLearner.executor().execute(() -> {
+                    try {
+                        remoteLearner.service().learn(requestAsMultimap);
+                    } catch (Throwable e) {
+                        log.warn("Failed to teach learner after scheduling the task.", e);
+                    }
+                });
+            } catch (RejectedExecutionException e) {
+                log.warn("Failed to teach learner, because we could not schedule the task at all", e);
+            }
         }
 
         // force local learner to update
-        localLearner.learn(requestAsMultimap);
+        localLearner.service().learn(requestAsMultimap);
         return Maps.toMap(request, $ -> SUCCESSFUL_RESPONSE);
     }
 }
