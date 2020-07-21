@@ -127,8 +127,7 @@ public class TimeLockAgent {
     private static TimeLockDialogueServiceProvider createTimeLockDialogueServiceProvider(
             MetricsManager metricsManager, TimeLockInstallConfiguration install, UserAgent userAgent) {
         DialogueClients.ReloadingFactory baseFactory = DialogueClients.create(
-                Refreshable.only(ServicesConfigBlock.builder().build()))
-                .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
+                Refreshable.only(ServicesConfigBlock.builder().build()));
         ServerListConfig timeLockServerListConfig = ImmutableServerListConfig.builder()
                 .addAllServers(PaxosRemotingUtils.getRemoteServerPaths(install))
                 .sslConfiguration(install.cluster().cluster().security())
