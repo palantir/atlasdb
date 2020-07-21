@@ -165,8 +165,8 @@ final class AtlasQueuedViewExecutor extends AtlasViewExecutor {
                 }
                 runTermination();
             } else {
-                this.state = ST_SHUTDOWN_INT_REQ;
                 lock.unlock();
+                this.state = ST_SHUTDOWN_INT_REQ;
                 // interrupt all runners
                 for (TaskWrapper wrapper : allWrappers) {
                     wrapper.interrupt();
@@ -250,18 +250,18 @@ final class AtlasQueuedViewExecutor extends AtlasViewExecutor {
         public void run() {
             boolean resetStateOnCompletion = true;
             thread = Thread.currentThread();
+            // Interruption may be missed between when a TaskWrapper is submitted
+            // to the delegate executor, and when the task begins to execute.
+            // This must execute after thread is set.
+            if (state == ST_SHUTDOWN_INT_REQ) {
+                Thread.currentThread().interrupt();
+            }
             try {
                 for (;;) {
                     lock.lock();
                     try {
                         submittedCount--;
                         runningCount++;
-                        // Interruption may be missed between when a TaskWrapper is submitted
-                        // to the delegate executor, and when the task begins to execute.
-                        // This must execute after thread is set.
-                        if (state == ST_SHUTDOWN_INT_REQ) {
-                            Thread.currentThread().interrupt();
-                        }
                     } finally {
                         lock.unlock();
                     }
