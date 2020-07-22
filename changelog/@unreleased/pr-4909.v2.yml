@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Timestamp corroboration checker now throws `SafeIllegalStateException`
+    instead of `AssertionError`, declares some of its parameters to be safe, and logs
+    more noisily. It also gives more nuanced information on whether problems were
+    noted on timestamp or transactional operations.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4909
