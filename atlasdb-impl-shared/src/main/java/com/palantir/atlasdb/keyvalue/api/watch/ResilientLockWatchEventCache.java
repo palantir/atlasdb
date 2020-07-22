@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
@@ -58,9 +59,18 @@ final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
     }
 
     @Override
-    protected synchronized Object handleInvocation(Object proxy, Method method, Object[] args) {
+    protected synchronized Object handleInvocation(Object proxy, Method method, Object[] args)
+            throws IllegalAccessException {
         try {
             return method.invoke(delegate, args);
+        } catch (InvocationTargetException e) {
+            throw handleException(e);
+        }
+    }
+
+    synchronized RuntimeException handleException(InvocationTargetException rethrow) {
+        try {
+            throw rethrow.getCause();
         } catch (TransactionLockWatchFailedException e) {
             throw e;
         } catch (Throwable t) {
