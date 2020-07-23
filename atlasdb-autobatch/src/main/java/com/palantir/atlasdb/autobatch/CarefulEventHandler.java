@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,17 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import org.immutables.value.Value;
+import com.lmax.disruptor.EventHandler;
 
-@Value.Immutable
-public interface BatchElement<T extends DeepCopy, R> extends DeepCopy{
-    T argument();
-    DisruptorAutobatcher.DisruptorFuture<R> result();
+public class CarefulEventHandler<T extends DeepCopy, R> implements EventHandler<BatchElement<T, R>> {
+    private final EventHandler eventHandlerDelegate;
+
+    public CarefulEventHandler(EventHandler eventHandlerDelegate) {
+        this.eventHandlerDelegate = eventHandlerDelegate;
+    }
+
+    @Override
+    public void onEvent(BatchElement<T, R> event, long sequence, boolean endOfBatch) throws Exception {
+        eventHandlerDelegate.onEvent(event.deepCopy(), sequence, endOfBatch);
+    }
 }

@@ -182,6 +182,38 @@ public class CoalescingBatchingEventHandlerTests {
         return element.result();
     }
 
+    @Test
+    public void test() {
+        Val v = new Val(1);
+        ImmutableTestVal testVal = ImmutableTestVal.of(v);
+        v.setVal(2);
+        System.out.println(testVal.val().getVal());
+    }
+
+
+    static class Val {
+        public Val(Integer val) {
+            this.val = val;
+        }
+
+        private int val;
+
+        public int getVal() {
+            return val;
+        }
+
+        public void setVal(int val) {
+            this.val = val;
+        }
+    }
+
+    @Value.Immutable
+    interface TestVal {
+
+        @Value.Parameter
+        Val val();
+    }
+
     @Value.Immutable
     interface Request {
         @Value.Parameter

@@ -44,7 +44,7 @@ import com.palantir.tracing.DetachedSpan;
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we
  * don't guarantee we won't break it.
  */
-public final class DisruptorAutobatcher<T, R>
+public final class DisruptorAutobatcher<T extends DeepCopy, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(DisruptorAutobatcher.class);
@@ -99,9 +99,18 @@ public final class DisruptorAutobatcher<T, R>
         }
     }
 
-    private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {
+    private static final class DefaultBatchElement<T extends DeepCopy, R> implements BatchElement<T, R> {
         private T argument;
         private DisruptorFuture<R> result;
+
+        public DefaultBatchElement() {
+            // default constructor
+        }
+
+        public DefaultBatchElement(T argument, DisruptorFuture<R> result) {
+            this.argument = argument;
+            this.result = result;
+        }
 
         @Override
         public T argument() {
@@ -112,12 +121,18 @@ public final class DisruptorAutobatcher<T, R>
         public DisruptorFuture<R> result() {
             return result;
         }
+
+        @Override
+        public BatchElement<T, R> deepCopy() {
+            return new DefaultBatchElement(argument.deepCopy(), result.deepCopy());
+        }
     }
 
-    public static final class DisruptorFuture<R> extends AbstractFuture<R> {
+    public static final class DisruptorFuture<R> extends AbstractFuture<R> implements DeepCopy {
 
         private final DetachedSpan parent;
         private final DetachedSpan waitingSpan;
+        private final String safeLoggablePurpose;
 
         @Nullable
         private DetachedSpan runningSpan = null;
@@ -132,6 +147,7 @@ public final class DisruptorAutobatcher<T, R>
                 }
                 parent.complete();
             }, MoreExecutors.directExecutor());
+            this.safeLoggablePurpose = safeLoggablePurpose;
         }
 
         void running() {
@@ -153,9 +169,14 @@ public final class DisruptorAutobatcher<T, R>
         public boolean setFuture(ListenableFuture<? extends R> future) {
             return super.setFuture(future);
         }
+
+        @Override
+        public DisruptorFuture<R> deepCopy() {
+            return new DisruptorFuture(safeLoggablePurpose);
+        }
     }
 
-    static <T, R> DisruptorAutobatcher<T, R> create(
+    static <T extends DeepCopy, R> DisruptorAutobatcher<T, R> create(
             EventHandler<BatchElement<T, R>> eventHandler,
             int bufferSize,
             String safeLoggablePurpose) {

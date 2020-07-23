@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 import com.lmax.disruptor.EventHandler;
 
-final class IndependentBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
+final class IndependentBatchingEventHandler<T extends DeepCopy, R> implements EventHandler<BatchElement<T, R>> {
     private final Consumer<List<BatchElement<T, R>>> batchFunction;
     private final List<BatchElement<T, R>> pending;
 
