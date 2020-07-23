@@ -53,7 +53,7 @@ public class TimeLockPaxosExecutorsTest {
     private final LocalAndRemotes<Object> localAndRemotes = LocalAndRemotes.of(local, remotes);
 
     private final Map<Object, ExecutorService> executors = TimeLockPaxosExecutors.createBoundedExecutors(
-            MetricsManagers.createForTests().getRegistry(),
+            TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE,
             localAndRemotes,
             TEST);
 
