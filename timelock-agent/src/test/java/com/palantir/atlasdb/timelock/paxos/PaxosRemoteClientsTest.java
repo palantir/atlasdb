@@ -34,15 +34,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
-import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
@@ -56,7 +50,7 @@ public class PaxosRemoteClientsTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private PaxosInstallConfiguration paxosInstallConfiguration ;
+    private PaxosInstallConfiguration paxosInstallConfiguration;
     private TimeLockInstallConfiguration installConfiguration;
     private PaxosResourcesFactory.TimelockPaxosInstallationContext context;
 
