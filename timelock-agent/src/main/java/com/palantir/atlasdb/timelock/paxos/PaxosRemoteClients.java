@@ -83,37 +83,40 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockPaxosAcceptorRpcClient>> nonBatchTimestampAcceptor() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(TimelockPaxosAcceptorRpcClient.class, true);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                TimelockPaxosAcceptorRpcClient.class, true);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockPaxosLearnerRpcClient>> nonBatchTimestampLearner() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(TimelockPaxosLearnerRpcClient.class, true);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                TimelockPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosAcceptorRpcClient>>
             singleLeaderAcceptorsWithExecutors() {
         // Retries should be performed at a higher level, in AwaitingLeadershipProxy.
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
                 TimelockSingleLeaderPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosLearnerRpcClient>> singleLeaderLearner() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
                 TimelockSingleLeaderPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<BatchPaxosAcceptorRpcClient>> batchAcceptorsWithExecutors() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
                 BatchPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<BatchPaxosLearnerRpcClient>> batchLearner() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(BatchPaxosLearnerRpcClient.class, true);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                BatchPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
@@ -153,13 +156,13 @@ public abstract class PaxosRemoteClients {
                 .collect(Collectors.toList());
     }
 
-    private <T> List<WithDedicatedExecutor<T>> createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+    private <T> List<WithDedicatedExecutor<T>> createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
             Class<T> clazz,
             boolean shouldRetry) {
-        return assignDedicatedExecutors(createInstrumentedRemoteProxies(clazz, shouldRetry));
+        return assignDedicatedRemotePaxosExecutors(createInstrumentedRemoteProxies(clazz, shouldRetry));
     }
 
-    private <T> List<WithDedicatedExecutor<T>> assignDedicatedExecutors(
+    private <T> List<WithDedicatedExecutor<T>> assignDedicatedRemotePaxosExecutors(
             KeyedStream<String, T> remotes) {
         return remotes.mapKeys(uri -> paxosExecutors().get(uri))
                 .entries()
