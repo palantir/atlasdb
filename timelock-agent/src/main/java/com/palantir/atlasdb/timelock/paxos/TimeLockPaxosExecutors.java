@@ -71,6 +71,6 @@ final class TimeLockPaxosExecutors {
     static ExecutorService createBoundedExecutor(int poolSize, String useCase, int index) {
         // metricRegistry is ignored because TExecutors.newCachedThreadPoolWithMaxThreads provides instrumentation.
         return PTExecutors.newCachedThreadPoolWithMaxThreads(
-                MAXIMUM_POOL_SIZE, "timelock-executors-" + useCase + "-" + index);
+                poolSize, "timelock-executors-" + useCase + "-" + index);
     }
 }
