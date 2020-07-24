@@ -68,7 +68,8 @@ public class LeadershipElectionCheckTest {
     public void markLeaderElections(int count) {
         IntStream.range(0, count).forEach(idx -> leaderElectionServiceMetrics.proposedLeadership().mark());
 
-        // advanceTime has to be strictly greater than com.codahale.metrics.Meter.TICK_INTERVAL
+        // com.codahale.metrics.Meter.TICK_INTERVAL < advanceTime < com.codahale.metrics.Meter.TICK_INTERVAL * 2
+        // to maintain single tick
         fakeTimeClock.advance(6, TimeUnit.SECONDS);
     }
 
