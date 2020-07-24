@@ -17,20 +17,18 @@
 package com.palantir.leader.health;
 
 import com.palantir.leader.LeaderElectionServiceMetrics;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class LeaderElectionHealthCheck {
-    private static final double MAX_ALLOWED_5_MIN_RATE = 5;
-    private static final double MAX_ALLOWED_15_MIN_RATE = 15;
+    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 1;
 
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
 
-    public LeaderElectionHealthCheck(TaggedMetricRegistry taggedMetricRegistry) {
-        this.leaderElectionServiceMetrics = LeaderElectionServiceMetrics.of(taggedMetricRegistry);
+    public LeaderElectionHealthCheck(LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
+        this.leaderElectionServiceMetrics = leaderElectionServiceMetrics;
     }
 
     public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
-        return leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate() < MAX_ALLOWED_5_MIN_RATE
+        return leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate() < MAX_ALLOWED_LAST_5_MINUTE_RATE
                 ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
     }
 }
