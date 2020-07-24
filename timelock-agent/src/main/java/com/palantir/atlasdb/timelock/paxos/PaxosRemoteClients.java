@@ -50,15 +50,31 @@ public abstract class PaxosRemoteClients {
     public abstract MetricsManager metrics();
 
     @Value.Derived
-    Map<String, ExecutorService> dedicatedExecutors() {
+    Map<String, ExecutorService> paxosExecutors() {
         List<String> remoteUris = context().remoteUris();
         int executorIndex = 0;
 
         ImmutableMap.Builder<String, ExecutorService> builder = ImmutableMap.builder();
         for (String remoteUri : remoteUris) {
             builder.put(remoteUri, TimeLockPaxosExecutors.createBoundedExecutor(
-                    metrics().getRegistry(),
-                    "paxos-remote-clients-dedicated-executors",
+                    TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE,
+                    "paxos-remote-clients-paxos-executors",
+                    executorIndex));
+            executorIndex++;
+        }
+        return builder.build();
+    }
+
+    @Value.Derived
+    Map<String, ExecutorService> pingExecutors() {
+        List<String> remoteUris = context().remoteUris();
+        int executorIndex = 0;
+
+        ImmutableMap.Builder<String, ExecutorService> builder = ImmutableMap.builder();
+        for (String remoteUri : remoteUris) {
+            builder.put(remoteUri, TimeLockPaxosExecutors.createBoundedExecutor(
+                    8, // 1 is probably enough, but be defensive for now.
+                    "paxos-remote-clients-ping-executors",
                     executorIndex));
             executorIndex++;
         }
@@ -67,37 +83,40 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockPaxosAcceptorRpcClient>> nonBatchTimestampAcceptor() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(TimelockPaxosAcceptorRpcClient.class, true);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                TimelockPaxosAcceptorRpcClient.class, true);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockPaxosLearnerRpcClient>> nonBatchTimestampLearner() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(TimelockPaxosLearnerRpcClient.class, true);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                TimelockPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosAcceptorRpcClient>>
             singleLeaderAcceptorsWithExecutors() {
         // Retries should be performed at a higher level, in AwaitingLeadershipProxy.
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
                 TimelockSingleLeaderPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<TimelockSingleLeaderPaxosLearnerRpcClient>> singleLeaderLearner() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
                 TimelockSingleLeaderPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<BatchPaxosAcceptorRpcClient>> batchAcceptorsWithExecutors() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
                 BatchPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
     public List<WithDedicatedExecutor<BatchPaxosLearnerRpcClient>> batchLearner() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(BatchPaxosLearnerRpcClient.class, true);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                BatchPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
@@ -132,20 +151,20 @@ public abstract class PaxosRemoteClients {
                         WithDedicatedExecutor.of(ImmutableLeaderPingerContext.of(
                                 remote,
                                 PaxosRemoteClients.convertAddressToHostAndPort(uri)),
-                                dedicatedExecutors().get(uri)))
+                                pingExecutors().get(uri)))
                 .values()
                 .collect(Collectors.toList());
     }
 
-    private <T> List<WithDedicatedExecutor<T>> createInstrumentedRemoteProxiesAndAssignDedicatedExecutors(
+    private <T> List<WithDedicatedExecutor<T>> createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
             Class<T> clazz,
             boolean shouldRetry) {
-        return assignDedicatedExecutors(createInstrumentedRemoteProxies(clazz, shouldRetry));
+        return assignDedicatedRemotePaxosExecutors(createInstrumentedRemoteProxies(clazz, shouldRetry));
     }
 
-    private <T> List<WithDedicatedExecutor<T>> assignDedicatedExecutors(
+    private <T> List<WithDedicatedExecutor<T>> assignDedicatedRemotePaxosExecutors(
             KeyedStream<String, T> remotes) {
-        return remotes.mapKeys(uri -> dedicatedExecutors().get(uri))
+        return remotes.mapKeys(uri -> paxosExecutors().get(uri))
                 .entries()
                 .map(entry -> WithDedicatedExecutor.<T>of(entry.getValue(), entry.getKey()))
                 .collect(Collectors.toList());

@@ -35,7 +35,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class TimeLockPaxosExecutorsTest {
@@ -53,7 +52,7 @@ public class TimeLockPaxosExecutorsTest {
     private final LocalAndRemotes<Object> localAndRemotes = LocalAndRemotes.of(local, remotes);
 
     private final Map<Object, ExecutorService> executors = TimeLockPaxosExecutors.createBoundedExecutors(
-            MetricsManagers.createForTests().getRegistry(),
+            TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE,
             localAndRemotes,
             TEST);
 

@@ -19,8 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.PTExecutors;
@@ -35,7 +33,6 @@ final class TimeLockPaxosExecutors {
      * Choosing too large of a value leads to an unnecessary build up of threads when an individual node is slow;
      * choosing too small of a value may lead to unnecessary leader elections or add overhead to the Paxos protocol.
      */
-    @VisibleForTesting
     static final int MAXIMUM_POOL_SIZE = 384;
 
     private TimeLockPaxosExecutors() {
@@ -49,12 +46,12 @@ final class TimeLockPaxosExecutors {
      * It is assumed that tasks run on the local node will return quickly (hence the use of the direct executor).
      */
     static <T> Map<T, ExecutorService> createBoundedExecutors(
-            MetricRegistry metricRegistry, LocalAndRemotes<T> localAndRemotes, String useCase) {
+            int poolSize, LocalAndRemotes<T> localAndRemotes, String useCase) {
         int numRemotes = localAndRemotes.remotes().size();
         ImmutableMap.Builder<T, ExecutorService> remoteExecutors = ImmutableMap.builderWithExpectedSize(numRemotes);
         for (int index = 0; index < numRemotes; index++) {
             T remote = localAndRemotes.remotes().get(index);
-            remoteExecutors.put(remote, createBoundedExecutor(metricRegistry, useCase, index));
+            remoteExecutors.put(remote, createBoundedExecutor(poolSize, useCase, index));
         }
         remoteExecutors.put(localAndRemotes.local(), MoreExecutors.newDirectExecutorService());
         return remoteExecutors.build();
@@ -69,9 +66,9 @@ final class TimeLockPaxosExecutors {
      *
      * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
      */
-    static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase, int index) {
+    static ExecutorService createBoundedExecutor(int poolSize, String useCase, int index) {
         // metricRegistry is ignored because TExecutors.newCachedThreadPoolWithMaxThreads provides instrumentation.
         return PTExecutors.newCachedThreadPoolWithMaxThreads(
-                MAXIMUM_POOL_SIZE, "timelock-executors-" + useCase + "-" + index);
+                poolSize, "timelock-executors-" + useCase + "-" + index);
     }
 }
