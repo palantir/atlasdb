@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: 'TimeLock Server now uses distinct thread pools for pinging the leader and for getting Paxos quorums.
+    This should make it more resilient to leadership storms when a cluster node is slow.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4914
