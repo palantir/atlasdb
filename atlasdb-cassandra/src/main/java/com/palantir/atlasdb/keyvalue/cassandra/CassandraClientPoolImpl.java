@@ -315,7 +315,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         logRefreshedHosts(serversToAdd, serversToRemove);
     }
 
-    private void logRefreshedHosts(Set<InetSocketAddress> serversToAdd, Set<InetSocketAddress> serversToRemove) {
+    private static void logRefreshedHosts(Set<InetSocketAddress> serversToAdd, Set<InetSocketAddress> serversToRemove) {
         if (serversToRemove.isEmpty() && serversToAdd.isEmpty()) {
             log.debug("No hosts added or removed during Cassandra pool refresh");
         } else {
