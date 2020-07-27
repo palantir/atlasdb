@@ -40,6 +40,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampRange;
 
 public class TimestampCorroboratingTimelockServiceTest {
@@ -79,6 +80,20 @@ public class TimestampCorroboratingTimelockServiceTest {
                 .thenReturn(ImmutableList.of(startIdentifiedAtlasDbTransactionResponse));
 
         assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(1));
+    }
+
+    @Test
+    public void failsUnderConflictingMixedOperations() {
+        StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
+                makeResponse(1L);
+
+        when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(1))
+                .thenReturn(ImmutableList.of(startIdentifiedAtlasDbTransactionResponse));
+        TimestampRange timestampRange = TimestampRange.createInclusiveRange(1, 2);
+        when(rawTimelockService.getFreshTimestamps(anyInt())).thenReturn(timestampRange);
+
+        timelockService.startIdentifiedAtlasDbTransactionBatch(1);
+        assertThrowsClocksWentBackwardsException(() -> timelockService.getFreshTimestamps(2));
     }
 
     @Test
@@ -145,8 +160,12 @@ public class TimestampCorroboratingTimelockServiceTest {
 
     private void assertThrowsOnSecondCall(Runnable runnable) {
         runnable.run();
+        assertThrowsClocksWentBackwardsException(runnable);
+    }
+
+    private void assertThrowsClocksWentBackwardsException(Runnable runnable) {
         assertThatThrownBy(runnable::run)
-                .isInstanceOf(AssertionError.class)
-                .hasMessageStartingWith("Expected timestamp to be greater than");
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasMessageStartingWith("It appears that clocks went backwards!");
     }
 }
