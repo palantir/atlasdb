@@ -19,14 +19,21 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
-    @VisibleForTesting
+    /**
+     * The size of the thread pool used for remote calls to each TimeLock remote (and, thus, a limiter on the number of
+     * concurrent requests that can be made to each remote).
+     *
+     * This number was chosen based on analysing past loads on internal metrics platform. It was selected to permit
+     * most instances where a spike in executor tasks was successfully serviced and the system recovered thereafter.
+     * Choosing too large of a value leads to an unnecessary build up of threads when an individual node is slow;
+     * choosing too small of a value may lead to unnecessary leader elections or add overhead to the Paxos protocol.
+     */
     static final int MAXIMUM_POOL_SIZE = 384;
 
     private TimeLockPaxosExecutors() {
@@ -40,13 +47,13 @@ final class TimeLockPaxosExecutors {
      * It is assumed that tasks run on the local node will return quickly (hence the use of the direct executor).
      */
     static <T> Map<T, CheckedRejectionExecutorService> createBoundedExecutors(
-            LocalAndRemotes<T> localAndRemotes, String useCase) {
+            int poolSize, LocalAndRemotes<T> localAndRemotes, String useCase) {
         int numRemotes = localAndRemotes.remotes().size();
         ImmutableMap.Builder<T, CheckedRejectionExecutorService> remoteExecutors
                 = ImmutableMap.builderWithExpectedSize(numRemotes);
         for (int index = 0; index < numRemotes; index++) {
             T remote = localAndRemotes.remotes().get(index);
-            remoteExecutors.put(remote, createBoundedExecutor(useCase, index));
+            remoteExecutors.put(remote, createBoundedExecutor(poolSize, useCase, index));
         }
         remoteExecutors.put(localAndRemotes.local(), new CheckedRejectionExecutorService(
                 MoreExecutors.newDirectExecutorService()));
@@ -62,10 +69,10 @@ final class TimeLockPaxosExecutors {
      *
      * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
      */
-    static CheckedRejectionExecutorService createBoundedExecutor(String useCase, int index) {
+    static CheckedRejectionExecutorService createBoundedExecutor(int poolSize, String useCase, int index) {
         // metricRegistry is ignored because TExecutors.newCachedThreadPoolWithMaxThreads provides instrumentation.
         ExecutorService underlying = PTExecutors.newCachedThreadPoolWithMaxThreads(
-                MAXIMUM_POOL_SIZE, "timelock-executors-" + useCase + "-" + index);
+                poolSize, "timelock-executors-" + useCase + "-" + index);
         return new CheckedRejectionExecutorService(underlying);
     }
 }

@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -56,11 +57,22 @@ public final class ResilientLockWatchEventCacheTest {
     public void failCausesFallbackCacheToBeUsed() {
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).hasRootCause(runtimeException);
+        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).hasCause(runtimeException)
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
 
-        // no op cache returns empty on last known version, so this should prove that we delegate there correctly
         proxyCache.lastKnownVersion();
         verify(fallbackCache).lastKnownVersion();
         verify(defaultCache, never()).lastKnownVersion();
+    }
+
+    @Test
+    public void lockWatchFailedExceptionDoesNotCauseFallbackToBeUsed() {
+        TransactionLockWatchFailedException lockWatchFailedException = new TransactionLockWatchFailedException("fail");
+        when(defaultCache.getCommitUpdate(anyLong())).thenThrow(lockWatchFailedException);
+        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).isEqualTo(lockWatchFailedException);
+
+        proxyCache.lastKnownVersion();
+        verify(defaultCache).lastKnownVersion();
+        verify(fallbackCache, never()).lastKnownVersion();
     }
 }

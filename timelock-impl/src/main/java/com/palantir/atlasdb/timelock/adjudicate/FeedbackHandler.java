@@ -25,15 +25,21 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 
 public class FeedbackHandler {
+    private static final Logger log = LoggerFactory.getLogger(FeedbackHandler.class);
+
     private final TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
             .create(Caffeine
             .newBuilder()
@@ -74,6 +80,9 @@ public class FeedbackHandler {
                 .keys()
                 .map(serviceName -> Client.of(serviceName))
                 .collect(Collectors.toList());
+
+        log.info("List of services on which TimeLock is unhealthy - {}",
+                SafeArg.of("unhealthyClients", unhealthyClients));
 
         if (unhealthyClients.size() > maxAllowedUnhealthyServices) {
             return ImmutableHealthStatusReport
@@ -135,38 +144,80 @@ public class FeedbackHandler {
                         Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES)))
                 .filterKeys(Optional::isPresent)
                 .mapKeys(Optional::get)
-                .map((userStats, sloSpec) -> getHealthStatusForService(userStats,
+                .map((userStats, sloSpec) -> getHealthStatusForMetric(healthReport.getServiceName(),
+                        userStats,
+                        sloSpec.name(),
                         sloSpec.minimumRequestRateForConsideration(),
                         sloSpec.maximumPermittedSteadyStateP99().toNanos(),
-                        sloSpec.maximumPermittedErrorProportion(),
-                        sloSpec.maximumPermittedQuietP99().toNanos()))
+                        sloSpec.maximumPermittedQuietP99().toNanos(),
+                        sloSpec.maximumPermittedErrorProportion()))
                 .values()
                 .max(HealthStatus.getHealthStatusComparator())
                 .orElse(HealthStatus.HEALTHY);
     }
 
-    private HealthStatus getHealthStatusForService(EndpointStatistics endpointStatistics,
-            double rateThreshold,
-            long p99Limit,
-            double errorRateProportion,
-            long quietP99Limit) {
+    @VisibleForTesting
+    HealthStatus getHealthStatusForMetric(String serviceName,
+                    EndpointStatistics endpointStatistics,
+                    String metricName,
+                    double rateThreshold,
+                    long steadyStateP99Limit,
+                    long quietP99Limit,
+                    double errorRateProportion) {
 
         // Outliers indicate badness even with low request rates. The request rate should be greater than
         // zero to counter lingering badness from a single slow request
         if (endpointStatistics.getP99() > quietP99Limit && endpointStatistics.getOneMin() > 0) {
+            logHealthInfo(serviceName,
+                    metricName,
+                    HealthStatus.UNHEALTHY,
+                    "higher p99 than what we allow in quiet state",
+                    endpointStatistics);
             return HealthStatus.UNHEALTHY;
         }
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
+            logHealthInfo(serviceName,
+                    metricName,
+                    HealthStatus.UNKNOWN,
+                    "low request rate",
+                    endpointStatistics);
             return HealthStatus.UNKNOWN;
         }
 
-        if (getErrorProportion(endpointStatistics) > errorRateProportion) {
+        double errorProportion = getErrorProportion(endpointStatistics);
+        if (errorProportion > errorRateProportion) {
+            logHealthInfo(serviceName,
+                    metricName,
+                    HealthStatus.UNHEALTHY,
+                    "high error proportion",
+                    endpointStatistics);
             return HealthStatus.UNHEALTHY;
         }
 
-        return endpointStatistics.getP99() > p99Limit
-                ? HealthStatus.UNHEALTHY : HealthStatus.HEALTHY;
+        if (endpointStatistics.getP99() > steadyStateP99Limit) {
+            logHealthInfo(serviceName,
+                    metricName,
+                    HealthStatus.UNHEALTHY,
+                    "high p99",
+                    endpointStatistics);
+            return HealthStatus.UNHEALTHY;
+        }
+
+        return HealthStatus.HEALTHY;
+    }
+
+    private void logHealthInfo(String serviceName,
+            String metricName,
+            HealthStatus status,
+            String reason,
+            EndpointStatistics endpointStatistics) {
+        log.info("[Service - {}] | Point health status for {} is {} due to {}.",
+                SafeArg.of("service", serviceName),
+                SafeArg.of("metricName", metricName),
+                SafeArg.of("healthStatus", status.toString()),
+                SafeArg.of("reason", reason),
+                SafeArg.of("endpointStatistics", endpointStatistics));
     }
 
     private double getErrorProportion(EndpointStatistics endpointStatistics) {

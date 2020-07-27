@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -73,14 +74,9 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
                         .safeLoggablePurpose("batch-paxos-learner.learn")
                         .build();
 
-        Map<BatchPaxosLearner, CheckedRejectionExecutorService> executors = KeyedStream.of(learners.all())
-                .map(WithDedicatedExecutor::executor)
-                .mapKeys(WithDedicatedExecutor::service)
-                .collectToMap();
-        List<BatchPaxosLearner> remotes = learners.all()
-                .stream()
-                .map(WithDedicatedExecutor::service)
-                .collect(Collectors.toList());
+        Map<BatchPaxosLearner, CheckedRejectionExecutorService> executors
+                = WithDedicatedExecutor.convert(learners.all());
+        List<BatchPaxosLearner> remotes = ImmutableList.copyOf(executors.keySet());
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> learnedValues =
                 Autobatchers.coalescing(

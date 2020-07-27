@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -86,9 +87,6 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .collect(Collectors.toList());
             PaxosLearner localLearner = components().learner(client);
 
-            LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner,
-                    remoteLearners.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()));
-
             Map<PaxosLearner, CheckedRejectionExecutorService> executorMap
                     = ImmutableMap.<PaxosLearner, CheckedRejectionExecutorService>builder()
                             .putAll(KeyedStream.of(remoteLearners)
@@ -99,8 +97,8 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .build();
 
             SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(
-                    allLearners.local(),
-                    allLearners.remotes(),
+                    localLearner,
+                    remoteLearners.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()),
                     quorumSize(),
                     executorMap,
                     PaxosConstants.CANCEL_REMAINING_CALLS);
