@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -81,6 +80,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -244,8 +244,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected volatile boolean hasReads;
 
-    private final AtomicReference<Instant> nextValidateCheckTime = new AtomicReference<>(
-            Instant.now().plus(READ_LOCK_CHECK_DURATION));
+    private final RateLimiter preCommitValidationRateLimiter = RateLimiter.create(1.0 / READ_LOCK_CHECK_DURATION.toMillis(), READ_LOCK_CHECK_DURATION);
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -948,11 +947,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        Instant currentNextValidateCheckTime = nextValidateCheckTime.get();
-        Instant now = Instant.now();
-        if (currentNextValidateCheckTime.isBefore(now) && nextValidateCheckTime.compareAndSet(
-                currentNextValidateCheckTime,
-                now.plus(READ_LOCK_CHECK_DURATION))) {
+        if (preCommitValidationRateLimiter.tryAcquire()) {
             throwIfPreCommitRequirementsNotMet(null, timestamp);
         }
     }
