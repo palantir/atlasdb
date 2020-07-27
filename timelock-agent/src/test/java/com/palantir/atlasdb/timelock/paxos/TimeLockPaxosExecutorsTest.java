@@ -67,7 +67,8 @@ public class TimeLockPaxosExecutorsTest {
             executors.get(remote1).submit(BLOCKING_TASK);
         }
         assertThatThrownBy(() -> executors.get(remote1).submit(BLOCKING_TASK))
-                .isInstanceOf(RejectedExecutionException.class);
+                .isInstanceOf(CheckedRejectedExecutionException.class)
+                .hasCauseInstanceOf(RejectedExecutionException.class);
     }
 
     @Test
