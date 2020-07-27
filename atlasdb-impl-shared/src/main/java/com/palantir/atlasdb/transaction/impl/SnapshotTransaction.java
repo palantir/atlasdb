@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -183,6 +185,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private static final Logger constraintLogger = LoggerFactory.getLogger("dualschema.constraints");
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
+    private static final Duration READ_LOCK_CHECK_DURATION = Duration.ofMillis(100);
 
     private enum State {
         UNCOMMITTED,
@@ -240,6 +243,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final Supplier<TransactionConfig> transactionConfig;
 
     protected volatile boolean hasReads;
+
+    private final AtomicReference<Instant> nextValidateCheckTime = new AtomicReference<>(
+            Instant.now().plus(READ_LOCK_CHECK_DURATION));
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -941,7 +947,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!isValidationNecessaryOnReads(tableRef)) {
             return;
         }
-        throwIfPreCommitRequirementsNotMet(null, timestamp);
+
+        Instant currentNextValidateCheckTime = nextValidateCheckTime.get();
+        Instant now = Instant.now();
+        if (currentNextValidateCheckTime.isBefore(now) && nextValidateCheckTime.compareAndSet(
+                currentNextValidateCheckTime,
+                now.plus(READ_LOCK_CHECK_DURATION))) {
+            throwIfPreCommitRequirementsNotMet(null, timestamp);
+        }
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
@@ -949,7 +962,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessaryOnCommit(TableReference tableRef) {
-        return !validateLocksOnReads && requiresImmutableTimestampLocking(tableRef);
+        return requiresImmutableTimestampLocking(tableRef);
     }
 
     private boolean requiresImmutableTimestampLocking(TableReference tableRef) {
