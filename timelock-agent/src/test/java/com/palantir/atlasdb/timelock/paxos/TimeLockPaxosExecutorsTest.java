@@ -54,7 +54,8 @@ public class TimeLockPaxosExecutorsTest {
     private final LocalAndRemotes<Object> localAndRemotes = LocalAndRemotes.of(local, remotes);
 
     private final Map<Object, CheckedRejectionExecutorService> executors
-            = TimeLockPaxosExecutors.createBoundedExecutors(localAndRemotes, TEST);
+            = TimeLockPaxosExecutors.createBoundedExecutors(
+                    TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE, localAndRemotes, TEST);
 
     @Test
     public void hasKeysCollectivelyMatchingLocalAndRemoteElements() {

@@ -35,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
@@ -87,10 +88,12 @@ public class PaxosRemoteClientsTest {
                 .context(context)
                 .metrics(MetricsManagers.createForTests())
                 .build();
-        Set<ExecutorService> leaderPingExecutors = remoteClients.batchPingableLeadersWithContext().stream()
+        Set<CheckedRejectionExecutorService> leaderPingExecutors = remoteClients.batchPingableLeadersWithContext()
+                .stream()
                 .map(WithDedicatedExecutor::executor)
                 .collect(Collectors.toSet());
-        Set<ExecutorService> paxosExecutionExecutors = remoteClients.nonBatchTimestampAcceptor().stream()
+        Set<CheckedRejectionExecutorService> paxosExecutionExecutors = remoteClients.nonBatchTimestampAcceptor()
+                .stream()
                 .map(WithDedicatedExecutor::executor)
                 .collect(Collectors.toSet());
         assertThat(leaderPingExecutors).doesNotContainAnyElementsOf(paxosExecutionExecutors);
