@@ -312,7 +312,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             cassandra.refreshTokenRangesAndGetServers();
         }
 
-        log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
+        log.info("Cassandra pool refresh added hosts {}, removed hosts {}.",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
                 SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
     }
