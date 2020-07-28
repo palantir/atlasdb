@@ -19,7 +19,7 @@ package com.palantir.leader.health;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 
 public class LeaderElectionHealthCheck {
-    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 1;
+    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.016;
 
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
 

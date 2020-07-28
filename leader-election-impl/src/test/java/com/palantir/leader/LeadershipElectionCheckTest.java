@@ -48,29 +48,28 @@ public class LeadershipElectionCheckTest {
     }
 
     @Test
-    public void shouldBeHealthyForLeaderElectionRateLessThanOne() {
-        markLeaderElections(1);
+    public void shouldBeHealthyForOneLeaderElectionPerMinute() {
+        markLeaderElectionsAtSpecifiedInterval(1, 60);
+
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
-        assertThat(leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate())
-                .isEqualTo(0.2);
     }
 
     @Test
-    public void shouldBeUnhealthyForLeaderElectionRateGreaterThanOne() {
-        markLeaderElections(5);
+    public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
+        markLeaderElectionsAtSpecifiedInterval(7, 30);
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
-        assertThat(leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate())
-                .isEqualTo(1.0);
     }
 
-    public void markLeaderElections(int count) {
-        IntStream.range(0, count).forEach(idx -> leaderElectionServiceMetrics.proposedLeadership().mark());
-
-        // com.codahale.metrics.Meter.TICK_INTERVAL < advanceTime < com.codahale.metrics.Meter.TICK_INTERVAL * 2
-        // to maintain single tick
+    public void markLeaderElectionsAtSpecifiedInterval(int leaderElectionCount, long timeIntervalInSeconds) {
+        // First tick
         fakeTimeClock.advance(6, TimeUnit.SECONDS);
+
+        IntStream.range(0, leaderElectionCount).forEach(idx -> {
+            leaderElectionServiceMetrics.proposedLeadership().mark();
+            fakeTimeClock.advance(timeIntervalInSeconds, TimeUnit.SECONDS);
+        });
     }
 
     public static class FakeTimeClock extends Clock {
