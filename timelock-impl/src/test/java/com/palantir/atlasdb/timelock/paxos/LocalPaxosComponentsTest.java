@@ -118,7 +118,7 @@ public class LocalPaxosComponentsTest {
                 .isNotPresent();
         assertThat(pingableLeader.pingV2().isLeader()).isNotNull();
 
-        pingableLeader = createPaxosComponentsWithVersion(true, TIMELOCK_VERSION)
+        pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION)
                 .pingableLeader(CLIENT);
         assertThat(pingableLeader.pingV2().timeLockVersion()).isPresent();
         assertThat(pingableLeader.pingV2().timeLockVersion().get()).isEqualTo(TIMELOCK_VERSION);
@@ -135,9 +135,9 @@ public class LocalPaxosComponentsTest {
                 canCreateNewClients);
     }
 
-    public LocalPaxosComponents createPaxosComponentsWithVersion(boolean canCreateNewClients,
+    public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients,
             OrderableSlsVersion timeLockVersion) {
-        return LocalPaxosComponents.createWithBlockingMigrationWithVersion(
+        return LocalPaxosComponents.createWithBlockingMigration(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,

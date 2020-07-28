@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -56,17 +55,16 @@ public final class PaxosResourcesFactory {
 
     private PaxosResourcesFactory() { }
 
-    public static PaxosResources create(
-            TimelockPaxosInstallationContext install,
+    public static PaxosResources create(TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
-        return createWithVersion(install,
+        return create(install,
                 metrics,
                 paxosRuntime,
                 Optional.empty());
     }
 
-    public static PaxosResources createWithVersion(TimelockPaxosInstallationContext install,
+    public static PaxosResources create(TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             Optional<OrderableSlsVersion> timeLockVersion) {
@@ -150,6 +148,7 @@ public final class PaxosResourcesFactory {
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             PaxosRemoteClients remoteClients,
             Optional<OrderableSlsVersion> timeLockVersion) {
+
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
@@ -200,14 +199,13 @@ public final class PaxosResourcesFactory {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 
-        LocalPaxosComponents paxosComponents = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
+        LocalPaxosComponents paxosComponents = LocalPaxosComponents.createWithBlockingMigration(
                 timelockMetrics,
                 PaxosUseCase.TIMESTAMP,
                 install.dataDirectory(),
                 install.sqliteDataSource(),
                 install.nodeUuid(),
-                install.install().paxos().canCreateNewClients(),
-                timeLockVersion);
+                install.install().paxos().canCreateNewClients());
 
         NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
                 .useCase(PaxosUseCase.TIMESTAMP)
@@ -286,6 +284,9 @@ public final class PaxosResourcesFactory {
 
         @Value.Parameter
         TimeLockDialogueServiceProvider dialogueServiceProvider();
+
+        @Value.Parameter
+        Optional<OrderableSlsVersion> timeLockVersion();
 
         @Value.Derived
         default UUID nodeUuid() {

@@ -49,8 +49,8 @@ public interface PingableLeader {
     /**
      * If this call returns then the server is reachable.
      *
-     * @return string version of TimeLock on remote server with boolean to represent if the
-     * server thinks it is the leader or not
+     * @return boolean to represent if the server thinks it is the leader or not along with string
+     * version of TimeLock on remote server
      */
     @GET
     @Path("pingV2")

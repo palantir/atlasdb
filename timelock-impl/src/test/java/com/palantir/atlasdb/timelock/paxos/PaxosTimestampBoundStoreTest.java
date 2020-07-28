@@ -84,7 +84,6 @@ public class PaxosTimestampBoundStoreTest {
             ImmutableSequenceAndBound.of(1, FORTY_TWO);
 
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
-    private static final String TIMELOCK_VERSION = "0.0.0";
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
     private final List<PaxosLearner> learners = Lists.newArrayList();
@@ -114,7 +113,7 @@ public class PaxosTimestampBoundStoreTest {
 
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();
-            LocalPaxosComponents components = LocalPaxosComponents.createWithBlockingMigrationWithVersion(
+            LocalPaxosComponents components = LocalPaxosComponents.createWithBlockingMigration(
                     TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                     PaxosUseCase.TIMESTAMP,
                     Paths.get(root, i + "legacy"),

@@ -143,7 +143,6 @@ public class TransactionManagersTest {
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
     private static final String EXPECTED_USER_AGENT_STRING = UserAgents.format(USER_AGENT);
     private static final String USER_AGENT_HEADER = "User-Agent";
-    private static final String TIMELOCK_VERSION = "0.0.0";
 
     private static final long EMBEDDED_BOUND = 3;
 
@@ -340,8 +339,7 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory,
-                        Optional.empty());
+                        reloadingFactory);
 
         LockRequest lockRequest = LockRequest
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
@@ -870,8 +868,7 @@ public class TransactionManagersTest {
                 invalidator,
                 USER_AGENT,
                 Optional.empty(),
-                reloadingFactory,
-                Optional.empty());
+                reloadingFactory);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -891,8 +888,7 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory,
-                        Optional.empty());
+                        reloadingFactory);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 

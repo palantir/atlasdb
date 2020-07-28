@@ -84,7 +84,7 @@ public final class Leaders {
             Consumer<Object> env,
             LeaderConfig config,
             UserAgent userAgent) {
-        return createAndRegisterLocalServicesWithVersion(
+        return createAndRegisterLocalServices(
                 metricsManager,
                 env,
                 config,
@@ -92,12 +92,12 @@ public final class Leaders {
                 Optional.empty());
     }
 
-    public static LocalPaxosServices createAndRegisterLocalServicesWithVersion(MetricsManager metricsManager,
+    public static LocalPaxosServices createAndRegisterLocalServices(MetricsManager metricsManager,
             Consumer<Object> env,
             LeaderConfig config,
             UserAgent userAgent,
             Optional<OrderableSlsVersion> timeLockVersion) {
-        LocalPaxosServices localPaxosServices = createInstrumentedLocalServicesWithVersion(
+        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(
                 metricsManager,
                 config,
                 userAgent,
@@ -114,7 +114,7 @@ public final class Leaders {
             MetricsManager metricsManager,
             LeaderConfig config,
             UserAgent userAgent) {
-        return createInstrumentedLocalServicesWithVersion(metricsManager,
+        return createInstrumentedLocalServices(metricsManager,
                 config,
                 userAgent,
                 Optional.empty());
@@ -127,7 +127,7 @@ public final class Leaders {
             Supplier<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             LeadershipObserver leadershipObserver) {
-        return createInstrumentedLocalServicesWithVersion(metricsManager,
+        return createInstrumentedLocalServices(metricsManager,
                 config,
                 remotePaxosServerSpec,
                 remotingClientConfig,
@@ -136,7 +136,7 @@ public final class Leaders {
                 Optional.empty());
     }
 
-    public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(MetricsManager metricsManager,
+    public static LocalPaxosServices createInstrumentedLocalServices(MetricsManager metricsManager,
             LeaderConfig config,
             UserAgent userAgent,
             Optional<OrderableSlsVersion> timeLockVersion) {
@@ -148,7 +148,7 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createInstrumentedLocalServicesWithVersion(
+        return createInstrumentedLocalServices(
                 metricsManager,
                 config,
                 remotePaxosServerSpec,
@@ -158,7 +158,7 @@ public final class Leaders {
                 timeLockVersion);
     }
 
-    public static LocalPaxosServices createInstrumentedLocalServicesWithVersion(
+    public static LocalPaxosServices createInstrumentedLocalServices(
             MetricsManager metricsManager,
             LeaderConfig config,
             RemotePaxosServerSpec remotePaxosServerSpec,

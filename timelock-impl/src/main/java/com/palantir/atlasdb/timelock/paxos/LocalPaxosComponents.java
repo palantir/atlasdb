@@ -98,7 +98,7 @@ public class LocalPaxosComponents {
             DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients) {
-        return createWithBlockingMigrationWithVersion(metrics,
+        return createWithBlockingMigration(metrics,
                 paxosUseCase,
                 legacyLogDirectory,
                 sqliteDataSource,
@@ -107,7 +107,7 @@ public class LocalPaxosComponents {
                 Optional.empty());
     }
 
-    public static LocalPaxosComponents createWithBlockingMigrationWithVersion(TimelockPaxosMetrics metrics,
+    public static LocalPaxosComponents createWithBlockingMigration(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
             DataSource sqliteDataSource,

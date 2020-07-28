@@ -58,8 +58,7 @@ public class LockAndTimestampModule {
                 LockServiceImpl::create,
                 managedTimestampService,
                 config.atlasDbSupplier(metricsManager).getTimestampStoreInvalidator(),
-                "cli",
-                Optional.empty());
+                "cli");
     }
 
     @Provides

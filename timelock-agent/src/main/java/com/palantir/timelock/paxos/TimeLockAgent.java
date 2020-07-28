@@ -107,9 +107,10 @@ public class TimeLockAgent {
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
                 metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
-                ImmutableTimelockPaxosInstallationContext.of(install, userAgent, timeLockDialogueServiceProvider);
+                ImmutableTimelockPaxosInstallationContext
+                        .of(install, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
 
-        PaxosResources paxosResources = PaxosResourcesFactory.createWithVersion(
+        PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
