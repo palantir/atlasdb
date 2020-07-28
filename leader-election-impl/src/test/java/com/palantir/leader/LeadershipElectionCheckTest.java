@@ -49,7 +49,7 @@ public class LeadershipElectionCheckTest {
 
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(1, 60);
+        markLeaderElectionsAtSpecifiedInterval(3, 60);
 
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
