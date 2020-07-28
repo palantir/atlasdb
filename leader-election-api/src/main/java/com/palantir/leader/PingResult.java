@@ -20,9 +20,13 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.sls.versions.OrderableSlsVersion;
 
-@Value.Immutable
+@Value.Immutable(intern = true)
+@JsonSerialize(as = ImmutablePingResult.class)
+@JsonDeserialize(as = ImmutablePingResult.class)
 public interface PingResult {
     boolean isLeader();
     Optional<OrderableSlsVersion> timeLockVersion();
