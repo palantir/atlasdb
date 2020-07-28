@@ -312,9 +312,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             cassandra.refreshTokenRangesAndGetServers();
         }
 
-        log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
-                SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
+        logRefreshedHosts(serversToAdd, serversToRemove);
+    }
+
+    private static void logRefreshedHosts(Set<InetSocketAddress> serversToAdd, Set<InetSocketAddress> serversToRemove) {
+        if (serversToRemove.isEmpty() && serversToAdd.isEmpty()) {
+            log.debug("No hosts added or removed during Cassandra pool refresh");
+        } else {
+            log.info("Cassandra pool refresh added hosts {}, removed hosts {}.",
+                    SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
+                    SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
+        }
     }
 
     private Set<InetSocketAddress> getCachedServers() {
