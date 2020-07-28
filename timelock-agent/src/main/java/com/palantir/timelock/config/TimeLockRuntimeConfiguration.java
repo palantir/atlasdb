@@ -64,6 +64,12 @@ public abstract class TimeLockRuntimeConfiguration {
         return LockWatchTestRuntimeConfig.defaultConfig();
     }
 
+    @JsonProperty("adjudication")
+    @Value.Default
+    public TimeLockAdjudicationConfiguration adjudication() {
+        return ImmutableTimeLockAdjudicationConfiguration.builder().build();
+    }
+
     @Value.Check
     public void check() {
         Preconditions.checkState(maxNumberOfClients() >= 0,

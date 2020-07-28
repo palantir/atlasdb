@@ -55,7 +55,7 @@ public class FeedbackAnalysisTest {
     }
 
     private FeedbackHandler getFeedbackHandlerWithReports(ImmutableList<ConjureTimeLockClientFeedback> reports) {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         reports.forEach(feedbackHandler::handle);
         return feedbackHandler;
     }
@@ -91,7 +91,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void timeLockIsHealthyIfLessThanSpecifiedRatioOfClientsAreUnhealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         IntStream.range(1, 5).forEach(
                 index -> feedbackHandler
                         .handle(getUnhealthyClientFeedbackReport("Client_" + index, UUID.randomUUID())));
@@ -105,7 +105,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void timeLockIsUnhealthyIfMoreThanSpecifiedRatioOfClientsAreUnhealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
 
         IntStream.range(1, 10).forEach(
                 index -> feedbackHandler
@@ -199,7 +199,7 @@ public class FeedbackAnalysisTest {
     // point analysis
     @Test
     public void reportIsHealthyIfAllMetricsAreHealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID())))
                 .isEqualTo(HealthStatus.HEALTHY);
@@ -207,7 +207,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void reportIsUnknownIfEvenOneMetricIsInUnknownState() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getReportWithLeaderTimeMetricInUnknownState(CLIENT, UUID.randomUUID())))
                 .isEqualTo(HealthStatus.UNKNOWN);
@@ -219,7 +219,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void reportIsUnhealthyIfP99IsOutlier() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getReportWithStartTxnForVeryHighP99(CLIENT, UUID.randomUUID())))
                 .isEqualTo(HealthStatus.UNHEALTHY);
@@ -227,7 +227,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void reportIsUnhealthyIfEvenOneMetricIsInUnhealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getReportWithLeaderTimeMetricInUnhealthyState(CLIENT, UUID.randomUUID())))
                 .isEqualTo(HealthStatus.UNHEALTHY);
@@ -239,7 +239,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void isAbleToHandleReportsWhereLeaderTimeAndStartTransactionAreEqual() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         ConjureTimeLockClientFeedback report = getClientFeedbackReport(CLIENT, UUID.randomUUID(),
                 0, 0, 0, 0);
 
