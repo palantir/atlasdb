@@ -344,9 +344,11 @@ public class CassandraService implements AutoCloseable {
         List<InetSocketAddress> hostsForKey = getHostsFor(key);
 
         if (hostsForKey == null) {
-            log.info("We attempted to route your query to a cassandra host that already contains the relevant data."
-                    + " However, the mapping of which host contains which data is not available yet."
-                    + " We will choose a random host instead.");
+            if (config.autoRefreshNodes()) {
+                log.info("We attempted to route your query to a cassandra host that already contains the relevant data."
+                        + " However, the mapping of which host contains which data is not available yet."
+                        + " We will choose a random host instead.");
+            }
             return getRandomGoodHost().getHost();
         }
 
