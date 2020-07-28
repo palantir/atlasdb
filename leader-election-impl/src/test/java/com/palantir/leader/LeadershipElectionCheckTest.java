@@ -39,8 +39,8 @@ public class LeadershipElectionCheckTest {
     private final TaggedMetricRegistry registry1 = mock(TaggedMetricRegistry.class);
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics =
             LeaderElectionServiceMetrics.of(registry1);
-    private final LeaderElectionHealthCheck leaderElectionHealthCheck = new LeaderElectionHealthCheck(
-        leaderElectionServiceMetrics);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheck =
+            new LeaderElectionHealthCheck(leaderElectionServiceMetrics);
 
     @Before
     public void setup() {
