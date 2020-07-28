@@ -127,13 +127,12 @@ public class KeyValueServiceValidator {
             // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
             return validationFromTransactionManager.runTaskWithRetry(t1 ->
                     validationToTransactionManager.runTaskWithRetry(t2 -> {
-                                RangeRequest range = RangeRequest.builder()
-                                        .batchHint(limit)
-                                        .startRowInclusive(nextRowName)
-                                        .build();
-                                return validateAndGetNextRowName(table, limit, t1, t2, range);
-                            }
-                    ));
+                        RangeRequest range = RangeRequest.builder()
+                                .batchHint(limit)
+                                .startRowInclusive(nextRowName)
+                                .build();
+                        return validateAndGetNextRowName(table, limit, t1, t2, range);
+                    }));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
