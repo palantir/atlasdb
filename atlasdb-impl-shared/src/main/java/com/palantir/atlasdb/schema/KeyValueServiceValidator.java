@@ -36,7 +36,6 @@ import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageLe
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageProcessor;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -115,32 +114,27 @@ public class KeyValueServiceValidator {
     private void validateTable(final TableReference table) {
         final int limit = getBatchSize(table);
         // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-        // not using retries as each attempt could take up to 8 hours
-        validationFromTransactionManager.runTaskThrowOnConflict(
-                (TransactionTask<Map<Cell, byte[]>, RuntimeException>) t1 -> {
-                    validateTable(table, limit, t1);
-                    return null;
-                });
+        byte[] nextRowName = new byte[0];
+        while (nextRowName != null) {
+            nextRowName = validateNextBatchOfRows(table, limit, nextRowName);
+        }
         KeyValueServiceMigratorUtils
                 .processMessage(messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
 
-    private void validateTable(final TableReference table, final int limit, final Transaction t1) {
-        // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-        // not using retries as each attempt could take up to 8 hours
-        validationToTransactionManager.runTaskThrowOnConflict(
-                (TransactionTask<Map<Cell, byte[]>, RuntimeException>) t2 -> {
-                    validateTable(table, limit, t1, t2);
-                    return null;
-                });
-    }
-
-    private void validateTable(TableReference table, int limit, Transaction t1, Transaction t2) {
-        RangeRequest.Builder builder = RangeRequest.builder().batchHint(limit);
-        byte[] nextRowName = new byte[0];
-        while (nextRowName != null) {
-            RangeRequest range = builder.startRowInclusive(nextRowName).build();
-            nextRowName = validateAndGetNextRowName(table, limit, t1, t2, range);
+    private byte[] validateNextBatchOfRows(TableReference table, int limit, byte[] nextRowName) {
+        try {
+            // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
+            return validationFromTransactionManager.runTaskWithRetry(t1 ->
+                    validationToTransactionManager.runTaskWithRetry(t2 -> {
+                        RangeRequest range = RangeRequest.builder()
+                                .batchHint(limit)
+                                .startRowInclusive(nextRowName)
+                                .build();
+                        return validateAndGetNextRowName(table, limit, t1, t2, range);
+                    }));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
