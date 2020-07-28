@@ -547,7 +547,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                tableLevelMetricsController);
     }
 
     @VisibleForTesting

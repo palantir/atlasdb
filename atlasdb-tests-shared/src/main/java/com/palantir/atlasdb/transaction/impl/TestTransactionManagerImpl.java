@@ -207,7 +207,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         () -> TRANSACTION_CONFIG,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        tableLevelMetricsController),
                 pathTypeTracker);
     }
 
@@ -243,7 +244,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        tableLevelMetricsController),
                 pathTypeTracker);
     }
 
