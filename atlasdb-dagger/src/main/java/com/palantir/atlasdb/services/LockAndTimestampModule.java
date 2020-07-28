@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.inject.Singleton;
