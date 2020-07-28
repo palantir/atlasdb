@@ -29,6 +29,10 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 @JsonDeserialize(as = ImmutablePingResult.class)
 public interface PingResult {
     boolean isLeader();
+
+    /**
+     * @return The current version of TimeLock that server is on if TimeLock service is running, empty otherwise.
+     */
     Optional<OrderableSlsVersion> timeLockVersion();
 
     static ImmutablePingResult.Builder builder() {
