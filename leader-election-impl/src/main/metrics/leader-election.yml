@@ -3,7 +3,7 @@ options:
 
 namespaces:
   leaderElectionService:
-    docs: Metrics helpful for TimeLock adjudication.
+    docs: Metrics for tracking TimeLock leader election events.
     metrics:
       gainedLeadership:
         type: meter
@@ -22,10 +22,10 @@ namespaces:
         docs: Number of times(per second) leadership could not be gained after proposal.
       leaderPingFailure:
         type: meter
-        docs: Rate of failure while pinging the leader.
+        docs: Number of times(per second) pinging the leader failed.
       leaderPingTimeout:
         type: meter
-        docs: Rate of request timeout while pinging the leader.
+        docs: Number of times(per second) requests timed out while pinging the leader.
       leaderPingReturnedFalse:
         type: meter
-        docs: Rate of leader pings to a non leader node.
+        docs: Number of times(per second) leader ping requests were made to a non leader node.

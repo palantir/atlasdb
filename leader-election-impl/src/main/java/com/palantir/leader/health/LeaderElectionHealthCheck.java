@@ -28,7 +28,7 @@ public class LeaderElectionHealthCheck {
     }
 
     public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
-        return leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate() < MAX_ALLOWED_LAST_5_MINUTE_RATE
+        return leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
                 ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
     }
 }

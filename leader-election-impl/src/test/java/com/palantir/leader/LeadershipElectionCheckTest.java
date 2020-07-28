@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
@@ -36,20 +37,20 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class LeadershipElectionCheckTest {
     private final FakeTimeClock fakeTimeClock = new FakeTimeClock();
-    private final TaggedMetricRegistry registry1 = mock(TaggedMetricRegistry.class);
+    private final TaggedMetricRegistry registry = mock(TaggedMetricRegistry.class);
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics =
-            LeaderElectionServiceMetrics.of(registry1);
+            LeaderElectionServiceMetrics.of(registry);
     private final LeaderElectionHealthCheck leaderElectionHealthCheck =
             new LeaderElectionHealthCheck(leaderElectionServiceMetrics);
 
     @Before
     public void setup() {
-        when(registry1.meter(any())).thenReturn(new Meter(fakeTimeClock));
+        when(registry.meter(any())).thenReturn(new Meter(fakeTimeClock));
     }
 
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(3, 60);
+        markLeaderElectionsAtSpecifiedInterval(3, Duration.ofSeconds(60));
 
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
@@ -57,18 +58,18 @@ public class LeadershipElectionCheckTest {
 
     @Test
     public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(7, 30);
+        markLeaderElectionsAtSpecifiedInterval(7,  Duration.ofSeconds(30));
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
     }
 
-    public void markLeaderElectionsAtSpecifiedInterval(int leaderElectionCount, long timeIntervalInSeconds) {
+    private void markLeaderElectionsAtSpecifiedInterval(int leaderElectionCount, Duration timeIntervalInSeconds) {
         // First tick
         fakeTimeClock.advance(6, TimeUnit.SECONDS);
 
         IntStream.range(0, leaderElectionCount).forEach(idx -> {
             leaderElectionServiceMetrics.proposedLeadership().mark();
-            fakeTimeClock.advance(timeIntervalInSeconds, TimeUnit.SECONDS);
+            fakeTimeClock.advance(timeIntervalInSeconds.getSeconds(), TimeUnit.SECONDS);
         });
     }
 
