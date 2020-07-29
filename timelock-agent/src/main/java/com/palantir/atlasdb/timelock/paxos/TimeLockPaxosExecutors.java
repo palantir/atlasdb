@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 
 final class TimeLockPaxosExecutors {
@@ -45,15 +46,17 @@ final class TimeLockPaxosExecutors {
      *
      * It is assumed that tasks run on the local node will return quickly (hence the use of the direct executor).
      */
-    static <T> Map<T, ExecutorService> createBoundedExecutors(
+    static <T> Map<T, CheckedRejectionExecutorService> createBoundedExecutors(
             int poolSize, LocalAndRemotes<T> localAndRemotes, String useCase) {
         int numRemotes = localAndRemotes.remotes().size();
-        ImmutableMap.Builder<T, ExecutorService> remoteExecutors = ImmutableMap.builderWithExpectedSize(numRemotes);
+        ImmutableMap.Builder<T, CheckedRejectionExecutorService> remoteExecutors
+                = ImmutableMap.builderWithExpectedSize(numRemotes);
         for (int index = 0; index < numRemotes; index++) {
             T remote = localAndRemotes.remotes().get(index);
             remoteExecutors.put(remote, createBoundedExecutor(poolSize, useCase, index));
         }
-        remoteExecutors.put(localAndRemotes.local(), MoreExecutors.newDirectExecutorService());
+        remoteExecutors.put(localAndRemotes.local(), new CheckedRejectionExecutorService(
+                MoreExecutors.newDirectExecutorService()));
         return remoteExecutors.build();
     }
 
@@ -66,9 +69,10 @@ final class TimeLockPaxosExecutors {
      *
      * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
      */
-    static ExecutorService createBoundedExecutor(int poolSize, String useCase, int index) {
+    static CheckedRejectionExecutorService createBoundedExecutor(int poolSize, String useCase, int index) {
         // metricRegistry is ignored because TExecutors.newCachedThreadPoolWithMaxThreads provides instrumentation.
-        return PTExecutors.newCachedThreadPoolWithMaxThreads(
+        ExecutorService underlying = PTExecutors.newCachedThreadPoolWithMaxThreads(
                 poolSize, "timelock-executors-" + useCase + "-" + index);
+        return new CheckedRejectionExecutorService(underlying);
     }
 }

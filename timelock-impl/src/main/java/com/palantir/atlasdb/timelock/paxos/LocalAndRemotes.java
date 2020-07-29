@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -26,8 +24,6 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 @Value.Immutable
 interface LocalAndRemotes<T> {

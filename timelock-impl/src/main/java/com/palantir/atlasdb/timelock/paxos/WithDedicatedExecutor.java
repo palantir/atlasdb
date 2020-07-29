@@ -23,25 +23,30 @@ import java.util.function.Function;
 
 import org.immutables.value.Value;
 
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 
 @Value.Immutable
 public interface WithDedicatedExecutor<T> {
     T service();
-    ExecutorService executor();
+    CheckedRejectionExecutorService executor();
 
     default <U> WithDedicatedExecutor<U> transformService(Function<T, U> transform) {
         return WithDedicatedExecutor.of(transform.apply(service()), executor());
     }
 
     static <T> WithDedicatedExecutor<T> of(T service, ExecutorService executor) {
+        return of(service, new CheckedRejectionExecutorService(executor));
+    }
+
+    static <T> WithDedicatedExecutor<T> of(T service, CheckedRejectionExecutorService checkedExecutor) {
         return ImmutableWithDedicatedExecutor.<T>builder()
                 .service(service)
-                .executor(executor)
+                .executor(checkedExecutor)
                 .build();
     }
 
-    static <T> Map<T, ExecutorService> convert(Collection<WithDedicatedExecutor<T>> services) {
+    static <T> Map<T, CheckedRejectionExecutorService> convert(Collection<WithDedicatedExecutor<T>> services) {
         return KeyedStream.of(services)
                 .map(WithDedicatedExecutor::executor)
                 .mapKeys(WithDedicatedExecutor::service)

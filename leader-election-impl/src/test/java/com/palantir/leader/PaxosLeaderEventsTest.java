@@ -31,6 +31,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
@@ -100,7 +101,9 @@ public class PaxosLeaderEventsTest {
 
     private LeaderPinger pingerWithTimeout(Duration leaderPingResponseWait) {
         return new SingleLeaderPinger(
-                ImmutableMap.of(ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT), executorService),
+                ImmutableMap.of(
+                        ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT),
+                        new CheckedRejectionExecutorService(executorService)),
                 leaderPingResponseWait,
                 LOCAL_UUID,
                 true);

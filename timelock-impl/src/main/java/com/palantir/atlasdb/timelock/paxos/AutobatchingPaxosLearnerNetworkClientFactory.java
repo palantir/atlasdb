@@ -25,14 +25,13 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
-import com.palantir.common.streams.KeyedStream;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
@@ -73,7 +72,8 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
                         .safeLoggablePurpose("batch-paxos-learner.learn")
                         .build();
 
-        Map<BatchPaxosLearner, ExecutorService> executors = WithDedicatedExecutor.convert(learners.all());
+        Map<BatchPaxosLearner, CheckedRejectionExecutorService> executors
+                = WithDedicatedExecutor.convert(learners.all());
         List<BatchPaxosLearner> remotes = ImmutableList.copyOf(executors.keySet());
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> learnedValues =

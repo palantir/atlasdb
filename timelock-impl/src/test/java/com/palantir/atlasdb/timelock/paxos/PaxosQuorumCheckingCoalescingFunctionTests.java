@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosLong;
@@ -111,8 +112,8 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
 
     private PaxosQuorumCheckingCoalescingFunction<Long, PaxosLong, TestFunction> paxosQuorumCheckerFor(
             TestFunction... nodes) {
-        Map<TestFunction, ExecutorService> executors =
-                Maps.asMap(ImmutableSet.copyOf(nodes), $ -> executorService);
+        Map<TestFunction, CheckedRejectionExecutorService> executors =
+                Maps.asMap(ImmutableSet.copyOf(nodes), $ -> new CheckedRejectionExecutorService(executorService));
         return new PaxosQuorumCheckingCoalescingFunction<>(
                 ImmutableList.copyOf(nodes),
                 executors,

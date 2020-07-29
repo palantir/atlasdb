@@ -151,7 +151,7 @@ public final class Leaders {
         List<PaxosLearner> remoteLearners = learners.stream()
                 .filter(learner -> !learner.equals(ourLearner))
                 .collect(ImmutableList.toImmutableList());
-        PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
+        PaxosLearnerNetworkClient learnerNetworkClient = SingleLeaderLearnerNetworkClient.createLegacy(
                 ourLearner,
                 remoteLearners,
                 config.quorumSize(),
@@ -165,7 +165,7 @@ public final class Leaders {
                 trustContext,
                 PaxosAcceptor.class,
                 userAgent);
-        PaxosAcceptorNetworkClient acceptorNetworkClient = new SingleLeaderAcceptorNetworkClient(
+        PaxosAcceptorNetworkClient acceptorNetworkClient = SingleLeaderAcceptorNetworkClient.createLegacy(
                 acceptors,
                 config.quorumSize(),
                 createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"),
@@ -177,7 +177,7 @@ public final class Leaders {
                 trustContext,
                 userAgent);
 
-        LeaderPinger leaderPinger = new SingleLeaderPinger(
+        LeaderPinger leaderPinger = SingleLeaderPinger.createLegacy(
                 createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
                 config.leaderPingResponseWait(),
                 leaderUuid,

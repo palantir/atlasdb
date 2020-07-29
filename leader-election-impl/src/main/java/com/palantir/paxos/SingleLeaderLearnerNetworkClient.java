@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -28,6 +27,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.BaseEncoding;
+import com.palantir.common.concurrent.CheckedRejectedExecutionException;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -39,14 +41,14 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
     private final ImmutableList<PaxosLearner> remoteLearners;
     private final ImmutableList<PaxosLearner> allLearners;
     private final int quorumSize;
-    private final Map<PaxosLearner, ExecutorService> executors;
+    private final Map<PaxosLearner, CheckedRejectionExecutorService> executors;
     private final boolean cancelRemainingCalls;
 
     public SingleLeaderLearnerNetworkClient(
             PaxosLearner localLearner,
             List<PaxosLearner> remoteLearners,
             int quorumSize,
-            Map<PaxosLearner, ExecutorService> executors,
+            Map<PaxosLearner, CheckedRejectionExecutorService> executors,
             boolean cancelRemainingCalls) {
         this.localLearner = localLearner;
         this.remoteLearners = ImmutableList.copyOf(remoteLearners);
@@ -57,6 +59,20 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
                 .add(localLearner)
                 .addAll(remoteLearners)
                 .build();
+    }
+
+    public static SingleLeaderLearnerNetworkClient createLegacy(
+            PaxosLearner localLearner,
+            List<PaxosLearner> remoteLearners,
+            int quorumSize,
+            Map<PaxosLearner, ExecutorService> executors,
+            boolean cancelRemainingCalls) {
+        return new SingleLeaderLearnerNetworkClient(
+                localLearner,
+                remoteLearners,
+                quorumSize,
+                KeyedStream.stream(executors).map(CheckedRejectionExecutorService::new).collectToMap(),
+                cancelRemainingCalls);
     }
 
 
@@ -75,7 +91,7 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
                                 e);
                     }
                 });
-            } catch (RejectedExecutionException e) {
+            } catch (CheckedRejectedExecutionException e) {
                 log.warn("Failed to teach learner the value {} at sequence {}, because we could not execute the task.",
                         UnsafeArg.of("value", base16EncodePaxosValue(value)),
                         SafeArg.of("sequence", seq),

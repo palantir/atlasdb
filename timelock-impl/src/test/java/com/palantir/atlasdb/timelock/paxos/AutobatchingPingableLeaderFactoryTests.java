@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResults;
@@ -130,7 +131,7 @@ public class AutobatchingPingableLeaderFactoryTests {
 
     private AutobatchingPingableLeaderFactory factoryForPingables(LeaderPingerContext<BatchPingableLeader>... rpcs) {
         return AutobatchingPingableLeaderFactory.create(
-                Maps.toMap(ImmutableSet.copyOf(rpcs), $ -> executorService),
+                Maps.toMap(ImmutableSet.copyOf(rpcs), $ -> new CheckedRejectionExecutorService(executorService)),
                 Duration.ofMillis(20),
                 Duration.ofMillis(100),
                 UUID.randomUUID());

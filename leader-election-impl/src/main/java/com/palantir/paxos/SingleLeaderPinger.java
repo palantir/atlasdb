@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -36,7 +35,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.CheckedRejectedExecutionException;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -45,13 +47,13 @@ public class SingleLeaderPinger implements LeaderPinger {
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
-    private final Map<LeaderPingerContext<PingableLeader>, ExecutorService> leaderPingExecutors;
+    private final Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;
     private final boolean cancelRemainingCalls;
 
     public SingleLeaderPinger(
-            Map<LeaderPingerContext<PingableLeader>, ExecutorService> otherPingableExecutors,
+            Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid,
             boolean cancelRemainingCalls) {
@@ -59,6 +61,18 @@ public class SingleLeaderPinger implements LeaderPinger {
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.localUuid = localUuid;
         this.cancelRemainingCalls = cancelRemainingCalls;
+    }
+
+    public static SingleLeaderPinger createLegacy(
+            Map<LeaderPingerContext<PingableLeader>, ExecutorService> otherPingableExecutors,
+            Duration leaderPingResponseWait,
+            UUID localUuid,
+            boolean cancelRemainingCalls) {
+        return new SingleLeaderPinger(
+                KeyedStream.stream(otherPingableExecutors).map(CheckedRejectionExecutorService::new).collectToMap(),
+                leaderPingResponseWait,
+                localUuid,
+                cancelRemainingCalls);
     }
 
     @Override
@@ -71,7 +85,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
 
         MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, Boolean> multiplexingCompletionService
-                = MultiplexingCompletionService.create(leaderPingExecutors);
+                = MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
 
         try {
             multiplexingCompletionService.submit(leader, () -> leader.pinger().ping());
@@ -81,7 +95,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(e);
-        } catch (RejectedExecutionException e) {
+        } catch (CheckedRejectedExecutionException e) {
             log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", e);
             return LeaderPingResults.pingCallFailure(e);
         }
