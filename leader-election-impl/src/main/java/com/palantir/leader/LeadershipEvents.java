@@ -23,7 +23,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Meter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
@@ -35,64 +34,49 @@ class LeadershipEvents {
 
     private static final String LEADER_LOG_NAME = "leadership";
     private static final Logger leaderLog = LoggerFactory.getLogger(LEADER_LOG_NAME);
-
-    private final Meter gainedLeadership;
-    private final Meter lostLeadership;
-    private final Meter noQuorum;
-    private final Meter proposedLeadership;
-    private final Meter proposalFailure;
-    private final Meter leaderPingFailure;
-    private final Meter leaderPingTimeout;
-    private final Meter leaderPingReturnedFalse;
     private final Object[] contextArgs;
+    private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
 
     LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<String>> safeLoggingArgs) {
-        gainedLeadership = metrics.meter(withName("leadership.gained"));
-        lostLeadership = metrics.meter(withName("leadership.lost"));
-        noQuorum = metrics.meter(withName("leadership.no-quorum"));
-        proposedLeadership = metrics.meter(withName("leadership.proposed"));
-        proposalFailure = metrics.meter(withName("leadership.proposed.failure"));
-        leaderPingFailure = metrics.meter(withName("leadership.ping-leader.failure"));
-        leaderPingTimeout = metrics.meter(withName("leadership.ping-leader.timeout"));
-        leaderPingReturnedFalse = metrics.meter(withName("leadership.ping-leader.returned-false"));
+        leaderElectionServiceMetrics = LeaderElectionServiceMetrics.of(metrics);
         this.contextArgs = safeLoggingArgs.toArray(new Object[0]);
     }
 
     void proposedLeadershipFor(long round) {
         leaderLog.info("Proposing leadership for {}", withContextArgs(SafeArg.of("round", round)));
-        proposedLeadership.mark();
+        leaderElectionServiceMetrics.proposedLeadership().mark();
     }
 
     void gainedLeadershipFor(PaxosValue value) {
         leaderLog.info("Gained leadership for {}", withContextArgs(SafeArg.of("value", value)));
-        gainedLeadership.mark();
+        leaderElectionServiceMetrics.gainedLeadership().mark();
     }
 
     void lostLeadershipFor(PaxosValue value) {
         leaderLog.info("Lost leadership for {}", withContextArgs(SafeArg.of("value", value)));
-        lostLeadership.mark();
+        leaderElectionServiceMetrics.lostLeadership().mark();
     }
 
     void noQuorum(PaxosValue value) {
         leaderLog.warn("The most recent known information says this server is the leader,"
                         + " but there is no quorum right now. The paxos value is {}",
                 withContextArgs(SafeArg.of("value", value)));
-        noQuorum.mark();
+        leaderElectionServiceMetrics.noQuorum().mark();
     }
 
     void leaderPingFailure(Throwable error) {
         leaderLog.warn("Failed to ping the current leader", withContextArgs(error));
-        leaderPingFailure.mark();
+        leaderElectionServiceMetrics.leaderPingFailure().mark();
     }
 
     void leaderPingTimeout() {
         leaderLog.warn("Timed out while attempting to ping the current leader", contextArgs);
-        leaderPingTimeout.mark();
+        leaderElectionServiceMetrics.leaderPingTimeout().mark();
     }
 
     void leaderPingReturnedFalse() {
         leaderLog.info("We contacted the suspected leader, but it reported that it was no longer leading", contextArgs);
-        leaderPingReturnedFalse.mark();
+        leaderElectionServiceMetrics.leaderPingReturnedFalse().mark();
     }
 
     void proposalFailure(PaxosRoundFailureException paxosException) {
@@ -101,7 +85,7 @@ class LeadershipEvents {
                         + "  (1) ensure that most other nodes are reachable over the network, and \n"
                         + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.",
                 withContextArgs(paxosException));
-        proposalFailure.mark();
+        leaderElectionServiceMetrics.proposalFailure().mark();
     }
 
     private Object[] withContextArgs(Object arg) {
