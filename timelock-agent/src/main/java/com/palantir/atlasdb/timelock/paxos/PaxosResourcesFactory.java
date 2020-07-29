@@ -58,24 +58,13 @@ public final class PaxosResourcesFactory {
     public static PaxosResources create(TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
-        return create(install,
-                metrics,
-                paxosRuntime,
-                Optional.empty());
-    }
-
-    public static PaxosResources create(TimelockPaxosInstallationContext install,
-            MetricsManager metrics,
-            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            Optional<OrderableSlsVersion> timeLockVersion) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
         ImmutablePaxosResources.Builder resourcesBuilder = setupTimestampResources(
                 install,
                 metrics,
                 paxosRuntime,
-                remoteClients,
-                timeLockVersion);
+                remoteClients);
 
         if (install.useLeaderForEachClient()) {
             return configureLeaderForEachClient(
@@ -83,16 +72,14 @@ public final class PaxosResourcesFactory {
                     install,
                     metrics,
                     paxosRuntime,
-                    remoteClients,
-                    timeLockVersion);
+                    remoteClients);
         } else {
             return configureLeaderForAllClients(
                     resourcesBuilder,
                     install,
                     metrics,
                     paxosRuntime,
-                    remoteClients,
-                    timeLockVersion);
+                    remoteClients);
         }
     }
 
@@ -101,8 +88,7 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            PaxosRemoteClients remoteClients,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics);
 
@@ -146,8 +132,7 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            PaxosRemoteClients remoteClients,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            PaxosRemoteClients remoteClients) {
 
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
@@ -194,8 +179,7 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            PaxosRemoteClients remoteClients,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 

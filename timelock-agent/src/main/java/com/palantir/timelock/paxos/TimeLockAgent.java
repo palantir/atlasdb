@@ -113,8 +113,7 @@ public class TimeLockAgent {
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
                 metricsManager,
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                timeLockVersion);
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
