@@ -103,7 +103,7 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            OrderableSlsVersion timeLockVersion) {
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
                 metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =

@@ -70,7 +70,7 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
-    private final Optional<OrderableSlsVersion> timeLockVersion;
+    private final OrderableSlsVersion timeLockVersion;
 
     private LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
@@ -78,7 +78,7 @@ public class LocalPaxosComponents {
             DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            OrderableSlsVersion timeLockVersion) {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
         this.baseLogDirectory = legacyLogDirectory;
@@ -91,29 +91,13 @@ public class LocalPaxosComponents {
         this.timeLockVersion = timeLockVersion;
     }
 
-    public static LocalPaxosComponents createWithBlockingMigration(
-            TimelockPaxosMetrics metrics,
-            PaxosUseCase paxosUseCase,
-            Path legacyLogDirectory,
-            DataSource sqliteDataSource,
-            UUID leaderUuid,
-            boolean canCreateNewClients) {
-        return createWithBlockingMigration(metrics,
-                paxosUseCase,
-                legacyLogDirectory,
-                sqliteDataSource,
-                leaderUuid,
-                canCreateNewClients,
-                Optional.empty());
-    }
-
     public static LocalPaxosComponents createWithBlockingMigration(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
             DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            OrderableSlsVersion timeLockVersion) {
         LocalPaxosComponents components = new LocalPaxosComponents(metrics,
                 paxosUseCase,
                 legacyLogDirectory,
@@ -180,7 +164,7 @@ public class LocalPaxosComponents {
         PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(getAcceptorParameters(client),
                 createMetrics(PaxosAcceptor.class),
                 learner.getGreatestLearnedValue().map(PaxosValue::getRound));
-        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid, timeLockVersion);
+        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid, Optional.of(timeLockVersion));
 
         return ImmutableComponents.builder()
                 .acceptor(acceptor)

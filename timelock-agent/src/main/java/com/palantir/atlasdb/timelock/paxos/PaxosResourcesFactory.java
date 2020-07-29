@@ -189,7 +189,8 @@ public final class PaxosResourcesFactory {
                 install.dataDirectory(),
                 install.sqliteDataSource(),
                 install.nodeUuid(),
-                install.install().paxos().canCreateNewClients());
+                install.install().paxos().canCreateNewClients(),
+                install.timeLockVersion());
 
         NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
                 .useCase(PaxosUseCase.TIMESTAMP)
@@ -270,7 +271,7 @@ public final class PaxosResourcesFactory {
         TimeLockDialogueServiceProvider dialogueServiceProvider();
 
         @Value.Parameter
-        Optional<OrderableSlsVersion> timeLockVersion();
+        OrderableSlsVersion timeLockVersion();
 
         @Value.Derived
         default UUID nodeUuid() {

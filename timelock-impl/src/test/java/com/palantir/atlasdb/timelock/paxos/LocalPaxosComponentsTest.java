@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -132,7 +131,8 @@ public class LocalPaxosComponentsTest {
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                canCreateNewClients);
+                canCreateNewClients,
+                OrderableSlsVersion.valueOf("0.0.0"));
     }
 
     public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients,
@@ -144,6 +144,6 @@ public class LocalPaxosComponentsTest {
                 sqlite,
                 UUID.randomUUID(),
                 canCreateNewClients,
-                Optional.of(timeLockVersion));
+                timeLockVersion);
     }
 }

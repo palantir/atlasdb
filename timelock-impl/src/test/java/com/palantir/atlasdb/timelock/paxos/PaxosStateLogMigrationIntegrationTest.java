@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -44,6 +43,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.paxos.Versionable;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 public class PaxosStateLogMigrationIntegrationTest {
     private static final Client CLIENT = Client.of("test");
@@ -265,7 +265,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 sqlite,
                 UUID.randomUUID(),
                 true,
-                Optional.empty());
+                OrderableSlsVersion.valueOf("0.0.0"));
     }
 
     private PaxosValue valueForRound(long num) {
