@@ -32,7 +32,7 @@ public interface PingResult {
 
     /**
      * @return The current version of TimeLock that server is on
-     * if TimeLock service is running, empty otherwise.
+     * if this ping result came from a TimeLock server, and empty otherwise
      */
     Optional<OrderableSlsVersion> timeLockVersion();
 

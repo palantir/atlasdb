@@ -1185,8 +1185,7 @@ public abstract class TransactionManagers {
                 metricsManager,
                 env,
                 leaderConfig,
-                userAgent,
-                Optional.empty());
+                userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
