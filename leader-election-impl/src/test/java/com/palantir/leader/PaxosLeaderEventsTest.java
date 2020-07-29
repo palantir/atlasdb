@@ -115,9 +115,8 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void leaderPingReturnsTrueWithLeaderOnNewerVersion() {
-        OrderableSlsVersion oldTimeLockVersion = OrderableSlsVersion.valueOf("2.1.1");
         when(pingableLeader.pingV2()).thenReturn(
-                PingResult.builder().isLeader(true).timeLockVersion(oldTimeLockVersion).build());
+                PingResult.builder().isLeader(true).timeLockVersion(OrderableSlsVersion.valueOf("2.1.1")).build());
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));
