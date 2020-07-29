@@ -115,14 +115,16 @@ public class SingleLeaderPinger implements LeaderPinger {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
-
         try {
             PingResult pingResult = Futures.getDone(pingFuture).getValue();
-            if (pingResult.isLeader() && isAtLeastOurVersion(pingResult, timeLockVersion)) {
-                return LeaderPingResults.pingReturnedTrue(uuid, Futures.getDone(pingFuture).getKey().hostAndPort());
-            } else {
+            if (!pingResult.isLeader()) {
                 return LeaderPingResults.pingReturnedFalse();
             }
+            return isAtLeastOurVersion(pingResult, timeLockVersion)
+                    ? LeaderPingResults.pingReturnedTrue(
+                            uuid,
+                            Futures.getDone(pingFuture).getKey().hostAndPort())
+                    : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
         } catch (ExecutionException e) {
             return LeaderPingResults.pingCallFailure(e.getCause());
         }

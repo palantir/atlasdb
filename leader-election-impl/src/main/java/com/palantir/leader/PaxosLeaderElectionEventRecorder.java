@@ -17,6 +17,7 @@ package com.palantir.leader;
 
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 public interface PaxosLeaderElectionEventRecorder {
 
@@ -42,6 +43,10 @@ public interface PaxosLeaderElectionEventRecorder {
     /** Called when we successfully contacted the suspected leader, but it reported that it was not the leader. */
     void recordLeaderPingReturnedFalse();
 
+    /** Called when we successfully contacted the leader, but it is on an older version of TimeLock
+     * as compared to the local server. */
+    void recordLeaderOnOlderVersion(OrderableSlsVersion version);
+
     PaxosLeaderElectionEventRecorder NO_OP = new PaxosLeaderElectionEventRecorder() {
         @Override
         public void recordNotLeading(PaxosValue value) { }
@@ -63,6 +68,9 @@ public interface PaxosLeaderElectionEventRecorder {
 
         @Override
         public void recordLeaderPingReturnedFalse() { }
+
+        @Override
+        public void recordLeaderOnOlderVersion(OrderableSlsVersion version) { }
     };
 
 }
