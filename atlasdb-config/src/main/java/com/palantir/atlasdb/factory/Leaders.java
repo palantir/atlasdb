@@ -37,7 +37,6 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -79,14 +78,14 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and registers appropriate endpoints for that
      * service.
      */
-    public static LocalPaxosServices createAndRegisterLocalServices(
-            MetricsManager metricsManager,
+    public static LocalPaxosServices createAndRegisterLocalServices(MetricsManager metricsManager,
             Consumer<Object> env,
             LeaderConfig config,
-            Supplier<LeaderRuntimeConfig> runtime,
             UserAgent userAgent) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(
-                metricsManager, config, userAgent);
+                metricsManager,
+                config,
+                userAgent);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -95,8 +94,7 @@ public final class Leaders {
         return localPaxosServices;
     }
 
-    public static LocalPaxosServices createInstrumentedLocalServices(
-            MetricsManager metricsManager,
+    public static LocalPaxosServices createInstrumentedLocalServices(MetricsManager metricsManager,
             LeaderConfig config,
             UserAgent userAgent) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());

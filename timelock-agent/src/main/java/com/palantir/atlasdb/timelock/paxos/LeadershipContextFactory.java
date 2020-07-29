@@ -43,6 +43,7 @@ public abstract class LeadershipContextFactory implements
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
+
     public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
 
     @Value.Derived
@@ -59,7 +60,8 @@ public abstract class LeadershipContextFactory implements
                 install().dataDirectory(),
                 install().sqliteDataSource(),
                 leaderUuid(),
-                install().install().paxos().canCreateNewClients());
+                install().install().paxos().canCreateNewClients(),
+                install().timeLockVersion());
     }
 
     @Value.Derived

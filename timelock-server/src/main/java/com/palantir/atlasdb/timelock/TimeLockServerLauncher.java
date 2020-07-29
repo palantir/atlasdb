@@ -40,6 +40,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -92,7 +93,6 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         log.info("Paxos configuration\n{}", environment.getObjectMapper()
                 .writerWithDefaultPrettyPrinter()
                 .writeValueAsString(configuration.install().paxos()));
-
         TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),
@@ -101,7 +101,8 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 registrar,
-                Optional.empty());
+                Optional.empty(),
+                OrderableSlsVersion.valueOf("0.0.0"));
 
         environment.lifecycle().manage(new Managed() {
             @Override

@@ -66,6 +66,7 @@ import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 @RunWith(Parameterized.class)
 public class PaxosTimestampBoundStoreTest {
@@ -118,7 +119,8 @@ public class PaxosTimestampBoundStoreTest {
                     Paths.get(root, i + "legacy"),
                     SqliteConnections.getPooledDataSource(Paths.get(root, i + "sqlite")),
                     UUID.randomUUID(),
-                    true);
+                    true,
+                    OrderableSlsVersion.valueOf("0.0.0"));
 
             AtomicBoolean failureController = new AtomicBoolean(false);
             failureToggles.add(failureController);

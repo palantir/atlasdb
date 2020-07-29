@@ -63,6 +63,7 @@ import com.palantir.leader.health.LeaderElectionHealthStatus;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -94,19 +95,20 @@ public class TimeLockAgent {
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
-    public static TimeLockAgent create(
-            MetricsManager metricsManager,
+    public static TimeLockAgent create(MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             UserAgent userAgent,
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar,
-            Optional<Consumer<UndertowService>> undertowRegistrar) {
+            Optional<Consumer<UndertowService>> undertowRegistrar,
+            OrderableSlsVersion timeLockVersion) {
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
                 metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
-                ImmutableTimelockPaxosInstallationContext.of(install, userAgent, timeLockDialogueServiceProvider);
+                ImmutableTimelockPaxosInstallationContext
+                        .of(install, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
 
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,

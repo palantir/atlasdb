@@ -40,6 +40,7 @@ import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -54,14 +55,16 @@ public final class PaxosResourcesFactory {
 
     private PaxosResourcesFactory() { }
 
-    public static PaxosResources create(
-            TimelockPaxosInstallationContext install,
+    public static PaxosResources create(TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
         ImmutablePaxosResources.Builder resourcesBuilder = setupTimestampResources(
-                install, metrics, paxosRuntime, remoteClients);
+                install,
+                metrics,
+                paxosRuntime,
+                remoteClients);
 
         if (install.useLeaderForEachClient()) {
             return configureLeaderForEachClient(
@@ -130,6 +133,7 @@ public final class PaxosResourcesFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             PaxosRemoteClients remoteClients) {
+
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
@@ -185,7 +189,8 @@ public final class PaxosResourcesFactory {
                 install.dataDirectory(),
                 install.sqliteDataSource(),
                 install.nodeUuid(),
-                install.install().paxos().canCreateNewClients());
+                install.install().paxos().canCreateNewClients(),
+                install.timeLockVersion());
 
         NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
                 .useCase(PaxosUseCase.TIMESTAMP)
@@ -264,6 +269,9 @@ public final class PaxosResourcesFactory {
 
         @Value.Parameter
         TimeLockDialogueServiceProvider dialogueServiceProvider();
+
+        @Value.Parameter
+        OrderableSlsVersion timeLockVersion();
 
         @Value.Derived
         default UUID nodeUuid() {
