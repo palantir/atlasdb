@@ -37,6 +37,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
@@ -78,6 +79,7 @@ public class PaxosRemoteClientsTest {
         context = ImmutableTimelockPaxosInstallationContext.builder().install(installConfiguration)
                 .dialogueServiceProvider(dialogueServiceProvider)
                 .userAgent(UserAgent.of(UserAgent.Agent.of("aaa", "1.2.3")))
+                .timeLockVersion(OrderableSlsVersion.valueOf("0.0.0"))
                 .build();
     }
 
