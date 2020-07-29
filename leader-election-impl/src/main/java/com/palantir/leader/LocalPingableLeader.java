@@ -34,10 +34,10 @@ public final class LocalPingableLeader implements PingableLeader {
         this.timeLockVersion = Optional.empty();
     }
 
-    public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid, Optional<OrderableSlsVersion> timeLockVersion) {
+    public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid, OrderableSlsVersion timeLockVersion) {
         this.knowledge = knowledge;
         this.localUuid = localUuid.toString();
-        this.timeLockVersion = timeLockVersion;
+        this.timeLockVersion = Optional.of(timeLockVersion);
     }
 
     @Override

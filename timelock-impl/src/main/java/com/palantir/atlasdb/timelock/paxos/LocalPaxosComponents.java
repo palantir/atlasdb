@@ -20,7 +20,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -164,7 +163,7 @@ public class LocalPaxosComponents {
         PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(getAcceptorParameters(client),
                 createMetrics(PaxosAcceptor.class),
                 learner.getGreatestLearnedValue().map(PaxosValue::getRound));
-        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid, Optional.of(timeLockVersion));
+        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid, timeLockVersion);
 
         return ImmutableComponents.builder()
                 .acceptor(acceptor)
