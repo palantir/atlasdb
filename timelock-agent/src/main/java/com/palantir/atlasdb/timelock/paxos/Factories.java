@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -84,7 +85,8 @@ public interface Factories {
                     WithDedicatedExecutor.convert(remoteClients().nonBatchPingableLeadersWithContext()),
                     leaderPingResponseWait(),
                     leaderUuid(),
-                    PaxosConstants.CANCEL_REMAINING_CALLS);
+                    PaxosConstants.CANCEL_REMAINING_CALLS,
+                    Optional.of(remoteClients().context().timeLockVersion()));
         }
 
         @Override

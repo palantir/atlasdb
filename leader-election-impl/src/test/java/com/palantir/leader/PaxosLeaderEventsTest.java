@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -106,7 +107,8 @@ public class PaxosLeaderEventsTest {
                         new CheckedRejectionExecutorService(executorService)),
                 leaderPingResponseWait,
                 LOCAL_UUID,
-                true);
+                true,
+                Optional.empty());
     }
 
 }
