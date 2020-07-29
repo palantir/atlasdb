@@ -86,6 +86,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -146,7 +147,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ExecutorService deleteExecutor,
                                    boolean validateLocksOnReads,
                                    Supplier<TransactionConfig> transactionConfig,
-                                   ConflictTracer conflictTracer) {
+                                   ConflictTracer conflictTracer,
+                                   TableLevelMetricsController tableLevelMetricsController) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -170,7 +172,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               deleteExecutor,
               validateLocksOnReads,
               transactionConfig,
-              conflictTracer);
+              conflictTracer,
+              tableLevelMetricsController);
     }
 
     @Override
@@ -790,7 +793,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer) {
+                conflictTracer,
+                tableLevelMetricsController) {
             @Override
             protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
                     TableReference tableRef,

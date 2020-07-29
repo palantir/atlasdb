@@ -131,6 +131,8 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
+import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
 import com.palantir.common.base.AbortingVisitor;
@@ -193,6 +195,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private final int defaultGetRangesConcurrency = 2;
     private final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
+    private final TableLevelMetricsController tableLevelMetricsController
+            = ToplistDeltaFilteringTableLevelMetricsController.create(metricsManager);
 
     private TransactionConfig transactionConfig;
 
@@ -424,7 +428,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         true,
                         () -> transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        tableLevelMetricsController),
                 pathTypeTracker);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
@@ -496,7 +501,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         true,
                         () -> transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        tableLevelMetricsController),
                 pathTypeTracker);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
@@ -1548,7 +1554,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         validateLocksOnReads,
                         () -> transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP, tableLevelMetricsController),
                 pathTypeTracker);
     }
 
