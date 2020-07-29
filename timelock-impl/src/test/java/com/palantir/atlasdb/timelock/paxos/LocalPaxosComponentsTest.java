@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -53,6 +54,7 @@ public class LocalPaxosComponentsTest {
     private static final PaxosValue PAXOS_VALUE = new PaxosValue(PAXOS_UUID, PAXOS_ROUND_ONE, PAXOS_DATA);
     private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
             new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
+    private static final OrderableSlsVersion DEFAULT_TIME_LOCK_VERSION = OrderableSlsVersion.valueOf("0.0.0");
     private static final OrderableSlsVersion TIMELOCK_VERSION = OrderableSlsVersion.valueOf("1.2.7");
 
     @Rule
@@ -114,7 +116,7 @@ public class LocalPaxosComponentsTest {
         // return default when timeLock version not provided
         PingableLeader pingableLeader = paxosComponents.pingableLeader(CLIENT);
         assertThat(pingableLeader.pingV2().timeLockVersion())
-                .isNotPresent();
+                .isEqualTo(Optional.of(DEFAULT_TIME_LOCK_VERSION));
         assertThat(pingableLeader.pingV2().isLeader()).isNotNull();
 
         pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION)
@@ -132,7 +134,7 @@ public class LocalPaxosComponentsTest {
                 sqlite,
                 UUID.randomUUID(),
                 canCreateNewClients,
-                OrderableSlsVersion.valueOf("0.0.0"));
+                DEFAULT_TIME_LOCK_VERSION);
     }
 
     public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients,
