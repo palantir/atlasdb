@@ -82,9 +82,6 @@ public class CassandraService implements AutoCloseable {
     private volatile Set<InetSocketAddress> localHosts = ImmutableSet.of();
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
 
-    private final Counter randomHostsSelected;
-    private final Counter localHostsSelected;
-
     private final Random random = new Random();
 
     public CassandraService(
@@ -93,10 +90,6 @@ public class CassandraService implements AutoCloseable {
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
-        this.randomHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
-                .safeName(MetricRegistry.name(CassandraService.class, "randomHostsSelected")).build());
-        this.localHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
-                .safeName(MetricRegistry.name(CassandraService.class, "localHostsSelected")).build());
         this.config = config;
         this.myLocationSupplier = new HostLocationSupplier(this::getSnitch, config.overrideHostLocation());
         this.blacklist = blacklist;
@@ -297,12 +290,10 @@ public class CassandraService implements AutoCloseable {
         if (random.nextDouble() < config.localHostWeighting()) {
             Set<InetSocketAddress> localFilteredHosts = Sets.intersection(localHosts, hosts);
             if (!localFilteredHosts.isEmpty()) {
-                localHostsSelected.inc();
                 return localFilteredHosts;
             }
         }
 
-        randomHostsSelected.inc();
         return hosts;
     }
 
