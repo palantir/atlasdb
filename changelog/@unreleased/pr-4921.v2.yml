@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Metrics filters are now resilient to exceptions (e.g. when querying
+    timelock).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4921
