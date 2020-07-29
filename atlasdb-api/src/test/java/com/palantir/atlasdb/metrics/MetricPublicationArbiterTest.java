@@ -83,8 +83,8 @@ public class MetricPublicationArbiterTest {
                 METRIC_NAME_1, ImmutableList.of(() -> {
                     throw new RuntimeException("boo");
                 },
-                () -> true,
-                () -> false)));
+                        () -> true,
+                        () -> false)));
         assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
     }
 }
