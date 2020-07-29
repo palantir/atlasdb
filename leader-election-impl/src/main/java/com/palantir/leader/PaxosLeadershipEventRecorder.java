@@ -84,7 +84,7 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
 
     @Override
     public void recordLeaderOnOlderVersion(OrderableSlsVersion version) {
-//        events.leaderOnOlderVersion();
+        events.leaderOnOlderTimeLockVersion(version);
     }
 
     @Override

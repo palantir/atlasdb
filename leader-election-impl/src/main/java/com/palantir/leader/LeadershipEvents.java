@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -88,6 +89,12 @@ class LeadershipEvents {
         leaderElectionServiceMetrics.proposalFailure().mark();
     }
 
+    public void leaderOnOlderTimeLockVersion(OrderableSlsVersion version) {
+        leaderLog.info("We contacted the leader and it reported that it is on an older version of TimeLock - {}",
+                withContextArgs(SafeArg.of("version", version)));
+        leaderElectionServiceMetrics.leaderOnOlderTimeLockVersion().mark();
+    }
+
     private Object[] withContextArgs(Object arg) {
         if (contextArgs.length == 0) {
             return new Object[] { arg };
@@ -99,5 +106,4 @@ class LeadershipEvents {
     private static MetricName withName(String name) {
         return MetricName.builder().safeName(name).build();
     }
-
 }
