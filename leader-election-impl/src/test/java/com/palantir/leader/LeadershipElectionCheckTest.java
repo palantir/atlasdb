@@ -64,7 +64,8 @@ public class LeadershipElectionCheckTest {
     }
 
     private void markLeaderElectionsAtSpecifiedInterval(int leaderElectionCount, Duration timeIntervalInSeconds) {
-        // First tick
+        // The rate is initialized after first tick (5 second interval) of meter with number of marks / interval.
+        // Marking before the first interval has passed sets the rate very high, which should not happen in practice.
         fakeTimeClock.advance(6, TimeUnit.SECONDS);
 
         IntStream.range(0, leaderElectionCount).forEach(idx -> {
