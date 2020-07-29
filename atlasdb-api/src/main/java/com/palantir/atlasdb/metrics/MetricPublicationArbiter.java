@@ -61,7 +61,7 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
     private static boolean safeShouldPublish(MetricName metricName, MetricPublicationFilter filter) {
         try {
             return filter.shouldPublish();
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.warn("Exception thrown when attempting to determine whether a metric {} should be published."
                             + " In this case we don't filter out the metric.",
                     SafeArg.of("metricName", metricName),
