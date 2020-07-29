@@ -67,4 +67,24 @@ public class MetricPublicationArbiterTest {
         arbiter.registerMetricsFilter(METRIC_NAME_1, () -> false);
         assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
     }
+
+    @Test
+    public void exceptionTreatedAsNotFiltered() {
+        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(ImmutableMap.of(
+                METRIC_NAME_1, ImmutableList.of(() -> {
+                    throw new RuntimeException("boo");
+                })));
+        assertThat(arbiter.test(METRIC_NAME_1)).isTrue();
+    }
+
+    @Test
+    public void rejectsMetricWithDefinitivelyFalseFilterEvenWithExceptions() {
+        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(ImmutableMap.of(
+                METRIC_NAME_1, ImmutableList.of(() -> {
+                    throw new RuntimeException("boo");
+                },
+                        () -> true,
+                        () -> false)));
+        assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
+    }
 }

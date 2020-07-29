@@ -21,7 +21,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 /**
@@ -29,6 +33,8 @@ import com.palantir.tritium.metrics.registry.MetricName;
  * the metric involved SHOULD be published.
  */
 public class MetricPublicationArbiter implements Predicate<MetricName> {
+    private static final Logger log = LoggerFactory.getLogger(MetricPublicationArbiter.class);
+
     private final Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters;
 
     public MetricPublicationArbiter(
@@ -39,7 +45,7 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
     @Override
     public boolean test(MetricName metricName) {
         return Optional.ofNullable(singleMetricFilters.get(metricName))
-                .map(MetricPublicationArbiter::allFiltersMatch)
+                .map(filters -> allFiltersMatch(metricName, filters))
                 .orElse(true);
     }
 
@@ -48,7 +54,19 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
                 -> ImmutableList.<MetricPublicationFilter>builder().addAll(oldFilters).addAll(newFilter).build());
     }
 
-    private static boolean allFiltersMatch(List<MetricPublicationFilter> relevantFilters) {
-        return relevantFilters.stream().allMatch(MetricPublicationFilter::shouldPublish);
+    private static boolean allFiltersMatch(MetricName metricName, List<MetricPublicationFilter> relevantFilters) {
+        return relevantFilters.stream().allMatch(filter -> safeShouldPublish(metricName, filter));
+    }
+
+    private static boolean safeShouldPublish(MetricName metricName, MetricPublicationFilter filter) {
+        try {
+            return filter.shouldPublish();
+        } catch (RuntimeException e) {
+            log.warn("Exception thrown when attempting to determine whether a metric {} should be published."
+                            + " In this case we don't filter out the metric.",
+                    SafeArg.of("metricName", metricName),
+                    e);
+            return true;
+        }
     }
 }
