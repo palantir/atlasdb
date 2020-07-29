@@ -1,7 +1,7 @@
 type: improvement
 improvement:
-  description: 'TimeLock node on newer version than current leader tries to gain leadership
-    now. Earlier, the upgrading would not try to gain leadership rendering adjudication
-    ineffective.  '
+  description: 'TimeLock node on newer version than current leader now tries to gain
+    leadership. Earlier, the upgrading node would not try to gain leadership rendering
+    adjudication ineffective.  '
   links:
   - https://github.com/palantir/atlasdb/pull/4923
