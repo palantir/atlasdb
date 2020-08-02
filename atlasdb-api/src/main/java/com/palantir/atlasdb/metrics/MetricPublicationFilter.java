@@ -23,4 +23,12 @@ public interface MetricPublicationFilter {
     MetricPublicationFilter NEVER_PUBLISH = () -> false;
 
     boolean shouldPublish();
+
+    /**
+     * @return A label which is used to deduplicate filters.
+     *   Need only be unique across filters on a given metric.
+     */
+    default String getLabel() {
+        return this.getClass().getName();
+    }
 }

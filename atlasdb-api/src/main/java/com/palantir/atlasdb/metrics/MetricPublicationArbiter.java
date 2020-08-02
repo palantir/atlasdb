@@ -16,15 +16,18 @@
 
 package com.palantir.atlasdb.metrics;
 
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
+
+import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 
@@ -35,10 +38,10 @@ import com.palantir.tritium.metrics.registry.MetricName;
 public class MetricPublicationArbiter implements Predicate<MetricName> {
     private static final Logger log = LoggerFactory.getLogger(MetricPublicationArbiter.class);
 
-    private final Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters;
+    private final Map<MetricName, Set<DeduplicatingFilterHolder>> singleMetricFilters;
 
     public MetricPublicationArbiter(
-            Map<MetricName, List<MetricPublicationFilter>> singleMetricFilters) {
+            Map<MetricName, Set<DeduplicatingFilterHolder>> singleMetricFilters) {
         this.singleMetricFilters = singleMetricFilters;
     }
 
@@ -50,12 +53,14 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
     }
 
     public void registerMetricsFilter(MetricName metricName, MetricPublicationFilter filter) {
-        singleMetricFilters.merge(metricName, ImmutableList.of(filter), (oldFilters, newFilter)
-                -> ImmutableList.<MetricPublicationFilter>builder().addAll(oldFilters).addAll(newFilter).build());
+        singleMetricFilters.merge(metricName,
+                Collections.singleton(new DeduplicatingFilterHolder(filter)),
+                (oldFilters, newFilter) ->
+                        ImmutableSet.<DeduplicatingFilterHolder>builder().addAll(oldFilters).addAll(newFilter).build());
     }
 
-    private static boolean allFiltersMatch(MetricName metricName, List<MetricPublicationFilter> relevantFilters) {
-        return relevantFilters.stream().allMatch(filter -> safeShouldPublish(metricName, filter));
+    private static boolean allFiltersMatch(MetricName metricName, Set<DeduplicatingFilterHolder> relevantFilters) {
+        return relevantFilters.stream().allMatch(filter -> safeShouldPublish(metricName, filter.filter));
     }
 
     private static boolean safeShouldPublish(MetricName metricName, MetricPublicationFilter filter) {
@@ -67,6 +72,41 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
                     SafeArg.of("metricName", metricName),
                     e);
             return true;
+        }
+    }
+
+    /**
+     * Most users will want to define filters without having to think about deduplicating
+     * filters across calls (similar to how MetricsRegistry methods are all registerOrGet)
+     * so in order to keep the existing ability to define filters with lambdas,
+     * define a default method on {@link MetricPublicationFilter} with a reasonable deduplicator
+     * and then wrap it here.
+     */
+    private static class DeduplicatingFilterHolder {
+        @Nonnull
+        final MetricPublicationFilter filter;
+
+        private DeduplicatingFilterHolder(MetricPublicationFilter filter) {
+            this.filter = filter;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            DeduplicatingFilterHolder that = (DeduplicatingFilterHolder) o;
+
+            return filter.equals(that.filter);
+        }
+
+        @Override
+        public int hashCode() {
+            return filter.hashCode();
         }
     }
 }
