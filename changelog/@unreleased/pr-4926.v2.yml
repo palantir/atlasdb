@@ -1,0 +1,16 @@
+type: fix
+fix:
+  description: |-
+    Fix duplicate registration of MetricPublicationFilters
+
+    See internal ticket PG-154380
+
+    **Priority (whenever / two weeks / yesterday)**: ASAP
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/4926
