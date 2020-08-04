@@ -16,13 +16,10 @@
 
 package com.palantir.atlasdb.metrics;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import javax.annotation.Nonnull;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
