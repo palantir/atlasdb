@@ -88,8 +88,8 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
      * define a default method on {@link MetricPublicationFilter} with a reasonable deduplicator
      * and then wrap it here.
      */
-     @VisibleForTesting
-     static class DeduplicatingFilterHolder {
+    @VisibleForTesting
+    static class DeduplicatingFilterHolder {
         @Nonnull
         final MetricPublicationFilter filter;
 
@@ -99,15 +99,15 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) {
+        public boolean equals(Object other) {
+            if (this == other) {
                 return true;
             }
-            if (o == null || getClass() != o.getClass()) {
+            if (other == null || getClass() != other.getClass()) {
                 return false;
             }
 
-            DeduplicatingFilterHolder that = (DeduplicatingFilterHolder) o;
+            DeduplicatingFilterHolder that = (DeduplicatingFilterHolder) other;
 
             return filter.equals(that.filter);
         }
