@@ -188,7 +188,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
         try {
             BiMap<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow, Long> blockRows
                     = KeyedStream.of(
-                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    LongStream.range(firstBlock, firstBlock + numBlocks).boxed())
                     .mapKeys(blockId -> StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());

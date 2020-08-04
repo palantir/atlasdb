@@ -188,7 +188,7 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         try {
             BiMap<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow, Long> blockRows
                     = KeyedStream.of(
-                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    LongStream.range(firstBlock, firstBlock + numBlocks).boxed())
                     .mapKeys(blockId -> TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());

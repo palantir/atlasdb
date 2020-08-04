@@ -188,7 +188,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         try {
             BiMap<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow, Long> blockRows
                     = KeyedStream.of(
-                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    LongStream.range(firstBlock, firstBlock + numBlocks).boxed())
                     .mapKeys(blockId -> StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());

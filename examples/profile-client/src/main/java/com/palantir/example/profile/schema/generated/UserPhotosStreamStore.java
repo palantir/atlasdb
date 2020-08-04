@@ -188,7 +188,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         try {
             BiMap<UserPhotosStreamValueTable.UserPhotosStreamValueRow, Long> blockRows
                     = KeyedStream.of(
-                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    LongStream.range(firstBlock, firstBlock + numBlocks).boxed())
                     .mapKeys(blockId -> UserPhotosStreamValueTable.UserPhotosStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<UserPhotosStreamValueTable.UserPhotosStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());
@@ -197,15 +197,15 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
             }
         } catch (RuntimeException e) {
             log.error("Error loading blocks for stream",
-                    SafeArg.of("firstBlock", firstBlock),
-                    SafeArg.of("numBlocks", numBlocks),
-                    SafeArg.of("streamId", streamId), e);
+                      SafeArg.of("firstBlock", firstBlock),
+                      SafeArg.of("numBlocks", numBlocks),
+                      SafeArg.of("streamId", streamId), e);
             throw e;
         } catch (IOException e) {
             log.error("Error writing blocks to output stream",
-                    SafeArg.of("firstBlock", firstBlock),
-                    SafeArg.of("numBlocks", numBlocks),
-                    SafeArg.of("streamId", streamId), e);
+                      SafeArg.of("firstBlock", firstBlock),
+                      SafeArg.of("numBlocks", numBlocks),
+                      SafeArg.of("streamId", streamId), e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks to output stream.", e);
         }
     }
@@ -399,6 +399,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link BiConsumer}
+     * {@link BiMap}
      * {@link BlockConsumingInputStream}
      * {@link BlockGetter}
      * {@link BlockLoader}
@@ -421,16 +422,19 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link FileOutputStream}
      * {@link Functions}
      * {@link Generated}
+     * {@link HashBiMap}
      * {@link HashMultimap}
      * {@link IOException}
      * {@link ImmutableMap}
      * {@link ImmutableSet}
      * {@link InputStream}
      * {@link Ints}
+     * {@link KeyedStream}
      * {@link List}
      * {@link Lists}
      * {@link Logger}
      * {@link LoggerFactory}
+     * {@link LongStream}
      * {@link Map}
      * {@link Maps}
      * {@link MessageDigest}
@@ -441,6 +445,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link Pair}
      * {@link PersistentStreamStore}
      * {@link Preconditions}
+     * {@link SafeArg}
      * {@link Set}
      * {@link SetView}
      * {@link Sets}

@@ -188,7 +188,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         try {
             BiMap<ValueStreamValueTable.ValueStreamValueRow, Long> blockRows
                     = KeyedStream.of(
-                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    LongStream.range(firstBlock, firstBlock + numBlocks).boxed())
                     .mapKeys(blockId -> ValueStreamValueTable.ValueStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<ValueStreamValueTable.ValueStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());
