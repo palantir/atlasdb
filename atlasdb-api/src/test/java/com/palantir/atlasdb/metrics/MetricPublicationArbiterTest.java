@@ -18,6 +18,7 @@ package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -90,6 +91,19 @@ public class MetricPublicationArbiterTest {
         MetricPublicationArbiter arbiter = createArbiter(ImmutableMap.of(
                 METRIC_NAME_1, ImmutableSet.of(THROWING_FILTER, TRUE_RETURNING_FILTER, FALSE_RETURNING_FILTER)));
         assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
+    }
+
+    @Test
+    public void deduplicatesFilters() {
+        Map<MetricName, Set<MetricPublicationArbiter.DeduplicatingFilterHolder>> filters = new HashMap<>();
+        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(filters);
+        for (int i = 0; i < 100; i++) {
+            int index = i;
+            // not using pre-defined filters because otherwise Object.equals would work without effort
+            arbiter.registerMetricsFilter(METRIC_NAME_1, () -> index == 1);
+            arbiter.registerMetricsFilter(METRIC_NAME_1, () -> index == 2);
+        }
+        assertThat(filters.get(METRIC_NAME_1).size()).isEqualTo(2);
     }
 
     private static MetricPublicationArbiter createArbiter(Map<MetricName, Set<MetricPublicationFilter>> filters) {
