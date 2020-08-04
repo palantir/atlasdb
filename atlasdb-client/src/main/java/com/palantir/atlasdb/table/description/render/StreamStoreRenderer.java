@@ -335,7 +335,7 @@ public class StreamStoreRenderer {
                     {
                         line("BiMap<", StreamValueRow, ", Long> blockRows");
                         line("        = KeyedStream.of(");
-                        line("        LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())");
+                        line("        LongStream.range(firstBlock, firstBlock + numBlocks).boxed())");
                         line("        .mapKeys(blockId -> ", StreamValueRow, ".of(streamId, blockId))");
                         line("        .collectTo(HashBiMap::create);");
 
