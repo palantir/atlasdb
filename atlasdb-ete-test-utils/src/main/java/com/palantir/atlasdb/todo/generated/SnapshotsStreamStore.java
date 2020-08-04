@@ -188,12 +188,12 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
         try {
             BiMap<SnapshotsStreamValueTable.SnapshotsStreamValueRow, Long> blockRows
                     = KeyedStream.of(
-                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    LongStream.range(firstBlock, firstBlock + numBlocks).boxed())
                     .mapKeys(blockId -> SnapshotsStreamValueTable.SnapshotsStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<SnapshotsStreamValueTable.SnapshotsStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());
             for (long i = 0; i < numBlocks; i++) {
-                os.write(blocks.get(blockRows.inverse().get(firstBlock + 1)));
+                os.write(blocks.get(blockRows.inverse().get(firstBlock + i)));
             }
         } catch (RuntimeException e) {
             log.error("Error loading blocks for stream",

@@ -188,7 +188,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         try {
             BiMap<HotspottyDataStreamValueTable.HotspottyDataStreamValueRow, Long> blockRows
                     = KeyedStream.of(
-                    LongStream.rangeClosed(firstBlock, firstBlock + numBlocks).boxed())
+                    LongStream.range(firstBlock, firstBlock + numBlocks).boxed())
                     .mapKeys(blockId -> HotspottyDataStreamValueTable.HotspottyDataStreamValueRow.of(streamId, blockId))
                     .collectTo(HashBiMap::create);
             Map<HotspottyDataStreamValueTable.HotspottyDataStreamValueRow, byte[]> blocks = getBlocks(t, blockRows.keySet());
