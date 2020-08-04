@@ -43,6 +43,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.paxos.Versionable;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 public class PaxosStateLogMigrationIntegrationTest {
     private static final Client CLIENT = Client.of("test");
@@ -263,7 +264,8 @@ public class PaxosStateLogMigrationIntegrationTest {
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                true);
+                true,
+                OrderableSlsVersion.valueOf("0.0.0"));
     }
 
     private PaxosValue valueForRound(long num) {

@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Make all logging in HikariCPConnectionManager SLS
+  links:
+  - https://github.com/palantir/atlasdb/pull/4905

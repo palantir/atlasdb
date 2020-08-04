@@ -23,9 +23,9 @@ public enum CassandraClientPoolHostLevelMetric {
     CREATED("created", 0.01, 2.0),
     DESTROYED_BY_EVICTOR("destroyedByEvictor", 0.01, 2.0);
 
-    public String metricName;
-    public double minimumMeanThreshold;
-    public double maximumMeanThreshold;
+    public final String metricName;
+    public final double minimumMeanThreshold;
+    public final double maximumMeanThreshold;
 
     CassandraClientPoolHostLevelMetric(String metricName, double minimumMeanThreshold, double maximumMeanThreshold) {
         this.metricName = metricName;

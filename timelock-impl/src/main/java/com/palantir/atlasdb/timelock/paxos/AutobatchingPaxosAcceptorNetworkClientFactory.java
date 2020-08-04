@@ -22,12 +22,12 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.Client;
@@ -55,7 +55,7 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
 
     public static AutobatchingPaxosAcceptorNetworkClientFactory create(
             List<BatchPaxosAcceptor> acceptors,
-            Map<BatchPaxosAcceptor, ExecutorService> executors,
+            Map<BatchPaxosAcceptor, CheckedRejectionExecutorService> executors,
             int quorumSize) {
 
         DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare =

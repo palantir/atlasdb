@@ -31,14 +31,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Counter;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
@@ -55,7 +53,7 @@ import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosStorageParameters;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SplittingPaxosStateLog;
-import com.palantir.paxos.SqliteConnections;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 @SuppressWarnings("FinalClass") // mocks
 public class LocalPaxosComponents {
@@ -71,13 +69,15 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
+    private final OrderableSlsVersion timeLockVersion;
 
     private LocalPaxosComponents(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
             DataSource sqliteDataSource,
             UUID leaderUuid,
-            boolean canCreateNewClients) {
+            boolean canCreateNewClients,
+            OrderableSlsVersion timeLockVersion) {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
         this.baseLogDirectory = legacyLogDirectory;
@@ -87,17 +87,23 @@ public class LocalPaxosComponents {
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
         this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
         this.canCreateNewClients = canCreateNewClients;
+        this.timeLockVersion = timeLockVersion;
     }
 
-    public static LocalPaxosComponents createWithBlockingMigration(
-            TimelockPaxosMetrics metrics,
+    public static LocalPaxosComponents createWithBlockingMigration(TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
             DataSource sqliteDataSource,
             UUID leaderUuid,
-            boolean canCreateNewClients) {
-        LocalPaxosComponents components = new LocalPaxosComponents(metrics, paxosUseCase, legacyLogDirectory,
-                sqliteDataSource, leaderUuid, canCreateNewClients);
+            boolean canCreateNewClients,
+            OrderableSlsVersion timeLockVersion) {
+        LocalPaxosComponents components = new LocalPaxosComponents(metrics,
+                paxosUseCase,
+                legacyLogDirectory,
+                sqliteDataSource,
+                leaderUuid,
+                canCreateNewClients,
+                timeLockVersion);
 
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
         PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
@@ -157,7 +163,7 @@ public class LocalPaxosComponents {
         PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(getAcceptorParameters(client),
                 createMetrics(PaxosAcceptor.class),
                 learner.getGreatestLearnedValue().map(PaxosValue::getRound));
-        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
+        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid, timeLockVersion);
 
         return ImmutableComponents.builder()
                 .acceptor(acceptor)

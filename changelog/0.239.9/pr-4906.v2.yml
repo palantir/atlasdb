@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: New api endpoint - pingV2 is added. It returns the information regarding
+    leadership status of the remote server along with the version of TimeLock on server.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4906

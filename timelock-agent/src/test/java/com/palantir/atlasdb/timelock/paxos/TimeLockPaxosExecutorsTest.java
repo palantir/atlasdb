@@ -35,13 +35,14 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.CheckedRejectedExecutionException;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class TimeLockPaxosExecutorsTest {
     private static final String TEST = "test";
-    private static final Callable<Integer> SLEEP_FOR_ONE_SECOND = () -> {
-        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+    private static final Callable<Integer> BLOCKING_TASK = () -> {
+        Uninterruptibles.sleepUninterruptibly(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         return 42;
     };
 
@@ -52,10 +53,9 @@ public class TimeLockPaxosExecutorsTest {
 
     private final LocalAndRemotes<Object> localAndRemotes = LocalAndRemotes.of(local, remotes);
 
-    private final Map<Object, ExecutorService> executors = TimeLockPaxosExecutors.createBoundedExecutors(
-            MetricsManagers.createForTests().getRegistry(),
-            localAndRemotes,
-            TEST);
+    private final Map<Object, CheckedRejectionExecutorService> executors
+            = TimeLockPaxosExecutors.createBoundedExecutors(
+                    TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE, localAndRemotes, TEST);
 
     @Test
     public void hasKeysCollectivelyMatchingLocalAndRemoteElements() {
@@ -63,20 +63,21 @@ public class TimeLockPaxosExecutorsTest {
     }
 
     @Test
-    public void remoteExecutorsAreBounded() {
+    public void remoteExecutorsAreBounded() throws CheckedRejectedExecutionException {
         for (int i = 0; i < TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE; i++) {
-            executors.get(remote1).submit(SLEEP_FOR_ONE_SECOND);
+            executors.get(remote1).submit(BLOCKING_TASK);
         }
-        assertThatThrownBy(() -> executors.get(remote1).submit(SLEEP_FOR_ONE_SECOND))
-                .isInstanceOf(RejectedExecutionException.class);
+        assertThatThrownBy(() -> executors.get(remote1).submit(BLOCKING_TASK))
+                .isInstanceOf(CheckedRejectedExecutionException.class)
+                .hasCauseInstanceOf(RejectedExecutionException.class);
     }
 
     @Test
-    public void remoteExecutorsAreLimitedSeparately() {
+    public void remoteExecutorsAreLimitedSeparately() throws CheckedRejectedExecutionException {
         for (int i = 0; i < TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE; i++) {
-            executors.get(remote1).submit(SLEEP_FOR_ONE_SECOND);
+            executors.get(remote1).submit(BLOCKING_TASK);
         }
-        assertThatCode(() -> executors.get(remote2).submit(SLEEP_FOR_ONE_SECOND))
+        assertThatCode(() -> executors.get(remote2).submit(BLOCKING_TASK))
                 .doesNotThrowAnyException();
     }
     @Test
@@ -90,7 +91,7 @@ public class TimeLockPaxosExecutorsTest {
                 .doesNotThrowAnyException());
     }
 
-    private Integer submitToLocalAndGetUnchecked() {
-        return AtlasFutures.getUnchecked(executors.get(local).submit(SLEEP_FOR_ONE_SECOND));
+    private Integer submitToLocalAndGetUnchecked() throws CheckedRejectedExecutionException {
+        return AtlasFutures.getUnchecked(executors.get(local).submit(() -> 1));
     }
 }

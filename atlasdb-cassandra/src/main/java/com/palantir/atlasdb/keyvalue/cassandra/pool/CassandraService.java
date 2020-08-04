@@ -36,8 +36,6 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
@@ -63,7 +61,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.tritium.metrics.registry.MetricName;
 
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
@@ -82,9 +79,6 @@ public class CassandraService implements AutoCloseable {
     private volatile Set<InetSocketAddress> localHosts = ImmutableSet.of();
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
 
-    private final Counter randomHostsSelected;
-    private final Counter localHostsSelected;
-
     private final Random random = new Random();
 
     public CassandraService(
@@ -93,10 +87,6 @@ public class CassandraService implements AutoCloseable {
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
-        this.randomHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
-                .safeName(MetricRegistry.name(CassandraService.class, "randomHostsSelected")).build());
-        this.localHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
-                .safeName(MetricRegistry.name(CassandraService.class, "localHostsSelected")).build());
         this.config = config;
         this.myLocationSupplier = new HostLocationSupplier(this::getSnitch, config.overrideHostLocation());
         this.blacklist = blacklist;
@@ -297,12 +287,10 @@ public class CassandraService implements AutoCloseable {
         if (random.nextDouble() < config.localHostWeighting()) {
             Set<InetSocketAddress> localFilteredHosts = Sets.intersection(localHosts, hosts);
             if (!localFilteredHosts.isEmpty()) {
-                localHostsSelected.inc();
                 return localFilteredHosts;
             }
         }
 
-        randomHostsSelected.inc();
         return hosts;
     }
 
@@ -344,9 +332,11 @@ public class CassandraService implements AutoCloseable {
         List<InetSocketAddress> hostsForKey = getHostsFor(key);
 
         if (hostsForKey == null) {
-            log.info("We attempted to route your query to a cassandra host that already contains the relevant data."
-                    + " However, the mapping of which host contains which data is not available yet."
-                    + " We will choose a random host instead.");
+            if (config.autoRefreshNodes()) {
+                log.info("We attempted to route your query to a cassandra host that already contains the relevant data."
+                        + " However, the mapping of which host contains which data is not available yet."
+                        + " We will choose a random host instead.");
+            }
             return getRandomGoodHost().getHost();
         }
 

@@ -124,6 +124,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -238,6 +239,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
+    protected final TableLevelMetricsController tableLevelMetricsController;
 
     protected volatile boolean hasReads;
 
@@ -270,7 +272,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -300,6 +303,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.tableLevelMetricsController = tableLevelMetricsController;
     }
 
     @Override
@@ -2472,9 +2476,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Counter getCounter(String name, TableReference tableRef) {
-        return metricsManager.registerOrGetTaggedCounter(
+        return tableLevelMetricsController.createAndRegisterCounter(
                 SnapshotTransaction.class,
                 name,
-                metricsManager.getTableNameTagFor(tableRef));
+                tableRef);
     }
 }

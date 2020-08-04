@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -41,6 +40,7 @@ import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -55,15 +55,16 @@ public final class PaxosResourcesFactory {
 
     private PaxosResourcesFactory() { }
 
-    public static PaxosResources create(
-            TimelockPaxosInstallationContext install,
+    public static PaxosResources create(TimelockPaxosInstallationContext install,
             MetricsManager metrics,
-            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            ExecutorService sharedExecutor) {
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics);
 
         ImmutablePaxosResources.Builder resourcesBuilder = setupTimestampResources(
-                install, metrics, paxosRuntime, sharedExecutor, remoteClients);
+                install,
+                metrics,
+                paxosRuntime,
+                remoteClients);
 
         if (install.useLeaderForEachClient()) {
             return configureLeaderForEachClient(
@@ -71,7 +72,6 @@ public final class PaxosResourcesFactory {
                     install,
                     metrics,
                     paxosRuntime,
-                    sharedExecutor,
                     remoteClients);
         } else {
             return configureLeaderForAllClients(
@@ -79,7 +79,6 @@ public final class PaxosResourcesFactory {
                     install,
                     metrics,
                     paxosRuntime,
-                    sharedExecutor,
                     remoteClients);
         }
     }
@@ -89,7 +88,6 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics);
@@ -112,7 +110,6 @@ public final class PaxosResourcesFactory {
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
-                .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_EACH_CLIENT)
@@ -135,8 +132,8 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
+
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
@@ -155,7 +152,6 @@ public final class PaxosResourcesFactory {
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
                 .install(install)
-                .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
@@ -183,7 +179,6 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
@@ -194,7 +189,8 @@ public final class PaxosResourcesFactory {
                 install.dataDirectory(),
                 install.sqliteDataSource(),
                 install.nodeUuid(),
-                install.install().paxos().canCreateNewClients());
+                install.install().paxos().canCreateNewClients(),
+                install.timeLockVersion());
 
         NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
                 .useCase(PaxosUseCase.TIMESTAMP)
@@ -202,7 +198,6 @@ public final class PaxosResourcesFactory {
                 .remoteClients(remoteClients)
                 .components(paxosComponents)
                 .quorumSize(install.quorumSize())
-                .sharedExecutor(sharedExecutor)
                 .build();
 
         NetworkClientFactories singleLeaderClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
@@ -211,7 +206,6 @@ public final class PaxosResourcesFactory {
                 .remoteClients(remoteClients)
                 .components(paxosComponents)
                 .quorumSize(install.quorumSize())
-                .sharedExecutor(sharedExecutor)
                 .build();
 
         Supplier<Boolean> useBatchPaxosForTimestamps = Suppliers.compose(
@@ -275,6 +269,9 @@ public final class PaxosResourcesFactory {
 
         @Value.Parameter
         TimeLockDialogueServiceProvider dialogueServiceProvider();
+
+        @Value.Parameter
+        OrderableSlsVersion timeLockVersion();
 
         @Value.Derived
         default UUID nodeUuid() {

@@ -48,6 +48,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.streams.KeyedStream;
@@ -65,6 +66,7 @@ import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 @RunWith(Parameterized.class)
 public class PaxosTimestampBoundStoreTest {
@@ -117,7 +119,8 @@ public class PaxosTimestampBoundStoreTest {
                     Paths.get(root, i + "legacy"),
                     SqliteConnections.getPooledDataSource(Paths.get(root, i + "sqlite")),
                     UUID.randomUUID(),
-                    true);
+                    true,
+                    OrderableSlsVersion.valueOf("0.0.0"));
 
             AtomicBoolean failureController = new AtomicBoolean(false);
             failureToggles.add(failureController);
@@ -154,7 +157,7 @@ public class PaxosTimestampBoundStoreTest {
                     AutobatchingPaxosAcceptorNetworkClientFactory.create(
                             batchPaxosAcceptors,
                             KeyedStream.of(batchPaxosAcceptors.stream())
-                                    .map($ -> executor)
+                                    .map($ -> new CheckedRejectionExecutorService(executor))
                                     .collectToMap(),
                             QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
@@ -166,7 +169,7 @@ public class PaxosTimestampBoundStoreTest {
                             batchPaxosLearners.stream()
                                     .filter(remoteLearners -> remoteLearners != localLearner)
                                     .collect(toList())))
-                    .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.create(
+                    .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.createForTests(
                             localAndRemotes,
                             executor,
                             QUORUM_SIZE))
@@ -179,11 +182,11 @@ public class PaxosTimestampBoundStoreTest {
             closer.register(acceptorNetworkClientFactory);
             learnerNetworkClientFactories.forEach(closer::register);
         } else {
-            acceptorClient = new SingleLeaderAcceptorNetworkClient(
+            acceptorClient = SingleLeaderAcceptorNetworkClient.createLegacy(
                     acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
 
             learnerClientsByNode = learners.stream()
-                    .map(learner -> new SingleLeaderLearnerNetworkClient(
+                    .map(learner -> SingleLeaderLearnerNetworkClient.createLegacy(
                             learner,
                             learners.stream().filter(otherLearners -> otherLearners != learner).collect(toList()),
                             QUORUM_SIZE,

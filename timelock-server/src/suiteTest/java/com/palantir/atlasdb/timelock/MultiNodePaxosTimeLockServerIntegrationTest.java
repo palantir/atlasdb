@@ -77,7 +77,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.NON_BATCHED_TIMESTAMP_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -430,11 +430,38 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         }
     }
 
+    @Test
+    public void stressTestForPaxosEndpoints() {
+        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
+        TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
+        int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
+        boolean isNonLeaderTakenOut = false;
+        try {
+            for (int i = 0; i < 1_500; i++) { // Needed as it takes a while for the thread buildup to occur
+                assertNumberOfThreadsReasonable(
+                        startingNumThreads,
+                        ManagementFactory.getThreadMXBean().getThreadCount(),
+                        isNonLeaderTakenOut);
+                cluster.currentLeaderFor(client.namespace()).timeLockManagementService().achieveConsensus(
+                        AuthHeader.valueOf("Bearer pqrstuv"), ImmutableSet.of(client.namespace()));
+                if (i == 400) {
+                    makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
+                    isNonLeaderTakenOut = true;
+                }
+            }
+        } finally {
+            nonLeader.serverHolder().resetWireMock();
+        }
+    }
+
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
         // TODO (jkong): Lower the amount over the threshold. This needs to be slightly higher for now because of the
         // current threading model in batch mode, where separate threads may be spun up on the autobatcher.
-        int threadLimit = startingThreads + 400;
+        int threadLimit = startingThreads + 800;
         if (nonLeaderDown) {
+            if (threadCount > threadLimit) {
+                System.out.println("hello");
+            }
             assertThat(threadCount)
                     .as("should not additionally spin up too many threads after a non-leader failed")
                     .isLessThanOrEqualTo(threadLimit);

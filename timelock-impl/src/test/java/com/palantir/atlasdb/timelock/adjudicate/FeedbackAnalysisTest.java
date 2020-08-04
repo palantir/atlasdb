@@ -33,11 +33,17 @@ public class FeedbackAnalysisTest {
     private static final String CLIENT_3 = "client_3";
 
     private static final long LEADER_TIME_MAX_P99 = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
-            .maximumPermittedP99()
+            .maximumPermittedSteadyStateP99()
             .toNanos();
     private static final long START_TRANSACTION_MAX_P99 = Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES
-            .maximumPermittedP99()
+            .maximumPermittedSteadyStateP99()
             .toNanos();
+    private static final double LEADER_TIME_MIN_RATE =
+            Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration();
+    private static final double START_TXN_MIN_RATE =
+            Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration();
+    private static final long START_TXN_QUIET_P99_LIMIT =
+            Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.maximumPermittedQuietP99().toNanos();
 
     // TimeLock Level analysis
     @Test
@@ -49,7 +55,7 @@ public class FeedbackAnalysisTest {
     }
 
     private FeedbackHandler getFeedbackHandlerWithReports(ImmutableList<ConjureTimeLockClientFeedback> reports) {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         reports.forEach(feedbackHandler::handle);
         return feedbackHandler;
     }
@@ -85,7 +91,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void timeLockIsHealthyIfLessThanSpecifiedRatioOfClientsAreUnhealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         IntStream.range(1, 5).forEach(
                 index -> feedbackHandler
                         .handle(getUnhealthyClientFeedbackReport("Client_" + index, UUID.randomUUID())));
@@ -99,7 +105,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void timeLockIsUnhealthyIfMoreThanSpecifiedRatioOfClientsAreUnhealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
 
         IntStream.range(1, 10).forEach(
                 index -> feedbackHandler
@@ -193,7 +199,7 @@ public class FeedbackAnalysisTest {
     // point analysis
     @Test
     public void reportIsHealthyIfAllMetricsAreHealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getHealthyClientFeedbackReport(CLIENT, UUID.randomUUID())))
                 .isEqualTo(HealthStatus.HEALTHY);
@@ -201,11 +207,10 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void reportIsUnknownIfEvenOneMetricIsInUnknownState() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getReportWithLeaderTimeMetricInUnknownState(CLIENT, UUID.randomUUID())))
                 .isEqualTo(HealthStatus.UNKNOWN);
-
 
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getReportWithStartTxnMetricInUnknownState(CLIENT, UUID.randomUUID())))
@@ -213,12 +218,19 @@ public class FeedbackAnalysisTest {
     }
 
     @Test
+    public void reportIsUnhealthyIfP99IsOutlier() {
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
+        assertThat(feedbackHandler.pointFeedbackHealthStatus(
+                getReportWithStartTxnForVeryHighP99(CLIENT, UUID.randomUUID())))
+                .isEqualTo(HealthStatus.UNHEALTHY);
+    }
+
+    @Test
     public void reportIsUnhealthyIfEvenOneMetricIsInUnhealthy() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getReportWithLeaderTimeMetricInUnhealthyState(CLIENT, UUID.randomUUID())))
                 .isEqualTo(HealthStatus.UNHEALTHY);
-
 
         assertThat(feedbackHandler.pointFeedbackHealthStatus(
                 getReportWithStartTxnMetricInUnHealthyState(CLIENT, UUID.randomUUID())))
@@ -227,7 +239,7 @@ public class FeedbackAnalysisTest {
 
     @Test
     public void isAbleToHandleReportsWhereLeaderTimeAndStartTransactionAreEqual() {
-        FeedbackHandler feedbackHandler = new FeedbackHandler();
+        FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         ConjureTimeLockClientFeedback report = getClientFeedbackReport(CLIENT, UUID.randomUUID(),
                 0, 0, 0, 0);
 
@@ -238,64 +250,73 @@ public class FeedbackAnalysisTest {
     private ConjureTimeLockClientFeedback getUnhealthyClientFeedbackReport(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MIN_RATE + 1,
                 LEADER_TIME_MAX_P99 + 1,
-                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TXN_MIN_RATE + 1,
                 START_TRANSACTION_MAX_P99 + 1);
     }
 
     private ConjureTimeLockClientFeedback getHealthyClientFeedbackReport(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MIN_RATE + 1,
                 LEADER_TIME_MAX_P99 - 1,
-                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TXN_MIN_RATE + 1,
                 START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getUnknownClientFeedbackReport(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                LEADER_TIME_MIN_RATE - 1,
                 LEADER_TIME_MAX_P99 - 1,
-                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                START_TXN_MIN_RATE - 1,
                 START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithLeaderTimeMetricInUnknownState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                LEADER_TIME_MIN_RATE - 1,
                 LEADER_TIME_MAX_P99 - 1,
-                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TXN_MIN_RATE + 1,
                 START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithStartTxnMetricInUnknownState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MIN_RATE + 1,
                 LEADER_TIME_MAX_P99 - 1,
-                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() - 1,
+                START_TXN_MIN_RATE - 1,
                 START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithLeaderTimeMetricInUnhealthyState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MIN_RATE + 1,
                 LEADER_TIME_MAX_P99 + 1,
-                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TXN_MIN_RATE + 1,
                 START_TRANSACTION_MAX_P99 - 1);
     }
 
     private ConjureTimeLockClientFeedback getReportWithStartTxnMetricInUnHealthyState(String serviceName, UUID nodeId) {
         return getClientFeedbackReport(serviceName,
                 nodeId,
-                Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                LEADER_TIME_MIN_RATE + 1,
                 LEADER_TIME_MAX_P99 - 1,
-                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration() + 1,
+                START_TXN_MIN_RATE + 1,
                 START_TRANSACTION_MAX_P99 + 1);
+    }
+
+    private ConjureTimeLockClientFeedback getReportWithStartTxnForVeryHighP99(String serviceName, UUID nodeId) {
+        return getClientFeedbackReport(serviceName,
+                nodeId,
+                LEADER_TIME_MIN_RATE + 1,
+                LEADER_TIME_MAX_P99 - 1,
+                START_TXN_MIN_RATE - 0.001, // Outliers are bad, even if req rate is low
+                START_TXN_QUIET_P99_LIMIT + 1);
     }
 
     private ConjureTimeLockClientFeedback getClientFeedbackReport(String serviceName, UUID nodeId,

@@ -24,18 +24,29 @@ import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface ServiceLevelObjectiveSpecification {
-    Duration maximumPermittedP99();
+    Duration maximumPermittedSteadyStateP99();
+
+    // This is to catch badness when a request/ auto-batched requests take too long,
+    // dropping the request rate below min threshold
+    Duration maximumPermittedQuietP99();
+
+    String name();
+
     double maximumPermittedErrorProportion();
+
     double minimumRequestRateForConsideration();
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!maximumPermittedP99().isNegative(),
+        Preconditions.checkState(!maximumPermittedSteadyStateP99().isNegative(),
                 "Cannot declare negative p99 service level objective");
         Preconditions.checkState(maximumPermittedErrorProportion() >= 0 && maximumPermittedErrorProportion() <= 1,
                 "Permitted error proportion must be between 0 and 1.");
         Preconditions.checkState(minimumRequestRateForConsideration() >= 0,
                 "Cannot declare negative min request rate");
+        Preconditions.checkState(maximumPermittedQuietP99().toNanos()
+                        > maximumPermittedSteadyStateP99().toNanos(),
+                "p99 limit when request rate is low must be greater than the p99 limit in steady state.");
     }
 
     static ImmutableServiceLevelObjectiveSpecification.Builder builder() {

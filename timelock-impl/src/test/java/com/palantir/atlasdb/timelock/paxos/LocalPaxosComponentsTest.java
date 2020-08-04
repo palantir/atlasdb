@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -33,6 +34,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
@@ -40,6 +42,7 @@ import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");
@@ -51,6 +54,8 @@ public class LocalPaxosComponentsTest {
     private static final PaxosValue PAXOS_VALUE = new PaxosValue(PAXOS_UUID, PAXOS_ROUND_ONE, PAXOS_DATA);
     private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
             new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
+    private static final OrderableSlsVersion DEFAULT_TIME_LOCK_VERSION = OrderableSlsVersion.valueOf("0.0.0");
+    private static final OrderableSlsVersion TIMELOCK_VERSION = OrderableSlsVersion.valueOf("1.2.7");
 
     @Rule
     public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
@@ -63,13 +68,7 @@ public class LocalPaxosComponentsTest {
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
         sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
-        paxosComponents = LocalPaxosComponents.createWithBlockingMigration(
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
-                PaxosUseCase.TIMESTAMP,
-                legacyDirectory,
-                sqlite,
-                UUID.randomUUID(),
-                true);
+        paxosComponents = createPaxosComponents(true);
     }
 
     @Test
@@ -98,13 +97,7 @@ public class LocalPaxosComponentsTest {
 
     @Test
     public void newClientCannotBeCreatedIfCreatingClientsIsNotPermitted() {
-        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigration(
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
-                PaxosUseCase.TIMESTAMP,
-                legacyDirectory,
-                sqlite,
-                UUID.randomUUID(),
-                false);
+        LocalPaxosComponents rejectingComponents = createPaxosComponents(false);
         assertThatThrownBy(() -> rejectingComponents.learner(CLIENT))
                 .isInstanceOf(ServiceNotAvailableException.class)
                 .hasMessageContaining("not allowed to create new clients at this time")
@@ -114,13 +107,45 @@ public class LocalPaxosComponentsTest {
     @Test
     public void newClientCanBeCreatedIfItAlreadyExistsInTheDirectory() {
         paxosComponents.learner(CLIENT);
-        LocalPaxosComponents rejectingComponents = LocalPaxosComponents.createWithBlockingMigration(
+        LocalPaxosComponents rejectingComponents = createPaxosComponents(false);
+        assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
+    }
+
+    @Test
+    public void returnsTimeLockVersionWithIsLeaderBoolean() {
+        // return default when timeLock version not provided
+        PingableLeader pingableLeader = paxosComponents.pingableLeader(CLIENT);
+        assertThat(pingableLeader.pingV2().timeLockVersion())
+                .isEqualTo(Optional.of(DEFAULT_TIME_LOCK_VERSION));
+        assertThat(pingableLeader.pingV2().isLeader()).isNotNull();
+
+        pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION)
+                .pingableLeader(CLIENT);
+        assertThat(pingableLeader.pingV2().timeLockVersion()).isPresent();
+        assertThat(pingableLeader.pingV2().timeLockVersion().get()).isEqualTo(TIMELOCK_VERSION);
+    }
+
+    // utils
+    public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients) {
+        return LocalPaxosComponents.createWithBlockingMigration(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
                 sqlite,
                 UUID.randomUUID(),
-                false);
-        assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
+                canCreateNewClients,
+                DEFAULT_TIME_LOCK_VERSION);
+    }
+
+    public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients,
+            OrderableSlsVersion timeLockVersion) {
+        return LocalPaxosComponents.createWithBlockingMigration(
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
+                PaxosUseCase.TIMESTAMP,
+                legacyDirectory,
+                sqlite,
+                UUID.randomUUID(),
+                canCreateNewClients,
+                timeLockVersion);
     }
 }

@@ -49,7 +49,8 @@ public class MultiplexingCompletionServiceTest {
     }
 
     @Test
-    public void executorServicesFeedInToTheSameQueue() throws ExecutionException, InterruptedException {
+    public void executorServicesFeedInToTheSameQueue()
+            throws ExecutionException, InterruptedException, CheckedRejectedExecutionException {
         completionService.submit(KEY_1, () -> 31);
         completionService.submit(KEY_2, () -> 41);
 
@@ -61,7 +62,8 @@ public class MultiplexingCompletionServiceTest {
     }
 
     @Test
-    public void resultsAreTakenAsTheyBecomeAvailable() throws ExecutionException, InterruptedException {
+    public void resultsAreTakenAsTheyBecomeAvailable()
+            throws ExecutionException, InterruptedException, CheckedRejectedExecutionException {
         completionService.submit(KEY_1, () -> 5);
         completionService.submit(KEY_2, () -> 11);
         completionService.submit(KEY_1, () -> 42);
@@ -77,7 +79,8 @@ public class MultiplexingCompletionServiceTest {
     }
 
     @Test
-    public void propagatesFailingComputationResults() throws ExecutionException, InterruptedException {
+    public void propagatesFailingComputationResults()
+            throws ExecutionException, InterruptedException, CheckedRejectedExecutionException {
         MultiplexingCompletionService<String, Integer> service = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, executor1, KEY_2, executor2));
         service.submit(KEY_1, () -> 5);
@@ -102,7 +105,8 @@ public class MultiplexingCompletionServiceTest {
     }
 
     @Test
-    public void returnsResultsEvenIfOneExecutorIsSlow() throws ExecutionException, InterruptedException {
+    public void returnsResultsEvenIfOneExecutorIsSlow()
+            throws ExecutionException, InterruptedException, CheckedRejectedExecutionException {
         completionService.submit(KEY_1, () -> 5);
         completionService.submit(KEY_2, () -> 11);
         completionService.submit(KEY_1, () -> 42);
@@ -123,7 +127,7 @@ public class MultiplexingCompletionServiceTest {
     }
 
     @Test
-    public void rejectsExecutionsIfUnderlyingExecutorRejects() {
+    public void rejectsExecutionsIfUnderlyingExecutorRejects() throws CheckedRejectedExecutionException {
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, createBoundedExecutor(1)));
 
@@ -134,19 +138,19 @@ public class MultiplexingCompletionServiceTest {
 
         assertThat(boundedService.poll()).isNull();
         assertThatThrownBy(() -> boundedService.submit(KEY_1, sleepForFiveSeconds))
-                .isInstanceOf(RejectedExecutionException.class);
+                .isInstanceOf(CheckedRejectedExecutionException.class);
     }
 
     @Test
-    public void resilientToLargeNumberOfRequests() throws InterruptedException, ExecutionException {
+    public void resilientToLargeNumberOfRequests()
+            throws InterruptedException, ExecutionException, CheckedRejectedExecutionException {
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, createBoundedExecutor(2), KEY_2, createBoundedExecutor(2)));
 
         for (int i = 0; i < 4; i++) {
             try {
                 boundedService.submit(KEY_1, getSleepCallable(5_000));
-            } catch (RejectedExecutionException e) {
-                e.printStackTrace();
+            } catch (CheckedRejectedExecutionException e) {
                 // This is permissible
             }
         }
@@ -157,7 +161,8 @@ public class MultiplexingCompletionServiceTest {
     }
 
     @Test
-    public void valuesMayBeRetrievedFromFuturesReturned() throws ExecutionException, InterruptedException {
+    public void valuesMayBeRetrievedFromFuturesReturned()
+            throws ExecutionException, InterruptedException, CheckedRejectedExecutionException {
         DeterministicScheduler scheduler = new DeterministicScheduler();
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, scheduler));

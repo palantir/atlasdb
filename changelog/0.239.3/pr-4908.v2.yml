@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: '`ResilientLockWatchEventCache` now does not switch to the backup cache
+    if it encounters a `TransactionLockWatchFailedException` as originally intended.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4908

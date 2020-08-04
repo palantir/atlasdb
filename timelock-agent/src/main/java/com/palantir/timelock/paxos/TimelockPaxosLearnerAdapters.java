@@ -24,7 +24,9 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosLearnerRpcClient;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
+import com.palantir.atlasdb.timelock.paxos.WithDedicatedExecutor;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
@@ -34,7 +36,7 @@ public final class TimelockPaxosLearnerAdapters {
         // how many times
     }
 
-    public static List<PaxosLearner> create(
+    public static List<WithDedicatedExecutor<PaxosLearner>> create(
             PaxosUseCase paxosUseCase,
             PaxosRemoteClients remoteClients,
             Supplier<Boolean> useBatchedSingleLeader,
@@ -50,20 +52,25 @@ public final class TimelockPaxosLearnerAdapters {
                 throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
             case TIMESTAMP:
                 return remoteClients.nonBatchTimestampLearner().stream()
-                        .map(learner -> new TimelockPaxosLearnerAdapter(
-                                paxosUseCase,
-                                client.value(),
-                                learner)).collect(Collectors.toList());
+                        .map(withDedicatedExecutor -> withDedicatedExecutor.<PaxosLearner>transformService(
+                                learner -> new TimelockPaxosLearnerAdapter(paxosUseCase, client.value(), learner)))
+                        .collect(Collectors.toList());
             default:
                 throw new IllegalStateException("Unexpected value: " + paxosUseCase);
         }
     }
 
-    private static PaxosLearner createSwitchingClient(
-            BatchPaxosLearnerRpcClient batched,
-            PaxosRemoteClients.TimelockSingleLeaderPaxosLearnerRpcClient legacy,
+    private static WithDedicatedExecutor<PaxosLearner> createSwitchingClient(
+            WithDedicatedExecutor<BatchPaxosLearnerRpcClient> batched,
+            WithDedicatedExecutor<PaxosRemoteClients.TimelockSingleLeaderPaxosLearnerRpcClient> legacy,
             Supplier<Boolean> useBatched) {
-        return PredicateSwitchedProxy.newProxyInstance(BatchTimelockPaxosLearnerAdapter.singleLeader(batched),
-                legacy, useBatched, PaxosLearner.class);
+        Preconditions.checkState(batched.executor() == legacy.executor(),
+                "Different executors provided to a switching client! This is unexpected");
+        return WithDedicatedExecutor.of(PredicateSwitchedProxy.newProxyInstance(
+                BatchTimelockPaxosLearnerAdapter.singleLeader(batched.service()),
+                legacy.service(),
+                useBatched,
+                PaxosLearner.class),
+                batched.executor());
     }
 }

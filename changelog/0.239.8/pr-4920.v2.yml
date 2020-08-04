@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: AtlasDB now publishes only the counter metrics for the top 10 tables
+    by delta relative to the last measurement for `SnapshotTransaction` (`cellsRead,
+    cellsReturned, emptyValue, invalidStartTs, invalidCommitTs, commitTsGreaterThanTransactionTs`).
+    This should detect spikes as well as by default track the busiest tables, while
+    making savings on metrics cost.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4920

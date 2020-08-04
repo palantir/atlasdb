@@ -12,6 +12,8 @@ dependencies {
   compile group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
 
+  implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 }

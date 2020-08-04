@@ -1,0 +1,31 @@
+options:
+  javaPackage: 'com.palantir.leader'
+
+namespaces:
+  leaderElectionService:
+    docs: Metrics for tracking TimeLock leader election events.
+    metrics:
+      gainedLeadership:
+        type: meter
+        docs: Number of times(per second) leadership was gained successully.
+      lostLeadership:
+        type: meter
+        docs: Number of times(per second) leadership was lost.
+      noQuorum:
+        type: meter
+        docs: Number of times(per second) there was no quorum while determining leadership status.
+      proposedLeadership:
+        type: meter
+        docs: Number of times(per second) leadership was proposed.
+      proposalFailure:
+        type: meter
+        docs: Number of times(per second) leadership could not be gained after proposal.
+      leaderPingFailure:
+        type: meter
+        docs: Number of times(per second) pinging the leader failed.
+      leaderPingTimeout:
+        type: meter
+        docs: Number of times(per second) requests timed out while pinging the leader.
+      leaderPingReturnedFalse:
+        type: meter
+        docs: Number of times(per second) leader ping requests were made to a non leader node.

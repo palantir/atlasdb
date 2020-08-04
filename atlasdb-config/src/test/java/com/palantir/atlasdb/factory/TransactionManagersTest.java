@@ -79,7 +79,6 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
@@ -491,7 +490,6 @@ public class TransactionManagersTest {
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build();
-
         assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
     }
 
@@ -547,7 +545,6 @@ public class TransactionManagersTest {
                         .acceptorLogDir(temporaryFolder.newFolder())
                         .learnerLogDir(temporaryFolder.newFolder())
                         .build(),
-                () -> ImmutableLeaderRuntimeConfig.builder().build(),
                 USER_AGENT);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService lockService = LockServiceImpl.create();

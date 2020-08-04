@@ -22,7 +22,6 @@ import java.util.List;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -56,7 +55,7 @@ public interface Factories {
         @Value.Derived
         AutobatchingPingableLeaderFactory pingableLeaderFactory() {
             return AutobatchingPingableLeaderFactory.create(
-                    Maps.toMap(remoteClients().batchPingableLeadersWithContext(), _pingableLeader -> sharedExecutor()),
+                    WithDedicatedExecutor.convert(remoteClients().batchPingableLeadersWithContext()),
                     leaderPingRate(),
                     leaderPingResponseWait(),
                     leaderUuid());
@@ -82,7 +81,7 @@ public interface Factories {
         @Value.Derived
         SingleLeaderPinger pinger() {
             return new SingleLeaderPinger(
-                    Maps.toMap(remoteClients().nonBatchPingableLeadersWithContext(), _pingable -> sharedExecutor()),
+                    WithDedicatedExecutor.convert(remoteClients().nonBatchPingableLeadersWithContext()),
                     leaderPingResponseWait(),
                     leaderUuid(),
                     PaxosConstants.CANCEL_REMAINING_CALLS);
