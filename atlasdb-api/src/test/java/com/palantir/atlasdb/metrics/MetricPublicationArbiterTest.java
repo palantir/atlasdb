@@ -18,11 +18,17 @@ package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 public class MetricPublicationArbiterTest {
@@ -43,18 +49,18 @@ public class MetricPublicationArbiterTest {
 
     @Test
     public void metricsWithOneFilterAreFiltered() {
-        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(ImmutableMap.of(
-                METRIC_NAME_1, ImmutableList.of(() -> false),
-                METRIC_NAME_2, ImmutableList.of(() -> true)));
+        MetricPublicationArbiter arbiter = createArbiter(ImmutableMap.of(
+                METRIC_NAME_1, ImmutableSet.of(() -> false),
+                METRIC_NAME_2, ImmutableSet.of(() -> true)));
         assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
         assertThat(arbiter.test(METRIC_NAME_2)).isTrue();
     }
 
     @Test
     public void metricsWithMultipleFiltersAreAcceptedOnlyIfAllFiltersPermit() {
-        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(ImmutableMap.of(
-                METRIC_NAME_1, ImmutableList.of(() -> true, () -> false, () -> true),
-                METRIC_NAME_2, ImmutableList.of(() -> true, () -> true, () -> true)));
+        MetricPublicationArbiter arbiter = createArbiter(ImmutableMap.of(
+                METRIC_NAME_1, ImmutableSet.of(() -> true, () -> false, () -> true),
+                METRIC_NAME_2, ImmutableSet.of(() -> true, () -> true, () -> true)));
         assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
         assertThat(arbiter.test(METRIC_NAME_2)).isTrue();
     }
@@ -70,8 +76,8 @@ public class MetricPublicationArbiterTest {
 
     @Test
     public void exceptionTreatedAsNotFiltered() {
-        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(ImmutableMap.of(
-                METRIC_NAME_1, ImmutableList.of(() -> {
+        MetricPublicationArbiter arbiter = createArbiter(ImmutableMap.of(
+                METRIC_NAME_1, ImmutableSet.of(() -> {
                     throw new RuntimeException("boo");
                 })));
         assertThat(arbiter.test(METRIC_NAME_1)).isTrue();
@@ -79,12 +85,20 @@ public class MetricPublicationArbiterTest {
 
     @Test
     public void rejectsMetricWithDefinitivelyFalseFilterEvenWithExceptions() {
-        MetricPublicationArbiter arbiter = new MetricPublicationArbiter(ImmutableMap.of(
-                METRIC_NAME_1, ImmutableList.of(() -> {
+        MetricPublicationArbiter arbiter = createArbiter(ImmutableMap.of(
+                METRIC_NAME_1, ImmutableSet.of(() -> {
                     throw new RuntimeException("boo");
                 },
                         () -> true,
                         () -> false)));
         assertThat(arbiter.test(METRIC_NAME_1)).isFalse();
+    }
+
+    private static MetricPublicationArbiter createArbiter(Map<MetricName, Set<MetricPublicationFilter>> filters) {
+        return new MetricPublicationArbiter(KeyedStream.stream(filters)
+                .map(filtersForMetric -> filtersForMetric.stream()
+                        .map(MetricPublicationArbiter.DeduplicatingFilterHolder::new)
+                        .collect(Collectors.toSet()))
+                .collectToMap());
     }
 }

@@ -80,7 +80,7 @@ public class MetricsManager {
         this.registeredMetrics = ConcurrentHashMap.newKeySet();
         this.registeredTaggedMetrics = ConcurrentHashMap.newKeySet();
         this.isSafeToLog = isSafeToLog;
-        this.publicationArbiter = new MetricPublicationArbiter(Maps.newConcurrentMap());
+        this.publicationArbiter = MetricPublicationArbiter.create();
         this.publishableMetricsView = createPublishableMetricsView(
                 metricRegistry, taggedMetricRegistry, publicationArbiter, performFiltering);
         this.lock = new ReentrantReadWriteLock();

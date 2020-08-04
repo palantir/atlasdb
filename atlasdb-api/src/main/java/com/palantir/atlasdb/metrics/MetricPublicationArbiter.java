@@ -27,7 +27,9 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 
@@ -40,9 +42,13 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
 
     private final Map<MetricName, Set<DeduplicatingFilterHolder>> singleMetricFilters;
 
-    public MetricPublicationArbiter(
-            Map<MetricName, Set<DeduplicatingFilterHolder>> singleMetricFilters) {
+    @VisibleForTesting
+    MetricPublicationArbiter(Map<MetricName, Set<DeduplicatingFilterHolder>> singleMetricFilters) {
         this.singleMetricFilters = singleMetricFilters;
+    }
+
+    public static MetricPublicationArbiter create() {
+        return new MetricPublicationArbiter(Maps.newConcurrentMap());
     }
 
     @Override
@@ -82,11 +88,13 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
      * define a default method on {@link MetricPublicationFilter} with a reasonable deduplicator
      * and then wrap it here.
      */
-    private static class DeduplicatingFilterHolder {
+     @VisibleForTesting
+     static class DeduplicatingFilterHolder {
         @Nonnull
         final MetricPublicationFilter filter;
 
-        private DeduplicatingFilterHolder(MetricPublicationFilter filter) {
+        @VisibleForTesting
+        DeduplicatingFilterHolder(MetricPublicationFilter filter) {
             this.filter = filter;
         }
 
