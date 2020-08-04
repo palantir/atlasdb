@@ -90,6 +90,7 @@ class LeadershipEvents {
     }
 
     public void leaderOnOlderTimeLockVersion(OrderableSlsVersion version) {
+        // TODO(snanda): Kill log after few successful runs of blue-green deployment.
         leaderLog.info("We contacted the leader and it reported that it is on an older version of TimeLock - {}",
                 withContextArgs(SafeArg.of("version", version)));
         leaderElectionServiceMetrics.leaderOnOlderTimeLockVersion().mark();
