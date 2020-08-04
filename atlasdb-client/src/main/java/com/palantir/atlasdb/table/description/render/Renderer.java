@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.table.description.render;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.LongStream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
