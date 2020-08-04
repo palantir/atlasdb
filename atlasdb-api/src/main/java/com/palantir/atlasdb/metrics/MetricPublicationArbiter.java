@@ -89,6 +89,12 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
     @Value.Immutable
     interface DeduplicatingFilterHolder {
         @Value.Parameter
+        @Value.Auxiliary
         MetricPublicationFilter filter();
+
+        @Value.Derived
+        default String label() {
+            return filter().getLabel();
+        }
     }
 }
