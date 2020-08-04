@@ -25,7 +25,7 @@ public interface MetricPublicationFilter {
     boolean shouldPublish();
 
     /**
-     * @return A label which is used to deduplicate filters; it need only be unique across filters on a given metric
+     * @return A label which is used to deduplicate filters; it need only be unique across filters on a given metric.
      */
     default String getLabel() {
         return this.getClass().getName();
