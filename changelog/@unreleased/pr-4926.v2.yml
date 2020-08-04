@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: |-
+    Fix duplicate registration of MetricPublicationFilters. Previously, the same filter could be registered multiple times leading to unnecessary evaluations and possibly significant performance regressions in the leader block case.
+
+    See internal ticket PG-154380.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4926
