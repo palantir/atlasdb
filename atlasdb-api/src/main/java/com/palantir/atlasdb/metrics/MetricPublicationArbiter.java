@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,13 +61,13 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
 
     public void registerMetricsFilter(MetricName metricName, MetricPublicationFilter filter) {
         singleMetricFilters.merge(metricName,
-                Collections.singleton(new DeduplicatingFilterHolder(filter)),
+                ImmutableSet.of(ImmutableDeduplicatingFilterHolder.of(filter)),
                 (oldFilters, newFilter) ->
                         ImmutableSet.<DeduplicatingFilterHolder>builder().addAll(oldFilters).addAll(newFilter).build());
     }
 
     private static boolean allFiltersMatch(MetricName metricName, Set<DeduplicatingFilterHolder> relevantFilters) {
-        return relevantFilters.stream().allMatch(filter -> safeShouldPublish(metricName, filter.filter));
+        return relevantFilters.stream().allMatch(filter -> safeShouldPublish(metricName, filter.filter()));
     }
 
     private static boolean safeShouldPublish(MetricName metricName, MetricPublicationFilter filter) {
@@ -88,33 +89,9 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
      * define a default method on {@link MetricPublicationFilter} with a reasonable deduplicator
      * and then wrap it here.
      */
-    @VisibleForTesting
-    static class DeduplicatingFilterHolder {
-        @Nonnull
-        final MetricPublicationFilter filter;
-
-        @VisibleForTesting
-        DeduplicatingFilterHolder(MetricPublicationFilter filter) {
-            this.filter = filter;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-            if (other == null || getClass() != other.getClass()) {
-                return false;
-            }
-
-            DeduplicatingFilterHolder that = (DeduplicatingFilterHolder) other;
-
-            return filter.equals(that.filter);
-        }
-
-        @Override
-        public int hashCode() {
-            return filter.hashCode();
-        }
+    @Value.Immutable
+    interface DeduplicatingFilterHolder {
+        @Value.Parameter
+        MetricPublicationFilter filter();
     }
 }
