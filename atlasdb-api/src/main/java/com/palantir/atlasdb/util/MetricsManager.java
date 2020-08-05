@@ -38,7 +38,6 @@ import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.DisjointUnionTaggedMetricSet;
 import com.palantir.atlasdb.metrics.FilteredTaggedMetricSet;
@@ -80,7 +79,7 @@ public class MetricsManager {
         this.registeredMetrics = ConcurrentHashMap.newKeySet();
         this.registeredTaggedMetrics = ConcurrentHashMap.newKeySet();
         this.isSafeToLog = isSafeToLog;
-        this.publicationArbiter = new MetricPublicationArbiter(Maps.newConcurrentMap());
+        this.publicationArbiter = MetricPublicationArbiter.create();
         this.publishableMetricsView = createPublishableMetricsView(
                 metricRegistry, taggedMetricRegistry, publicationArbiter, performFiltering);
         this.lock = new ReentrantReadWriteLock();
