@@ -53,7 +53,8 @@ public class GetRowsColumnRangeIteratorTest {
     private static final TableReference TABLE_REFERENCE = TableReference.createWithEmptyNamespace("test");
     private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);
     private static final int BATCH_SIZE = 10;
-    public static final BatchColumnRangeSelection COLUMN_RANGE_SELECTION = BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
+    public static final BatchColumnRangeSelection COLUMN_RANGE_SELECTION =
+            BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
     private final ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(
@@ -144,7 +145,7 @@ public class GetRowsColumnRangeIteratorTest {
                 .get(ROW);
     }
 
-    private Iterator<Map.Entry<Cell,byte[]>> createIteratorUnderTest(Runnable validationStep) {
+    private Iterator<Map.Entry<Cell, byte[]>> createIteratorUnderTest(Runnable validationStep) {
         return GetRowsColumnRangeIterator.iterator(
                 batchProvider,
                 getInitialIterator(),

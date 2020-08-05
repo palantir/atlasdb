@@ -41,7 +41,7 @@ final class GetRowsColumnRangeIterator extends AbstractIterator<Iterator<Map.Ent
     private boolean firstBatchReturned = false;
     private boolean lastBatchReached = false;
 
-    public GetRowsColumnRangeIterator(
+    GetRowsColumnRangeIterator(
             BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator,
             Runnable batchValidationStep,
             PostFilterer postFilterer) {
