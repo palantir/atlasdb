@@ -60,7 +60,7 @@ public class MemoizingTableLevelMetricsControllerTest {
         Counter c2 = memoizing.createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE_2);
 
         assertThat(c1).isNotSameAs(c2);
-        verify(delegate, times(1)).createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE);
-        verify(delegate, times(1)).createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE_2);
+        verify(delegate).createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE);
+        verify(delegate).createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE_2);
     }
 }
