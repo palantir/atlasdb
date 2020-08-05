@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: SnapshotTransaction metrics are no longer filtered to the top-N tables.
+    This change is intended to be temporary while we fix a memory leak in the implementation
+    there.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4931
