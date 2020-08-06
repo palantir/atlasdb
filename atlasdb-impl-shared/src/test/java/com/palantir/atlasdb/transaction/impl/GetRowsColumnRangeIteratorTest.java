@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
@@ -37,8 +38,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -102,17 +105,16 @@ public class GetRowsColumnRangeIteratorTest {
         ImmutableList<Map.Entry<Cell, byte[]>> restOfSecondBatch = ImmutableList.copyOf(iteratorUnderTest);
         verifyNoMoreInteractions(validationStep);
 
-        Map<Cell, byte[]> returnedEntries = ImmutableMap.<Cell, byte[]>builder()
-                .putAll(firstBatchBarOne)
-                .put(lastInFirstBatch)
-                .put(firstInSecondBatch)
-                .putAll(restOfSecondBatch)
-                .build();
+        List<Cell> cellsReadInOrder = Streams.stream(Iterables.concat(
+                firstBatchBarOne, ImmutableList.of(lastInFirstBatch, firstInSecondBatch), restOfSecondBatch))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
 
-
-        assertThat(returnedEntries.keySet())
+        assertThat(cellsReadInOrder)
                 .as("we can read all that we wrote")
-                .isEqualTo(puts);
+                .hasSameElementsAs(puts)
+                .as("iterator returns cells back in sorted order")
+                .isSorted();
     }
 
     @Test
