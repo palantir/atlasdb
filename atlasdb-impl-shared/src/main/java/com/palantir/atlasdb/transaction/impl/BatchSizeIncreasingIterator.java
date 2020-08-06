@@ -19,6 +19,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,15 +34,15 @@ import com.palantir.util.AssertUtils;
 public class BatchSizeIncreasingIterator<T> {
     private static final Logger log = LoggerFactory.getLogger(BatchSizeIncreasingIterator.class);
 
-    final int originalBatchSize;
+    private final int originalBatchSize;
+    private final BatchProvider<T> batchProvider;
 
-    final BatchProvider<T> batchProvider;
-    ClosableIterator<T> currentResults = null;
-    byte[] lastToken;
+    private ClosableIterator<T> currentResults;
+    private byte[] lastToken;
 
-    long numReturned = 0;
-    long numNotDeleted = 0;
-    int lastBatchSize;
+    private long numReturned = 0;
+    private long numNotDeleted = 0;
+    private int lastBatchSize;
 
     public BatchSizeIncreasingIterator(BatchProvider<T> batchProvider,
                                        int originalBatchSize,
@@ -105,15 +106,26 @@ public class BatchSizeIncreasingIterator<T> {
         }
     }
 
-    public List<T> getBatch() {
+    public BatchResult<T> getBatch() {
         updateResultsIfNeeded();
         Preconditions.checkState(lastBatchSize > 0);
         ImmutableList<T> list = ImmutableList.copyOf(Iterators.limit(currentResults, lastBatchSize));
+
+        boolean isLastBatch = list.size() < lastBatchSize || !currentResults.hasNext();
         numReturned += list.size();
         if (!list.isEmpty()) {
             lastToken = batchProvider.getLastToken(list);
         }
-        return list;
+        return ImmutableBatchResult.of(list, isLastBatch);
+    }
+
+    @Value.Immutable
+    interface BatchResult<T> {
+        @Value.Parameter
+        List<T> batch();
+
+        @Value.Parameter
+        boolean isLastBatch();
     }
 
     public void close() {
