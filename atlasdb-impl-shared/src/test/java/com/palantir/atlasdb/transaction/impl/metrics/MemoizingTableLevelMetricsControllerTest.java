@@ -24,6 +24,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,6 +42,7 @@ public class MemoizingTableLevelMetricsControllerTest {
     private static final TableReference TABLE_REFERENCE_2 = TableReference.createFromFullyQualifiedName("a.bc");
 
     private final TableLevelMetricsController delegate = mock(TableLevelMetricsController.class);
+    private final TableLevelMetricsController memoizing = new MemoizingTableLevelMetricsController(delegate);
 
     @Before
     public void setUp() {
@@ -45,7 +51,6 @@ public class MemoizingTableLevelMetricsControllerTest {
 
     @Test
     public void metricIsOnlyRegisteredOnce() {
-        TableLevelMetricsController memoizing = new MemoizingTableLevelMetricsController(delegate);
         Counter c1 = memoizing.createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE);
         Counter c2 = memoizing.createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE);
 
@@ -55,12 +60,30 @@ public class MemoizingTableLevelMetricsControllerTest {
 
     @Test
     public void registersDifferentMetricsSeparately() {
-        TableLevelMetricsController memoizing = new MemoizingTableLevelMetricsController(delegate);
         Counter c1 = memoizing.createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE);
         Counter c2 = memoizing.createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE_2);
 
         assertThat(c1).isNotSameAs(c2);
         verify(delegate).createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE);
         verify(delegate).createAndRegisterCounter(STRING_CLASS, METRIC_NAME, TABLE_REFERENCE_2);
+    }
+
+    @Test
+    public void stressTest() {
+        int numTableReferences = 1000;
+        List<TableReference> tableReferences = IntStream.range(0, numTableReferences)
+                .mapToObj(this::getTableReference)
+                .collect(Collectors.toList());
+        for (int iteration = 0; iteration < 5; iteration++) {
+            Collections.shuffle(tableReferences);
+            tableReferences.forEach(tableReference -> memoizing.createAndRegisterCounter(
+                    STRING_CLASS, METRIC_NAME, tableReference));
+        }
+
+        verify(delegate, times(numTableReferences)).createAndRegisterCounter(any(), any(), any());
+    }
+
+    private TableReference getTableReference(int tableReferenceIndex) {
+        return TableReference.createFromFullyQualifiedName("a.b" + tableReferenceIndex);
     }
 }
