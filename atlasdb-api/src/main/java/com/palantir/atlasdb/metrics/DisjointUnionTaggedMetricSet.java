@@ -16,11 +16,12 @@
 
 package com.palantir.atlasdb.metrics;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 import com.codahale.metrics.Metric;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
@@ -28,6 +29,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricSet;
  * Combines two {@link TaggedMetricSet}s. It is expected that the metric names present from the two sets are disjoint.
  */
 public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
+
     private final TaggedMetricSet first;
     private final TaggedMetricSet second;
 
@@ -38,10 +40,14 @@ public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
 
     @Override
     public Map<MetricName, Metric> getMetrics() {
-        return ImmutableMap.<MetricName, Metric>builder()
-                .putAll(first.getMetrics())
-                .putAll(second.getMetrics())
-                .build();
+        Map<MetricName, Metric> firstMetrics = first.getMetrics();
+        Map<MetricName, Metric> secondMetrics = second.getMetrics();
+
+        Map<MetricName, Metric> metrics = new HashMap<>(firstMetrics.size() + secondMetrics.size());
+        firstMetrics.forEach(metrics::putIfAbsent);
+        secondMetrics.forEach(metrics::putIfAbsent);
+
+        return Collections.unmodifiableMap(metrics);
     }
 
     @Override

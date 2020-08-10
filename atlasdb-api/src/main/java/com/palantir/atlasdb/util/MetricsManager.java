@@ -93,7 +93,7 @@ public class MetricsManager {
             Refreshable<Boolean> performFiltering) {
         TaggedMetricSet legacyMetricsAsTaggedSet = new DropwizardTaggedMetricSet(metricRegistry);
         TaggedMetricSet unfilteredUnion
-                = new DisjointUnionTaggedMetricSet(legacyMetricsAsTaggedSet, taggedMetricRegistry);
+                = new DisjointUnionTaggedMetricSet(taggedMetricRegistry, legacyMetricsAsTaggedSet);
         return new FilteredTaggedMetricSet(unfilteredUnion, arbiter, performFiltering);
     }
 
