@@ -23,6 +23,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
@@ -37,6 +38,7 @@ class LeadershipEvents {
     private static final Logger leaderLog = LoggerFactory.getLogger(LEADER_LOG_NAME);
     private final Object[] contextArgs;
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
+    private final RateLimiter leaderOnOlderVersionLoggingRateLimiter = RateLimiter.create(0.03);
 
     LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<String>> safeLoggingArgs) {
         leaderElectionServiceMetrics = LeaderElectionServiceMetrics.of(metrics);
@@ -91,8 +93,10 @@ class LeadershipEvents {
 
     public void leaderOnOlderTimeLockVersion(OrderableSlsVersion version) {
         // TODO(snanda): Kill log after few successful runs of blue-green deployment.
-        leaderLog.info("We contacted the leader and it reported that it is on an older version of TimeLock - {}",
-                withContextArgs(SafeArg.of("version", version)));
+        if (leaderOnOlderVersionLoggingRateLimiter.tryAcquire()) {
+            leaderLog.info("We contacted the leader and it reported that it is on an older version of TimeLock - {}",
+                    withContextArgs(SafeArg.of("version", version)));
+        }
         leaderElectionServiceMetrics.leaderOnOlderTimeLockVersion().mark();
     }
 
