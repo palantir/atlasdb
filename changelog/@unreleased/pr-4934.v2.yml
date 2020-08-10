@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump TimeLock Schema Version
+  links:
+  - https://github.com/palantir/atlasdb/pull/4934
