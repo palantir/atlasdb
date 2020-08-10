@@ -76,6 +76,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
+    // Schema version from 2 onwards are on SQLite
     private static final Long SCHEMA_VERSION = 3L;
 
     private final MetricsManager metricsManager;
