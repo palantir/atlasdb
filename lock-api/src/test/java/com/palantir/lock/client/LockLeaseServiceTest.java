@@ -155,7 +155,6 @@ public class LockLeaseServiceTest {
                 .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         assertValid(lockResponse.getToken());
-        verify(timelock, times(1)).lock(any());
         verify(timelock)
                 .lock(argThat(req -> req.getAcquireTimeoutMs()
                         == BlockEnforcingLockService.MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT.toMillis()));
