@@ -46,6 +46,13 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * Fairness is admittedly compromised, but this is a closer approximation than the previous behaviour.
  */
 final class BlockEnforcingLockService {
+    /**
+     * Bound lock acquire timeout by client read timeout because 1. the async request expires before server cancels
+     * the request thus avoiding {@link java.util.concurrent.CancellationException} and
+     * 2. this ensures locks are not given out to phantom client.
+     */
+    static final Duration MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT = Duration.ofSeconds(65).minusMillis(100);
+
     private final NamespacedConjureTimelockService namespacedConjureTimelockService;
     private final RemoteTimeoutRetryer timeoutRetryer;
 
@@ -81,7 +88,8 @@ final class BlockEnforcingLockService {
     private static ConjureLockRequest clampLockRequestToDeadline(ConjureLockRequest request, Duration remainingTime) {
         return ConjureLockRequest.builder()
                 .from(request)
-                .acquireTimeoutMs(Ints.checkedCast(remainingTime.toMillis()))
+                .acquireTimeoutMs(Math.min(Ints.checkedCast(remainingTime.toMillis()),
+                        Ints.checkedCast(MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT.toMillis())))
                 .build();
     }
 
