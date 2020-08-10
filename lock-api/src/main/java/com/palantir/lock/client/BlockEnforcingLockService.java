@@ -51,7 +51,7 @@ final class BlockEnforcingLockService {
      * the request thus avoiding {@link java.util.concurrent.CancellationException} and
      * 2. this ensures locks are not given out to phantom client.
      */
-    private static final Duration MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT = Duration.ofSeconds(65);
+    static final Duration MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT = Duration.ofSeconds(65).minusMillis(100);
 
     private final NamespacedConjureTimelockService namespacedConjureTimelockService;
     private final RemoteTimeoutRetryer timeoutRetryer;
