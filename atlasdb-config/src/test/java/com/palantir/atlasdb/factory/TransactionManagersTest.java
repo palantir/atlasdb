@@ -105,6 +105,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
@@ -917,7 +918,11 @@ public class TransactionManagersTest {
                 Refreshable.create(mockAtlasDbRuntimeConfig);
         Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
-                        config, refreshableRuntimeConfig, USER_AGENT);
+                        config,
+                        refreshableRuntimeConfig,
+                        USER_AGENT,
+                        DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()))
+                                .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking")));
         ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                 .builder()
                 .atlasVersion("1.0")
