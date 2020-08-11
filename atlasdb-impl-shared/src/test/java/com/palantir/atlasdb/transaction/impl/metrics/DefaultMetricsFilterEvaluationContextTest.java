@@ -37,7 +37,8 @@ public class DefaultMetricsFilterEvaluationContextTest {
     private static final String KEY_3 = "oftheancients";
 
     private final Supplier<TopNMetricPublicationController<Long>> controllerFactory = mock(Supplier.class);
-    private final DefaultMetricsFilterEvaluationContext context = new DefaultMetricsFilterEvaluationContext(controllerFactory);
+    private final DefaultMetricsFilterEvaluationContext context
+            = new DefaultMetricsFilterEvaluationContext(controllerFactory);
 
     @Before
     public void setUp() {

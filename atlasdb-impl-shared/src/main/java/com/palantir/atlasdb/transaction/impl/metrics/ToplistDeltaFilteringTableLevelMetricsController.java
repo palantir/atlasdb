@@ -86,7 +86,8 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
             }
         };
 
-        MetricPublicationFilter filter = metricsFilterEvaluationContext.registerAndCreateTopNFilter(metricName, memoizedGauge);
+        MetricPublicationFilter filter = metricsFilterEvaluationContext.registerAndCreateTopNFilter(
+                metricName, memoizedGauge);
         metricsManager.addMetricFilter(
                 clazz,
                 metricName,
