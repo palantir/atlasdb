@@ -1187,26 +1187,13 @@ public abstract class TransactionManagers {
                 leaderConfig,
                 userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
-        LockService localLock = ServiceCreator.instrumentService(
-                metricsManager.getRegistry(),
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader),
-                LockService.class);
+        LockService localLock = AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader);
 
-        ManagedTimestampService managedTimestampProxy =
+        ManagedTimestampService localManagedTimestamp =
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
 
-        TimestampService localTime = ServiceCreator.instrumentService(
-                metricsManager.getRegistry(),
-                managedTimestampProxy,
-                TimestampService.class);
-
-        TimestampManagementService localManagement = ServiceCreator.instrumentService(
-                metricsManager.getRegistry(),
-                managedTimestampProxy,
-                TimestampManagementService.class);
         env.accept(localLock);
-        env.accept(localTime);
-        env.accept(localManagement);
+        env.accept(localManagedTimestamp);
 
         // Create remote services, that may end up calling our own local services.
         ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
@@ -1272,9 +1259,9 @@ public abstract class TransactionManagers {
             LockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
                     LockService.class, localLock, remoteLock, useLocalServicesFuture);
             TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
+                    TimestampService.class, localManagedTimestamp, remoteTime, useLocalServicesFuture);
             TimestampManagementService dynamicManagementService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampManagementService.class, localManagement, remoteManagement, useLocalServicesFuture);
+                    TimestampManagementService.class, localManagedTimestamp, remoteManagement, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
                     .timestamp(dynamicTimeService)
