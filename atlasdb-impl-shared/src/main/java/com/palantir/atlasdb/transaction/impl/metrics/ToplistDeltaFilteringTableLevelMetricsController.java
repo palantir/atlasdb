@@ -26,7 +26,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -45,29 +44,26 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
     private static final String CONTROLLER_GENERATED = "controllerGenerated";
     private static final String TRUE = "true";
 
-    @VisibleForTesting
-    static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
+    private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
 
-    private final Map<String, TopNMetricPublicationController<Long>> metricNameToPublicationController;
+    private final ToplistMetricsContext toplistMetricsContext;
     private final MetricsManager metricsManager;
-    private final int maximumNumberOfTables;
     private final Clock clock;
 
     @VisibleForTesting
     ToplistDeltaFilteringTableLevelMetricsController(
+            ToplistMetricsContext toplistMetricsContext,
             MetricsManager metricsManager,
-            int maximumNumberOfTables,
             Clock clock) {
-        this.metricNameToPublicationController = Maps.newConcurrentMap();
+        this.toplistMetricsContext = toplistMetricsContext;
         this.metricsManager = metricsManager;
-        this.maximumNumberOfTables = maximumNumberOfTables;
         this.clock = clock;
     }
 
     public static TableLevelMetricsController create(MetricsManager metricsManager) {
         return new ToplistDeltaFilteringTableLevelMetricsController(
+                new DefaultToplistMetricsContext(DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS),
                 metricsManager,
-                DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS,
                 Clock.defaultClock());
     }
 
@@ -95,9 +91,7 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
             }
         };
 
-        MetricPublicationFilter filter = metricNameToPublicationController.computeIfAbsent(metricName,
-                _name -> TopNMetricPublicationController.create(maximumNumberOfTables))
-                .registerAndCreateFilter(memoizedGauge);
+        MetricPublicationFilter filter = toplistMetricsContext.registerAndCreateTopNFilter(metricName, memoizedGauge);
         metricsManager.addMetricFilter(
                 clazz,
                 metricName,
