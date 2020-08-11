@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Local services are no longer instrumented to avoid creating duplicate
+    metrics.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4938
