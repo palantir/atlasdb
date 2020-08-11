@@ -480,7 +480,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.create(AtlasDbConstants.DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS));
+                DefaultMetricsFilterEvaluationContext.createDefault());
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,

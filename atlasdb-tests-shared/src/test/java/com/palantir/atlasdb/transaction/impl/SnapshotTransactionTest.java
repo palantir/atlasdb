@@ -198,9 +198,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             = TransactionOutcomeMetrics.create(metricsManager);
     private final TableLevelMetricsController tableLevelMetricsController
             = ToplistDeltaFilteringTableLevelMetricsController.create(
-                    metricsManager,
-                    DefaultMetricsFilterEvaluationContext.create(
-                            AtlasDbConstants.DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS));
+                    metricsManager, DefaultMetricsFilterEvaluationContext.createDefault());
 
     private TransactionConfig transactionConfig;
 

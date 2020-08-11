@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
@@ -34,6 +35,10 @@ public class DefaultMetricsFilterEvaluationContext implements MetricsFilterEvalu
     DefaultMetricsFilterEvaluationContext(Supplier<TopNMetricPublicationController<Long>> controllerFactory) {
         this.controllerFactory = controllerFactory;
         this.keyToPublicationController = Maps.newConcurrentMap();
+    }
+
+    public static DefaultMetricsFilterEvaluationContext createDefault() {
+        return create(AtlasDbConstants.DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS);
     }
 
     public static DefaultMetricsFilterEvaluationContext create(int toplistSize) {

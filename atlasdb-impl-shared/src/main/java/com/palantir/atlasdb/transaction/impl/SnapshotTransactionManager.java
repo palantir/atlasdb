@@ -155,7 +155,8 @@ import com.palantir.util.SafeShutdownRunner;
         this.transactionConfig = transactionConfig;
         this.conflictTracer = conflictTracer;
         this.tableLevelMetricsController = new MemoizingTableLevelMetricsController(
-                ToplistDeltaFilteringTableLevelMetricsController.create(metricsManager, metricsFilterEvaluationContext));
+                ToplistDeltaFilteringTableLevelMetricsController.create(
+                        metricsManager, metricsFilterEvaluationContext));
     }
 
     @Override

@@ -278,9 +278,8 @@ public abstract class TransactionManagers {
     }
 
     @Value.Default
-    MetricsFilterEvaluationContext toplistMetricsContext() {
-        return DefaultMetricsFilterEvaluationContext.create(
-                AtlasDbConstants.DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS);
+    MetricsFilterEvaluationContext metricsFilterEvaluationContext() {
+        return DefaultMetricsFilterEvaluationContext.createDefault();
     }
 
     /**
@@ -511,7 +510,7 @@ public abstract class TransactionManagers {
                         validateLocksOnReads(),
                         transactionConfigSupplier,
                         conflictTracer,
-                        toplistMetricsContext()),
+                        metricsFilterEvaluationContext()),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
