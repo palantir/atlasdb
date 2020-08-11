@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
@@ -76,11 +75,12 @@ public class DisjointUnionTaggedMetricSetTest {
     }
 
     @Test
-    public void throwsIfConflictDetected() {
-        registry1.timer(METRIC_NAME_1);
+    public void doesNotReplaceIfConflictDetected() {
+        Timer timer = registry1.timer(METRIC_NAME_1);
         registry2.timer(METRIC_NAME_1);
 
-        assertThatThrownBy(disjointUnionTaggedMetricSet::getMetrics).isInstanceOf(IllegalArgumentException.class);
+        assertThat(disjointUnionTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
+                ImmutableMap.of(METRIC_NAME_1, timer));
     }
 
     @Test
