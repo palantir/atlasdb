@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder, PaxosLeaderElectionEventRecorder {
@@ -79,6 +80,11 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     @Override
     public void recordLeaderPingReturnedFalse() {
         events.leaderPingReturnedFalse();
+    }
+
+    @Override
+    public void recordLeaderOnOlderVersion(OrderableSlsVersion version) {
+        events.leaderOnOlderTimeLockVersion(version);
     }
 
     @Override

@@ -29,3 +29,7 @@ namespaces:
       leaderPingReturnedFalse:
         type: meter
         docs: Number of times(per second) leader ping requests were made to a non leader node.
+      leaderOnOlderTimeLockVersion:
+        type: meter
+        docs: Number of times(per second) leader reported that it was on an older version of TimeLock.
+

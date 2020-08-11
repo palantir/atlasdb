@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,6 +37,7 @@ import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.SingleLeaderPinger;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PaxosLeaderEventsTest {
@@ -57,7 +59,7 @@ public class PaxosLeaderEventsTest {
     @Test
     public void recordsLeaderPingFailure() {
         RuntimeException error = new RuntimeException("foo");
-        when(pingableLeader.ping()).thenThrow(error);
+        when(pingableLeader.pingV2()).thenThrow(error);
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(10));
@@ -67,9 +69,9 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void recordsLeaderPingTimeout() {
-        when(pingableLeader.ping()).thenAnswer($ -> {
+        when(pingableLeader.pingV2()).thenAnswer($ -> {
             Thread.sleep(10_000);
-            return true;
+            return PingResult.builder().isLeader(true).build();
         });
 
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
@@ -81,7 +83,7 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void recordsLeaderPingReturnedFalse() {
-        when(pingableLeader.ping()).thenReturn(false);
+        when(pingableLeader.pingV2()).thenReturn(PingResult.builder().isLeader(false).build());
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
@@ -91,10 +93,33 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void doesNotRecordLeaderPingSuccess() {
-        when(pingableLeader.ping()).thenReturn(true);
+        when(pingableLeader.pingV2()).thenReturn(PingResult.builder().isLeader(true).build());
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, HOST_AND_PORT));
+    }
+
+    @Test
+    public void recordsLeaderPingReturnedTrueWithOlderVersion() {
+        OrderableSlsVersion oldTimeLockVersion = OrderableSlsVersion.valueOf("1.1.2");
+        when(pingableLeader.pingV2()).thenReturn(
+                PingResult.builder().isLeader(true).timeLockVersion(oldTimeLockVersion).build());
+        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
+
+        LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("2.1.1"));
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingReturnedTrueWithOlderVersion(oldTimeLockVersion));
+    }
+
+    @Test
+    public void leaderPingReturnsTrueWithLeaderOnNewerVersion() {
+        when(pingableLeader.pingV2()).thenReturn(
+                PingResult.builder().isLeader(true).timeLockVersion(OrderableSlsVersion.valueOf("2.1.1")).build());
+        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
+
+        LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));
         assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
                 .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, HOST_AND_PORT));
     }
@@ -106,7 +131,18 @@ public class PaxosLeaderEventsTest {
                         new CheckedRejectionExecutorService(executorService)),
                 leaderPingResponseWait,
                 LOCAL_UUID,
-                true);
+                true,
+                Optional.empty());
     }
 
+    private LeaderPinger pingerWithVersion(OrderableSlsVersion version) {
+        return new SingleLeaderPinger(
+                ImmutableMap.of(
+                        ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT),
+                        new CheckedRejectionExecutorService(executorService)),
+                Duration.ofSeconds(5),
+                LOCAL_UUID,
+                true,
+                Optional.of(version));
+    }
 }
