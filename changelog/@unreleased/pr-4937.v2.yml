@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: AtlasDB clients now re-use a Dialogue `ReloadingFactory` across standard
+    TimeLock and Adjudication use-cases, and correctly respect user-provided factories
+    for the latter.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4937
