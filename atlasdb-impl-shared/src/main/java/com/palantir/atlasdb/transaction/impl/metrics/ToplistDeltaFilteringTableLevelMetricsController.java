@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
 /**
  * This controller makes decisions based on deltas (in an attempt to be able to detect load spikes) measured over the
@@ -58,7 +57,7 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
 
     public static TableLevelMetricsController create(MetricsManager metricsManager) {
         return new ToplistDeltaFilteringTableLevelMetricsController(
-                new DefaultToplistMetricsContext(DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS),
+                DefaultToplistMetricsContext.create(DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS),
                 metricsManager,
                 Clock.defaultClock());
     }

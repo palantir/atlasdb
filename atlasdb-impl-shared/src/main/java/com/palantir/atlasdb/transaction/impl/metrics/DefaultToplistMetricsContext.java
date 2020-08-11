@@ -17,25 +17,38 @@
 package com.palantir.atlasdb.transaction.impl.metrics;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
 import com.codahale.metrics.Gauge;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
 public class DefaultToplistMetricsContext implements ToplistMetricsContext {
-    private final int toplistSize;
     private final Map<String, TopNMetricPublicationController<Long>> keyToPublicationController;
+    private final Supplier<TopNMetricPublicationController<Long>> controllerFactory;
 
-    DefaultToplistMetricsContext(int toplistSize) {
+    @VisibleForTesting
+    DefaultToplistMetricsContext(Supplier<TopNMetricPublicationController<Long>> controllerFactory) {
+        this.controllerFactory = controllerFactory;
         this.keyToPublicationController = Maps.newConcurrentMap();
-        this.toplistSize = toplistSize;
+    }
+
+    public static DefaultToplistMetricsContext create(int toplistSize) {
+        return new DefaultToplistMetricsContext(() -> TopNMetricPublicationController.create(toplistSize));
+    }
+
+    @VisibleForTesting
+    Set<String> getRegisteredKeys() {
+        return keyToPublicationController.keySet();
     }
 
     @Override
     public MetricPublicationFilter registerAndCreateTopNFilter(String key, Gauge<Long> gauge) {
         return keyToPublicationController.computeIfAbsent(key,
-                _name -> TopNMetricPublicationController.create(toplistSize))
+                _name -> controllerFactory.get())
                 .registerAndCreateFilter(gauge);
     }
 }

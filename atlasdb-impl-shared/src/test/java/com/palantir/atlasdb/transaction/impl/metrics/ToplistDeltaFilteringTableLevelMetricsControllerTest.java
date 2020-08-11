@@ -42,7 +42,7 @@ import com.palantir.tritium.metrics.registry.MetricName;
 public class ToplistDeltaFilteringTableLevelMetricsControllerTest {
     private final Clock mockClock = mock(Clock.class);
     private final MetricsManager metricsManager = MetricsManagers.createAlwaysSafeAndFilteringForTests();
-    private final ToplistMetricsContext context = new DefaultToplistMetricsContext(3);
+    private final ToplistMetricsContext context = DefaultToplistMetricsContext.create(3);
     private final ToplistDeltaFilteringTableLevelMetricsController controller
             = new ToplistDeltaFilteringTableLevelMetricsController(context, metricsManager, mockClock);
 
