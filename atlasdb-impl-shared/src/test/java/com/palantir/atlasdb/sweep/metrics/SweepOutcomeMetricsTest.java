@@ -116,20 +116,20 @@ public class SweepOutcomeMetricsTest {
 
     @Test
     public void canFilterOutUninterestingMetrics() {
-        MetricsManager differentManager = MetricsManagers.createAlwaysSafeAndFilteringForTests();
         SweepOutcomeMetrics.registerTargeted(
                 metricsManager,
                 ImmutableMap.of("strategy", "thorough"),
                 () -> false);
         TargetedSweepMetrics targetedMetrics = TargetedSweepMetrics
-                .create(differentManager, mock(TimelockService.class), new InMemoryKeyValueService(true),
+                .create(metricsManager, mock(TimelockService.class), new InMemoryKeyValueService(true),
                         TargetedSweepMetrics.MetricsConfiguration.builder()
                                 .millisBetweenRecomputingMetrics(Long.MAX_VALUE)
                                 .build());
 
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(outcome -> {
             targetedMetrics.registerOccurrenceOf(ShardAndStrategy.thorough(1), outcome);
-            assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, outcome);
         });
+
+        org.assertj.core.api.Assertions.assertThat(metricsManager.getPublishableMetrics().getMetrics()).isEmpty();
     }
 }
