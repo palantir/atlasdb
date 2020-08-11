@@ -141,6 +141,8 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -273,6 +275,12 @@ public abstract class TransactionManagers {
     @Value.Default
     LockWatchingCache lockWatchingCache() {
         return NoOpLockWatchingCache.INSTANCE;
+    }
+
+    @Value.Default
+    MetricsFilterEvaluationContext toplistMetricsContext() {
+        return DefaultMetricsFilterEvaluationContext.create(
+                AtlasDbConstants.DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS);
     }
 
     /**
@@ -502,7 +510,8 @@ public abstract class TransactionManagers {
                         callbacks,
                         validateLocksOnReads(),
                         transactionConfigSupplier,
-                        conflictTracer),
+                        conflictTracer,
+                        toplistMetricsContext()),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

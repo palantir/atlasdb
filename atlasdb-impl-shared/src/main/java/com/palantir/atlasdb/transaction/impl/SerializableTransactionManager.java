@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -44,6 +45,8 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -233,7 +236,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
 
         return create(metricsManager,
                 keyValueService,
@@ -260,7 +264,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 true,
-                conflictTracer);
+                conflictTracer,
+                metricsFilterEvaluationContext);
     }
 
     public static TransactionManager create(
@@ -286,7 +291,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
 
         return create(metricsManager,
                 keyValueService,
@@ -312,7 +318,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                metricsFilterEvaluationContext);
     }
 
     public static TransactionManager create(
@@ -339,7 +346,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         return create(
                 metricsManager,
                 keyValueService,
@@ -365,7 +373,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 false,
-                conflictTracer);
+                conflictTracer,
+                metricsFilterEvaluationContext);
     }
 
     private static TransactionManager create(
@@ -393,7 +402,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             boolean shouldInstrument,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -415,7 +425,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                metricsFilterEvaluationContext);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -468,7 +479,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                DefaultMetricsFilterEvaluationContext.create(AtlasDbConstants.DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS));
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -491,7 +503,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         super(
                 metricsManager,
                 keyValueService,
@@ -513,7 +526,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer
+                conflictTracer,
+                metricsFilterEvaluationContext
         );
         this.conflictTracer = conflictTracer;
     }

@@ -62,6 +62,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -127,7 +128,8 @@ import com.palantir.util.SafeShutdownRunner;
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         this.lockWatchEventCache = lockWatchEventCache;
@@ -153,7 +155,7 @@ import com.palantir.util.SafeShutdownRunner;
         this.transactionConfig = transactionConfig;
         this.conflictTracer = conflictTracer;
         this.tableLevelMetricsController = new MemoizingTableLevelMetricsController(
-                ToplistDeltaFilteringTableLevelMetricsController.create(metricsManager));
+                ToplistDeltaFilteringTableLevelMetricsController.create(metricsManager, metricsFilterEvaluationContext));
     }
 
     @Override

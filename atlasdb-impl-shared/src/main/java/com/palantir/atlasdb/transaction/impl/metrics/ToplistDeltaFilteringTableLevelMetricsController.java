@@ -35,29 +35,29 @@ import com.palantir.atlasdb.util.MetricsManager;
  * last {@code REFRESH_INTERVAL} period.
  */
 public final class ToplistDeltaFilteringTableLevelMetricsController implements TableLevelMetricsController {
-    private static final int DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS = 10;
     private static final String CONTROLLER_GENERATED = "controllerGenerated";
     private static final String TRUE = "true";
 
     private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
 
-    private final ToplistMetricsContext toplistMetricsContext;
+    private final MetricsFilterEvaluationContext metricsFilterEvaluationContext;
     private final MetricsManager metricsManager;
     private final Clock clock;
 
     @VisibleForTesting
     ToplistDeltaFilteringTableLevelMetricsController(
-            ToplistMetricsContext toplistMetricsContext,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             MetricsManager metricsManager,
             Clock clock) {
-        this.toplistMetricsContext = toplistMetricsContext;
+        this.metricsFilterEvaluationContext = metricsFilterEvaluationContext;
         this.metricsManager = metricsManager;
         this.clock = clock;
     }
 
-    public static TableLevelMetricsController create(MetricsManager metricsManager) {
+    public static TableLevelMetricsController create(MetricsManager metricsManager,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         return new ToplistDeltaFilteringTableLevelMetricsController(
-                DefaultToplistMetricsContext.create(DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS),
+                metricsFilterEvaluationContext,
                 metricsManager,
                 Clock.defaultClock());
     }
@@ -86,7 +86,7 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
             }
         };
 
-        MetricPublicationFilter filter = toplistMetricsContext.registerAndCreateTopNFilter(metricName, memoizedGauge);
+        MetricPublicationFilter filter = metricsFilterEvaluationContext.registerAndCreateTopNFilter(metricName, memoizedGauge);
         metricsManager.addMetricFilter(
                 clazz,
                 metricName,

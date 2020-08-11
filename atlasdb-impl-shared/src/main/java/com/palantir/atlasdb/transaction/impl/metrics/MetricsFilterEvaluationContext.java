@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import org.immutables.value.Value;
-
 import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 
@@ -28,6 +26,6 @@ import com.palantir.atlasdb.metrics.MetricPublicationFilter;
  * of the tying values will be published so that the total number of published metrics is the size of the top-list
  * (though specifically which tying gauges are selected is nondeterministic).
  */
-public interface ToplistMetricsContext {
+public interface MetricsFilterEvaluationContext {
     MetricPublicationFilter registerAndCreateTopNFilter(String key, Gauge<Long> value);
 }

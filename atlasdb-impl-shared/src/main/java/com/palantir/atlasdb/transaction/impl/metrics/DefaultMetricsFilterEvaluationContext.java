@@ -26,18 +26,18 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
-public class DefaultToplistMetricsContext implements ToplistMetricsContext {
+public class DefaultMetricsFilterEvaluationContext implements MetricsFilterEvaluationContext {
     private final Map<String, TopNMetricPublicationController<Long>> keyToPublicationController;
     private final Supplier<TopNMetricPublicationController<Long>> controllerFactory;
 
     @VisibleForTesting
-    DefaultToplistMetricsContext(Supplier<TopNMetricPublicationController<Long>> controllerFactory) {
+    DefaultMetricsFilterEvaluationContext(Supplier<TopNMetricPublicationController<Long>> controllerFactory) {
         this.controllerFactory = controllerFactory;
         this.keyToPublicationController = Maps.newConcurrentMap();
     }
 
-    public static DefaultToplistMetricsContext create(int toplistSize) {
-        return new DefaultToplistMetricsContext(() -> TopNMetricPublicationController.create(toplistSize));
+    public static DefaultMetricsFilterEvaluationContext create(int toplistSize) {
+        return new DefaultMetricsFilterEvaluationContext(() -> TopNMetricPublicationController.create(toplistSize));
     }
 
     @VisibleForTesting

@@ -31,13 +31,13 @@ import org.junit.Test;
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
 @SuppressWarnings("unchecked") // mocks
-public class DefaultToplistMetricsContextTest {
+public class DefaultMetricsFilterEvaluationContextTest {
     private static final String KEY_1 = "skeleton";
     private static final String KEY_2 = "c#minor";
     private static final String KEY_3 = "oftheancients";
 
     private final Supplier<TopNMetricPublicationController<Long>> controllerFactory = mock(Supplier.class);
-    private final DefaultToplistMetricsContext context = new DefaultToplistMetricsContext(controllerFactory);
+    private final DefaultMetricsFilterEvaluationContext context = new DefaultMetricsFilterEvaluationContext(controllerFactory);
 
     @Before
     public void setUp() {
