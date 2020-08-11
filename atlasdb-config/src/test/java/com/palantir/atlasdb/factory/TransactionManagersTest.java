@@ -922,7 +922,7 @@ public class TransactionManagersTest {
                         refreshableRuntimeConfig,
                         USER_AGENT,
                         DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()))
-                                .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking")));
+                                .withBlockingExecutor(PTExecutors.newCachedThreadPool()));
         ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                 .builder()
                 .atlasVersion("1.0")
