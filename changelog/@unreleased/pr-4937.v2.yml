@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: fix
+fix:
   description: AtlasDB clients now re-use a Dialogue `ReloadingFactory` across standard
     TimeLock and Adjudication use-cases, and correctly respect user-provided factories
     for the latter.
