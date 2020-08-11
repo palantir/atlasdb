@@ -32,10 +32,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
 /**
- * Makes publication decisions for a given metric, as follows: for a given String identifier, filters out all but the
- * highest {@code maximumNumberOfTables} values. In the event of ties (e.g. a top-list of 10 where the 10th and 11th
- * highest values are equal), all tying values are published.
- *
  * This controller makes decisions based on deltas (in an attempt to be able to detect load spikes) measured over the
  * last {@code REFRESH_INTERVAL} period.
  */
