@@ -21,7 +21,7 @@ import org.junit.ClassRule;
 
 public class DbkvsOracleTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsOracleTestSuite::createKvs);
 
     public DbkvsOracleTargetedSweepIntegrationTest() {
         super(TRM, TRM);

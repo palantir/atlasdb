@@ -34,7 +34,7 @@ import org.junit.Test;
 public class OracleTableNameMapperEteTest {
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(() ->
-            ConnectionManagerAwareDbKvs.create(DbKvsOracleTestSuite.getKvsConfig()));
+            ConnectionManagerAwareDbKvs.create(DbkvsOracleTestSuite.getKvsConfig()));
 
     private KeyValueService kvs;
     private ConnectionSupplier connectionSupplier;
@@ -53,7 +53,7 @@ public class OracleTableNameMapperEteTest {
     @Before
     public void setup() {
         kvs = TRM.getDefaultKvs();
-        connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(kvs);
+        connectionSupplier = DbkvsOracleTestSuite.getConnectionSupplier(kvs);
     }
 
     @After

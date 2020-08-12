@@ -53,6 +53,10 @@ import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
 
+/**
+ * In order to run these CI tests, you need to provide your own Docker image, and place it in the environment variable
+ * 'ORACLE_DOCKER_IMAGE'. If you need to develop locally, this value can be found in the AtlasDB CI configuration.
+ */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         DbkvsOracleTargetedSweepIntegrationTest.class,
@@ -64,7 +68,7 @@ import com.palantir.nexus.db.sql.SqlConnectionHelper;
         OracleTableNameMapperEteTest.class,
         OracleDbTimestampBoundStoreTest.class
 })
-public final class DbKvsOracleTestSuite {
+public final class DbkvsOracleTestSuite {
     private static final String DOCKER_COMPOSE_TEMPLATE = "version: '2'\n"
             + "\n"
             + "services:\n"
@@ -88,7 +92,7 @@ public final class DbKvsOracleTestSuite {
     private static final String ORACLE_DOCKER_COMPOSE_FILE = "src/test/resources/docker-compose.oracle.yml";
     private static final int ORACLE_PORT_NUMBER = 1521;
 
-    private DbKvsOracleTestSuite() {
+    private DbkvsOracleTestSuite() {
         // Test suite
     }
 

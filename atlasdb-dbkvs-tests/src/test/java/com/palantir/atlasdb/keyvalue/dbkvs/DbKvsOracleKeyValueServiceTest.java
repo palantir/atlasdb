@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsOracleTestSuite::createKvs);
 
     private static final TableReference TABLE_1 =
             TableReference.createFromFullyQualifiedName("multipass.providerGroupIdAndRealmToPrincipalId");

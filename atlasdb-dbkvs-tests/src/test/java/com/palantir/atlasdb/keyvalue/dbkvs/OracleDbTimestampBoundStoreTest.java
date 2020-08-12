@@ -34,10 +34,10 @@ public class OracleDbTimestampBoundStoreTest extends AbstractDbTimestampBoundSto
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = DbKvsOracleTestSuite.createKvs();
+        kvs = DbkvsOracleTestSuite.createKvs();
         return InDbTimestampBoundStore.create(
                 ((ConnectionManagerAwareDbKvs) kvs).getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                DbKvsOracleTestSuite.getKvsConfig().ddl().tablePrefix());
+                DbkvsOracleTestSuite.getKvsConfig().ddl().tablePrefix());
     }
 }

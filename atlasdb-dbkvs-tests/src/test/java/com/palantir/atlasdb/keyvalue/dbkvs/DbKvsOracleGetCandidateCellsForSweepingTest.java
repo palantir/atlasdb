@@ -21,7 +21,7 @@ import org.junit.ClassRule;
 
 public class DbKvsOracleGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsOracleTestSuite::createKvs);
 
     public DbKvsOracleGetCandidateCellsForSweepingTest() {
         super(TRM);

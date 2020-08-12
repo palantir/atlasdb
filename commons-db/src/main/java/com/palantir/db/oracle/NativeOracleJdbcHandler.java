@@ -33,10 +33,6 @@ import oracle.sql.StructDescriptor;
 
 /**
  *  Implements the Oracle dependent logic required by underlying SQL implementations.
- *  <h2>
- *  Please be aware that this class must remain external to logic related to DbKVS which is
- *  not allowed to include a direct compile time dependency on Oracle's ojdbc package.
- *  </h2>
  */
 public class NativeOracleJdbcHandler implements JdbcHandler {
 
