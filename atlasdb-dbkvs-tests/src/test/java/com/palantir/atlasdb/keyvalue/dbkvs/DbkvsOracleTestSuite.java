@@ -55,7 +55,8 @@ import com.palantir.nexus.db.sql.SqlConnectionHelper;
 
 /**
  * In order to run these CI tests, you need to provide your own Docker image, and place it in the environment variable
- * 'ORACLE_DOCKER_IMAGE'. If you need to develop locally, this value can be found in the AtlasDB CI configuration.
+ * 'ORACLE_DOCKER_IMAGE'. If you are a Palantir developer and need to develop locally, this value can be found in
+ * the AtlasDB CI configuration.
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
