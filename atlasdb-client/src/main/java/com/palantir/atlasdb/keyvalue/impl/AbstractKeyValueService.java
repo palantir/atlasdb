@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.HashMultimap;
@@ -57,6 +58,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     protected ExecutorService executor;
 
     protected final TracingPrefsConfig tracingPrefs;
+    private final ScheduledFuture<?> tracingPrefsTask;
 
     /**
      * Note: This takes ownership of the given executor. It will be shutdown when the key
@@ -65,7 +67,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
+        tracingPrefsTask = scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
     /**
@@ -169,6 +171,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void close() {
+        tracingPrefsTask.cancel(false);
         executor.shutdown();
     }
 

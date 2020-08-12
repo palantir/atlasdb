@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -48,11 +49,12 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     final LockService delegate;
     final Set<LockRefreshToken> toRefresh;
     final long refreshFrequencyMillis = 5000;
+    ScheduledFuture<?> task;
     volatile boolean isClosed = false;
 
     public static LockRefreshingLockService create(LockService delegate) {
         final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
-        executor.scheduleWithFixedDelay(() -> {
+        task = executor.scheduleWithFixedDelay(() -> {
             long startTime = System.currentTimeMillis();
             try {
                 ret.refreshLocks();
@@ -167,6 +169,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     }
 
     public void dispose() {
+        task.cancel(false);
         isClosed = true;
     }
 

@@ -249,7 +249,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public void shutdown() {
         cassandra.close();
-        refreshDaemon.shutdown();
+        refreshPoolFuture.cancel(false);
         cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
     }
