@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.internalschema;
 
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -25,7 +24,6 @@ import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -102,26 +100,6 @@ public class TransactionSchemaInstallerTest {
         runAndWaitForPollingIntervals(1);
         verify(versionToInstall, times(2)).get();
         verify(manager, times(2)).tryInstallNewTransactionsSchemaVersion(1);
-    }
-
-    @Test
-    public void shutsDownExecutorWhenClosed() {
-        ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
-        TransactionSchemaInstaller installer = TransactionSchemaInstaller.createStarted(manager, versionToInstall,
-                executorService);
-        installer.close();
-        verify(executorService).shutdown();
-    }
-
-    @Test
-    public void closeIsIdempotent() {
-        ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
-        TransactionSchemaInstaller installer = TransactionSchemaInstaller.createStarted(manager, versionToInstall,
-                executorService);
-        installer.close();
-        installer.close();
-        installer.close();
-        verify(executorService, atLeastOnce()).shutdown();
     }
 
     private void runAndWaitForPollingIntervals(int intervals) {

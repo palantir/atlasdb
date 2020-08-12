@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
@@ -51,13 +52,14 @@ public final class AsyncPuncher implements Puncher {
         return asyncPuncher;
     }
 
-    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
+    private static final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("puncher", true /* daemon */));
 
     private final Puncher delegate;
     private final long interval;
     private final AtomicLong lastTimestamp;
     private final LongSupplier freshTimestampSource;
+    private ScheduledFuture<?> task;
 
     private AsyncPuncher(Puncher delegate, long interval, LongSupplier freshTimestampSource) {
         this.delegate = delegate;
@@ -67,7 +69,7 @@ public final class AsyncPuncher implements Puncher {
     }
 
     private void start() {
-        service.scheduleAtFixedRate(this::punchWithRollback, 0, interval, TimeUnit.MILLISECONDS);
+        task = executor.scheduleAtFixedRate(this::punchWithRollback, 0, interval, TimeUnit.MILLISECONDS);
     }
 
     private void punchWithRollback() {
@@ -111,18 +113,8 @@ public final class AsyncPuncher implements Puncher {
     @Override
     public void shutdown() {
         delegate.shutdown();
-        service.shutdownNow();
-        boolean shutdown = false;
-        try {
-            shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            log.error("Interrupted while shutting down the puncher. This shouldn't happen.");
-            Thread.currentThread().interrupt();
-        }
-        if (!shutdown) {
-            log.error("Failed to shutdown puncher in a timely manner. The puncher may attempt"
-                    + " to access a key value service after the key value service closes. This shouldn't"
-                    + " cause any problems, but may result in some scary looking error messages.");
+        if (task != null) {
+            task.cancel(false);
         }
     }
 }

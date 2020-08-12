@@ -42,6 +42,7 @@ import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
 public class TimeLockClient implements AutoCloseable, TimelockService {
+    private static final ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
@@ -191,7 +192,6 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     private static LockRefresher createLockRefresher(TimelockService timelockService) {
-        ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
         return new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
     }
 

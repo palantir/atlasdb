@@ -72,6 +72,10 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
+    private static final ScheduledExecutorService sharedRefreshDaemon = PTExecutors.newScheduledThreadPool(
+            1,
+            new NamedThreadFactory("CassandraClientPoolRefresh", true));
+
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
         public CassandraClientPool delegate() {
@@ -183,9 +187,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraClientPoolMetrics metrics) {
         this(config,
                 startupChecks,
-                PTExecutors.newScheduledThreadPool(
-                        1,
-                        new NamedThreadFactory("CassandraClientPoolRefresh", true)),
+                sharedRefreshDaemon,
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist, metrics),

@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -46,15 +47,17 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";
     private static final Duration TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL = Duration.ofSeconds(30);
 
-    private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
+    private static final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
                     new NamedThreadFactory(TIMELOCK_FEEDBACK_THREAD_PREFIX, true));
 
     private final UUID nodeId = UUID.randomUUID();
-    private ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
-    private Supplier<String> versionSupplier;
-    private String serviceName;
-    private String namespace;
-    private Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
+    private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
+    private final Supplier<String> versionSupplier;
+    private final String serviceName;
+    private final String namespace;
+    private final Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
+
+    private ScheduledFuture<?> task;
 
     private TimeLockFeedbackBackgroundTask(TaggedMetricRegistry taggedMetricRegistry,
             Supplier<String> versionSupplier,
@@ -82,9 +85,8 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
         return task;
     }
 
-
-    public void scheduleWithFixedDelay() {
-        executor.scheduleWithFixedDelay(() -> {
+    private void scheduleWithFixedDelay() {
+        task = executor.scheduleWithFixedDelay(() -> {
             try {
                 ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                         .builder()
@@ -168,6 +170,8 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
 
     @Override
     public void close() {
-        executor.shutdown();
+        if (task != null) {
+            task.cancel(false);
+        }
     }
 }
