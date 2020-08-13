@@ -16,7 +16,17 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import org.immutables.value.Value;
+
+@Value.Immutable
 public interface BatchElement<T, R> {
+    @Value.Parameter
     T argument();
+
+    @Value.Parameter
     DisruptorAutobatcher.DisruptorFuture<R> result();
+
+    static <T, R> BatchElement<T, R> of(T argument, DisruptorAutobatcher.DisruptorFuture<R> result) {
+        return ImmutableBatchElement.of(argument, result);
+    }
 }

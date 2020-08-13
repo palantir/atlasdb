@@ -112,6 +112,17 @@ public final class DisruptorAutobatcher<T, R>
         public DisruptorFuture<R> result() {
             return result;
         }
+
+        /**
+         * This copies the batch element and clears the references, which reduces the lifetime of the argument
+         * and result objects. Since our autobatchers can be large, this leads to reduced old gen memory pressure.
+         */
+        public BatchElement<T, R> consume() {
+            BatchElement<T, R> res = BatchElement.of(argument, result);
+            argument = null;
+            result = null;
+            return res;
+        }
     }
 
     public static final class DisruptorFuture<R> extends AbstractFuture<R> {
@@ -161,7 +172,7 @@ public final class DisruptorAutobatcher<T, R>
             String safeLoggablePurpose) {
         Disruptor<DefaultBatchElement<T, R>> disruptor =
                 new Disruptor<>(DefaultBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
-        disruptor.handleEventsWith(eventHandler);
+        disruptor.handleEventsWith((event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
         return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose);
     }
