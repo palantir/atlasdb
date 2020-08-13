@@ -162,7 +162,8 @@ public final class DisruptorAutobatcher<T, R>
             String safeLoggablePurpose) {
         Disruptor<DisruptorBatchElement<T, R>> disruptor =
                 new Disruptor<>(DisruptorBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
-        disruptor.handleEventsWith((event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
+        disruptor.handleEventsWith(
+                (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
         return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose);
     }
