@@ -116,7 +116,12 @@ public final class PaxosConsensusTestUtils {
                     .knowledge(ourLearner)
                     .acceptorClient(acceptorNetworkClient)
                     .learnerClient(learnerNetworkClient)
-                    .leaderPinger(new SingleLeaderPinger(ImmutableMap.of(), Duration.ZERO, leaderUuid, true))
+                    .leaderPinger(new SingleLeaderPinger(
+                            ImmutableMap.of(),
+                            Duration.ZERO,
+                            leaderUuid,
+                            true,
+                            Optional.empty()))
                     .build();
             leaders.add(SimulatingFailingServerProxy.newProxyInstance(
                     LeaderElectionService.class,

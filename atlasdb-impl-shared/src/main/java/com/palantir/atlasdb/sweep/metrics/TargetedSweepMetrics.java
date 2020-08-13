@@ -185,18 +185,13 @@ public class TargetedSweepMetrics {
             lastSweptTs = createLastSweptTsMetric(recomputeMillis);
             millisSinceLastSwept = createMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
             batchSizeMean = new SlidingWindowMeanGauge();
-            registerProgressMetrics(strategy);
-            outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag);
+
+            TargetedSweepMetricPublicationFilter filter = createMetricPublicationFilter();
+            registerProgressMetrics(strategy, filter);
+            outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag, filter);
         }
 
-        private void registerProgressMetrics(String strategy) {
-            TargetedSweepMetricPublicationFilter filter = new TargetedSweepMetricPublicationFilter(
-                    ImmutableDecisionMetrics.builder()
-                            .enqueuedWrites(enqueuedWrites::getValue)
-                            .entriesRead(entriesRead::getValue)
-                            .millisSinceLastSweptTs(
-                                    () -> Optional.ofNullable(millisSinceLastSwept.getValue()).orElse(0L))
-                            .build());
+        private void registerProgressMetrics(String strategy, TargetedSweepMetricPublicationFilter filter) {
             // This is kind of against the point of metrics-filter, but is needed for our filtering
             AtlasDbMetricNames.TARGETED_SWEEP_PROGRESS_METRIC_NAMES
                     .stream()
@@ -215,6 +210,16 @@ public class TargetedSweepMetrics {
             progressMetrics.lastSweptTimestamp().strategy(strategy).build(lastSweptTs);
             progressMetrics.millisSinceLastSweptTs().strategy(strategy).build(millisSinceLastSwept);
             progressMetrics.batchSizeMean().strategy(strategy).build(batchSizeMean);
+        }
+
+        private TargetedSweepMetricPublicationFilter createMetricPublicationFilter() {
+            return new TargetedSweepMetricPublicationFilter(
+                            ImmutableDecisionMetrics.builder()
+                                    .enqueuedWrites(enqueuedWrites::getValue)
+                                    .entriesRead(entriesRead::getValue)
+                                    .millisSinceLastSweptTs(
+                                            () -> Optional.ofNullable(millisSinceLastSwept.getValue()).orElse(0L))
+                                    .build());
         }
 
         private AggregatingVersionedMetric<Long> createLastSweptTsMetric(long millis) {

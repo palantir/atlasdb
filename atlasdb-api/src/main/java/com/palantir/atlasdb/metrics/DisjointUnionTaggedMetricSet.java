@@ -16,11 +16,16 @@
 
 package com.palantir.atlasdb.metrics;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.Metric;
-import com.google.common.collect.ImmutableMap;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 
@@ -28,6 +33,9 @@ import com.palantir.tritium.metrics.registry.TaggedMetricSet;
  * Combines two {@link TaggedMetricSet}s. It is expected that the metric names present from the two sets are disjoint.
  */
 public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
+
+    private static final Logger log = LoggerFactory.getLogger(DisjointUnionTaggedMetricSet.class);
+
     private final TaggedMetricSet first;
     private final TaggedMetricSet second;
 
@@ -38,10 +46,19 @@ public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
 
     @Override
     public Map<MetricName, Metric> getMetrics() {
-        return ImmutableMap.<MetricName, Metric>builder()
-                .putAll(first.getMetrics())
-                .putAll(second.getMetrics())
-                .build();
+        Map<MetricName, Metric> firstMetrics = first.getMetrics();
+        Map<MetricName, Metric> secondMetrics = second.getMetrics();
+
+        Map<MetricName, Metric> metrics = new HashMap<>(firstMetrics.size() + secondMetrics.size());
+        firstMetrics.forEach(metrics::putIfAbsent);
+        secondMetrics.forEach((metricName, metric) -> {
+            if (metrics.putIfAbsent(metricName, metric) != null) {
+                log.warn("Detected duplicate metric name",
+                        SafeArg.of("metricName", metricName));
+            }
+        });
+
+        return Collections.unmodifiableMap(metrics);
     }
 
     @Override

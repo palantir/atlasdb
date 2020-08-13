@@ -71,6 +71,10 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
                 Clock.defaultClock());
     }
 
+    /**
+     * Warning: This method is potentially expensive, possibly registering filters multiple times.
+     * It should not be called regularly.
+     */
     @Override
     public <T> Counter createAndRegisterCounter(Class<T> clazz, String metricName, TableReference tableReference) {
         metricsManager.addMetricFilter(

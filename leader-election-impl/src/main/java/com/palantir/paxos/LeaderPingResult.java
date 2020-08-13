@@ -25,6 +25,7 @@ import org.derive4j.Data;
 
 import com.google.common.net.HostAndPort;
 import com.palantir.leader.PaxosLeaderElectionEventRecorder;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 @Data
 public abstract class LeaderPingResult {
@@ -32,6 +33,7 @@ public abstract class LeaderPingResult {
     interface Cases<R> {
         R pingTimedOut();
         R pingReturnedTrue(UUID leaderUuid, HostAndPort leader);
+        R pingReturnedTrueWithOlderVersion(OrderableSlsVersion version);
         R pingReturnedFalse();
         R pingCallFailure(Throwable exception);
     }
@@ -41,6 +43,7 @@ public abstract class LeaderPingResult {
     public void recordEvent(PaxosLeaderElectionEventRecorder eventRecorder) {
         LeaderPingResults.caseOf(this)
                 .pingTimedOut(wrap(eventRecorder::recordLeaderPingTimeout))
+                .pingReturnedTrueWithOlderVersion(wrap(eventRecorder::recordLeaderOnOlderVersion))
                 .pingReturnedFalse(wrap(eventRecorder::recordLeaderPingReturnedFalse))
                 .pingCallFailure(wrap(eventRecorder::recordLeaderPingFailure))
                 .otherwise_(null);

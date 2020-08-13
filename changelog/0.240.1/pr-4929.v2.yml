@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: There are now fewer `getLeaderTime` calls when reading the iterator returned by
+    `getRowsColumnRangeIterator`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4929

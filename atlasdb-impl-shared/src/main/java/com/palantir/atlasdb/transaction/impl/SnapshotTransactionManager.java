@@ -59,6 +59,7 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -151,7 +152,8 @@ import com.palantir.util.SafeShutdownRunner;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.conflictTracer = conflictTracer;
-        this.tableLevelMetricsController = ToplistDeltaFilteringTableLevelMetricsController.create(metricsManager);
+        this.tableLevelMetricsController = new MemoizingTableLevelMetricsController(
+                ToplistDeltaFilteringTableLevelMetricsController.create(metricsManager));
     }
 
     @Override

@@ -416,16 +416,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
-        ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
+        ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResultsBuilder =
                 ImmutableSortedMap.orderedBy(PtBytes.BYTES_COMPARATOR);
         for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
             Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-            postFilteredResults.put(row, postFilteredIterator);
+            postFilteredResultsBuilder.put(row, postFilteredIterator);
         }
-        return postFilteredResults.build();
+        SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = postFilteredResultsBuilder.build();
+        // validate requirements here as the first batch for each of the above iterators will not check
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+        return postFilteredResults;
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
@@ -512,32 +515,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             RowColumnRangeIterator rawIterator) {
         ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(
                 keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
-        BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator = new BatchSizeIncreasingIterator<>(
-                batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrap(rawIterator));
-        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFilteredBatches =
-                new AbstractIterator<Iterator<Map.Entry<Cell, byte[]>>>() {
-            @Override
-            protected Iterator<Map.Entry<Cell, byte[]>> computeNext() {
-                ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
-                List<Map.Entry<Cell, Value>> batch = batchIterator.getBatch();
-                for (Map.Entry<Cell, Value> result : batch) {
-                    rawBuilder.put(result);
-                }
-                Map<Cell, Value> raw = rawBuilder.build();
-                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-                if (raw.isEmpty()) {
-                    return endOfData();
-                }
-                SortedMap<Cell, byte[]> postFiltered = ImmutableSortedMap.copyOf(
-                        getWithPostFilteringSync(
-                                tableRef,
-                                raw,
-                                Value.GET_VALUE));
-                batchIterator.markNumResultsNotDeleted(postFiltered.size());
-                return postFiltered.entrySet().iterator();
-            }
-        };
-        return Iterators.concat(postFilteredBatches);
+        return GetRowsColumnRangeIterator.iterator(
+                batchProvider,
+                rawIterator,
+                columnRangeSelection,
+                () -> validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp()),
+                raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
     }
 
     private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
@@ -1121,7 +1104,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Iterator<Iterator<RowResult<T>>> batchedPostFiltered = new AbstractIterator<Iterator<RowResult<T>>>() {
             @Override
             protected Iterator<RowResult<T>> computeNext() {
-                List<RowResult<Value>> batch = results.getBatch();
+                List<RowResult<Value>> batch = results.getBatch().batch();
                 validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
                 if (batch.isEmpty()) {
                     return endOfData();

@@ -18,10 +18,13 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
@@ -64,9 +67,13 @@ public class LockLeaseServiceTest {
     @Mock private LockRequest lockRequest;
     @Mock private PartitionedTimestamps partitionedTimestamps;
 
+    private static final Duration TIMEOUT_GREATER_THAN_MAX_PERMISSIBLE_TIMEOUT =
+            BlockEnforcingLockService.MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT.multipliedBy(5);
     private static final Duration LEASE_DURATION = Duration.ofSeconds(1);
     private static final LeadershipId LEADER_ID = LeadershipId.random();
     private static final UUID SERVICE_ID = UUID.randomUUID();
+
+    private static final Exception TIMEOUT_EXCEPTION = new RuntimeException(new SocketTimeoutException("timeout"));
 
     private static final ConjureLockToken LOCK_TOKEN = ConjureLockToken.of(UUID.randomUUID());
 
@@ -140,6 +147,32 @@ public class LockLeaseServiceTest {
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         assertValid(lockResponse.getToken());
     }
+
+    @Test
+    public void lockAcquireTimeoutIsBounded() {
+        when(lockRequest.getAcquireTimeoutMs()).thenReturn(TIMEOUT_GREATER_THAN_MAX_PERMISSIBLE_TIMEOUT.toMillis());
+        when(timelock.lock(any()))
+                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+        LockResponse lockResponse = lockLeaseService.lock(lockRequest);
+        assertValid(lockResponse.getToken());
+        verify(timelock)
+                .lock(argThat(req -> req.getAcquireTimeoutMs()
+                        == BlockEnforcingLockService.MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT.toMillis()));
+    }
+
+    @Test
+    public void lockAcquireTimeoutIsBoundedAndRequestRetried() {
+        when(lockRequest.getAcquireTimeoutMs()).thenReturn(TIMEOUT_GREATER_THAN_MAX_PERMISSIBLE_TIMEOUT.toMillis());
+        when(timelock.lock(any()))
+                .thenThrow(TIMEOUT_EXCEPTION)
+                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+
+        LockResponse lockResponse = lockLeaseService.lock(lockRequest);
+        assertValid(lockResponse.getToken());
+        verify(timelock, times(2)).lock(any());
+    }
+
+
 
     @Test
     public void unlockShouldCallRemoteServer_validLeases() {
