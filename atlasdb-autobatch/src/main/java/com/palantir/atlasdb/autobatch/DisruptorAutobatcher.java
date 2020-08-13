@@ -63,14 +63,14 @@ public final class DisruptorAutobatcher<T, R>
         return new NamedThreadFactory("autobatcher." + safeLoggablePurpose, true);
     }
 
-    private final Disruptor<DefaultBatchElement<T, R>> disruptor;
-    private final RingBuffer<DefaultBatchElement<T, R>> buffer;
+    private final Disruptor<DisruptorBatchElement<T, R>> disruptor;
+    private final RingBuffer<DisruptorBatchElement<T, R>> buffer;
     private final String safeLoggablePurpose;
     private volatile boolean closed = false;
 
     DisruptorAutobatcher(
-            Disruptor<DefaultBatchElement<T, R>> disruptor,
-            RingBuffer<DefaultBatchElement<T, R>> buffer,
+            Disruptor<DisruptorBatchElement<T, R>> disruptor,
+            RingBuffer<DisruptorBatchElement<T, R>> buffer,
             String safeLoggablePurpose) {
         this.disruptor = disruptor;
         this.buffer = buffer;
@@ -99,19 +99,9 @@ public final class DisruptorAutobatcher<T, R>
         }
     }
 
-    private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {
+    private static final class DisruptorBatchElement<T, R> {
         private T argument;
         private DisruptorFuture<R> result;
-
-        @Override
-        public T argument() {
-            return argument;
-        }
-
-        @Override
-        public DisruptorFuture<R> result() {
-            return result;
-        }
 
         /**
          * This copies the batch element and clears the references, which reduces the lifetime of the argument
@@ -170,8 +160,8 @@ public final class DisruptorAutobatcher<T, R>
             EventHandler<BatchElement<T, R>> eventHandler,
             int bufferSize,
             String safeLoggablePurpose) {
-        Disruptor<DefaultBatchElement<T, R>> disruptor =
-                new Disruptor<>(DefaultBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
+        Disruptor<DisruptorBatchElement<T, R>> disruptor =
+                new Disruptor<>(DisruptorBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
         disruptor.handleEventsWith((event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
         return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose);
