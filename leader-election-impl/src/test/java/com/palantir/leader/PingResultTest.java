@@ -18,6 +18,7 @@ package com.palantir.leader;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,28 +26,32 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Optional;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.palantir.sls.versions.OrderableSlsVersion;
 
 public class PingResultTest {
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     @Test
     public void pingResultIsJavaSerializable() throws IOException, ClassNotFoundException {
-        OrderableSlsVersion timeLockVersion = OrderableSlsVersion.valueOf("0.0.0");
+        OrderableSlsVersion timeLockVersion = OrderableSlsVersion.valueOf("0.27.0");
         PingResult pr = PingResult.builder().timeLockVersion(timeLockVersion)
                 .isLeader(true).build();
-        FileOutputStream fileOut = new FileOutputStream("test.ser");
-        ObjectOutputStream out = new ObjectOutputStream(fileOut);
-        out.writeObject(pr);
-        out.close();
-        fileOut.close();
 
-        FileInputStream fileIn = new FileInputStream("test.ser");
-        ObjectInputStream in = new ObjectInputStream(fileIn);
-        PingResult deserializedPingResult = (PingResult) in.readObject();
-        in.close();
-        fileIn.close();
-        assertThat(deserializedPingResult.isLeader()).isEqualTo(true);
-        assertThat(deserializedPingResult.timeLockVersion()).isEqualTo(Optional.of(timeLockVersion));
+        File file = tempFolder.newFile();
+        try (FileOutputStream fileOut = new FileOutputStream(file);
+                ObjectOutputStream out = new ObjectOutputStream(fileOut);
+                FileInputStream fileIn = new FileInputStream(file);
+                ObjectInputStream in = new ObjectInputStream(fileIn)) {
+            out.writeObject(pr);
+            PingResult deserializedPingResult = (PingResult) in.readObject();
+            assertThat(deserializedPingResult.isLeader()).isEqualTo(true);
+            assertThat(deserializedPingResult.timeLockVersion()).isEqualTo(Optional.of(timeLockVersion));
+        }
     }
 }
