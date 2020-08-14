@@ -369,7 +369,7 @@ public abstract class AtlasDbConfig {
         if (timelock().isPresent()) {
             TimeLockClientConfig timeLockConfig = timelock().get();
 
-            com.palantir.logsafe.Preconditions.checkState(timeLockConfig.client().isPresent(),
+            Preconditions.checkState(timeLockConfig.client().isPresent(),
                     "Either the atlas root-level namespace config or the TimeLock client config should be present.");
 
             if (keyValueService().type().equals("cassandra") ||
