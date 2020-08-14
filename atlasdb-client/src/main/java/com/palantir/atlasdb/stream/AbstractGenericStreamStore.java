@@ -131,10 +131,10 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             @Override
             public void get(long firstBlock, long numBlocks, OutputStream destination) {
                 if (parent.isUncommitted()) {
-                    loadBlocksToOutputStream(parent, id, firstBlock, numBlocks, destination);
+                    loadNBlocksToOutputStream(parent, id, firstBlock, numBlocks, destination);
                 } else {
                     txnMgr.runTaskReadOnly(txn -> {
-                        loadBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
+                        loadNBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
                         return null;
                     });
                 }
@@ -202,6 +202,20 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
                 // Do nothing
             }
         }
+    }
+
+    private void loadNBlocksToOutputStream(
+            Transaction tx,
+            T streamId,
+            long firstBlock,
+            long numBlocks,
+            OutputStream os) {
+        long position = 0;
+        for (long i = 0; i < numBlocks; i += 4) {
+            loadBlocksToOutputStream(tx, streamId, firstBlock + i, 4, os);
+            position += i;
+        }
+        loadBlocksToOutputStream(tx, streamId, firstBlock + position, numBlocks % 4, os);
     }
 
     private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
