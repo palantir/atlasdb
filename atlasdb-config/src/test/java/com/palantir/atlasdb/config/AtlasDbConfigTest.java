@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.config;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -39,6 +40,8 @@ public class AtlasDbConfigTest {
     private static final KeyValueServiceConfig KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_OTHER_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_NAMESPACE = mock(KeyValueServiceConfig.class);
+    private static final KeyValueServiceConfig CASSANDRA_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
+    private static final KeyValueServiceConfig CASSANDRA_CONFIG_WITH_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig.builder()
             .quorumSize(1)
             .localServer("me")
@@ -69,12 +72,21 @@ public class AtlasDbConfigTest {
             .serversList(SINGLETON_SERVER_LIST)
             .build();
     private static final String CLIENT_NAMESPACE = "client";
+    private static final String CASSANDRA = "cassandra";
 
     @BeforeClass
     public static void setUp() {
         when(KVS_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
         when(KVS_CONFIG_WITH_OTHER_NAMESPACE.namespace()).thenReturn(Optional.of(OTHER_CLIENT));
         when(KVS_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of(TEST_NAMESPACE));
+        when(CASSANDRA_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
+        when(CASSANDRA_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of(TEST_NAMESPACE));
+
+        when(KVS_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn("rocksdb");
+        when(KVS_CONFIG_WITH_OTHER_NAMESPACE.type()).thenReturn("database");
+        when(KVS_CONFIG_WITH_NAMESPACE.type()).thenReturn("sqlite");
+        when(CASSANDRA_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn(CASSANDRA);
+        when(CASSANDRA_CONFIG_WITH_NAMESPACE.type()).thenReturn(CASSANDRA);
     }
 
     @Test
@@ -96,7 +108,6 @@ public class AtlasDbConfigTest {
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .build();
-        assertThat(config.getNamespaceString(), equalTo(TEST_NAMESPACE));
         assertThat(config, not(nullValue()));
     }
 
@@ -106,7 +117,6 @@ public class AtlasDbConfigTest {
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG)
                 .build();
-        assertThat(config.getNamespaceString(), equalTo(TEST_NAMESPACE));
         assertThat(config, not(nullValue()));
     }
 
@@ -117,7 +127,6 @@ public class AtlasDbConfigTest {
                 .lock(SINGLETON_SERVER_LIST)
                 .timestamp(SINGLETON_SERVER_LIST)
                 .build();
-        assertThat(config.getNamespaceString(), equalTo(TEST_NAMESPACE));
         assertThat(config, not(nullValue()));
     }
 
@@ -223,7 +232,6 @@ public class AtlasDbConfigTest {
                 .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                 .build();
-        assertThat(config.getNamespaceString(), equalTo("a client"));
     }
 
     @Test
@@ -235,7 +243,6 @@ public class AtlasDbConfigTest {
                 .namespace(Optional.empty())
                 .keyValueService(kvsConfig)
                 .build();
-        assertThat(config.getNamespaceString(), equalTo(AtlasDbConfig.UNSPECIFIED_NAMESPACE));
     }
 
     @Test
@@ -247,7 +254,6 @@ public class AtlasDbConfigTest {
                 .namespace("clive")
                 .keyValueService(kvsConfig)
                 .build();
-        assertThat(config.getNamespaceString(), equalTo("clive"));
     }
 
     @Test
@@ -275,7 +281,6 @@ public class AtlasDbConfigTest {
                 .keyValueService(kvsConfig)
                 .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
                 .build();
-        assertThat(config.getNamespaceString(), equalTo(OTHER_CLIENT));
     }
 
     @Test
@@ -303,6 +308,67 @@ public class AtlasDbConfigTest {
     }
 
     @Test
+    public void kvsAndTimelockNamespacesCanDifferIfExpresslyPermittedAndNotUsingCassandra() {
+        assertThatCode(() -> ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
+                .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
+                .build())
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void kvsAndTimelockNamespacesCannotDifferIfUsingCassandra() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .keyValueService(CASSANDRA_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
+                .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("avoid potential data corruption")));
+    }
+
+    @Test
+    public void globalNamespaceAlwaysReportsConflictsIfPresentForCoherentKvsAndTimeLockConfig() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace(OTHER_CLIENT)
+                .keyValueService(CASSANDRA_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG)
+                .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
+    }
+
+    @Test
+    public void globalNamespaceAlwaysReportsConflictsIfPresentForTimeLock() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace(OTHER_CLIENT)
+                .keyValueService(KVS_CONFIG_WITH_OTHER_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG)
+                .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
+    }
+
+    @Test
+    public void globalNamespaceAlwaysReportsConflictsIfPresentForKvs() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace(OTHER_CLIENT)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
+                .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
+    }
+
+    @Test
     public void addingFallbackSslAddsItToLeaderBlock() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
@@ -310,7 +376,6 @@ public class AtlasDbConfigTest {
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
         assertThat(withSsl.leader().get().sslConfiguration(), is(SSL_CONFIG));
-        assertThat(withoutSsl.getNamespaceString(), equalTo(TEST_NAMESPACE));
     }
 
     @Test
@@ -322,7 +387,6 @@ public class AtlasDbConfigTest {
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
         assertThat(withSsl.lock().get().sslConfiguration(), is(SSL_CONFIG));
-        assertThat(withoutSsl.getNamespaceString(), equalTo(TEST_NAMESPACE));
     }
 
     @Test
