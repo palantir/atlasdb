@@ -211,9 +211,8 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             long numBlocks,
             OutputStream os) {
         long position = 0;
-        for (long i = 0; i < numBlocks; i += 4) {
-            loadBlocksToOutputStream(tx, streamId, firstBlock + i, 4, os);
-            position += i;
+        for (; position + 4 <= numBlocks; position += 4) {
+            loadBlocksToOutputStream(tx, streamId, firstBlock + position, 4, os);
         }
         loadBlocksToOutputStream(tx, streamId, firstBlock + position, numBlocks % 4, os);
     }
