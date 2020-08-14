@@ -572,11 +572,11 @@ public abstract class TransactionManagers {
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
         if (isUsingTimeLock(config, runtimeConfig.current())) {
             Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices
-                    = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent());
+                    = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
             return Optional.of(initializeCloseable(
                     () -> TimeLockFeedbackBackgroundTask.create(
                             globalTaggedMetricRegistry(),
-                            () -> AtlasDbVersion.readVersion(),
+                            AtlasDbVersion::readVersion,
                             serviceName(),
                             refreshableTimeLockClientFeedbackServices,
                             namespace()), closeables));
@@ -587,10 +587,10 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static Refreshable<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            DialogueClients.ReloadingFactory reloadingFactory) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
-        DialogueClients.ReloadingFactory reloadingFactory = newMinimalDialogueFactory();
 
         BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
                 reloadingFactory,

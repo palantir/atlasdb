@@ -85,7 +85,7 @@ def get_last_release_from_gradle():
   p = subprocess.Popen(['./gradlew', 'printLastVersion'],
                        cwd=codebase_root, stdout=subprocess.PIPE)
   stdout = p.communicate()[0]
-  matcher = re.search('\d+\.\d+\.\d+[\.\-\+\w]*', stdout)
+  matcher = re.search('\d+\.\d+\.\d+[\.\-\+\w]*', stdout.decode('utf8'))
   return matcher.group(0)
 
 # The version info for the project you're documenting, acts as replacement for
