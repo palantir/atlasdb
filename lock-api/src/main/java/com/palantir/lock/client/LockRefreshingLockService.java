@@ -54,7 +54,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     public static LockRefreshingLockService create(LockService delegate) {
         final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
-        task = executor.scheduleWithFixedDelay(() -> {
+        ret.task = executor.scheduleWithFixedDelay(() -> {
             long startTime = System.currentTimeMillis();
             try {
                 ret.refreshLocks();
