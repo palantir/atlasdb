@@ -334,7 +334,7 @@ public abstract class AtlasDbConfig {
                 TimeLockClientConfig timeLockConfig = timelock().get();
 
                 com.palantir.logsafe.Preconditions.checkState(timeLockConfig.client().isPresent(),
-                        "Client must be explicitly specified if using TimeLock.");
+                        "TimeLock client config should be present if kvs namespace is explicitly specified.");
 
                 // In this case, we need to change the TimeLock client name to be equal to the KVS namespace
                 // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
@@ -349,7 +349,7 @@ public abstract class AtlasDbConfig {
             return keyValueServiceNamespace;
         } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(!(keyValueService().type().equals("cassandra")),
-                    "Keyspace must be explicitly specified if using Cassandra.");
+                    "The keyspace config needs to be set if using Cassandra.");
 
             Preconditions.checkState(namespace().isPresent(),
                     "Either the atlas root-level namespace"

@@ -192,7 +192,6 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
 @Value.Style(stagedBuilder = true)
@@ -623,8 +622,8 @@ public abstract class TransactionManagers {
 
     @Value.Derived
     String namespace() {
-        return Stream.of(config().namespace(),
-                config().timelock().flatMap(TimeLockClientConfig::client),
+        return Stream.of(config().timelock().flatMap(TimeLockClientConfig::client),
+                config().namespace(),
                 config().keyValueService().namespace())
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -1086,8 +1085,7 @@ public abstract class TransactionManagers {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
 
-        String timelockNamespace = OptionalResolver.resolve(
-                config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
+        String timelockNamespace = config.timelock().flatMap(TimeLockClientConfig::client).orElse(config.namespace().get());
         LockAndTimestampServices lockAndTimestampServices =
                 getLockAndTimestampServices(
                         metricsManager,

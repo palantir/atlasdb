@@ -51,7 +51,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.util.OptionalResolver;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -201,8 +200,7 @@ public class TransactionPostMortemRunner {
     }
 
     private static String timelockNamespace(AtlasDbConfig config) {
-        return OptionalResolver.resolve(
-                config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
+        return config.timelock().flatMap(TimeLockClientConfig::client).orElse(config.namespace().get());
     }
 
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(

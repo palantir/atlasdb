@@ -39,6 +39,8 @@ public class AtlasDbConfigTest {
     private static final KeyValueServiceConfig KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_OTHER_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_NAMESPACE = mock(KeyValueServiceConfig.class);
+    private static final KeyValueServiceConfig DB_KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
+
     private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig.builder()
             .quorumSize(1)
             .localServer("me")
@@ -72,9 +74,15 @@ public class AtlasDbConfigTest {
 
     @BeforeClass
     public static void setUp() {
+        when(KVS_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn("cassandra");
+        when(KVS_CONFIG_WITH_OTHER_NAMESPACE.type()).thenReturn("cassandra");
+        when(KVS_CONFIG_WITH_NAMESPACE.type()).thenReturn("cassandra");
+        when(DB_KVS_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn("dbkvs");
+
         when(KVS_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
         when(KVS_CONFIG_WITH_OTHER_NAMESPACE.namespace()).thenReturn(Optional.of(OTHER_CLIENT));
         when(KVS_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of(TEST_NAMESPACE));
+        when(DB_KVS_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
     }
 
     @Test
@@ -198,7 +206,7 @@ public class AtlasDbConfigTest {
     }
 
     @Test
-    public void absentNamespaceRequiresTimelockClient() {
+    public void kvsNamespaceRequiresTimelockClient() {
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
@@ -217,13 +225,35 @@ public class AtlasDbConfigTest {
     }
 
     @Test
-    public void namespaceAcceptsEmptyKvsNamespaceAndTimelockClient() {
+    public void namespaceAcceptsEmptyDbKvsNamespaceAndTimelockClient() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace("a client")
-                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .keyValueService(DB_KVS_CONFIG_WITHOUT_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                 .build();
         assertThat(config.getNamespaceString(), equalTo("a client"));
+    }
+
+
+    @Test
+    public void configDoesNotAcceptEmptyKvsNamespaceOrTimelockClientIfBackedByCassandra() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace("a client")
+                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("The keyspace config needs to be set")));
+
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace(TEST_NAMESPACE)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("TimeLock client config should be present")));
     }
 
     @Test
@@ -279,15 +309,24 @@ public class AtlasDbConfigTest {
     }
 
     @Test
-    public void namespaceAndTimelockClientShouldMatch() {
-        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+    public void namespaceAndTimeLockClientCanBeDifferentIfNotUsingCassandra() {
+        ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace(TEST_NAMESPACE)
-                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .keyValueService(DB_KVS_CONFIG_WITHOUT_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
+                .build();
+        assertThat(config.getNamespaceString(), equalTo(TEST_NAMESPACE));
+    }
+
+    @Test
+    public void kvsNamespaceAndTimeLockClientShouldMatch() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
                 .build())
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies((exception) ->
-                        assertThat(exception.getMessage(), containsString("config should be the same")));
+                        assertThat(exception.getMessage(), containsString("DO NOT ATTEMPT TO FIX THIS YOURSELF")));
     }
 
     @Test
@@ -392,7 +431,7 @@ public class AtlasDbConfigTest {
     @Test
     public void canSpecifyZeroServersIfUsingTimelockBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .keyValueService(DB_KVS_CONFIG_WITHOUT_NAMESPACE)
                 .namespace(CLIENT_NAMESPACE)
                 .timelock(ImmutableTimeLockClientConfig.builder()
                         .serversList(ImmutableServerListConfig.builder().build())
