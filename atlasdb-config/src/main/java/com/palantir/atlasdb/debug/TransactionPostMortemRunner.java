@@ -200,7 +200,7 @@ public class TransactionPostMortemRunner {
     }
 
     private static String timelockNamespace(AtlasDbConfig config) {
-        return config.timelock().flatMap(TimeLockClientConfig::client).orElse(config.namespace().get());
+        return config.timelock().flatMap(TimeLockClientConfig::client).orElseGet(config.namespace()::get);
     }
 
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(

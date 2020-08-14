@@ -1085,7 +1085,8 @@ public abstract class TransactionManagers {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
 
-        String timelockNamespace = config.timelock().flatMap(TimeLockClientConfig::client).orElse(config.namespace().get());
+        String timelockNamespace = config.timelock().flatMap(TimeLockClientConfig::client)
+                .orElseGet(config.namespace()::get);
         LockAndTimestampServices lockAndTimestampServices =
                 getLockAndTimestampServices(
                         metricsManager,
