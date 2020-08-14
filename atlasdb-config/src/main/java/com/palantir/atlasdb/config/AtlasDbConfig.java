@@ -320,38 +320,21 @@ public abstract class AtlasDbConfig {
     }
 
     private String checkNamespaceConfigAndGetNamespace() {
-        if (namespace().isPresent()) {
-            String namespaceConfigValue = namespace().get();
+        if (keyValueService().namespace().isPresent()) {
+            String keyValueServiceNamespace = keyValueService().namespace().get();
 
-            Preconditions.checkState(!namespaceConfigValue.contains("\""),
-                    "Namespace should not be quoted");
-
-            keyValueService().namespace().ifPresent(kvsNamespace ->
-                    com.palantir.logsafe.Preconditions.checkState(kvsNamespace.equals(namespaceConfigValue),
+            namespace().ifPresent(atlasNamespace ->
+                    com.palantir.logsafe.Preconditions.checkState(atlasNamespace.equals(keyValueServiceNamespace),
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
-            timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
-                    com.palantir.logsafe.Preconditions.checkState(client.equals(namespaceConfigValue),
-                            "If present, the TimeLock client config should be the same as the"
-                                    + " atlas root-level namespace config.")));
-            return namespaceConfigValue;
-        } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
-            com.palantir.logsafe.Preconditions.checkState(keyValueService().namespace().isPresent(),
-                    "Either the atlas root-level namespace"
-                            + " or the keyspace/dbName/sid config needs to be set.");
-
-            String keyValueServiceNamespace = keyValueService().namespace().get();
-
             Preconditions.checkState(!keyValueServiceNamespace.contains("\""),
                     "KeyValueService namespace should not be quoted");
-
             if (timelock().isPresent()) {
                 TimeLockClientConfig timeLockConfig = timelock().get();
 
                 com.palantir.logsafe.Preconditions.checkState(timeLockConfig.client().isPresent(),
-                        "Either the atlas root-level namespace config or the TimeLock client config"
-                                + " should be present.");
+                        "Client must be explicitly specified if using TimeLock.");
 
                 // In this case, we need to change the TimeLock client name to be equal to the KVS namespace
                 // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
@@ -364,6 +347,15 @@ public abstract class AtlasDbConfig {
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
             return keyValueServiceNamespace;
+        } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
+            Preconditions.checkState(!(keyValueService().type().equals("cassandra")),
+                    "Keyspace must be explicitly specified if using Cassandra.");
+
+            Preconditions.checkState(namespace().isPresent(),
+                    "Either the atlas root-level namespace"
+                            + " or the keyspace/dbName/sid config needs to be set.");
+
+            return namespace().get();
         } else {
             Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
                     "Expecting KeyValueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
