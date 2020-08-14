@@ -362,7 +362,12 @@ public abstract class AtlasDbConfig {
                     keyValueService().getClass());
 
             if (namespace().isPresent()) {
-                return namespace().get();
+                String atlasNamespace = namespace().get();
+                timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
+                        Preconditions.checkState(client.equals(atlasNamespace),
+                                "If present, the TimeLock client config should be the same as the"
+                                        + " atlas root-level namespace config.")));
+                return atlasNamespace;
             }
 
             if (timelock().isPresent()) {
