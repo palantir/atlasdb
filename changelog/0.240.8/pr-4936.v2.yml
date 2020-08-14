@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Targeted sweep no longer publishes metrics for a given sweep strategy
+    if it is inactive (defined as fewer than 1000 entries written to the queue, 1000
+    entries read, or 4 hours behind).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4936
