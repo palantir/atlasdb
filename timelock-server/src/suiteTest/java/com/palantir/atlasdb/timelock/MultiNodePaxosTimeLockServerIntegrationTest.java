@@ -437,7 +437,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
         boolean isNonLeaderTakenOut = false;
         try {
-            for (int i = 0; i < 1_500; i++) { // Needed as it takes a while for the thread buildup to occur
+            for (int i = 0; i < 1_800; i++) { // Needed as it takes a while for the thread buildup to occur
                 assertNumberOfThreadsReasonable(
                         startingNumThreads,
                         ManagementFactory.getThreadMXBean().getThreadCount(),
