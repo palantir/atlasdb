@@ -34,11 +34,12 @@ jobs:
 
   test:
     parallelism: 8
-    docker:
-      - image: circleci/openjdk:8u212-jdk-stretch-node
+    machine:
+      image: circleci/classic:edge
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
       _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /home/circleci/junit
       CIRCLE_ARTIFACTS: /home/circleci/artifacts
@@ -49,7 +50,6 @@ jobs:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
       - restore_cache:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
-      - setup_remote_docker
       - run: mkdir -p $CIRCLE_ARTIFACTS
       - run:
           command: ./scripts/circle-ci/pull-all-images.sh
@@ -60,6 +60,12 @@ jobs:
       - run:
           command: ./scripts/circle-ci/monitor-all-processes.sh
           background: true
+      - run:
+          name: Install Java
+          command: |
+              sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+              curl https://cdn.azul.com/zulu/bin/zulu8.38.0.13-ca-jdk8.0.212-linux_x64.tar.gz | tar -xzf - -C /opt/java
+              sudo ln -s /opt/java/zulu*/ /opt/java8
       - run: ./scripts/circle-ci/download-moreutils.sh
       - run:
           command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
@@ -107,7 +113,7 @@ jobs:
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
               # publishing snapshots to bintray does not work, so we only publish from tag builds (not develop)
               if [[ "${CIRCLE_TAG}" =~ [0-9]+(\.[0-9]+){2}(-alpha|-beta|-rc[0-9]+)?(\+[0-9]{3})? ]]; then
                 ./gradlew --profile --stacktrace --continue bintrayUpload -x check
