@@ -917,7 +917,10 @@ public class TransactionManagersTest {
                 Refreshable.create(mockAtlasDbRuntimeConfig);
         Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
-                        config, refreshableRuntimeConfig, USER_AGENT);
+                        config,
+                        refreshableRuntimeConfig,
+                        USER_AGENT,
+                        DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build())));
         ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                 .builder()
                 .atlasVersion("1.0")

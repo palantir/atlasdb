@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.sls.versions.OrderableSlsVersion;
 
 public class LeadershipEventRecorderTest {
 
@@ -43,6 +44,8 @@ public class LeadershipEventRecorderTest {
     private static final PaxosValue ROUND_1_NOT_LEADING = round(1, false);
     private static final PaxosValue ROUND_2_NOT_LEADING = round(2, false);
     private static final PaxosValue ROUND_3_NOT_LEADING = round(3, false);
+
+    private static final OrderableSlsVersion VERSION = OrderableSlsVersion.valueOf("1.1.1");
 
     @After
     public void verifyNoMoreEvents() {
@@ -180,6 +183,14 @@ public class LeadershipEventRecorderTest {
         recorder.recordLeaderPingReturnedFalse();
 
         verify(events).leaderPingReturnedFalse();
+    }
+
+
+    @Test
+    public void recordsLeaderOnOlderVersion() {
+        recorder.recordLeaderOnOlderVersion(VERSION);
+
+        verify(events).leaderOnOlderTimeLockVersion(VERSION);
     }
 
     @Test
