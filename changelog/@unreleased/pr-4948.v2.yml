@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: AtlasDB now allows configuration to accept different KVS namespaces
+    and timelock clients, provided this is explicitly enabled AND the user is not
+    using Cassandra. This was previously banned in all cases.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4948
