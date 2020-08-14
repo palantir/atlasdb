@@ -80,8 +80,8 @@ jobs:
           paths: [ . ]
 
   deploy:
-    machine:
-      image: circleci/openjdk:8u212-jdk-stretch-node
+    docker:
+      - image: circleci/openjdk:8u212-jdk-stretch-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
