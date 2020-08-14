@@ -360,6 +360,11 @@ public abstract class AtlasDbConfig {
             Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
                     "Expecting KeyValueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
                     keyValueService().getClass());
+
+            if (namespace().isPresent()) {
+                return namespace().get();
+            }
+
             if (timelock().isPresent()) {
                 return timelock().get().client().orElseThrow(() -> new SafeIllegalStateException(
                         "For InMemoryKVS, the TimeLock client should not be empty"));
