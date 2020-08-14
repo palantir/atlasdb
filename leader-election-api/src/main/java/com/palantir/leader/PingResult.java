@@ -16,6 +16,7 @@
 
 package com.palantir.leader;
 
+import java.io.Serializable;
 import java.util.Optional;
 
 import org.immutables.value.Value;
@@ -27,7 +28,7 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 @Value.Immutable(intern = true)
 @JsonSerialize(as = ImmutablePingResult.class)
 @JsonDeserialize(as = ImmutablePingResult.class)
-public interface PingResult {
+public interface PingResult extends Serializable {
     boolean isLeader();
 
     /**
