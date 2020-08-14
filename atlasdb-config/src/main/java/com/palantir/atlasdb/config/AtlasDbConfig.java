@@ -372,8 +372,8 @@ public abstract class AtlasDbConfig {
             Preconditions.checkState(timeLockConfig.client().isPresent(),
                     "Either the atlas root-level namespace config or the TimeLock client config should be present.");
 
-            if (keyValueService().type().equals("cassandra") ||
-                    !enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces()) {
+            if (keyValueService().type().equals("cassandra")
+                    || !enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces()) {
                 Preconditions.checkState(timeLockConfig.client().equals(
                         Optional.of(keyValueServiceNamespace)),
                         "AtlasDB refused to start, in order to avoid potential data corruption."
