@@ -455,9 +455,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
-        // TODO (jkong): Lower the amount over the threshold. This needs to be slightly higher for now because of the
-        // current threading model in batch mode, where separate threads may be spun up on the autobatcher.
-        int threadLimit = startingThreads + 800;
+        int threadLimit = startingThreads + 1000;
         if (nonLeaderDown) {
             if (threadCount > threadLimit) {
                 System.out.println("hello");
