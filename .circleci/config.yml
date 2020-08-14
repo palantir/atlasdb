@@ -66,7 +66,6 @@ jobs:
               sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
               curl https://cdn.azul.com/zulu/bin/zulu8.48.0.53-ca-jdk8.0.265-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
-              export PATH=/opt/java8/bin:$PATH
       - run: ./scripts/circle-ci/download-moreutils.sh
       - run:
           command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
