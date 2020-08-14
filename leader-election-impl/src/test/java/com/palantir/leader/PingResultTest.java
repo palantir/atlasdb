@@ -44,9 +44,11 @@ public class PingResultTest {
                 .isLeader(true).build();
 
         File file = tempFolder.newFile();
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file));
-                ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
             out.writeObject(pr);
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
             PingResult deserializedPingResult = (PingResult) in.readObject();
             assertThat(deserializedPingResult.isLeader()).isEqualTo(true);
             assertThat(deserializedPingResult.timeLockVersion()).isEqualTo(Optional.of(timeLockVersion));
