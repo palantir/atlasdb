@@ -64,7 +64,7 @@ jobs:
           name: Install Java
           command: |
               sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
-              curl https://cdn.azul.com/zulu/bin/zulu8.48.0.53-ca-jdk8.0.265-linux_x64.tar.gz | tar -xzf - -C /opt/java
+              curl https://cdn.azul.com/zulu/bin/zulu8.38.0.13-ca-jdk8.0.212-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run: ./scripts/circle-ci/download-moreutils.sh
       - run:
