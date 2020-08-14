@@ -343,10 +343,10 @@ public abstract class AtlasDbConfig {
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
-            timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
+            timelock().flatMap(TimeLockClientConfig::client).ifPresent(client ->
                     Preconditions.checkState(client.equals(presentNamespace),
                             "If present, the TimeLock client config should be the same as the"
-                                    + " atlas root-level namespace config.")));
+                                    + " atlas root-level namespace config."));
             return;
         }
 
