@@ -1194,7 +1194,11 @@ public abstract class TransactionManagers {
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
 
         env.accept(localLock);
-        env.accept(new ManagedTimestampResource(localManagedTimestamp));
+
+        TimestampService timeResource = localManagedTimestamp;
+        TimestampManagementService managementResource = localManagedTimestamp;
+        env.accept(timeResource);
+        env.accept(managementResource);
 
         // Create remote services, that may end up calling our own local services.
         ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
