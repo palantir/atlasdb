@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
+@Path("/")
 public class ManagedTimestampResource {
     private final ManagedTimestampService managedTimestampService;
 
@@ -38,21 +39,21 @@ public class ManagedTimestampResource {
     }
 
     @POST // This has to be POST because we can't allow caching.
-    @Path("fresh-timestamp")
+    @Path("/timestamp/fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     public long getFreshTimestamp() {
         return managedTimestampService.getFreshTimestamp();
     }
 
     @POST // This has to be POST because we can't allow caching.
-    @Path("fresh-timestamps")
+    @Path("/timestamp/fresh-timestamps")
     @Produces(MediaType.APPLICATION_JSON)
     public TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested) {
         return managedTimestampService.getFreshTimestamps(numTimestampsRequested);
     }
 
     @POST
-    @Path("fast-forward")
+    @Path("/timestamp-management/fast-forward")
     @Produces(MediaType.APPLICATION_JSON)
     public void fastForwardTimestamp(
             @Safe @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp) {
@@ -60,7 +61,7 @@ public class ManagedTimestampResource {
     }
 
     @GET
-    @Path("ping")
+    @Path("/timestamp-management/ping")
     @Produces(MediaType.TEXT_PLAIN)
     @CheckReturnValue(when = When.NEVER)
     public String ping() {
