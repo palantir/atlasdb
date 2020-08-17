@@ -92,19 +92,21 @@ public class SingleLeaderPinger implements LeaderPinger {
         }
 
         LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
+
         try {
             return pingLeaderWithUuidNew(uuid,
                     leader,
-                    leader.pinger()::pingV2);
-        } catch (InterruptedException e) {
-            try {
-                return pingLeaderWithUuidNew(uuid,
-                        leader,
-                        () -> getPingResultFromLegacyEndpoint(leader));
-            } catch (InterruptedException exc) {
-                Thread.currentThread().interrupt();
-                return LeaderPingResults.pingCallFailure(exc);
-            }
+                    () -> leader.pinger().pingV2());
+        } catch (ExecutionException e) {
+            log.warn("failed attempt pingV2");
+        }
+
+        try {
+            return pingLeaderWithUuidNew(uuid,
+                    leader,
+                    () -> getPingResultFromLegacyEndpoint(leader));
+        } catch (ExecutionException ex) {
+            return LeaderPingResults.pingCallFailure(ex.getCause());
         }
     }
 
@@ -115,7 +117,7 @@ public class SingleLeaderPinger implements LeaderPinger {
 
     private LeaderPingResult pingLeaderWithUuidNew(UUID uuid,
             LeaderPingerContext<PingableLeader> leader,
-            Callable<PingResult> pingSupplier) throws InterruptedException {
+            Callable<PingResult> pingSupplier) throws ExecutionException {
         MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService
                 = MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
         try {
@@ -123,6 +125,9 @@ public class SingleLeaderPinger implements LeaderPinger {
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture
                     = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
+        } catch (InterruptedException exc) {
+            Thread.currentThread().interrupt();
+            return LeaderPingResults.pingCallFailure(exc);
         } catch (CheckedRejectedExecutionException e) {
             log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", e);
             return LeaderPingResults.pingCallFailure(e);
@@ -132,24 +137,20 @@ public class SingleLeaderPinger implements LeaderPinger {
     private static LeaderPingResult getLeaderPingResult(
             UUID uuid,
             @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion) throws ExecutionException {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
 
-        try {
-            PingResult pingResult = Futures.getDone(pingFuture).getValue();
-            if (!pingResult.isLeader()) {
-                return LeaderPingResults.pingReturnedFalse();
-            }
-            return isAtLeastOurVersion(pingResult, timeLockVersion)
-                    ? LeaderPingResults.pingReturnedTrue(
-                    uuid,
-                    Futures.getDone(pingFuture).getKey().hostAndPort())
-                    : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
-        } catch (ExecutionException e) {
-            return LeaderPingResults.pingCallFailure(e.getCause());
+        PingResult pingResult = Futures.getDone(pingFuture).getValue();
+        if (!pingResult.isLeader()) {
+            return LeaderPingResults.pingReturnedFalse();
         }
+        return isAtLeastOurVersion(pingResult, timeLockVersion)
+                ? LeaderPingResults.pingReturnedTrue(
+                uuid,
+                Futures.getDone(pingFuture).getKey().hostAndPort())
+                : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
     }
 
     private static boolean isAtLeastOurVersion(PingResult pingResult, Optional<OrderableSlsVersion> timeLockVersion) {
