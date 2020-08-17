@@ -16,9 +16,9 @@ Download The CLI
 
 .. tip::
 
-    If you are working with Oracle KVS (whether directly, or as part of a migration), the standard AtlasDB CLI
-    distribution will not work as it does not contain the requisite Oracle drivers. Please contact the AtlasDB team for
-    assistance.
+    If you are working with Oracle KVS (whether directly, or as part of a migration) and are using a version of
+    AtlasDB before than 0.240.10, the standard AtlasDB CLI distribution will not work as it does not contain the
+    requisite Oracle drivers. Please contact the AtlasDB team for assistance.
 
 The CLI now comes prebuilt as an SLS distribution to be used with any AtlasDB-backed product.
 You can find the versions `here <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/>`__ for download.
