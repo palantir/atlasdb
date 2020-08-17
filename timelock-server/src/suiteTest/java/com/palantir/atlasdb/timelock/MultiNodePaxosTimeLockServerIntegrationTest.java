@@ -457,9 +457,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
         int threadLimit = startingThreads + 1000;
         if (nonLeaderDown) {
-            if (threadCount > threadLimit) {
-                System.out.println("hello");
-            }
             assertThat(threadCount)
                     .as("should not additionally spin up too many threads after a non-leader failed")
                     .isLessThanOrEqualTo(threadLimit);
