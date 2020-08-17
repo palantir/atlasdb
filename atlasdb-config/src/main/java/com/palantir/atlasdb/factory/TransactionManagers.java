@@ -185,6 +185,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.DelegatingManagedTimestampService;
+import com.palantir.timestamp.ManagedTimestampResource;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementService;
@@ -1193,8 +1194,7 @@ public abstract class TransactionManagers {
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
 
         env.accept(localLock);
-        env.accept((TimestampService) localManagedTimestamp);
-        env.accept((TimestampManagementService) localManagedTimestamp);
+        env.accept(new ManagedTimestampResource(localManagedTimestamp));
 
         // Create remote services, that may end up calling our own local services.
         ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
