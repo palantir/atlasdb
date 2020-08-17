@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Make PingResult java serializable.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4946
