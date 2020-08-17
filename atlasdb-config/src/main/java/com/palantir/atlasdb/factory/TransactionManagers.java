@@ -188,6 +188,7 @@ import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -1194,8 +1195,29 @@ public abstract class TransactionManagers {
 
         env.accept(localLock);
 
-        TimestampService timeResource = localManagedTimestamp;
-        TimestampManagementService managementResource = localManagedTimestamp;
+        TimestampService timeResource = new TimestampService() {
+            @Override
+            public long getFreshTimestamp() {
+                return localManagedTimestamp.getFreshTimestamp();
+            }
+
+            @Override
+            public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+                return localManagedTimestamp.getFreshTimestamps(numTimestampsRequested);
+            }
+        };
+        TimestampManagementService managementResource = new TimestampManagementService() {
+            @Override
+            public void fastForwardTimestamp(long currentTimestamp) {
+                localManagedTimestamp.fastForwardTimestamp(currentTimestamp);
+            }
+
+            @Override
+            public String ping() {
+                return localManagedTimestamp.ping();
+            }
+        };
+
         env.accept(timeResource);
         env.accept(managementResource);
 
