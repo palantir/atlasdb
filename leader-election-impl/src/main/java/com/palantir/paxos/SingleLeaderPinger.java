@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -85,23 +86,43 @@ public class SingleLeaderPinger implements LeaderPinger {
     @Override
     public LeaderPingResult pingLeaderWithUuid(UUID uuid) {
         Optional<LeaderPingerContext<PingableLeader>> suspectedLeader = getSuspectedLeader(uuid);
+
         if (!suspectedLeader.isPresent()) {
             return LeaderPingResults.pingReturnedFalse();
         }
 
         LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
+        try {
+            return pingLeaderWithUuidNew(uuid,
+                    leader,
+                    leader.pinger()::pingV2);
+        } catch (InterruptedException e) {
+            try {
+                return pingLeaderWithUuidNew(uuid,
+                        leader,
+                        () -> getPingResultFromLegacyEndpoint(leader));
+            } catch (InterruptedException exc) {
+                Thread.currentThread().interrupt();
+                return LeaderPingResults.pingCallFailure(exc);
+            }
+        }
+    }
 
+    private PingResult getPingResultFromLegacyEndpoint(LeaderPingerContext<PingableLeader> leader) {
+        boolean isLeader = leader.pinger().ping();
+        return PingResult.builder().isLeader(isLeader).build();
+    }
+
+    private LeaderPingResult pingLeaderWithUuidNew(UUID uuid,
+            LeaderPingerContext<PingableLeader> leader,
+            Callable<PingResult> pingSupplier) throws InterruptedException {
         MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService
                 = MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
-
         try {
-            multiplexingCompletionService.submit(leader, () -> leader.pinger().pingV2());
+            multiplexingCompletionService.submit(leader, pingSupplier);
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture
                     = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return LeaderPingResults.pingCallFailure(e);
         } catch (CheckedRejectedExecutionException e) {
             log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", e);
             return LeaderPingResults.pingCallFailure(e);
@@ -115,6 +136,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
+
         try {
             PingResult pingResult = Futures.getDone(pingFuture).getValue();
             if (!pingResult.isLeader()) {
@@ -122,8 +144,8 @@ public class SingleLeaderPinger implements LeaderPinger {
             }
             return isAtLeastOurVersion(pingResult, timeLockVersion)
                     ? LeaderPingResults.pingReturnedTrue(
-                            uuid,
-                            Futures.getDone(pingFuture).getKey().hostAndPort())
+                    uuid,
+                    Futures.getDone(pingFuture).getKey().hostAndPort())
                     : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
         } catch (ExecutionException e) {
             return LeaderPingResults.pingCallFailure(e.getCause());
