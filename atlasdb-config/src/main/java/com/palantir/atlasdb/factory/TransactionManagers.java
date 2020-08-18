@@ -1265,10 +1265,12 @@ public abstract class TransactionManagers {
             // remote services are pointed at them anyway.
             LockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
                     LockService.class, localLock, remoteLock, useLocalServicesFuture);
+
+            // Use managedTimestampProxy here to avoid local calls going through indirection.
             TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
+                    TimestampService.class, managedTimestampProxy, remoteTime, useLocalServicesFuture);
             TimestampManagementService dynamicManagementService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampManagementService.class, localManagement, remoteManagement, useLocalServicesFuture);
+                    TimestampManagementService.class, managedTimestampProxy, remoteManagement, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
                     .timestamp(dynamicTimeService)
