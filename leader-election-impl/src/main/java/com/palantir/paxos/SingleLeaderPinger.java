@@ -94,19 +94,19 @@ public class SingleLeaderPinger implements LeaderPinger {
         MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService
                 = MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
         try {
-            return pingLeaderWithUuidNew(uuid,
+            return actuallyPingLeaderWithUuid(multiplexingCompletionService,
+                    uuid,
                     leader,
-                    () -> leader.pinger().pingV2(),
-                    multiplexingCompletionService);
+                    leader.pinger()::pingV2);
         } catch (ExecutionException e) {
             log.warn("Could not ping the leader using pingV2 endpoint, ", e);
         }
 
         try {
-            return pingLeaderWithUuidNew(uuid,
+            return actuallyPingLeaderWithUuid(multiplexingCompletionService,
+                    uuid,
                     leader,
-                    () -> getPingResultFromLegacyEndpoint(leader),
-                    multiplexingCompletionService);
+                    () -> getPingResultFromLegacyEndpoint(leader));
         } catch (ExecutionException ex) {
             return LeaderPingResults.pingCallFailure(ex.getCause());
         }
@@ -117,13 +117,13 @@ public class SingleLeaderPinger implements LeaderPinger {
         return PingResult.builder().isLeader(isLeader).build();
     }
 
-    private LeaderPingResult pingLeaderWithUuidNew(UUID uuid,
+    private LeaderPingResult actuallyPingLeaderWithUuid(
+            MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult>  multiplexingCompletionService,
+            UUID uuid,
             LeaderPingerContext<PingableLeader> leader,
-            Callable<PingResult> pingSupplier,
-            MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult>
-                    multiplexingCompletionService) throws ExecutionException {
+            Callable<PingResult> pingEndpoint) throws ExecutionException {
         try {
-            multiplexingCompletionService.submit(leader, pingSupplier);
+            multiplexingCompletionService.submit(leader, pingEndpoint);
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture
                     = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
