@@ -94,18 +94,22 @@ public class SingleLeaderPinger implements LeaderPinger {
         LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
 
         try {
+            log.info("Blah | Attempting to ping2 leader.");
             return pingLeaderWithUuidNew(uuid,
                     leader,
                     () -> leader.pinger().pingV2());
         } catch (ExecutionException e) {
-            log.warn("failed attempt pingV2");
+            log.info("Blah | failed attempt pingV2");
+//            log.warn("failed attempt pingV2");
         }
 
         try {
+            log.info("Blah | Attempting to ping2 leader.");
             return pingLeaderWithUuidNew(uuid,
                     leader,
                     () -> getPingResultFromLegacyEndpoint(leader));
         } catch (ExecutionException ex) {
+            log.info("Blah | failed attempt ping.");
             return LeaderPingResults.pingCallFailure(ex.getCause());
         }
     }
@@ -126,10 +130,11 @@ public class SingleLeaderPinger implements LeaderPinger {
                     = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
         } catch (InterruptedException exc) {
+            log.info("Blah | Interrupted exc.");
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(exc);
         } catch (CheckedRejectedExecutionException e) {
-            log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", e);
+            log.warn("Blah | Could not ping the leader, because the executor used to talk to that node is overloaded", e);
             return LeaderPingResults.pingCallFailure(e);
         }
     }
@@ -139,11 +144,13 @@ public class SingleLeaderPinger implements LeaderPinger {
             @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture,
             Optional<OrderableSlsVersion> timeLockVersion) throws ExecutionException {
         if (pingFuture == null) {
+            log.info("Blah | pingFuture was null");
             return LeaderPingResults.pingTimedOut();
         }
 
         PingResult pingResult = Futures.getDone(pingFuture).getValue();
         if (!pingResult.isLeader()) {
+            log.info("Blah | checking if the leader");
             return LeaderPingResults.pingReturnedFalse();
         }
         return isAtLeastOurVersion(pingResult, timeLockVersion)
@@ -154,6 +161,7 @@ public class SingleLeaderPinger implements LeaderPinger {
     }
 
     private static boolean isAtLeastOurVersion(PingResult pingResult, Optional<OrderableSlsVersion> timeLockVersion) {
+        log.info("Blah | checking atlas version");
         return (pingResult.timeLockVersion().isPresent() && timeLockVersion.isPresent())
                 ? VersionComparator.INSTANCE.compare(pingResult.timeLockVersion().get(), timeLockVersion.get()) >= 0
                 : true;
