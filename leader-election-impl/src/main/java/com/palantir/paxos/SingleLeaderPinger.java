@@ -118,7 +118,8 @@ public class SingleLeaderPinger implements LeaderPinger {
     }
 
     private LeaderPingResult actuallyPingLeaderWithUuid(
-            MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult>  multiplexingCompletionService,
+            MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult>
+                    multiplexingCompletionService,
             UUID uuid,
             LeaderPingerContext<PingableLeader> leader,
             Callable<PingResult> pingEndpoint) throws ExecutionException {
