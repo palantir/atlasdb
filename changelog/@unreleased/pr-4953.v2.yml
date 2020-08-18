@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |
+    We now fallback on ping endpoint to check if remote server is the leader if pingV2 endpoint throws exception.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4953
