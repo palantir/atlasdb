@@ -48,6 +48,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.ByteArrayIOStream;
 
 public abstract class AbstractGenericStreamStore<T> implements GenericStreamStore<T> {
+    private static final int BLOCK_BATCH = 2;
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
 
     @CheckForNull protected final TransactionManager txnMgr;
@@ -211,10 +212,10 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             long numBlocks,
             OutputStream os) {
         long position = 0;
-        for (; position + 4 <= numBlocks; position += 4) {
-            loadBlocksToOutputStream(tx, streamId, firstBlock + position, 4, os);
+        for (; position + BLOCK_BATCH <= numBlocks; position += BLOCK_BATCH) {
+            loadBlocksToOutputStream(tx, streamId, firstBlock + position, BLOCK_BATCH, os);
         }
-        loadBlocksToOutputStream(tx, streamId, firstBlock + position, numBlocks % 4, os);
+        loadBlocksToOutputStream(tx, streamId, firstBlock + position, numBlocks % BLOCK_BATCH, os);
     }
 
     private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
