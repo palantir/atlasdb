@@ -1194,7 +1194,7 @@ public abstract class TransactionManagers {
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
 
         // These facades are necessary because of the semantics of the JAX-RS algorithm (in particular, accepting
-        // just the managed timestamp service will *not* work.
+        // just the managed timestamp service will *not* work).
         TimestampService localTime = getTimestampFacade(managedTimestampProxy);
         TimestampManagementService localManagement = getTimestampManagementFacade(managedTimestampProxy);
 

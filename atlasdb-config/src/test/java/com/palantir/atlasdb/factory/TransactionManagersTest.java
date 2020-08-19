@@ -613,6 +613,16 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void metricsAreNotDirectlyReportedFromLocalService() throws IOException {
+        setUpForLocalServices();
+        setUpLeaderBlockInConfig();
+
+        assertThatTimeAndLockMetricsAreNotRecorded(
+                TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                LOCK_SERVICE_CURRENT_TIME_METRIC);
+    }
+
+    @Test
     public void metricsAreReportedExactlyOnceWhenUsingRemoteService() throws IOException {
         setUpForRemoteServices();
         setUpLeaderBlockInConfig();
@@ -767,6 +777,18 @@ public class TransactionManagersTest {
                 GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
 
         assertThat(Iterables.getOnlyElement(result.entrySet()).getValue(), is(12345L));
+    }
+
+    private void assertThatTimeAndLockMetricsAreNotRecorded(String timestampMetric, String lockMetric) {
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.timelock().currentTimeMillis();
+
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
     }
 
     private void assertThatTimeAndLockMetricsWithTagsAreRecorded(
