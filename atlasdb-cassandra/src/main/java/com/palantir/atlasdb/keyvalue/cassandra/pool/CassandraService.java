@@ -40,6 +40,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
@@ -65,6 +67,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Interner<RangeMap<LightweightOppToken, List<InetSocketAddress>>> tokensInterner =
+            Interners.newWeakInterner();
 
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
@@ -135,7 +139,7 @@ public class CassandraService implements AutoCloseable {
                     }
                 }
             }
-            tokenMap = newTokenRing.build();
+            tokenMap = tokensInterner.intern(newTokenRing.build());
             return servers;
         } catch (Exception e) {
             log.info("Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
