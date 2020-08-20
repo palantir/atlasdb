@@ -18,10 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -41,18 +39,24 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
+    private static final LoadingCache<SslConfiguration, SSLSocketFactory> sslSocketFactoryCache = Caffeine.newBuilder()
+            .weakValues()
+            .build(SslSocketFactories::createSslSocketFactory);
 
     private final MetricsManager metricsManager;
     private final InetSocketAddress addr;
@@ -117,19 +121,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private static SSLSocketFactory createSslSocketFactory(CassandraKeyValueServiceConfig config) {
-        return config.sslConfiguration().map(SslSocketFactories::createSslSocketFactory)
-                .orElseGet(() -> {
-                    try {
-                        /*
-                         * Identical to SSLSocketFactory.getDefault(), but reduces contention on verifying it has
-                         * already been set up. If we suffer from contention here in SecureRandom operations,
-                         * we can consider sharding out the SSL context by connection.
-                         */
-                        return SSLContext.getInstance("Default").getSocketFactory();
-                    } catch (NoSuchAlgorithmException e) {
-                        throw new AssertionError(e);
-                    }
-                });
+        return config.sslConfiguration().map(sslSocketFactoryCache::get)
+                // This path should never be hit in production code, since we expect SSL is configured explicitly.
+                .orElseGet(() -> (SSLSocketFactory) SSLSocketFactory.getDefault());
     }
 
     private static Cassandra.Client getRawClient(
