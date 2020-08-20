@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
+import javax.net.ssl.SSLSocketFactory;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -186,6 +188,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * The existence of this object overrides any configuration made via the ssl config value.
      */
     Optional<SslConfiguration> sslConfiguration();
+
+    @Value.Lazy
+    default SSLSocketFactory sslSocketFactory() {
+        return sslSocketFactory()
+    }
 
     /**
      * An object which implements the logic behind CQL communication resource management. Default factory object creates
