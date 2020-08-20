@@ -104,13 +104,13 @@ public class SinglePingableLeaderTest {
         verifyPingRequests(1, 1);
     }
 
-    public void verifyPingRequests(int pingV2RequestCount, int pingRequestCount) {
+    public void verifyPingRequests(int verifyPingV2Requests, int verifyLegacyPingRequests) {
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));
         pinger.pingLeaderWithUuid(REMOTE_UUID);
         List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
-        assertThat(requests.size()).isEqualTo(pingV2RequestCount);
+        assertThat(requests.size()).isEqualTo(verifyPingV2Requests);
         requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
-        assertThat(requests.size()).isEqualTo(pingRequestCount);
+        assertThat(requests.size()).isEqualTo(verifyLegacyPingRequests);
     }
 
     private LeaderPinger pingerWithVersion(OrderableSlsVersion version) {

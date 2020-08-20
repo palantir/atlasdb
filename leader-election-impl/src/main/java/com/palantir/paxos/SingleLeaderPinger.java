@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,8 +48,8 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.sls.versions.VersionComparator;
 
 public class SingleLeaderPinger implements LeaderPinger {
-
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
+    private static final double PING_V2_SAMPLING_RATE = 0.01;
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
     private final Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> leaderPingExecutors;
@@ -56,6 +57,7 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final UUID localUuid;
     private final boolean cancelRemainingCalls;
     private final Optional<OrderableSlsVersion> timeLockVersion;
+    private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
     public SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
@@ -93,13 +95,18 @@ public class SingleLeaderPinger implements LeaderPinger {
 
         MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService
                 = MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
-        try {
-            return actuallyPingLeaderWithUuid(multiplexingCompletionService,
-                    uuid,
-                    leader,
-                    leader.pinger()::pingV2);
-        } catch (ExecutionException e) {
-            log.warn("Could not ping the leader using pingV2 endpoint, ", e);
+        if (shouldUsePingV2(leader)) {
+            try {
+                LeaderPingResult pingResult = actuallyPingLeaderWithUuid(multiplexingCompletionService,
+                        uuid,
+                        leader,
+                        leader.pinger()::pingV2);
+                pingV2StatusOnRemotes.put(leader, true);
+                return pingResult;
+            } catch (ExecutionException e) {
+                pingV2StatusOnRemotes.putIfAbsent(leader, false);
+                log.warn("Could not ping the leader using pingV2 endpoint, ", e);
+            }
         }
 
         try {
@@ -110,6 +117,12 @@ public class SingleLeaderPinger implements LeaderPinger {
         } catch (ExecutionException ex) {
             return LeaderPingResults.pingCallFailure(ex.getCause());
         }
+    }
+
+    private boolean shouldUsePingV2(LeaderPingerContext<PingableLeader> leader) {
+        return !pingV2StatusOnRemotes.containsKey(leader)
+                || pingV2StatusOnRemotes.get(leader) == true
+                || Math.random() < PING_V2_SAMPLING_RATE;
     }
 
     private PingResult getPingResultFromLegacyEndpoint(LeaderPingerContext<PingableLeader> leader) {
@@ -128,9 +141,9 @@ public class SingleLeaderPinger implements LeaderPinger {
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture
                     = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
-        } catch (InterruptedException exc) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return LeaderPingResults.pingCallFailure(exc);
+            return LeaderPingResults.pingCallFailure(e);
         } catch (CheckedRejectedExecutionException e) {
             log.warn("Could not ping the leader, because the executor used to talk to that node is overloaded", e);
             return LeaderPingResults.pingCallFailure(e);
