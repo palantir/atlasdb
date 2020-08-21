@@ -35,10 +35,14 @@ final class VersionedEventStore {
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
-        return ImmutableSet.copyOf(maybeStartVersion.map(
-                startVersion -> getValuesBetweenInclusive(endVersion, startVersion))
-                .orElseGet(() -> getFirstKey().map(firstKey -> getValuesBetweenInclusive(endVersion, firstKey))
-                        .orElseGet(ImmutableList::of)));
+        Optional<Long> startVersion = maybeStartVersion
+                .map(Optional::of)
+                .orElseGet(this::getFirstKey)
+                .filter(version -> version <= endVersion);
+
+        return startVersion
+                .map(version -> getValuesBetweenInclusive(endVersion, version))
+                .orElseGet(ImmutableList::of);
     }
 
     LockWatchEvents getAndRemoveElementsUpToExclusive(long endVersion) {

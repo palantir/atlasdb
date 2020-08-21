@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
@@ -82,8 +83,9 @@ public class LockWatchEventCacheIntegrationTest {
             ImmutableList.of(LOCK_EVENT_2));
     private static final LockWatchStateUpdate SNAPSHOT =
             LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
+    private static final long SUCCESS_VERSION = 6L;
     private static final LockWatchStateUpdate SUCCESS =
-            LockWatchStateUpdate.success(LEADER, 6L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT));
+            LockWatchStateUpdate.success(LEADER, SUCCESS_VERSION, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT));
     private static final long START_TS = 1L;
     private static final Set<TransactionUpdate> COMMIT_UPDATE = ImmutableSet.of(
             ImmutableTransactionUpdate.builder().startTs(START_TS).commitTs(5L).writesToken(COMMIT_TOKEN).build());
@@ -277,6 +279,16 @@ public class LockWatchEventCacheIntegrationTest {
                 LockWatchStateUpdate.success(LEADER, 7L, ImmutableList.of(WATCH_EVENT, LOCK_EVENT, LOCK_EVENT_2))))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Events form a non-contiguous sequence");
+    }
+
+    @Test
+    public void upToDateClientDoesNotThrow() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+        assertThatCode(() -> eventCache.getUpdateForTransactions(
+                TIMESTAMPS,
+                Optional.of(IdentifiedVersion.of(LEADER, SUCCESS_VERSION))))
+                .doesNotThrowAnyException();
     }
 
     @Test
