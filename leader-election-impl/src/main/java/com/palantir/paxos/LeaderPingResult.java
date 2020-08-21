@@ -55,6 +55,12 @@ public abstract class LeaderPingResult {
                 .otherwise_(false);
     }
 
+    public boolean pingCallFailed() {
+        return LeaderPingResults.caseOf(this)
+                .pingCallFailure_(true)
+                .otherwise_(false);
+    }
+
     private static <R> Supplier<R> wrap(Runnable runnable) {
         return () -> {
             runnable.run();
