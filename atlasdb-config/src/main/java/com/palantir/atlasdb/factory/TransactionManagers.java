@@ -188,6 +188,7 @@ import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -1187,23 +1188,16 @@ public abstract class TransactionManagers {
                 leaderConfig,
                 userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
-        LockService localLock = ServiceCreator.instrumentService(
-                metricsManager.getRegistry(),
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader),
-                LockService.class);
+        LockService localLock = AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader);
 
         ManagedTimestampService managedTimestampProxy =
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
 
-        TimestampService localTime = ServiceCreator.instrumentService(
-                metricsManager.getRegistry(),
-                managedTimestampProxy,
-                TimestampService.class);
+        // These facades are necessary because of the semantics of the JAX-RS algorithm (in particular, accepting
+        // just the managed timestamp service will *not* work).
+        TimestampService localTime = getTimestampFacade(managedTimestampProxy);
+        TimestampManagementService localManagement = getTimestampManagementFacade(managedTimestampProxy);
 
-        TimestampManagementService localManagement = ServiceCreator.instrumentService(
-                metricsManager.getRegistry(),
-                managedTimestampProxy,
-                TimestampManagementService.class);
         env.accept(localLock);
         env.accept(localTime);
         env.accept(localManagement);
@@ -1271,10 +1265,12 @@ public abstract class TransactionManagers {
             // remote services are pointed at them anyway.
             LockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
                     LockService.class, localLock, remoteLock, useLocalServicesFuture);
+
+            // Use managedTimestampProxy here to avoid local calls going through indirection.
             TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
+                    TimestampService.class, managedTimestampProxy, remoteTime, useLocalServicesFuture);
             TimestampManagementService dynamicManagementService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampManagementService.class, localManagement, remoteManagement, useLocalServicesFuture);
+                    TimestampManagementService.class, managedTimestampProxy, remoteManagement, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
                     .timestamp(dynamicTimeService)
@@ -1290,6 +1286,35 @@ public abstract class TransactionManagers {
                     .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
+    }
+
+    private static TimestampService getTimestampFacade(ManagedTimestampService managedTimestampService) {
+        return new TimestampService() {
+            @Override
+            public long getFreshTimestamp() {
+                return managedTimestampService.getFreshTimestamp();
+            }
+
+            @Override
+            public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+                return managedTimestampService.getFreshTimestamps(numTimestampsRequested);
+            }
+        };
+    }
+
+    private static TimestampManagementService getTimestampManagementFacade(
+            ManagedTimestampService managedTimestampService) {
+        return new TimestampManagementService() {
+            @Override
+            public void fastForwardTimestamp(long currentTimestamp) {
+                managedTimestampService.fastForwardTimestamp(currentTimestamp);
+            }
+
+            @Override
+            public String ping() {
+                return managedTimestampService.ping();
+            }
+        };
     }
 
     private static int logFailureToReadRemoteTimestampServerId(int logAfter, Throwable th) {
