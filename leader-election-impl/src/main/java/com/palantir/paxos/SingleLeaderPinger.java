@@ -27,8 +27,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -104,26 +102,20 @@ public class SingleLeaderPinger implements LeaderPinger {
             pingResult = actuallyPingLeaderWithUuid(multiplexingCompletionService,
                     uuid,
                     leader,
-                    leader.pinger()::pingV2,
-                    () -> pingV2StatusOnRemotes.put(leader, true),
-                    ee -> doIfPingV2Throws(leader, (ExecutionException) ee));
+                    leader.pinger()::pingV2);
         }
 
-        if (pingResult == null || (pingResult.pingCallFailed() && pingV2StatusOnRemotes.get(leader) == false)) {
+        if (pingResult == null || pingResult.pingCallFailedDueToExecutionException()) {
+            pingV2StatusOnRemotes.putIfAbsent(leader, false);
             pingResult = actuallyPingLeaderWithUuid(multiplexingCompletionService,
                     uuid,
                     leader,
-                    () -> getPingResultFromLegacyEndpoint(leader),
-                    () -> true,
-                    Function.identity());
+                    () -> getPingResultFromLegacyEndpoint(leader));
+        } else if (pingResult.pingCallWasSuccessfullyExecuted()) {
+            pingV2StatusOnRemotes.put(leader, true);
         }
-        return pingResult;
-    }
 
-    private LeaderPingResult doIfPingV2Throws(LeaderPingerContext<PingableLeader> leader, ExecutionException e) {
-        pingV2StatusOnRemotes.putIfAbsent(leader, false);
-        log.warn("Could not ping the leader using pingV2 endpoint, ", e);
-        return LeaderPingResults.pingCallFailure(e.getCause());
+        return pingResult;
     }
 
     private boolean shouldUsePingV2(LeaderPingerContext<PingableLeader> leader) {
@@ -142,14 +134,12 @@ public class SingleLeaderPinger implements LeaderPinger {
                     multiplexingCompletionService,
             UUID uuid,
             LeaderPingerContext<PingableLeader> leader,
-            Callable<PingResult> pingEndpoint,
-            Supplier doIfSuccess,
-            Function doIfEndpointThrows) {
+            Callable<PingResult> pingEndpoint) {
         try {
             multiplexingCompletionService.submit(leader, pingEndpoint);
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture
                     = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
-            return getLeaderPingResult(uuid, pingFuture, timeLockVersion, doIfSuccess, doIfEndpointThrows);
+            return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(e);
@@ -162,9 +152,7 @@ public class SingleLeaderPinger implements LeaderPinger {
     private static LeaderPingResult getLeaderPingResult(
             UUID uuid,
             @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture,
-            Optional<OrderableSlsVersion> timeLockVersion,
-            Supplier doIfSuccess,
-            Function doIfEndpointThrows) {
+            Optional<OrderableSlsVersion> timeLockVersion) {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
@@ -183,11 +171,9 @@ public class SingleLeaderPinger implements LeaderPinger {
                         Futures.getDone(pingFuture).getKey().hostAndPort())
                         : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
             }
-            doIfSuccess.get();
             return leaderPingResult;
         } catch (ExecutionException e) {
-            doIfEndpointThrows.apply(e);
-            return LeaderPingResults.pingCallFailure(e.getCause());
+            return LeaderPingResults.pingCallFailedWithExecutionException(e.getCause());
         }
     }
 
