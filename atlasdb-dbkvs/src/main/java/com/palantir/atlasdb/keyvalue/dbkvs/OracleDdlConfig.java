@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -29,16 +30,27 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.logsafe.Preconditions;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
 @JsonTypeName(OracleDdlConfig.TYPE)
 @Value.Immutable
+@JsonIgnoreProperties("jdbcHandler")
 public abstract class OracleDdlConfig extends DdlConfig {
     public static final String TYPE = "oracle";
 
-    public abstract JdbcHandler jdbcHandler();
+    /**
+     * TODO(jbaker): Refactor away the existence of this class. This was originally split between an external project
+     * and an internal project because Oracle did not publish their driver to Maven. So, we managed to split things
+     * up so that there was a single interface which was implemented internally which we dynamically loaded.
+     * We're merging the two back together, but I'm not going to ramp up on the Oracle jdbc driver as part of this,
+     * so view this as something vestigial.
+     */
+    public final JdbcHandler jdbcHandler() {
+        return new NativeOracleJdbcHandler();
+    }
 
     @Value.Default
     public String singleOverflowTable() {

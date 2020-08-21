@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Metrics for TimestampService, LockService and TimestampManagementService
+    are no longer doubly registered for users that use embedded timestamp and lock
+    services with a leader block.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4954

@@ -25,7 +25,6 @@ import java.util.TreeMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 
@@ -35,10 +34,14 @@ final class VersionedEventStore {
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
-        return ImmutableSet.copyOf(maybeStartVersion.map(
-                startVersion -> getValuesBetweenInclusive(endVersion, startVersion))
-                .orElseGet(() -> getFirstKey().map(firstKey -> getValuesBetweenInclusive(endVersion, firstKey))
-                        .orElseGet(ImmutableList::of)));
+        Optional<Long> startVersion = maybeStartVersion
+                .map(Optional::of)
+                .orElseGet(this::getFirstKey)
+                .filter(version -> version <= endVersion);
+
+        return startVersion
+                .map(version -> getValuesBetweenInclusive(endVersion, version))
+                .orElseGet(ImmutableList::of);
     }
 
     LockWatchEvents getAndRemoveElementsUpToExclusive(long endVersion) {
