@@ -27,6 +27,7 @@ import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 final class LockWatchEventLog {
     private final ClientLockWatchSnapshot snapshot;
@@ -152,7 +153,9 @@ final class LockWatchEventLog {
             Preconditions.checkNotNull(firstEvent, "First element not preset in list of events");
             Preconditions.checkArgument(firstEvent.sequence() < latestVersion.get().version()
                             || latestVersion.get().version() + 1 == firstEvent.sequence(),
-                    "Events missing between last snapshot and this batch of events");
+                    "Events missing between last snapshot and this batch of events",
+                    SafeArg.of("latestVersionSequence", latestVersion.get().version()),
+                    SafeArg.of("firstNewVersionSequence", firstEvent.sequence()));
         }
     }
 
