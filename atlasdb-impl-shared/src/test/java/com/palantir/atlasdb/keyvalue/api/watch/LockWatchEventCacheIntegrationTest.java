@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -285,10 +285,9 @@ public class LockWatchEventCacheIntegrationTest {
     public void upToDateClientDoesNotThrow() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        assertThatCode(() -> eventCache.getUpdateForTransactions(
+        assertThat(eventCache.getUpdateForTransactions(
                 TIMESTAMPS,
-                Optional.of(IdentifiedVersion.of(LEADER, SUCCESS_VERSION))))
-                .doesNotThrowAnyException();
+                Optional.of(IdentifiedVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
     }
 
     @Test
