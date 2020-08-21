@@ -84,8 +84,10 @@ public class LockWatchEventCacheIntegrationTest {
     private static final LockWatchStateUpdate SNAPSHOT =
             LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
     private static final long SUCCESS_VERSION = 6L;
-    private static final LockWatchStateUpdate SUCCESS =
-            LockWatchStateUpdate.success(LEADER, SUCCESS_VERSION, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT));
+    private static final LockWatchStateUpdate SUCCESS = LockWatchStateUpdate.success(
+            LEADER,
+            SUCCESS_VERSION,
+            ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT));
     private static final long START_TS = 1L;
     private static final Set<TransactionUpdate> COMMIT_UPDATE = ImmutableSet.of(
             ImmutableTransactionUpdate.builder().startTs(START_TS).commitTs(5L).writesToken(COMMIT_TOKEN).build());
