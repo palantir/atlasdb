@@ -47,6 +47,7 @@ public abstract class LeaderPingResult {
                 .pingReturnedTrueWithOlderVersion(wrap(eventRecorder::recordLeaderOnOlderVersion))
                 .pingReturnedFalse(wrap(eventRecorder::recordLeaderPingReturnedFalse))
                 .pingCallFailure(wrap(eventRecorder::recordLeaderPingFailure))
+                .pingCallFailedWithExecutionException(wrap(eventRecorder::recordLeaderPingFailure))
                 .otherwise_(null);
     }
 
