@@ -320,10 +320,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     TimelockService getTimelockService();
 
-    @DoNotDelegate
-    default LockWatchManager getLockWatchManager() {
-        return NoOpLockWatchManager.INSTANCE;
-    }
+    LockWatchManager getLockWatchManager();
 
     /**
      * Returns the timestamp service used by this transaction manager.
