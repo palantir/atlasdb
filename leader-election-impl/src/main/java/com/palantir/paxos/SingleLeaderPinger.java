@@ -119,8 +119,7 @@ public class SingleLeaderPinger implements LeaderPinger {
     }
 
     private boolean shouldUsePingV2(LeaderPingerContext<PingableLeader> leader) {
-        return !pingV2StatusOnRemotes.containsKey(leader)
-                || pingV2StatusOnRemotes.get(leader) == true
+        return pingV2StatusOnRemotes.getOrDefault(leader, true)
                 || Math.random() < PING_V2_SAMPLING_RATE;
     }
 

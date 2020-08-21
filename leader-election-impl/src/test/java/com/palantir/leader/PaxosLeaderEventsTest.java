@@ -65,7 +65,7 @@ public class PaxosLeaderEventsTest {
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(10));
         assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
-                .isEqualTo(LeaderPingResults.pingCallFailure(error));
+                .isEqualTo(LeaderPingResults.pingCallFailedWithExecutionException(error));
     }
 
     @Test
