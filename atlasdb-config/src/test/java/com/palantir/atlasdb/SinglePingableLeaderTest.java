@@ -110,7 +110,7 @@ public class SinglePingableLeaderTest {
     }
 
     @Test
-    public void blah() {
+    public void samplesRequestsToFailingPing2() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(500)));
         verifyPingRequests(100, 100);
     }
