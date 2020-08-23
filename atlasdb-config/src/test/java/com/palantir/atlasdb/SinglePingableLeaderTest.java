@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -89,26 +90,37 @@ public class SinglePingableLeaderTest {
     public void doesNotFallbackOnPingWhenPingV2Responds() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(200)
                 .withBody("{\"isLeader\":false}")));
-        verifyPingRequests(1, 0);
+        pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1")).pingLeaderWithUuid(REMOTE_UUID);
+        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
+        assertThat(requests.size()).isEqualTo(1);
+        requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
+        assertThat(requests.size()).isEqualTo(0);
     }
 
     @Test
     public void fallbackOnPingWhenPingV2DoesNotExist() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(404)));
-        verifyPingRequests(1, 1);
+        verifyPingRequests( 5, 5);
     }
 
     @Test
     public void fallbackOnPingWhenPingV2Throws() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(500)));
-        verifyPingRequests(1, 1);
+        verifyPingRequests(5, 5);
     }
 
-    public void verifyPingRequests(int verifyPingV2Requests, int verifyLegacyPingRequests) {
+    @Test
+    public void blah() {
+        availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(500)));
+        verifyPingRequests(100, 100);
+    }
+
+    public void verifyPingRequests(int totalNumOfPings, int verifyLegacyPingRequests) {
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));
-        pinger.pingLeaderWithUuid(REMOTE_UUID);
+        IntStream.range(0, totalNumOfPings).forEach(idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
+
         List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
-        assertThat(requests.size()).isEqualTo(verifyPingV2Requests);
+        assertThat(requests.size()).isLessThan(totalNumOfPings);
         requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
         assertThat(requests.size()).isEqualTo(verifyLegacyPingRequests);
     }
