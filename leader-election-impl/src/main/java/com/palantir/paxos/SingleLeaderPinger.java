@@ -124,8 +124,7 @@ public class SingleLeaderPinger implements LeaderPinger {
     }
 
     private PingResult getPingResultFromLegacyEndpoint(LeaderPingerContext<PingableLeader> leader) {
-        boolean isLeader = leader.pinger().ping();
-        return PingResult.builder().isLeader(isLeader).build();
+        return PingResult.builder().isLeader(leader.pinger().ping()).build();
     }
 
     private LeaderPingResult actuallyPingLeaderWithUuid(
@@ -155,18 +154,15 @@ public class SingleLeaderPinger implements LeaderPinger {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
-
-        PingResult pingResult = null;
         try {
-            pingResult = Futures.getDone(pingFuture).getValue();
-
+            PingResult pingResult = Futures.getDone(pingFuture).getValue();
             if (!pingResult.isLeader()) {
                 return LeaderPingResults.pingReturnedFalse();
             }
             return isAtLeastOurVersion(pingResult, timeLockVersion)
                     ? LeaderPingResults.pingReturnedTrue(
-                    uuid,
-                    Futures.getDone(pingFuture).getKey().hostAndPort())
+                            uuid,
+                            Futures.getDone(pingFuture).getKey().hostAndPort())
                     : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
         } catch (ExecutionException e) {
             return LeaderPingResults.pingCallFailedWithExecutionException(e.getCause());

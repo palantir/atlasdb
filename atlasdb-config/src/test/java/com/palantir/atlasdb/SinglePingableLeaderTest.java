@@ -100,7 +100,7 @@ public class SinglePingableLeaderTest {
     @Test
     public void fallbackOnPingWhenPingV2DoesNotExist() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(404)));
-        verifyPingRequests( 5, 5);
+        verifyPingRequests(5, 5);
     }
 
     @Test
