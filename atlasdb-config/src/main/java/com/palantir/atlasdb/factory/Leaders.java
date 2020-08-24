@@ -47,6 +47,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.corruption.TimeLockCorruptionPinger;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
@@ -54,6 +55,8 @@ import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.health.TimeLockCorruptionDetectionHealthCheck;
+import com.palantir.leader.health.TimeLockCorruptionPingerImpl;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
@@ -206,6 +209,22 @@ public final class Leaders {
         List<PingableLeader> remotePingableLeaders = otherLeaders.stream()
                 .map(LeaderPingerContext::pinger)
                 .collect(Collectors.toList());
+
+        // todo sudiksha
+        TimeLockCorruptionPinger localCorruptionPinger = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
+                TimeLockCorruptionPinger.class,
+                new TimeLockCorruptionPingerImpl());
+        List<TimeLockCorruptionPinger> remoteCorruptionPingers = createProxyAndLocalList(
+                localCorruptionPinger,
+                remotePaxosServerSpec.remoteAcceptorUris(),
+                remotingClientConfig,
+                trustContext,
+                TimeLockCorruptionPinger.class,
+                userAgent);
+        // todo sudiksha schedule check
+        TimeLockCorruptionDetectionHealthCheck check = new TimeLockCorruptionDetectionHealthCheck(
+                localCorruptionPinger, remoteCorruptionPingers);
+
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)

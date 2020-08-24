@@ -57,10 +57,4 @@ public interface PingableLeader {
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
     PingResult pingV2();
-
-    @GET
-    @Path("allNodesShouldStepDownUntilCorruptionChecksHaveRecovered")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Timed
-    void allNodesShouldStepDownUntilCorruptionChecksHaveRecovered();
 }

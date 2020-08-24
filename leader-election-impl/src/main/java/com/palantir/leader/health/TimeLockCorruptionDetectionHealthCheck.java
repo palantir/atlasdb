@@ -16,15 +16,19 @@
 
 package com.palantir.leader.health;
 
-import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.PingableLeader;
+import java.util.List;
+
+import com.palantir.corruption.TimeLockCorruptionPinger;
 
 public class TimeLockCorruptionDetectionHealthCheck {
-    private final LeaderElectionService leaderElectionService;
+    private final List<TimeLockCorruptionPinger> corruptionPingers;
+    private final TimeLockCorruptionPinger localCorruptionPinger;
 
-    public TimeLockCorruptionDetectionHealthCheck(LeaderElectionService leaderElectionService,
-            PingableLeader pingableLeader) {
-        this.leaderElectionService = leaderElectionService;
+    public TimeLockCorruptionDetectionHealthCheck(
+            TimeLockCorruptionPinger localCorruptionPinger,
+            List<TimeLockCorruptionPinger> corruptionPingers) {
+        this.localCorruptionPinger = localCorruptionPinger;
+        this.corruptionPingers = corruptionPingers;
     }
 
 
@@ -37,9 +41,9 @@ public class TimeLockCorruptionDetectionHealthCheck {
         return false;
     }
 
-    public boolean failByPagingAtlasDBAndStoppingCLuster() {
-        leaderElectionService.markNotEligibleForLeadership();
-        leaderElectionService.stepDown();
+    public boolean failByPagingAtlasDBAndStoppingCluster() {
+        localCorruptionPinger.shutDown();
+        corruptionPingers.forEach(pinger -> pinger.shutDown());
         return true;
     }
 }
