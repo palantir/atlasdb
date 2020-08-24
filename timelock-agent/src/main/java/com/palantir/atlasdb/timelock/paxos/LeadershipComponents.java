@@ -84,10 +84,6 @@ public class LeadershipComponents {
         return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
     }
 
-    public TimeLockCorruptionHealthCheck corruptionHealthCheck(NamespaceTracker namespaceTracker) {
-        return new TimeLockCorruptionHealthCheck(localCorruptionDetector, );
-    }
-
     public boolean requestHostileTakeover(Client client) {
         return getOrCreateNewLeadershipContext(client).leaderElectionService().hostileTakeover();
     }
