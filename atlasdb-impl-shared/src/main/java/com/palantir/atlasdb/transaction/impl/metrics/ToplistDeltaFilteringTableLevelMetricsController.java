@@ -26,48 +26,39 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
 /**
- * Makes publication decisions for a given metric, as follows: for a given String identifier, filters out all but the
- * highest {@code maximumNumberOfTables} values. In the event of ties (e.g. a top-list of 10 where the 10th and 11th
- * highest values are equal), all tying values are published.
- *
  * This controller makes decisions based on deltas (in an attempt to be able to detect load spikes) measured over the
  * last {@code REFRESH_INTERVAL} period.
  */
 public final class ToplistDeltaFilteringTableLevelMetricsController implements TableLevelMetricsController {
-    private static final int DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS = 10;
     private static final String CONTROLLER_GENERATED = "controllerGenerated";
     private static final String TRUE = "true";
 
-    @VisibleForTesting
-    static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
+    private static final Duration REFRESH_INTERVAL = Duration.ofSeconds(30);
 
-    private final Map<String, TopNMetricPublicationController<Long>> metricNameToPublicationController;
+    private final MetricsFilterEvaluationContext metricsFilterEvaluationContext;
     private final MetricsManager metricsManager;
-    private final int maximumNumberOfTables;
     private final Clock clock;
 
     @VisibleForTesting
     ToplistDeltaFilteringTableLevelMetricsController(
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             MetricsManager metricsManager,
-            int maximumNumberOfTables,
             Clock clock) {
-        this.metricNameToPublicationController = Maps.newConcurrentMap();
+        this.metricsFilterEvaluationContext = metricsFilterEvaluationContext;
         this.metricsManager = metricsManager;
-        this.maximumNumberOfTables = maximumNumberOfTables;
         this.clock = clock;
     }
 
-    public static TableLevelMetricsController create(MetricsManager metricsManager) {
+    public static TableLevelMetricsController create(MetricsManager metricsManager,
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         return new ToplistDeltaFilteringTableLevelMetricsController(
+                metricsFilterEvaluationContext,
                 metricsManager,
-                DEFAULT_MAX_TABLES_TO_PUBLISH_METRICS,
                 Clock.defaultClock());
     }
 
@@ -95,9 +86,8 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
             }
         };
 
-        MetricPublicationFilter filter = metricNameToPublicationController.computeIfAbsent(metricName,
-                _name -> TopNMetricPublicationController.create(maximumNumberOfTables))
-                .registerAndCreateFilter(memoizedGauge);
+        MetricPublicationFilter filter = metricsFilterEvaluationContext.registerAndCreateTopNFilter(
+                metricName, memoizedGauge);
         metricsManager.addMetricFilter(
                 clazz,
                 metricName,

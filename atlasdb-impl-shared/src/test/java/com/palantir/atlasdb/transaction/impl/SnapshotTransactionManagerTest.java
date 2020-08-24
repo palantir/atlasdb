@@ -50,6 +50,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -99,7 +100,8 @@ public class SnapshotTransactionManagerTest {
             deleteExecutor,
             true,
             () -> ImmutableTransactionConfig.builder().build(),
-            ConflictTracer.NO_OP);
+            ConflictTracer.NO_OP,
+            DefaultMetricsFilterEvaluationContext.createDefault());
 
     @Test
     public void isAlwaysInitialized() {
@@ -155,7 +157,8 @@ public class SnapshotTransactionManagerTest {
                 deleteExecutor,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                DefaultMetricsFilterEvaluationContext.createDefault());
         newTransactionManager.close(); // should not throw
     }
 
@@ -289,6 +292,7 @@ public class SnapshotTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
                         .build(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                DefaultMetricsFilterEvaluationContext.createDefault());
     }
 }
