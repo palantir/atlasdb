@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -49,7 +50,8 @@ import com.palantir.sls.versions.VersionComparator;
 
 public class SingleLeaderPinger implements LeaderPinger {
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
-    private static final double PING_V2_SAMPLING_RATE = 0.01;
+    private static final RateLimiter pingV2RateLimiter = RateLimiter.create(1.0 / (5 * 60));
+
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
     private final Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> leaderPingExecutors;
@@ -120,7 +122,7 @@ public class SingleLeaderPinger implements LeaderPinger {
 
     private boolean shouldUsePingV2(LeaderPingerContext<PingableLeader> leader) {
         return pingV2StatusOnRemotes.getOrDefault(leader, true)
-                || Math.random() < PING_V2_SAMPLING_RATE;
+                || pingV2RateLimiter.tryAcquire();
     }
 
     private PingResult getPingResultFromLegacyEndpoint(LeaderPingerContext<PingableLeader> leader) {
