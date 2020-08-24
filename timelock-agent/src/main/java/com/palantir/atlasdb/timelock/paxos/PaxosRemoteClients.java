@@ -32,6 +32,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.corruption.TimeLockCorruptionPinger;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingerContext;
@@ -91,6 +92,12 @@ public abstract class PaxosRemoteClients {
     public List<WithDedicatedExecutor<TimelockPaxosLearnerRpcClient>> nonBatchTimestampLearner() {
         return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
                 TimelockPaxosLearnerRpcClient.class, true);
+    }
+
+    @Value.Derived
+    public List<WithDedicatedExecutor<TimeLockCorruptionPinger>> getRemoteCorruptionPingers() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                TimeLockCorruptionPinger.class, true);
     }
 
     @Value.Derived
