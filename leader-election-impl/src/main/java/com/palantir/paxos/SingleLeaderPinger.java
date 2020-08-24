@@ -50,8 +50,6 @@ import com.palantir.sls.versions.VersionComparator;
 
 public class SingleLeaderPinger implements LeaderPinger {
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
-    private static final RateLimiter pingV2RateLimiter = RateLimiter.create(1.0 / (5 * 60));
-
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
     private final Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> leaderPingExecutors;
@@ -59,6 +57,8 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final UUID localUuid;
     private final boolean cancelRemainingCalls;
     private final Optional<OrderableSlsVersion> timeLockVersion;
+    private final RateLimiter pingV2RateLimiter = RateLimiter.create(1.0 / (5 * 60));
+
     private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
     public SingleLeaderPinger(

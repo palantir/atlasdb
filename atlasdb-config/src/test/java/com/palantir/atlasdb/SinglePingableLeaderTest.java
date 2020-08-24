@@ -91,11 +91,10 @@ public class SinglePingableLeaderTest {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(200)
                 .withBody("{\"isLeader\":false}")));
         pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1")).pingLeaderWithUuid(REMOTE_UUID);
-        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
-        assertThat(requests.size()).isEqualTo(1);
-        requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
-        assertThat(requests.size()).isEqualTo(0);
+        assertLegacyPingRequestsMade(1);
+        assertPingV2RequestsMadeAreAtMost(0);
     }
+
 
     @Test
     public void fallbackOnPingWhenPingV2DoesNotExist() {
@@ -104,7 +103,7 @@ public class SinglePingableLeaderTest {
     }
 
     @Test
-    public void fallbackOnPingWhenPingV2Throws() {
+    public void fallbackOnPingWhenPingV2ThrowsEvenWhenPingV2Exists() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(500)));
         verifyPingRequests(5, 5);
     }
@@ -121,8 +120,17 @@ public class SinglePingableLeaderTest {
 
         List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
         assertThat(requests.size()).isLessThan(totalNumOfPings);
-        requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
-        assertThat(requests.size()).isEqualTo(verifyLegacyPingRequests);
+        assertPingV2RequestsMadeAreAtMost(verifyLegacyPingRequests);
+    }
+
+    public void assertPingV2RequestsMadeAreAtMost(int count) {
+        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
+        assertThat(requests.size()).isEqualTo(count);
+    }
+
+    public void assertLegacyPingRequestsMade(int count) {
+        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
+        assertThat(requests.size()).isEqualTo(count);
     }
 
     private LeaderPinger pingerWithVersion(OrderableSlsVersion version) {
