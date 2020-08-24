@@ -298,7 +298,7 @@ public class LockWatchEventCacheIntegrationTest {
         assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,
                 LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(UNLOCK_EVENT))))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessage("Events missing between last snapshot and this batch of events");
+                .hasMessageContaining("Events missing between last snapshot and this batch of events");
     }
 
     private void setupInitialState() {
