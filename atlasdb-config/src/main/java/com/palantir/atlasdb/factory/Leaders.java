@@ -231,6 +231,7 @@ public final class Leaders {
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .localPingableLeader(pingableLeader)
                 .remotePingableLeaders(remotePingableLeaders)
+                .check(check)
                 .build();
     }
 
@@ -315,6 +316,7 @@ public final class Leaders {
         LeaderElectionService leaderElectionService();
         PingableLeader localPingableLeader();
         Set<PingableLeader> remotePingableLeaders();
+        TimeLockCorruptionDetectionHealthCheck check();
 
         @Value.Derived
         default Supplier<Boolean> isCurrentSuspectedLeader() {

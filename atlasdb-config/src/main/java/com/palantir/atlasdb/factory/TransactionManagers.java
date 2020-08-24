@@ -157,7 +157,6 @@ import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.TimeLockCorruptionDetectionHealthCheck;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.leader.proxy.TimeLockCorruptionDetectingProxy;
 import com.palantir.lock.LockClient;
@@ -1191,8 +1190,7 @@ public abstract class TransactionManagers {
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
-                TimeLockCorruptionDetectingProxy.newProxyInstance(LockService.class, lock::get, leader,
-                        new TimeLockCorruptionDetectionHealthCheck(leader, blha)),
+                TimeLockCorruptionDetectingProxy.newProxyInstance(LockService.class, lock::get, leader, localPaxosServices.check()),
                 LockService.class);
 
         ManagedTimestampService managedTimestampProxy =

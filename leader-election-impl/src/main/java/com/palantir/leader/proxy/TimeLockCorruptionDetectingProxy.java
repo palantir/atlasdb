@@ -41,13 +41,13 @@ public class TimeLockCorruptionDetectingProxy<T> extends AbstractInvocationHandl
             Supplier<U> delegateSupplier,
             LeaderElectionService leaderElectionService,
             TimeLockCorruptionDetectionHealthCheck corruptionDetectionHealthCheck) {
-        TimeLockCorruptionDetectingProxy<U> blah = new TimeLockCorruptionDetectingProxy(
+        TimeLockCorruptionDetectingProxy<U> proxy = new TimeLockCorruptionDetectingProxy(
                 new AwaitingLeadershipProxy(delegateSupplier, leaderElectionService, interfaceClass),
                 corruptionDetectionHealthCheck);
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
                 new Class<?>[] { interfaceClass, Closeable.class },
-                blah);
+                proxy);
     }
 
     @Override
