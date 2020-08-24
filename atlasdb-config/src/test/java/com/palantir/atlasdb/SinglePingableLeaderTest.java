@@ -99,7 +99,7 @@ public class SinglePingableLeaderTest {
     public void fallbackOnPingWhenPingV2DoesNotExist() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(404)));
         LeaderPinger pinger = getDefaultLeaderPinger();
-        IntStream.range(0, 5).forEach(idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
+        pingMultipleTimes(pinger, 5);
         assertPingV2RequestsMadeAreLessThan(5);
         assertLegacyPingRequestsMade(5);
     }
@@ -108,7 +108,7 @@ public class SinglePingableLeaderTest {
     public void fallbackOnPingWhenPingV2ThrowsEvenWhenPingV2Exists() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(500)));
         LeaderPinger pinger = getDefaultLeaderPinger();
-        IntStream.range(0, 5).forEach(idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
+        pingMultipleTimes(pinger, 5);
         assertPingV2RequestsMadeAreLessThan(5);
         assertLegacyPingRequestsMade(5);
     }
@@ -117,7 +117,7 @@ public class SinglePingableLeaderTest {
     public void samplesRequestsToFailingPing2() {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(500)));
         LeaderPinger pinger = getDefaultLeaderPinger();
-        IntStream.range(0, 100).forEach(idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
+        pingMultipleTimes(pinger, 100);
         assertPingV2RequestsMadeAreLessThan(100);
         assertLegacyPingRequestsMade(100);
     }
@@ -137,7 +137,11 @@ public class SinglePingableLeaderTest {
         assertThat(requests.size()).isEqualTo(count);
     }
 
-    public LeaderPinger getDefaultLeaderPinger() {
+    private void pingMultipleTimes(LeaderPinger pinger, int pingFrequency) {
+        IntStream.range(0, pingFrequency).forEach(idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
+    }
+
+    private LeaderPinger getDefaultLeaderPinger() {
         return pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));
     }
 
