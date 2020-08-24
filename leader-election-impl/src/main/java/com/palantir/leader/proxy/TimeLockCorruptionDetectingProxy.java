@@ -24,15 +24,15 @@ import java.util.function.Supplier;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.TimeLockCorruptionException;
-import com.palantir.leader.health.TimeLockCorruptionDetectionHealthCheck;
+import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
 
 public class TimeLockCorruptionDetectingProxy<T> extends AbstractInvocationHandler {
     private final AwaitingLeadershipProxy<T> delegate;
-    private final TimeLockCorruptionDetectionHealthCheck corruptionDetectionHealthCheck;
+    private final TimeLockCorruptionHealthCheck corruptionDetectionHealthCheck;
 
 
     public TimeLockCorruptionDetectingProxy(AwaitingLeadershipProxy<T> delegate,
-            TimeLockCorruptionDetectionHealthCheck corruptionDetectionHealthCheck) {
+            TimeLockCorruptionHealthCheck corruptionDetectionHealthCheck) {
         this.delegate = delegate;
         this.corruptionDetectionHealthCheck = corruptionDetectionHealthCheck;
     }
@@ -40,7 +40,7 @@ public class TimeLockCorruptionDetectingProxy<T> extends AbstractInvocationHandl
     public static <U> U newProxyInstance(Class<U> interfaceClass,
             Supplier<U> delegateSupplier,
             LeaderElectionService leaderElectionService,
-            TimeLockCorruptionDetectionHealthCheck corruptionDetectionHealthCheck) {
+            TimeLockCorruptionHealthCheck corruptionDetectionHealthCheck) {
         TimeLockCorruptionDetectingProxy<U> proxy = new TimeLockCorruptionDetectingProxy(
                 new AwaitingLeadershipProxy(delegateSupplier, leaderElectionService, interfaceClass),
                 corruptionDetectionHealthCheck);

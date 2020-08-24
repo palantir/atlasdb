@@ -1190,7 +1190,8 @@ public abstract class TransactionManagers {
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
-                TimeLockCorruptionDetectingProxy.newProxyInstance(LockService.class, lock::get, leader, localPaxosServices.check()),
+                TimeLockCorruptionDetectingProxy.newProxyInstance(LockService.class, lock::get, leader,
+                        localPaxosServices.corruptionCheck()),
                 LockService.class);
 
         ManagedTimestampService managedTimestampProxy =

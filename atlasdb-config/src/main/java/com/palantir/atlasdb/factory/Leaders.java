@@ -55,7 +55,7 @@ import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.TimeLockCorruptionDetectionHealthCheck;
+import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
 import com.palantir.leader.health.TimeLockCorruptionPingerImpl;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPinger;
@@ -210,7 +210,6 @@ public final class Leaders {
                 .map(LeaderPingerContext::pinger)
                 .collect(Collectors.toList());
 
-        // todo sudiksha
         TimeLockCorruptionPinger localCorruptionPinger = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
                 TimeLockCorruptionPinger.class,
                 new TimeLockCorruptionPingerImpl());
@@ -221,8 +220,7 @@ public final class Leaders {
                 trustContext,
                 TimeLockCorruptionPinger.class,
                 userAgent);
-        // todo sudiksha schedule check
-        TimeLockCorruptionDetectionHealthCheck check = new TimeLockCorruptionDetectionHealthCheck(
+        TimeLockCorruptionHealthCheck check = new TimeLockCorruptionHealthCheck(
                 localCorruptionPinger, remoteCorruptionPingers);
 
         return ImmutableLocalPaxosServices.builder()
@@ -231,7 +229,7 @@ public final class Leaders {
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .localPingableLeader(pingableLeader)
                 .remotePingableLeaders(remotePingableLeaders)
-                .check(check)
+                .corruptionCheck(check)
                 .build();
     }
 
@@ -316,7 +314,7 @@ public final class Leaders {
         LeaderElectionService leaderElectionService();
         PingableLeader localPingableLeader();
         Set<PingableLeader> remotePingableLeaders();
-        TimeLockCorruptionDetectionHealthCheck check();
+        TimeLockCorruptionHealthCheck corruptionCheck();
 
         @Value.Derived
         default Supplier<Boolean> isCurrentSuspectedLeader() {

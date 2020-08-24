@@ -19,8 +19,10 @@ package com.palantir.leader.health;
 import com.palantir.corruption.TimeLockCorruptionPinger;
 
 public class TimeLockCorruptionPingerImpl implements TimeLockCorruptionPinger {
+    TimeLockCorruptionHealthCheck check;
     @Override
     public void shutDown() {
         // TBD
+        check.remoteHasDetectedCorruption();
     }
 }
