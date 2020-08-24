@@ -24,9 +24,13 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -40,8 +44,11 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
@@ -52,6 +59,8 @@ import com.palantir.logsafe.Preconditions;
  * rather than directly calling delegate lock service.
  */
 final class TransactionStarter implements AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(TransactionStarter.class);
+
     private final DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher;
     private final LockLeaseService lockLeaseService;
 
@@ -163,12 +172,36 @@ final class TransactionStarter implements AutoCloseable {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
             try {
+                Optional<IdentifiedVersion> requestedVersion = lockWatchEventCache.lastKnownVersion();
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
-                        lockWatchEventCache.lastKnownVersion(), numberOfTransactions - result.size());
+                        requestedVersion, numberOfTransactions - result.size());
                 lockWatchEventCache.processStartTransactionsUpdate(
                         response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
                         response.getLockWatchUpdate());
                 result.addAll(split(response));
+
+                if (log.isDebugEnabled()) {
+                    Optional<LockWatchStateUpdate.Success> successfulUpdate = response.getLockWatchUpdate()
+                            .accept(new LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>>() {
+                                @Override
+                                public Optional<LockWatchStateUpdate.Success> visit(
+                                        LockWatchStateUpdate.Success success) {
+                                    return Optional.of(success);
+                                }
+
+                                @Override
+                                public Optional<LockWatchStateUpdate.Success> visit(
+                                        LockWatchStateUpdate.Snapshot snapshot) {
+                                    return Optional.empty();
+                                }
+                            });
+
+                    successfulUpdate.ifPresent(success ->
+                            log.debug("Start transaction batch request and response",
+                                    SafeArg.of("requestedVersion", requestedVersion),
+                                    SafeArg.of("responseFirstVersion", Iterables.getFirst(success.events(), null)),
+                                    SafeArg.of("responseLatestVersion", success.lastKnownVersion())));
+                }
             } catch (Throwable t) {
                 unlock(result.stream()
                         .map(response -> response.immutableTimestamp().getLock())
