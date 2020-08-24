@@ -91,8 +91,8 @@ public class SinglePingableLeaderTest {
         availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(200)
                 .withBody("{\"isLeader\":false}")));
         pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1")).pingLeaderWithUuid(REMOTE_UUID);
-        assertLegacyPingRequestsMade(1);
-        assertPingV2RequestsMadeAreAtMost(0);
+        assertPingV2RequestsMadeAreExactly(1);
+        assertLegacyPingRequestsMade(0);
     }
 
 
@@ -117,19 +117,22 @@ public class SinglePingableLeaderTest {
     public void verifyPingRequests(int totalNumOfPings, int verifyLegacyPingRequests) {
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));
         IntStream.range(0, totalNumOfPings).forEach(idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
-
-        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
-        assertThat(requests.size()).isLessThan(totalNumOfPings);
-        assertPingV2RequestsMadeAreAtMost(verifyLegacyPingRequests);
+        assertPingV2RequestsMadeAreAtMost(totalNumOfPings);
+        assertLegacyPingRequestsMade(verifyLegacyPingRequests);
     }
 
     public void assertPingV2RequestsMadeAreAtMost(int count) {
-        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
+        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
+        assertThat(requests.size()).isLessThan(count);
+    }
+
+    public void assertPingV2RequestsMadeAreExactly(int count) {
+        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
         assertThat(requests.size()).isEqualTo(count);
     }
 
     public void assertLegacyPingRequestsMade(int count) {
-        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
+        List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
         assertThat(requests.size()).isEqualTo(count);
     }
 
