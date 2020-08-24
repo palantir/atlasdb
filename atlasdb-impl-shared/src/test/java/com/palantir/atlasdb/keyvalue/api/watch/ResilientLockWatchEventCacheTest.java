@@ -75,4 +75,17 @@ public final class ResilientLockWatchEventCacheTest {
         verify(defaultCache).lastKnownVersion();
         verify(fallbackCache, never()).lastKnownVersion();
     }
+
+    @Test
+    public void alreadyOnFallbackCausesExceptionToBeRethrown() {
+        RuntimeException runtimeException = new RuntimeException();
+        when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
+        when(fallbackCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
+        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasCause(runtimeException);
+        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+                .isExactlyInstanceOf(RuntimeException.class)
+                .hasCause(runtimeException);
+    }
 }
