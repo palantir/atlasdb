@@ -55,8 +55,8 @@ import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.health.LocalCorruptionDetector;
 import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
-import com.palantir.leader.health.TimeLockCorruptionPingerImpl;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
@@ -210,18 +210,22 @@ public final class Leaders {
                 .map(LeaderPingerContext::pinger)
                 .collect(Collectors.toList());
 
-        TimeLockCorruptionPinger localCorruptionPinger = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
-                TimeLockCorruptionPinger.class,
-                new TimeLockCorruptionPingerImpl());
-        List<TimeLockCorruptionPinger> remoteCorruptionPingers = createProxyAndLocalList(
-                localCorruptionPinger,
-                remotePaxosServerSpec.remoteAcceptorUris(),
-                remotingClientConfig,
-                trustContext,
-                TimeLockCorruptionPinger.class,
-                userAgent);
-        TimeLockCorruptionHealthCheck check = new TimeLockCorruptionHealthCheck(
-                localCorruptionPinger, remoteCorruptionPingers);
+        //todo Sudiksha
+        List<TimeLockCorruptionPinger> remoteCorruptionPingers = remotePaxosServerSpec.remoteAcceptorUris().stream()
+                .map(uri -> AtlasDbHttpClients.createProxy(
+                        trustContext,
+                        uri,
+                        TimeLockCorruptionPinger.class,
+                        AuxiliaryRemotingParameters.builder()
+                                .userAgent(userAgent)
+                                .shouldLimitPayload(false)
+                                .shouldRetry(true)
+                                .shouldUseExtendedTimeout(false)
+                                .remotingClientConfig(remotingClientConfig)
+                                .build()))
+                .collect(Collectors.toList());
+        TimeLockCorruptionHealthCheck check = new TimeLockCorruptionHealthCheck(new LocalCorruptionDetector(),
+                remoteCorruptionPingers);
 
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)

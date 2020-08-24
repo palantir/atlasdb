@@ -26,6 +26,9 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.health.LocalCorruptionDetector;
+import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
+import com.palantir.leader.health.TimeLockCorruptionPingerImpl;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
@@ -113,7 +116,14 @@ public abstract class LeadershipContextFactory implements
                 .leaderElectionService(leaderElectionService)
                 .addCloseables(leaderElectionService)
                 .addAllCloseables(leaderPingerFactory().closeables())
+                .corruptionCheck(getTimeLockCorruptionHealthCheck(client))
                 .build();
+    }
+
+    private TimeLockCorruptionHealthCheck getTimeLockCorruptionHealthCheck(Client client) {
+        new TimeLockCorruptionHealthCheck(new LocalCorruptionDetector(),
+                remoteCorruptionPingers);
+        return new TimeLockCorruptionHealthCheck(new TimeLockCorruptionPingerImpl(), )
     }
 
     @Value.Derived

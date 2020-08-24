@@ -33,7 +33,9 @@ import com.google.common.io.Closer;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.leader.health.LocalCorruptionDetector;
+import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
+import com.palantir.leader.proxy.TimeLockCorruptionDetectingProxy;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
@@ -48,17 +50,20 @@ public class LeadershipComponents {
 
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
+    private final LocalCorruptionDetector localCorruptionDetector;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
             LocalAndRemotes<HealthCheckPinger> healthCheckPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
+        this.localCorruptionDetector = new LocalCorruptionDetector();
     }
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
         LeadershipContext context = getOrCreateNewLeadershipContext(client);
-        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leaderElectionService());
+        T instance = TimeLockCorruptionDetectingProxy.newProxyInstance(
+                clazz, delegateSupplier, context.leaderElectionService(), context.corruptionCheck());
 
         // this is acceptable since the proxy returned implements Closeable and needs to be closed
         Closeable closeableInstance = (Closeable) instance;
@@ -77,6 +82,10 @@ public class LeadershipComponents {
 
     public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
         return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
+    }
+
+    public TimeLockCorruptionHealthCheck corruptionHealthCheck(NamespaceTracker namespaceTracker) {
+        return new TimeLockCorruptionHealthCheck(localCorruptionDetector, );
     }
 
     public boolean requestHostileTakeover(Client client) {
@@ -149,5 +158,6 @@ public class LeadershipComponents {
         abstract LeaderElectionService leaderElectionService();
         abstract TimelockLeadershipMetrics leadershipMetrics();
         abstract List<Closeable> closeables();
+        abstract TimeLockCorruptionHealthCheck corruptionCheck();
     }
 }

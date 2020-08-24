@@ -18,12 +18,16 @@ package com.palantir.corruption;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
 @Path("/corruption")
 public interface TimeLockCorruptionPinger {
+
     @GET
-    @Path("shutDownAllServices")
-    void shutDown();
+    @Path("corruptionDetected")
+    @Produces(MediaType.APPLICATION_JSON)
+    boolean corruptionDetected();
 }
 
 

@@ -17,60 +17,28 @@
 package com.palantir.leader.health;
 
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.corruption.TimeLockCorruptionPinger;
 
 public class TimeLockCorruptionHealthCheck {
-    private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("corruption-detector", true));
     private final List<TimeLockCorruptionPinger> corruptionPingers;
-    private final TimeLockCorruptionPinger localCorruptionPinger;
-    private boolean corruptionOnRemote = false;
-    private boolean corruptionOnLocal = false;
+    private final LocalCorruptionDetector localCorruptionDetector;
 
     public TimeLockCorruptionHealthCheck(
-            TimeLockCorruptionPinger localCorruptionPinger,
+            LocalCorruptionDetector localCorruptionDetector,
             List<TimeLockCorruptionPinger> corruptionPingers) {
-        this.localCorruptionPinger = localCorruptionPinger;
+        this.localCorruptionDetector = localCorruptionDetector;
         this.corruptionPingers = corruptionPingers;
-        scheduleWithFixedDelay();
-    }
-
-    private void scheduleWithFixedDelay() {
-        executor.scheduleWithFixedDelay(() -> {
-                    if (detectedSignsOfCorruption()) {
-                        localHasDetectedCorruption();
-                    }
-                },
-                300,
-                300,
-                TimeUnit.SECONDS);
-    }
-
-    private boolean detectedSignsOfCorruption() {
-        //todo Sudiksha
-        return false;
     }
 
     public boolean isHealthy() {
-        return this.corruptionOnRemote && this.corruptionOnLocal;
+        return !remoteHasDetectedCorruption() && !localHasDetectedCorruption();
     }
 
-    public void remoteHasDetectedCorruption() {
-        this.corruptionOnRemote = true;
+    public boolean remoteHasDetectedCorruption() {
+        return corruptionPingers.stream().filter(pinger -> pinger.corruptionDetected()).findAny().isPresent();
     }
 
-    public void localHasDetectedCorruption() {
-        this.corruptionOnLocal = true;
-    }
-
-    private boolean failByPagingAtlasDBAndStoppingCluster() {
-        localCorruptionPinger.shutDown();
-        corruptionPingers.forEach(pinger -> pinger.shutDown());
-        return true;
+    public boolean localHasDetectedCorruption() {
+        return localCorruptionDetector.isCorruptionOnLocal();
     }
 }

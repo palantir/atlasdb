@@ -19,10 +19,15 @@ package com.palantir.leader.health;
 import com.palantir.corruption.TimeLockCorruptionPinger;
 
 public class TimeLockCorruptionPingerImpl implements TimeLockCorruptionPinger {
-    TimeLockCorruptionHealthCheck check;
+    private final LocalCorruptionDetector localCorruptionDetector;
+
+    public TimeLockCorruptionPingerImpl(LocalCorruptionDetector localCorruptionDetector) {
+        this.localCorruptionDetector = localCorruptionDetector;
+    }
+
     @Override
-    public void shutDown() {
+    public boolean corruptionDetected() {
         // TBD
-        check.remoteHasDetectedCorruption();
+        return localCorruptionDetector.isCorruptionOnLocal();
     }
 }
