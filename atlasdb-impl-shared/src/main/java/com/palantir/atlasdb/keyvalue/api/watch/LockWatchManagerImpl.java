@@ -72,6 +72,7 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
     @Override
     public void registerWatches(Set<LockWatchReferences.LockWatchReference> newLockWatches) {
         lockWatchReferences.addAll(newLockWatches);
+        registerWatchesWithTimelock();
     }
 
     private void registerWatchesWithTimelock() {
