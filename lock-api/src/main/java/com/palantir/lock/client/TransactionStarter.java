@@ -40,6 +40,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 
@@ -163,12 +164,14 @@ final class TransactionStarter implements AutoCloseable {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
             try {
+                Optional<IdentifiedVersion> requestedVersion = lockWatchEventCache.lastKnownVersion();
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
-                        lockWatchEventCache.lastKnownVersion(), numberOfTransactions - result.size());
+                        requestedVersion, numberOfTransactions - result.size());
                 lockWatchEventCache.processStartTransactionsUpdate(
                         response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
                         response.getLockWatchUpdate());
                 result.addAll(split(response));
+                LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             } catch (Throwable t) {
                 unlock(result.stream()
                         .map(response -> response.immutableTimestamp().getLock())
