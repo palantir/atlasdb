@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
@@ -299,6 +300,19 @@ public class LockWatchEventCacheIntegrationTest {
                 LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(UNLOCK_EVENT))))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Events missing between last snapshot and this batch of events");
+    }
+
+    @Test
+    public void newEventsStartingWithTheSameVersionAsCurrentDoesNotThrow() {
+        setupInitialState();
+        LockWatchEvent earlyLockEvent = LockWatchCreatedEvent.builder(
+                ImmutableSet.of(REFERENCE),
+                ImmutableSet.of(DESCRIPTOR))
+                .build(3L);
+        LockWatchStateUpdate success =
+                LockWatchStateUpdate.success(LEADER, 4L, ImmutableList.of(earlyLockEvent, WATCH_EVENT));
+        assertThatCode(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, success))
+                .doesNotThrowAnyException();
     }
 
     private void setupInitialState() {
