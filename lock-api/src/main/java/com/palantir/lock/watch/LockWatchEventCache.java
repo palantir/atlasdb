@@ -20,9 +20,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
-import com.palantir.logsafe.SafeArg;
-
 public interface LockWatchEventCache {
     /**
      * Returns the last known lock watch version for the cache.
