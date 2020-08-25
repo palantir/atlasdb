@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -295,10 +296,10 @@ public class LockWatchEventCacheIntegrationTest {
     @Test
     public void missedEventThrows() {
         setupInitialState();
-        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,
+        assertThatLoggableExceptionThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,
                 LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(UNLOCK_EVENT))))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("Events missing between last snapshot and this batch of events");
+                .hasLogMessage("Events missing between last snapshot and this batch of events");
     }
 
     private void setupInitialState() {
