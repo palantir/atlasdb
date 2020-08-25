@@ -74,7 +74,7 @@ final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
         } catch (TransactionLockWatchFailedException e) {
             throw e;
         } catch (Throwable t) {
-            if (delegate.equals(fallbackCache)) {
+            if (delegate == fallbackCache) {
                 throw new RuntimeException(t);
             } else {
                 log.warn("Unexpected failure occurred when trying to use the default cache. "
