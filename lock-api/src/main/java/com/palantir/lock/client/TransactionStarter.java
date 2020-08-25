@@ -59,8 +59,6 @@ import com.palantir.logsafe.SafeArg;
  * rather than directly calling delegate lock service.
  */
 final class TransactionStarter implements AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(TransactionStarter.class);
-
     private final DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher;
     private final LockLeaseService lockLeaseService;
 
@@ -179,29 +177,7 @@ final class TransactionStarter implements AutoCloseable {
                         response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
                         response.getLockWatchUpdate());
                 result.addAll(split(response));
-
-                if (log.isDebugEnabled()) {
-                    Optional<LockWatchStateUpdate.Success> successfulUpdate = response.getLockWatchUpdate()
-                            .accept(new LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>>() {
-                                @Override
-                                public Optional<LockWatchStateUpdate.Success> visit(
-                                        LockWatchStateUpdate.Success success) {
-                                    return Optional.of(success);
-                                }
-
-                                @Override
-                                public Optional<LockWatchStateUpdate.Success> visit(
-                                        LockWatchStateUpdate.Snapshot snapshot) {
-                                    return Optional.empty();
-                                }
-                            });
-
-                    successfulUpdate.ifPresent(success ->
-                            log.debug("Start transaction batch request and response",
-                                    SafeArg.of("requestedVersion", requestedVersion),
-                                    SafeArg.of("responseFirstVersion", Iterables.getFirst(success.events(), null)),
-                                    SafeArg.of("responseLatestVersion", success.lastKnownVersion())));
-                }
+                LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             } catch (Throwable t) {
                 unlock(result.stream()
                         .map(response -> response.immutableTimestamp().getLock())
