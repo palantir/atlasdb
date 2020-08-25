@@ -17,9 +17,11 @@
 package com.palantir.paxos;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -46,7 +49,6 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.sls.versions.VersionComparator;
 
 public class SingleLeaderPinger implements LeaderPinger {
-
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
@@ -55,6 +57,9 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final UUID localUuid;
     private final boolean cancelRemainingCalls;
     private final Optional<OrderableSlsVersion> timeLockVersion;
+    private final RateLimiter pingV2RateLimiter = RateLimiter.create(1.0 / (5 * 60));
+
+    private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
     public SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
@@ -88,14 +93,50 @@ public class SingleLeaderPinger implements LeaderPinger {
         if (!suspectedLeader.isPresent()) {
             return LeaderPingResults.pingReturnedFalse();
         }
-
         LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
 
         MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService
                 = MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
 
+        LeaderPingResult pingResult = null;
+
+        if (shouldUsePingV2(leader)) {
+            pingResult = actuallyPingLeaderWithUuid(multiplexingCompletionService,
+                    uuid,
+                    leader,
+                    leader.pinger()::pingV2);
+        }
+
+        if (pingResult == null || pingResult.pingCallFailedDueToExecutionException()) {
+            pingV2StatusOnRemotes.putIfAbsent(leader, false);
+            pingResult = actuallyPingLeaderWithUuid(multiplexingCompletionService,
+                    uuid,
+                    leader,
+                    () -> getPingResultFromLegacyEndpoint(leader));
+        } else if (pingResult.pingCallWasSuccessfullyExecuted()) {
+            pingV2StatusOnRemotes.put(leader, true);
+        }
+
+        return pingResult;
+    }
+
+    private boolean shouldUsePingV2(LeaderPingerContext<PingableLeader> leader) {
+        return pingV2StatusOnRemotes.getOrDefault(leader, true)
+                || pingV2RateLimiter.tryAcquire();
+    }
+
+    private PingResult getPingResultFromLegacyEndpoint(LeaderPingerContext<PingableLeader> leader) {
+        return PingResult.builder().isLeader(leader.pinger().ping()).build();
+    }
+
+    private LeaderPingResult actuallyPingLeaderWithUuid(
+            MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult>
+                    multiplexingCompletionService,
+            UUID uuid,
+            LeaderPingerContext<PingableLeader> leader,
+            Callable<PingResult> pingEndpoint) {
         try {
-            multiplexingCompletionService.submit(leader, () -> leader.pinger().pingV2());
+            multiplexingCompletionService.submit(leader, pingEndpoint);
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture
                     = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture, timeLockVersion);
@@ -126,7 +167,7 @@ public class SingleLeaderPinger implements LeaderPinger {
                             Futures.getDone(pingFuture).getKey().hostAndPort())
                     : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
         } catch (ExecutionException e) {
-            return LeaderPingResults.pingCallFailure(e.getCause());
+            return LeaderPingResults.pingCallFailedWithExecutionException(e.getCause());
         }
     }
 

@@ -36,6 +36,7 @@ public abstract class LeaderPingResult {
         R pingReturnedTrueWithOlderVersion(OrderableSlsVersion version);
         R pingReturnedFalse();
         R pingCallFailure(Throwable exception);
+        R pingCallFailedWithExecutionException(Throwable exception);
     }
 
     public abstract <R> R match(Cases<R> cases);
@@ -46,12 +47,27 @@ public abstract class LeaderPingResult {
                 .pingReturnedTrueWithOlderVersion(wrap(eventRecorder::recordLeaderOnOlderVersion))
                 .pingReturnedFalse(wrap(eventRecorder::recordLeaderPingReturnedFalse))
                 .pingCallFailure(wrap(eventRecorder::recordLeaderPingFailure))
+                .pingCallFailedWithExecutionException(wrap(eventRecorder::recordLeaderPingFailure))
                 .otherwise_(null);
     }
 
     public boolean isSuccessful() {
         return LeaderPingResults.caseOf(this)
                 .pingReturnedTrue_(true)
+                .otherwise_(false);
+    }
+
+    public boolean pingCallFailedDueToExecutionException() {
+        return LeaderPingResults.caseOf(this)
+                .pingCallFailedWithExecutionException_(true)
+                .otherwise_(false);
+    }
+
+    public boolean pingCallWasSuccessfullyExecuted() {
+        return LeaderPingResults.caseOf(this)
+                .pingReturnedTrue_(true)
+                .pingReturnedTrueWithOlderVersion_(true)
+                .pingReturnedFalse_(true)
                 .otherwise_(false);
     }
 
