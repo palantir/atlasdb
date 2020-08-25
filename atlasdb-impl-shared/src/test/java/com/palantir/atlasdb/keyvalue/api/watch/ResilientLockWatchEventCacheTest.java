@@ -32,6 +32,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -85,7 +86,8 @@ public final class ResilientLockWatchEventCacheTest {
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasCause(runtimeException);
         assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
-                .isExactlyInstanceOf(RuntimeException.class)
-                .hasCause(runtimeException);
+                .isExactlyInstanceOf(SafeRuntimeException.class)
+                .hasCause(runtimeException)
+                .hasMessage("Fallback cache threw an exception");
     }
 }
