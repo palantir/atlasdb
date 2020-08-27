@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -37,6 +31,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlC
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.Preconditions;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 public class CassandraContainer extends Container {
     static final int CASSANDRA_CQL_PORT = 9042;

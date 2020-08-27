@@ -20,11 +20,6 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -34,6 +29,9 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.junit.Test;
 
 public class SweepableCellFilterTest {
     private static final long LOW_START_TS = 6L;

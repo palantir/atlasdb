@@ -18,26 +18,6 @@ package com.palantir.atlasdb.cli.command;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AccessDeniedException;
-import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.io.FileUtils;
-import org.joda.time.format.ISODateTimeFormat;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -64,6 +44,24 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
+import org.joda.time.format.ISODateTimeFormat;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TestTimestampCommand {

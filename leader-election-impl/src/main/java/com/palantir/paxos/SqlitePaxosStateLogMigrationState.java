@@ -16,11 +16,11 @@
 
 package com.palantir.paxos;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
 import java.util.function.Function;
-
 import javax.sql.DataSource;
-
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -28,9 +28,6 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
-
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 public final class SqlitePaxosStateLogMigrationState {
     private final Client namespace;

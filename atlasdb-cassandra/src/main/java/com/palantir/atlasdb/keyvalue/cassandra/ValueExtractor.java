@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Map;
-
 import com.codahale.metrics.Counter;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.Map;
 
 class ValueExtractor extends ResultsExtractor<Value> {
     private final Map<Cell, Value> collector;

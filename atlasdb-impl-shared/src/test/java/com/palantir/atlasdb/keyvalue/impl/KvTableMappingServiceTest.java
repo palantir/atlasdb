@@ -26,12 +26,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -42,6 +36,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Before;
+import org.junit.Test;
 
 public class KvTableMappingServiceTest {
     private static final TableReference FQ_TABLE = TableReference.createFromFullyQualifiedName("test.test");

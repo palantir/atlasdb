@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Map;
-
-import javax.annotation.CheckReturnValue;
-
-import org.assertj.core.api.AbstractAssert;
-import org.assertj.core.api.WritableAssertionInfo;
-import org.assertj.core.data.Offset;
-import org.assertj.core.internal.Doubles;
-import org.assertj.core.internal.LongArrays;
-import org.assertj.core.internal.Objects;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
@@ -36,6 +25,14 @@ import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.Map;
+import javax.annotation.CheckReturnValue;
+import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.WritableAssertionInfo;
+import org.assertj.core.data.Offset;
+import org.assertj.core.internal.Doubles;
+import org.assertj.core.internal.LongArrays;
+import org.assertj.core.internal.Objects;
 
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;

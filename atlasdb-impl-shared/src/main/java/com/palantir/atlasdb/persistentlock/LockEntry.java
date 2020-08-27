@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.SortedMap;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -30,6 +23,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.common.base.Throwables;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.SortedMap;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableLockEntry.class)
 @JsonDeserialize(as = ImmutableLockEntry.class)

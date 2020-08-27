@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
@@ -41,6 +39,7 @@ import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface NamespacedClients {

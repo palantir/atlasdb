@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.google.common.collect.Streams;
+import com.palantir.lock.watch.LockWatchEvent;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
-
-import com.google.common.collect.Streams;
-import com.palantir.lock.watch.LockWatchEvent;
 
 @Value.Immutable
 public interface LockWatchEvents {

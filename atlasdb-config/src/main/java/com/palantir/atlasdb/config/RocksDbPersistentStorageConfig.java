@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.config;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableRocksDbPersistentStorageConfig.class)
 @JsonSerialize(as = ImmutableRocksDbPersistentStorageConfig.class)

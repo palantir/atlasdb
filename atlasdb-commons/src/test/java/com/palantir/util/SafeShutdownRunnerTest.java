@@ -25,16 +25,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.time.Duration;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class SafeShutdownRunnerTest {
     private static final RuntimeException EXCEPTION = new RuntimeException("test");

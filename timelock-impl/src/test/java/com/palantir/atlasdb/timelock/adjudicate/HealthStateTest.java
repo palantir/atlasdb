@@ -18,11 +18,9 @@ package com.palantir.atlasdb.timelock.adjudicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-
-import org.junit.Test;
-
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Arrays;
+import org.junit.Test;
 
 public class HealthStateTest {
 

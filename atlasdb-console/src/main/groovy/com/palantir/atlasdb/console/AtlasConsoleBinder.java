@@ -15,18 +15,15 @@
  */
 package com.palantir.atlasdb.console;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-
-import org.codehaus.groovy.runtime.MethodClosure;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.console.annotations.ConsoleBinding;
-
 import groovy.lang.Binding;
 import groovy.lang.Closure;
+import java.lang.reflect.Method;
+import java.util.Map;
+import org.codehaus.groovy.runtime.MethodClosure;
 
 public final class AtlasConsoleBinder {
 

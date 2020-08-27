@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Optional;
-
 import com.palantir.lock.watch.IdentifiedVersion;
+import java.util.Optional;
 
 final class CacheUpdate {
     static final CacheUpdate FAILED = new CacheUpdate(true, Optional.empty());

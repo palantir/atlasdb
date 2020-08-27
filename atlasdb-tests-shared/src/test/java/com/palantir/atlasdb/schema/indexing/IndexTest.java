@@ -17,13 +17,6 @@ package com.palantir.atlasdb.schema.indexing;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -44,6 +37,11 @@ import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumns
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
+import java.util.Arrays;
+import java.util.List;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IndexTest extends AtlasDbTestCase {
 

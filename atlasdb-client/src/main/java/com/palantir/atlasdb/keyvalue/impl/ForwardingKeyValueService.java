@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import java.util.Collection;
 
 public abstract class ForwardingKeyValueService implements AutoDelegate_KeyValueService {
     @Override

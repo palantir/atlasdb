@@ -16,6 +16,11 @@
 
 package com.palantir.paxos;
 
+import static com.palantir.paxos.PaxosStateLogMigrator.BATCH_SIZE;
+import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
+import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
+import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,12 +35,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.paxos.PaxosStateLogMigrator.BATCH_SIZE;
-import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
-import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
-import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
-
+import com.palantir.common.streams.KeyedStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,17 +43,13 @@ import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import javax.sql.DataSource;
-
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.common.streams.KeyedStream;
 
 public class PaxosStateLogMigratorTest {
     @Rule

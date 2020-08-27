@@ -19,14 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.awaitility.Awaitility;
 import org.junit.Test;
-
-import com.palantir.common.concurrent.PTExecutors;
 
 public class CallbackTest {
     @Test

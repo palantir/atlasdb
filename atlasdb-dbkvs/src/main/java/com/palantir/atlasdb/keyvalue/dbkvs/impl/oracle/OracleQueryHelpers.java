@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 public final class OracleQueryHelpers {
 

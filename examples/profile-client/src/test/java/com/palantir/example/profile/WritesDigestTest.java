@@ -18,14 +18,6 @@ package com.palantir.example.profile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
@@ -45,6 +37,12 @@ import com.palantir.example.profile.schema.generated.UserProfileTable;
 import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStreamId;
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import org.junit.Before;
+import org.junit.Test;
 
 public class WritesDigestTest {
 

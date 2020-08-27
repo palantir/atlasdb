@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 

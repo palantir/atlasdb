@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,8 +24,9 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.ManagedTimestampService;
-
 import dagger.Component;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Singleton
 @Component(modules = { ServicesConfigModule.class, KeyValueServiceModule.class, RawKeyValueServiceModule.class,

@@ -17,14 +17,6 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-import org.mockito.Matchers;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
@@ -34,6 +26,12 @@ import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 
 public class PartitionByInvokeNameCheckerHelperTest {
 

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -34,6 +32,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Optional;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.

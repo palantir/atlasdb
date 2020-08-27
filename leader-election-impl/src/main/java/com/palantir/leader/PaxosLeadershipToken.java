@@ -15,11 +15,10 @@
  */
 package com.palantir.leader;
 
-import org.apache.commons.lang3.builder.CompareToBuilder;
-
 import com.palantir.common.annotation.Immutable;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.paxos.PaxosValue;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 @Immutable
 public class PaxosLeadershipToken implements LeadershipToken {

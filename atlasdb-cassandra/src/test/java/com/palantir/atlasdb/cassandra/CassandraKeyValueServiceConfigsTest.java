@@ -17,19 +17,17 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import java.io.File;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+import java.net.URL;
+import org.junit.Test;
 
 public class CassandraKeyValueServiceConfigsTest {
     private static final String KEYSPACE = "ks";

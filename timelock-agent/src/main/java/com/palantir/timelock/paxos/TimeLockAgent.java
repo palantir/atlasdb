@@ -15,15 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.net.URL;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -73,6 +64,14 @@ import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {

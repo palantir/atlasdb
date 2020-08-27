@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map.Entry;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -30,6 +26,9 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map.Entry;
 
 public class PostgresQueryFactory extends AbstractDbQueryFactory {
     private final String tableName;

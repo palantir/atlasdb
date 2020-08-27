@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.List;
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvR
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvRowsRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.List;
+import java.util.Map;
 
 public final class RangeScanRowsBenchmark extends AbstractRangeScanBenchmark {
 

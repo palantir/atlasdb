@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.console;
 
-import java.io.IOException;
-import java.util.Set;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
+import java.util.Set;
 
 public class AtlasConsoleServiceImpl implements AtlasConsoleService {
 

@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
+import java.io.Closeable;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 @Value.Immutable
 abstract class BatchingNetworkClientFactories implements

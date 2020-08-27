@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Objects;
-
-import org.apache.commons.lang3.StringUtils;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 public final class TableReference {
     private final Namespace namespace;

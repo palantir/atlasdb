@@ -18,20 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Optional;
-import java.util.UUID;
-
-import javax.sql.DataSource;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.PingableLeader;
@@ -43,6 +29,17 @@ import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
+import java.util.UUID;
+import javax.sql.DataSource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");

@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -36,6 +29,11 @@ import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapters;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapters;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 @Value.Immutable
 abstract class SingleLeaderNetworkClientFactories implements

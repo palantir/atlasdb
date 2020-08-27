@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.SortedSetMultimap;
+import java.util.Map;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableTimestampStateStoreState.class)

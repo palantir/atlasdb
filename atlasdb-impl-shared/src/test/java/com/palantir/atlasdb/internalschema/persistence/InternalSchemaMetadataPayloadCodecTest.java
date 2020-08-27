@@ -19,19 +19,17 @@ package com.palantir.atlasdb.internalschema.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Objects;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Objects;
+import org.junit.Test;
 
 public class InternalSchemaMetadataPayloadCodecTest {
     private static final InternalSchemaMetadata INTERNAL_SCHEMA_METADATA = InternalSchemaMetadata.builder()

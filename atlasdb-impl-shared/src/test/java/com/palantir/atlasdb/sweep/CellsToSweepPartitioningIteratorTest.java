@@ -17,17 +17,15 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.Test;
 
 public class CellsToSweepPartitioningIteratorTest {
     @Test(expected = IllegalArgumentException.class)

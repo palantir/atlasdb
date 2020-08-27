@@ -20,7 +20,6 @@ import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Test;
 
 public class TargetedSweepMetricPublicationFilterTest {

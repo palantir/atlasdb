@@ -18,16 +18,14 @@ package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Objects;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Objects;
+import org.junit.Test;
 
 public class FilteredTaggedMetricSetTest {
     private static final MetricName METRIC_NAME_1 = MetricName.builder()

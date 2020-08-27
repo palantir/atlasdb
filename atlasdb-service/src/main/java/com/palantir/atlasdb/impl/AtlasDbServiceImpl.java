@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -56,6 +46,14 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = TableMetadata.builder()

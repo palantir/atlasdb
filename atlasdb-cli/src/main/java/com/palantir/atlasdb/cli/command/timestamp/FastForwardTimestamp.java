@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-
 import io.airlift.airline.Command;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "fast-forward", description = "Fast forward the stored upper limit of a persistent timestamp"
         + " service to the specified timestamp."

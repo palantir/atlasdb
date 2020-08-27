@@ -15,6 +15,12 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
+import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_DEDICATED;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,23 +29,6 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
-import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_DEDICATED;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -53,6 +42,14 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.lock.v2.TimelockService;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class SweepableCellsTest extends AbstractSweepQueueTest {
     private static final long SMALL_SWEEP_TS = TS + 200L;

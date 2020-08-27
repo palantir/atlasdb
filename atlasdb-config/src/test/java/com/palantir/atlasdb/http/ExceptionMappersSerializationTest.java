@@ -17,18 +17,15 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
-import java.io.IOException;
-
-import javax.ws.rs.core.Response;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.remoting2.errors.SerializableError;
+import java.io.File;
+import java.io.IOException;
+import javax.ws.rs.core.Response;
+import org.junit.Test;
 
 public class ExceptionMappersSerializationTest {
     private static final ObjectMapper MAPPER = ObjectMappers.newServerObjectMapper();

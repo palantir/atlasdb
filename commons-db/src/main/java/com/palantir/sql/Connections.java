@@ -15,14 +15,13 @@
  */
 package com.palantir.sql;
 
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.BasicSQL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.BasicSQL;
 
 
 public class Connections  {

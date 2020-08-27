@@ -17,22 +17,6 @@ package com.palantir.atlasdb.table.description;
 
 import static java.util.stream.Collectors.toSet;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -57,6 +41,20 @@ import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.table.description.render.TableRendererV2;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Defines a schema.

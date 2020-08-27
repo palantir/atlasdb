@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.Optional;
-
-import javax.ws.rs.core.Response;
-
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
+import java.util.Optional;
+import javax.ws.rs.core.Response;
 
 /**
  * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's

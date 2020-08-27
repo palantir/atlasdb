@@ -15,11 +15,10 @@
  */
 package com.palantir.timestamp;
 
-import java.io.Serializable;
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * A TimestampRange represents an inclusive range of longs.

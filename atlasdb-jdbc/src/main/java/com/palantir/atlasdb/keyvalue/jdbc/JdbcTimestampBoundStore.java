@@ -18,6 +18,10 @@ package com.palantir.atlasdb.keyvalue.jdbc;
 import static org.jooq.impl.SQLDataType.BIGINT;
 import static org.jooq.impl.SQLDataType.INTEGER;
 
+import com.google.common.base.Function;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.TimestampBoundStore;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -25,11 +29,6 @@ import org.jooq.RowN;
 import org.jooq.Table;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
-
-import com.google.common.base.Function;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
-import com.palantir.timestamp.TimestampBoundStore;
 
 public class JdbcTimestampBoundStore implements TimestampBoundStore {
     private final JdbcKeyValueService kvs;

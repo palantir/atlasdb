@@ -19,13 +19,11 @@ package com.palantir.atlasdb.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class MetricNameUtilsTest {
     private static final String TAG_KEY_1 = "tag1";

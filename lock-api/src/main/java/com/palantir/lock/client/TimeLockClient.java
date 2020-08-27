@@ -15,14 +15,6 @@
  */
 package com.palantir.lock.client;
 
-import java.net.ConnectException;
-import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.base.Throwables;
@@ -40,6 +32,13 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.CloseableTimestampService;
 import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.net.ConnectException;
+import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 
 public class TimeLockClient implements AutoCloseable, TimelockService {
 

@@ -25,16 +25,14 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LockStoreTest {
     private static final String REASON = "reason";

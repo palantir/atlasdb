@@ -17,12 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.junit.Test;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -31,6 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.logsafe.Arg;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.Test;
 
 public class CheckAndSetQueriesTest {
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("ns.table");

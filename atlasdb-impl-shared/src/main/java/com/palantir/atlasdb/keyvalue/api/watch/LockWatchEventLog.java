@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
-import java.util.Optional;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -28,6 +25,8 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.Optional;
 
 final class LockWatchEventLog {
     private final ClientLockWatchSnapshot snapshot;

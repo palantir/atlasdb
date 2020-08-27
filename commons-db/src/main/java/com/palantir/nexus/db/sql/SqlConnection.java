@@ -15,12 +15,11 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 
 public interface SqlConnection {
     void executeUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
@@ -62,4 +61,3 @@ public interface SqlConnection {
 
     Connection getUnderlyingConnection() throws PalantirSqlException;
 }
-

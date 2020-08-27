@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -54,6 +47,12 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.tracing.Tracer}

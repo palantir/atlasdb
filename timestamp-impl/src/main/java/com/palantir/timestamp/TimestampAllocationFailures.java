@@ -15,14 +15,12 @@
  */
 package com.palantir.timestamp;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class TimestampAllocationFailures {

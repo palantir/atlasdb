@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.util.SortedMap;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -40,6 +31,13 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
+import java.util.SortedMap;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestScrubQueueMigrationCommand {
     private KeyValueService kvs;

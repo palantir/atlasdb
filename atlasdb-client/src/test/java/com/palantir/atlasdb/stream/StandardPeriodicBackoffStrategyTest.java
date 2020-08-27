@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Test;
 
 public class StandardPeriodicBackoffStrategyTest {

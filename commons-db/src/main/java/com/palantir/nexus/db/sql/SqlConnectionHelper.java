@@ -15,11 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.exception.PalantirInterruptedException;
@@ -29,6 +24,9 @@ import com.palantir.nexus.db.sql.BasicSQL.AutoClose;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
 import com.palantir.sql.PreparedStatements;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import javax.annotation.Nullable;
 
 /**
  * Helper methods for {@link PalantirSqlConnection} implementations. These were originally

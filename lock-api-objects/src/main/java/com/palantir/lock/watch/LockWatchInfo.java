@@ -16,12 +16,10 @@
 
 package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.OptionalLong;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockWatchInfo.class)

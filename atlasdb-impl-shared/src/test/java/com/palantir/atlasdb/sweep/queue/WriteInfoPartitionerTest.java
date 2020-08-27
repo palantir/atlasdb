@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,15 +24,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +36,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.junit.Before;
+import org.junit.Test;
 
 public class WriteInfoPartitionerTest {
     private static final TableReference NOTHING = getTableRef("nothing");

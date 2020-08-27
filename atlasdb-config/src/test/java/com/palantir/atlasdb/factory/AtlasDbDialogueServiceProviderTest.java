@@ -16,27 +16,13 @@
 
 package com.palantir.atlasdb.factory;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.ws.rs.core.MediaType;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -65,6 +51,16 @@ import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import javax.ws.rs.core.MediaType;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class AtlasDbDialogueServiceProviderTest {
     private static final SslConfiguration SSL_CONFIGURATION

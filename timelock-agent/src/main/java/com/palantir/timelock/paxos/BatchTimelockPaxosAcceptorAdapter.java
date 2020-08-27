@@ -16,8 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -33,6 +31,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Set;
 
 public class BatchTimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     private final PaxosUseCase paxosUseCase;

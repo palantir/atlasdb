@@ -19,15 +19,13 @@ package com.palantir.atlasdb.timelock.adjudicate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public class FeedbackSinkTest {
     private static final FakeTicker FAKE_TICKER = new FakeTicker();
@@ -93,4 +91,3 @@ public class FeedbackSinkTest {
                 .build();
     }
 }
-

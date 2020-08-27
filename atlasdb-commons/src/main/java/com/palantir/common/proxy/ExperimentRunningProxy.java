@@ -16,6 +16,11 @@
 
 package com.palantir.common.proxy;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.SafeArg;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -26,15 +31,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.exception.NotInitializedException;
-import com.palantir.logsafe.SafeArg;
 
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);

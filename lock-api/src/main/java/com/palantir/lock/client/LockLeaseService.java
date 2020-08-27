@@ -16,11 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
@@ -44,6 +39,10 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.logsafe.Preconditions;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 class LockLeaseService {
     private final NamespacedConjureTimelockService delegate;

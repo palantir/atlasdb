@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrategy {
     private final Logger log = LoggerFactory.getLogger(StandardPeriodicBackoffStrategy.class);

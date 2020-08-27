@@ -15,16 +15,14 @@
  */
 package com.palantir.timelock.config;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.Beta;
 import com.palantir.logsafe.Preconditions;
+import java.io.File;
+import java.io.IOException;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)

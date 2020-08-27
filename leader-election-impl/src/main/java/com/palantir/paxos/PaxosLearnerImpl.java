@@ -15,6 +15,9 @@
  */
 package com.palantir.paxos;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
+import com.palantir.logsafe.SafeArg;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Optional;
@@ -23,13 +26,8 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.leader.PaxosKnowledgeEventRecorder;
-import com.palantir.logsafe.SafeArg;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 

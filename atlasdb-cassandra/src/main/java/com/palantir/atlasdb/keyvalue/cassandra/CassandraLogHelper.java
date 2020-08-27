@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.cassandra.thrift.TokenRange;
-
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
 
 public final class CassandraLogHelper {
     private CassandraLogHelper() {

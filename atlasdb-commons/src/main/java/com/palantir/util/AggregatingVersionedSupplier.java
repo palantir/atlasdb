@@ -15,6 +15,7 @@
  */
 package com.palantir.util;
 
+import com.google.common.base.Suppliers;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,8 +23,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import com.google.common.base.Suppliers;
 
 public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T>> {
     public static final long UNINITIALIZED_VERSION = 0L;

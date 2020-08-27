@@ -19,12 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -32,6 +26,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.junit.Test;
 
 public class LeaderPingHealthCheckTest {
 

@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.v2.TimelockService;
+import java.util.Map;
 
 public final class LockAndUnlockUncontendedBenchmark extends LockAndUnlockContendedBenchmark {
 

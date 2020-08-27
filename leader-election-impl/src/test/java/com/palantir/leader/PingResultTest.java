@@ -18,6 +18,7 @@ package com.palantir.leader;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.sls.versions.OrderableSlsVersion;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -25,12 +26,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Optional;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.sls.versions.OrderableSlsVersion;
 
 public class PingResultTest {
 

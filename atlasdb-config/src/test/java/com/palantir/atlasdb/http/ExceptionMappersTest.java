@@ -17,15 +17,12 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HttpHeaders;
 import com.palantir.remoting2.errors.SerializableError;
-
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import org.junit.Test;
 import wiremock.org.eclipse.jetty.http.HttpStatus;
 
 public class ExceptionMappersTest {

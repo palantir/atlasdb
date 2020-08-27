@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.time.Duration;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -41,6 +31,14 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BackgroundSweepThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweepThread.class);

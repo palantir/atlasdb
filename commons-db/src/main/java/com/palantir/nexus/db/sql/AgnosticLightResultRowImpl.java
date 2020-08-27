@@ -16,6 +16,11 @@
 package com.palantir.nexus.db.sql;
 
 
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.DBType;
+import com.palantir.sql.Blobs;
+import com.palantir.sql.Clobs;
+import com.palantir.sql.ResultSets;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Blob;
@@ -23,14 +28,7 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Map;
-
 import org.joda.time.DateTime;
-
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
-import com.palantir.sql.Blobs;
-import com.palantir.sql.Clobs;
-import com.palantir.sql.ResultSets;
 
 public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implements AgnosticLightResultRow {
     private ResultSet results;

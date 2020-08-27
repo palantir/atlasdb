@@ -15,6 +15,8 @@
  */
 package com.palantir.common.base;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Queues;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -24,12 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Queues;
 
 /**
  * A {@link BatchingVisitable} that will prefetch in a background thread. If an exception happens on

@@ -17,11 +17,10 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import org.junit.Test;
 
 public class NameComponentDescriptionTest {
     private static final String COMPONENT_NAME = "rowComponent";

@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc;
 
-import static org.jooq.Clause.TABLE_VALUES;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.row;
-import static org.jooq.impl.DSL.table;
-import static org.jooq.impl.SQLDataType.BIGINT;
-import static org.jooq.impl.SQLDataType.BLOB;
-import static org.jooq.impl.SQLDataType.VARBINARY;
-import static org.jooq.impl.SQLDataType.VARCHAR;
-
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.ATLAS_TABLE;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.A_COL_NAME;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.A_ROW_NAME;
@@ -48,46 +39,14 @@ import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.TEMP_TABLE_1
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.TEMP_TABLE_2;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.TIMESTAMP;
 import static com.palantir.atlasdb.keyvalue.jdbc.impl.JdbcConstants.VALUE;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.SortedMap;
-
-import javax.sql.DataSource;
-
-import org.jooq.BatchBindStep;
-import org.jooq.Condition;
-import org.jooq.DSLContext;
-import org.jooq.InsertValuesStep4;
-import org.jooq.Query;
-import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.RenderContext;
-import org.jooq.Result;
-import org.jooq.Row;
-import org.jooq.Row3;
-import org.jooq.RowN;
-import org.jooq.SQLDialect;
-import org.jooq.Select;
-import org.jooq.SelectField;
-import org.jooq.SelectOffsetStep;
-import org.jooq.Table;
-import org.jooq.TableLike;
-import org.jooq.conf.RenderNameStyle;
-import org.jooq.conf.Settings;
-import org.jooq.exception.DataAccessException;
-import org.jooq.impl.DSL;
+import static org.jooq.Clause.TABLE_VALUES;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.row;
+import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.SQLDataType.BIGINT;
+import static org.jooq.impl.SQLDataType.BLOB;
+import static org.jooq.impl.SQLDataType.VARBINARY;
+import static org.jooq.impl.SQLDataType.VARCHAR;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -142,6 +101,43 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.SortedMap;
+import javax.sql.DataSource;
+import org.jooq.BatchBindStep;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.InsertValuesStep4;
+import org.jooq.Query;
+import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.RenderContext;
+import org.jooq.Result;
+import org.jooq.Row;
+import org.jooq.Row3;
+import org.jooq.RowN;
+import org.jooq.SQLDialect;
+import org.jooq.Select;
+import org.jooq.SelectField;
+import org.jooq.SelectOffsetStep;
+import org.jooq.Table;
+import org.jooq.TableLike;
+import org.jooq.conf.RenderNameStyle;
+import org.jooq.conf.Settings;
+import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
 
 public class JdbcKeyValueService implements KeyValueService {
     private final int rowBatchSize;

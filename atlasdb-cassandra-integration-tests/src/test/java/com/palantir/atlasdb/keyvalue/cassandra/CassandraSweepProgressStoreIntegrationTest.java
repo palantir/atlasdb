@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
+import org.junit.ClassRule;
 
 public class CassandraSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule

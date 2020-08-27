@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import org.immutables.value.Value;
-
 import com.codahale.metrics.Counter;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import org.immutables.value.Value;
 
 public class MemoizingTableLevelMetricsController implements TableLevelMetricsController {
     private final LoadingCache<MetricSpec, Counter> metricSpecCounterCache;

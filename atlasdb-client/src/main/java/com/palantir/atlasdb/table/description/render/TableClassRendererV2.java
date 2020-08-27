@@ -23,21 +23,6 @@ import static com.palantir.atlasdb.table.description.render.Renderers.getArgumen
 import static com.palantir.atlasdb.table.description.render.Renderers.getColumnClass;
 import static com.palantir.atlasdb.table.description.render.Renderers.getColumnClassForGenericTypeParameter;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.annotation.Generated;
-import javax.lang.model.element.Modifier;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -68,6 +53,19 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.annotation.Generated;
+import javax.lang.model.element.Modifier;
 
 public class TableClassRendererV2 {
     private final String packageName;

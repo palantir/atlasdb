@@ -17,12 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -32,6 +26,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.Optional;
+import org.junit.Test;
 
 public class CassandraServiceTest {
     private static final int DEFAULT_PORT = 5000;

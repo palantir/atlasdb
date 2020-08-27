@@ -16,12 +16,10 @@
 
 package com.palantir.lock.watch;
 
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableIdentifiedVersion.class)

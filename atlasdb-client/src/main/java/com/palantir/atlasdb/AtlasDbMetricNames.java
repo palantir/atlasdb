@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
 public final class AtlasDbMetricNames {
 

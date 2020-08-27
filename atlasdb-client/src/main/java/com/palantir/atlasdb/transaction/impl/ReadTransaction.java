@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -37,6 +30,12 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 public class ReadTransaction extends ForwardingTransaction {
     private final AbstractTransaction delegate;

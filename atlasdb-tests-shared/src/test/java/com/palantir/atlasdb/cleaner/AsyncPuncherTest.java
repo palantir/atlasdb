@@ -19,16 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.LongSupplier;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.base.Suppliers;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
+import java.util.function.LongSupplier;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AsyncPuncherTest {
 

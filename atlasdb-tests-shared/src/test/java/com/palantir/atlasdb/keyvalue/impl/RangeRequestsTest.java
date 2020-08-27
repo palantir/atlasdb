@@ -17,14 +17,12 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.Random;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import java.util.Arrays;
+import java.util.Random;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class RangeRequestsTest {
 

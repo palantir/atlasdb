@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.time.Duration;
-
-import org.immutables.value.Value;
-
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ServiceLevelObjectiveSpecification {

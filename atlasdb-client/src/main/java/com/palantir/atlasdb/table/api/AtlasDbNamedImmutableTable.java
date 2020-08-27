@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.table.api;
 
-import java.util.List;
-
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import java.util.List;
 
 /*
  * All named atlasdb tables should implement this interface.

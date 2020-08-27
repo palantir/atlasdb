@@ -15,21 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Supplier;
-
-import javax.sql.DataSource;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
@@ -54,6 +39,18 @@ import com.palantir.paxos.PaxosStorageParameters;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SplittingPaxosStateLog;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
+import javax.sql.DataSource;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("FinalClass") // mocks
 public class LocalPaxosComponents {

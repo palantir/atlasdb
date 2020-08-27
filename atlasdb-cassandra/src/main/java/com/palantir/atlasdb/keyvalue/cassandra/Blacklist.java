@@ -15,6 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.util.Collection;
@@ -23,17 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class Blacklist {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);

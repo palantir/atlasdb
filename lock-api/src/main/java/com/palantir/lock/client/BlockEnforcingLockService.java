@@ -16,14 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.net.SocketTimeoutException;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -37,6 +29,13 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.net.SocketTimeoutException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Ensures that clients actually attempt to acquire the lock for the full duration they claim they will block for,

@@ -16,12 +16,19 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -33,15 +40,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-
-import com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 
 @Measurement(iterations = 10, time = 2)
 @Warmup(iterations = 6, time = 1)

@@ -15,10 +15,9 @@
  */
 package com.palantir.paxos;
 
-import javax.annotation.Nullable;
-
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto.Builder;
+import javax.annotation.Nullable;
 
 public final class PaxosPromises {
     private PaxosPromises() {

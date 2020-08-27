@@ -15,25 +15,22 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.validation.constraints.Size;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.SafeArg;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.Set;
+import javax.validation.constraints.Size;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)

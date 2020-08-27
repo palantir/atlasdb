@@ -19,15 +19,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collection;
-import java.util.Map;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.common.remoting.HeaderAccessUtils;
+import java.util.Collection;
+import java.util.Map;
+import org.junit.Test;
 
 public class HeaderAccessUtilsTest {
     private static final String FOO = "foo";

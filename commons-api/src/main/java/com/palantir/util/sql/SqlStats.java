@@ -15,15 +15,14 @@
  */
 package com.palantir.util.sql;
 
+import com.palantir.util.JMXUtils;
+import com.palantir.util.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.palantir.util.JMXUtils;
-import com.palantir.util.Pair;
 
 /**
  * MXBean which tracks statistics for all SQL queries made by the server.
@@ -173,4 +172,3 @@ public final class SqlStats implements SqlStatsMBean {
         clearTempTableByTruncateCount.incrementAndGet();
     }
 }
-

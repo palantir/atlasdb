@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.cleaner.api;
 
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.Set;
 
 /**
  * This task allows us to essentially implement ON DELETE CASCADE.

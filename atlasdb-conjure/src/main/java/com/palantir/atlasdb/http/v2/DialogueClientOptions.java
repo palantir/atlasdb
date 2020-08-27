@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Map;
 
 public final class DialogueClientOptions {
     private DialogueClientOptions() {

@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
+import java.util.Arrays;
+import java.util.List;
 
 public class ExplicitRowNamePartitioner implements RowNamePartitioner {
     final ValueType valueType;

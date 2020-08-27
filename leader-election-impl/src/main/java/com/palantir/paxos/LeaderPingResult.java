@@ -16,16 +16,14 @@
 
 package com.palantir.paxos;
 
+import com.google.common.net.HostAndPort;
+import com.palantir.leader.PaxosLeaderElectionEventRecorder;
+import com.palantir.sls.versions.OrderableSlsVersion;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.derive4j.Data;
-
-import com.google.common.net.HostAndPort;
-import com.palantir.leader.PaxosLeaderElectionEventRecorder;
-import com.palantir.sls.versions.OrderableSlsVersion;
 
 @Data
 public abstract class LeaderPingResult {

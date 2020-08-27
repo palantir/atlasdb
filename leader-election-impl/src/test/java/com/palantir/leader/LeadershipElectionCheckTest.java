@@ -21,19 +21,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.IntStream;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Meter;
 import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LeadershipElectionCheckTest {
     private final FakeTimeClock fakeTimeClock = new FakeTimeClock();
@@ -87,5 +85,3 @@ public class LeadershipElectionCheckTest {
         }
     }
 }
-
-

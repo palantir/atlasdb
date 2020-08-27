@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-
 import com.codahale.metrics.Counter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -37,6 +28,13 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
 public abstract class ResultsExtractor<T> {
 

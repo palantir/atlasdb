@@ -15,25 +15,22 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.io.Closeable;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
+import java.io.Closeable;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AsyncLockService implements Closeable {
 

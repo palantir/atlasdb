@@ -20,9 +20,6 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.datastax.driver.core.PreparedStatement;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -33,6 +30,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.Caching
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CachingStatementPreparerTest {
 
