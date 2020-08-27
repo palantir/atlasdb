@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: '[Only for RC] | Inducing perf regression to verify blue greening fails
+    for TimeLock.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4966
