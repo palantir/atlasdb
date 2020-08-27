@@ -51,6 +51,11 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            // no op
+        }
         return executeInstrumented(() -> dialogueDelegate.startTransactions(authHeader, namespace, request),
                 () -> conjureTimelockServiceBlockingMetrics.startTransactions().time(),
                 () -> conjureTimelockServiceBlockingMetrics.startTransactionErrors());
@@ -64,6 +69,11 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            // no op
+        }
         return executeInstrumented(() -> dialogueDelegate.leaderTime(authHeader, namespace),
                 () -> conjureTimelockServiceBlockingMetrics.leaderTime().time(),
                 () -> conjureTimelockServiceBlockingMetrics.leaderTimeErrors());
