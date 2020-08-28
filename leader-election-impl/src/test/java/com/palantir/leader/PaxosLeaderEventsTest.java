@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.IntStream;
 
 import org.junit.After;
 import org.junit.Test;
@@ -35,7 +34,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
-import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.SingleLeaderPinger;
@@ -112,21 +110,8 @@ public class PaxosLeaderEventsTest {
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("2.1.1"));
-        int a = 0;
-        LeaderPingResult pingResult = null;
-        for(int i = 0; i < 1000000; i++) {
-            pingResult = pinger.pingLeaderWithUuid(REMOTE_UUID);
-            if(pingResult.equals(LeaderPingResults.pingReturnedTrueWithOlderVersion(oldTimeLockVersion))) {
-                a++;
-            }
-        }
-        System.out.println(a);
-        System.out.print(pingResult);
-    }
-
-    @Test
-    public void blah() {
-        IntStream.range(0, 100).forEach(idx -> recordsLeaderPingReturnedTrueWithOlderVersion());
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingReturnedTrueWithOlderVersion(oldTimeLockVersion));
     }
 
     @Test
