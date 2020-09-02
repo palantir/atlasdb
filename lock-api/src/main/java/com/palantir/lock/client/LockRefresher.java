@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -39,6 +40,8 @@ public class LockRefresher implements AutoCloseable {
     private final TimelockService timelockService;
     private final Set<LockToken> tokensToRefresh = ConcurrentHashMap.newKeySet();
 
+    private ScheduledFuture<?> task;
+
     public LockRefresher(
             ScheduledExecutorService executor,
             TimelockService timelockService,
@@ -50,7 +53,7 @@ public class LockRefresher implements AutoCloseable {
     }
 
     private void scheduleRefresh(long refreshIntervalMillis) {
-        executor.scheduleAtFixedRate(
+        task = executor.scheduleAtFixedRate(
                 this::refreshLocks,
                 refreshIntervalMillis,
                 refreshIntervalMillis,
@@ -91,6 +94,8 @@ public class LockRefresher implements AutoCloseable {
 
     @Override
     public void close() {
-        executor.shutdown();
+        if (task != null) {
+            task.cancel(false);
+        }
     }
 }

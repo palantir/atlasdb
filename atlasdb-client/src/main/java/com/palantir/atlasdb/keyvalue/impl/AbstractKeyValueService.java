@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.HashMultimap;
@@ -52,10 +53,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
+    private static final ScheduledExecutorService scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory(AbstractKeyValueService.class.getSimpleName() + "-tracing-prefs", true));
     protected ExecutorService executor;
 
     protected final TracingPrefsConfig tracingPrefs;
-    private final ScheduledExecutorService scheduledExecutor;
+    private final ScheduledFuture<?> tracingPrefsTask;
 
     /**
      * Note: This takes ownership of the given executor. It will be shutdown when the key
@@ -64,9 +67,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true));
-        this.scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
+        tracingPrefsTask = scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
     /**
@@ -170,7 +171,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void close() {
-        scheduledExecutor.shutdown();
+        tracingPrefsTask.cancel(false);
         executor.shutdown();
     }
 

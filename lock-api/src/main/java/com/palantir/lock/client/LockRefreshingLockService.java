@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -42,16 +43,18 @@ import com.palantir.logsafe.Preconditions;
 public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
+    private static final ScheduledExecutorService executor =
+            PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
 
     final LockService delegate;
     final Set<LockRefreshToken> toRefresh;
-    final ScheduledExecutorService exec;
     final long refreshFrequencyMillis = 5000;
+    ScheduledFuture<?> task;
     volatile boolean isClosed = false;
 
     public static LockRefreshingLockService create(LockService delegate) {
         final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
-        ret.exec.scheduleWithFixedDelay(() -> {
+        ret.task = executor.scheduleWithFixedDelay(() -> {
             long startTime = System.currentTimeMillis();
             try {
                 ret.refreshLocks();
@@ -75,7 +78,6 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     private LockRefreshingLockService(LockService delegate) {
         this.delegate = delegate;
         toRefresh = ConcurrentHashMap.newKeySet();
-        exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     }
 
     @Override
@@ -167,7 +169,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     }
 
     public void dispose() {
-        exec.shutdown();
+        task.cancel(false);
         isClosed = true;
     }
 

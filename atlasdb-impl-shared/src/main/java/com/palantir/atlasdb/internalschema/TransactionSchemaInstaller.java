@@ -19,6 +19,7 @@ package com.palantir.atlasdb.internalschema;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -30,6 +31,8 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 
 public final class TransactionSchemaInstaller implements AutoCloseable {
+    private static final ScheduledExecutorService sharedScheduledExecutorService =
+            PTExecutors.newSingleThreadScheduledExecutor(PTExecutors.newNamedThreadFactory(true));
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaInstaller.class);
 
     @VisibleForTesting
@@ -37,23 +40,20 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
 
     private final TransactionSchemaManager manager;
     private final Supplier<Optional<Integer>> versionToInstall;
-    private final ScheduledExecutorService scheduledExecutorService;
+
+    private ScheduledFuture<?> task;
 
     private TransactionSchemaInstaller(
             TransactionSchemaManager manager,
-            Supplier<Optional<Integer>> versionToInstall,
-            ScheduledExecutorService scheduledExecutorService) {
+            Supplier<Optional<Integer>> versionToInstall) {
         this.manager = manager;
         this.versionToInstall = versionToInstall;
-        this.scheduledExecutorService = scheduledExecutorService;
     }
 
     public static TransactionSchemaInstaller createStarted(
             TransactionSchemaManager manager,
             Supplier<Optional<Integer>> versionToInstall) {
-        ScheduledExecutorService scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
-                PTExecutors.newNamedThreadFactory(true));
-        return createStarted(manager, versionToInstall, scheduledExecutor);
+        return createStarted(manager, versionToInstall, sharedScheduledExecutorService);
     }
 
     @VisibleForTesting
@@ -61,9 +61,8 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
             TransactionSchemaManager manager,
             Supplier<Optional<Integer>> versionToInstall,
             ScheduledExecutorService scheduledExecutor) {
-        TransactionSchemaInstaller installer = new TransactionSchemaInstaller(
-                manager, versionToInstall, scheduledExecutor);
-        scheduledExecutor.scheduleAtFixedRate(
+        TransactionSchemaInstaller installer = new TransactionSchemaInstaller(manager, versionToInstall);
+        installer.task = scheduledExecutor.scheduleAtFixedRate(
                 installer::runOneIteration, 0, POLLING_INTERVAL.toMinutes(), TimeUnit.MINUTES);
         return installer;
 
@@ -93,6 +92,8 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
 
     @Override
     public void close() {
-        scheduledExecutorService.shutdown();
+        if (task != null) {
+            task.cancel(false);
+        }
     }
 }

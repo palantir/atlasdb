@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Merge some per-txn-manager scheduled thread pools into shared static
+    thread pools
+  links:
+  - https://github.com/palantir/atlasdb/pull/4940
