@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -32,6 +33,7 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
@@ -65,9 +67,11 @@ final class CommitTimestampGetter implements AutoCloseable {
             int count = batch.size();
             List<Long> commitTimestamps = new ArrayList<>();
             while (commitTimestamps.size() < count) {
-                GetCommitTimestampsResponse response = leaseService.getCommitTimestamps(cache.lastKnownVersion(),
+                Optional<IdentifiedVersion> requestedVersion = cache.lastKnownVersion();
+                GetCommitTimestampsResponse response = leaseService.getCommitTimestamps(requestedVersion,
                         count - commitTimestamps.size());
                 commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
+                LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             }
 
             for (int i = 0; i < count; i++) {

@@ -18,6 +18,7 @@ dependencies {
   // Severe correctness issues in 1204,5,6.
   // Update with care and caution.
   compile group: 'org.postgresql', name: 'postgresql', version: libVersions.postgresql
+  compile 'com.oracle.database.jdbc:ojdbc8'
 
   compile group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP
   compile group: 'joda-time', name: 'joda-time'

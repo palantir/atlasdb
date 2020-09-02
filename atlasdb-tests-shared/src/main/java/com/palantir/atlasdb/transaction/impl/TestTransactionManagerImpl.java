@@ -39,6 +39,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
@@ -117,7 +118,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                DefaultMetricsFilterEvaluationContext.createDefault());
         this.transactionWrapper =  WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
@@ -159,7 +161,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 deleteExecutor,
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                DefaultMetricsFilterEvaluationContext.createDefault());
         this.transactionWrapper = transactionWrapper;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }

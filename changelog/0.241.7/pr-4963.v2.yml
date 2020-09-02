@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Allow lock watch updates that start on the same version as the locally
+    maintained cache's.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4963

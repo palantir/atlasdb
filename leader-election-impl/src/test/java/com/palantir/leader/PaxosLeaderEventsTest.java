@@ -60,11 +60,12 @@ public class PaxosLeaderEventsTest {
     public void recordsLeaderPingFailure() {
         RuntimeException error = new RuntimeException("foo");
         when(pingableLeader.pingV2()).thenThrow(error);
+        when(pingableLeader.ping()).thenThrow(error);
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(10));
         assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
-                .isEqualTo(LeaderPingResults.pingCallFailure(error));
+                .isEqualTo(LeaderPingResults.pingCallFailedWithExecutionException(error));
     }
 
     @Test

@@ -131,6 +131,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -196,7 +197,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
     private final TableLevelMetricsController tableLevelMetricsController
-            = ToplistDeltaFilteringTableLevelMetricsController.create(metricsManager);
+            = ToplistDeltaFilteringTableLevelMetricsController.create(
+                    metricsManager, DefaultMetricsFilterEvaluationContext.createDefault());
 
     private TransactionConfig transactionConfig;
 

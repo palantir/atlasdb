@@ -613,11 +613,12 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void metricsAreReportedExactlyOnceWhenUsingLocalService() throws IOException {
+    public void metricsAreNotDirectlyReportedFromLocalService() throws IOException {
         setUpForLocalServices();
         setUpLeaderBlockInConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+        assertThatTimeAndLockMetricsAreNotRecorded(
+                TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
@@ -778,7 +779,7 @@ public class TransactionManagersTest {
         assertThat(Iterables.getOnlyElement(result.entrySet()).getValue(), is(12345L));
     }
 
-    private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
+    private void assertThatTimeAndLockMetricsAreNotRecorded(String timestampMetric, String lockMetric) {
         assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
         assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
 
@@ -786,8 +787,8 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(1L)));
-        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
     }
 
     private void assertThatTimeAndLockMetricsWithTagsAreRecorded(
@@ -917,7 +918,10 @@ public class TransactionManagersTest {
                 Refreshable.create(mockAtlasDbRuntimeConfig);
         Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices =
                 TransactionManagers.getTimeLockClientFeedbackServices(
-                        config, refreshableRuntimeConfig, USER_AGENT);
+                        config,
+                        refreshableRuntimeConfig,
+                        USER_AGENT,
+                        DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build())));
         ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
                 .builder()
                 .atlasVersion("1.0")

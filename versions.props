@@ -15,6 +15,7 @@ com.google.dagger:dagger-compiler = 2.17
 com.google.guava:* = 23.6-jre
 com.google.protobuf:protobuf-java = 3.10.0
 com.lmax:disruptor = 3.4.2
+com.oracle.database.jdbc:* = 19.7.0.0
 com.palantir.common:streams = 1.9.1
 com.palantir.config.crypto:encrypted-config-value-module = 2.1.0
 com.palantir.conjure:conjure = 4.10.1

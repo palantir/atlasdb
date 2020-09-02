@@ -437,7 +437,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
         boolean isNonLeaderTakenOut = false;
         try {
-            for (int i = 0; i < 1_500; i++) { // Needed as it takes a while for the thread buildup to occur
+            for (int i = 0; i < 1_800; i++) { // Needed as it takes a while for the thread buildup to occur
                 assertNumberOfThreadsReasonable(
                         startingNumThreads,
                         ManagementFactory.getThreadMXBean().getThreadCount(),
@@ -455,13 +455,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
-        // TODO (jkong): Lower the amount over the threshold. This needs to be slightly higher for now because of the
-        // current threading model in batch mode, where separate threads may be spun up on the autobatcher.
-        int threadLimit = startingThreads + 800;
+        int threadLimit = startingThreads + 1000;
         if (nonLeaderDown) {
-            if (threadCount > threadLimit) {
-                System.out.println("hello");
-            }
             assertThat(threadCount)
                     .as("should not additionally spin up too many threads after a non-leader failed")
                     .isLessThanOrEqualTo(threadLimit);

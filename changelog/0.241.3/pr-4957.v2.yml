@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Remove `@DoNotDelegate` annotation from `lockWatchManager` method on
+    `TransactionManager`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4957

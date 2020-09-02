@@ -29,6 +29,7 @@ import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
 
@@ -74,11 +75,15 @@ final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
         } catch (TransactionLockWatchFailedException e) {
             throw e;
         } catch (Throwable t) {
-            log.warn("Unexpected failure occurred when trying to use the default cache. Switching to the fallback "
-                    + "implementation", t);
-            fallbackCacheSelectedCounter.inc();
-            delegate = fallbackCache;
-            throw new TransactionLockWatchFailedException("Unexpected failure in the lock watch cache", t);
+            if (delegate == fallbackCache) {
+                throw new SafeRuntimeException("Fallback cache threw an exception", t);
+            } else {
+                log.warn("Unexpected failure occurred when trying to use the default cache. "
+                        + "Switching to the fallback implementation", t);
+                fallbackCacheSelectedCounter.inc();
+                delegate = fallbackCache;
+                throw new TransactionLockWatchFailedException("Unexpected failure in the default lock watch cache", t);
+            }
         }
     }
 }
