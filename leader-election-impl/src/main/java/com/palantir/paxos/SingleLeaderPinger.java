@@ -145,7 +145,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             return getLeaderPingResult(uuid,
                     pingFuture,
                     timeLockVersion,
-                    () -> greeningNodeShouldBecomeLeaderRateLimiter.tryAcquire());
+                    greeningNodeShouldBecomeLeaderRateLimiter::tryAcquire);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(e);
