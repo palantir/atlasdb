@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import javax.annotation.Nullable;
 
@@ -144,7 +145,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             return getLeaderPingResult(uuid,
                     pingFuture,
                     timeLockVersion,
-                    greeningNodeShouldBecomeLeaderRateLimiter.tryAcquire());
+                    () -> greeningNodeShouldBecomeLeaderRateLimiter.tryAcquire());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(e);
@@ -158,7 +159,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             UUID uuid,
             @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture,
             Optional<OrderableSlsVersion> timeLockVersion,
-            boolean shouldGreeningNodeBecomeLeader) {
+            BooleanSupplier shouldGreeningNodeBecomeLeader) {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
@@ -167,7 +168,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             if (!pingResult.isLeader()) {
                 return LeaderPingResults.pingReturnedFalse();
             }
-            return (!shouldGreeningNodeBecomeLeader || isAtLeastOurVersion(pingResult, timeLockVersion))
+            return (!shouldGreeningNodeBecomeLeader.getAsBoolean() || isAtLeastOurVersion(pingResult, timeLockVersion))
                     ? LeaderPingResults.pingReturnedTrue(
                             uuid,
                             Futures.getDone(pingFuture).getKey().hostAndPort())
