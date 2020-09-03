@@ -36,6 +36,11 @@ public class SweepDelayTest {
     private SweepDelay delay = new SweepDelay(INITIAL_DELAY);
 
     @Test
+    public void iterationWithNormalBatchReturnsInitialPause() {
+        assertThat(delay.getNextPause(SUCCESS)).isEqualTo(INITIAL_DELAY);
+    }
+
+    @Test
     public void configurationsOutOfBoundsAreSetAtBounds() {
         SweepDelay negativeDelay = new SweepDelay(-5L);
         SweepDelay largeDelay = new SweepDelay(10_000_000L);
@@ -62,11 +67,6 @@ public class SweepDelayTest {
     @Test
     public void disabledReturnsBackoff() {
         assertThat(delay.getNextPause(SweepIterationResults.disabled())).isEqualTo(BACKOFF);
-    }
-
-    @Test
-    public void iterationWithNormalBatchReturnsInitialPause() {
-        assertThat(delay.getNextPause(SUCCESS)).isEqualTo(INITIAL_DELAY);
     }
 
     @Test

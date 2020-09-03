@@ -864,7 +864,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, 90);
 
         // first iteration reads all before giving up
-        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(4 + writesInDedicated);
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated);
 
         // we read one entry and give up
@@ -897,17 +897,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(writesInOther).isGreaterThan(0);
 
         // first iteration reads all before giving up
-        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(writesInDedicated);
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated);
 
         // we read a reference to bad entries and give up
-        sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        assertThat(sweepNextBatch(ShardAndStrategy.conservative(otherShard))).isEqualTo(1);
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1);
 
         immutableTs = 250;
 
         // we now read all to the end
-        sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        assertThat(sweepNextBatch(ShardAndStrategy.conservative(otherShard))).isEqualTo(writesInOther);
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1 + writesInOther);
     }
 
@@ -1321,12 +1321,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         return writeInfos;
     }
 
-    private void sweepNextBatch(ShardAndStrategy shardStrategy) {
-        sweepNextBatch(sweepQueue, shardStrategy);
+    private long sweepNextBatch(ShardAndStrategy shardStrategy) {
+        return sweepNextBatch(sweepQueue, shardStrategy);
     }
 
-    private void sweepNextBatch(TargetedSweeper sweeper, ShardAndStrategy shardStrategy) {
-        sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier));
+    private long sweepNextBatch(TargetedSweeper sweeper, ShardAndStrategy shardStrategy) {
+        return sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier));
     }
 
     private void setSweepTimestamp(long timestamp) {
