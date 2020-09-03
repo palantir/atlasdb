@@ -41,16 +41,18 @@ public class LeadershipElectionCheckTest {
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics =
             LeaderElectionServiceMetrics.of(registry);
     private final LeaderElectionHealthCheck leaderElectionHealthCheck =
-            new LeaderElectionHealthCheck(leaderElectionServiceMetrics);
+            new LeaderElectionHealthCheck();
 
     @Before
     public void setup() {
         when(registry.meter(any())).thenReturn(new Meter(fakeTimeClock));
+        leaderElectionHealthCheck.registerClient("abc", leaderElectionServiceMetrics);
     }
 
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(3, Duration.ofSeconds(60));
+        markLeaderElectionsAtSpecifiedInterval(5, Duration.ofSeconds(60));
+        System.out.print(leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate());
 
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
@@ -58,7 +60,9 @@ public class LeadershipElectionCheckTest {
 
     @Test
     public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(7,  Duration.ofSeconds(30));
+//        markLeaderElectionsAtSpecifiedInterval(5,  Duration.ofSeconds(15));
+        DO();
+        System.out.print(leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate());
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
     }
@@ -66,12 +70,48 @@ public class LeadershipElectionCheckTest {
     private void markLeaderElectionsAtSpecifiedInterval(int leaderElectionCount, Duration timeIntervalInSeconds) {
         // The rate is initialized after first tick (5 second interval) of meter with number of marks / interval.
         // Marking before the first interval has passed sets the rate very high, which should not happen in practice.
-        fakeTimeClock.advance(6, TimeUnit.SECONDS);
+        fakeTimeClock.advance(80, TimeUnit.MINUTES);
 
         IntStream.range(0, leaderElectionCount).forEach(idx -> {
             leaderElectionServiceMetrics.proposedLeadership().mark();
             fakeTimeClock.advance(timeIntervalInSeconds.getSeconds(), TimeUnit.SECONDS);
         });
+    }
+
+    private void DO() {
+        // The rate is initialized after first tick (5 second interval) of meter with number of marks / interval.
+        // Marking before the first interval has passed sets the rate very high, which should not happen in practice.
+        fakeTimeClock.advance(80, TimeUnit.MINUTES);
+
+        doMore(2);
+
+        doMore(2);
+
+        doMore(28);
+
+        doMore(7);
+
+        doMore(10);
+
+        doMore(10);
+
+        doMore(10);
+
+        doMore(13);
+
+        doMore(15);
+
+        doMore(12);
+
+        doMore(11);
+
+        doMore(10);
+    }
+
+    private void doMore(int i) {
+        leaderElectionServiceMetrics.proposedLeadership().mark();
+        fakeTimeClock.advance(i, TimeUnit.SECONDS);
+        System.out.println(leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate());
     }
 
     public static class FakeTimeClock extends Clock {

@@ -72,6 +72,7 @@ import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.zaxxer.hikari.HikariDataSource;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
@@ -185,8 +186,7 @@ public class TimeLockAgent {
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler(metricsManager, () -> runtime.get().adjudication().enabled());
-        this.leaderElectionHealthCheck = new LeaderElectionHealthCheck(
-                LeaderElectionServiceMetrics.of(metricsManager.getTaggedRegistry()));
+        this.leaderElectionHealthCheck = new LeaderElectionHealthCheck();
     }
 
     private TimestampCreator getTimestampCreator() {
@@ -339,6 +339,12 @@ public class TimeLockAgent {
                 .build();
 
         Client typedClient = Client.of(client);
+
+        // todo sudiksha
+        TaggedMetricRegistry metrics = paxosResources.leadershipContextFactory().metrics()
+                .clientScopedMetrics().metricRegistryForClient(typedClient);
+        leaderElectionHealthCheck.registerClient(client, LeaderElectionServiceMetrics.of(metrics));
+
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
                 .createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
