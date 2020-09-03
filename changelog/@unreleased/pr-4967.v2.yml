@@ -1,5 +1,7 @@
 type: improvement
 improvement:
   description: A greening node's attempts to gain leadership are now rate limited.
+    Previously, repeated attempts of the greening node to gain leadership could lead
+    to leader thrashing.
   links:
   - https://github.com/palantir/atlasdb/pull/4967
