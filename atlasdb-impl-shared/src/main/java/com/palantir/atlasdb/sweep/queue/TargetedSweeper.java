@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -57,7 +55,6 @@ import com.palantir.logsafe.SafeArg;
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
-    private static final Duration MAX_SHARD_DURATION = Duration.ofMinutes(5L);
 
     private final Supplier<TargetedSweepRuntimeConfig> runtime;
     private final List<Follower> followers;
@@ -164,7 +161,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
                 transaction,
                 follower,
-                () -> runtime.get().maximumPartitionsToBatchInSingleRead());
+                this::getPartitionBatchLimit);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         isInitialized = true;
@@ -188,28 +185,19 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * writes from the sweep queue and then update the sweep queue progress accordingly.
      *
      * @param shardStrategy shard and strategy to use
-     * @return true if we should immediately process another batch for this shard and strategy
+     * @return number of entries swept
      */
     @SuppressWarnings("checkstyle:RegexpMultiline") // Suppress VisibleForTesting warning
     @VisibleForTesting
-    public boolean sweepNextBatch(ShardAndStrategy shardStrategy, long maxTsExclusive) {
+    public long sweepNextBatch(ShardAndStrategy shardStrategy, long maxTsExclusive) {
         assertInitialized();
         return queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
     @VisibleForTesting
-    void processShard(ShardAndStrategy shardAndStrategy) {
+    long processShard(ShardAndStrategy shardAndStrategy) {
         long maxTsExclusive = Sweeper.of(shardAndStrategy).getSweepTimestamp(timestampsSupplier);
-        if (runtime.get().batchShardIterations()) {
-            Stopwatch watch = Stopwatch.createStarted();
-            boolean processNextBatch = true;
-            while (processNextBatch && runtime.get().enabled()
-                    && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
-                processNextBatch = sweepNextBatch(shardAndStrategy, maxTsExclusive);
-            }
-        } else {
-            sweepNextBatch(shardAndStrategy, maxTsExclusive);
-        }
+        return sweepNextBatch(shardAndStrategy, maxTsExclusive);
     }
 
     @Override
@@ -229,16 +217,24 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
     }
 
+    private int getPartitionBatchLimit() {
+        return runtime.get().enableAutoTuning()
+                ? Integer.MAX_VALUE
+                : runtime.get().maximumPartitionsToBatchInSingleRead();
+    }
+
     private class BackgroundSweepScheduler implements AutoCloseable {
         private final int numThreads;
         private final SweeperStrategy sweepStrategy;
         private final AtomicLong counter = new AtomicLong(0);
+        private final SweepDelay delay;
 
         private ScheduledExecutorService executorService;
 
         private BackgroundSweepScheduler(int numThreads, SweeperStrategy sweepStrategy) {
             this.numThreads = numThreads;
             this.sweepStrategy = sweepStrategy;
+            this.delay = new SweepDelay(runtime.get().pauseMillis());
         }
 
         private void scheduleBackgroundThreads() {
@@ -246,27 +242,37 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 executorService = PTExecutors
                         .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
                 for (int i = 0; i < numThreads; i++) {
-                    executorService.scheduleWithFixedDelay(this::runOneIteration, 1000,
-                            Math.max(runtime.get().pauseMillis(), 1L), TimeUnit.MILLISECONDS);
+                    executorService.schedule(this::recurringTask, 1000, TimeUnit.MILLISECONDS);
                 }
             }
         }
 
-        private void runOneIteration() {
+        private void recurringTask() {
+            SweepIterationResult result = runOneIteration();
+            long pause = runtime.get().enableAutoTuning() ? delay.getNextPause(result) : runtime.get().pauseMillis();
+            executorService.schedule(this::recurringTask, pause, TimeUnit.MILLISECONDS);
+        }
+
+        private SweepIterationResult runOneIteration() {
             if (!runtime.get().enabled()) {
-                return;
+                return SweepIterationResults.disabled();
             }
 
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
-                maybeLock.ifPresent(lock -> processShard(lock.getShardAndStrategy()));
+                return maybeLock
+                        .map(targetedSweeperLock -> SweepIterationResults
+                                .success(processShard(targetedSweeperLock.getShardAndStrategy())))
+                        .orElseGet(SweepIterationResults::unableToAcquireShard);
             } catch (InsufficientConsistencyException e) {
                 metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
                 logException(e, maybeLock);
+                return SweepIterationResults.insufficientConsistency();
             } catch (Throwable th) {
                 metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.ERROR);
                 logException(th, maybeLock);
+                return SweepIterationResults.otherError();
             } finally {
                 try {
                     maybeLock.ifPresent(TargetedSweeperLock::unlock);

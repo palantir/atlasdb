@@ -48,7 +48,11 @@ public abstract class TargetedSweepRuntimeConfig {
     /**
      * If true, we batch many iterations on each shard and strategy upon obtaining the lock. This should lead to
      * higher throughput in targeted sweep at the expense of more uneven sweeping across different shards.
+     *
+     * @deprecated This configuration is ignored, use {@link #enableAutoTuning()} or
+     * {@link #maximumPartitionsToBatchInSingleRead()} instead.
      */
+    @Deprecated
     @Value.Default
     public boolean batchShardIterations() {
         return false;
@@ -84,6 +88,19 @@ public abstract class TargetedSweepRuntimeConfig {
     @Value.Default
     public long pauseMillis() {
         return 500L;
+    }
+
+    /**
+     * If enabled, the {@link #batchShardIterations()} and {@link #maximumPartitionsToBatchInSingleRead()} parameters
+     * will be ignored. Instead, sweep will read across as many fine partitions as necessary to try assemble a single
+     * full batch of entries to sweep.
+     *
+     * In addition, the pause between iterations of sweep will automatically adjusted depending on previous
+     * iterations using {@link #pauseMillis()} as a hint.
+     */
+    @Value.Default
+    public boolean enableAutoTuning() {
+        return false;
     }
 
     public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {
