@@ -1,8 +1,8 @@
 type: improvement
 improvement:
   description: |-
-    Targeted sweep runtime configuration now has a `enableAutoTuning` parameter. While true, targeted sweep will dynamically adjust the pause between sweep iterations based on the amount of work that was done. It will, furthermore, attempt to read a full batch (100k) of entries to sweep whenever possible.
+    Targeted sweep runtime configuration now has an `enableAutoTuning` parameter. While true, targeted sweep will dynamically adjust the pause between sweep iterations based on the amount of work that was done. It will, furthermore, attempt to read a full batch (100k) of entries to sweep whenever possible. This feature is still experimental and disabled by default. Please contact the AtlasDB team if you wish to use it.
 
-    The `batchShardIterations` parameter has been deprecated and now does nothing, use `maximumPartitionsToBatchInSingleRead` or `enableAutoTuning` instead.
+    The `batchShardIterations` parameter has been removed and if it is specified it will be ignored, use `maximumPartitionsToBatchInSingleRead` or `enableAutoTuning` instead.
   links:
   - https://github.com/palantir/atlasdb/pull/4973
