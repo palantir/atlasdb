@@ -25,16 +25,16 @@ import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
     private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
-    private static final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics
+    private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics
             = new ConcurrentHashMap<>();
 
 
-    public static void registerClient(Client namespace,
+    public void registerClient(Client namespace,
             LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
         clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
     }
 
-    private static double getLeaderElectionRateForAllClients() {
+    private double getLeaderElectionRateForAllClients() {
         return KeyedStream.stream(clientWiseMetrics)
                 .values()
                 .mapToDouble(leaderElectionRateForClient ->
@@ -42,12 +42,12 @@ public class LeaderElectionHealthCheck {
                 .sum();
     }
 
-    public static LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
+    public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
         return getLeaderElectionRateForAllClients() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
                 ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
     }
 
-    public static void deregisterClient(Client client) {
+    public void deregisterClient(Client client) {
         clientWiseMetrics.remove(client);
     }
 }

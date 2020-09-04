@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.timestamp.ManagedTimestampService;
 
 @Value.Immutable
@@ -36,6 +37,7 @@ public abstract class PaxosResources {
     abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
     public abstract LeadershipContextFactory leadershipContextFactory();
     abstract List<Object> adhocResources();
+    public abstract LeaderElectionHealthCheck leaderElectionHealthCheck();
 
     @Value.Derived
     Map<PaxosUseCase, BatchPaxosResources> leadershipBatchResources() {

@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
@@ -34,6 +35,7 @@ public interface Dependencies {
         PingableLeader localPingableLeader();
         UUID leaderUuid();
         Client proxyClient();
+        LeaderElectionHealthCheck leaderElectionHealthCheck();
     }
 
     interface LeaderPinger {

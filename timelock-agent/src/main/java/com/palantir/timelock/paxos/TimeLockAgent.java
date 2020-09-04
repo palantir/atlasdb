@@ -57,7 +57,6 @@ import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
@@ -346,7 +345,7 @@ public class TimeLockAgent {
     }
 
     public LeaderElectionHealthStatus timeLockLeadershipHealthCheck() {
-        return LeaderElectionHealthCheck.leaderElectionRateHealthStatus();
+        return paxosResources.leadershipContextFactory().leaderElectionHealthCheck().leaderElectionRateHealthStatus();
     }
 
     public void shutdown() {
