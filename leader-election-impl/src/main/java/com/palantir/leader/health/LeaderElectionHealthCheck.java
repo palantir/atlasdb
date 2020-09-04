@@ -19,23 +19,19 @@ package com.palantir.leader.health;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
-    // todo sudiksha
-    private static final Logger log = LoggerFactory.getLogger(LeaderElectionHealthCheck.class);
-    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.0095;
-    private static final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
+    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
+    private static final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics
+            = new ConcurrentHashMap<>();
 
 
-    public static LeaderElectionServiceMetrics registerClient(Client namespace,
+    public static void registerClient(Client namespace,
             LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
-        return clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
+        clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
     }
 
     private static double getLeaderElectionRateForAllClients() {
@@ -47,16 +43,11 @@ public class LeaderElectionHealthCheck {
     }
 
     public static LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
-        log.info("Blah | leader election rate is - ", getFormatted());
         return getLeaderElectionRateForAllClients() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
                 ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
     }
 
-    private static String getFormatted() {
-        StringBuilder sb = new StringBuilder("[");
-        KeyedStream.stream(clientWiseMetrics).forEach((k, v) -> sb.append("(").append(k).append(" : ")
-                .append(v.proposedLeadership().getFiveMinuteRate()).append(")\n"));
-        sb.append("]");
-        return sb.toString();
+    public static void deregisterClient(Client client) {
+        clientWiseMetrics.remove(client);
     }
 }

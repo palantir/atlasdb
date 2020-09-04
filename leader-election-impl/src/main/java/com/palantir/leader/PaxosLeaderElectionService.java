@@ -139,8 +139,6 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             throw new InterruptedException("leader no longer eligible");
         }
 
-        eventRecorder.recordProposalAttempt(76);
-
         if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
             Thread.sleep(updatePollingRate.toMillis());
             return;
