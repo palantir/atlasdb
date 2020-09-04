@@ -25,17 +25,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL_DELAY;
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class ScalingSweepTaskSchedulerTest {
     private static final SweepIterationResult SUCCESS_HUGE = SweepIterationResults
@@ -133,21 +137,22 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void attemptToIncreaseNumberOfThreadsPreventsReduction() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithCoolDown = createScheduler(Duration.ofSeconds(1));
+        Duration coolDown = Duration.ofSeconds(1);
+        ScalingSweepTaskScheduler schedulerWithCoolDown = createScheduler(coolDown);
         when(sweepIteration.call()).thenReturn(
                 SUCCESS_LARGE,
                 SUCCESS_LARGE,
                 SUCCESS_SMALL);
         schedulerWithCoolDown.start(2);
 
-        Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(coolDown.toMillis() / 2 + 1, TimeUnit.MILLISECONDS);
         deterministicScheduler.tick(INITIAL_DELAY, TimeUnit.MILLISECONDS);
 
-        Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(coolDown.toMillis() / 2 + 1, TimeUnit.MILLISECONDS);
         // these will not reduce the number of threads due to the attempt to increase in previous iterations
         deterministicScheduler.tick(2 * DELAY, TimeUnit.MILLISECONDS);
 
-        Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(coolDown.toMillis() / 2 + 1, TimeUnit.MILLISECONDS);
         // the first iteration that gets executed will not reschedule
         deterministicScheduler.tick(2 * DELAY, TimeUnit.MILLISECONDS);
 
@@ -246,6 +251,45 @@ public class ScalingSweepTaskSchedulerTest {
         schedulerWithRealDelay.start(3);
         deterministicScheduler.tick(INITIAL_DELAY + 100L * 9, TimeUnit.MILLISECONDS);
         verify(sweepIteration, atLeast(3 * 10 + 1)).call();
+    }
+
+    @Test
+    public void stressTestThatNumberOfTasksStaysWithinBounds() {
+        AtomicLong iterationCount = new AtomicLong(0L);
+        AtomicReference<SweepIterationResult> result = new AtomicReference<>(SUCCESS_SMALL);
+        Callable<SweepIterationResult> oneIteration = () -> {
+            iterationCount.incrementAndGet();
+            return result.get();
+        };
+        ScalingSweepTaskScheduler nondeterministicScheduler = new ScalingSweepTaskScheduler(
+                PTExecutors.newScheduledThreadPool(1),
+                delay,
+                Duration.ZERO,
+                oneIteration,
+                schedulerEnabled::get);
+
+        nondeterministicScheduler.start(10);
+        Uninterruptibles.sleepUninterruptibly(INITIAL_DELAY, TimeUnit.MILLISECONDS);
+
+        for (int i = 0; i < 10; i++) {
+            result.set(SUCCESS_SMALL);
+            Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+
+            // we only have one task remaining
+            result.set(SUCCESS_MEDIUM);
+            iterationCount.set(0);
+            Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+            assertThat(iterationCount.get()).isBetween(50L, 200L);
+
+            result.set(SUCCESS_LARGE);
+            Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+
+            // we have 128 tasks
+            result.set(SUCCESS_MEDIUM);
+            iterationCount.set(0);
+            Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+            assertThat(iterationCount.get()).isBetween(50 * 128L, 200 * 128L);
+        }
     }
 
     private ScalingSweepTaskScheduler createScheduler(Duration coolDown) {
