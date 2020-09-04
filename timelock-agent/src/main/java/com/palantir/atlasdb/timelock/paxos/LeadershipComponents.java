@@ -64,8 +64,12 @@ public class LeadershipComponents {
         Closeable closeableInstance = (Closeable) instance;
         closer.register(closeableInstance);
 
-        context.leadershipMetrics().registerLeaderElectionHealthCheck();
         return context.leadershipMetrics().instrument(clazz, instance);
+    }
+
+    public void leaderElectionHealthCheckForClient(Client client) {
+        LeadershipContext context = getOrCreateNewLeadershipContext(client);
+        context.leadershipMetrics().registerLeaderElectionHealthCheck();
     }
 
     public void shutdown() {
