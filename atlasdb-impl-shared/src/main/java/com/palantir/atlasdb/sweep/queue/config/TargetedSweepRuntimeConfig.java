@@ -15,15 +15,20 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
+import java.time.Duration;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 @JsonDeserialize(as = ImmutableTargetedSweepRuntimeConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepRuntimeConfig.class)
+@JsonIgnoreProperties("batchShardIterations")
 @Value.Immutable
 public abstract class TargetedSweepRuntimeConfig {
     /**
@@ -46,15 +51,6 @@ public abstract class TargetedSweepRuntimeConfig {
     }
 
     /**
-     * If true, we batch many iterations on each shard and strategy upon obtaining the lock. This should lead to
-     * higher throughput in targeted sweep at the expense of more uneven sweeping across different shards.
-     */
-    @Value.Default
-    public boolean batchShardIterations() {
-        return false;
-    }
-
-    /**
      * Specifies the maximum number of (fine) partitions over which targeted sweep attempts to read sweep queue
      * information before executing deletes. Only partitions which actually contain information about writes will count
      * towards this limit. Targeted sweep may, of course, read fewer partitions. Legacy behaviour prior to the
@@ -71,19 +67,42 @@ public abstract class TargetedSweepRuntimeConfig {
     @Value.Check
     void checkPartitionsToBatch() {
         Preconditions.checkArgument(maximumPartitionsToBatchInSingleRead() > 0,
-                "Number of partitions to read in a batch must be positive, but found %s.",
-                maximumPartitionsToBatchInSingleRead());
+                "Number of partitions to read in a batch must be positive.",
+                SafeArg.of("partitions to batch", maximumPartitionsToBatchInSingleRead()));
     }
 
     @Value.Check
     void checkShardSize() {
         Preconditions.checkArgument(shards() >= 1 && shards() <= 256,
-                "Shard number must be between 1 and 256 inclusive, but it is %s.", shards());
+                "Shard number must be between 1 and 256 inclusive.",
+                SafeArg.of("shards", shards()));
     }
 
+    /**
+     * Hint for the duration of pause between iterations of targeted sweep. Must not be longer than a day.
+     */
     @Value.Default
     public long pauseMillis() {
         return 500L;
+    }
+
+    /**
+     * If enabled, the {@link #maximumPartitionsToBatchInSingleRead()} parameter will be ignored. Instead, sweep will
+     * read across as many fine partitions as necessary to try assemble a single full batch of entries to sweep.
+     *
+     * In addition, the pause between iterations of sweep will automatically adjusted depending on previous
+     * iterations using {@link #pauseMillis()} as a hint.
+     */
+    @Value.Default
+    public boolean enableAutoTuning() {
+        return false;
+    }
+
+    @Value.Check
+    public void checkPauseDuration() {
+        Preconditions.checkArgument(pauseMillis() <= Duration.ofDays(1).toMillis(),
+                "The pause between iterations of targeted sweep must not be greater than 1 day.",
+                SafeArg.of("pauseMillis", pauseMillis()));
     }
 
     public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {

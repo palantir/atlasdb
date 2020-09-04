@@ -45,7 +45,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
-    private final IntSupplier partitionBatchLimitSupplier;
     private final TargetedSweepMetrics metrics;
 
     private SweepQueue(SweepQueueFactory factory, TargetedSweepFollower follower) {
@@ -56,7 +55,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         this.cleaner = factory.createCleaner();
         this.numShards = factory.numShards;
         this.metrics = factory.metrics;
-        this.partitionBatchLimitSupplier = factory.partitionBatchLimitSupplier;
     }
 
     public static SweepQueue create(
@@ -114,14 +112,14 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      *
      * @param shardStrategy shard and strategy to use
      * @param sweepTs sweep timestamp, the upper limit to the start timestamp of writes to sweep
-     * @return true if we should immediately process another batch for this shard and strategy
+     * @return number of cells that were swept
      */
-    public boolean sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
+    public long sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
         metrics.updateSweepTimestamp(shardStrategy, sweepTs);
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
         if (lastSweptTs + 1 >= sweepTs) {
-            return false;
+            return 0L;
         }
 
         log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept "
@@ -156,7 +154,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.SUCCESS);
         }
 
-        return lastSweptTs != sweepBatch.lastSweptTimestamp() && sweepBatch.hasNext();
+        return sweepBatch.entriesRead();
     }
 
     /**

@@ -27,3 +27,5 @@ sweep:
 internalSchema:
   targetTransactionsSchemaVersion: 1
 
+targetedSweep:
+  batchShardIterations: false
