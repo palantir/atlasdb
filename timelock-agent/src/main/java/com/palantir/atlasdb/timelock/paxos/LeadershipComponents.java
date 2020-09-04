@@ -68,8 +68,7 @@ public class LeadershipComponents {
     }
 
     public void registerClientForLeaderElectionHealthCheck(Client client) {
-        LeadershipContext context = getOrCreateNewLeadershipContext(client);
-        context.leadershipMetrics().registerLeaderElectionHealthCheck();
+        getOrCreateNewLeadershipContext(client).leadershipMetrics().registerLeaderElectionHealthCheck();
     }
 
     public void shutdown() {

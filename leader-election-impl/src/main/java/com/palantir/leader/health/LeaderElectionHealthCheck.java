@@ -45,8 +45,4 @@ public class LeaderElectionHealthCheck {
         return getLeaderElectionRateForAllClients() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
                 ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
     }
-
-    public void deregisterClient(Client client) {
-        clientWiseMetrics.remove(client);
-    }
 }
