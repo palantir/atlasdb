@@ -22,8 +22,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -34,7 +32,6 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
@@ -42,8 +39,6 @@ import com.palantir.tritium.metrics.registry.MetricName;
 
 @Value.Immutable
 public abstract class TimelockLeadershipMetrics implements Dependencies.LeadershipMetrics {
-    private static final Logger log = LoggerFactory.getLogger(LeaderElectionHealthCheck.class);
-
     @Value.Derived
     List<SafeArg<String>> namespaceAsLoggingArgs() {
         return ImmutableList.of(

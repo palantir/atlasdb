@@ -41,26 +41,26 @@ public class LeadershipElectionCheckTest {
     private final TaggedMetricRegistry registry = mock(TaggedMetricRegistry.class);
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics =
             LeaderElectionServiceMetrics.of(registry);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheck = new LeaderElectionHealthCheck();
     private static final Client CLIENT = Client.of("abc");
 
     @Before
     public void setup() {
-        LeaderElectionHealthCheck.deregisterClient(CLIENT);
-        LeaderElectionHealthCheck.registerClient(CLIENT, leaderElectionServiceMetrics);
+        leaderElectionHealthCheck.registerClient(CLIENT, leaderElectionServiceMetrics);
         when(registry.meter(any())).thenReturn(new Meter(fakeTimeClock));
     }
 
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinute() {
         markLeaderElectionsAtSpecifiedInterval(5, Duration.ofSeconds(60));
-        assertThat(LeaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
     }
 
     @Test
     public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
         markLeaderElectionsAtSpecifiedInterval(5,  Duration.ofSeconds(10));
-        assertThat(LeaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
     }
 
