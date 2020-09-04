@@ -33,20 +33,20 @@ import com.codahale.metrics.Clock;
 import com.codahale.metrics.Meter;
 import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
+import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
+// todo sudiksha
 public class LeadershipElectionCheckTest {
     private final FakeTimeClock fakeTimeClock = new FakeTimeClock();
     private final TaggedMetricRegistry registry = mock(TaggedMetricRegistry.class);
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics =
             LeaderElectionServiceMetrics.of(registry);
-    private final LeaderElectionHealthCheck leaderElectionHealthCheck =
-            new LeaderElectionHealthCheck();
 
     @Before
     public void setup() {
         when(registry.meter(any())).thenReturn(new Meter(fakeTimeClock));
-        leaderElectionHealthCheck.registerClient("abc", leaderElectionServiceMetrics);
+        LeaderElectionHealthCheck.registerClient(Client.of("abc"), leaderElectionServiceMetrics);
     }
 
     @Test
@@ -54,7 +54,7 @@ public class LeadershipElectionCheckTest {
         markLeaderElectionsAtSpecifiedInterval(5, Duration.ofSeconds(60));
         System.out.print(leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate());
 
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(LeaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
     }
 
@@ -63,7 +63,7 @@ public class LeadershipElectionCheckTest {
 //        markLeaderElectionsAtSpecifiedInterval(5,  Duration.ofSeconds(15));
         DO();
         System.out.print(leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate());
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(LeaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
     }
 

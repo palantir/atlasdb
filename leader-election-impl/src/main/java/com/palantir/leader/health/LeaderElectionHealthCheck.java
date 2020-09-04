@@ -54,7 +54,8 @@ public class LeaderElectionHealthCheck {
 
     private static String getFormatted() {
         StringBuilder sb = new StringBuilder("[");
-        KeyedStream.stream(clientWiseMetrics).forEach((k, v) -> sb.append("(").append(k).append(" : ").append(v).append(")\n"));
+        KeyedStream.stream(clientWiseMetrics).forEach((k, v) -> sb.append("(").append(k).append(" : ")
+                .append(v.proposedLeadership().getFiveMinuteRate()).append(")\n"));
         sb.append("]");
         return sb.toString();
     }
