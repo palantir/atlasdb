@@ -42,7 +42,7 @@ public abstract class TimelockPaxosMetrics {
     }
 
     @Value.Derived
-    public ClientScopedMetrics clientScopedMetrics() {
+    ClientScopedMetrics clientScopedMetrics() {
         return new ClientScopedMetrics(metrics());
     }
 

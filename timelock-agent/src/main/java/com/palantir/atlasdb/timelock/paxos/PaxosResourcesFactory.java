@@ -33,7 +33,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
@@ -125,7 +124,6 @@ public final class PaxosResourcesFactory {
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
                 .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
-                .leaderElectionHealthCheck(new LeaderElectionHealthCheck())
                 .build();
     }
 
@@ -174,7 +172,6 @@ public final class PaxosResourcesFactory {
                                 factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-                .leaderElectionHealthCheck(new LeaderElectionHealthCheck())
                 .build();
     }
 

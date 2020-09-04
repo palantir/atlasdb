@@ -19,7 +19,6 @@ package com.palantir.leader.health;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 
@@ -35,11 +34,11 @@ public class LeaderElectionHealthCheck {
     }
 
     private double getLeaderElectionRateForAllClients() {
-        return KeyedStream.stream(clientWiseMetrics)
-                .values()
-                .mapToDouble(leaderElectionRateForClient ->
-                        leaderElectionRateForClient.proposedLeadership().getFiveMinuteRate())
-                .sum();
+        return clientWiseMetrics.values().stream().mapToDouble(this::fiveMinuteRate).sum();
+    }
+
+    private double fiveMinuteRate(LeaderElectionServiceMetrics leaderElectionRateForClient) {
+        return leaderElectionRateForClient.proposedLeadership().getFiveMinuteRate();
     }
 
     public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {

@@ -67,7 +67,7 @@ public class LeadershipComponents {
         return context.leadershipMetrics().instrument(clazz, instance);
     }
 
-    public void leaderElectionHealthCheckForClient(Client client) {
+    public void registerClientForLeaderElectionHealthCheck(Client client) {
         LeadershipContext context = getOrCreateNewLeadershipContext(client);
         context.leadershipMetrics().registerLeaderElectionHealthCheck();
     }
