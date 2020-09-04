@@ -17,8 +17,6 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -45,8 +43,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -229,7 +225,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         private final AtomicLong counter = new AtomicLong(0);
         private final SweepDelay delay;
 
-        private ScheduledExecutorService executorService;
+        private ScalingSweepTaskScheduler scheduler;
 
         private BackgroundSweepScheduler(int numThreads, SweeperStrategy sweepStrategy) {
             this.numThreads = numThreads;
@@ -238,19 +234,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
 
         private void scheduleBackgroundThreads() {
-            if (numThreads > 0 && executorService == null) {
-                executorService = PTExecutors
-                        .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
-                for (int i = 0; i < numThreads; i++) {
-                    executorService.schedule(this::recurringTask, 1000, TimeUnit.MILLISECONDS);
-                }
+            if (numThreads > 0 && scheduler == null) {
+                scheduler = ScalingSweepTaskScheduler.createStarted(delay, numThreads, this::runOneIteration,
+                        () -> runtime.get().enableAutoTuning());
             }
-        }
-
-        private void recurringTask() {
-            SweepIterationResult result = runOneIteration();
-            long pause = runtime.get().enableAutoTuning() ? delay.getNextPause(result) : runtime.get().pauseMillis();
-            executorService.schedule(this::recurringTask, pause, TimeUnit.MILLISECONDS);
         }
 
         private SweepIterationResult runOneIteration() {
@@ -317,8 +304,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         @Override
         public void close() {
-            if (executorService != null) {
-                executorService.shutdown();
+            if (scheduler != null) {
+                scheduler.close();
             }
         }
     }

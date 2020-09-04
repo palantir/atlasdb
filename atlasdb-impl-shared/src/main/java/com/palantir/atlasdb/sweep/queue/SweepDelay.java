@@ -33,6 +33,10 @@ public class SweepDelay {
         this.currentPause = new AtomicLong(initialPause);
     }
 
+    public long getInitialPause() {
+        return initialPause;
+    }
+
     public long getNextPause(SweepIterationResult result) {
         return SweepIterationResults.caseOf(result)
                 .success(this::updateCurrentPauseAndGet)
