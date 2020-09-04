@@ -24,6 +24,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL_DELAY;
+
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -46,8 +48,8 @@ public class ScalingSweepTaskSchedulerTest {
             .success(ScalingSweepTaskScheduler.BATCH_CELLS_LOW_THRESHOLD);
     private static final SweepIterationResult SUCCESS_TINY = SweepIterationResults
             .success(SweepDelay.BATCH_CELLS_LOW_THRESHOLD);
-    private static final long INITIAL_DELAY = 5L;
     private static final long DELAY = 1L;
+    private static final long INITIAL_PAUSE = 5L;
 
     private final DeterministicScheduler deterministicScheduler = new DeterministicScheduler();
     private final SweepDelay delay = mock(SweepDelay.class);
@@ -57,7 +59,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Before
     public void setup() {
-        when(delay.getInitialPause()).thenReturn(INITIAL_DELAY);
+        when(delay.getInitialPause()).thenReturn(INITIAL_PAUSE);
         when(delay.getNextPause(any(SweepIterationResult.class))).thenReturn(DELAY);
     }
 
@@ -75,7 +77,7 @@ public class ScalingSweepTaskSchedulerTest {
         schedulerEnabled.set(false);
         scheduler.start(10);
 
-        deterministicScheduler.tick(INITIAL_DELAY * 8, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + 7 * INITIAL_PAUSE, TimeUnit.MILLISECONDS);
         verify(sweepIteration, times(8 * 10)).call();
     }
 
@@ -158,7 +160,7 @@ public class ScalingSweepTaskSchedulerTest {
         when(sweepIteration.call()).thenReturn(SweepIterationResults.unableToAcquireShard(), SUCCESS_MEDIUM);
 
         schedulerWithRealDelay.start(1);
-        deterministicScheduler.tick(1 + SweepDelay.MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
         verify(sweepIteration, times(1 + 3)).call();
     }
 
@@ -171,7 +173,7 @@ public class ScalingSweepTaskSchedulerTest {
                 SUCCESS_MEDIUM);
 
         schedulerWithRealDelay.start(2);
-        deterministicScheduler.tick(1 + SweepDelay.BACKOFF + 2, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.BACKOFF + 2, TimeUnit.MILLISECONDS);
         verify(sweepIteration, times((1 + 3) * 2)).call();
     }
 
@@ -181,7 +183,7 @@ public class ScalingSweepTaskSchedulerTest {
         when(sweepIteration.call()).thenReturn(SweepIterationResults.disabled(), SUCCESS_MEDIUM);
 
         schedulerWithRealDelay.start(1);
-        deterministicScheduler.tick(1 + SweepDelay.BACKOFF + 2, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.BACKOFF + 2, TimeUnit.MILLISECONDS);
         verify(sweepIteration, times(1 + 3)).call();
     }
 
@@ -194,7 +196,7 @@ public class ScalingSweepTaskSchedulerTest {
                 SUCCESS_MEDIUM);
 
         schedulerWithRealDelay.start(2);
-        deterministicScheduler.tick(1 + SweepDelay.MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
         verify(sweepIteration, times((1 + 3) * 2)).call();
     }
 
@@ -232,7 +234,7 @@ public class ScalingSweepTaskSchedulerTest {
         when(sweepIteration.call()).thenReturn(SUCCESS_TINY);
 
         schedulerWithRealDelay.start(3);
-        deterministicScheduler.tick(100L * 10, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + 100L * 10, TimeUnit.MILLISECONDS);
         verify(sweepIteration, atMost(3 * 10 - 1)).call();
     }
 
@@ -242,7 +244,7 @@ public class ScalingSweepTaskSchedulerTest {
         when(sweepIteration.call()).thenReturn(SUCCESS_HUGE);
 
         schedulerWithRealDelay.start(3);
-        deterministicScheduler.tick(100L * 10, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + 100L * 9, TimeUnit.MILLISECONDS);
         verify(sweepIteration, atLeast(3 * 10 + 1)).call();
     }
 

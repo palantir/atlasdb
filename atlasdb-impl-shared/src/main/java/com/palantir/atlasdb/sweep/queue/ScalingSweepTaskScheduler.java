@@ -29,9 +29,10 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class ScalingSweepTaskScheduler implements Closeable {
+    private static final Duration COOL_DOWN = Duration.ofMinutes(5L);
     static final int BATCH_CELLS_LOW_THRESHOLD = 1_000;
     static final int BATCH_CELLS_HIGH_THRESHOLD = SweepQueueUtils.SWEEP_BATCH_SIZE * 2 / 3;
-
+    static final long INITIAL_DELAY = 1000L;
 
     private final ScheduledExecutorService executorService;
     private final SweepDelay delay;
@@ -64,15 +65,15 @@ public class ScalingSweepTaskScheduler implements Closeable {
         ScheduledExecutorService  executorService = PTExecutors.newScheduledThreadPoolExecutor(1,
                 new NamedThreadFactory("Targeted Sweep", true));
 
-        ScalingSweepTaskScheduler scheduler = new ScalingSweepTaskScheduler(executorService, delay,
-                Duration.ofMinutes(5L), task, scalingEnabled);
+        ScalingSweepTaskScheduler scheduler = new ScalingSweepTaskScheduler(
+                executorService, delay, COOL_DOWN, task, scalingEnabled);
         scheduler.start(initialThreads);
         return scheduler;
     }
 
     void start(int initialThreads) {
         for (int i = 0; i < initialThreads; i++) {
-            increaseNumberOfTasks(delay.getInitialPause());
+            increaseNumberOfTasks(INITIAL_DELAY);
         }
     }
 
