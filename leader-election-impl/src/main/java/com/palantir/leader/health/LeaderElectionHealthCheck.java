@@ -16,36 +16,46 @@
 
 package com.palantir.leader.health;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeaderElectionServiceMetrics;
+import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
+    // todo sudiksha
     private static final Logger log = LoggerFactory.getLogger(LeaderElectionHealthCheck.class);
     private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.0095;
+    private static final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
 
-    private final ConcurrentMap<String, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
 
-
-    public LeaderElectionServiceMetrics registerClient(String namespace,
+    public static LeaderElectionServiceMetrics registerClient(Client namespace,
             LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
         return clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
     }
 
-    private Stream<Map.Entry<? extends String, ? extends LeaderElectionServiceMetrics>> getOffenders() {
+    private static double getLeaderElectionRateForAllClients() {
         return KeyedStream.stream(clientWiseMetrics)
-                .filter(val -> val.proposedLeadership().getFiveMinuteRate() <= MAX_ALLOWED_LAST_5_MINUTE_RATE).entries();
+                .values()
+                .mapToDouble(leaderElectionRateForClient ->
+                        leaderElectionRateForClient.proposedLeadership().getFiveMinuteRate())
+                .sum();
     }
 
-    public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
-        log.info("leader election rate is - ", getOffenders());
-        return LeaderElectionHealthStatus.HEALTHY;
+    public static LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
+        log.info("Blah | leader election rate is - ", getFormatted());
+        return getLeaderElectionRateForAllClients() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
+                ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
+    }
+
+    private static String getFormatted() {
+        StringBuilder sb = new StringBuilder("[");
+        KeyedStream.stream(clientWiseMetrics).forEach((k, v) -> sb.append("(").append(k).append(" : ").append(v).append(")\n"));
+        sb.append("]");
+        return sb.toString();
     }
 }

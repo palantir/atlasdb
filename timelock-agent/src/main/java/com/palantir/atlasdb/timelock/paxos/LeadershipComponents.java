@@ -64,6 +64,7 @@ public class LeadershipComponents {
         Closeable closeableInstance = (Closeable) instance;
         closer.register(closeableInstance);
 
+        context.leadershipMetrics().registerLeaderElectionHealthCheck();
         return context.leadershipMetrics().instrument(clazz, instance);
     }
 
@@ -89,7 +90,6 @@ public class LeadershipComponents {
 
     private LeadershipContext createNewLeadershipContext(Client client) {
         LeadershipContext uninstrumentedLeadershipContext = leadershipContextFactory.create(client);
-        uninstrumentedLeadershipContext.leadershipMetrics().eventRecorder();
         closer.register(uninstrumentedLeadershipContext.closeables());
         closer.register(() -> shutdownLeaderElectionService(uninstrumentedLeadershipContext.leaderElectionService()));
         return uninstrumentedLeadershipContext;

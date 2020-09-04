@@ -22,6 +22,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,8 +31,10 @@ import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
+import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
@@ -38,6 +42,7 @@ import com.palantir.tritium.metrics.registry.MetricName;
 
 @Value.Immutable
 public abstract class TimelockLeadershipMetrics implements Dependencies.LeadershipMetrics {
+    private static final Logger log = LoggerFactory.getLogger(LeaderElectionHealthCheck.class);
 
     @Value.Derived
     List<SafeArg<String>> namespaceAsLoggingArgs() {
@@ -58,6 +63,14 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
     @Value.Derived
     LeadershipObserver leadershipObserver() {
         return leadershipObserverFactory().create(proxyClient());
+    }
+
+    public void registerLeaderElectionHealthCheck() {
+        log.info("Blah2 | registering client -> ", proxyClient().value());
+        LeaderElectionHealthCheck
+            .registerClient(proxyClient(),
+                LeaderElectionServiceMetrics.of(
+                    metrics().clientScopedMetrics().metricRegistryForClient(proxyClient())));
     }
 
     public <T> T instrument(Class<T> clazz, T instance) {
