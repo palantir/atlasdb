@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep.queue.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -24,6 +25,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 
 @JsonDeserialize(as = ImmutableTargetedSweepRuntimeConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepRuntimeConfig.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Value.Immutable
 public abstract class TargetedSweepRuntimeConfig {
     /**
@@ -43,16 +45,6 @@ public abstract class TargetedSweepRuntimeConfig {
     @Value.Default
     public int shards() {
         return 8;
-    }
-
-    /**
-     * @deprecated This configuration is ignored, use {@link #enableAutoTuning()} or
-     * {@link #maximumPartitionsToBatchInSingleRead()} instead.
-     */
-    @Deprecated
-    @Value.Default
-    public boolean batchShardIterations() {
-        return false;
     }
 
     /**
@@ -88,9 +80,8 @@ public abstract class TargetedSweepRuntimeConfig {
     }
 
     /**
-     * If enabled, the {@link #batchShardIterations()} and {@link #maximumPartitionsToBatchInSingleRead()} parameters
-     * will be ignored. Instead, sweep will read across as many fine partitions as necessary to try assemble a single
-     * full batch of entries to sweep.
+     * If enabled, the {@link #maximumPartitionsToBatchInSingleRead()} parameter will be ignored. Instead, sweep will
+     * read across as many fine partitions as necessary to try assemble a single full batch of entries to sweep.
      *
      * In addition, the pause between iterations of sweep will automatically adjusted depending on previous
      * iterations using {@link #pauseMillis()} as a hint.

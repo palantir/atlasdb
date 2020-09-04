@@ -19,7 +19,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BATCH_CELLS_LOW_THRESHOLD;
-import static com.palantir.atlasdb.sweep.queue.SweepDelay.MAX_PAUSE_MILLIS;
+import static com.palantir.atlasdb.sweep.queue.SweepDelay.DEFAULT_MAX_PAUSE_MILLIS;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.MIN_PAUSE_MILLIS;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
@@ -41,17 +41,23 @@ public class SweepDelayTest {
     }
 
     @Test
-    public void configurationsOutOfBoundsAreSetAtBounds() {
+    public void configurationBelowMinimumIsSetToMinimum() {
         SweepDelay negativeDelay = new SweepDelay(-5L);
-        SweepDelay largeDelay = new SweepDelay(10_000_000L);
 
         assertThat(negativeDelay.getNextPause(SUCCESS)).isEqualTo(MIN_PAUSE_MILLIS);
-        assertThat(largeDelay.getNextPause(SUCCESS)).isEqualTo(MAX_PAUSE_MILLIS);
+    }
+
+    @Test
+    public void configurationAboveDefaultMaximumIsRespected() {
+        SweepDelay largeDelay = new SweepDelay(2 * DEFAULT_MAX_PAUSE_MILLIS);
+
+        assertThat(largeDelay.getNextPause(SUCCESS)).isEqualTo(2 * DEFAULT_MAX_PAUSE_MILLIS);
     }
 
     @Test
     public void unableToAcquireShardReturnsMaxPause() {
-        assertThat(delay.getNextPause(SweepIterationResults.unableToAcquireShard())).isEqualTo(MAX_PAUSE_MILLIS);
+        assertThat(delay.getNextPause(SweepIterationResults.unableToAcquireShard()))
+                .isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
     }
 
     @Test
@@ -61,7 +67,7 @@ public class SweepDelayTest {
 
     @Test
     public void otherErrorReturnsMaxPause() {
-        assertThat(delay.getNextPause(SweepIterationResults.otherError())).isEqualTo(MAX_PAUSE_MILLIS);
+        assertThat(delay.getNextPause(SweepIterationResults.otherError())).isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
     }
 
     @Test
@@ -81,31 +87,30 @@ public class SweepDelayTest {
 
     @Test
     public void consistentSmallBatchesGravitatesTowardsMaximumPause() {
-        for (int i = 0; i < 20; i++) {
-            delay.getNextPause(SUCCESS_TOO_FAST);
-        }
-        assertThat(delay.getNextPause(SUCCESS_TOO_FAST)).isGreaterThanOrEqualTo((long) (MAX_PAUSE_MILLIS * 0.95));
+        sweepTwentyIterationsWithResult(SUCCESS_TOO_FAST);
+        assertThat(delay.getNextPause(SUCCESS_TOO_FAST))
+                .isGreaterThanOrEqualTo((long) (DEFAULT_MAX_PAUSE_MILLIS * 0.95));
     }
 
     @Test
     public void consistentFullBatchesGravitatesTowardsMinimumPause() {
-        for (int i = 0; i < 20; i++) {
-            delay.getNextPause(SUCCESS_TOO_SLOW);
-        }
-        assertThat(delay.getNextPause(SUCCESS_TOO_FAST)).isGreaterThanOrEqualTo((long) (MIN_PAUSE_MILLIS * 1.05));
+        sweepTwentyIterationsWithResult(SUCCESS_TOO_SLOW);
+        assertThat(delay.getNextPause(SUCCESS_TOO_SLOW)).isGreaterThanOrEqualTo((long) (MIN_PAUSE_MILLIS * 1.05));
     }
 
     @Test
     public void consistentNormalBatchesAfterFullBatchesGravitatesTowardsInitialPause() {
-        for (int i = 0; i < 20; i++) {
-            delay.getNextPause(SUCCESS_TOO_SLOW);
-        }
-        for (int i = 0; i < 20; i++) {
-            delay.getNextPause(SUCCESS);
-        }
+        sweepTwentyIterationsWithResult(SUCCESS_TOO_SLOW);
+        sweepTwentyIterationsWithResult(SUCCESS);
         long nextPause = delay.getNextPause(SUCCESS);
         assertThat(nextPause).isGreaterThanOrEqualTo((long) (INITIAL_DELAY * 0.95));
         assertThat(nextPause).isLessThanOrEqualTo((long) (INITIAL_DELAY * 1.05));
 
+    }
+
+    private void sweepTwentyIterationsWithResult(SweepIterationResult result) {
+        for (int i = 0; i < 20; i++) {
+            delay.getNextPause(result);
+        }
     }
 }
