@@ -90,8 +90,9 @@ public abstract class TargetedSweepRuntimeConfig {
      * If enabled, the {@link #maximumPartitionsToBatchInSingleRead()} parameter will be ignored. Instead, sweep will
      * read across as many fine partitions as necessary to try assemble a single full batch of entries to sweep.
      *
-     * In addition, the pause between iterations of sweep will automatically adjusted depending on previous
-     * iterations using {@link #pauseMillis()} as a hint.
+     * Targeted sweep will increase or decrease the parallelism of its background tasks depending on results of previous
+     * iterations. In addition, the pause between iterations of sweep will be automatically adjusted using
+     * {@link #pauseMillis()} as a hint.
      */
     @Value.Default
     public boolean enableAutoTuning() {
