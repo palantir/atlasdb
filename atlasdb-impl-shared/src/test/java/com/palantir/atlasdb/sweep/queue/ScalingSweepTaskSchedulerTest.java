@@ -165,7 +165,7 @@ public class ScalingSweepTaskSchedulerTest {
         when(sweepIteration.call()).thenReturn(SweepIterationResults.unableToAcquireShard(), SUCCESS_MEDIUM);
 
         schedulerWithRealDelay.start(1);
-        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.DEFAULT_MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
         verify(sweepIteration, times(1 + 3)).call();
     }
 
@@ -201,7 +201,7 @@ public class ScalingSweepTaskSchedulerTest {
                 SUCCESS_MEDIUM);
 
         schedulerWithRealDelay.start(2);
-        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
+        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.DEFAULT_MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
         verify(sweepIteration, times((1 + 3) * 2)).call();
     }
 

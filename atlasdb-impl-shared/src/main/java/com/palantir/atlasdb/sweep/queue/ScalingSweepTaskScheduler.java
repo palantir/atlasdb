@@ -60,8 +60,8 @@ public class ScalingSweepTaskScheduler implements Closeable {
     /**
      * Creates a scheduler for targeted sweep background tasks that dynamically modifies the number of parallel tasks
      * based on results. The number of tasks is guaranteed to always be between 1 nad 128, and will only change by one
-     * in any {@link #COOL_DOWN} period. Furthermore, if conflicting results are observed, increasing the number of tasks
-     * is prioritised to make sure targeted sweep does not fall behind.
+     * in any {@link #COOL_DOWN} period. Furthermore, if conflicting results are observed, increasing the number of
+     * tasks is prioritised to make sure targeted sweep does not fall behind.
      *
      * If an iteration of the task is unable to acquire a shard to sweep or sweep is disabled, and there are multiple
      * running tasks, the number of tasks will be decreased regardless of {@link #COOL_DOWN} as this indicates the level
