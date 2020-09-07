@@ -132,15 +132,16 @@ public class ScalingSweepTaskScheduler implements Closeable {
         try {
             SweepIterationResult sweepResult = task.call();
             if (!scalingEnabled.getAsBoolean()) {
-                scheduleAfterDelay(delay.getInitialPause());
+//                scheduleAfterDelay(delay.getInitialPause());
+            } else {
+                long pause = delay.getNextPause(sweepResult);
+                SweepIterationResults.caseOf(sweepResult)
+                        .success(numThreads -> determineAction(numThreads, pause))
+                        .unableToAcquireShard(wrap(() -> decreaseNumberOfTasksOrRescheduleIfLast(pause)))
+                        .insufficientConsistency(wrap(() -> scheduleAfterDelay(pause)))
+                        .otherError(wrap(() -> scheduleAfterDelay(pause)))
+                        .disabled(wrap(() -> decreaseNumberOfTasksOrRescheduleIfLast(pause)));
             }
-            long pause = delay.getNextPause(sweepResult);
-            SweepIterationResults.caseOf(sweepResult)
-                    .success(numThreads -> determineAction(numThreads, pause))
-                    .unableToAcquireShard(wrap(() -> decreaseNumberOfTasksOrRescheduleIfLast(pause)))
-                    .insufficientConsistency(wrap(() -> scheduleAfterDelay(pause)))
-                    .otherError(wrap(() -> scheduleAfterDelay(pause)))
-                    .disabled(wrap(() -> decreaseNumberOfTasksOrRescheduleIfLast(pause)));
         } catch (Exception e) {
             scheduleAfterDelay(delay.getMaxPause());
         }

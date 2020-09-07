@@ -78,6 +78,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenScalingDisabledUsesInitialPause() throws Exception {
+        when(sweepIteration.call()).thenReturn(SUCCESS_MEDIUM);
         schedulerEnabled.set(false);
         scheduler.start(10);
 
