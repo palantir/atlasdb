@@ -32,7 +32,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
     private static final Duration COOL_DOWN = Duration.ofMinutes(5L);
     static final int BATCH_CELLS_LOW_THRESHOLD = 1_000;
     static final int BATCH_CELLS_HIGH_THRESHOLD = SweepQueueUtils.SWEEP_BATCH_SIZE * 2 / 3;
-    static final long INITIAL_DELAY = 1000L;
+    static final long INITIAL_DELAY = 1_000L;
 
     private final ScheduledExecutorService executorService;
     private final SweepDelay delay;
@@ -132,7 +132,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
         try {
             SweepIterationResult sweepResult = task.call();
             if (!scalingEnabled.getAsBoolean()) {
-//                scheduleAfterDelay(delay.getInitialPause());
+                scheduleAfterDelay(delay.getInitialPause());
             } else {
                 long pause = delay.getNextPause(sweepResult);
                 SweepIterationResults.caseOf(sweepResult)

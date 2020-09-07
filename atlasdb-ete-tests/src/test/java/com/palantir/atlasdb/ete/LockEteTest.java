@@ -22,7 +22,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.lock.LockResource;
 
-public class LockWithTimelockEteTest {
+public class LockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
     @Test

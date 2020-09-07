@@ -36,7 +36,7 @@ import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationE
         TimestampManagementEteTest.class,
         CoordinationEteTest.class,
         MultipleSchemaVersionsCoordinationEteTest.class,
-        LockWithoutTimelockEteTest.class
+        LockEteTest.class
         })
 public class MultiCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
