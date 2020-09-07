@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: If `enableAutoTuning` is enabled, targeted sweep will now also adjust
+    the number of parallel background tasks depending on results of sweep iterations.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4975
