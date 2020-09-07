@@ -142,7 +142,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
                     .otherError(wrap(() -> scheduleAfterDelay(pause)))
                     .disabled(wrap(() -> decreaseNumberOfTasksOrRescheduleIfLast(pause)));
         } catch (Exception e) {
-            scheduleAfterDelay(SweepDelay.MAX_PAUSE_MILLIS);
+            scheduleAfterDelay(delay.getMaxPause());
         }
     }
 
