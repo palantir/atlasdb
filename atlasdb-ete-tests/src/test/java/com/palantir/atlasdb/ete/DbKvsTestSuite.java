@@ -27,9 +27,9 @@ import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-//        TodoEteTest.class,
-//        TimestampManagementEteTest.class,
-//        CoordinationEteTest.class,
+        TodoEteTest.class,
+        TimestampManagementEteTest.class,
+        CoordinationEteTest.class,
         LockWithoutTimelockEteTest.class
         })
 public class DbKvsTestSuite extends EteSetup {

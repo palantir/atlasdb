@@ -35,7 +35,3 @@ atlasdb:
       keyStorePath: "var/security/keyStore.jks"
       keyStorePassword: "keystore"
       trustStorePath: "var/security/trustStore.jks"
-
-atlasDbRuntime:
-  targetedSweep:
-    enabled: false
