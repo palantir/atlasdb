@@ -375,7 +375,7 @@ public abstract class TransactionManagers {
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
 
         Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask =
-                getTimeLockFeedbackBackgroundTask(closeables, config(), runtime);
+                getTimeLockFeedbackBackgroundTask(metricsManager, closeables, config(), runtime);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -576,6 +576,7 @@ public abstract class TransactionManagers {
     }
 
     private Optional<TimeLockFeedbackBackgroundTask> getTimeLockFeedbackBackgroundTask(
+            MetricsManager metricsManager,
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
@@ -584,7 +585,7 @@ public abstract class TransactionManagers {
                     = getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
             return Optional.of(initializeCloseable(
                     () -> TimeLockFeedbackBackgroundTask.create(
-                            globalTaggedMetricRegistry(),
+                            metricsManager.getTaggedRegistry(),
                             AtlasDbVersion::readVersion,
                             serviceName(),
                             refreshableTimeLockClientFeedbackServices,
