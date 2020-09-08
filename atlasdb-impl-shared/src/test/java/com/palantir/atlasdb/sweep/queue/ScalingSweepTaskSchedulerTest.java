@@ -280,7 +280,7 @@ public class ScalingSweepTaskSchedulerTest {
             result.set(SUCCESS_MEDIUM);
             iterationCount.set(0);
             Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-            assertThat(iterationCount.get()).isBetween(50L, 200L);
+            assertThat(iterationCount.get()).isLessThanOrEqualTo(100L);
 
             result.set(SUCCESS_LARGE);
             Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
@@ -289,8 +289,10 @@ public class ScalingSweepTaskSchedulerTest {
             result.set(SUCCESS_MEDIUM);
             iterationCount.set(0);
             Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-            assertThat(iterationCount.get()).isBetween(50 * 128L, 200 * 128L);
+            assertThat(iterationCount.get()).isGreaterThan(100L);
         }
+
+        nondeterministicScheduler.close();
     }
 
     private ScalingSweepTaskScheduler createScheduler(Duration coolDown) {
