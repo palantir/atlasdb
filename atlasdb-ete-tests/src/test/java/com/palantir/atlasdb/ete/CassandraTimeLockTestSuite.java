@@ -35,7 +35,7 @@ import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationE
         TimestampManagementEteTest.class,
         CoordinationEteTest.class,
         MultipleSchemaVersionsCoordinationEteTest.class,
-        LockEteTest.class
+        LockWithTimelockEteTest.class
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
