@@ -79,15 +79,15 @@ public class LeadershipElectionCheckTest {
 
     @Test
     public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1,5,  Duration.ofSeconds(10));
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(10));
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
     }
 
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinuteAcrossClients() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1,5,  Duration.ofSeconds(60));
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_2,5,  Duration.ofSeconds(60));
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(60));
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 5,  Duration.ofSeconds(60));
 
         assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
@@ -101,8 +101,8 @@ public class LeadershipElectionCheckTest {
 
     @Test
     public void shouldBeUnhealthyOverallEvenIfIndividualClientsAreHealthy() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1,2,  Duration.ofSeconds(10));
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_2,3,  Duration.ofSeconds(10));
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 2,  Duration.ofSeconds(10));
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 3,  Duration.ofSeconds(10));
 
         assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthStatus())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
@@ -119,9 +119,10 @@ public class LeadershipElectionCheckTest {
         // The rate is initialized after first tick (5 second interval) of meter with number of marks / interval.
         // Marking before the first interval has passed sets the rate very high, which should not happen in practice.
         fakeTimeClock.advance(6, TimeUnit.SECONDS);
+        LeaderElectionServiceMetrics metrics = clientLeaderElectionServiceMetricsMap.get(client);
 
         IntStream.range(0, leaderElectionCount).forEach(idx -> {
-            clientLeaderElectionServiceMetricsMap.get(client).proposedLeadership().mark();
+            metrics.proposedLeadership().mark();
             fakeTimeClock.advance(timeIntervalInSeconds.getSeconds(), TimeUnit.SECONDS);
         });
     }
