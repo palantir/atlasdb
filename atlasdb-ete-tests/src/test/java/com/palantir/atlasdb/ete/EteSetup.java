@@ -154,6 +154,10 @@ public abstract class EteSetup {
         return createClientFor(clazz, Iterables.getFirst(availableClients, null), SERVER_PORT);
     }
 
+    public static <T> T createClientToSingleNodeWithExtendedTimeout(Class<T> clazz) {
+        return createClientWithExtendedTimeout(clazz, Iterables.getFirst(availableClients, null), SERVER_PORT);
+    }
+
     static <T> T createClientToAllNodes(Class<T> clazz) {
         return createClientToMultipleNodes(clazz, availableClients, SERVER_PORT);
     }
