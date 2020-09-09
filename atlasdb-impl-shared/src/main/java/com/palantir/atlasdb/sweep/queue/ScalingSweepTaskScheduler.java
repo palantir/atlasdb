@@ -27,34 +27,41 @@ import java.util.function.Supplier;
 
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.time.Clock;
 
 public class ScalingSweepTaskScheduler implements Closeable {
     private static final Duration COOL_DOWN = Duration.ofMinutes(5L);
     static final int BATCH_CELLS_LOW_THRESHOLD = 1_000;
     static final int BATCH_CELLS_HIGH_THRESHOLD = SweepQueueUtils.SWEEP_BATCH_SIZE * 2 / 3;
     static final long INITIAL_DELAY = 1_000L;
+    static final int MAX_PARALLELISM = 128;
 
     private final ScheduledExecutorService executorService;
+    private final Clock clock;
     private final SweepDelay delay;
     private final Duration coolDown;
     private final Callable<SweepIterationResult> singleIteration;
     private final BooleanSupplier scalingEnabled;
 
     private int runningTasks = 0;
-    private Instant lastModification = Instant.now();
-    private Instant lastIncreaseAttempted = Instant.now();
+    private Instant lastModification;
+    private Instant lastIncreaseAttempted;
 
     ScalingSweepTaskScheduler(
             ScheduledExecutorService executorService,
+            Clock clock,
             SweepDelay delay,
             Duration coolDown,
             Callable<SweepIterationResult> singleIteration,
             BooleanSupplier scalingEnabled) {
         this.executorService = executorService;
+        this.clock = clock;
         this.delay = delay;
         this.coolDown = coolDown;
         this.singleIteration = singleIteration;
         this.scalingEnabled = scalingEnabled;
+        lastModification = clock.instant();
+        lastIncreaseAttempted = clock.instant();
     }
 
     /**
@@ -76,7 +83,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
                 new NamedThreadFactory("Targeted Sweep", true));
 
         ScalingSweepTaskScheduler scheduler = new ScalingSweepTaskScheduler(
-                executorService, delay, COOL_DOWN, task, scalingEnabled);
+                executorService, System::currentTimeMillis, delay, COOL_DOWN, task, scalingEnabled);
         scheduler.start(initialThreads);
         return scheduler;
     }
@@ -88,7 +95,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
     }
 
     private synchronized void maybeIncreaseNumberOfTasks(long pause) {
-        lastIncreaseAttempted = Instant.now();
+        lastIncreaseAttempted = clock.instant();
         if (cooldownPassed(lastModification)) {
             increaseNumberOfTasks(pause);
         }
@@ -104,9 +111,9 @@ public class ScalingSweepTaskScheduler implements Closeable {
     }
 
     private synchronized void increaseNumberOfTasks(long pause) {
-        if (runningTasks < 128) {
+        if (runningTasks < MAX_PARALLELISM) {
             runningTasks++;
-            lastModification = Instant.now();
+            lastModification = clock.instant();
             scheduleAfterDelay(pause);
         }
     }
@@ -121,7 +128,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
 
     private synchronized void decreaseNumberOfTasks() {
         runningTasks--;
-        lastModification = Instant.now();
+        lastModification = clock.instant();
     }
 
     private void scheduleAfterDelay(long pause) {
@@ -136,7 +143,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
             } else {
                 long pause = delay.getNextPause(sweepResult);
                 SweepIterationResults.caseOf(sweepResult)
-                        .success(numThreads -> determineAction(numThreads, pause))
+                        .success(entriesSwept -> determineAction(entriesSwept, pause))
                         .unableToAcquireShard(wrap(() -> decreaseNumberOfTasksOrRescheduleIfLast(pause)))
                         .insufficientConsistency(wrap(() -> scheduleAfterDelay(pause)))
                         .otherError(wrap(() -> scheduleAfterDelay(pause)))
@@ -147,10 +154,10 @@ public class ScalingSweepTaskScheduler implements Closeable {
         }
     }
 
-    private Void determineAction(long numThreads, long pause) {
-        if (numThreads <= BATCH_CELLS_LOW_THRESHOLD) {
+    private Void determineAction(long entriesSwept, long pause) {
+        if (entriesSwept <= BATCH_CELLS_LOW_THRESHOLD) {
             maybeDecreaseNumberOfTasks(pause);
-        } else if (numThreads >= BATCH_CELLS_HIGH_THRESHOLD) {
+        } else if (entriesSwept >= BATCH_CELLS_HIGH_THRESHOLD) {
             maybeIncreaseNumberOfTasks(pause);
         } else {
             scheduleAfterDelay(pause);
@@ -159,7 +166,7 @@ public class ScalingSweepTaskScheduler implements Closeable {
     }
 
     private boolean cooldownPassed(Instant lastOccurrence) {
-        return Duration.between(lastOccurrence, Instant.now()).compareTo(coolDown) >= 0;
+        return Duration.between(lastOccurrence, clock.instant()).compareTo(coolDown) >= 0;
     }
 
     private static <R> Supplier<R> wrap(Runnable runnable) {

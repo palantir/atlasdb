@@ -15,6 +15,8 @@
  */
 package com.palantir.common.time;
 
+import java.time.Instant;
+
 public interface Clock {
     /**
      * @return The time in milliseconds. This is conventionally interpreted as the number of
@@ -24,4 +26,8 @@ public interface Clock {
      *         System.currentTimeMillis().
      */
     public long getTimeMillis();
+
+    default Instant instant() {
+        return Instant.ofEpochMilli(getTimeMillis());
+    }
 }

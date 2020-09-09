@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL_DELAY;
+import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.MAX_PARALLELISM;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.time.Duration;
@@ -55,11 +56,15 @@ public class ScalingSweepTaskSchedulerTest {
     private static final long DELAY = 1L;
     private static final long INITIAL_PAUSE = 5L;
 
+    private final AtomicLong clockMillis = new AtomicLong(0);
     private final DeterministicScheduler deterministicScheduler = new DeterministicScheduler();
     private final SweepDelay delay = mock(SweepDelay.class);
     private final Callable<SweepIterationResult> sweepIteration = mock(Callable.class);
     private final AtomicBoolean schedulerEnabled = new AtomicBoolean(true);
-    private final ScalingSweepTaskScheduler scheduler = createScheduler(Duration.ZERO);
+    private final ScalingSweepTaskScheduler scheduler = createScheduler(delay);
+    private final ScalingSweepTaskScheduler schedulerWithDelay = createScheduler(new SweepDelay(DELAY));
+
+    private boolean firstIteration = true;
 
     @Before
     public void setup() {
@@ -68,190 +73,291 @@ public class ScalingSweepTaskSchedulerTest {
     }
 
     @Test
-    public void whenExpectedNumberOfEntriesIsSweptKeepReschedulingAfterDelay() throws Exception {
+    public void withExpectedEntriesKeepReschedulingAfterDelay() throws Exception {
         when(sweepIteration.call()).thenReturn(SUCCESS_MEDIUM);
         scheduler.start(2);
 
-        deterministicScheduler.tick(INITIAL_DELAY + 8 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times((1 + 8) * 2)).call();
+        runSweepIterations(5);
+        tickClock();
+        runSweepIterations(5);
+        verify(sweepIteration, times(10 * 2)).call();
     }
 
     @Test
-    public void whenScalingDisabledUsesInitialPause() throws Exception {
+    public void whenScalingDisabledUseInitialPause() throws Exception {
         when(sweepIteration.call()).thenReturn(SUCCESS_MEDIUM);
+        scheduler.start(2);
+
+        runSweepIterations(5);
+
         schedulerEnabled.set(false);
-        scheduler.start(10);
-
-        deterministicScheduler.tick(INITIAL_DELAY + 7 * INITIAL_PAUSE, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(8 * 10)).call();
+        runSweepIterations(5, INITIAL_PAUSE);
+        verify(sweepIteration, times(20)).call();
     }
 
     @Test
-    public void whenManyEntriesAreSweptNewTaskSpawns() throws Exception {
-        when(sweepIteration.call()).thenReturn(
-                SUCCESS_LARGE,
-                SUCCESS_MEDIUM, SUCCESS_MEDIUM,
-                SUCCESS_LARGE, SUCCESS_MEDIUM);
-        scheduler.start(1);
-
-        deterministicScheduler.tick(INITIAL_DELAY + 5 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(1 + 2 + 2 + 3 + 3 + 3)).call();
-    }
-
-    @Test
-    public void coolDownProtectsAgainstSpawningNewTasks() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithCoolDown = createScheduler(Duration.ofDays(1));
+    public void noTasksAreSpawnedBeforeCoolDownPasses() throws Exception {
         when(sweepIteration.call()).thenReturn(SUCCESS_LARGE);
-        schedulerWithCoolDown.start(1);
 
-        deterministicScheduler.tick(INITIAL_DELAY + 5 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(1 + 5)).call();
+        scheduler.start(1);
+        runSweepIterations(10);
+        verify(sweepIteration, times(10)).call();
     }
 
     @Test
-    public void whenFewEntriesAreSweptTasksAreReduced() throws Exception {
-        when(sweepIteration.call()).thenReturn(SUCCESS_SMALL, SUCCESS_MEDIUM);
+    public void withManyEntriesSpawnOneTaskEachTimeCoolDownPasses() throws Exception {
+        when(sweepIteration.call()).thenReturn(SUCCESS_LARGE);
+        scheduler.start(1);
+
+        tickClock();
+        runSweepIterations(1 + 4);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(1 + 4);
+
+        verify(sweepIteration, times(1 + 10 * 2 + 4 * 3)).call();
+    }
+
+    @Test
+    public void doNotExceedMaximumParallelism() throws Exception {
+        when(sweepIteration.call()).thenReturn(SUCCESS_LARGE);
+        scheduler.start(ScalingSweepTaskScheduler.MAX_PARALLELISM);
+
+        tickClock();
+        runSweepIterations(5);
+        tickClock();
+        runSweepIterations(5);
+
+        verify(sweepIteration, times(10 * MAX_PARALLELISM)).call();
+    }
+
+    @Test
+    public void tasksNotReducedBeforeCoolDownPasses() throws Exception {
+        when(sweepIteration.call()).thenReturn(SUCCESS_SMALL);
+
+        scheduler.start(10);
+        runSweepIterations(10);
+        verify(sweepIteration, times(10 * 10)).call();
+    }
+
+    @Test
+    public void withFewEntriesReduceByOneTaskEachTimeCoolDownPasses() throws Exception {
+        when(sweepIteration.call()).thenReturn(SUCCESS_SMALL);
         scheduler.start(10);
 
-        deterministicScheduler.tick(INITIAL_DELAY + 5 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(10 + 5 * 9)).call();
+        tickClock();
+        runSweepIterations(1 + 4);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(1 + 4);
+
+        verify(sweepIteration, times(10 + 10 * 9 + 4 * 8)).call();
     }
 
     @Test
-    public void whenFewEntriesDoNotReduceToZeroTasks() throws Exception {
+    public void doNotReduceToZeroTasks() throws Exception {
         when(sweepIteration.call()).thenReturn(SUCCESS_SMALL);
         scheduler.start(1);
-        deterministicScheduler.tick(INITIAL_DELAY + 5 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(1 + 5)).call();
+
+        tickClock();
+        runSweepIterations(5);
+        tickClock();
+        runSweepIterations(5);
+        verify(sweepIteration, times(10)).call();
     }
 
     @Test
-    public void coolDownProtectsAgainstReducingTasks() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithCoolDown = createScheduler(Duration.ofDays(1));
-        when(sweepIteration.call()).thenReturn(SUCCESS_SMALL);
-
-        schedulerWithCoolDown.start(2);
-
-        deterministicScheduler.tick(INITIAL_DELAY + 5 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(2 + 5 * 2)).call();
-    }
-
-    @Test
-    public void attemptToIncreaseNumberOfThreadsPreventsReduction() throws Exception {
-        Duration coolDown = Duration.ofSeconds(1);
-        ScalingSweepTaskScheduler schedulerWithCoolDown = createScheduler(coolDown);
+    public void increaseCanPreventReduction() throws Exception {
         when(sweepIteration.call()).thenReturn(
-                SUCCESS_LARGE,
-                SUCCESS_LARGE,
+                SUCCESS_LARGE, SUCCESS_LARGE,
                 SUCCESS_SMALL);
-        schedulerWithCoolDown.start(2);
 
-        Uninterruptibles.sleepUninterruptibly(coolDown.toMillis() / 2 + 1, TimeUnit.MILLISECONDS);
-        deterministicScheduler.tick(INITIAL_DELAY, TimeUnit.MILLISECONDS);
+        scheduler.start(2);
+        tickClock();
+        runSweepIterations(1 + 4);
 
-        Uninterruptibles.sleepUninterruptibly(coolDown.toMillis() / 2 + 1, TimeUnit.MILLISECONDS);
-        // these will not reduce the number of threads due to the attempt to increase in previous iterations
-        deterministicScheduler.tick(2 * DELAY, TimeUnit.MILLISECONDS);
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
 
-        Uninterruptibles.sleepUninterruptibly(coolDown.toMillis() / 2 + 1, TimeUnit.MILLISECONDS);
-        // the first iteration that gets executed will not reschedule
-        deterministicScheduler.tick(2 * DELAY, TimeUnit.MILLISECONDS);
+        tickClockForHalfCoolDown();
+        runSweepIterations(1 + 4);
 
-        verify(sweepIteration, times(2 + 2 * 2 + 2 + 1)).call();
+        verify(sweepIteration, times(1 * 2 + 10 * 3 + 4 * 2)).call();
+    }
+
+    @Test
+    public void attemptedIncreaseCanPreventReduction() throws Exception {
+        when(sweepIteration.call()).thenReturn(
+                SUCCESS_LARGE, SUCCESS_LARGE,
+                SUCCESS_SMALL);
+
+        scheduler.start(2);
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(1 + 4);
+
+        verify(sweepIteration, times(11 * 2 + 4 * 1)).call();
+    }
+
+    @Test
+    public void reductionCanPreventIncrease() throws Exception {
+        when(sweepIteration.call()).thenReturn(
+                SUCCESS_SMALL, SUCCESS_SMALL,
+                SUCCESS_LARGE);
+
+        scheduler.start(2);
+        tickClock();
+        runSweepIterations(1 + 4);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(1 + 4);
+
+        verify(sweepIteration, times(1 * 2 + 10 * 1 + 4 * 2)).call();
+    }
+
+    @Test
+    public void attemptedReductionDoesNotPreventIncrease() throws Exception {
+        when(sweepIteration.call()).thenReturn(
+                SUCCESS_SMALL, SUCCESS_SMALL,
+                SUCCESS_LARGE);
+
+        scheduler.start(2);
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(1 + 4);
+
+        tickClockForHalfCoolDown();
+        runSweepIterations(5);
+
+        verify(sweepIteration, times(6 * 2 + 9 * 3)).call();
+    }
+
+    @Test
+    public void whenUnableToAcquireShardReduceTasksIgnoringCoolDown() throws Exception {
+        when(sweepIteration.call()).thenReturn(
+                SUCCESS_SMALL,
+                SUCCESS_MEDIUM,
+                SUCCESS_LARGE,
+                SweepIterationResults.unableToAcquireShard());
+
+        scheduler.start(3 + 7);
+        runSweepIterations(1 + 1);
+        verify(sweepIteration, times(10 + 3)).call();
     }
 
     @Test
     public void whenUnableToAcquireShardOnLastTaskRescheduleAfterMaxPause() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(new SweepDelay(1L), Duration.ZERO);
-        when(sweepIteration.call()).thenReturn(SweepIterationResults.unableToAcquireShard(), SUCCESS_MEDIUM);
+        when(sweepIteration.call()).thenReturn(SweepIterationResults.unableToAcquireShard());
 
-        schedulerWithRealDelay.start(1);
-        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.DEFAULT_MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(1 + 3)).call();
+        schedulerWithDelay.start(10);
+        runSweepIterations(1 + 9, SweepDelay.DEFAULT_MAX_PAUSE_MILLIS);
+        verify(sweepIteration, times(10 + 9 * 1)).call();
     }
 
     @Test
     public void whenInsufficientConsistencyRescheduleAfterBackoff() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(new SweepDelay(1L), Duration.ZERO);
         when(sweepIteration.call()).thenReturn(
                 SweepIterationResults.insufficientConsistency(),
                 SweepIterationResults.insufficientConsistency(),
                 SUCCESS_MEDIUM);
 
-        schedulerWithRealDelay.start(2);
-        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.BACKOFF + 2, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times((1 + 3) * 2)).call();
+        schedulerWithDelay.start(2);
+        runSweepIterations(2, SweepDelay.BACKOFF);
+        runSweepIterations(5, DELAY);
+
+        verify(sweepIteration, times(7 * 2)).call();
     }
 
     @Test
-    public void whenDisabledOnLastTaskRescheduleAfterBackoff() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(new SweepDelay(1L), Duration.ZERO);
-        when(sweepIteration.call()).thenReturn(SweepIterationResults.disabled(), SUCCESS_MEDIUM);
-
-        schedulerWithRealDelay.start(1);
-        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.BACKOFF + 2, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(1 + 3)).call();
-    }
-
-    @Test
-    public void whenOtherErrorRescheduleAfterMaxPause() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(new SweepDelay(1L), Duration.ZERO);
-        when(sweepIteration.call()).thenReturn(
-                SweepIterationResults.otherError(),
-                SweepIterationResults.otherError(),
-                SUCCESS_MEDIUM);
-
-        schedulerWithRealDelay.start(2);
-        deterministicScheduler.tick(INITIAL_DELAY + SweepDelay.DEFAULT_MAX_PAUSE_MILLIS + 2, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times((1 + 3) * 2)).call();
-    }
-
-    @Test
-    public void whenUnableToAcquireShardReduceNumberOfTasksIgnoringCoolDown() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithCoolDown = createScheduler(Duration.ofDays(1));
-        when(sweepIteration.call()).thenReturn(
-                SUCCESS_SMALL,
-                SUCCESS_SMALL,
-                SUCCESS_SMALL,
-                SweepIterationResults.unableToAcquireShard());
-
-        schedulerWithCoolDown.start(3);
-        deterministicScheduler.tick(INITIAL_DELAY + 2 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(3 + 3 + 1)).call();
-    }
-
-    @Test
-    public void whenDisabledReduceNumberOfTasksIgnoringCoolDown() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithCoolDown = createScheduler(Duration.ofDays(1));
+    public void whenDisabledReduceTasksIgnoringCoolDown() throws Exception {
         when(sweepIteration.call()).thenReturn(
                 SUCCESS_SMALL,
                 SUCCESS_SMALL,
                 SUCCESS_SMALL,
                 SweepIterationResults.disabled());
 
-        schedulerWithCoolDown.start(3);
-        deterministicScheduler.tick(INITIAL_DELAY + 2 * DELAY, TimeUnit.MILLISECONDS);
-        verify(sweepIteration, times(3 + 3 + 1)).call();
+        scheduler.start(3 + 7);
+        runSweepIterations(1 + 1);
+        verify(sweepIteration, times(10 + 3)).call();
+    }
+
+    @Test
+    public void whenDisabledOnLastTaskRescheduleAfterBackoff() throws Exception {
+        when(sweepIteration.call()).thenReturn(SweepIterationResults.disabled());
+
+        schedulerWithDelay.start(10);
+        runSweepIterations(1 + 9, SweepDelay.BACKOFF);
+        verify(sweepIteration, times(10 + 9 * 1)).call();
+    }
+
+    @Test
+    public void whenOtherErrorRescheduleAfterMaxPause() throws Exception {
+        when(sweepIteration.call()).thenReturn(
+                SweepIterationResults.otherError(),
+                SweepIterationResults.otherError(),
+                SUCCESS_MEDIUM);
+
+        schedulerWithDelay.start(2);
+        runSweepIterations(2, SweepDelay.DEFAULT_MAX_PAUSE_MILLIS);
+        runSweepIterations(5, DELAY);
+
+        verify(sweepIteration, times(7 * 2)).call();
     }
 
     @Test
     public void whenVeryFewEntriesIncreasePause() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(new SweepDelay(100L), Duration.ofDays(1));
+        SweepDelay sweepDelay = new SweepDelay(100L);
+        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_TINY);
 
         schedulerWithRealDelay.start(3);
-        deterministicScheduler.tick(INITIAL_DELAY + 100L * 10, TimeUnit.MILLISECONDS);
+        runSweepIterations(10, 100L);
         verify(sweepIteration, atMost(3 * 10 - 1)).call();
+        assertThat(sweepDelay.getNextPause(SUCCESS_MEDIUM)).isGreaterThan(100L);
     }
 
     @Test
     public void whenVeryManyEntriesDecreasePause() throws Exception {
-        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(new SweepDelay(100L), Duration.ofDays(1));
+        SweepDelay sweepDelay = new SweepDelay(100L);
+        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_HUGE);
 
         schedulerWithRealDelay.start(3);
-        deterministicScheduler.tick(INITIAL_DELAY + 100L * 9, TimeUnit.MILLISECONDS);
+        runSweepIterations(10, 100L);
         verify(sweepIteration, atLeast(3 * 10 + 1)).call();
+        assertThat(sweepDelay.getNextPause(SUCCESS_MEDIUM)).isLessThan(100L);
+    }
+
+    @Test
+    public void exceptionalIterationsDoNotAffectPause() throws Exception {
+        SweepDelay sweepDelay = new SweepDelay(100L);
+        ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
+        when(sweepIteration.call()).thenReturn(
+                SweepIterationResults.otherError(),
+                SweepIterationResults.unableToAcquireShard(),
+                SweepIterationResults.otherError(),
+                SweepIterationResults.insufficientConsistency());
+
+        schedulerWithRealDelay.start(4);
+        runSweepIterations(1);
+        verify(sweepIteration, times(4)).call();
+        assertThat(sweepDelay.getNextPause(SUCCESS_MEDIUM)).isEqualTo(100L);
     }
 
     @Test
@@ -264,6 +370,7 @@ public class ScalingSweepTaskSchedulerTest {
         };
         ScalingSweepTaskScheduler nondeterministicScheduler = new ScalingSweepTaskScheduler(
                 PTExecutors.newScheduledThreadPool(1),
+                System::currentTimeMillis,
                 delay,
                 Duration.ZERO,
                 oneIteration,
@@ -295,16 +402,32 @@ public class ScalingSweepTaskSchedulerTest {
         nondeterministicScheduler.close();
     }
 
-    private ScalingSweepTaskScheduler createScheduler(Duration coolDown) {
-        return createScheduler(delay, coolDown);
-    }
-
-    private ScalingSweepTaskScheduler createScheduler(SweepDelay sweepDelay, Duration coolDown) {
+    private ScalingSweepTaskScheduler createScheduler(SweepDelay sweepDelay) {
         return new ScalingSweepTaskScheduler(
                 deterministicScheduler,
+                clockMillis::get,
                 sweepDelay,
-                coolDown,
+                Duration.ofMillis(2L),
                 sweepIteration,
                 schedulerEnabled::get);
+    }
+
+    private void runSweepIterations(int iterations) {
+        runSweepIterations(iterations, DELAY);
+    }
+
+    private void runSweepIterations(int iterations, long iterationDelay) {
+        long duration = (iterations - 1) * iterationDelay + (firstIteration ? INITIAL_DELAY : iterationDelay);
+        firstIteration = false;
+        deterministicScheduler.tick(duration, TimeUnit.MILLISECONDS);
+    }
+
+    private void tickClockForHalfCoolDown() {
+        clockMillis.incrementAndGet();
+    }
+
+    private void tickClock() {
+        clockMillis.incrementAndGet();
+        clockMillis.incrementAndGet();
     }
 }
