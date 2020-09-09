@@ -57,8 +57,6 @@ import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.leader.LeaderElectionServiceMetrics;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
@@ -91,8 +89,6 @@ public class TimeLockAgent {
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
-    private final LeaderElectionHealthCheck leaderElectionHealthCheck;
-
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
@@ -185,8 +181,6 @@ public class TimeLockAgent {
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler(metricsManager, () -> runtime.get().adjudication().enabled());
-        this.leaderElectionHealthCheck = new LeaderElectionHealthCheck(
-                LeaderElectionServiceMetrics.of(metricsManager.getTaggedRegistry()));
     }
 
     private TimestampCreator getTimestampCreator() {
@@ -339,6 +333,7 @@ public class TimeLockAgent {
                 .build();
 
         Client typedClient = Client.of(client);
+
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
                 .createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
@@ -350,7 +345,7 @@ public class TimeLockAgent {
     }
 
     public LeaderElectionHealthStatus timeLockLeadershipHealthCheck() {
-        return leaderElectionHealthCheck.leaderElectionRateHealthStatus();
+        return paxosResources.leadershipContextFactory().leaderElectionHealthCheck().leaderElectionRateHealthStatus();
     }
 
     public void shutdown() {

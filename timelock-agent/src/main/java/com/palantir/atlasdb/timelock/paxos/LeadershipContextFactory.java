@@ -26,6 +26,7 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
@@ -99,11 +100,17 @@ public abstract class LeadershipContextFactory implements
         return new LeaderElectionServiceFactory();
     }
 
+    @Value.Derived
+    public LeaderElectionHealthCheck leaderElectionHealthCheck() {
+        return new LeaderElectionHealthCheck();
+    }
+
     @Override
     public LeadershipContext create(Client client) {
         ClientAwareComponents clientAwareComponents = ImmutableClientAwareComponents.builder()
                 .from(this)
                 .proxyClient(client)
+                .leaderElectionHealthCheck(leaderElectionHealthCheck())
                 .build();
 
         BatchingLeaderElectionService leaderElectionService =

@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: The leader election rate health check now depends on metrics registered
+    per client. Earlier, the health check was analyzing incorrect metrics.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4974

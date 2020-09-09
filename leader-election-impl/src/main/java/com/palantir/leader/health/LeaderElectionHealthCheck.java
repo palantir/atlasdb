@@ -16,19 +16,30 @@
 
 package com.palantir.leader.health;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import com.palantir.leader.LeaderElectionServiceMetrics;
+import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
-    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.016;
+    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
+    private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
 
-    private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
+    public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
+        clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
+    }
 
-    public LeaderElectionHealthCheck(LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
-        this.leaderElectionServiceMetrics = leaderElectionServiceMetrics;
+    private double getLeaderElectionRateForAllClients() {
+        return clientWiseMetrics.values().stream().mapToDouble(this::fiveMinuteRate).sum();
+    }
+
+    private double fiveMinuteRate(LeaderElectionServiceMetrics leaderElectionRateForClient) {
+        return leaderElectionRateForClient.proposedLeadership().getFiveMinuteRate();
     }
 
     public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
-        return leaderElectionServiceMetrics.proposedLeadership().getFiveMinuteRate() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
+        return getLeaderElectionRateForAllClients() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
                 ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
     }
 }
