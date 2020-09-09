@@ -31,6 +31,15 @@ public final class TestProxyUtils {
                     .shouldRetry(true)
                     .build();
 
+    public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_EXTENDED_TIMEOUT
+            = AuxiliaryRemotingParameters.builder()
+            .shouldLimitPayload(false)
+            .userAgent(UserAgent.of(UserAgent.Agent.of("bla", "0.1.2")))
+            .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
+            .shouldUseExtendedTimeout(false)
+            .shouldRetry(true)
+            .build();
+
     public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_NO_RETRYING
             = AuxiliaryRemotingParameters.builder()
             .from(AUXILIARY_REMOTING_PARAMETERS_RETRYING)
