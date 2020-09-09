@@ -66,7 +66,8 @@ public abstract class PaxosResources {
     public LeadershipComponents leadershipComponents() {
         return new LeadershipComponents(
                 leadershipContextFactory(),
-                leadershipContextFactory().healthCheckPingers());
+                leadershipContextFactory().healthCheckPingers(),
+                leadershipContextFactory().corruptionRemotePingers());
     }
 
     private static BatchPaxosResources batchResourcesFromComponents(LocalPaxosComponents components) {

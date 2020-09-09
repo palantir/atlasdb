@@ -60,6 +60,7 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
+import com.palantir.leader.health.TimeLockCorruptionFilter;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
@@ -128,6 +129,7 @@ public class TimeLockAgent {
                 userAgent,
                 installationContext.sqliteDataSource());
         agent.createAndRegisterResources();
+        agent.registerCorruptionFilter();
         return agent;
     }
 
@@ -235,6 +237,13 @@ public class TimeLockAgent {
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
         }
+    }
+
+    private void registerCorruptionFilter() {
+        // todo sudiksha
+        TimeLockCorruptionFilter corruptionFilter = new TimeLockCorruptionFilter(
+                paxosResources.leadershipComponents().timeLockCorruptionHealthCheck());
+        registrar.accept(corruptionFilter);
     }
 
     private void registerClientFeedbackService() {

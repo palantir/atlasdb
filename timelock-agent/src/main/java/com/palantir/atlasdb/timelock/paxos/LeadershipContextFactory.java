@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,11 +25,10 @@ import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
+import com.palantir.corruption.TimeLockCorruptionPinger;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.LocalCorruptionDetector;
-import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
@@ -98,6 +98,11 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Derived
+    List<TimeLockCorruptionPinger> corruptionRemotePingers() {
+        return remoteClients().getRemoteCorruptionPingers().stream().map(x -> x.service()).collect(Collectors.toList());
+    }
+
+    @Value.Derived
     LeaderElectionServiceFactory leaderElectionServiceFactory() {
         return new LeaderElectionServiceFactory();
     }
@@ -117,13 +122,7 @@ public abstract class LeadershipContextFactory implements
                 .leaderElectionService(leaderElectionService)
                 .addCloseables(leaderElectionService)
                 .addAllCloseables(leaderPingerFactory().closeables())
-                .corruptionCheck(getCorruptionCheck())
                 .build();
-    }
-
-    private TimeLockCorruptionHealthCheck getCorruptionCheck() {
-        return new TimeLockCorruptionHealthCheck(new LocalCorruptionDetector(),
-                remoteClients().getRemoteCorruptionPingers().stream().map(x -> x.service()).collect(Collectors.toList()));
     }
 
     @Value.Derived

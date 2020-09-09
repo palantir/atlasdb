@@ -31,11 +31,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
+import com.palantir.corruption.TimeLockCorruptionPinger;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.health.LocalCorruptionDetector;
 import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
-import com.palantir.leader.proxy.TimeLockCorruptionDetectingProxy;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
@@ -50,20 +51,20 @@ public class LeadershipComponents {
 
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
-    private final LocalCorruptionDetector localCorruptionDetector;
+    private final List<TimeLockCorruptionPinger> corruptionPingers;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
-            LocalAndRemotes<HealthCheckPinger> healthCheckPingers) {
+            LocalAndRemotes<HealthCheckPinger> healthCheckPingers,
+            List<TimeLockCorruptionPinger> corruptionPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
-        this.localCorruptionDetector = new LocalCorruptionDetector();
+        this.corruptionPingers = corruptionPingers;
     }
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
         LeadershipContext context = getOrCreateNewLeadershipContext(client);
-        T instance = TimeLockCorruptionDetectingProxy.newProxyInstance(
-                clazz, delegateSupplier, context.leaderElectionService(), context.corruptionCheck());
+        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leaderElectionService());
 
         // this is acceptable since the proxy returned implements Closeable and needs to be closed
         Closeable closeableInstance = (Closeable) instance;
@@ -82,6 +83,10 @@ public class LeadershipComponents {
 
     public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
         return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
+    }
+
+    public TimeLockCorruptionHealthCheck timeLockCorruptionHealthCheck() {
+        return new TimeLockCorruptionHealthCheck(new LocalCorruptionDetector(), corruptionPingers);
     }
 
     public boolean requestHostileTakeover(Client client) {
@@ -154,6 +159,5 @@ public class LeadershipComponents {
         abstract LeaderElectionService leaderElectionService();
         abstract TimelockLeadershipMetrics leadershipMetrics();
         abstract List<Closeable> closeables();
-        abstract TimeLockCorruptionHealthCheck corruptionCheck();
     }
 }

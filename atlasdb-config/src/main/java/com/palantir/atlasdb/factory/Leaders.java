@@ -211,7 +211,7 @@ public final class Leaders {
                 .collect(Collectors.toList());
 
         //todo Sudiksha
-        List<TimeLockCorruptionPinger> remoteCorruptionPingers = remotePaxosServerSpec.remoteAcceptorUris().stream()
+        List<TimeLockCorruptionPinger> remoteCorruptionPingers = remotePaxosServerSpec.remoteLeaderUris().stream()
                 .map(uri -> AtlasDbHttpClients.createProxy(
                         trustContext,
                         uri,
