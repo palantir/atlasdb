@@ -62,9 +62,9 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
 
     public void registerLeaderElectionHealthCheck() {
         leaderElectionHealthCheck()
-            .registerClient(proxyClient(),
-                LeaderElectionServiceMetrics.of(
-                    metrics().clientScopedMetrics().metricRegistryForClient(proxyClient())));
+                .registerClient(proxyClient(),
+                        LeaderElectionServiceMetrics.of(
+                                metrics().clientScopedMetrics().metricRegistryForClient(proxyClient())));
     }
 
     public <T> T instrument(Class<T> clazz, T instance) {
