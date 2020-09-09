@@ -24,12 +24,9 @@ import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
     private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
-    private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics
-            = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
 
-
-    public void registerClient(Client namespace,
-            LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
+    public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
         clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
     }
 
