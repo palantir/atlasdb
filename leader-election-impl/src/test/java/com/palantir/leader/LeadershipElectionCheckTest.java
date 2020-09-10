@@ -73,14 +73,14 @@ public class LeadershipElectionCheckTest {
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinute() {
         markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5, Duration.ofSeconds(60));
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
     }
 
     @Test
     public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
         markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(10));
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
     }
 
@@ -89,13 +89,13 @@ public class LeadershipElectionCheckTest {
         markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(60));
         markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 5,  Duration.ofSeconds(60));
 
-        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
 
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
     }
 
@@ -104,13 +104,13 @@ public class LeadershipElectionCheckTest {
         markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 2,  Duration.ofSeconds(10));
         markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 3,  Duration.ofSeconds(10));
 
-        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
 
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthStatus())
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
     }
 

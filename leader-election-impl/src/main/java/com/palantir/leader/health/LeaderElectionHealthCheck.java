@@ -38,8 +38,16 @@ public class LeaderElectionHealthCheck {
         return leaderElectionRateForClient.proposedLeadership().getFiveMinuteRate();
     }
 
-    public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
-        return getLeaderElectionRateForAllClients() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
-                ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
+    public LeaderElectionHealthReport leaderElectionRateHealthReport() {
+        double leaderElectionRateForAllClients = getLeaderElectionRateForAllClients();
+        return leaderElectionRateForAllClients <= MAX_ALLOWED_LAST_5_MINUTE_RATE
+                ? LeaderElectionHealthReport.builder()
+                .status(LeaderElectionHealthStatus.HEALTHY)
+                .leaderElectionRate(leaderElectionRateForAllClients)
+                .build()
+                : LeaderElectionHealthReport.builder()
+                        .status(LeaderElectionHealthStatus.UNHEALTHY)
+                        .leaderElectionRate(leaderElectionRateForAllClients)
+                        .build();
     }
 }
