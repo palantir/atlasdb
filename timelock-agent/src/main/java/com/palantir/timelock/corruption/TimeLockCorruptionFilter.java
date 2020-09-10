@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.health;
+package com.palantir.timelock.corruption;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
 
+import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionHealthCheck;
+
 @PreMatching
 public class TimeLockCorruptionFilter implements ContainerRequestFilter {
-    TimeLockCorruptionHealthCheck healthCheck;
+    private TimeLockCorruptionHealthCheck healthCheck;
 
     public TimeLockCorruptionFilter(TimeLockCorruptionHealthCheck healthCheck) {
         this.healthCheck = healthCheck;

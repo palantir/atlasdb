@@ -47,7 +47,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.corruption.TimeLockCorruptionPinger;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
@@ -55,8 +54,6 @@ import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.LocalCorruptionDetector;
-import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
@@ -211,21 +208,22 @@ public final class Leaders {
                 .collect(Collectors.toList());
 
         //todo Sudiksha
-        List<TimeLockCorruptionPinger> remoteCorruptionPingers = remotePaxosServerSpec.remoteLeaderUris().stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(
-                        trustContext,
-                        uri,
-                        TimeLockCorruptionPinger.class,
-                        AuxiliaryRemotingParameters.builder()
-                                .userAgent(userAgent)
-                                .shouldLimitPayload(false)
-                                .shouldRetry(true)
-                                .shouldUseExtendedTimeout(false)
-                                .remotingClientConfig(remotingClientConfig)
-                                .build()))
-                .collect(Collectors.toList());
-        TimeLockCorruptionHealthCheck check = new TimeLockCorruptionHealthCheck(new LocalCorruptionDetector(),
-                remoteCorruptionPingers);
+//        List<TimeLockCorruptionPinger> remoteCorruptionPingers = remotePaxosServerSpec.remoteLeaderUris().stream()
+//                .map(uri -> AtlasDbHttpClients.createProxy(
+//                        trustContext,
+//                        uri,
+//                        TimeLockCorruptionPinger.class,
+//                        AuxiliaryRemotingParameters.builder()
+//                                .userAgent(userAgent)
+//                                .shouldLimitPayload(false)
+//                                .shouldRetry(true)
+//                                .shouldUseExtendedTimeout(false)
+//                                .remotingClientConfig(remotingClientConfig)
+//                                .build()))
+//                .collect(Collectors.toList());
+//
+//        LocalCorruptionDetector check = new LocalCorruptionDetector(new TimeLockCorruptionHealthCheck(),
+//                remoteCorruptionPingers);
 
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
@@ -233,7 +231,6 @@ public final class Leaders {
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .localPingableLeader(pingableLeader)
                 .remotePingableLeaders(remotePingableLeaders)
-                .corruptionCheck(check)
                 .build();
     }
 
@@ -318,7 +315,6 @@ public final class Leaders {
         LeaderElectionService leaderElectionService();
         PingableLeader localPingableLeader();
         Set<PingableLeader> remotePingableLeaders();
-        TimeLockCorruptionHealthCheck corruptionCheck();
 
         @Value.Derived
         default Supplier<Boolean> isCurrentSuspectedLeader() {

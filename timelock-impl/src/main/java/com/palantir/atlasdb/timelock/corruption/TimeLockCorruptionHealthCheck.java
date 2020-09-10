@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.health;
+package com.palantir.atlasdb.timelock.corruption;
 
-import com.palantir.corruption.TimeLockCorruptionPinger;
+public final class TimeLockCorruptionHealthCheck {
+    private boolean remoteHasDetectedCorruption;
 
-public class TimeLockCorruptionPingerImpl implements TimeLockCorruptionPinger {
-    private final LocalCorruptionDetector localCorruptionDetector;
+    private boolean localHasDetectedCorruption;
 
-    public TimeLockCorruptionPingerImpl(LocalCorruptionDetector localCorruptionDetector) {
-        this.localCorruptionDetector = localCorruptionDetector;
+
+    public void setRemoteHasDetectedCorruption(boolean remoteHasDetectedCorruption) {
+        this.remoteHasDetectedCorruption = remoteHasDetectedCorruption;
     }
 
-    @Override
-    public boolean corruptionDetected() {
-        // TBD
-        return localCorruptionDetector.isCorruptionOnLocal();
+    public void setLocalHasDetectedCorruption(boolean localHasDetectedCorruption) {
+        this.localHasDetectedCorruption = localHasDetectedCorruption;
+    }
+
+    public boolean isHealthy() {
+        return !remoteHasDetectedCorruption && !localHasDetectedCorruption;
     }
 }

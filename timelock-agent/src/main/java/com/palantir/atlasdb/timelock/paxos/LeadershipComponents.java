@@ -30,14 +30,14 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
+import com.palantir.timelock.corruption.LocalCorruptionDetector;
+import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionHealthCheck;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
-import com.palantir.corruption.TimeLockCorruptionPinger;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.leader.health.LocalCorruptionDetector;
-import com.palantir.leader.health.TimeLockCorruptionHealthCheck;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.paxos.Client;
+import com.palantir.timelock.corruption.TimeLockCorruptionPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.timelock.paxos.NamespaceTracker;
@@ -86,7 +86,9 @@ public class LeadershipComponents {
     }
 
     public TimeLockCorruptionHealthCheck timeLockCorruptionHealthCheck() {
-        return new TimeLockCorruptionHealthCheck(new LocalCorruptionDetector(), corruptionPingers);
+        TimeLockCorruptionHealthCheck check = new TimeLockCorruptionHealthCheck();
+        new LocalCorruptionDetector(check, corruptionPingers);
+        return check;
     }
 
     public boolean requestHostileTakeover(Client client) {

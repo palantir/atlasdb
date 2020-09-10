@@ -14,37 +14,45 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.health;
+package com.palantir.timelock.corruption;
 
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionHealthCheck;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.tokens.auth.AuthHeader;
 
-public class LocalCorruptionDetector {
+public final class LocalCorruptionDetector {
+    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
+
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("corruption-detector", true));
+    private final TimeLockCorruptionHealthCheck healthCheck;
+    private final List<TimeLockCorruptionPinger> corruptionPingers;
 
-    public LocalCorruptionDetector() {
+    public LocalCorruptionDetector(TimeLockCorruptionHealthCheck healthCheck, List<TimeLockCorruptionPinger> corruptionPingers) {
+        this.healthCheck = healthCheck;
+        this.corruptionPingers = corruptionPingers;
         scheduleWithFixedDelay();
     }
-
-    public boolean isCorruptionOnLocal() {
-        return corruptionOnLocal;
-    }
-
-    private boolean corruptionOnLocal = false;
 
     private void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(() -> {
                     if (detectedSignsOfCorruption()) {
-                        corruptionOnLocal = true;
+                        triggerCorruptionDetected();
                     }
                 },
                 300,
                 300,
                 TimeUnit.SECONDS);
+    }
+
+    private void triggerCorruptionDetected() {
+        healthCheck.setLocalHasDetectedCorruption(true);
+        corruptionPingers.forEach(pinger -> pinger.corruptionDetected(AUTH_HEADER));
     }
 
     private boolean detectedSignsOfCorruption() {

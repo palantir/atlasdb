@@ -44,6 +44,9 @@ import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
+import com.palantir.timelock.corruption.TimeLockCorruptionFilter;
+import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionHealthCheck;
+import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionPingerResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -60,7 +63,6 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.health.LeaderElectionHealthStatus;
-import com.palantir.leader.health.TimeLockCorruptionFilter;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
@@ -240,9 +242,17 @@ public class TimeLockAgent {
     }
 
     private void registerCorruptionFilter() {
+        // todo sudiksha need the check here as well
+        TimeLockCorruptionHealthCheck healthCheck = paxosResources.leadershipComponents().timeLockCorruptionHealthCheck();
+        if (undertowRegistrar.isPresent()) {
+            undertowRegistrar.get().accept(TimeLockCorruptionPingerResource.undertow(healthCheck));
+        } else {
+            registrar.accept(TimeLockCorruptionPingerResource.jersey(healthCheck));
+        }
+
         // todo sudiksha
         TimeLockCorruptionFilter corruptionFilter = new TimeLockCorruptionFilter(
-                paxosResources.leadershipComponents().timeLockCorruptionHealthCheck());
+                healthCheck);
         registrar.accept(corruptionFilter);
     }
 
