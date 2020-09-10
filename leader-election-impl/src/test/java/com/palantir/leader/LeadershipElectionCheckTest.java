@@ -71,57 +71,69 @@ public class LeadershipElectionCheckTest {
     }
 
     @Test
-    public void shouldBeHealthyForOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5, Duration.ofSeconds(60));
+    public void alwaysHealthyUntilDeactivationPeriodPasses() {
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 100, Duration.ofSeconds(1), false);
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
                 .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
+                .isGreaterThan(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
+    }
+
+    @Test
+    public void shouldBeHealthyForOneLeaderElectionPerMinute() {
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 20, Duration.ofSeconds(60), true);
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
+                .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
     }
 
     @Test
     public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(10));
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
-                .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(10), true);
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
+                .isGreaterThan(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
     }
 
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinuteAcrossClients() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(60));
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 5,  Duration.ofSeconds(60));
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(60), true);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 5,  Duration.ofSeconds(60), false);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().status())
-                .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
+        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().leaderElectionRate())
+                .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().status())
-                .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
+        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().leaderElectionRate())
+                .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
-                .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
+                .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
     }
 
     @Test
     public void shouldBeUnhealthyOverallEvenIfIndividualClientsAreHealthy() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 2,  Duration.ofSeconds(10));
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 3,  Duration.ofSeconds(10));
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 2,  Duration.ofSeconds(10), true);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 3,  Duration.ofSeconds(10), false);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().status())
-                .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
+        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().leaderElectionRate())
+                .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().status())
-                .isEqualTo(LeaderElectionHealthStatus.HEALTHY);
+        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().leaderElectionRate())
+                .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
-        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().status())
-                .isEqualTo(LeaderElectionHealthStatus.UNHEALTHY);
+        assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
+                .isGreaterThan(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
     }
 
     private void markLeaderElectionsAtSpecifiedInterval(Client client,
             int leaderElectionCount,
-            Duration timeIntervalInSeconds) {
+            Duration timeIntervalInSeconds,
+            boolean afterDeactivationPeriod) {
         // The rate is initialized after first tick (5 second interval) of meter with number of marks / interval.
         // Marking before the first interval has passed sets the rate very high, which should not happen in practice.
-        fakeTimeClock.advance(6, TimeUnit.SECONDS);
-        LeaderElectionServiceMetrics metrics = clientLeaderElectionServiceMetricsMap.get(client);
+        if (afterDeactivationPeriod) {
+            fakeTimeClock.advance(14, TimeUnit.MINUTES);
+        }
 
+        LeaderElectionServiceMetrics metrics = clientLeaderElectionServiceMetricsMap.get(client);
         IntStream.range(0, leaderElectionCount).forEach(idx -> {
             metrics.proposedLeadership().mark();
             fakeTimeClock.advance(timeIntervalInSeconds.getSeconds(), TimeUnit.SECONDS);
