@@ -15,8 +15,6 @@
  */
 package com.palantir.leader;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -41,30 +39,15 @@ class LeadershipEvents {
     private final Object[] contextArgs;
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
     private final RateLimiter leaderOnOlderVersionLoggingRateLimiter = RateLimiter.create(0.03);
-    private final Instant timeCreated = Instant.now();
-    private boolean shouldMarkLeadershipProposal = false;
 
     LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<String>> safeLoggingArgs) {
         leaderElectionServiceMetrics = LeaderElectionServiceMetrics.of(metrics);
         this.contextArgs = safeLoggingArgs.toArray(new Object[0]);
-
-        // we do not want to mark proposedLeadership for the first 10 seconds
-        leaderElectionServiceMetrics.proposedLeadership();
     }
 
     void proposedLeadershipFor(long round) {
         leaderLog.info("Proposing leadership for {}", withContextArgs(SafeArg.of("round", round)));
-        if (shouldMarkLeadershipProposal()) {
-            leaderElectionServiceMetrics.proposedLeadership().mark();
-        }
-    }
-
-    private boolean shouldMarkLeadershipProposal() {
-        if (!shouldMarkLeadershipProposal) {
-            shouldMarkLeadershipProposal
-                    = Duration.between(timeCreated, Instant.now()).getSeconds() >= 10;
-        }
-        return shouldMarkLeadershipProposal;
+        leaderElectionServiceMetrics.proposedLeadership().mark();
     }
 
     void gainedLeadershipFor(PaxosValue value) {
