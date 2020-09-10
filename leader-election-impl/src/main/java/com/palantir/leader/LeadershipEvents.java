@@ -47,11 +47,13 @@ class LeadershipEvents {
     LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<String>> safeLoggingArgs) {
         leaderElectionServiceMetrics = LeaderElectionServiceMetrics.of(metrics);
         this.contextArgs = safeLoggingArgs.toArray(new Object[0]);
+
+        // we do not want to mark proposedLeadership for the first 10 seconds
+        leaderElectionServiceMetrics.proposedLeadership();
     }
 
     void proposedLeadershipFor(long round) {
         leaderLog.info("Proposing leadership for {}", withContextArgs(SafeArg.of("round", round)));
-        // we do not want to mark proposedLeadership for the first 10 seconds
         if (shouldMarkLeadershipProposal()) {
             leaderElectionServiceMetrics.proposedLeadership().mark();
         }
