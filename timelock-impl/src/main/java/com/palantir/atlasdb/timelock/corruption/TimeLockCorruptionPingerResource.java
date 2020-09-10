@@ -24,7 +24,7 @@ import com.palantir.timelock.corruption.TimeLockCorruptionPingerEndpoints;
 import com.palantir.timelock.corruption.UndertowTimeLockCorruptionPinger;
 import com.palantir.tokens.auth.AuthHeader;
 
-public class TimeLockCorruptionPingerResource implements UndertowTimeLockCorruptionPinger {
+public final class TimeLockCorruptionPingerResource implements UndertowTimeLockCorruptionPinger {
     private TimeLockCorruptionHealthCheck check;
 
     private TimeLockCorruptionPingerResource(TimeLockCorruptionHealthCheck check) {

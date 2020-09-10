@@ -99,7 +99,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private final Class<T> interfaceClass;
     private volatile boolean isClosed;
 
-    AwaitingLeadershipProxy(
+    private AwaitingLeadershipProxy(
             Supplier<T> delegateSupplier,
             LeaderElectionService leaderElectionService,
             Class<T> interfaceClass) {

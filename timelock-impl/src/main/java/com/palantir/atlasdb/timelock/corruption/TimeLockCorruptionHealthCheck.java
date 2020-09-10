@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock.corruption;
 
-public final class TimeLockCorruptionHealthCheck {
+public class TimeLockCorruptionHealthCheck {
     private boolean remoteHasDetectedCorruption;
 
     private boolean localHasDetectedCorruption;
