@@ -21,16 +21,13 @@ import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
-
-    @VisibleForTesting
     public static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
-
     private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
+
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
     private final Instant timeCreated = Instant.now();
     private boolean healthCheckDeactivated = false;
