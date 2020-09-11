@@ -20,17 +20,22 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
     public static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
+
+//    The first mark on leader proposal metric causes spike in 5 min rate and the health check inaccurately
+//    becomes unhealthy. We deactivate the health check at start up until the initial mark has negligible
+//    weight in the last 5 min rate.
     private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
     private final Instant timeCreated = Instant.now();
-    private boolean healthCheckDeactivated = true;
+    private AtomicBoolean healthCheckDeactivated = new AtomicBoolean(true);
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
         clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
@@ -45,8 +50,9 @@ public class LeaderElectionHealthCheck {
     }
 
     private boolean isHealthCheckDeactivated() {
-        return healthCheckDeactivated = healthCheckDeactivated &&
-                (Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0);
+        healthCheckDeactivated.compareAndSet(true,
+                (Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0));
+        return healthCheckDeactivated.get();
     }
 
     private boolean isHealthy(double leaderElectionRateForAllClients) {
