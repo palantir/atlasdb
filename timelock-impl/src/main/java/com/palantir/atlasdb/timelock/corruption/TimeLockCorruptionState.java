@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.timelock.corruption;
 
 public class TimeLockCorruptionState {
-    private boolean remoteHasDetectedCorruption;
-    private boolean localHasDetectedCorruption;
+    private boolean remoteHasDetectedCorruption = false;
+    private boolean localHasDetectedCorruption = false;
 
     public void remoteHasDetectedCorruption() {
         this.remoteHasDetectedCorruption = true;
