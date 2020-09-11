@@ -89,7 +89,7 @@ public class LeadershipComponents {
         return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
     }
 
-    public TimeLockCorruptionState timeLockCorruptionHealthCheck() {
+    public TimeLockCorruptionState timeLockCorruptionHealthState() {
         TimeLockCorruptionState timeLockCorruptionState = new TimeLockCorruptionState();
         TimeLockLocalCorruptionDetector.create(timeLockCorruptionState, corruptionPingers);
         return timeLockCorruptionState;

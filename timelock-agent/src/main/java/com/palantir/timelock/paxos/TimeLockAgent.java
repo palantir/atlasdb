@@ -246,7 +246,7 @@ public class TimeLockAgent {
 
     private void registerTimeLockCorruptionPingers() {
         TimeLockCorruptionState timeLockCorruptionState
-                = paxosResources.leadershipComponents().timeLockCorruptionHealthCheck();
+                = paxosResources.leadershipComponents().timeLockCorruptionHealthState();
         if (undertowRegistrar.isPresent()) {
             undertowRegistrar.get().accept(TimeLockCorruptionPingerResource.undertow(timeLockCorruptionState));
         } else {
