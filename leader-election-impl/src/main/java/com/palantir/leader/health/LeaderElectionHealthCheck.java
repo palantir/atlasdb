@@ -51,7 +51,7 @@ public class LeaderElectionHealthCheck {
 
     private boolean isHealthCheckDeactivated() {
         healthCheckDeactivated.compareAndSet(true,
-                (Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0));
+                Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0);
         return healthCheckDeactivated.get();
     }
 
