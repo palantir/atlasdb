@@ -26,11 +26,11 @@ import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
     public static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
-    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
+    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(10);
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
     private final Instant timeCreated = Instant.now();
-    private boolean healthCheckDeactivated = false;
+    private boolean healthCheckDeactivated = true;
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
         clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
@@ -45,10 +45,8 @@ public class LeaderElectionHealthCheck {
     }
 
     private boolean isHealthCheckDeactivated() {
-        if (!healthCheckDeactivated) {
-            healthCheckDeactivated
-                    = Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
-        }
+        healthCheckDeactivated = healthCheckDeactivated &&
+                (Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0);
         return healthCheckDeactivated;
     }
 
@@ -58,15 +56,11 @@ public class LeaderElectionHealthCheck {
 
     public LeaderElectionHealthReport leaderElectionRateHealthReport() {
         double leaderElectionRateForAllClients = getLeaderElectionRateForAllClients();
-
-        return isHealthy(leaderElectionRateForAllClients)
-                ? LeaderElectionHealthReport.builder()
-                .status(LeaderElectionHealthStatus.HEALTHY)
+        LeaderElectionHealthStatus status = isHealthy(leaderElectionRateForAllClients)
+                ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
+        return LeaderElectionHealthReport.builder()
+                .status(status)
                 .leaderElectionRate(leaderElectionRateForAllClients)
-                .build()
-                : LeaderElectionHealthReport.builder()
-                        .status(LeaderElectionHealthStatus.UNHEALTHY)
-                        .leaderElectionRate(leaderElectionRateForAllClients)
-                        .build();
+                .build();
     }
 }
