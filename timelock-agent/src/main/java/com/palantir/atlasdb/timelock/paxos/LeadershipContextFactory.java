@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -111,11 +110,7 @@ public abstract class LeadershipContextFactory implements
 
     @Value.Derived
     List<TimeLockCorruptionNotifier> remoteCorruptionNotifiers() {
-        return remoteClients()
-                .getRemoteCorruptionNotifiers()
-                .stream()
-                .map(pingerWithDedicatedExecutor -> pingerWithDedicatedExecutor.service())
-                .collect(Collectors.toList());
+        return remoteClients().getRemoteCorruptionNotifiers();
     }
 
     @Override

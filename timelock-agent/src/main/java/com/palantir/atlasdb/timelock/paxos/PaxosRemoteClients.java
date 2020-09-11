@@ -147,9 +147,10 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
-    public List<WithDedicatedExecutor<TimeLockCorruptionNotifier>> getRemoteCorruptionNotifiers() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
-                TimeLockCorruptionNotifier.class, true);
+    public List<TimeLockCorruptionNotifier> getRemoteCorruptionNotifiers() {
+        return createInstrumentedRemoteProxies(TimeLockCorruptionNotifier.class, true)
+                .values()
+                .collect(Collectors.toList());
     }
 
     private <T> List<WithDedicatedExecutor<LeaderPingerContext<T>>> leaderPingerContext(Class<T> clazz) {

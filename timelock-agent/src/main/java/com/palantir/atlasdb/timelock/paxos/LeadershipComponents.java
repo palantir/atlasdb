@@ -37,6 +37,7 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.paxos.Client;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.TimeLockCorruptionPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
@@ -51,15 +52,15 @@ public class LeadershipComponents {
 
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
-    private final List<TimeLockCorruptionPinger> corruptionPingers;
+    private final List<TimeLockCorruptionNotifier> corruptionNotifiers;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
             LocalAndRemotes<HealthCheckPinger> healthCheckPingers,
-            List<TimeLockCorruptionPinger> corruptionPingers) {
+            List<TimeLockCorruptionNotifier> corruptionNotifiers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
-        this.corruptionPingers = corruptionPingers;
+        this.corruptionNotifiers = corruptionNotifiers;
     }
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
@@ -91,7 +92,7 @@ public class LeadershipComponents {
 
     public TimeLockCorruptionState timeLockCorruptionHealthState() {
         TimeLockCorruptionState timeLockCorruptionState = new TimeLockCorruptionState();
-        TimeLockLocalCorruptionDetector.create(timeLockCorruptionState, corruptionPingers);
+        TimeLockLocalCorruptionDetector.create(timeLockCorruptionState, corruptionNotifiers);
         return timeLockCorruptionState;
     }
 
