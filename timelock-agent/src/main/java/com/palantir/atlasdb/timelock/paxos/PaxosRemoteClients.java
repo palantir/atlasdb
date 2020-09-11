@@ -37,6 +37,7 @@ import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
 
@@ -143,6 +144,12 @@ public abstract class PaxosRemoteClients {
     @Value.Derived
     public List<WithDedicatedExecutor<LeaderPingerContext<BatchPingableLeader>>> batchPingableLeadersWithContext() {
         return leaderPingerContext(BatchPingableLeader.class);
+    }
+
+    @Value.Derived
+    public List<WithDedicatedExecutor<TimeLockCorruptionNotifier>> getRemoteCorruptionNotifiers() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                TimeLockCorruptionNotifier.class, true);
     }
 
     private <T> List<WithDedicatedExecutor<LeaderPingerContext<T>>> leaderPingerContext(Class<T> clazz) {
