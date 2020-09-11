@@ -26,7 +26,7 @@ import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
     public static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
-    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofSeconds(10);
+    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
     private final Instant timeCreated = Instant.now();
