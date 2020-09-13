@@ -16,19 +16,18 @@
 
 package com.palantir.atlasdb.timelock.corruption;
 
-public class TimeLockCorruptionState {
-    private boolean remoteHasDetectedCorruption = false;
-    private boolean localHasDetectedCorruption = false;
+public class TimeLockCorruptionHealthCheck {
+    private final TimeLockLocalCorruptionDetector localCorruptionDetector;
+    private final TimeLockRemoteCorruptionDetector remoteCorruptionDetector;
 
-    public void remoteHasDetectedCorruption() {
-        this.remoteHasDetectedCorruption = true;
+    public TimeLockCorruptionHealthCheck(TimeLockLocalCorruptionDetector localCorruptionDetector,
+            TimeLockRemoteCorruptionDetector remoteCorruptionDetector) {
+        this.localCorruptionDetector = localCorruptionDetector;
+        this.remoteCorruptionDetector =  remoteCorruptionDetector;
     }
 
-    public void localHasDetectedCorruption() {
-        this.localHasDetectedCorruption = true;
-    }
-
-    public boolean hasDetectedCorruption() {
-        return !remoteHasDetectedCorruption && !localHasDetectedCorruption;
+    public boolean isHealthy() {
+        return localCorruptionDetector.getLocalCorruptionState().hasCorruption()
+                || remoteCorruptionDetector.getRemoteCorruptionState().hasCorruption();
     }
 }
