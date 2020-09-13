@@ -39,23 +39,20 @@ public class TimeLockLocalCorruptionDetector {
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
-    private final TimeLockCorruptionState corruptionState;
     private final List<TimeLockCorruptionPinger> corruptionPingers;
 
+    private TimeLockCorruptionStatus localCorruptionState = TimeLockCorruptionStatus.HEALTHY;
 
-    public static TimeLockLocalCorruptionDetector create(TimeLockCorruptionState timeLockCorruptionState,
-            List<TimeLockCorruptionPinger> corruptionPingers) {
+    public static TimeLockLocalCorruptionDetector create(List<TimeLockCorruptionPinger> corruptionPingers) {
         TimeLockLocalCorruptionDetector timeLockLocalCorruptionDetector
-                = new TimeLockLocalCorruptionDetector(timeLockCorruptionState, corruptionPingers);
+                = new TimeLockLocalCorruptionDetector(corruptionPingers);
 
 //        TODO(snanda) - uncomment when TL corruption detection goes live
 //        timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
         return timeLockLocalCorruptionDetector;
     }
 
-    private TimeLockLocalCorruptionDetector(TimeLockCorruptionState timeLockCorruptionState,
-            List<TimeLockCorruptionPinger> corruptionPingers) {
-        this.corruptionState = timeLockCorruptionState;
+    private TimeLockLocalCorruptionDetector(List<TimeLockCorruptionPinger> corruptionPingers) {
         this.corruptionPingers = corruptionPingers;
     }
 
@@ -71,8 +68,12 @@ public class TimeLockLocalCorruptionDetector {
     }
 
     private void killTimeLock() {
-        corruptionState.localHasDetectedCorruption();
         corruptionPingers.forEach(this::reportCorruptionToRemote);
+        localDetectedCorruption();
+    }
+
+    private void localDetectedCorruption() {
+        localCorruptionState = TimeLockCorruptionStatus.CORRUPTION;
     }
 
     private void reportCorruptionToRemote(TimeLockCorruptionPinger pinger) {
@@ -81,6 +82,10 @@ public class TimeLockLocalCorruptionDetector {
         } catch (Exception e) {
             log.warn("Failed to report corruption to remote.", e);
         }
+    }
+
+    public TimeLockCorruptionStatus getLocalCorruptionState() {
+        return localCorruptionState;
     }
 
     private boolean detectedSignsOfCorruption() {

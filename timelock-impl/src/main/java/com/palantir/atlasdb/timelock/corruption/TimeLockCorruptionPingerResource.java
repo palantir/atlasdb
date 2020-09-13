@@ -25,23 +25,23 @@ import com.palantir.timelock.corruption.UndertowTimeLockCorruptionPinger;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class TimeLockCorruptionPingerResource implements UndertowTimeLockCorruptionPinger {
-    private TimeLockCorruptionState timeLockCorruptionState;
+    private TimeLockRemoteCorruptionDetector remoteCorruptionDetector;
 
-    private TimeLockCorruptionPingerResource(TimeLockCorruptionState timeLockCorruptionState) {
-        this.timeLockCorruptionState = timeLockCorruptionState;
+    private TimeLockCorruptionPingerResource(TimeLockRemoteCorruptionDetector remoteCorruptionDetector) {
+        this.remoteCorruptionDetector = remoteCorruptionDetector;
     }
 
-    public static UndertowService undertow(TimeLockCorruptionState check) {
-        return TimeLockCorruptionPingerEndpoints.of(new TimeLockCorruptionPingerResource(check));
+    public static UndertowService undertow(TimeLockRemoteCorruptionDetector remoteCorruptionDetector) {
+        return TimeLockCorruptionPingerEndpoints.of(new TimeLockCorruptionPingerResource(remoteCorruptionDetector));
     }
 
-    public static TimeLockCorruptionPinger jersey(TimeLockCorruptionState check) {
-        return new JerseyAdapter(new TimeLockCorruptionPingerResource(check));
+    public static TimeLockCorruptionPinger jersey(TimeLockRemoteCorruptionDetector remoteCorruptionDetector) {
+        return new JerseyAdapter(new TimeLockCorruptionPingerResource(remoteCorruptionDetector));
     }
 
     @Override
     public ListenableFuture<Void> corruptionDetected(AuthHeader authHeader) {
-        timeLockCorruptionState.remoteHasDetectedCorruption();
+        remoteCorruptionDetector.setRemoteCorruptionState();
         return Futures.immediateVoidFuture();
     }
 
