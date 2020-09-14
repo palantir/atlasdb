@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
@@ -35,7 +34,7 @@ public class LeaderElectionHealthCheck {
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
     private volatile Instant timeCreated = Instant.now();
-    private AtomicBoolean healthCheckDeactivated = new AtomicBoolean(true);
+    private volatile boolean healthCheckDeactivated = true;
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
         updateDeactivationStartTime();
@@ -44,7 +43,6 @@ public class LeaderElectionHealthCheck {
 
     public void updateDeactivationStartTime() {
         timeCreated = clientWiseMetrics.isEmpty() ? Instant.now() : timeCreated;
-
     }
 
     private double getLeaderElectionRateForAllClients() {
@@ -56,8 +54,7 @@ public class LeaderElectionHealthCheck {
     }
 
     private boolean isHealthCheckDeactivated() {
-        healthCheckDeactivated.compareAndSet(true, isWithinDeactivationWindow());
-        return healthCheckDeactivated.get();
+        return healthCheckDeactivated = healthCheckDeactivated && isWithinDeactivationWindow();
     }
 
     private boolean isWithinDeactivationWindow() {
