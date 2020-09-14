@@ -16,18 +16,41 @@
 
 package com.palantir.leader.health;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
-    private static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
+    public static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;
+
+//    The first mark on leader proposal metric causes spike in 5 min rate and the health check inaccurately
+//    becomes unhealthy. We deactivate the health check at start up until the initial mark has negligible
+//    weight in the last 5 min rate.
+    @VisibleForTesting
+    static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
+
+    private final Supplier<Instant> instantSupplier;
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
+    private volatile Instant timeFirstClientRegistered;
+    private volatile boolean healthCheckDeactivated = true;
+
+    public LeaderElectionHealthCheck(Supplier<Instant> instantSupplier) {
+        this.instantSupplier = instantSupplier;
+    }
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
+        updateDeactivationStartTime();
         clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
+    }
+
+    public void updateDeactivationStartTime() {
+        timeFirstClientRegistered = clientWiseMetrics.isEmpty() ? instantSupplier.get() : timeFirstClientRegistered;
     }
 
     private double getLeaderElectionRateForAllClients() {
@@ -38,8 +61,32 @@ public class LeaderElectionHealthCheck {
         return leaderElectionRateForClient.proposedLeadership().getFiveMinuteRate();
     }
 
-    public LeaderElectionHealthStatus leaderElectionRateHealthStatus() {
-        return getLeaderElectionRateForAllClients() <= MAX_ALLOWED_LAST_5_MINUTE_RATE
+    private boolean isHealthCheckDeactivated() {
+        if (!healthCheckDeactivated) {
+            return false;
+        }
+        boolean shouldBeDeactivated = healthCheckDeactivated && isWithinDeactivationWindow();
+        healthCheckDeactivated = shouldBeDeactivated;
+        return shouldBeDeactivated;
+    }
+
+    @VisibleForTesting
+    boolean isWithinDeactivationWindow() {
+        return clientWiseMetrics.isEmpty() || Duration.between(timeFirstClientRegistered, instantSupplier.get())
+                .compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
+    }
+
+    private boolean isHealthy(double leaderElectionRateForAllClients) {
+        return isHealthCheckDeactivated() || (leaderElectionRateForAllClients <= MAX_ALLOWED_LAST_5_MINUTE_RATE);
+    }
+
+    public LeaderElectionHealthReport leaderElectionRateHealthReport() {
+        double leaderElectionRateForAllClients = getLeaderElectionRateForAllClients();
+        LeaderElectionHealthStatus status = isHealthy(leaderElectionRateForAllClients)
                 ? LeaderElectionHealthStatus.HEALTHY : LeaderElectionHealthStatus.UNHEALTHY;
+        return LeaderElectionHealthReport.builder()
+                .status(status)
+                .leaderElectionRate(leaderElectionRateForAllClients)
+                .build();
     }
 }

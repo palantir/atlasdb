@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -102,7 +103,7 @@ public abstract class LeadershipContextFactory implements
 
     @Value.Derived
     public LeaderElectionHealthCheck leaderElectionHealthCheck() {
-        return new LeaderElectionHealthCheck();
+        return new LeaderElectionHealthCheck(Instant::now);
     }
 
     @Override
