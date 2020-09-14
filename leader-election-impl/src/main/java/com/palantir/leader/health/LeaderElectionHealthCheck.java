@@ -31,7 +31,7 @@ public class LeaderElectionHealthCheck {
 //    The first mark on leader proposal metric causes spike in 5 min rate and the health check inaccurately
 //    becomes unhealthy. We deactivate the health check at start up until the initial mark has negligible
 //    weight in the last 5 min rate.
-    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofSeconds(14);
+    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
     private volatile Instant timeCreated = Instant.now();
