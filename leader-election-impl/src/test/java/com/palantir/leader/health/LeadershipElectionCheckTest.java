@@ -49,8 +49,10 @@ public class LeadershipElectionCheckTest {
             LeaderElectionServiceMetrics.of(registry2);
 
     private final LeaderElectionHealthCheck leaderElectionHealthCheck = new LeaderElectionHealthCheck(Instant::now);
-    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient1 = new LeaderElectionHealthCheck(Instant::now);
-    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient2 = new LeaderElectionHealthCheck(Instant::now);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient1
+            = new LeaderElectionHealthCheck(Instant::now);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient2
+            = new LeaderElectionHealthCheck(Instant::now);
 
     private static final Client CLIENT_1 = Client.of("abc");
     private static final Client CLIENT_2 = Client.of("abc_2");
