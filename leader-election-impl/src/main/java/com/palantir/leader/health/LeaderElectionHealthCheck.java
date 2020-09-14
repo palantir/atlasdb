@@ -33,7 +33,7 @@ public class LeaderElectionHealthCheck {
     private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
-    private volatile Instant timeCreated = Instant.now();
+    private volatile Instant timeFirstClientRegistered = Instant.now();
     private volatile boolean healthCheckDeactivated = true;
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
@@ -42,7 +42,7 @@ public class LeaderElectionHealthCheck {
     }
 
     public void updateDeactivationStartTime() {
-        timeCreated = clientWiseMetrics.isEmpty() ? Instant.now() : timeCreated;
+        timeFirstClientRegistered = clientWiseMetrics.isEmpty() ? Instant.now() : timeFirstClientRegistered;
     }
 
     private double getLeaderElectionRateForAllClients() {
@@ -54,12 +54,17 @@ public class LeaderElectionHealthCheck {
     }
 
     private boolean isHealthCheckDeactivated() {
-        return healthCheckDeactivated = healthCheckDeactivated && isWithinDeactivationWindow();
+        if (!healthCheckDeactivated) {
+            return false;
+        }
+        boolean shouldBeDeactivated = healthCheckDeactivated && isWithinDeactivationWindow();
+        healthCheckDeactivated = shouldBeDeactivated;
+        return shouldBeDeactivated;
     }
 
     private boolean isWithinDeactivationWindow() {
         return clientWiseMetrics.isEmpty()
-                || Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
+                || Duration.between(timeFirstClientRegistered, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
     }
 
     private boolean isHealthy(double leaderElectionRateForAllClients) {
