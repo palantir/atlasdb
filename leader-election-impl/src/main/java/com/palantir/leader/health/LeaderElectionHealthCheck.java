@@ -31,14 +31,19 @@ public class LeaderElectionHealthCheck {
 //    The first mark on leader proposal metric causes spike in 5 min rate and the health check inaccurately
 //    becomes unhealthy. We deactivate the health check at start up until the initial mark has negligible
 //    weight in the last 5 min rate.
-    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
+    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofSeconds(14);
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
-    private final Instant timeCreated = Instant.now();
+    private Instant timeCreated = Instant.now();
     private AtomicBoolean healthCheckDeactivated = new AtomicBoolean(true);
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
+        updateDeactivationStartTime();
         clientWiseMetrics.putIfAbsent(namespace, leaderElectionServiceMetrics);
+    }
+
+    public void updateDeactivationStartTime() {
+        timeCreated = clientWiseMetrics.isEmpty() ? Instant.now() : timeCreated;
     }
 
     private double getLeaderElectionRateForAllClients() {
@@ -50,9 +55,13 @@ public class LeaderElectionHealthCheck {
     }
 
     private boolean isHealthCheckDeactivated() {
-        healthCheckDeactivated.compareAndSet(true,
-                Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0);
+        healthCheckDeactivated.compareAndSet(true, isWithinDeactivationWindow());
         return healthCheckDeactivated.get();
+    }
+
+    private boolean isWithinDeactivationWindow() {
+        return clientWiseMetrics.isEmpty()
+                || Duration.between(timeCreated, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
     }
 
     private boolean isHealthy(double leaderElectionRateForAllClients) {
