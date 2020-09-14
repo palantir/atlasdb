@@ -85,8 +85,7 @@ public class LeadershipElectionCheckTest {
         assertThat(check.isWithinDeactivationWindow()).isEqualTo(true);
 
         now.addAndGet(healthCheckDeactivationPeriod / 2 + 1);
-        assertThat(check.isWithinDeactivationWindow())
-                .isEqualTo(false);
+        assertThat(check.isWithinDeactivationWindow()).isEqualTo(false);
     }
 
     @Test
@@ -172,5 +171,4 @@ public class LeadershipElectionCheckTest {
         }
     }
 }
-
 
