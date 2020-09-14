@@ -29,7 +29,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionPinger;
 import com.palantir.tokens.auth.AuthHeader;
 
-public class TimeLockLocalCorruptionDetector {
+public class TimeLockLocalCorruptionDetector implements CorruptionDetector {
     private static final Logger log = LoggerFactory.getLogger(
             TimeLockLocalCorruptionDetector.class);
 
@@ -84,12 +84,13 @@ public class TimeLockLocalCorruptionDetector {
         }
     }
 
-    public TimeLockCorruptionStatus getLocalCorruptionState() {
-        return localCorruptionState;
-    }
-
     private boolean detectedSignsOfCorruption() {
         // no op for now
         return false;
+    }
+
+    @Override
+    public boolean hasDetectedCorruption() {
+        return localCorruptionState.hasCorruption();
     }
 }

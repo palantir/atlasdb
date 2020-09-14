@@ -16,14 +16,15 @@
 
 package com.palantir.atlasdb.timelock.corruption;
 
-public class TimeLockRemoteCorruptionDetector {
+public class TimeLockRemoteCorruptionDetector implements CorruptionDetector {
     private TimeLockCorruptionStatus remoteCorruptionState = TimeLockCorruptionStatus.HEALTHY;
 
     public void setRemoteCorruptionState() {
         this.remoteCorruptionState = TimeLockCorruptionStatus.CORRUPTION;
     }
 
-    public TimeLockCorruptionStatus getRemoteCorruptionState() {
-        return remoteCorruptionState;
+    @Override
+    public boolean hasDetectedCorruption() {
+        return remoteCorruptionState.hasCorruption();
     }
 }
