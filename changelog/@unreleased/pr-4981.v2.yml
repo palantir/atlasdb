@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: The leader election health check is now disabled until the first 14
+    minutes after the first client is registered have passed. Also, the health check
+    report now contains last 5 minute leader election rate.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4981
