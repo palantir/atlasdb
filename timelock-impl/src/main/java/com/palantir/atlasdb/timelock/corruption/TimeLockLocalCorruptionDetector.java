@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.timelock.corruption.TimeLockCorruptionPinger;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockLocalCorruptionDetector implements CorruptionDetector {
@@ -39,11 +39,11 @@ public class TimeLockLocalCorruptionDetector implements CorruptionDetector {
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
-    private final List<TimeLockCorruptionPinger> corruptionPingers;
+    private final List<TimeLockCorruptionNotifier> corruptionPingers;
 
     private TimeLockCorruptionStatus localCorruptionState = TimeLockCorruptionStatus.HEALTHY;
 
-    public static TimeLockLocalCorruptionDetector create(List<TimeLockCorruptionPinger> corruptionPingers) {
+    public static TimeLockLocalCorruptionDetector create(List<TimeLockCorruptionNotifier> corruptionPingers) {
         TimeLockLocalCorruptionDetector timeLockLocalCorruptionDetector
                 = new TimeLockLocalCorruptionDetector(corruptionPingers);
 
@@ -52,7 +52,7 @@ public class TimeLockLocalCorruptionDetector implements CorruptionDetector {
         return timeLockLocalCorruptionDetector;
     }
 
-    private TimeLockLocalCorruptionDetector(List<TimeLockCorruptionPinger> corruptionPingers) {
+    private TimeLockLocalCorruptionDetector(List<TimeLockCorruptionNotifier> corruptionPingers) {
         this.corruptionPingers = corruptionPingers;
     }
 
@@ -76,9 +76,9 @@ public class TimeLockLocalCorruptionDetector implements CorruptionDetector {
         localCorruptionState = TimeLockCorruptionStatus.CORRUPTION;
     }
 
-    private void reportCorruptionToRemote(TimeLockCorruptionPinger pinger) {
+    private void reportCorruptionToRemote(TimeLockCorruptionNotifier notifier) {
         try {
-            pinger.corruptionDetected(AUTH_HEADER);
+            notifier.corruptionDetected(AUTH_HEADER);
         } catch (Exception e) {
             log.warn("Failed to report corruption to remote.", e);
         }

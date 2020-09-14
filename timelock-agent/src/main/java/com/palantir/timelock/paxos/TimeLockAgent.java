@@ -45,7 +45,6 @@ import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionPingerResource;
-import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionState;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -53,6 +52,7 @@ import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
+import com.palantir.atlasdb.timelock.paxos.TimeLockCorruptionComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -245,12 +245,13 @@ public class TimeLockAgent {
     }
 
     private void registerTimeLockCorruptionPingers() {
-        TimeLockCorruptionState timeLockCorruptionState
-                = paxosResources.leadershipComponents().timeLockCorruptionHealthState();
+        TimeLockCorruptionComponents corruptionComponents
+                = paxosResources.leadershipComponents().timeLockCorruptionComponents();
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockCorruptionPingerResource.undertow(timeLockCorruptionState));
+            undertowRegistrar.get().accept(
+                    TimeLockCorruptionPingerResource.undertow(corruptionComponents.remoteCorruptionDetector()));
         } else {
-            registrar.accept(TimeLockCorruptionPingerResource.jersey(timeLockCorruptionState));
+            registrar.accept(TimeLockCorruptionPingerResource.jersey(corruptionComponents.remoteCorruptionDetector()));
         }
     }
 

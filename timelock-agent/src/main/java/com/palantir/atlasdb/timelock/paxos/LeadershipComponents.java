@@ -30,8 +30,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
-import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionState;
+import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionHealthCheck;
 import com.palantir.atlasdb.timelock.corruption.TimeLockLocalCorruptionDetector;
+import com.palantir.atlasdb.timelock.corruption.TimeLockRemoteCorruptionDetector;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -90,10 +91,15 @@ public class LeadershipComponents {
         return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
     }
 
-    public TimeLockCorruptionState timeLockCorruptionHealthState() {
-        TimeLockCorruptionState timeLockCorruptionState = new TimeLockCorruptionState();
-        TimeLockLocalCorruptionDetector.create(timeLockCorruptionState, corruptionNotifiers);
-        return timeLockCorruptionState;
+    public TimeLockCorruptionComponents timeLockCorruptionComponents() {
+        TimeLockRemoteCorruptionDetector remoteCorruptionDetector = new TimeLockRemoteCorruptionDetector();
+        TimeLockCorruptionHealthCheck healthCheck = new TimeLockCorruptionHealthCheck(ImmutableList.of(
+                TimeLockLocalCorruptionDetector.create(corruptionNotifiers),
+                remoteCorruptionDetector));
+        return ImmutableTimeLockCorruptionComponents.builder()
+                .timeLockCorruptionHealthCheck(healthCheck)
+                .remoteCorruptionDetector(remoteCorruptionDetector)
+                .build();
     }
 
     public boolean requestHostileTakeover(Client client) {
