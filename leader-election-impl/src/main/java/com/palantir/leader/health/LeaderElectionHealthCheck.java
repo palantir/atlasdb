@@ -20,7 +20,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 
@@ -30,11 +32,17 @@ public class LeaderElectionHealthCheck {
 //    The first mark on leader proposal metric causes spike in 5 min rate and the health check inaccurately
 //    becomes unhealthy. We deactivate the health check at start up until the initial mark has negligible
 //    weight in the last 5 min rate.
-    private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
+    @VisibleForTesting
+    static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofMinutes(14);
 
+    private final Supplier<Instant> instantSupplier;
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
-    private volatile Instant timeFirstClientRegistered = Instant.now();
+    private volatile Instant timeFirstClientRegistered;
     private volatile boolean healthCheckDeactivated = true;
+
+    public LeaderElectionHealthCheck(Supplier<Instant> instantSupplier) {
+        this.instantSupplier = instantSupplier;
+    }
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
         updateDeactivationStartTime();
@@ -42,7 +50,7 @@ public class LeaderElectionHealthCheck {
     }
 
     public void updateDeactivationStartTime() {
-        timeFirstClientRegistered = clientWiseMetrics.isEmpty() ? Instant.now() : timeFirstClientRegistered;
+        timeFirstClientRegistered = clientWiseMetrics.isEmpty() ? instantSupplier.get() : timeFirstClientRegistered;
     }
 
     private double getLeaderElectionRateForAllClients() {
@@ -62,9 +70,10 @@ public class LeaderElectionHealthCheck {
         return shouldBeDeactivated;
     }
 
-    private boolean isWithinDeactivationWindow() {
+    @VisibleForTesting
+    boolean isWithinDeactivationWindow() {
         return clientWiseMetrics.isEmpty()
-                || Duration.between(timeFirstClientRegistered, Instant.now()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
+                || Duration.between(timeFirstClientRegistered, instantSupplier.get()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
     }
 
     private boolean isHealthy(double leaderElectionRateForAllClients) {

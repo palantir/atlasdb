@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.leader;
+package com.palantir.leader.health;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,8 +34,7 @@ import org.junit.Test;
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
-import com.palantir.leader.health.LeaderElectionHealthStatus;
+import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -48,9 +48,9 @@ public class LeadershipElectionCheckTest {
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics2 =
             LeaderElectionServiceMetrics.of(registry2);
 
-    private final LeaderElectionHealthCheck leaderElectionHealthCheck = new LeaderElectionHealthCheck();
-    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient1 = new LeaderElectionHealthCheck();
-    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient2 = new LeaderElectionHealthCheck();
+    private final LeaderElectionHealthCheck leaderElectionHealthCheck = new LeaderElectionHealthCheck(Instant::now);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient1 = new LeaderElectionHealthCheck(Instant::now);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient2 = new LeaderElectionHealthCheck(Instant::now);
 
     private static final Client CLIENT_1 = Client.of("abc");
     private static final Client CLIENT_2 = Client.of("abc_2");
@@ -68,6 +68,25 @@ public class LeadershipElectionCheckTest {
 
         when(registry.meter(any())).thenReturn(new Meter(fakeTimeClock));
         when(registry2.meter(any())).thenReturn(new Meter(fakeTimeClock));
+    }
+
+    @Test
+    public void clockResetsWhenClientIsRegistered() {
+        AtomicLong now = new AtomicLong();
+        LeaderElectionHealthCheck check
+                = new LeaderElectionHealthCheck(() -> Instant.ofEpochSecond(now.get()));
+        long healthCheckDeactivationPeriod = LeaderElectionHealthCheck.HEALTH_CHECK_DEACTIVATION_PERIOD.getSeconds();
+
+        now.addAndGet(healthCheckDeactivationPeriod + 1);
+        assertThat(check.isWithinDeactivationWindow()).isEqualTo(true);
+
+        check.registerClient(CLIENT_1, leaderElectionServiceMetrics);
+        now.addAndGet(healthCheckDeactivationPeriod / 2);
+        assertThat(check.isWithinDeactivationWindow()).isEqualTo(true);
+
+        now.addAndGet(healthCheckDeactivationPeriod / 2 + 1);
+        assertThat(check.isWithinDeactivationWindow())
+                .isEqualTo(false);
     }
 
     @Test
