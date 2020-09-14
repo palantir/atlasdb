@@ -62,6 +62,9 @@ public class LeaderElectionHealthCheck {
     }
 
     private boolean isHealthCheckDeactivated() {
+        if (!healthCheckDeactivated) {
+            return false;
+        }
         boolean shouldBeDeactivated = healthCheckDeactivated && isWithinDeactivationWindow();
         healthCheckDeactivated = shouldBeDeactivated;
         return shouldBeDeactivated;
