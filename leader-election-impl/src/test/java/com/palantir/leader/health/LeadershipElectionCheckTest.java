@@ -73,8 +73,7 @@ public class LeadershipElectionCheckTest {
     @Test
     public void clockResetsWhenClientIsRegistered() {
         AtomicLong now = new AtomicLong();
-        LeaderElectionHealthCheck check
-                = new LeaderElectionHealthCheck(() -> Instant.ofEpochSecond(now.get()));
+        LeaderElectionHealthCheck check = new LeaderElectionHealthCheck(() -> Instant.ofEpochSecond(now.get()));
         long healthCheckDeactivationPeriod = LeaderElectionHealthCheck.HEALTH_CHECK_DEACTIVATION_PERIOD.getSeconds();
 
         now.addAndGet(healthCheckDeactivationPeriod + 1);

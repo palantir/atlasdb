@@ -72,8 +72,8 @@ public class LeaderElectionHealthCheck {
 
     @VisibleForTesting
     boolean isWithinDeactivationWindow() {
-        return clientWiseMetrics.isEmpty()
-                || Duration.between(timeFirstClientRegistered, instantSupplier.get()).compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
+        return clientWiseMetrics.isEmpty() || Duration.between(timeFirstClientRegistered, instantSupplier.get())
+                .compareTo(HEALTH_CHECK_DEACTIVATION_PERIOD) < 0;
     }
 
     private boolean isHealthy(double leaderElectionRateForAllClients) {
