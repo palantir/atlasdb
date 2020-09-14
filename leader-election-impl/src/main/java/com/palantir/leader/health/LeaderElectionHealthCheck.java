@@ -34,7 +34,7 @@ public class LeaderElectionHealthCheck {
     private static final Duration HEALTH_CHECK_DEACTIVATION_PERIOD = Duration.ofSeconds(14);
 
     private final ConcurrentMap<Client, LeaderElectionServiceMetrics> clientWiseMetrics = new ConcurrentHashMap<>();
-    private Instant timeCreated = Instant.now();
+    private volatile Instant timeCreated = Instant.now();
     private AtomicBoolean healthCheckDeactivated = new AtomicBoolean(true);
 
     public void registerClient(Client namespace, LeaderElectionServiceMetrics leaderElectionServiceMetrics) {
@@ -44,6 +44,7 @@ public class LeaderElectionHealthCheck {
 
     public void updateDeactivationStartTime() {
         timeCreated = clientWiseMetrics.isEmpty() ? Instant.now() : timeCreated;
+
     }
 
     private double getLeaderElectionRateForAllClients() {
