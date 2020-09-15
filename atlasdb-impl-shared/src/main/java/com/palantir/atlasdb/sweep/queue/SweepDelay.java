@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 class SweepDelay {
     static final int BATCH_CELLS_LOW_THRESHOLD = 100;
     static final long MIN_PAUSE_MILLIS = 1;
-    static final long DEFAULT_MAX_PAUSE_MILLIS = 5000;
+    static final long DEFAULT_MAX_PAUSE_MILLIS = Duration.ofSeconds(15).toMillis();
     static final long BACKOFF = Duration.ofMinutes(2).toMillis();
 
     private final long initialPause;
