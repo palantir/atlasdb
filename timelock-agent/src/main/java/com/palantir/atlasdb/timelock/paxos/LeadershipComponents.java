@@ -30,11 +30,15 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
+import com.palantir.atlasdb.timelock.corruption.CorruptionHealthCheck;
+import com.palantir.atlasdb.timelock.corruption.LocalCorruptionDetector;
+import com.palantir.atlasdb.timelock.corruption.RemoteCorruptionDetector;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.paxos.Client;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.timelock.paxos.NamespaceTracker;
@@ -48,12 +52,15 @@ public class LeadershipComponents {
 
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
+    private final List<TimeLockCorruptionNotifier> corruptionNotifiers;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
-            LocalAndRemotes<HealthCheckPinger> healthCheckPingers) {
+            LocalAndRemotes<HealthCheckPinger> healthCheckPingers,
+            List<TimeLockCorruptionNotifier> corruptionNotifiers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
+        this.corruptionNotifiers = corruptionNotifiers;
     }
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
@@ -81,6 +88,17 @@ public class LeadershipComponents {
 
     public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
         return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers.all());
+    }
+
+    public TimeLockCorruptionComponents timeLockCorruptionComponents() {
+        RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
+        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
+                LocalCorruptionDetector.create(corruptionNotifiers),
+                remoteCorruptionDetector));
+        return ImmutableTimeLockCorruptionComponents.builder()
+                .timeLockCorruptionHealthCheck(healthCheck)
+                .remoteCorruptionDetector(remoteCorruptionDetector)
+                .build();
     }
 
     public boolean requestHostileTakeover(Client client) {

@@ -44,6 +44,7 @@ import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
+import com.palantir.atlasdb.timelock.corruption.CorruptionNotifierResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -51,6 +52,7 @@ import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
+import com.palantir.atlasdb.timelock.paxos.TimeLockCorruptionComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -200,6 +202,7 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
         registerClientFeedbackService();
+        registerTimeLockCorruptionNotifiers();
 
         namespaces = new TimelockNamespaces(
                 metricsManager,
@@ -238,6 +241,17 @@ public class TimeLockAgent {
         } else {
             registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler,
                     this::isLeaderForClient));
+        }
+    }
+
+    private void registerTimeLockCorruptionNotifiers() {
+        TimeLockCorruptionComponents corruptionComponents
+                = paxosResources.leadershipComponents().timeLockCorruptionComponents();
+        if (undertowRegistrar.isPresent()) {
+            undertowRegistrar.get().accept(
+                    CorruptionNotifierResource.undertow(corruptionComponents.remoteCorruptionDetector()));
+        } else {
+            registrar.accept(CorruptionNotifierResource.jersey(corruptionComponents.remoteCorruptionDetector()));
         }
     }
 
