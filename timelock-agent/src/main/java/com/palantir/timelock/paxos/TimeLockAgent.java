@@ -126,7 +126,6 @@ public class TimeLockAgent {
                 userAgent,
                 installationContext.sqliteDataSource());
         agent.createAndRegisterResources();
-        agent.registerTimeLockCorruptionPingers();
         return agent;
     }
 
@@ -203,6 +202,7 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
         registerClientFeedbackService();
+        registerTimeLockCorruptionNotifiers();
 
         namespaces = new TimelockNamespaces(
                 metricsManager,
@@ -244,7 +244,7 @@ public class TimeLockAgent {
         }
     }
 
-    private void registerTimeLockCorruptionPingers() {
+    private void registerTimeLockCorruptionNotifiers() {
         TimeLockCorruptionComponents corruptionComponents
                 = paxosResources.leadershipComponents().timeLockCorruptionComponents();
         if (undertowRegistrar.isPresent()) {
