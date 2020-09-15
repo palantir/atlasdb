@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.corruption;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.tokens.auth.AuthHeader;
@@ -38,17 +41,27 @@ public class LocalCorruptionHandler {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final List<TimeLockCorruptionNotifier> corruptionNotifiers;
     private final Retryer<Void> corruptionNotifyRetryer;
+    private final ExecutorService executorService;
 
     public LocalCorruptionHandler(
             List<TimeLockCorruptionNotifier> corruptionNotifiers) {
         this.corruptionNotifiers = corruptionNotifiers;
+        this.executorService = PTExecutors.newFixedThreadPool(corruptionNotifiers.size());
         this.corruptionNotifyRetryer = new Retryer<>(StopStrategies.stopAfterAttempt(5),
                 WaitStrategies.fixedWait(200, TimeUnit.MILLISECONDS),
                 attempt -> !attempt.hasResult());
     }
 
     public void notifyRemoteServersOfCorruption() {
-        corruptionNotifiers.forEach(this::reportCorruptionToRemote);
+        corruptionNotifiers.forEach(this::submitTask);
+    }
+
+    private void submitTask(TimeLockCorruptionNotifier timeLockCorruptionNotifier) {
+        try {
+            executorService.submit(() -> reportCorruptionToRemote(timeLockCorruptionNotifier));
+        } catch (RejectedExecutionException e) {
+            log.info("Request to notify remote of corruption was rejected", e);
+        }
     }
 
     private void reportCorruptionToRemote(TimeLockCorruptionNotifier notifier) {
