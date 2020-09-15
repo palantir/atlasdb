@@ -30,16 +30,15 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
-import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionHealthCheck;
-import com.palantir.atlasdb.timelock.corruption.TimeLockLocalCorruptionDetector;
-import com.palantir.atlasdb.timelock.corruption.TimeLockRemoteCorruptionDetector;
+import com.palantir.atlasdb.timelock.corruption.CorruptionHealthCheck;
+import com.palantir.atlasdb.timelock.corruption.LocalCorruptionDetector;
+import com.palantir.atlasdb.timelock.corruption.RemoteCorruptionDetector;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
-import com.palantir.timelock.corruption.TimeLockCorruptionPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.timelock.paxos.NamespaceTracker;
@@ -92,9 +91,9 @@ public class LeadershipComponents {
     }
 
     public TimeLockCorruptionComponents timeLockCorruptionComponents() {
-        TimeLockRemoteCorruptionDetector remoteCorruptionDetector = new TimeLockRemoteCorruptionDetector();
-        TimeLockCorruptionHealthCheck healthCheck = new TimeLockCorruptionHealthCheck(ImmutableList.of(
-                TimeLockLocalCorruptionDetector.create(corruptionNotifiers),
+        RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
+        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
+                LocalCorruptionDetector.create(corruptionNotifiers),
                 remoteCorruptionDetector));
         return ImmutableTimeLockCorruptionComponents.builder()
                 .timeLockCorruptionHealthCheck(healthCheck)

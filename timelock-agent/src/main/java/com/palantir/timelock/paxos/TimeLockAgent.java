@@ -44,7 +44,7 @@ import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
-import com.palantir.atlasdb.timelock.corruption.TimeLockCorruptionPingerResource;
+import com.palantir.atlasdb.timelock.corruption.CorruptionNotifierResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -249,9 +249,9 @@ public class TimeLockAgent {
                 = paxosResources.leadershipComponents().timeLockCorruptionComponents();
         if (undertowRegistrar.isPresent()) {
             undertowRegistrar.get().accept(
-                    TimeLockCorruptionPingerResource.undertow(corruptionComponents.remoteCorruptionDetector()));
+                    CorruptionNotifierResource.undertow(corruptionComponents.remoteCorruptionDetector()));
         } else {
-            registrar.accept(TimeLockCorruptionPingerResource.jersey(corruptionComponents.remoteCorruptionDetector()));
+            registrar.accept(CorruptionNotifierResource.jersey(corruptionComponents.remoteCorruptionDetector()));
         }
     }
 
