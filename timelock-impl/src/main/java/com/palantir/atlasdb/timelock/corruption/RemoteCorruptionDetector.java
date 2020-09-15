@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.timelock.corruption;
 
 public class RemoteCorruptionDetector implements CorruptionDetector {
-    private CorruptionStatus remoteCorruptionState = CorruptionStatus.HEALTHY;
+    private volatile CorruptionStatus remoteCorruptionState = CorruptionStatus.HEALTHY;
 
     public void setRemoteCorruptionState() {
         this.remoteCorruptionState = CorruptionStatus.CORRUPTION;
