@@ -1,0 +1,12 @@
+services:
+  TimeLockCorruptionNotifier:
+    name: TimeLock Corruption Notifier
+    default-auth: header
+    package: com.palantir.timelock.corruption
+    base-path: /tl/corruption
+    endpoints:
+      corruptionDetected:
+        http: POST /cd
+        docs: |
+          The endpoint receives indication of corruption on remote server and prevents local from servicing
+          all future requests on account of corruption.
