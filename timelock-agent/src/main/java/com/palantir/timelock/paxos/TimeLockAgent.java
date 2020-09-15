@@ -45,6 +45,8 @@ import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.corruption.CorruptionNotifierResource;
+import com.palantir.atlasdb.timelock.corruption.JerseyCorruptionFilter;
+import com.palantir.atlasdb.timelock.corruption.UndertowCorruptionHandlerService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
@@ -91,6 +93,7 @@ public class TimeLockAgent {
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
+    private final TimeLockCorruptionComponents corruptionComponents;
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
@@ -183,6 +186,7 @@ public class TimeLockAgent {
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler(metricsManager, () -> runtime.get().adjudication().enabled());
+        this.corruptionComponents = paxosResources.leadershipComponents().timeLockCorruptionComponents();
     }
 
     private TimestampCreator getTimestampCreator() {
@@ -221,23 +225,30 @@ public class TimeLockAgent {
                 = namespace -> namespaces.get(namespace).getLockService();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
-            presentUndertowRegistrar.accept(ConjureTimelockResource.undertow(
-                    redirectRetryTargeter(), asyncTimelockServiceGetter));
-            presentUndertowRegistrar.accept(ConjureLockWatchingResource.undertow(
-                    redirectRetryTargeter(), asyncTimelockServiceGetter));
-            presentUndertowRegistrar.accept(ConjureLockV1Resource.undertow(
-                    redirectRetryTargeter(), lockServiceGetter));
+            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+                    ConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+                    ConjureLockWatchingResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+                    ConjureLockV1Resource.undertow(redirectRetryTargeter(), lockServiceGetter));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
+            registrar.accept(new JerseyCorruptionFilter(corruptionComponents.timeLockCorruptionHealthCheck()));
         }
+    }
+
+    private void registerCorruptionHandlerWrappedService(Consumer<UndertowService> presentUndertowRegistrar,
+            UndertowService service) {
+        presentUndertowRegistrar.accept(
+                UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
     }
 
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockClientFeedbackResource.undertow(feedbackHandler,
-                    this::isLeaderForClient));
+            registerCorruptionHandlerWrappedService(undertowRegistrar.get(),
+                    TimeLockClientFeedbackResource.undertow(feedbackHandler, this::isLeaderForClient));
         } else {
             registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler,
                     this::isLeaderForClient));
@@ -245,8 +256,6 @@ public class TimeLockAgent {
     }
 
     private void registerTimeLockCorruptionNotifiers() {
-        TimeLockCorruptionComponents corruptionComponents
-                = paxosResources.leadershipComponents().timeLockCorruptionComponents();
         if (undertowRegistrar.isPresent()) {
             undertowRegistrar.get().accept(
                     CorruptionNotifierResource.undertow(corruptionComponents.remoteCorruptionDetector()));
@@ -266,7 +275,7 @@ public class TimeLockAgent {
     private void registerManagementResource() {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(TimeLockManagementResource.undertow(
+            registerCorruptionHandlerWrappedService(undertowRegistrar.get(), TimeLockManagementResource.undertow(
                     PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
                     namespaces,
                     redirectRetryTargeter()));
