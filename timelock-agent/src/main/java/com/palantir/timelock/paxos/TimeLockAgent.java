@@ -239,12 +239,6 @@ public class TimeLockAgent {
         }
     }
 
-    private void registerCorruptionHandlerWrappedService(Consumer<UndertowService> presentUndertowRegistrar,
-            UndertowService service) {
-        presentUndertowRegistrar.accept(
-                UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
-    }
-
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(undertowRegistrar.get(),
@@ -285,6 +279,12 @@ public class TimeLockAgent {
                     namespaces,
                     redirectRetryTargeter()));
         }
+    }
+
+    private void registerCorruptionHandlerWrappedService(Consumer<UndertowService> presentUndertowRegistrar,
+            UndertowService service) {
+        presentUndertowRegistrar.accept(
+                UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
     }
 
     @SuppressWarnings("unused") // used by external health checks
