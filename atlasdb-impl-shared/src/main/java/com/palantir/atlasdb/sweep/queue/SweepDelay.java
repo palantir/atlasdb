@@ -49,6 +49,14 @@ class SweepDelay {
         this.currentPause = new AtomicLong(initialPause);
     }
 
+    long getInitialPause() {
+        return initialPause;
+    }
+
+    long getMaxPause() {
+        return maxPauseMillis;
+    }
+
     long getNextPause(SweepIterationResult result) {
         return SweepIterationResults.caseOf(result)
                 .success(this::updateCurrentPauseAndGet)

@@ -23,7 +23,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.lock.LockResource;
 
 public class LockWithoutTimelockEteTest {
-    private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
+    private LockResource lockResource = EteSetup.createClientToSingleNodeWithExtendedTimeout(LockResource.class);
 
     @Test
     public void hugeV1LockSucceeds() throws InterruptedException {
