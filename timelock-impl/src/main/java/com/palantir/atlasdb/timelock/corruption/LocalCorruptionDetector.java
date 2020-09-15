@@ -62,7 +62,6 @@ public class LocalCorruptionDetector implements CorruptionDetector {
     private void killTimeLock() {
         localCorruptionState = CorruptionStatus.CORRUPTION;
         corruptionHandler.notifyRemoteServersOfCorruption();
-        executor.shutdown();
     }
 
     private boolean detectedSignsOfCorruption() {
