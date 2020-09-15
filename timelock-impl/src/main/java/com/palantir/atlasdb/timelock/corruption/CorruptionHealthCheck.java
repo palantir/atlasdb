@@ -16,17 +16,16 @@
 
 package com.palantir.atlasdb.timelock.corruption;
 
-public enum TimeLockCorruptionStatus {
-    HEALTHY(false),
-    CORRUPTION(true);
+import java.util.List;
 
-    private boolean hasCorruption;
+public class CorruptionHealthCheck {
+    private final List<CorruptionDetector> corruptionDetectors;
 
-    TimeLockCorruptionStatus(boolean hasCorruption) {
-        this.hasCorruption = hasCorruption;
+    public CorruptionHealthCheck(List<CorruptionDetector> corruptionDetectors) {
+        this.corruptionDetectors = corruptionDetectors;
     }
 
-    public boolean hasCorruption() {
-        return hasCorruption;
+    public boolean isHealthy() {
+        return corruptionDetectors.stream().noneMatch(CorruptionDetector::hasDetectedCorruption);
     }
 }

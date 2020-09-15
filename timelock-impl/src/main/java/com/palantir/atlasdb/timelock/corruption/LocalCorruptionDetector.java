@@ -21,39 +21,31 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.timelock.corruption.TimeLockCorruptionPinger;
-import com.palantir.tokens.auth.AuthHeader;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 
-public class TimeLockLocalCorruptionDetector implements CorruptionDetector {
-    private static final Logger log = LoggerFactory.getLogger(
-            TimeLockLocalCorruptionDetector.class);
-
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
+public class LocalCorruptionDetector implements CorruptionDetector {
     private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
     private static final String CORRUPTION_DETECTOR_THREAD_PREFIX = "timelock-corruption-detector";
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
-    private final List<TimeLockCorruptionPinger> corruptionPingers;
+    private final LocalCorruptionHandler corruptionHandler;
 
-    private TimeLockCorruptionStatus localCorruptionState = TimeLockCorruptionStatus.HEALTHY;
+    private volatile CorruptionStatus localCorruptionState = CorruptionStatus.HEALTHY;
 
-    public static TimeLockLocalCorruptionDetector create(List<TimeLockCorruptionPinger> corruptionPingers) {
-        TimeLockLocalCorruptionDetector timeLockLocalCorruptionDetector
-                = new TimeLockLocalCorruptionDetector(corruptionPingers);
+    public static LocalCorruptionDetector create(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+        LocalCorruptionDetector localCorruptionDetector
+                = new LocalCorruptionDetector(corruptionNotifiers);
 
 //        TODO(snanda) - uncomment when TL corruption detection goes live
 //        timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
-        return timeLockLocalCorruptionDetector;
+        return localCorruptionDetector;
     }
 
-    private TimeLockLocalCorruptionDetector(List<TimeLockCorruptionPinger> corruptionPingers) {
-        this.corruptionPingers = corruptionPingers;
+    private LocalCorruptionDetector(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+        this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }
 
     private void scheduleWithFixedDelay() {
@@ -68,20 +60,9 @@ public class TimeLockLocalCorruptionDetector implements CorruptionDetector {
     }
 
     private void killTimeLock() {
-        corruptionPingers.forEach(this::reportCorruptionToRemote);
-        localDetectedCorruption();
-    }
-
-    private void localDetectedCorruption() {
-        localCorruptionState = TimeLockCorruptionStatus.CORRUPTION;
-    }
-
-    private void reportCorruptionToRemote(TimeLockCorruptionPinger pinger) {
-        try {
-            pinger.corruptionDetected(AUTH_HEADER);
-        } catch (Exception e) {
-            log.warn("Failed to report corruption to remote.", e);
-        }
+        localCorruptionState = CorruptionStatus.CORRUPTION;
+        corruptionHandler.notifyRemoteServersOfCorruption();
+        executor.shutdown();
     }
 
     private boolean detectedSignsOfCorruption() {

@@ -1,6 +1,6 @@
 services:
-  TimeLockCorruptionPinger:
-    name: TimeLock Corruption Pinger
+  TimeLockCorruptionNotifier:
+    name: TimeLock Corruption Notifier
     default-auth: header
     package: com.palantir.timelock.corruption
     base-path: /tl/corruption

@@ -19,24 +19,24 @@ package com.palantir.atlasdb.timelock.corruption;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
-import com.palantir.timelock.corruption.TimeLockCorruptionPinger;
-import com.palantir.timelock.corruption.TimeLockCorruptionPingerEndpoints;
-import com.palantir.timelock.corruption.UndertowTimeLockCorruptionPinger;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifierEndpoints;
+import com.palantir.timelock.corruption.UndertowTimeLockCorruptionNotifier;
 import com.palantir.tokens.auth.AuthHeader;
 
-public final class TimeLockCorruptionPingerResource implements UndertowTimeLockCorruptionPinger {
-    private TimeLockRemoteCorruptionDetector remoteCorruptionDetector;
+public final class CorruptionNotifierResource implements UndertowTimeLockCorruptionNotifier {
+    private RemoteCorruptionDetector remoteCorruptionDetector;
 
-    private TimeLockCorruptionPingerResource(TimeLockRemoteCorruptionDetector remoteCorruptionDetector) {
+    private CorruptionNotifierResource(RemoteCorruptionDetector remoteCorruptionDetector) {
         this.remoteCorruptionDetector = remoteCorruptionDetector;
     }
 
-    public static UndertowService undertow(TimeLockRemoteCorruptionDetector remoteCorruptionDetector) {
-        return TimeLockCorruptionPingerEndpoints.of(new TimeLockCorruptionPingerResource(remoteCorruptionDetector));
+    public static UndertowService undertow(RemoteCorruptionDetector remoteCorruptionDetector) {
+        return TimeLockCorruptionNotifierEndpoints.of(new CorruptionNotifierResource(remoteCorruptionDetector));
     }
 
-    public static TimeLockCorruptionPinger jersey(TimeLockRemoteCorruptionDetector remoteCorruptionDetector) {
-        return new JerseyAdapter(new TimeLockCorruptionPingerResource(remoteCorruptionDetector));
+    public static TimeLockCorruptionNotifier jersey(RemoteCorruptionDetector remoteCorruptionDetector) {
+        return new JerseyAdapter(new CorruptionNotifierResource(remoteCorruptionDetector));
     }
 
     @Override
@@ -46,10 +46,10 @@ public final class TimeLockCorruptionPingerResource implements UndertowTimeLockC
     }
 
 
-    public static class JerseyAdapter implements TimeLockCorruptionPinger {
-        private final TimeLockCorruptionPingerResource delegate;
+    public static class JerseyAdapter implements TimeLockCorruptionNotifier {
+        private final CorruptionNotifierResource delegate;
 
-        private JerseyAdapter(TimeLockCorruptionPingerResource delegate) {
+        private JerseyAdapter(CorruptionNotifierResource delegate) {
             this.delegate = delegate;
         }
 
