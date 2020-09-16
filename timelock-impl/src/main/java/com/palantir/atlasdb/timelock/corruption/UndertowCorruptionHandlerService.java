@@ -38,7 +38,10 @@ public class UndertowCorruptionHandlerService implements UndertowService {
             if (healthCheck.isHealthy()) {
                 handler.handleRequest(exchange);
             } else {
-                throw new ServiceNotAvailableException("TimeLock is not available on account of data corruption.");
+                exchange.setStatusCode(StatusCodes.SERVICE_UNAVAILABLE);
+                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
+                exchange.getResponseSender().send("TimeLock is not available on account of data corruption.");
+                exchange.endExchange();
             }
         };
     }
