@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.corruption;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 @PreMatching
@@ -32,8 +33,10 @@ public class JerseyCorruptionFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) {
         if (!healthCheck.isHealthy()) {
-            requestContext.abortWith(Response.status(Response.Status.SERVICE_UNAVAILABLE)
-                    .entity("TimeLock is not available on account of data corruption.").build());
+            requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(Constants.CORRUPTION_MESSAGE)
+                    .build());
         }
     }
 }

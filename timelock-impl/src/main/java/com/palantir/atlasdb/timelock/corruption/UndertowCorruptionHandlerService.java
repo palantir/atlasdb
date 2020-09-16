@@ -19,12 +19,13 @@ package com.palantir.atlasdb.timelock.corruption;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.undertow.lib.Endpoint;
 import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 
 import io.undertow.server.HandlerWrapper;
+import io.undertow.util.Headers;
+import io.undertow.util.StatusCodes;
 
 public class UndertowCorruptionHandlerService implements UndertowService {
     private final UndertowService delegate;
@@ -39,8 +40,8 @@ public class UndertowCorruptionHandlerService implements UndertowService {
                 handler.handleRequest(exchange);
             } else {
                 exchange.setStatusCode(StatusCodes.SERVICE_UNAVAILABLE);
-                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
-                exchange.getResponseSender().send("TimeLock is not available on account of data corruption.");
+                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+                exchange.getResponseSender().send(Constants.CORRUPTION_MESSAGE);
                 exchange.endExchange();
             }
         };
