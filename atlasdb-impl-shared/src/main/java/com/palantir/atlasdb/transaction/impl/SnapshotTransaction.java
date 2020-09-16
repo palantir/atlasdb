@@ -339,8 +339,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public void markTableRead(TableReference tableRef) {
-        hasReads = true;
+    public void markTableInvolved(TableReference tableRef) {
+        // Not setting hasReads on purpose.
         checkGetPreconditions(tableRef);
     }
 
@@ -1635,13 +1635,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void commitWrites(TransactionService transactionService) {
         if (!hasWrites()) {
-            if (hasReads()) {
+            if (hasReads() || hasAnyInvolvedTables()) {
                 // verify any pre-commit conditions on the transaction
                 preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
-                if (validationNecessaryForInvolvedTablesOnCommit()) {
+                if (validationNecessaryForInvolvedTablesOnCommit() || (!hasReads() && hasAnyInvolvedTables())) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
                 }
                 return;
@@ -2390,9 +2390,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /** The similarly-named-and-intentioned useTable method is only called on writes.
      *  This one is more comprehensive and covers read paths as well
      * (necessary because we wish to get the sweep strategies of tables in read-only transactions)
+     *
+     * A table can be involved in a transaction, even if there were no reads done on it, see #markTableInvolved.
      */
     private void markTableAsInvolvedInThisTransaction(TableReference tableRef) {
         involvedTables.add(tableRef);
+    }
+
+    private boolean hasAnyInvolvedTables() {
+        return !involvedTables.isEmpty();
     }
 
     private boolean validationNecessaryForInvolvedTablesOnCommit() {

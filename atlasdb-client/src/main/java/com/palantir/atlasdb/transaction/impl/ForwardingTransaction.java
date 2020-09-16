@@ -184,8 +184,8 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public void markTableRead(TableReference tableRef) {
-        delegate().markTableRead(tableRef);
+    public void markTableInvolved(TableReference tableRef) {
+        delegate().markTableInvolved(tableRef);
     }
 
     @Override

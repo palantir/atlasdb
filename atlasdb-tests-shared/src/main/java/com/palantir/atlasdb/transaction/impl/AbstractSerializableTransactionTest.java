@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -71,6 +70,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -80,8 +80,6 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 
@@ -1059,7 +1057,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testNoMarkTableReadSkipsPreCommitConditionChecking() {
+    public void testNoMarkTableInvolvedSkipsPreCommitConditionCheckingOnCommit() {
         PreCommitCondition condition = _ts -> {
             throw new TransactionFailedNonRetriableException("I failed");
         };
@@ -1068,37 +1066,65 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMarkTableReadForcesPreCommitConditionChecking() {
+    public void testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommit() {
         TransactionFailedNonRetriableException exception = new TransactionFailedNonRetriableException("I failed");
         PreCommitCondition condition = mock(PreCommitCondition.class);
         doThrow(exception).when(condition).throwIfConditionInvalid(anyLong());
 
         Transaction t1 = startTransactionWithOptions(new TransactionOptions().withCondition(condition));
         long startTs = t1.getTimestamp();
-        t1.markTableRead(TEST_TABLE);
+        t1.markTableInvolved(TEST_TABLE);
 
         assertThatThrownBy(t1::commit).isEqualTo(exception);
         verify(condition).throwIfConditionInvalid(startTs);
     }
 
     @Test
-    public void testNoMarkTableReadSkipsLockChecks() {
-        LockToken lockToken = timelockService.lockImmutableTimestamp().getLock();
+    public void testNoMarkTableInvolvedSkipsLockChecksOnCommit() {
+        LockToken lockToken = lockImmutableTimestamp();
         Transaction t1 = startTransactionWithOptions(new TransactionOptions().withImmutableLockToken(lockToken));
 
-        assertThat(timelockService.unlock(Collections.singleton(lockToken))).containsExactlyInAnyOrder(lockToken);
+        unlockImmutableLock(lockToken);
+
         t1.commit();
     }
 
     @Test
-    public void testMarkTableReadChecksLocksForExpiry() {
-        LockToken lockToken = timelockService.lockImmutableTimestamp().getLock();
+    public void testMarkTableInvolvedChecksLocksForExpiryOnCommit() {
+        LockToken lockToken = lockImmutableTimestamp();
 
         Transaction t1 = startTransactionWithOptions(new TransactionOptions().withImmutableLockToken(lockToken));
-        t1.markTableRead(TEST_TABLE);
+        t1.markTableInvolved(TEST_TABLE);
 
-        assertThat(timelockService.unlock(Collections.singleton(lockToken))).containsExactlyInAnyOrder(lockToken);
+        unlockImmutableLock(lockToken);
+
+        assertThatThrownBy(t1::commit).isExactlyInstanceOf(TransactionLockTimeoutException.class);
+    }
+
+    @Test
+    public void testMarkTableInvolvedSkipsLockChecksOnCommitIfReadDoneDuringTransaction() {
+        byte[] row = PtBytes.toBytes("row1");
+        LockToken lockToken = lockImmutableTimestamp();
+
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withImmutableLockToken(lockToken));
+
+        // Do a read so that immutable lock check happens here
+        t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        t1.markTableInvolved(TEST_TABLE);
+
+        unlockImmutableLock(lockToken);
+
+        // Because a read was done, we do not redo lock checks
         t1.commit();
+    }
+
+    private LockToken lockImmutableTimestamp() {
+        return timelockService.lockImmutableTimestamp().getLock();
+    }
+
+    private void unlockImmutableLock(LockToken lockToken) {
+        assertThat(timelockService.unlock(Collections.singleton(lockToken))).containsExactlyInAnyOrder(lockToken);
     }
 
     private void writeColumns() {

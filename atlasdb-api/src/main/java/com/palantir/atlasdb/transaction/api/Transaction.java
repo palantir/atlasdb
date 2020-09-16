@@ -343,10 +343,10 @@ public interface Transaction {
     }
 
     /**
-     * Marks this table as read, without actually reading any rows.
+     * Marks this table as involved in this transaction, without actually reading any rows.
      */
     @Idempotent
-    default void markTableRead(TableReference tableRef) {
+    default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
 }
