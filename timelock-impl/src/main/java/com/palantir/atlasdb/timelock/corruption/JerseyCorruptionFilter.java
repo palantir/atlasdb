@@ -32,7 +32,7 @@ public class JerseyCorruptionFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) {
         if (!healthCheck.isHealthy()) {
-            requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            requestContext.abortWith(Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .entity("TimeLock is not available on account of data corruption.").build());
         }
     }
