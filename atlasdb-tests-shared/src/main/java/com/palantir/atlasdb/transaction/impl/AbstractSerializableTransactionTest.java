@@ -16,13 +16,20 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -60,7 +67,9 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -72,6 +81,9 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.Preconditions;
 
 @SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -104,6 +116,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected Transaction startTransaction() {
+        return startTransactionWithOptions(new TransactionOptions());
+    }
+
+    private Transaction startTransactionWithOptions(TransactionOptions options) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE,
@@ -112,7 +128,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                timelockService,
                 NoOpLockWatchManager.INSTANCE,
                 transactionService,
                 NoOpCleaner.INSTANCE,
@@ -120,8 +136,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
-                Optional.empty(),
-                PreCommitConditions.NO_OP,
+                options.immutableLockToken,
+                options.condition,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -140,6 +156,23 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 return Maps.transformValues(map, input -> input.clone());
             }
         };
+    }
+
+    private static final class TransactionOptions {
+        private PreCommitCondition condition = PreCommitConditions.NO_OP;
+        private Optional<LockToken> immutableLockToken = Optional.empty();
+
+
+        public TransactionOptions withCondition(PreCommitCondition newCondition) {
+            this.condition = Preconditions.checkNotNull(newCondition, "newCondition");
+            return this;
+        }
+
+        public TransactionOptions withImmutableLockToken(LockToken newImmutableLockToken) {
+            this.immutableLockToken = Optional.of(
+                    Preconditions.checkNotNull(newImmutableLockToken, "newImmutableLockToken"));
+            return this;
+        }
     }
 
     protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
@@ -1023,6 +1056,49 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t3.commit();
 
         t2.commit();
+    }
+
+    @Test
+    public void testNoMarkTableReadSkipsPreCommitConditionChecking() {
+        PreCommitCondition condition = _ts -> {
+            throw new TransactionFailedNonRetriableException("I failed");
+        };
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withCondition(condition));
+        t1.commit();
+    }
+
+    @Test
+    public void testMarkTableReadForcesPreCommitConditionChecking() {
+        TransactionFailedNonRetriableException exception = new TransactionFailedNonRetriableException("I failed");
+        PreCommitCondition condition = mock(PreCommitCondition.class);
+        doThrow(exception).when(condition).throwIfConditionInvalid(anyLong());
+
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withCondition(condition));
+        long startTs = t1.getTimestamp();
+        t1.markTableRead(TEST_TABLE);
+
+        assertThatThrownBy(t1::commit).isEqualTo(exception);
+        verify(condition).throwIfConditionInvalid(startTs);
+    }
+
+    @Test
+    public void testNoMarkTableReadSkipsLockChecks() {
+        LockToken lockToken = timelockService.lockImmutableTimestamp().getLock();
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withImmutableLockToken(lockToken));
+
+        assertThat(timelockService.unlock(Collections.singleton(lockToken))).containsExactlyInAnyOrder(lockToken);
+        t1.commit();
+    }
+
+    @Test
+    public void testMarkTableReadChecksLocksForExpiry() {
+        LockToken lockToken = timelockService.lockImmutableTimestamp().getLock();
+
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withImmutableLockToken(lockToken));
+        t1.markTableRead(TEST_TABLE);
+
+        assertThat(timelockService.unlock(Collections.singleton(lockToken))).containsExactlyInAnyOrder(lockToken);
+        t1.commit();
     }
 
     private void writeColumns() {

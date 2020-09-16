@@ -341,4 +341,12 @@ public interface Transaction {
     default void disableReadWriteConflictChecking(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Marks this table as read, without actually reading any rows.
+     */
+    @Idempotent
+    default void markTableRead(TableReference tableRef) {
+        throw new UnsupportedOperationException();
+    }
 }

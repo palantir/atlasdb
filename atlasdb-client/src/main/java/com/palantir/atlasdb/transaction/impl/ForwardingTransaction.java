@@ -184,6 +184,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public void markTableRead(TableReference tableRef) {
+        delegate().markTableRead(tableRef);
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return delegate().getAsync(tableRef, cells);
     }

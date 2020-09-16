@@ -339,6 +339,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    public void markTableRead(TableReference tableRef) {
+        hasReads = true;
+        checkGetPreconditions(tableRef);
+    }
+
+    @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
