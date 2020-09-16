@@ -33,7 +33,7 @@ public class JerseyCorruptionFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) {
         if (!healthCheck.isHealthy()) {
-            requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            requestContext.abortWith(Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .type(MediaType.APPLICATION_JSON)
                     .entity(Constants.CORRUPTION_MESSAGE)
                     .build());
