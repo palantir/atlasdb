@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Transaction#markTableInvolved.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4968
