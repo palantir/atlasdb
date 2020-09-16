@@ -1066,17 +1066,13 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommit() {
-        TransactionFailedNonRetriableException exception = new TransactionFailedNonRetriableException("I failed");
-        PreCommitCondition condition = mock(PreCommitCondition.class);
-        doThrow(exception).when(condition).throwIfConditionInvalid(anyLong());
+    public void testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommitForNonThoroughTable() {
+        testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommit(TEST_TABLE);
+    }
 
-        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withCondition(condition));
-        long startTs = t1.getTimestamp();
-        t1.markTableInvolved(TEST_TABLE);
-
-        assertThatThrownBy(t1::commit).isEqualTo(exception);
-        verify(condition).throwIfConditionInvalid(startTs);
+    @Test
+    public void testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommitForThoroughTable() {
+        testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommit(TEST_TABLE_THOROUGH);
     }
 
     @Test
@@ -1090,15 +1086,17 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMarkTableInvolvedChecksLocksForExpiryOnCommit() {
-        LockToken lockToken = lockImmutableTimestamp();
+    public void testMarkTableInvolvedChecksLocksForExpiryOnCommitWhenRequired() {
+        // Test table is thorough, therefore we check immutable timestamp lock
+        assertThatThrownBy(
+                () -> testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE_THOROUGH)).isExactlyInstanceOf(
+                TransactionLockTimeoutException.class);
+    }
 
-        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withImmutableLockToken(lockToken));
-        t1.markTableInvolved(TEST_TABLE);
-
-        unlockImmutableLock(lockToken);
-
-        assertThatThrownBy(t1::commit).isExactlyInstanceOf(TransactionLockTimeoutException.class);
+    @Test
+    public void testMarkTableInvolvedDoesNoCheckLocksForExpiryOnCommitWhenNotRequired() {
+        // Test table is not thorough, therefore no immutable timestamp lock checking
+        testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE);
     }
 
     @Test
@@ -1116,6 +1114,30 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         unlockImmutableLock(lockToken);
 
         // Because a read was done, we do not redo lock checks
+        t1.commit();
+    }
+
+    private void testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommit(TableReference table) {
+        TransactionFailedNonRetriableException exception = new TransactionFailedNonRetriableException("I failed");
+        PreCommitCondition condition = mock(PreCommitCondition.class);
+        doThrow(exception).when(condition).throwIfConditionInvalid(anyLong());
+
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withCondition(condition));
+        long startTs = t1.getTimestamp();
+        t1.markTableInvolved(table);
+
+        assertThatThrownBy(t1::commit).isEqualTo(exception);
+        verify(condition).throwIfConditionInvalid(startTs);
+    }
+
+    private void testMarkTableInvolvedLockChecksForExpiryOnCommit(TableReference tableReference) {
+        LockToken lockToken = lockImmutableTimestamp();
+
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions().withImmutableLockToken(lockToken));
+        t1.markTableInvolved(tableReference);
+
+        unlockImmutableLock(lockToken);
+
         t1.commit();
     }
 
