@@ -203,10 +203,11 @@ public class TimeLockAgent {
     }
 
     private void createAndRegisterResources() {
+        registerTimeLockCorruptionJerseyFilter();
+        registerTimeLockCorruptionNotifiers();
         registerPaxosResource();
         registerExceptionMappers();
         registerClientFeedbackService();
-        registerTimeLockCorruptionNotifiers();
 
         namespaces = new TimelockNamespaces(
                 metricsManager,
@@ -235,7 +236,6 @@ public class TimeLockAgent {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
-            registrar.accept(new JerseyCorruptionFilter(corruptionComponents.timeLockCorruptionHealthCheck()));
         }
     }
 
@@ -251,7 +251,7 @@ public class TimeLockAgent {
 
     private void registerTimeLockCorruptionNotifiers() {
         if (undertowRegistrar.isPresent()) {
-            undertowRegistrar.get().accept(
+            registerCorruptionHandlerWrappedService(undertowRegistrar.get(),
                     CorruptionNotifierResource.undertow(corruptionComponents.remoteCorruptionDetector()));
         } else {
             registrar.accept(CorruptionNotifierResource.jersey(corruptionComponents.remoteCorruptionDetector()));
@@ -278,6 +278,12 @@ public class TimeLockAgent {
                     PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
                     namespaces,
                     redirectRetryTargeter()));
+        }
+    }
+
+    private void registerTimeLockCorruptionJerseyFilter() {
+        if (!undertowRegistrar.isPresent()) {
+            registrar.accept(new JerseyCorruptionFilter(corruptionComponents.timeLockCorruptionHealthCheck()));
         }
     }
 
