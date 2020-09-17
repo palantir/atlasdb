@@ -339,6 +339,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    public void markTableInvolved(TableReference tableRef) {
+        // Not setting hasReads on purpose.
+        checkGetPreconditions(tableRef);
+    }
+
+    @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
@@ -933,10 +939,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
         return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef);
-    }
-
-    private boolean isValidationNecessaryOnCommit(TableReference tableRef) {
-        return !validateLocksOnReads && requiresImmutableTimestampLocking(tableRef);
     }
 
     private boolean requiresImmutableTimestampLocking(TableReference tableRef) {
@@ -1629,7 +1631,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void commitWrites(TransactionService transactionService) {
         if (!hasWrites()) {
-            if (hasReads()) {
+            if (hasReads() || hasAnyInvolvedTables()) {
                 // verify any pre-commit conditions on the transaction
                 preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
 
@@ -2384,13 +2386,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /** The similarly-named-and-intentioned useTable method is only called on writes.
      *  This one is more comprehensive and covers read paths as well
      * (necessary because we wish to get the sweep strategies of tables in read-only transactions)
+     *
+     * A table can be involved in a transaction, even if there were no reads done on it, see #markTableInvolved.
      */
     private void markTableAsInvolvedInThisTransaction(TableReference tableRef) {
         involvedTables.add(tableRef);
     }
 
+    private boolean hasAnyInvolvedTables() {
+        return !involvedTables.isEmpty();
+    }
+
     private boolean validationNecessaryForInvolvedTablesOnCommit() {
-        return involvedTables.stream().anyMatch(this::isValidationNecessaryOnCommit);
+        boolean anyTableRequiresImmutableTimestampLocking = involvedTables.stream().anyMatch(
+                this::requiresImmutableTimestampLocking);
+        boolean needsToValidate = !validateLocksOnReads || !hasReads();
+        return anyTableRequiresImmutableTimestampLocking && needsToValidate;
     }
 
     private long getStartTimestamp() {

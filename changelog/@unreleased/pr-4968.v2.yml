@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Add Transaction#markTableInvolved API for atlasdb-proxy internal
+  usecase of externalized LockWatch cache.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4968
