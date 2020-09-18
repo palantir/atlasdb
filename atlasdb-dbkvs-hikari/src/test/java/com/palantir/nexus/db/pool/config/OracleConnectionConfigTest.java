@@ -19,6 +19,11 @@ package com.palantir.nexus.db.pool.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Properties;
+
 import org.junit.Test;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -83,6 +88,71 @@ public class OracleConnectionConfigTest {
                 .serviceNameConfiguration(SERVICE_NAME_CONFIGURATION)
                 .build();
         assertThat(connectionConfig.namespace()).contains(SERVICE_NAME_CONFIGURATION.namespaceOverride());
+    }
+
+    @Test
+    public void settingKeyAndTrustStoresAllowedWithoutTcps() {
+        OracleConnectionConfig connectionConfig = getBaseBuilder()
+                .sid(SID)
+                .truststorePath("truststore.jks")
+                .truststorePassword("password")
+                .keystorePath("keystore.jks")
+                .keystorePassword("password")
+                .build();
+        assertThat(connectionConfig.getProtocol())
+                .isEqualTo(ConnectionProtocol.TCP);
+        assertThat(connectionConfig.getTruststorePath())
+                .isEqualTo(Optional.of("truststore.jks"));
+        assertThat(connectionConfig.getKeystorePath())
+                .isEqualTo(Optional.of("keystore.jks"));
+        assertThat(connectionConfig.getTruststorePassword())
+                .isEqualTo(Optional.of("password"));
+        assertThat(connectionConfig.getKeystorePassword())
+                .isEqualTo(Optional.of("password"));
+
+        // note that even though keystore/truststore are set, none of the javax.net.ssl. properties will be set
+        // since the protocol is TCP
+        Properties hikariProperties = connectionConfig.getHikariProperties();
+        assertThat(hikariProperties.stringPropertyNames())
+                .noneMatch(prop -> prop.startsWith("javax.net.ssl."));
+    }
+
+    @Test
+    public void tcpsSetsTrustStore() throws IOException {
+        File truststoreFile = new File("truststore.jks");
+        boolean truststoreFileCreated = truststoreFile.createNewFile();
+        try {
+            OracleConnectionConfig connectionConfig = getBaseBuilder()
+                    .sid(SID)
+                    .protocol(ConnectionProtocol.TCPS)
+                    .truststorePath("truststore.jks")
+                    .truststorePassword("password")
+                    .keystorePath("keystore.jks")
+                    .keystorePassword("password")
+                    .build();
+
+            assertThat(connectionConfig.getProtocol())
+                    .isEqualTo(ConnectionProtocol.TCPS);
+            assertThat(connectionConfig.getTruststorePath())
+                    .isEqualTo(Optional.of("truststore.jks"));
+            assertThat(connectionConfig.getKeystorePath())
+                    .isEqualTo(Optional.of("keystore.jks"));
+            assertThat(connectionConfig.getTruststorePassword())
+                    .isEqualTo(Optional.of("password"));
+            assertThat(connectionConfig.getKeystorePassword())
+                    .isEqualTo(Optional.of("password"));
+
+            Properties hikariProperties = connectionConfig.getHikariProperties();
+            assertThat(hikariProperties)
+                    .containsEntry("javax.net.ssl.trustStore", truststoreFile.getAbsolutePath())
+                    .containsEntry("javax.net.ssl.trustStorePassword", "password")
+                    .doesNotContainKeys("javax.net.ssl.keyStore", "javax.net.ssl.keyStorePassword");
+        } finally {
+            // clean up the truststore file if we created it
+            if (truststoreFileCreated) {
+                truststoreFile.delete();
+            }
+        }
     }
 
     private static OracleConnectionConfig.Builder getBaseBuilder() {
