@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    Configuring the oracle keystore/truststore is now allowed even if it
+    will not be used.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4988
