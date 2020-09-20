@@ -16,21 +16,13 @@
 
 package com.palantir.paxos;
 
-import java.util.OptionalLong;
-import java.util.Set;
 import java.util.function.Function;
 
 import javax.sql.DataSource;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
-import org.jdbi.v3.sqlobject.SingleValue;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
-import org.jdbi.v3.sqlobject.customizer.Bind;
-import org.jdbi.v3.sqlobject.customizer.BindPojo;
-import org.jdbi.v3.sqlobject.statement.SqlBatch;
-import org.jdbi.v3.sqlobject.statement.SqlQuery;
-import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.common.persist.Persistable;
 
@@ -50,14 +42,15 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
             NamespaceAndUseCase namespaceAndUseCase,
             DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
+        jdbi.getConfig(JdbiImmutables.class)
+                .registerImmutable(Client.class, PaxosRound.class, NamespaceAndUseCase.class);
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
         log.initialize();
         return log;
     }
 
     private void initialize() {
-        execute(Queries::createTable);
+        execute(SqlitePaxosStateLogQueries::createTable);
     }
 
     @Override
@@ -90,54 +83,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
         execute(dao -> dao.truncate(namespace, useCase, toDeleteInclusive));
     }
 
-    private <T> T execute(Function<Queries, T> call) {
-        return jdbi.withExtension(Queries.class, call::apply);
-    }
-
-    public interface Queries {
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS paxosLog ("
-                + "namespace TEXT,"
-                + "useCase TEXT,"
-                + "seq BIGINT,"
-                + "val BLOB,"
-                + "PRIMARY KEY(namespace, useCase, seq))")
-        boolean createTable();
-
-        @SqlUpdate("INSERT OR REPLACE INTO paxosLog (namespace, useCase, seq, val) VALUES ("
-                + ":namespace.value, :useCase, :seq, :value)")
-        boolean writeRound(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("seq") long seq,
-                @Bind("value") byte[] value);
-
-        @SqlQuery("SELECT val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq = :seq")
-        @SingleValue
-        byte[] readRound(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("seq") long seq);
-
-        @SqlQuery("SELECT MIN(seq) FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase")
-        OptionalLong getLeastLogEntry(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
-
-        @SqlQuery("SELECT MAX(seq) FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase")
-        OptionalLong getGreatestLogEntry(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
-
-        @SqlUpdate("DELETE FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq <= :seq")
-        boolean truncate(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("seq") long seq);
-
-        @SqlBatch("INSERT OR REPLACE INTO paxosLog (namespace, useCase, seq, val) VALUES ("
-                + ":namespace.value, :useCase, :round.sequence, :round.valueBytes)")
-        <V extends Persistable & Versionable> boolean[] writeBatchOfRounds(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @BindPojo("round") Iterable<PaxosRound<V>> rounds);
-
-        @SqlQuery("SELECT DISTINCT(namespace) FROM paxosLog")
-        Set<String> getAllNamespaces();
+    private <T> T execute(Function<SqlitePaxosStateLogQueries, T> call) {
+        return jdbi.withExtension(SqlitePaxosStateLogQueries.class, call::apply);
     }
 }
