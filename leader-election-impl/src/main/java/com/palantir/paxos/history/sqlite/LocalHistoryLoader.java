@@ -70,7 +70,7 @@ public class LocalHistoryLoader {
         return map;
     }
 
-    // todo repetition???? + how to use stream to do shit here???
+    // todo repetition?
     private ConcurrentSkipListMap<Long, PaxosAcceptorState> getAcceptorLogsForNamespaceAndUseCaseSince(
             NamespaceAndUseCase namespaceAndUseCase, long seq) {
         ConcurrentSkipListMap<Long, PaxosAcceptorState> map = new ConcurrentSkipListMap<>();
