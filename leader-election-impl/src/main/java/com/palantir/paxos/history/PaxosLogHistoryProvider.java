@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -30,14 +29,13 @@ import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLogQueries;
-import com.palantir.paxos.Versionable;
-import com.palantir.paxos.history.models.PaxosStateHistory;
+import com.palantir.paxos.history.models.CompletePaxosHistoryForNamespaceAndUsecase;
+import com.palantir.paxos.history.models.ImmutableCompletePaxosHistoryForNamespaceAndUsecase;
 import com.palantir.paxos.history.sqlite.LocalHistoryLoader;
 import com.palantir.paxos.history.sqlite.LogVerificationProgressState;
 
@@ -77,24 +75,24 @@ public class PaxosLogHistoryProvider {
         return -1L;
     }
 
-    public List<PaxosStateHistory<PaxosValue>> learnerPaxosHistory(
+    public List<CompletePaxosHistoryForNamespaceAndUsecase> paxosHistory(
             Map<NamespaceAndUseCase, Long> laseVerifiedSeqNamespaceAndUseCaseWise) {
-        return paxosHistory(laseVerifiedSeqNamespaceAndUseCaseWise, this::fetchLearnerRecordsForNamespaceAndUseCase);
-    }
-
-    public List<PaxosStateHistory<PaxosAcceptorState>> acceptorPaxosHistory(
-            Map<NamespaceAndUseCase, Long> laseVerifiedSeqNamespaceAndUseCaseWise) {
-        return paxosHistory(laseVerifiedSeqNamespaceAndUseCaseWise, this::fetchAcceptorRecordsForNamespaceAndUseCase);
-    }
-
-    public  <V extends Persistable & Versionable> List<PaxosStateHistory<V>> paxosHistory(
-            Map<NamespaceAndUseCase, Long> laseVerifiedSeqNamespaceAndUseCaseWise,
-            BiFunction<NamespaceAndUseCase, Long, List<ConcurrentSkipListMap<Long, V>>> callback) {
         return KeyedStream.stream(laseVerifiedSeqNamespaceAndUseCaseWise)
-                .map(callback)
                 .map(this::mapToRecord)
                 .values()
                 .collect(Collectors.toList());
+    }
+
+    private CompletePaxosHistoryForNamespaceAndUsecase mapToRecord(
+            NamespaceAndUseCase namespaceAndUseCase, long seq) {
+        List<ConcurrentSkipListMap<Long, PaxosValue>> learnerRecord
+                = fetchLearnerRecordsForNamespaceAndUseCase(namespaceAndUseCase, seq);
+        List<ConcurrentSkipListMap<Long, PaxosAcceptorState>> acceptorRecord
+                = fetchAcceptorRecordsForNamespaceAndUseCase(namespaceAndUseCase, seq);
+        return ImmutableCompletePaxosHistoryForNamespaceAndUsecase.of(namespaceAndUseCase.namespace(),
+                namespaceAndUseCase.useCase(),
+                learnerRecord,
+                acceptorRecord);
     }
 
     private List<ConcurrentSkipListMap<Long, PaxosValue>> fetchLearnerRecordsForNamespaceAndUseCase(
@@ -109,9 +107,4 @@ public class PaxosLogHistoryProvider {
         return ImmutableList.of(localHistoryLoader.getAcceptorLogsForNamespaceAndUseCaseSince(namespaceAndUseCase, seq));
     }
 
-    private <V extends Persistable & Versionable> PaxosStateHistory<V>  mapToRecord(
-            NamespaceAndUseCase namespaceAndUseCase,
-            List<ConcurrentSkipListMap<Long, V>> map) {
-        return ImmutablePaxosStateHistory.of(namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase(), map);
-    }
 }
