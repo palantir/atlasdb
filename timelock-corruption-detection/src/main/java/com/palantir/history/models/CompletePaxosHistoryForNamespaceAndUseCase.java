@@ -23,6 +23,13 @@ import org.immutables.value.Value;
 
 import com.palantir.paxos.Client;
 
+/**
+ * Data structure to contain Paxos learner and acceptor state values against sequence numbers
+ * across all nodes for ({@link Client}, useCase) pair.
+ *
+ * Note - The useCase string here only contains the prefix
+ * e.g. clientPaxos as opposed to clientPaxos!learner / clientPaxos!acceptor
+ */
 @Value.Immutable
 public interface CompletePaxosHistoryForNamespaceAndUseCase {
     @Value.Parameter

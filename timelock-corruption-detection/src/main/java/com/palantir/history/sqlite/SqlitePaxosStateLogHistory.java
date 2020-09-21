@@ -80,14 +80,16 @@ public final class SqlitePaxosStateLogHistory {
         Set<NamespaceAndUseCase> getAllNamespaceAndUseCaseTuples();
 
         @SqlQuery("SELECT seq, val FROM paxosLog "
-                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq")
+                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
+                + "ORDER BY seq ASC LIMIT 500")
         Set<PaxosRound<PaxosValue>> getLearnerLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("seq") long seq);
 
         @SqlQuery("SELECT seq, val FROM paxosLog "
-                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq")
+                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
+                + "ORDER BY seq ASC LIMIT 500")
         Set<PaxosRound<PaxosAcceptorState>> getAcceptorLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
