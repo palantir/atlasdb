@@ -196,16 +196,6 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         } else {
             Preconditions.checkArgument(!getTwoWaySsl(),
                     "two way ssl cannot be enabled without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getServerDn().isPresent(),
-                    "a server dn cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getTruststorePath().isPresent(),
-                    "a truststore path cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getTruststorePassword().isPresent(),
-                    "a truststore password cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getKeystorePath().isPresent(),
-                    "a keystore file cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getKeystorePassword().isPresent(),
-                    "a keystore password without enabling ConnectionProtocol.TCPS");
         }
     }
 
