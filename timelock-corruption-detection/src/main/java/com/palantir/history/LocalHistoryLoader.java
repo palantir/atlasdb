@@ -35,7 +35,7 @@ import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.Versionable;
 
 //TBD cache implementation
-public class LocalHistoryLoader {
+public final class LocalHistoryLoader {
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
 
     private LocalHistoryLoader(SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory) {

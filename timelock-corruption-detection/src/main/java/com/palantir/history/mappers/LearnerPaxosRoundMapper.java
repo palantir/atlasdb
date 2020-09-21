@@ -25,7 +25,7 @@ import org.jdbi.v3.core.statement.StatementContext;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosValue;
 
-public class LearnerPaxosRoundMapper implements RowMapper<PaxosRound<PaxosValue>>{
+public class LearnerPaxosRoundMapper implements RowMapper<PaxosRound<PaxosValue>> {
     @Override
     public PaxosRound<PaxosValue> map(ResultSet rs, StatementContext ctx) throws SQLException {
         PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
