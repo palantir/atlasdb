@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: We now log a WARN log line if both plain TCP is used and security settings
+    are present in an Oracle connection config, but allow the system to proceed. Please
+    verify that this is OK if you see this line.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4990
