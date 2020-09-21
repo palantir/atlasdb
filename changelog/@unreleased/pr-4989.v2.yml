@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Mechanism to load Paxos state log history from Sqlite.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4989
