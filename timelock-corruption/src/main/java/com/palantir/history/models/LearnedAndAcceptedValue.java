@@ -16,21 +16,18 @@
 
 package com.palantir.history.models;
 
-import java.util.List;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.PaxosValue;
 
 @Value.Immutable
-public interface CompletePaxosHistoryForNamespaceAndUsecase {
+public interface LearnedAndAcceptedValue {
     @Value.Parameter
-    Client namespace();
+    Optional<PaxosValue> learnedValue();
 
     @Value.Parameter
-    String useCase();
-
-    @Value.Parameter
-    List<ConcurrentSkipListMap<Long, LearnedAndAcceptedValue>> localAndRemoteLearnerAndAcceptorRecords();
+    Optional<PaxosAcceptorState> acceptedValue();
 }
