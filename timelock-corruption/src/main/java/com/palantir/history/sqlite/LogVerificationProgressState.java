@@ -72,9 +72,9 @@ public final class LogVerificationProgressState {
         boolean updateProgress(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
-                @Bind("version") long version);
+                @Bind("seq") long seq);
 
-        @SqlQuery("SELECT version FROM log_verification_progress "
+        @SqlQuery("SELECT seq FROM log_verification_progress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
         Optional<Long> getLastVerifiedSeq(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
