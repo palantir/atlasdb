@@ -10,8 +10,4 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile (group: 'org.mockito', name: 'mockito-core') {
-        // Mockito version doesn't agree with our JUnit version
-        exclude group: 'org.hamcrest', module: 'hamcrest-core'
-    }
 }

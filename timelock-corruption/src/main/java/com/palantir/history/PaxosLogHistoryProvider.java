@@ -46,19 +46,19 @@ public class PaxosLogHistoryProvider {
     private static final long INITIAL_PROGRESS = -1L;
 
     public PaxosLogHistoryProvider(DataSource dataSource) {
-        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        init(jdbi);
-        this.jdbi = jdbi;
+        this.jdbi = init(dataSource);
         this.logVerificationProgressState = LogVerificationProgressState.create(dataSource);
         this.localHistoryLoader = LocalHistoryLoader.create(dataSource);
         this.dataSource = dataSource;
     }
 
-    public void init(Jdbi jdbi) {
+    private Jdbi init(DataSource dataSource) {
+        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.withExtension(SqlitePaxosStateLogQueries.class, SqlitePaxosStateLogQueries::createTable);
+        return jdbi;
     }
 
-    public Set<NamespaceAndUseCase> getNamespaceAndUseCaseTuples() {
+    private Set<NamespaceAndUseCase> getNamespaceAndUseCaseTuples() {
         return jdbi.withExtension(SqlitePaxosStateLogQueries.class,
                 SqlitePaxosStateLogQueries::getAllNamespaceAndUseCaseTuples);
     }
