@@ -18,9 +18,7 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
-import static com.palantir.paxos.PaxosStateLogTestUtils.wrap;
-
+import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -38,6 +36,7 @@ import org.junit.rules.TemporaryFolder;
 import com.palantir.history.mappers.LearnerPaxosRoundMapper;
 import com.palantir.history.mappers.NamespaceAndUseCaseMapper;
 import com.palantir.paxos.Client;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosStateLog;
@@ -60,7 +59,7 @@ public class SqliteHistoryQueryTest {
     @Before
     public void setup() {
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
-        stateLog = SqlitePaxosStateLog.create(wrap(CLIENT, USE_CASE), dataSource);
+        stateLog = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), dataSource);
 
         jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
@@ -82,7 +81,7 @@ public class SqliteHistoryQueryTest {
     public void canGetAllUniquePairsOfNamespaceAndClient() {
         IntStream.range(0, 100).forEach(i -> {
             PaxosStateLog<PaxosValue> otherLog
-                    = SqlitePaxosStateLog.create(wrap(Client.of("client" + i), USE_CASE), dataSource);
+                    = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(Client.of("client" + i), USE_CASE), dataSource);
             writeValueForLogAndRound(otherLog, 1L);
         });
         Set<NamespaceAndUseCase> namespaceAndUseCases = jdbi.withExtension(SqlitePaxosStateLogQueries.class,
@@ -91,8 +90,14 @@ public class SqliteHistoryQueryTest {
     }
 
     private PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
-        PaxosValue paxosValue = valueForRound(round);
+        PaxosValue paxosValue = new PaxosValue("leaderUuid", round, longToBytes(round));
         log.writeRound(round, paxosValue);
         return paxosValue;
+    }
+
+    private byte[] longToBytes(long value) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(value);
+        return buffer.array();
     }
 }
