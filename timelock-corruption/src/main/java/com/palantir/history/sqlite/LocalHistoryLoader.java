@@ -17,8 +17,8 @@
 package com.palantir.history.sqlite;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
@@ -35,10 +35,11 @@ import com.palantir.history.models.LearnerAndAcceptorRecords;
 import com.palantir.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLogQueries;
 
-//todo caching
+//TBD cache implementation
 public class LocalHistoryLoader {
     private final Jdbi jdbi;
 
@@ -57,7 +58,6 @@ public class LocalHistoryLoader {
         return new LocalHistoryLoader(jdbi);
     }
 
-    // todo maybe refactor?
     public PaxosHistoryOnSingleNode getLocalPaxosHistory(
             Map<NamespaceAndUseCase, Long> laseVerifiedSeqNamespaceAndUseCaseWise) {
         return ImmutablePaxosHistoryOnSingleNode.of(KeyedStream.stream(laseVerifiedSeqNamespaceAndUseCaseWise)
@@ -66,26 +66,25 @@ public class LocalHistoryLoader {
     }
 
     private LearnerAndAcceptorRecords loadLocalHistory(NamespaceAndUseCase namespaceAndUseCase, Long seq) {
-        return ImmutableLearnerAndAcceptorRecords.of(getLearnerLogsForNamespaceAndUseCaseSince(namespaceAndUseCase, seq),
+        return ImmutableLearnerAndAcceptorRecords.of(
+                getLearnerLogsForNamespaceAndUseCaseSince(namespaceAndUseCase, seq),
                 getAcceptorLogsForNamespaceAndUseCaseSince(namespaceAndUseCase, seq));
     }
 
-    private ConcurrentSkipListMap<Long, PaxosValue> getLearnerLogsForNamespaceAndUseCaseSince(
+    private Map<Long, PaxosValue> getLearnerLogsForNamespaceAndUseCaseSince(
             NamespaceAndUseCase namespaceAndUseCase, long seq) {
-        ConcurrentSkipListMap<Long, PaxosValue> map = new ConcurrentSkipListMap<>();
-        execute(dao -> dao.getLearnerLogsSince(namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase(), seq))
-                .forEach(paxosRound -> map.put(paxosRound.sequence(), paxosRound.value()));
-        return map;
+        return execute(dao -> dao.getLearnerLogsSince(
+                namespaceAndUseCase.namespace(),
+                namespaceAndUseCase.useCase(),
+                seq)).stream().collect(Collectors.toMap(PaxosRound::sequence, PaxosRound::value));
     }
 
-    // todo repetition?
-    private ConcurrentSkipListMap<Long, PaxosAcceptorState> getAcceptorLogsForNamespaceAndUseCaseSince(
+    private Map<Long, PaxosAcceptorState> getAcceptorLogsForNamespaceAndUseCaseSince(
             NamespaceAndUseCase namespaceAndUseCase, long seq) {
-        ConcurrentSkipListMap<Long, PaxosAcceptorState> map = new ConcurrentSkipListMap<>();
-        execute(dao -> dao.getAcceptorLogsSince(
-                namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase(), seq))
-                .forEach(paxosRound -> map.put(paxosRound.sequence(), paxosRound.value()));
-        return map;
+        return execute(dao -> dao.getAcceptorLogsSince(
+                namespaceAndUseCase.namespace(),
+                namespaceAndUseCase.useCase(),
+                seq)).stream().collect(Collectors.toMap(PaxosRound::sequence, PaxosRound::value));
     }
 
     private <T> T execute(Function<SqlitePaxosStateLogQueries, T> call) {
