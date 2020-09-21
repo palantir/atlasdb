@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos.history.sqlite;
+package com.palantir.history.sqlite;
 
 import java.util.Optional;
 import java.util.function.Function;
