@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos.history.sqlite;
+package com.palantir.history.sqlite;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -26,14 +26,17 @@ import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.history.mappers.AcceptorPaxosRoundMapper;
+import com.palantir.history.mappers.LearnerPaxosRoundMapper;
+import com.palantir.history.mappers.NamespaceAndUseCaseMapper;
+import com.palantir.history.models.ImmutableLearnerAndAcceptorRecords;
+import com.palantir.history.models.ImmutablePaxosHistoryOnSingleNode;
+import com.palantir.history.models.LearnerAndAcceptorRecords;
+import com.palantir.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLogQueries;
-import com.palantir.paxos.history.models.ImmutableLearnerAndAcceptorRecords;
-import com.palantir.paxos.history.models.ImmutablePaxosHistoryOnSingleNode;
-import com.palantir.paxos.history.models.LearnerAndAcceptorRecords;
-import com.palantir.paxos.history.models.PaxosHistoryOnSingleNode;
 
 //todo caching
 public class LocalHistoryLoader {
@@ -45,6 +48,11 @@ public class LocalHistoryLoader {
 
     public static LocalHistoryLoader create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
+
+        jdbi.registerRowMapper(new AcceptorPaxosRoundMapper());
+        jdbi.registerRowMapper(new LearnerPaxosRoundMapper());
+        jdbi.registerRowMapper(new NamespaceAndUseCaseMapper());
+
         jdbi.withExtension(SqlitePaxosStateLogQueries.class, SqlitePaxosStateLogQueries::createTable);
         return new LocalHistoryLoader(jdbi);
     }

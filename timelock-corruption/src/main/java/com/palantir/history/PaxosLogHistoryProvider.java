@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos.history;
+package com.palantir.history;
 
 import java.util.Map;
 import java.util.Optional;
@@ -25,10 +25,10 @@ import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
+import com.palantir.history.sqlite.LocalHistoryLoader;
+import com.palantir.history.sqlite.LogVerificationProgressState;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.SqlitePaxosStateLogQueries;
-import com.palantir.paxos.history.sqlite.LocalHistoryLoader;
-import com.palantir.paxos.history.sqlite.LogVerificationProgressState;
 
 public class PaxosLogHistoryProvider {
     private final DataSource dataSource;

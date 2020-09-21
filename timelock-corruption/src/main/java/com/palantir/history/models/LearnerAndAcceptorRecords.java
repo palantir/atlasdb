@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos.history.mappers;
+package com.palantir.history.models;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.concurrent.ConcurrentSkipListMap;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
+import org.immutables.value.Value;
 
-import com.palantir.paxos.PaxosRound;
+import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosValue;
 
-public class LearnerPaxosRoundMapper implements RowMapper<PaxosRound<PaxosValue>>{
-    @Override
-    public PaxosRound<PaxosValue> map(ResultSet rs, StatementContext ctx) throws SQLException {
-        PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
-        return PaxosRound.of(rs.getLong("seq"), value);
-    }
+@Value.Immutable
+public interface LearnerAndAcceptorRecords {
+
+    @Value.Parameter
+    ConcurrentSkipListMap<Long, PaxosValue> learnerRecords();
+
+    @Value.Parameter
+    ConcurrentSkipListMap<Long, PaxosAcceptorState> acceptorRecords();
 }

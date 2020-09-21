@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos.history.mappers;
+package com.palantir.history.mappers;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,13 +22,13 @@ import java.sql.SQLException;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
-import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosRound;
+import com.palantir.paxos.PaxosValue;
 
-public class AcceptorPaxosRoundMapper implements RowMapper<PaxosRound<PaxosAcceptorState>> {
+public class LearnerPaxosRoundMapper implements RowMapper<PaxosRound<PaxosValue>>{
     @Override
-    public PaxosRound<PaxosAcceptorState> map(ResultSet rs, StatementContext ctx) throws SQLException {
-        PaxosAcceptorState value = PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
+    public PaxosRound<PaxosValue> map(ResultSet rs, StatementContext ctx) throws SQLException {
+        PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
         return PaxosRound.of(rs.getLong("seq"), value);
     }
 }

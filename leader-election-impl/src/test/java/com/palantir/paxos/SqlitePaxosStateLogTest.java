@@ -46,7 +46,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.paxos.history.mappers.LearnerPaxosRoundMapper;
 
 public class SqlitePaxosStateLogTest {
     @Rule
@@ -188,7 +187,7 @@ public class SqlitePaxosStateLogTest {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class)
                 .registerImmutable(Client.class, PaxosRound.class, NamespaceAndUseCase.class);
-        jdbi.registerRowMapper(new LearnerPaxosRoundMapper());
+//        jdbi.registerRowMapper(new LearnerPaxosRoundMapper());
 
         Function<SqlitePaxosStateLogQueries, Set<PaxosRound<PaxosValue>>> call
                 = dao -> dao.getLearnerLogsSince(CLIENT_1, USE_CASE_1, 5L);

@@ -14,21 +14,28 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos.history.models;
+package com.palantir.history.models;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.immutables.value.Value;
 
+import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosValue;
 
 @Value.Immutable
-public interface LearnerAndAcceptorRecords {
+public interface CompletePaxosHistoryForNamespaceAndUsecase {
+    @Value.Parameter
+    Client namespace();
 
     @Value.Parameter
-    ConcurrentSkipListMap<Long, PaxosValue> learnerRecords();
+    String useCase();
 
     @Value.Parameter
-    ConcurrentSkipListMap<Long, PaxosAcceptorState> acceptorRecords();
+    List<ConcurrentSkipListMap<Long, PaxosValue>> localAndRemoteLearnerRecords();
+
+    @Value.Parameter
+    List<ConcurrentSkipListMap<Long, PaxosAcceptorState>> localAndRemoteAcceptorRecords();
 }

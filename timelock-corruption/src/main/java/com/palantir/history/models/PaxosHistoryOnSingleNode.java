@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos.history.mappers;
+package com.palantir.history.models;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.Map;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
+import org.immutables.value.Value;
 
-import com.palantir.paxos.Client;
-import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 
-public class NamespaceAndUseCaseMapper implements RowMapper<NamespaceAndUseCase> {
-    @Override
-    public NamespaceAndUseCase map(ResultSet rs, StatementContext ctx) throws SQLException {
-        return ImmutableNamespaceAndUseCase
-                .of(Client.of(rs.getString("namespace")), rs.getString("useCase"));
-    }
+@Value.Immutable
+public interface PaxosHistoryOnSingleNode {
+
+    @Value.Parameter
+    Map<NamespaceAndUseCase, LearnerAndAcceptorRecords> history();
 }
