@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
 
 import javax.sql.DataSource;
 
+import org.jdbi.v3.core.Jdbi;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

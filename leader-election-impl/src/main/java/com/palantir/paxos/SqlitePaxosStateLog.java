@@ -50,8 +50,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
             NamespaceAndUseCase namespaceAndUseCase,
             DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class)
-                .registerImmutable(Client.class, PaxosRound.class, NamespaceAndUseCase.class);
+        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
         log.initialize();
         return log;
