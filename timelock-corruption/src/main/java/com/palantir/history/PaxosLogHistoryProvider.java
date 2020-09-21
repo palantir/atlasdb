@@ -16,15 +16,21 @@
 
 package com.palantir.history;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
+import com.palantir.history.models.CompletePaxosHistoryForNamespaceAndUsecase;
+import com.palantir.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.history.sqlite.LocalHistoryLoader;
 import com.palantir.history.sqlite.LogVerificationProgressState;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -48,13 +54,13 @@ public class PaxosLogHistoryProvider {
         this.dataSource = dataSource;
     }
 
-    //todo revisit
     public void init(Jdbi jdbi) {
         jdbi.withExtension(SqlitePaxosStateLogQueries.class, SqlitePaxosStateLogQueries::createTable);
-        jdbi.withExtension(SqlitePaxosStateLogQueries.class,
-                SqlitePaxosStateLogQueries::getAllNamespaceAndUseCaseTuples)
-                .forEach(namespaceAndUseCase -> verificationProgressState.computeIfAbsent(namespaceAndUseCase,
-                        this::getOrInsertVerificationState));
+    }
+
+    public Set<NamespaceAndUseCase> getNamespaceAndUseCaseTuples() {
+        return jdbi.withExtension(SqlitePaxosStateLogQueries.class,
+                SqlitePaxosStateLogQueries::getAllNamespaceAndUseCaseTuples);
     }
 
     private Long getOrInsertVerificationState(NamespaceAndUseCase namespaceAndUseCase) {
@@ -67,5 +73,17 @@ public class PaxosLogHistoryProvider {
         logVerificationProgressState.updateProgress(namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase(),
                 INITIAL_PROGRESS);
         return INITIAL_PROGRESS;
+    }
+
+    public List<CompletePaxosHistoryForNamespaceAndUsecase> getHistory() {
+        Map<NamespaceAndUseCase, Long> laseVerifiedSeqNamespaceAndUseCaseWise = getNamespaceAndUseCaseTuples().stream()
+                .collect(Collectors.toMap(Function.identity(),
+                        namespaceAndUseCase -> verificationProgressState
+                                .computeIfAbsent(namespaceAndUseCase, this::getOrInsertVerificationState)));
+        PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(
+                laseVerifiedSeqNamespaceAndUseCaseWise);
+
+        // TBD get history from remotes, merge, return
+        return null;
     }
 }

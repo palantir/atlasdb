@@ -16,7 +16,7 @@
 
 package com.palantir.history.models;
 
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
@@ -27,8 +27,8 @@ import com.palantir.paxos.PaxosValue;
 public interface LearnerAndAcceptorRecords {
 
     @Value.Parameter
-    ConcurrentSkipListMap<Long, PaxosValue> learnerRecords();
+    Map<Long, PaxosValue> learnerRecords();
 
     @Value.Parameter
-    ConcurrentSkipListMap<Long, PaxosAcceptorState> acceptorRecords();
+    Map<Long, PaxosAcceptorState> acceptorRecords();
 }
