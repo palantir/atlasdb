@@ -24,19 +24,14 @@ import static com.palantir.paxos.PaxosStateLogTestUtils.wrap;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import javax.sql.DataSource;
 
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -178,38 +173,6 @@ public class SqlitePaxosStateLogTest {
     }
 
     @Test
-    public void canGetAllLogsSince() {
-        IntStream.range(0, 100).forEach(i -> {
-            PaxosStateLog<PaxosValue> otherLog
-                    = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
-            writeValueForLogAndRound(otherLog, i);
-        });
-        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class)
-                .registerImmutable(Client.class, PaxosRound.class, NamespaceAndUseCase.class);
-//        jdbi.registerRowMapper(new LearnerPaxosRoundMapper());
-
-        Function<SqlitePaxosStateLogQueries, Set<PaxosRound<PaxosValue>>> call
-                = dao -> dao.getLearnerLogsSince(CLIENT_1, USE_CASE_1, 5L);
-        Set<PaxosRound<PaxosValue>> namespaceAndUseCases = jdbi.withExtension(SqlitePaxosStateLogQueries.class,
-                call::apply);
-        assertThat(namespaceAndUseCases.size()).isEqualTo(100);
-    }
-
-    @Test
-    public void canGetAllUniquePairsOfNamespaceAndClient() {
-        IntStream.range(0, 100).forEach(i -> {
-            PaxosStateLog<PaxosValue> otherLog
-                    = SqlitePaxosStateLog.create(wrap(Client.of("Blah" + i), USE_CASE_1), dataSource);
-            writeValueForLogAndRound(otherLog, 1L);
-        });
-        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        Set<NamespaceAndUseCase> namespaceAndUseCases = jdbi.withExtension(SqlitePaxosStateLogQueries.class,
-                SqlitePaxosStateLogQueries::getAllNamespaceAndUseCaseTuples);
-        assertThat(namespaceAndUseCases.size()).isEqualTo(100);
-    }
-
-    @Test
     public void valuesAreDistinguishedAcrossSequenceIdentifiers() throws IOException {
         PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_2), dataSource);
         writeValueForRound(1L);
@@ -259,12 +222,6 @@ public class SqlitePaxosStateLogTest {
     private PaxosValue writeValueForRound(long round) {
         PaxosValue paxosValue = valueForRound(round);
         stateLog.writeRound(round, paxosValue);
-        return paxosValue;
-    }
-
-    private PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
-        PaxosValue paxosValue = valueForRound(round);
-        log.writeRound(round, paxosValue);
         return paxosValue;
     }
 }
