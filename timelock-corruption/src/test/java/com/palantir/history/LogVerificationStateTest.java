@@ -18,8 +18,6 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
 import javax.sql.DataSource;
 
 import org.junit.Before;
@@ -49,14 +47,12 @@ public class LogVerificationStateTest {
 
     @Test
     public void initialStateIsAbsent() {
-        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isNotPresent();
+        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isEqualTo(-1L);
     }
 
     @Test
     public void canUpdateState() {
-        assertThat(log.updateProgress(CLIENT, USE_CASE, 5L)).isTrue();
-        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isPresent();
-        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isEqualTo(Optional.of(5L));
+        log.updateProgress(CLIENT, USE_CASE, 5L);
+        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isEqualTo(5L);
     }
-
 }
