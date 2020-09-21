@@ -22,6 +22,8 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -37,6 +39,7 @@ import com.palantir.nexus.db.DBType;
 @JsonTypeName(OracleConnectionConfig.TYPE)
 @Value.Immutable
 public abstract class OracleConnectionConfig extends ConnectionConfig {
+    private static final Logger log = LoggerFactory.getLogger(OracleConnectionConfig.class);
 
     public static final String TYPE = "oracle";
 
@@ -196,6 +199,15 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         } else {
             Preconditions.checkArgument(!getTwoWaySsl(),
                     "two way ssl cannot be enabled without enabling ConnectionProtocol.TCPS");
+            if (getServerDn().isPresent()
+                    || getTruststorePath().isPresent()
+                    || getTruststorePassword().isPresent()
+                    || getKeystorePath().isPresent()
+                    || getKeystorePassword().isPresent()) {
+                log.warn("Your Oracle config is not set to use ConnectionProtocol.TCPS, but some security settings"
+                        + " have been set. These settings are currently being ignored - please verify that you are"
+                        + " OK with this.");
+            }
         }
     }
 
