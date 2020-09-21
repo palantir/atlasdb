@@ -20,79 +20,99 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
 import javax.sql.DataSource;
 
 import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.history.mappers.LearnerPaxosRoundMapper;
-import com.palantir.history.mappers.NamespaceAndUseCaseMapper;
+import com.palantir.history.models.LearnerAndAcceptorRecords;
+import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.history.util.UseCaseUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.paxos.PaxosRound;
+import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
-import com.palantir.paxos.SqlitePaxosStateLogQueries;
 
 public class SqliteHistoryQueryTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     private static final Client CLIENT = Client.of("tom");
-    private static final String USE_CASE = "useCase1";
+    private static final String USE_CASE_LEARNER = "useCase!learner";
+    private static final String USE_CASE_ACCEPTOR = "useCase!acceptor";
 
     private DataSource dataSource;
     private Jdbi jdbi;
-    private PaxosStateLog<PaxosValue> stateLog;
+    private PaxosStateLog<PaxosValue> learnerLog;
+    private PaxosStateLog<PaxosAcceptorState> acceptorLog;
+    private LocalHistoryLoader history;
 
     @Before
     public void setup() {
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
-        stateLog = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), dataSource);
+        learnerLog = SqlitePaxosStateLog.create(
+                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER), dataSource);
+        acceptorLog = SqlitePaxosStateLog.create(
+                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);
 
-        jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
-        jdbi.registerRowMapper(new LearnerPaxosRoundMapper());
-        jdbi.registerRowMapper(new NamespaceAndUseCaseMapper());
+        history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
     }
 
     @Test
-    public void canGetAllLogsSince() {
-        IntStream.range(0, 100).forEach(i -> writeValueForLogAndRound(stateLog, i + 1));
-        Function<SqlitePaxosStateLogQueries, Set<PaxosRound<PaxosValue>>> call
-                = dao -> dao.getLearnerLogsSince(CLIENT, USE_CASE, 5L);
-        Set<PaxosRound<PaxosValue>> namespaceAndUseCases = jdbi.withExtension(SqlitePaxosStateLogQueries.class,
-                call::apply);
-        assertThat(namespaceAndUseCases.size()).isEqualTo(95);
+    public void canGetAllLearnerLogsSince() {
+        IntStream.range(0, 100).forEach(i -> writeValueForLogAndRound(learnerLog, i + 1));
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords
+                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
+                        CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(0);
+        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
+    }
+
+    @Test
+    public void canGetAllAcceptorLogsSince() {
+        IntStream.range(0, 100).forEach(i -> writeAcceptorStateForLogAndRound(acceptorLog, i + 1));
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords
+                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
+                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(0);
+        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
     }
 
     @Test
     public void canGetAllUniquePairsOfNamespaceAndClient() {
         IntStream.range(0, 100).forEach(i -> {
             PaxosStateLog<PaxosValue> otherLog
-                    = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(Client.of("client" + i), USE_CASE), dataSource);
+                    = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(Client.of("client" + i),
+                    USE_CASE_LEARNER), dataSource);
             writeValueForLogAndRound(otherLog, 1L);
         });
-        Set<NamespaceAndUseCase> namespaceAndUseCases = jdbi.withExtension(SqlitePaxosStateLogQueries.class,
-                SqlitePaxosStateLogQueries::getAllNamespaceAndUseCaseTuples);
-        assertThat(namespaceAndUseCases.size()).isEqualTo(100);
+        Set<NamespaceAndUseCase> allNamespaceAndUseCaseTuples = SqlitePaxosStateLogHistory.create(
+                dataSource).getAllNamespaceAndUseCaseTuples();
+        assertThat(allNamespaceAndUseCaseTuples.size()).isEqualTo(100);
     }
 
     private PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
         PaxosValue paxosValue = new PaxosValue("leaderUuid", round, longToBytes(round));
         log.writeRound(round, paxosValue);
         return paxosValue;
+    }
+
+    private PaxosAcceptorState writeAcceptorStateForLogAndRound(PaxosStateLog<PaxosAcceptorState> log, long round) {
+        PaxosAcceptorState acceptorState = PaxosAcceptorState.newState(new PaxosProposalId(
+                round, UUID.randomUUID().toString()));
+        log.writeRound(round, acceptorState);
+        return acceptorState;
     }
 
     private byte[] longToBytes(long value) {

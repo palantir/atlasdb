@@ -32,6 +32,8 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 import com.palantir.paxos.Client;
 
 public final class LogVerificationProgressState {
+    private static final long INITIAL_PROGRESS = -1L;
+
     private final Jdbi jdbi;
 
     private LogVerificationProgressState(Jdbi jdbi) {
@@ -50,12 +52,20 @@ public final class LogVerificationProgressState {
         execute(LogVerificationProgressState.Queries::createVerificationProgressStateTable);
     }
 
-    public boolean updateProgress(Client client, String useCase, long seq) {
-        return execute(dao -> dao.updateProgress(client, useCase, seq));
+    public void updateProgress(Client client, String useCase, long seq) {
+        execute(dao -> dao.updateProgress(client, useCase, seq));
     }
 
-    public Optional<Long> getLastVerifiedSeq(Client client, String useCase) {
-        return execute(dao -> dao.getLastVerifiedSeq(client, useCase));
+    public Long getLastVerifiedSeq(Client client, String useCase) {
+        return execute(dao -> {
+            Optional<Long> lastVerifiedSeq = dao.getLastVerifiedSeq(client, useCase);
+            return lastVerifiedSeq.orElseGet(() -> setInitialProgress(client, useCase));
+        });
+    }
+
+    private Long setInitialProgress(Client client, String useCase) {
+        updateProgress(client, useCase, INITIAL_PROGRESS);
+        return INITIAL_PROGRESS;
     }
 
     private <T> T execute(Function<LogVerificationProgressState.Queries, T> call) {
@@ -63,18 +73,18 @@ public final class LogVerificationProgressState {
     }
 
     public interface Queries {
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS log_verification_progress (namespace TEXT, useCase TEXT, seq BIGINT,"
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS logVerificationProgress (namespace TEXT, useCase TEXT, seq BIGINT,"
                 + "PRIMARY KEY(namespace, useCase))")
         boolean createVerificationProgressStateTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO log_verification_progress (namespace, useCase, seq) VALUES"
+        @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, seq) VALUES"
                 + " (:namespace.value, :useCase, :seq)")
         boolean updateProgress(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("seq") long seq);
 
-        @SqlQuery("SELECT seq FROM log_verification_progress "
+        @SqlQuery("SELECT seq FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
         Optional<Long> getLastVerifiedSeq(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
