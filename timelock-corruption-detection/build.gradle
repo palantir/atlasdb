@@ -21,8 +21,6 @@ dependencies {
     compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
     compile project(":timelock-corruption-detection:timelock-corruption-detection-objects")
 
-    compile project(":leader-election-impl")
-
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
 
