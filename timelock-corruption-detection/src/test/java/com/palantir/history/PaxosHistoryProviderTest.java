@@ -100,11 +100,12 @@ public class PaxosHistoryProviderTest {
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
 
         assertThat(completeHistory.size()).isEqualTo(1);
-        CompletePaxosHistoryForNamespaceAndUseCase history = completeHistory.get(0);
+        CompletePaxosHistoryForNamespaceAndUseCase completeRecord = completeHistory.get(0);
 
-        assertThat(history.namespace()).isEqualTo(CLIENT);
-        assertThat(history.useCase()).isEqualTo(USE_CASE);
-        List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
+        assertThat(completeRecord.namespace()).isEqualTo(CLIENT);
+        assertThat(completeRecord.useCase()).isEqualTo(USE_CASE);
+
+        List<ConsolidatedLearnerAndAcceptorRecord> records = completeRecord.localAndRemoteLearnerAndAcceptorRecords();
         assertThat(records.size()).isEqualTo(2);
         assertThat(records.get(0).record().size()).isEqualTo(100);
         assertThat(records.get(1).record().size()).isEqualTo(100);
@@ -133,14 +134,14 @@ public class PaxosHistoryProviderTest {
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
         assertThat(completeHistory.size()).isEqualTo(1);
-        CompletePaxosHistoryForNamespaceAndUseCase history = completeHistory.get(0);
+        CompletePaxosHistoryForNamespaceAndUseCase completeRecords = completeHistory.get(0);
 
-        assertThat(history.namespace()).isEqualTo(CLIENT);
-        assertThat(history.useCase()).isEqualTo(USE_CASE);
+        assertThat(completeRecords.namespace()).isEqualTo(CLIENT);
+        assertThat(completeRecords.useCase()).isEqualTo(USE_CASE);
 
-        List<ConsolidatedLearnerAndAcceptorRecord> historyRecords = history.localAndRemoteLearnerAndAcceptorRecords();
-        assertThat(historyRecords.size()).isEqualTo(2);
-        assertThat(historyRecords.get(0).record().size()).isEqualTo(100 - lastVerified);
-        assertThat(historyRecords.get(1).record().size()).isEqualTo(100 - lastVerified);
+        List<ConsolidatedLearnerAndAcceptorRecord> records = completeRecords.localAndRemoteLearnerAndAcceptorRecords();
+        assertThat(records.size()).isEqualTo(2);
+        assertThat(records.get(0).record().size()).isEqualTo(100 - lastVerified);
+        assertThat(records.get(1).record().size()).isEqualTo(100 - lastVerified);
     }
 }

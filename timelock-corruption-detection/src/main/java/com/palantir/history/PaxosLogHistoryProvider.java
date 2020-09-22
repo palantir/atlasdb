@@ -98,12 +98,12 @@ public class PaxosLogHistoryProvider {
 
         /**
          * The history queries are built from the lastVerifiedSequences map above,
-         * required for conjure endpoints to load remote history
+         * required for conjure endpoints to load remote history.
          */
         List<HistoryQuery> historyQueries = getHistoryQueryListForRemoteServers(lastVerifiedSequences);
 
         /**
-         * List of logs from all remotes
+         * List of logs from all remotes.
          */
         List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
@@ -216,7 +216,7 @@ public class PaxosLogHistoryProvider {
             PaxosHistoryOnRemote historyOnRemote) {
         /**
          * Build sequence number wise mapped record of learned and accepted values for each
-         * (namespace, useCase) pair from history logs provided by remote
+         * (namespace, useCase) pair from history logs provided by remote.
          */
         Map<NamespaceAndUseCase, List<PaxosLogWithAcceptedAndLearnedValues>> namespaceWisePaxosLogs
                 = historyOnRemote.getLogs()

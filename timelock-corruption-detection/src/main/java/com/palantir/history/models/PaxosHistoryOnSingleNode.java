@@ -47,8 +47,8 @@ public interface PaxosHistoryOnSingleNode {
                 consolidateRecordsForSequenceRange(records, minSeq, maxSeq));
     }
 
-    default Map<Long, LearnedAndAcceptedValue> consolidateRecordsForSequenceRange(
-            LearnerAndAcceptorRecords records, long minSeq, long maxSeq) {
+    default Map<Long, LearnedAndAcceptedValue> consolidateRecordsForSequenceRange(LearnerAndAcceptorRecords records,
+            long minSeq, long maxSeq) {
         return LongStream.rangeClosed(minSeq, maxSeq).boxed().collect(
                 Collectors.toMap(Function.identity(), seq -> getLearnedAndAcceptedValues(records, seq)));
     }
