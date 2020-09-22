@@ -32,6 +32,9 @@ types:
         fields:
           namespaceAndUseCase: NamespaceAndUseCase
           logs: list<PaxosLogWithAcceptedAndLearnedValues>
+      PaxosHistoryOnRemote:
+        fields:
+          logs: list<LogsForNamespaceAndUseCase>
 
 services:
   TimeLockPaxosHistoryProvider:
@@ -44,6 +47,6 @@ services:
         http: POST /ph
         args:
           historyQueries: list<HistoryQuery>
-        returns: list<LogsForNamespaceAndUseCase>
+        returns: PaxosHistoryOnRemote
         docs: |
           The endpoint returns Paxos state logs for the list of <namespace, useCase> pairs provided.
