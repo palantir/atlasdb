@@ -90,7 +90,6 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
         return new JerseyAdapter(new TimeLockPaxosHistoryProviderResource(localHistoryLoader));
     }
 
-
     public static class JerseyAdapter implements TimeLockPaxosHistoryProvider {
         private final TimeLockPaxosHistoryProviderResource delegate;
 
