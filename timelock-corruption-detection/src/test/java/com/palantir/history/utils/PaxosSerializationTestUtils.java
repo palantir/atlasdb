@@ -26,13 +26,18 @@ import com.palantir.paxos.PaxosValue;
 
 public final class PaxosSerializationTestUtils {
 
+    private PaxosSerializationTestUtils() {
+        // no op
+    }
+
     public static PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
         PaxosValue paxosValue = new PaxosValue("leaderUuid", round, longToBytes(round));
         log.writeRound(round, paxosValue);
         return paxosValue;
     }
 
-    public static PaxosAcceptorState writeAcceptorStateForLogAndRound(PaxosStateLog<PaxosAcceptorState> log, long round) {
+    public static PaxosAcceptorState writeAcceptorStateForLogAndRound(
+            PaxosStateLog<PaxosAcceptorState> log, long round) {
         PaxosAcceptorState acceptorState = getAcceptorStateForRound(round);
         log.writeRound(round, acceptorState);
         return acceptorState;
