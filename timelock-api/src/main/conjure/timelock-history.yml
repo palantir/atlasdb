@@ -25,12 +25,13 @@ types:
           seq: Long
       PaxosLogWithAcceptedAndLearnedValues:
         fields:
-          acceptedState: PaxosAcceptorState
-          paxosValue: opt<PaxosValue
+          acceptedState: optional<PaxosAcceptorState>
+          paxosValue: optional<PaxosValue>
           seq: Long
       LogsForNamespaceAndUseCase:
-        namespaceAndUseCase: NamespaceAndUseCase
-        logs: List<PaxosLogWithAcceptedAndLearnedValues>
+        fields:
+          namespaceAndUseCase: NamespaceAndUseCase
+          logs: list<PaxosLogWithAcceptedAndLearnedValues>
 
 services:
   TimeLockPaxosHistoryProvider:
@@ -43,5 +44,6 @@ services:
         http: POST /ph
         args:
           historyQueries: list<HistoryQuery>
+        returns: list<LogsForNamespaceAndUseCase>
         docs: |
           The endpoint returns Paxos state logs for the list of <namespace, useCase> pairs provided.

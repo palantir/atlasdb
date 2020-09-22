@@ -17,6 +17,7 @@
 package com.palantir.history.models;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -31,4 +32,12 @@ public interface LearnerAndAcceptorRecords {
 
     @Value.Parameter
     Map<Long, PaxosAcceptorState> acceptorRecords();
+
+    default Optional<PaxosValue> getLearnedValueAtSeqIfExists(long seq) {
+        return learnerRecords().containsKey(seq) ? Optional.of(learnerRecords().get(seq)) : Optional.empty();
+    }
+
+    default Optional<PaxosAcceptorState> getAcceptedValueAtSeqIfExists(long seq) {
+        return learnerRecords().containsKey(seq) ? Optional.of(acceptorRecords().get(seq)) : Optional.empty();
+    }
 }
