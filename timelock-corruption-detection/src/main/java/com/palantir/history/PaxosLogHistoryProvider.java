@@ -48,7 +48,7 @@ import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class PaxosLogHistoryProvider {
-    private final Logger log = LoggerFactory.getLogger(PaxosLogHistoryProvider.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosLogHistoryProvider.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
@@ -81,57 +81,85 @@ public class PaxosLogHistoryProvider {
     }
 
     /**
-     * Gets history from all the nodes for all unique namespace, useCase tuples since last verified sequence numbers
+     * Gets history from all the nodes for all unique (namespace, useCase) tuples since last verified sequence numbers
+     * i.e. the highest sequence number that was verified since the last time the bounds were reset.
      *
-     * @throws  RuntimeException
-     *          if fails to fetch history from all remote servers
+     * @throws  Exception if fails to fetch history from all remote servers
      */
-    public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() throws RuntimeException {
+    public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() {
 
-        /* used to load history since last verified sequence numbers for all unique namespace and use case tuples */
-        Map<NamespaceAndUseCase, Long> lastVerifiedSequences = KeyedStream
-                .of(getNamespaceAndUseCaseTuples().stream())
-                .map(namespaceAndUseCase -> verificationProgressStateCache.computeIfAbsent(namespaceAndUseCase,
-                        this::getOrInsertVerificationState))
-                .collectToMap();
+        /**
+         * map of all unique (namespace, useCase) tuples to their respective last verified sequence numbers.
+         */
+        Map<NamespaceAndUseCase, Long> lastVerifiedSequences = getNamespaceAndUseCaseToLastVerifiedSeqMap();
+        PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
         /**
          * The history queries are built from the lastVerifiedSequences map above,
          * required for conjure endpoints to load remote history
          */
-        List<HistoryQuery> historyQueries = KeyedStream.stream(lastVerifiedSequences)
-                .mapEntries(this::buildHistoryQuery)
-                .values()
-                .collect(Collectors.toList());
-
-        PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(
-                lastVerifiedSequences);
+        List<HistoryQuery> historyQueries = getHistoryQueryListForRemoteServers(lastVerifiedSequences);
 
         /**
          * List of logs from all remotes
          */
-        List<List<LogsForNamespaceAndUseCase>> rawHistoryFromAllRemotes = remoteHistoryProviders.stream().map(
-                remote -> fetchHistoryFromRemote(historyQueries, remote)).collect(Collectors.toList());
+        List<List<LogsForNamespaceAndUseCase>> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
         /**
          * List of history from all remotes. Each history is map of namespaceAndUseCase to Paxos logs. The Paxos logs
          * are mapped against sequence numbers.
          */
-        List<Map<NamespaceAndUseCase, Map<Long, LearnedAndAcceptedValue>>> historyLogsFromRemotes
-                = rawHistoryFromAllRemotes.stream()
-                .map(this::buildHistoryFromRemoteResponse)
-                .collect(Collectors.toList());
+        List<Map<NamespaceAndUseCase, Map<Long, LearnedAndAcceptedValue>>> historyFromAllRemotes
+                = buildHistoryFromRemoteResponses(rawHistoryFromAllRemotes);
 
         /**
          * Consolidate and build complete history for each (namespace, useCase) pair
          * from histories loaded from local and remote servers
          */
+        return consolidateAndGetHistoriesAcrossAllNodes(
+                lastVerifiedSequences,
+                localPaxosHistory,
+                historyFromAllRemotes);
+    }
+
+    private List<CompletePaxosHistoryForNamespaceAndUseCase> consolidateAndGetHistoriesAcrossAllNodes(
+            Map<NamespaceAndUseCase, Long> lastVerifiedSequences,
+            PaxosHistoryOnSingleNode localPaxosHistory,
+            List<Map<NamespaceAndUseCase, Map<Long, LearnedAndAcceptedValue>>> historyFromAllRemotes) {
         return lastVerifiedSequences.keySet().stream()
                 .map(namespaceAndUseCase -> buildCompleteHistory(
                         namespaceAndUseCase,
                         localPaxosHistory,
-                        historyLogsFromRemotes))
+                        historyFromAllRemotes))
                 .collect(Collectors.toList());
+    }
+
+    private List<Map<NamespaceAndUseCase, Map<Long, LearnedAndAcceptedValue>>> buildHistoryFromRemoteResponses(
+            List<List<LogsForNamespaceAndUseCase>> rawHistoryFromAllRemotes) {
+        return rawHistoryFromAllRemotes.stream()
+        .map(this::buildHistoryFromRemoteResponse)
+        .collect(Collectors.toList());
+    }
+
+    private List<List<LogsForNamespaceAndUseCase>> getHistoriesFromRemoteServers(List<HistoryQuery> historyQueries) {
+        return remoteHistoryProviders.stream().map(
+                remote -> fetchHistoryFromRemote(historyQueries, remote)).collect(Collectors.toList());
+    }
+
+    private List<HistoryQuery> getHistoryQueryListForRemoteServers(
+            Map<NamespaceAndUseCase, Long> lastVerifiedSequences) {
+        return KeyedStream.stream(lastVerifiedSequences)
+                .mapEntries(this::buildHistoryQuery)
+                .values()
+                .collect(Collectors.toList());
+    }
+
+    private Map<NamespaceAndUseCase, Long> getNamespaceAndUseCaseToLastVerifiedSeqMap() {
+        return KeyedStream
+                .of(getNamespaceAndUseCaseTuples().stream())
+                .map(namespaceAndUseCase -> verificationProgressStateCache.computeIfAbsent(namespaceAndUseCase,
+                        this::getOrInsertVerificationState))
+                .collectToMap();
     }
 
     private CompletePaxosHistoryForNamespaceAndUseCase buildCompleteHistory(NamespaceAndUseCase namespaceAndUseCase,
@@ -146,21 +174,13 @@ public class PaxosLogHistoryProvider {
                 = localPaxosHistory.getConsolidatedLocalAndRemoteRecord(namespaceAndUseCase);
 
         /**
-         * Retrieve history logs of this namespace, useCase pair from history logs fetched from remotes.
+         * Retrieve history logs of this (namespace, useCase) pair from history logs fetched from remotes.
          */
-        List<Map<Long, LearnedAndAcceptedValue>> remoteHistoryLogsForNamespaceAndUseCase = historyLogsFromRemotes
-                .stream()
-                .map(history -> history.getOrDefault(namespaceAndUseCase, ImmutableMap.of()))
-                .collect(Collectors.toList());
+        List<Map<Long, LearnedAndAcceptedValue>> remoteHistoryLogsForNamespaceAndUseCase
+                = extractRemoteHistoryLogsForNamespaceAndUseCase(namespaceAndUseCase, historyLogsFromRemotes);
 
-        /**
-         * Combine local and history logs.
-         */
-        ImmutableList<Map<Long, LearnedAndAcceptedValue>> historyLogsAcrossAllNodes = ImmutableList
-                .<Map<Long, LearnedAndAcceptedValue>>builder()
-                .addAll(remoteHistoryLogsForNamespaceAndUseCase)
-                .add(consolidatedLocalRecord)
-                .build();
+        ImmutableList<Map<Long, LearnedAndAcceptedValue>> historyLogsAcrossAllNodes
+                = combineLocalAndRemoteHistoryLogs(consolidatedLocalRecord, remoteHistoryLogsForNamespaceAndUseCase);
 
         /**
          * Paxos history for namespace, useCase pair across all nodes in the cluster.
@@ -169,6 +189,25 @@ public class PaxosLogHistoryProvider {
                 namespaceAndUseCase.namespace(),
                 namespaceAndUseCase.useCase(),
                 historyLogsAcrossAllNodes);
+    }
+
+    private List<Map<Long, LearnedAndAcceptedValue>> extractRemoteHistoryLogsForNamespaceAndUseCase(
+            NamespaceAndUseCase namespaceAndUseCase,
+            List<Map<NamespaceAndUseCase, Map<Long, LearnedAndAcceptedValue>>> historyLogsFromRemotes) {
+        return historyLogsFromRemotes
+                .stream()
+                .map(history -> history.getOrDefault(namespaceAndUseCase, ImmutableMap.of()))
+                .collect(Collectors.toList());
+    }
+
+    private ImmutableList<Map<Long, LearnedAndAcceptedValue>> combineLocalAndRemoteHistoryLogs(
+            Map<Long, LearnedAndAcceptedValue> consolidatedLocalRecord,
+            List<Map<Long, LearnedAndAcceptedValue>> remoteHistoryLogsForNamespaceAndUseCase) {
+        return ImmutableList
+                .<Map<Long, LearnedAndAcceptedValue>>builder()
+                .addAll(remoteHistoryLogsForNamespaceAndUseCase)
+                .add(consolidatedLocalRecord)
+                .build();
     }
 
     private Map<NamespaceAndUseCase, Map<Long, LearnedAndAcceptedValue>> buildHistoryFromRemoteResponse(
@@ -196,10 +235,10 @@ public class PaxosLogHistoryProvider {
             TimeLockPaxosHistoryProvider remote) {
         try {
             return remote.getPaxosHistory(AUTH_HEADER, historyQueries);
-        } catch (Exception e) {
+        } catch (Exception exception) {
             log.warn("The remote failed to provide the history,"
-                    + "we cannot perform corruption checks without history from all nodes.");
-            throw new RuntimeException(e.getCause());
+                    + "we cannot perform corruption checks without history from all nodes.", exception);
+            throw exception;
         }
     }
 

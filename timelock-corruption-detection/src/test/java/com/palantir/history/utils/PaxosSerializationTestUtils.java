@@ -33,9 +33,9 @@ public final class PaxosSerializationTestUtils {
 
     public static void writeToLogs(PaxosStateLog<PaxosAcceptorState> acceptorLog,
             PaxosStateLog<PaxosValue> learnerLog, int range) {
-        IntStream.range(0, range).forEach(i -> {
-            writeAcceptorStateForLogAndRound(acceptorLog, i + 1);
-            writeValueForLogAndRound(learnerLog, i + 1);
+        IntStream.rangeClosed(1, range).forEach(i -> {
+            writeAcceptorStateForLogAndRound(acceptorLog, i);
+            writeValueForLogAndRound(learnerLog, i);
         });
     }
 
