@@ -192,7 +192,7 @@ public class PaxosLogHistoryProvider {
                         log -> ImmutableLearnedAndAcceptedValue.of(log.getPaxosValue(), log.getAcceptedState())));
     }
 
-    public List<LogsForNamespaceAndUseCase> fetchHistoryFromRemote(List<HistoryQuery> historyQueries,
+    private List<LogsForNamespaceAndUseCase> fetchHistoryFromRemote(List<HistoryQuery> historyQueries,
             TimeLockPaxosHistoryProvider remote) {
         try {
             return remote.getPaxosHistory(AUTH_HEADER, historyQueries);

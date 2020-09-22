@@ -98,5 +98,4 @@ public class SqliteHistoryQueriesTest {
                 dataSource).getAllNamespaceAndUseCaseTuples();
         assertThat(allNamespaceAndUseCaseTuples.size()).isEqualTo(100);
     }
-
 }

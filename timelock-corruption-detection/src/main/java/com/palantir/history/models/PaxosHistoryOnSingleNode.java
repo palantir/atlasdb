@@ -16,7 +16,6 @@
 
 package com.palantir.history.models;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -26,8 +25,6 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.paxos.PaxosAcceptorState;
-import com.palantir.paxos.PaxosValue;
 
 @Value.Immutable
 public interface PaxosHistoryOnSingleNode {
@@ -38,16 +35,13 @@ public interface PaxosHistoryOnSingleNode {
     default Map<Long, LearnedAndAcceptedValue> getConsolidatedLocalAndRemoteRecord(
             NamespaceAndUseCase namespaceAndUseCase) {
 
-        if (history().containsKey(namespaceAndUseCase)) {
+        if (!history().containsKey(namespaceAndUseCase)) {
             return ImmutableMap.of();
         }
-
         LearnerAndAcceptorRecords records = history().get(namespaceAndUseCase);
-        Map<Long, PaxosValue> learnerRecords = records.learnerRecords();
-        Map<Long, PaxosAcceptorState> acceptorRecords = records.acceptorRecords();
 
-        long minSeq = Math.min(Collections.min(learnerRecords.keySet()), Collections.min(acceptorRecords.keySet()));
-        long maxSeq = Math.max(Collections.max(learnerRecords.keySet()), Collections.max(acceptorRecords.keySet()));
+        long minSeq = records.getMinSequence();
+        long maxSeq = records.getMaxSequence();
 
         return LongStream.rangeClosed(minSeq, maxSeq).boxed().collect(
                 Collectors.toMap(Function.identity(), seq -> getLearnedAndAcceptedValues(records, seq)));

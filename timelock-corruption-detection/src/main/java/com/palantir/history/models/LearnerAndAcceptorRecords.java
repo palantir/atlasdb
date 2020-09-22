@@ -63,26 +63,4 @@ public interface LearnerAndAcceptorRecords {
         }
         return maxSeq;
     }
-
-    default long getMinSequence() {
-        long minSeq = Long.MAX_VALUE;
-        if (!learnerRecords().isEmpty()) {
-            minSeq = Math.min(minSeq, Collections.min(learnerRecords().keySet()));
-        }
-        if (!acceptorRecords().isEmpty()) {
-            minSeq = Math.min(minSeq, Collections.min(acceptorRecords().keySet()));
-        }
-        return minSeq;
-    }
-
-    default long getMaxSequence() {
-        long maxSeq = Long.MIN_VALUE;
-        if (!learnerRecords().isEmpty()) {
-            maxSeq = Math.max(maxSeq, Collections.max(learnerRecords().keySet()));
-        }
-        if (!acceptorRecords().isEmpty()) {
-            maxSeq = Math.max(maxSeq, Collections.max(acceptorRecords().keySet()));
-        }
-        return maxSeq;
-    }
 }

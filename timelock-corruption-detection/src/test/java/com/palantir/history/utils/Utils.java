@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.history;
+package com.palantir.history.utils;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosProposalId;
@@ -41,6 +42,15 @@ public final class Utils {
     public static PaxosAcceptorState getAcceptorStateForRound(long round) {
         return PaxosAcceptorState.newState(new PaxosProposalId(
                 round, UUID.randomUUID().toString()));
+    }
+
+
+    public static void writeToLogs(PaxosStateLog<PaxosAcceptorState> acceptorLog,
+            PaxosStateLog<PaxosValue> learnerLog, int range) {
+        IntStream.range(0, range).forEach(i -> {
+            writeAcceptorStateForLogAndRound(acceptorLog, i + 1);
+            writeValueForLogAndRound(learnerLog, i + 1);
+        });
     }
 
     private static byte[] longToBytes(long value) {

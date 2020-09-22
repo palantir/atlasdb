@@ -18,8 +18,9 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.history.Utils.writeAcceptorStateForLogAndRound;
-import static com.palantir.history.Utils.writeValueForLogAndRound;
+import static com.palantir.history.utils.Utils.writeAcceptorStateForLogAndRound;
+import static com.palantir.history.utils.Utils.writeToLogs;
+import static com.palantir.history.utils.Utils.writeValueForLogAndRound;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -76,7 +77,7 @@ public class PaxosHistoryProviderResourceTest {
 
     @Test
     public void canFetchLogsForQuery() {
-        writeToLogs(100);
+        writeToLogs(acceptorLog, learnerLog, 100);
         int lastVerified = 27;
         List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
@@ -93,7 +94,7 @@ public class PaxosHistoryProviderResourceTest {
 
     @Test
     public void canHandleDuplicateQueries() {
-        writeToLogs(100);
+        writeToLogs(acceptorLog, learnerLog, 100);
         int minLastVerified = 27;
 
         List<HistoryQuery> queries = IntStream.range(0, 10).boxed().map(
@@ -176,12 +177,5 @@ public class PaxosHistoryProviderResourceTest {
         assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().namespace()).isEqualTo(CLIENT);
         assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().useCase()).isEqualTo(USE_CASE);
         assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(0);
-    }
-
-    private void writeToLogs(int range) {
-        IntStream.range(0, range).forEach(i -> {
-            writeAcceptorStateForLogAndRound(acceptorLog, i + 1);
-            writeValueForLogAndRound(learnerLog, i + 1);
-        });
     }
 }
