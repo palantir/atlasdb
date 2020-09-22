@@ -18,8 +18,8 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.history.Utils.writeAcceptorStateForLogAndRound;
-import static com.palantir.history.Utils.writeValueForLogAndRound;
+import static com.palantir.history.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
+import static com.palantir.history.PaxosSerializationTestUtils.writeValueForLogAndRound;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
@@ -45,7 +45,6 @@ import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
-import com.palantir.tokens.auth.AuthHeader;
 
 public class PaxosHistoryProviderResourceTest {
     @Rule
@@ -55,13 +54,11 @@ public class PaxosHistoryProviderResourceTest {
     private static final String USE_CASE = "useCase";
     private static final String USE_CASE_LEARNER = "useCase!learner";
     private static final String USE_CASE_ACCEPTOR = "useCase!acceptor";
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer q");
 
     private DataSource dataSource;
     private PaxosStateLog<PaxosValue> learnerLog;
     private PaxosStateLog<PaxosAcceptorState> acceptorLog;
     private LocalHistoryLoader history;
-    private TimeLockPaxosHistoryProviderResource resource;
 
     @Before
     public void setup() {
@@ -71,7 +68,6 @@ public class PaxosHistoryProviderResourceTest {
         acceptorLog = SqlitePaxosStateLog.create(
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
-        resource = new TimeLockPaxosHistoryProviderResource(history);
     }
 
     @Test
@@ -81,7 +77,7 @@ public class PaxosHistoryProviderResourceTest {
         List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
         List<LogsForNamespaceAndUseCase> paxosHistory
-                = AtlasFutures.getUnchecked(resource.getPaxosHistory(AUTH_HEADER, historyQueries));
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
         assertThat(paxosHistory.size()).isEqualTo(1);
         LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
@@ -101,7 +97,7 @@ public class PaxosHistoryProviderResourceTest {
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> paxosHistory
-                = AtlasFutures.getUnchecked(resource.getPaxosHistory(AUTH_HEADER, queries));
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, queries);
 
         assertThat(paxosHistory.size()).isEqualTo(1);
         LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
@@ -122,7 +118,7 @@ public class PaxosHistoryProviderResourceTest {
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory
-                = AtlasFutures.getUnchecked(resource.getPaxosHistory(AUTH_HEADER, historyQueries));
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
         assertThat(paxosHistory.size()).isEqualTo(1);
         LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
@@ -147,7 +143,7 @@ public class PaxosHistoryProviderResourceTest {
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory
-                = AtlasFutures.getUnchecked(resource.getPaxosHistory(AUTH_HEADER, historyQueries));
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
         assertThat(paxosHistory.size()).isEqualTo(1);
         LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
@@ -168,7 +164,7 @@ public class PaxosHistoryProviderResourceTest {
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory
-                = AtlasFutures.getUnchecked(resource.getPaxosHistory(AUTH_HEADER, historyQueries));
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
         assertThat(paxosHistory.size()).isEqualTo(1);
         LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);

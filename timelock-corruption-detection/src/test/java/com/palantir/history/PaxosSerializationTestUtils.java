@@ -24,7 +24,7 @@ import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 
-public final class Utils {
+public final class PaxosSerializationTestUtils {
 
     public static PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
         PaxosValue paxosValue = new PaxosValue("leaderUuid", round, longToBytes(round));

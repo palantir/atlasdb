@@ -14,55 +14,42 @@
  * limitations under the License.
  */
 
-package com.palantir.history;
+package com.palantir.history.remote;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.history.LocalHistoryLoader;
 import com.palantir.history.models.LearnerAndAcceptorRecords;
 import com.palantir.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
-import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
-import com.palantir.timelock.history.TimeLockPaxosHistoryProviderEndpoints;
-import com.palantir.timelock.history.UndertowTimeLockPaxosHistoryProvider;
-import com.palantir.tokens.auth.AuthHeader;
 
-public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPaxosHistoryProvider {
-    private LocalHistoryLoader localHistoryLoader;
-
-    @VisibleForTesting
-    TimeLockPaxosHistoryProviderResource(LocalHistoryLoader localHistoryLoader) {
-        this.localHistoryLoader = localHistoryLoader;
+public final class HistoryLoaderAndTransformer {
+    private HistoryLoaderAndTransformer() {
+        //no op
     }
 
-    @Override
-    public ListenableFuture<List<LogsForNamespaceAndUseCase>> getPaxosHistory(AuthHeader authHeader,
+    public static List<LogsForNamespaceAndUseCase> getLogsForHistoryQueries(LocalHistoryLoader localHistoryLoader,
             List<HistoryQuery> historyQueries) {
         Map<NamespaceAndUseCase, Long> lastVerifiedSequences = historyQueries.stream().collect(
                 Collectors.toMap(HistoryQuery::getNamespaceAndUseCase, HistoryQuery::getSeq, Math::min));
 
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
-        List<LogsForNamespaceAndUseCase> logsForNamespaceAndUseCases = KeyedStream.stream(localPaxosHistory.history())
-                .mapEntries(this::processHistory)
+        return KeyedStream.stream(localPaxosHistory.history())
+                .mapEntries(HistoryLoaderAndTransformer::processHistory)
                 .values()
                 .collect(Collectors.toList());
-        return Futures.immediateFuture(logsForNamespaceAndUseCases);
     }
 
-    public Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(
+    private static Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(
             NamespaceAndUseCase namespaceAndUseCase, LearnerAndAcceptorRecords records) {
 
         long minSeq = records.getMinSequence();
@@ -76,27 +63,5 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
                         .build()).collect(Collectors.toList());
 
         return Maps.immutableEntry(namespaceAndUseCase, LogsForNamespaceAndUseCase.of(namespaceAndUseCase, logs));
-    }
-
-    public static UndertowService undertow(LocalHistoryLoader localHistoryLoader) {
-        return TimeLockPaxosHistoryProviderEndpoints.of(new TimeLockPaxosHistoryProviderResource(localHistoryLoader));
-    }
-
-    public static TimeLockPaxosHistoryProvider jersey(LocalHistoryLoader localHistoryLoader) {
-        return new JerseyAdapter(new TimeLockPaxosHistoryProviderResource(localHistoryLoader));
-    }
-
-    public static class JerseyAdapter implements TimeLockPaxosHistoryProvider {
-        private final TimeLockPaxosHistoryProviderResource delegate;
-
-        private JerseyAdapter(TimeLockPaxosHistoryProviderResource delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public List<LogsForNamespaceAndUseCase> getPaxosHistory(AuthHeader authHeader,
-                List<HistoryQuery> historyQueries) {
-            return AtlasFutures.getUnchecked(delegate.getPaxosHistory(authHeader, historyQueries));
-        }
     }
 }
