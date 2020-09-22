@@ -16,12 +16,12 @@
 
 package com.palantir.history;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -31,8 +31,6 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.history.models.LearnerAndAcceptorRecords;
 import com.palantir.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.paxos.PaxosAcceptorState;
-import com.palantir.paxos.PaxosValue;
 import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
@@ -44,7 +42,8 @@ import com.palantir.tokens.auth.AuthHeader;
 public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPaxosHistoryProvider {
     private LocalHistoryLoader localHistoryLoader;
 
-    private TimeLockPaxosHistoryProviderResource(LocalHistoryLoader localHistoryLoader) {
+    @VisibleForTesting
+    TimeLockPaxosHistoryProviderResource(LocalHistoryLoader localHistoryLoader) {
         this.localHistoryLoader = localHistoryLoader;
     }
 
@@ -52,7 +51,8 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
     public ListenableFuture<List<LogsForNamespaceAndUseCase>> getPaxosHistory(AuthHeader authHeader,
             List<HistoryQuery> historyQueries) {
         Map<NamespaceAndUseCase, Long> lastVerifiedSequences = historyQueries.stream().collect(
-                Collectors.toMap(HistoryQuery::getNamespaceAndUseCase, HistoryQuery::getSeq));// todo support multiple queries for same namespaceUseCase pair?
+                Collectors.toMap(HistoryQuery::getNamespaceAndUseCase, HistoryQuery::getSeq, Math::min));
+
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
         List<LogsForNamespaceAndUseCase> logsForNamespaceAndUseCases = KeyedStream.stream(localPaxosHistory.history())
@@ -65,14 +65,10 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
     public Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(
             NamespaceAndUseCase namespaceAndUseCase, LearnerAndAcceptorRecords records) {
 
-        Map<Long, PaxosValue> learnerRecords = records.learnerRecords();
-        Map<Long, PaxosAcceptorState> acceptorRecords = records.acceptorRecords();
+        long minSeq = records.getMinSequence();
+        long maxSeq = records.getMaxSequence();
 
-        long minSeq = Math.min(Collections.min(learnerRecords.keySet()), Collections.min(acceptorRecords.keySet()));
-
-        long maxSeq = Math.max(Collections.max(learnerRecords.keySet()), Collections.max(acceptorRecords.keySet()));
-
-        List<PaxosLogWithAcceptedAndLearnedValues> logs = LongStream.rangeClosed(minSeq, maxSeq).mapToObj(
+        List<PaxosLogWithAcceptedAndLearnedValues> logs = LongStream.rangeClosed(minSeq, maxSeq).boxed().map(
                 sequence -> PaxosLogWithAcceptedAndLearnedValues.builder()
                         .paxosValue(records.getLearnedValueAtSeqIfExists(sequence))
                         .acceptedState(records.getAcceptedValueAtSeqIfExists(sequence))
@@ -89,7 +85,6 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
     public static TimeLockPaxosHistoryProvider jersey(LocalHistoryLoader localHistoryLoader) {
         return new JerseyAdapter(new TimeLockPaxosHistoryProviderResource(localHistoryLoader));
     }
-
 
     public static class JerseyAdapter implements TimeLockPaxosHistoryProvider {
         private final TimeLockPaxosHistoryProviderResource delegate;
