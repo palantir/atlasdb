@@ -1,9 +1,27 @@
 apply from: "../gradle/shared.gradle"
+apply plugin: 'com.palantir.conjure'
+
+conjure {
+    java {
+        undertowServicePrefixes = true
+        undertowListenableFutures = true
+        useImmutableBytes = true
+    }
+}
+
+repositories {
+    mavenCentral()
+}
 
 dependencies {
+    conjureCompiler 'com.palantir.conjure:conjure'
+    conjureJava 'com.palantir.conjure.java:conjure-java'
+
+    compile project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
+    compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
+    compile project(":timelock-corruption-detection:timelock-corruption-detection-objects")
+
     compile project(":leader-election-impl")
-    compile project(':timelock-api:timelock-api-undertow')
-    compile project(':timelock-api:timelock-api-jersey')
 
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
@@ -12,4 +30,15 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
+}
+
+subprojects {
+    apply from: "../../gradle/shared.gradle"
+    apply plugin: 'com.palantir.sls-recommended-dependencies'
+
+    dependencies {
+        compile project(":leader-election-impl")
+        compile 'com.palantir.conjure.java:conjure-lib'
+    }
+    tasks.licenseMain.enabled = false
 }
