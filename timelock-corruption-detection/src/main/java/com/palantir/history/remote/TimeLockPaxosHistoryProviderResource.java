@@ -24,7 +24,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.history.LocalHistoryLoader;
 import com.palantir.timelock.history.HistoryQuery;
-import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
+import com.palantir.timelock.history.PaxosHistoryOnRemote;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProviderEndpoints;
 import com.palantir.timelock.history.UndertowTimeLockPaxosHistoryProvider;
@@ -38,10 +38,10 @@ public final class TimeLockPaxosHistoryProviderResource implements UndertowTimeL
     }
 
     @Override
-    public ListenableFuture<List<LogsForNamespaceAndUseCase>> getPaxosHistory(AuthHeader authHeader,
+    public ListenableFuture<PaxosHistoryOnRemote> getPaxosHistory(AuthHeader authHeader,
             List<HistoryQuery> historyQueries) {
-        return Futures.immediateFuture(
-                HistoryLoaderAndTransformer.getLogsForHistoryQueries(localHistoryLoader, historyQueries));
+        return Futures.immediateFuture(PaxosHistoryOnRemote.of(
+                HistoryLoaderAndTransformer.getLogsForHistoryQueries(localHistoryLoader, historyQueries)));
     }
 
     public static UndertowService undertow(LocalHistoryLoader localHistoryLoader) {
@@ -60,7 +60,7 @@ public final class TimeLockPaxosHistoryProviderResource implements UndertowTimeL
         }
 
         @Override
-        public List<LogsForNamespaceAndUseCase> getPaxosHistory(AuthHeader authHeader,
+        public PaxosHistoryOnRemote getPaxosHistory(AuthHeader authHeader,
                 List<HistoryQuery> historyQueries) {
             return AtlasFutures.getUnchecked(delegate.getPaxosHistory(authHeader, historyQueries));
         }
