@@ -16,8 +16,6 @@
 
 package com.palantir.history.remote;
 
-import static com.palantir.history.remote.HistoryLoaderAndTransformer.getLogsForHistoryQueries;
-
 import java.util.List;
 
 import com.google.common.util.concurrent.Futures;
@@ -32,7 +30,7 @@ import com.palantir.timelock.history.TimeLockPaxosHistoryProviderEndpoints;
 import com.palantir.timelock.history.UndertowTimeLockPaxosHistoryProvider;
 import com.palantir.tokens.auth.AuthHeader;
 
-public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPaxosHistoryProvider {
+public final class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPaxosHistoryProvider {
     private LocalHistoryLoader localHistoryLoader;
 
     private TimeLockPaxosHistoryProviderResource(LocalHistoryLoader localHistoryLoader) {
@@ -42,7 +40,8 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
     @Override
     public ListenableFuture<List<LogsForNamespaceAndUseCase>> getPaxosHistory(AuthHeader authHeader,
             List<HistoryQuery> historyQueries) {
-        return Futures.immediateFuture(getLogsForHistoryQueries(localHistoryLoader, historyQueries));
+        return Futures.immediateFuture(
+                HistoryLoaderAndTransformer.getLogsForHistoryQueries(localHistoryLoader, historyQueries));
     }
 
     public static UndertowService undertow(LocalHistoryLoader localHistoryLoader) {
@@ -53,7 +52,7 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
         return new JerseyAdapter(new TimeLockPaxosHistoryProviderResource(localHistoryLoader));
     }
 
-    public static class JerseyAdapter implements TimeLockPaxosHistoryProvider {
+    public static final class JerseyAdapter implements TimeLockPaxosHistoryProvider {
         private final TimeLockPaxosHistoryProviderResource delegate;
 
         private JerseyAdapter(TimeLockPaxosHistoryProviderResource delegate) {
