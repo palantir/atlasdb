@@ -22,8 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.history.utils.Utils.writeToLogs;
-
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -34,10 +32,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
+import com.palantir.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.history.sqlite.LogVerificationProgressState;
 import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.history.utils.PaxosSerializationTestUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
@@ -48,7 +47,6 @@ import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
-import com.palantir.tokens.auth.AuthHeader;
 
 public class PaxosHistoryProviderTest {
     @Rule
@@ -58,19 +56,18 @@ public class PaxosHistoryProviderTest {
     private static final String USE_CASE = "useCase";
     private static final String USE_CASE_LEARNER = "useCase!learner";
     private static final String USE_CASE_ACCEPTOR = "useCase!acceptor";
-    private static final TimeLockPaxosHistoryProvider REMOTE = mock(TimeLockPaxosHistoryProvider.class);
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer q");
+    private TimeLockPaxosHistoryProvider remote;
 
     private DataSource dataSource;
     private PaxosStateLog<PaxosValue> learnerLog;
     private PaxosStateLog<PaxosAcceptorState> acceptorLog;
     private LocalHistoryLoader history;
-    private TimeLockPaxosHistoryProviderResource resource;
     private PaxosLogHistoryProvider paxosLogHistoryProvider;
     private LogVerificationProgressState verificationProgressState;
 
     @Before
     public void setup() {
+        remote = mock(TimeLockPaxosHistoryProvider.class);
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
 
         learnerLog = SqlitePaxosStateLog.create(
@@ -79,25 +76,24 @@ public class PaxosHistoryProviderTest {
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);
 
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
-        resource = new TimeLockPaxosHistoryProviderResource(history);
 
         verificationProgressState = LogVerificationProgressState.create(dataSource);
-        paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource, ImmutableList.of(REMOTE));
+        paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource,
+                ImmutableList.of(remote));
     }
 
     @Test
     public void canFetchAndCombineHistoriesForLocalAndRemote() {
-        writeToLogs(acceptorLog, learnerLog, 100);
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 100);
         int lastVerified = -1;
 
         List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
 
         List<LogsForNamespaceAndUseCase> remoteHistory
-                = AtlasFutures.getUnchecked(resource.getPaxosHistory(AUTH_HEADER,
-                historyQueries));
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
-        when(REMOTE.getPaxosHistory(any(), any())).thenReturn(remoteHistory);
+        when(remote.getPaxosHistory(any(), any())).thenReturn(remoteHistory);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
 
@@ -113,24 +109,24 @@ public class PaxosHistoryProviderTest {
 
     @Test
     public void throwsIfRemoteThrows() {
-        writeToLogs(acceptorLog, learnerLog, 100);
-        when(REMOTE.getPaxosHistory(any(), any())).thenThrow(new RuntimeException());
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 100);
+        when(remote.getPaxosHistory(any(), any())).thenThrow(new RuntimeException());
         assertThatThrownBy(paxosLogHistoryProvider::getHistory)
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     public void canFetchAndCombineHistoriesSinceLastVerifiedState() {
-        writeToLogs(acceptorLog, learnerLog, 100);
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 100);
         int lastVerified = 17;
         verificationProgressState.updateProgress(CLIENT, USE_CASE, lastVerified);
 
         List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
         List<LogsForNamespaceAndUseCase> remoteHistory
-                = AtlasFutures.getUnchecked(resource.getPaxosHistory(AUTH_HEADER,
-                historyQueries));
-        when(REMOTE.getPaxosHistory(any(), any())).thenReturn(remoteHistory);
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
+
+        when(remote.getPaxosHistory(any(), any())).thenReturn(remoteHistory);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
         assertThat(completeHistory.size()).isEqualTo(1);
