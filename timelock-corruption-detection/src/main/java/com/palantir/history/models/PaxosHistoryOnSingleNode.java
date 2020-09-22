@@ -32,17 +32,23 @@ public interface PaxosHistoryOnSingleNode {
     @Value.Parameter
     Map<NamespaceAndUseCase, LearnerAndAcceptorRecords> history();
 
-    default Map<Long, LearnedAndAcceptedValue> getConsolidatedLocalAndRemoteRecord(
+    default ConsolidatedLearnerAndAcceptorRecord getConsolidatedLocalAndRemoteRecord(
             NamespaceAndUseCase namespaceAndUseCase) {
 
         if (!history().containsKey(namespaceAndUseCase)) {
-            return ImmutableMap.of();
+            return ImmutableConsolidatedLearnerAndAcceptorRecord.of(ImmutableMap.of());
         }
         LearnerAndAcceptorRecords records = history().get(namespaceAndUseCase);
 
         long minSeq = records.getMinSequence();
         long maxSeq = records.getMaxSequence();
 
+        return ImmutableConsolidatedLearnerAndAcceptorRecord.of(
+                consolidateRecordsForSequenceRange(records, minSeq, maxSeq));
+    }
+
+    default Map<Long, LearnedAndAcceptedValue> consolidateRecordsForSequenceRange(
+            LearnerAndAcceptorRecords records, long minSeq, long maxSeq) {
         return LongStream.rangeClosed(minSeq, maxSeq).boxed().collect(
                 Collectors.toMap(Function.identity(), seq -> getLearnedAndAcceptedValues(records, seq)));
     }
