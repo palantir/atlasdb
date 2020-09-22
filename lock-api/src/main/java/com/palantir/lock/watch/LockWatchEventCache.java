@@ -29,7 +29,8 @@ public interface LockWatchEventCache {
     /**
      * Updates the cache with the update, and identifies the given timestamps with that lock watch state.
      */
-    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    void processStartTransactionsUpdate(long immutableTimestamp, Set<Long> startTimestamps,
+            LockWatchStateUpdate update);
 
     /**
      * Updates the cache by providing a lock token, commit timestamp, and lock watch version at commit time for the

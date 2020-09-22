@@ -75,10 +75,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public void processStartTransactionsUpdate(
+            long immutableTimestamp,
             Set<Long> startTimestamps,
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> updateVersion = processEventLogUpdate(update);
-        updateVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
+        updateVersion.ifPresent(
+                version -> timestampStateStore.putStartTimestamps(immutableTimestamp, startTimestamps, version));
         retentionEventsInLog();
     }
 

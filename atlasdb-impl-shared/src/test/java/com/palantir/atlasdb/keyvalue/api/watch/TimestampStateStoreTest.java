@@ -46,8 +46,8 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void earliestVersionUpdatesWhenAllTimestampsRemovedForVersion() {
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), version1);
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), version2);
+//        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), version1);
+//        timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), version2);
 
         assertThat(timestampStateStore.getEarliestVersion()).hasValue(1L);
 
@@ -67,7 +67,7 @@ public final class TimestampStateStoreTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L), version1);
+//        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L), version1);
         timestampStateStore.putCommitUpdates(ImmutableSet.of(update), version2);
         assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), version2))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)

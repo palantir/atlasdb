@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -30,16 +31,23 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 
 final class TimestampStateStore {
+    private static final ImmutableTimestampVersion INITIAL_VERSION = ImmutableTimestampVersion.of(
+            TransactionConstants.FAILED_COMMIT_TS, IdentifiedVersion.of(
+                    UUID.randomUUID(), -1));
+
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
     private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
+    private ImmutableTimestampVersion lastImmutableTimestamp = INITIAL_VERSION;
 
-    void putStartTimestamps(Collection<Long> startTimestamps, IdentifiedVersion version) {
+    void putStartTimestamps(long immutableTimestamp, Collection<Long> startTimestamps, IdentifiedVersion version) {
+        lastImmutableTimestamp = lastImmutableTimestamp.max(immutableTimestamp, version);
         startTimestamps.forEach(startTimestamp -> {
             MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
@@ -71,10 +79,13 @@ final class TimestampStateStore {
     void clear() {
         timestampMap.clear();
         aliveVersions.clear();
+        lastImmutableTimestamp = INITIAL_VERSION;
     }
 
     Optional<Long> getEarliestVersion() {
-        return Optional.ofNullable(Iterables.getFirst(aliveVersions.keySet(), null));
+        long immutableTimestampVersion = lastImmutableTimestamp.version();
+        return Optional.ofNullable(Iterables.getFirst(aliveVersions.keySet(), null))
+                .map(firstAliveVersion -> Math.min(immutableTimestampVersion, firstAliveVersion));
     }
 
     Optional<IdentifiedVersion> getStartVersion(long startTimestamp) {
@@ -127,4 +138,26 @@ final class TimestampStateStore {
         }
     }
 
+    @Value.Immutable
+    @JsonDeserialize(as = ImmutableCommitInfo.class)
+    @JsonSerialize(as = ImmutableCommitInfo.class)
+    interface ImmutableTimestampVersion {
+        @Value.Parameter
+        long immutableTimestamp();
+
+        @Value.Parameter
+        long version();
+
+        default ImmutableTimestampVersion max(long immutableTimestamp, IdentifiedVersion version) {
+            if (immutableTimestamp() < immutableTimestamp) {
+                return ImmutableTimestampVersion.of(immutableTimestamp, version);
+            } else {
+                return this;
+            }
+        }
+
+        static ImmutableTimestampVersion of(long immutableTimestamp, IdentifiedVersion version) {
+            return ImmutableImmutableTimestampVersion.of(immutableTimestamp, version.version());
+        }
+    }
 }
