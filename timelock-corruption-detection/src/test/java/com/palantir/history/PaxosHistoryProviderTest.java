@@ -22,7 +22,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import javax.sql.DataSource;
 
@@ -72,16 +74,13 @@ public class PaxosHistoryProviderTest {
         remote = mock(TimeLockPaxosHistoryProvider.class);
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
 
-        learnerLog = SqlitePaxosStateLog.create(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER), dataSource);
-        acceptorLog = SqlitePaxosStateLog.create(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);
+        learnerLog = getLearnerLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER));
+        acceptorLog = getAcceptorLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR));
 
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
 
         verificationProgressState = LogVerificationProgressState.create(dataSource);
-        paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource,
-                ImmutableList.of(remote));
+        paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource, ImmutableList.of(remote));
     }
 
     @Test
@@ -100,15 +99,9 @@ public class PaxosHistoryProviderTest {
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
 
         assertThat(completeHistory.size()).isEqualTo(1);
-        CompletePaxosHistoryForNamespaceAndUseCase completeRecord = completeHistory.get(0);
-
-        assertThat(completeRecord.namespace()).isEqualTo(CLIENT);
-        assertThat(completeRecord.useCase()).isEqualTo(USE_CASE);
-
-        List<ConsolidatedLearnerAndAcceptorRecord> records = completeRecord.localAndRemoteLearnerAndAcceptorRecords();
-        assertThat(records.size()).isEqualTo(2);
-        assertThat(records.get(0).record().size()).isEqualTo(100);
-        assertThat(records.get(1).record().size()).isEqualTo(100);
+        CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase = completeHistory.get(0);
+        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
+        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, 100);
     }
 
     @Test
@@ -134,14 +127,62 @@ public class PaxosHistoryProviderTest {
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
         assertThat(completeHistory.size()).isEqualTo(1);
-        CompletePaxosHistoryForNamespaceAndUseCase completeRecords = completeHistory.get(0);
 
-        assertThat(completeRecords.namespace()).isEqualTo(CLIENT);
-        assertThat(completeRecords.useCase()).isEqualTo(USE_CASE);
-
-        List<ConsolidatedLearnerAndAcceptorRecord> records = completeRecords.localAndRemoteLearnerAndAcceptorRecords();
-        assertThat(records.size()).isEqualTo(2);
-        assertThat(records.get(0).record().size()).isEqualTo(100 - lastVerified);
-        assertThat(records.get(1).record().size()).isEqualTo(100 - lastVerified);
+        CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase = completeHistory.get(0);
+        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
+        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, 100 - lastVerified);
     }
+
+    @Test
+    public void canFetchAndCombineHistoriesAcrossNamespaceAndUseCases() {
+        List<HistoryQuery> historyQueries = new ArrayList<>();
+        IntStream.rangeClosed(1, 100).forEach(idx -> {
+            Client client = Client.of("" + idx);
+            PaxosSerializationTestUtils.writeToLogs(
+                    getAcceptorLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_ACCEPTOR)),
+                    getLearnerLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_LEARNER)),
+                    idx);
+            historyQueries.add(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(client, USE_CASE), -1));
+        });
+
+        List<LogsForNamespaceAndUseCase> remoteHistory
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
+        when(remote.getPaxosHistory(any(), any())).thenReturn(PaxosHistoryOnRemote.of(remoteHistory));
+
+        List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
+        assertThat(completeHistory.size()).isEqualTo(100);
+        completeHistory.forEach(historyForNamespaceAndUseCase -> assertSanityOfFetchedRecords(
+                historyForNamespaceAndUseCase, getIntegerValueOfClient(historyForNamespaceAndUseCase)
+        ));
+    }
+
+    // utils
+    private PaxosStateLog<PaxosValue> getLearnerLog(ImmutableNamespaceAndUseCase namespaceAndUseCase) {
+        return SqlitePaxosStateLog.create(namespaceAndUseCase, dataSource);
+    }
+
+    private PaxosStateLog<PaxosAcceptorState> getAcceptorLog(ImmutableNamespaceAndUseCase namespaceAndUseCase) {
+        return SqlitePaxosStateLog.create(namespaceAndUseCase, dataSource);
+    }
+
+    private void assertSanityOfFetchedRecords(
+            CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase,
+            int numberOfLogs) {
+
+        assertThat(historyForNamespaceAndUseCase.useCase()).isEqualTo(USE_CASE);
+
+        List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords
+                = historyForNamespaceAndUseCase.localAndRemoteLearnerAndAcceptorRecords();
+
+        assertThat(localAndRemoteLearnerAndAcceptorRecords.size()).isEqualTo(2); // there is one local and one remote
+
+        assertThat(localAndRemoteLearnerAndAcceptorRecords.get(0).record().size())
+                .isEqualTo(localAndRemoteLearnerAndAcceptorRecords.get(1).record().size())
+                .isEqualTo(numberOfLogs);
+    }
+
+    private int getIntegerValueOfClient(CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase) {
+        return Integer.parseInt(historyForNamespaceAndUseCase.namespace().value());
+    }
+
 }
