@@ -35,11 +35,11 @@ public interface LearnerAndAcceptorRecords {
     Map<Long, PaxosAcceptorState> acceptorRecords();
 
     default Optional<PaxosValue> getLearnedValueAtSeqIfExists(long seq) {
-        return learnerRecords().containsKey(seq) ? Optional.of(learnerRecords().get(seq)) : Optional.empty();
+        return Optional.ofNullable(learnerRecords().getOrDefault(seq, null));
     }
 
     default Optional<PaxosAcceptorState> getAcceptedValueAtSeqIfExists(long seq) {
-        return acceptorRecords().containsKey(seq) ? Optional.of(acceptorRecords().get(seq)) : Optional.empty();
+        return Optional.ofNullable(acceptorRecords().getOrDefault(seq, null));
     }
 
     default long getMinSequence() {

@@ -18,8 +18,8 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.history.Utils.writeAcceptorStateForLogAndRound;
-import static com.palantir.history.Utils.writeValueForLogAndRound;
+import static com.palantir.history.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
+import static com.palantir.history.PaxosSerializationTestUtils.writeValueForLogAndRound;
 
 import java.util.Set;
 import java.util.stream.IntStream;
