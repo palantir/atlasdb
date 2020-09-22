@@ -2,6 +2,8 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
     compile project(":leader-election-impl")
+    compile project(':timelock-api:timelock-api-undertow')
+    compile project(':timelock-api:timelock-api-jersey')
 
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'

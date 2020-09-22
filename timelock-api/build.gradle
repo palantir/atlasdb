@@ -10,6 +10,8 @@ conjure {
 }
 
 dependencies {
+    compile project(":leader-election-impl")
+
     conjureCompiler 'com.palantir.conjure:conjure'
     conjureJava 'com.palantir.conjure.java:conjure-java'
 }
@@ -18,6 +20,7 @@ subprojects {
     apply from: "../../gradle/shared.gradle"
     dependencies {
         compile project(':lock-api-objects')
+        compile project(':leader-election-impl')
         compile 'com.palantir.conjure.java:conjure-lib'
     }
     tasks.licenseMain.enabled = false
