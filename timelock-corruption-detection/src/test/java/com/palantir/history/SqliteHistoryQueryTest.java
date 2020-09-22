@@ -18,14 +18,14 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.ByteBuffer;
+import static com.palantir.history.Utils.writeAcceptorStateForLogAndRound;
+import static com.palantir.history.Utils.writeValueForLogAndRound;
+
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.IntStream;
 
 import javax.sql.DataSource;
 
-import org.jdbi.v3.core.Jdbi;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +38,6 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
-import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
@@ -64,7 +63,6 @@ public class SqliteHistoryQueryTest {
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER), dataSource);
         acceptorLog = SqlitePaxosStateLog.create(
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);
-
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
     }
 
@@ -145,22 +143,4 @@ public class SqliteHistoryQueryTest {
         assertThat(allNamespaceAndUseCaseTuples.size()).isEqualTo(100);
     }
 
-    private PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
-        PaxosValue paxosValue = new PaxosValue("leaderUuid", round, longToBytes(round));
-        log.writeRound(round, paxosValue);
-        return paxosValue;
-    }
-
-    private PaxosAcceptorState writeAcceptorStateForLogAndRound(PaxosStateLog<PaxosAcceptorState> log, long round) {
-        PaxosAcceptorState acceptorState = PaxosAcceptorState.newState(new PaxosProposalId(
-                round, UUID.randomUUID().toString()));
-        log.writeRound(round, acceptorState);
-        return acceptorState;
-    }
-
-    private byte[] longToBytes(long value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(value);
-        return buffer.array();
-    }
 }
