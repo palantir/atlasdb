@@ -44,9 +44,7 @@ public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPax
     @Override
     public ListenableFuture<List<LogsForNamespaceAndUseCase>> getPaxosHistory(AuthHeader authHeader,
             List<HistoryQuery> historyQueries) {
-        List<LogsForNamespaceAndUseCase> logsForNamespaceAndUseCases
-                = getLogsForHistoryQueries(localHistoryLoader, historyQueries);
-        return Futures.immediateFuture(logsForNamespaceAndUseCases);
+        return Futures.immediateFuture(getLogsForHistoryQueries(localHistoryLoader, historyQueries));
     }
 
     public static UndertowService undertow(LocalHistoryLoader localHistoryLoader) {

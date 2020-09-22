@@ -18,8 +18,8 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.history.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
-import static com.palantir.history.PaxosSerializationTestUtils.writeValueForLogAndRound;
+import static com.palantir.history.utils.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
+import static com.palantir.history.utils.PaxosSerializationTestUtils.writeValueForLogAndRound;
 
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -43,7 +43,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 
-public class SqliteHistoryQueryTest {
+public class SqliteHistoryQueriesTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 

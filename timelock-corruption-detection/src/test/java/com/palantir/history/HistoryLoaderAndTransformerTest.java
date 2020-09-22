@@ -18,8 +18,8 @@ package com.palantir.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.history.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
-import static com.palantir.history.PaxosSerializationTestUtils.writeValueForLogAndRound;
+import static com.palantir.history.utils.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
+import static com.palantir.history.utils.PaxosSerializationTestUtils.writeValueForLogAndRound;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,7 +46,7 @@ import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
 
-public class PaxosHistoryProviderResourceTest {
+public class HistoryLoaderAndTransformerTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
