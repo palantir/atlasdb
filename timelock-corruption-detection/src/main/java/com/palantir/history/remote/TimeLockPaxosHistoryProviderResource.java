@@ -20,7 +20,6 @@ import static com.palantir.history.remote.HistoryLoaderAndTransformer.getLogsFor
 
 import java.util.List;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -36,8 +35,7 @@ import com.palantir.tokens.auth.AuthHeader;
 public class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPaxosHistoryProvider {
     private LocalHistoryLoader localHistoryLoader;
 
-    @VisibleForTesting
-    TimeLockPaxosHistoryProviderResource(LocalHistoryLoader localHistoryLoader) {
+    private TimeLockPaxosHistoryProviderResource(LocalHistoryLoader localHistoryLoader) {
         this.localHistoryLoader = localHistoryLoader;
     }
 
