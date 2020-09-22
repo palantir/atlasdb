@@ -33,6 +33,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
+import com.palantir.history.models.ConsolidatedLearnerAndAcceptorRecord;
 import com.palantir.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.history.sqlite.LogVerificationProgressState;
 import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
@@ -103,9 +104,10 @@ public class PaxosHistoryProviderTest {
 
         assertThat(history.namespace()).isEqualTo(CLIENT);
         assertThat(history.useCase()).isEqualTo(USE_CASE);
-        assertThat(history.localAndRemoteLearnerAndAcceptorRecords().size()).isEqualTo(2);
-//        assertThat(history.localAndRemoteLearnerAndAcceptorRecords().get(0).size()).isEqualTo(100);
-//        assertThat(history.localAndRemoteLearnerAndAcceptorRecords().get(1).size()).isEqualTo(100);
+        List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
+        assertThat(records.size()).isEqualTo(2);
+        assertThat(records.get(0).record().size()).isEqualTo(100);
+        assertThat(records.get(1).record().size()).isEqualTo(100);
     }
 
     @Test
@@ -135,8 +137,10 @@ public class PaxosHistoryProviderTest {
 
         assertThat(history.namespace()).isEqualTo(CLIENT);
         assertThat(history.useCase()).isEqualTo(USE_CASE);
-        assertThat(history.localAndRemoteLearnerAndAcceptorRecords().size()).isEqualTo(2);
-//        assertThat(history.localAndRemoteLearnerAndAcceptorRecords().get(0).size()).isEqualTo(100 - lastVerified);
-//        assertThat(history.localAndRemoteLearnerAndAcceptorRecords().get(1).size()).isEqualTo(100 - lastVerified);
+
+        List<ConsolidatedLearnerAndAcceptorRecord> historyRecords = history.localAndRemoteLearnerAndAcceptorRecords();
+        assertThat(historyRecords.size()).isEqualTo(2);
+        assertThat(historyRecords.get(0).record().size()).isEqualTo(100 - lastVerified);
+        assertThat(historyRecords.get(1).record().size()).isEqualTo(100 - lastVerified);
     }
 }
