@@ -51,15 +51,13 @@ public class HistoryLoaderAndTransformerTest {
     private static final String USE_CASE = "useCase";
     private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE);
 
-
-    private DataSource dataSource;
     private PaxosStateLog<PaxosValue> learnerLog;
     private PaxosStateLog<PaxosAcceptorState> acceptorLog;
     private LocalHistoryLoader history;
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        DataSource dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         learnerLog = SqlitePaxosStateLog.create(
                 ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getLearnerUseCase(USE_CASE).value()), dataSource);
         acceptorLog = SqlitePaxosStateLog.create(
