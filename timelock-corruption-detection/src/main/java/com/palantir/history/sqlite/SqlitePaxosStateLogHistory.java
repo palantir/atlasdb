@@ -65,7 +65,7 @@ public final class SqlitePaxosStateLogHistory {
         return execute(Queries::getAllNamespaceAndUseCaseTuples);
     }
 
-    public LearnerAndAcceptorRecords getRawLearnerAndAcceptorLogsSince(
+    public LearnerAndAcceptorRecords getLearnerAndAcceptorLogsSince(
             Client namespace, LearnerUseCase learnerUseCase, AcceptorUseCase acceptorUseCase, long seq) {
         return execute(dao -> ImmutableLearnerAndAcceptorRecords.of(
                 dao.getLearnerLogsSince(namespace, learnerUseCase.value(), seq),
@@ -80,9 +80,9 @@ public final class SqlitePaxosStateLogHistory {
         @SqlQuery("SELECT DISTINCT namespace, useCase FROM paxosLog")
         Set<NamespaceAndUseCase> getAllNamespaceAndUseCaseTuples();
 
-//      For now, limit is based on approximation and has not been tested with remotes. We need to revisit this once
-//      we have the remote history providers set up. Also, we may have to make it configurable to
-//      accommodate the rate at which logs are being published.
+//        TODO(snanda): For now, limit is based on approximation and has not been tested with remotes. We need to
+//         revisit this once we have the remote history providers set up. Also, we may have to make it configurable to
+//         accommodate the rate at which logs are being published.
         @SqlQuery("SELECT seq, val FROM paxosLog "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
                 + "ORDER BY seq ASC LIMIT 500")

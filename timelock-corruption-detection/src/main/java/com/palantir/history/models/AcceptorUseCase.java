@@ -23,7 +23,7 @@ public interface AcceptorUseCase {
     @Value.Parameter
     String value();
 
-    static AcceptorUseCase getAcceptorUseCase(String paxosUseCase) {
+    static AcceptorUseCase createAcceptorUseCase(String paxosUseCase) {
         // TODO (someone): This is fragile because it MUST match timelock-impl's LocalPaxosComponents.
         // DO NOT CHANGE THIS VALUE WITHOUT A MIGRATION!
         return ImmutableAcceptorUseCase.of(String.format("%s!acceptor", paxosUseCase));

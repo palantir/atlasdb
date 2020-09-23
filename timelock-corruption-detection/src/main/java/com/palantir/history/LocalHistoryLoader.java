@@ -50,10 +50,10 @@ public final class LocalHistoryLoader {
     @VisibleForTesting
     LearnerAndAcceptorRecords loadLocalHistory(NamespaceAndUseCase namespaceAndUseCase, Long seq) {
         String paxosUseCasePrefix = namespaceAndUseCase.useCase();
-        return sqlitePaxosStateLogHistory.getRawLearnerAndAcceptorLogsSince(
+        return sqlitePaxosStateLogHistory.getLearnerAndAcceptorLogsSince(
                 namespaceAndUseCase.namespace(),
-                LearnerUseCase.getLearnerUseCase(paxosUseCasePrefix),
-                AcceptorUseCase.getAcceptorUseCase(paxosUseCasePrefix),
+                LearnerUseCase.createLearnerUseCase(paxosUseCasePrefix),
+                AcceptorUseCase.createAcceptorUseCase(paxosUseCasePrefix),
                 seq);
     }
 }
