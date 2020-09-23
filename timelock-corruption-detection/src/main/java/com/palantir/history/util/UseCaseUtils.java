@@ -16,24 +16,26 @@
 
 package com.palantir.history.util;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class UseCaseUtils {
-    private static final Logger log = LoggerFactory.getLogger(UseCaseUtils.class);
+    private static final Pattern PATTERN = Pattern.compile("^(.*)!(.*)$");
 
     private UseCaseUtils() {
         // no op
     }
 
     public static String getPaxosUseCasePrefix(String useCase) {
-        String[] delimitedStrings = useCase.split("!");
-        if (delimitedStrings.length != 2) {
-            log.warn("The useCase - {} unexpectedly does not have `!` as delimiter. We should never reach here.",
-                    SafeArg.of("useCase", useCase));
-        }
-        return delimitedStrings[0];
+        Matcher matcher = PATTERN.matcher(useCase);
+        Preconditions.checkState(matcher.find(),
+                "Unexpected use case format", SafeArg.of("useCase", useCase));
+        return matcher.group(1);
     }
 }
