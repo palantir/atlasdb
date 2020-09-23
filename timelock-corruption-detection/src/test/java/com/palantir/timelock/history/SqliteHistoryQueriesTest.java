@@ -77,7 +77,8 @@ public class SqliteHistoryQueriesTest {
 
     @Test
     public void canGetAllAcceptorLogsSince() {
-        IntStream.range(0, 100).forEach(i -> PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(acceptorLog, i + 1));
+        IntStream.range(0, 100).forEach(i -> PaxosSerializationTestUtils
+                .writeAcceptorStateForLogAndRound(acceptorLog, i + 1));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords
                 = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
                 CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
