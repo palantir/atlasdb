@@ -18,6 +18,7 @@ package com.palantir.timelock.history.remote;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
@@ -56,9 +57,9 @@ public final class HistoryLoaderAndTransformer {
         List<PaxosLogWithAcceptedAndLearnedValues> logs = records.getAllSequenceNumbers().stream().map(
                 sequence -> PaxosLogWithAcceptedAndLearnedValues.builder()
                         .paxosValue(records.getLearnedValueAtSeqIfExists(sequence))
-                        .acceptedState(
-                                records.getAcceptedValueAtSeqIfExists(sequence)
-                                        .map(HistoryLoaderAndTransformer::mapPaxosAcceptorStateToSerializableData))
+                        .acceptedState(records
+                                .getAcceptedValueAtSeqIfExists(sequence)
+                                .map(HistoryLoaderAndTransformer::mapPaxosAcceptorStateToSerializableData))
                         .seq(sequence)
                         .build())
                 .collect(Collectors.toList());
@@ -68,10 +69,10 @@ public final class HistoryLoaderAndTransformer {
 
     private static PaxosAcceptorData mapPaxosAcceptorStateToSerializableData(PaxosAcceptorState state) {
         return PaxosAcceptorData.builder()
-                    .lastPromisedId(state.getLastPromisedId())
-                    .lastAcceptedId(state.getLastAcceptedId())
+                    .lastPromisedId(Optional.ofNullable(state.getLastPromisedId()))
+                    .lastAcceptedId(Optional.ofNullable(state.getLastAcceptedId()))
                     .version(state.getVersion())
-                    .lastAcceptedValue(state.getLastAcceptedValue())
+                    .lastAcceptedValue(Optional.ofNullable(state.getLastAcceptedValue()))
                     .build();
     }
 }

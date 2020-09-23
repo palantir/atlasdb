@@ -21,9 +21,9 @@ types:
     objects:
       PaxosAcceptorData:
         fields:
-          lastPromisedId: PaxosProposalId
-          lastAcceptedId: PaxosProposalId
-          lastAcceptedValue: PaxosValue
+          lastPromisedId: optional<PaxosProposalId>
+          lastAcceptedId: optional<PaxosProposalId>
+          lastAcceptedValue: optional<PaxosValue>
           version: Long
       HistoryQuery:
         fields:
