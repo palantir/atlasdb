@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: TimeLock shoots itself upon detecting local/ remote corruption.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4986
