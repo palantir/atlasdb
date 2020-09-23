@@ -1,5 +1,6 @@
 type: feature
 feature:
-  description: Mechanism to load Paxos state log history from Sqlite.
+  description: Mechanism to load Paxos state log history from Sqlite. This is required
+    for running TimeLock corruption checks.
   links:
   - https://github.com/palantir/atlasdb/pull/4989
