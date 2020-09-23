@@ -24,6 +24,8 @@ public interface LearnerUseCase {
     String value();
 
     static LearnerUseCase getLearnerUseCase(String paxosUseCase) {
+        // TODO (someone): This is fragile because it MUST match timelock-impl's LocalPaxosComponents.
+        // DO NOT CHANGE THIS VALUE WITHOUT A MIGRATION!
         return ImmutableLearnerUseCase.of(String.format("%s!learner", paxosUseCase));
     }
 }
