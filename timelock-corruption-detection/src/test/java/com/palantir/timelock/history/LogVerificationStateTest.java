@@ -25,9 +25,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 
 public class LogVerificationStateTest {
     @Rule

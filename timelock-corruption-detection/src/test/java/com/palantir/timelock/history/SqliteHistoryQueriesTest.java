@@ -32,9 +32,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
-import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -43,6 +40,9 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
 public class SqliteHistoryQueriesTest {

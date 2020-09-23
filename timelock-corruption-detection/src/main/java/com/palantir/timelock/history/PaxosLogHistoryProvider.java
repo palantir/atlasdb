@@ -26,13 +26,13 @@ import javax.sql.DataSource;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
-import com.palantir.paxos.ImmutableNamespaceAndUseCase;
-import com.palantir.paxos.NamespaceAndUseCase;
 
 public class PaxosLogHistoryProvider {
     private final LogVerificationProgressState logVerificationProgressState;

@@ -30,9 +30,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
-import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -41,6 +38,9 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
 public class HistoryLoaderAndTransformerTest {
@@ -151,7 +151,7 @@ public class HistoryLoaderAndTransformerTest {
         List<LogsForNamespaceAndUseCase> paxosHistory
                 = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
-        sanityCheckLoadedHistory(paxosHistory, (100 - firstSeqWithLog + 1));
+        sanityCheckLoadedHistory(paxosHistory, 100 - firstSeqWithLog + 1);
     }
 
 

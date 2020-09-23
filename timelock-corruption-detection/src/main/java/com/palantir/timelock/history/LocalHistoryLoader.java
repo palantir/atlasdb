@@ -28,6 +28,7 @@ import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 
+
 //TBD cache implementation
 public final class LocalHistoryLoader {
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
