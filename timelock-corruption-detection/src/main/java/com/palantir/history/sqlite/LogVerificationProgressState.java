@@ -16,7 +16,7 @@
 
 package com.palantir.history.sqlite;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.function.Function;
 
 import javax.sql.DataSource;
@@ -56,14 +56,14 @@ public final class LogVerificationProgressState {
         execute(dao -> dao.updateProgress(client, useCase, seq));
     }
 
-    public Long getLastVerifiedSeq(Client client, String useCase) {
+    public long getLastVerifiedSeq(Client client, String useCase) {
         return execute(dao -> {
-            Optional<Long> lastVerifiedSeq = dao.getLastVerifiedSeq(client, useCase);
+            OptionalLong lastVerifiedSeq = dao.getLastVerifiedSeq(client, useCase);
             return lastVerifiedSeq.orElseGet(() -> setInitialProgress(client, useCase));
         });
     }
 
-    private Long setInitialProgress(Client client, String useCase) {
+    private long setInitialProgress(Client client, String useCase) {
         updateProgress(client, useCase, INITIAL_PROGRESS);
         return INITIAL_PROGRESS;
     }
@@ -86,6 +86,6 @@ public final class LogVerificationProgressState {
 
         @SqlQuery("SELECT seq FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
-        Optional<Long> getLastVerifiedSeq(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+        OptionalLong getLastVerifiedSeq(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 }

@@ -18,17 +18,18 @@ package com.palantir.history.mappers;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
-import com.palantir.paxos.PaxosRound;
+import com.google.common.collect.Maps;
 import com.palantir.paxos.PaxosValue;
 
-public class LearnerPaxosRoundMapper implements RowMapper<PaxosRound<PaxosValue>> {
+public class LearnerPaxosRoundMapper implements RowMapper<Map.Entry<Long, PaxosValue>> {
     @Override
-    public PaxosRound<PaxosValue> map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public Map.Entry<Long, PaxosValue> map(ResultSet rs, StatementContext ctx) throws SQLException {
         PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
-        return PaxosRound.of(rs.getLong("seq"), value);
+        return Maps.immutableEntry(rs.getLong("seq"), value);
     }
 }

@@ -17,22 +17,16 @@
 package com.palantir.history;
 
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.history.models.ImmutableLearnerAndAcceptorRecords;
+import com.palantir.history.models.AcceptorUseCase;
 import com.palantir.history.models.ImmutablePaxosHistoryOnSingleNode;
 import com.palantir.history.models.LearnerAndAcceptorRecords;
+import com.palantir.history.models.LearnerUseCase;
 import com.palantir.history.models.PaxosHistoryOnSingleNode;
-import com.palantir.history.models.RawLearnerAndAcceptorRecords;
 import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.history.util.UseCaseUtils;
 import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.paxos.PaxosRound;
-import com.palantir.paxos.Versionable;
 
 //TBD cache implementation
 public final class LocalHistoryLoader {
@@ -56,18 +50,10 @@ public final class LocalHistoryLoader {
     @VisibleForTesting
     LearnerAndAcceptorRecords loadLocalHistory(NamespaceAndUseCase namespaceAndUseCase, Long seq) {
         String paxosUseCasePrefix = namespaceAndUseCase.useCase();
-        RawLearnerAndAcceptorRecords logsSince = sqlitePaxosStateLogHistory.getRawLearnerAndAcceptorLogsSince(
+        return sqlitePaxosStateLogHistory.getRawLearnerAndAcceptorLogsSince(
                 namespaceAndUseCase.namespace(),
-                UseCaseUtils.getLearnerUseCase(paxosUseCasePrefix),
-                UseCaseUtils.getAcceptorUseCase(paxosUseCasePrefix),
+                LearnerUseCase.getLearnerUseCase(paxosUseCasePrefix),
+                AcceptorUseCase.getAcceptorUseCase(paxosUseCasePrefix),
                 seq);
-        return ImmutableLearnerAndAcceptorRecords.of(
-                mapPaxosRoundValuesAgainstSeq(logsSince.rawLearnerRecords()),
-                mapPaxosRoundValuesAgainstSeq(logsSince.rawAcceptorRecords()));
-    }
-
-    private <T extends Persistable & Versionable> Map<Long, T> mapPaxosRoundValuesAgainstSeq(
-            Set<PaxosRound<T>> paxosRounds) {
-        return paxosRounds.stream().collect(Collectors.toMap(PaxosRound::sequence, PaxosRound::value));
     }
 }

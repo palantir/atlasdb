@@ -20,7 +20,10 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface AcceptorUseCase {
-
     @Value.Parameter
     String value();
+
+    static AcceptorUseCase getAcceptorUseCase(String paxosUseCase) {
+        return ImmutableAcceptorUseCase.of(String.format("%s!acceptor", paxosUseCase));
+    }
 }

@@ -16,6 +16,7 @@
 
 package com.palantir.history.sqlite;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -32,9 +33,9 @@ import com.palantir.history.mappers.AcceptorPaxosRoundMapper;
 import com.palantir.history.mappers.LearnerPaxosRoundMapper;
 import com.palantir.history.mappers.NamespaceAndUseCaseMapper;
 import com.palantir.history.models.AcceptorUseCase;
-import com.palantir.history.models.ImmutableRawLearnerAndAcceptorRecords;
+import com.palantir.history.models.ImmutableLearnerAndAcceptorRecords;
+import com.palantir.history.models.LearnerAndAcceptorRecords;
 import com.palantir.history.models.LearnerUseCase;
-import com.palantir.history.models.RawLearnerAndAcceptorRecords;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
@@ -61,12 +62,12 @@ public final class SqlitePaxosStateLogHistory {
     }
 
     public Set<NamespaceAndUseCase> getAllNamespaceAndUseCaseTuples() {
-        return execute(dao -> dao.getAllNamespaceAndUseCaseTuples());
+        return execute(Queries::getAllNamespaceAndUseCaseTuples);
     }
 
-    public RawLearnerAndAcceptorRecords getRawLearnerAndAcceptorLogsSince(
+    public LearnerAndAcceptorRecords getRawLearnerAndAcceptorLogsSince(
             Client namespace, LearnerUseCase learnerUseCase, AcceptorUseCase acceptorUseCase, long seq) {
-        return execute(dao -> ImmutableRawLearnerAndAcceptorRecords.of(
+        return execute(dao -> ImmutableLearnerAndAcceptorRecords.of(
                 dao.getLearnerLogsSince(namespace, learnerUseCase.value(), seq),
                 dao.getAcceptorLogsSince(namespace, acceptorUseCase.value(), seq)));
     }
@@ -79,10 +80,13 @@ public final class SqlitePaxosStateLogHistory {
         @SqlQuery("SELECT DISTINCT namespace, useCase FROM paxosLog")
         Set<NamespaceAndUseCase> getAllNamespaceAndUseCaseTuples();
 
+//      For now, limit is based on approximation and has not been tested with remotes. We need to revisit this once
+//      we have the remote history providers set up. Also, we may have to make it configurable to
+//      accommodate the rate at which logs are being published.
         @SqlQuery("SELECT seq, val FROM paxosLog "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
                 + "ORDER BY seq ASC LIMIT 500")
-        Set<PaxosRound<PaxosValue>> getLearnerLogsSince(
+        Map<Long, PaxosValue> getLearnerLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("seq") long seq);
@@ -90,7 +94,7 @@ public final class SqlitePaxosStateLogHistory {
         @SqlQuery("SELECT seq, val FROM paxosLog "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
                 + "ORDER BY seq ASC LIMIT 500")
-        Set<PaxosRound<PaxosAcceptorState>> getAcceptorLogsSince(
+        Map<Long, PaxosAcceptorState> getAcceptorLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("seq") long seq);

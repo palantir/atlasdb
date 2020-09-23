@@ -20,7 +20,10 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface LearnerUseCase {
-
     @Value.Parameter
     String value();
+
+    static LearnerUseCase getLearnerUseCase(String paxosUseCase) {
+        return ImmutableLearnerUseCase.of(String.format("%s!learner", paxosUseCase));
+    }
 }

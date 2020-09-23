@@ -19,10 +19,6 @@ package com.palantir.history.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.history.models.AcceptorUseCase;
-import com.palantir.history.models.ImmutableAcceptorUseCase;
-import com.palantir.history.models.ImmutableLearnerUseCase;
-import com.palantir.history.models.LearnerUseCase;
 import com.palantir.logsafe.SafeArg;
 
 public final class UseCaseUtils {
@@ -33,19 +29,11 @@ public final class UseCaseUtils {
     }
 
     public static String getPaxosUseCasePrefix(String useCase) {
-        int delimiterIndex = useCase.indexOf("!");
-        if (delimiterIndex == -1) {
+        String[] delimitedStrings = useCase.split("!");
+        if (delimitedStrings.length != 2) {
             log.warn("The useCase - {} unexpectedly does not have `!` as delimiter. We should never reach here.",
                     SafeArg.of("useCase", useCase));
         }
-        return useCase.substring(0, delimiterIndex);
-    }
-
-    public static LearnerUseCase getLearnerUseCase(String paxosUseCase) {
-        return ImmutableLearnerUseCase.of(String.format("%s!learner", paxosUseCase));
-    }
-
-    public static AcceptorUseCase getAcceptorUseCase(String paxosUseCase) {
-        return ImmutableAcceptorUseCase.of(String.format("%s!acceptor", paxosUseCase));
+        return delimitedStrings[0];
     }
 }

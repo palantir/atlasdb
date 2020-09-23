@@ -25,7 +25,6 @@ import java.util.stream.IntStream;
 
 import javax.sql.DataSource;
 
-import org.jdbi.v3.core.Jdbi;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,7 +52,6 @@ public class SqliteHistoryQueryTest {
     private static final String USE_CASE_ACCEPTOR = "useCase!acceptor";
 
     private DataSource dataSource;
-    private Jdbi jdbi;
     private PaxosStateLog<PaxosValue> learnerLog;
     private PaxosStateLog<PaxosAcceptorState> acceptorLog;
     private LocalHistoryLoader history;
@@ -71,7 +69,7 @@ public class SqliteHistoryQueryTest {
 
     @Test
     public void canGetAllLearnerLogsSince() {
-        IntStream.range(0, 100).forEach(i -> writeValueForLogAndRound(learnerLog, i + 1));
+        IntStream.rangeClosed(1, 100).forEach(i -> writeValueForLogAndRound(learnerLog, i));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords
                 = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
                         CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
@@ -81,12 +79,41 @@ public class SqliteHistoryQueryTest {
 
     @Test
     public void canGetAllAcceptorLogsSince() {
-        IntStream.range(0, 100).forEach(i -> writeAcceptorStateForLogAndRound(acceptorLog, i + 1));
+        IntStream.rangeClosed(1, 100).forEach(i -> writeAcceptorStateForLogAndRound(acceptorLog, i));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords
                 = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
                 CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(0);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
+    }
+
+    @Test
+    public void canGetAllLearnerAndAcceptorLogsSince() {
+        IntStream.rangeClosed(1, 100).forEach(i -> {
+            writeAcceptorStateForLogAndRound(acceptorLog, i);
+            writeValueForLogAndRound(learnerLog, i);
+        });
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords
+                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
+                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
+        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
+    }
+
+    @Test
+    public void canGetAllLearnerAndAcceptorDiscontinuousLogsSince() {
+        int startInclusive = 55;
+        IntStream.rangeClosed(startInclusive, 100).forEach(i -> {
+            writeAcceptorStateForLogAndRound(acceptorLog, i);
+            writeValueForLogAndRound(learnerLog, i);
+        });
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords
+                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
+                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+
+        int expected = 100 - startInclusive + 1;
+        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(expected);
+        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(expected);
     }
 
     @Test
