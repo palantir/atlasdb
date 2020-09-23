@@ -71,6 +71,9 @@ import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
+import com.palantir.timelock.history.LocalHistoryLoader;
+import com.palantir.timelock.history.remote.TimeLockPaxosHistoryProviderResource;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -79,7 +82,7 @@ import com.zaxxer.hikari.HikariDataSource;
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
     // Schema version from 2 onwards are on SQLite
-    private static final Long SCHEMA_VERSION = 4L;
+    private static final Long SCHEMA_VERSION = 3L;
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
@@ -232,10 +235,15 @@ public class TimeLockAgent {
                     ConjureLockWatchingResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
                     ConjureLockV1Resource.undertow(redirectRetryTargeter(), lockServiceGetter));
+            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+                    TimeLockPaxosHistoryProviderResource.undertow(
+                            LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(sqliteDataSource))));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
+            registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(LocalHistoryLoader.create(
+                    SqlitePaxosStateLogHistory.create(sqliteDataSource))));
         }
     }
 

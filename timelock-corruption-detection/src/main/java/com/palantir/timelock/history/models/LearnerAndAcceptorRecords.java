@@ -41,7 +41,7 @@ public interface LearnerAndAcceptorRecords {
     }
 
     default Optional<PaxosAcceptorState> getAcceptedValueAtSeqIfExists(long seq) {
-        return Optional.ofNullable(acceptorRecords().getOrDefault(seq, null));
+        return Optional.ofNullable(acceptorRecords().get(seq));
     }
 
     // it is okay to have a set of longs as learner and acceptor records have a limit of 500 entries.
