@@ -19,7 +19,6 @@ package com.palantir.history.remote;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
@@ -52,10 +51,7 @@ public final class HistoryLoaderAndTransformer {
     private static Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(
             NamespaceAndUseCase namespaceAndUseCase, LearnerAndAcceptorRecords records) {
 
-        long minSeq = records.getMinSequence();
-        long maxSeq = records.getMaxSequence();
-
-        List<PaxosLogWithAcceptedAndLearnedValues> logs = LongStream.rangeClosed(minSeq, maxSeq).boxed().map(
+        List<PaxosLogWithAcceptedAndLearnedValues> logs = records.getAllSequenceNumbers().stream().map(
                 sequence -> PaxosLogWithAcceptedAndLearnedValues.builder()
                         .paxosValue(records.getLearnedValueAtSeqIfExists(sequence))
                         .acceptedState(records.getAcceptedValueAtSeqIfExists(sequence))
