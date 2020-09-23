@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history.sqlite;
+package com.palantir.timelock.history.sqlite;
 
 import java.util.Map;
 import java.util.Set;
@@ -29,19 +29,19 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 
-import com.palantir.history.mappers.AcceptorPaxosRoundMapper;
-import com.palantir.history.mappers.LearnerPaxosRoundMapper;
-import com.palantir.history.mappers.NamespaceAndUseCaseMapper;
-import com.palantir.history.models.AcceptorUseCase;
-import com.palantir.history.models.ImmutableLearnerAndAcceptorRecords;
-import com.palantir.history.models.LearnerAndAcceptorRecords;
-import com.palantir.history.models.LearnerUseCase;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.mappers.AcceptorPaxosRoundMapper;
+import com.palantir.timelock.history.mappers.LearnerPaxosRoundMapper;
+import com.palantir.timelock.history.mappers.NamespaceAndUseCaseMapper;
+import com.palantir.timelock.history.models.AcceptorUseCase;
+import com.palantir.timelock.history.models.ImmutableLearnerAndAcceptorRecords;
+import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
+import com.palantir.timelock.history.models.LearnerUseCase;
 
 public final class SqlitePaxosStateLogHistory {
     private final Jdbi jdbi;

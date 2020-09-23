@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history.remote;
+package com.palantir.timelock.history.remote;
 
 import java.util.List;
 import java.util.Map;
@@ -22,13 +22,15 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.history.LocalHistoryLoader;
-import com.palantir.history.models.LearnerAndAcceptorRecords;
-import com.palantir.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.timelock.history.HistoryQuery;
+import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
+import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
+import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
+import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 
 public final class HistoryLoaderAndTransformer {
     private HistoryLoaderAndTransformer() {
@@ -54,10 +56,22 @@ public final class HistoryLoaderAndTransformer {
         List<PaxosLogWithAcceptedAndLearnedValues> logs = records.getAllSequenceNumbers().stream().map(
                 sequence -> PaxosLogWithAcceptedAndLearnedValues.builder()
                         .paxosValue(records.getLearnedValueAtSeqIfExists(sequence))
-                        .acceptedState(records.getAcceptedValueAtSeqIfExists(sequence))
+                        .acceptedState(
+                                records.getAcceptedValueAtSeqIfExists(sequence)
+                                        .map(HistoryLoaderAndTransformer::mapPaxosAcceptorStateToSerializableData))
                         .seq(sequence)
-                        .build()).collect(Collectors.toList());
+                        .build())
+                .collect(Collectors.toList());
 
         return Maps.immutableEntry(namespaceAndUseCase, LogsForNamespaceAndUseCase.of(namespaceAndUseCase, logs));
+    }
+
+    private static PaxosAcceptorData mapPaxosAcceptorStateToSerializableData(PaxosAcceptorState state) {
+        return PaxosAcceptorData.builder()
+                    .lastPromisedId(state.getLastPromisedId())
+                    .lastAcceptedId(state.getLastAcceptedId())
+                    .version(state.getVersion())
+                    .lastAcceptedValue(state.getLastAcceptedValue())
+                    .build();
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history;
+package com.palantir.timelock.history;
 
 import java.util.List;
 import java.util.Map;
@@ -26,11 +26,11 @@ import javax.sql.DataSource;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
-import com.palantir.history.models.PaxosHistoryOnSingleNode;
-import com.palantir.history.sqlite.LogVerificationProgressState;
-import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.history.util.UseCaseUtils;
+import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
+import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 

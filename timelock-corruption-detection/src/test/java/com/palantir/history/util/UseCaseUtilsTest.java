@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.timelock.history.util.UseCaseUtils;
 
 public class UseCaseUtilsTest {
     @Test

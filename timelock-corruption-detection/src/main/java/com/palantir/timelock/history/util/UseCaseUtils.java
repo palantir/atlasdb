@@ -14,17 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.history.models;
+package com.palantir.timelock.history.util;
 
-import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.immutables.value.Value;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
-import com.palantir.paxos.NamespaceAndUseCase;
+public final class UseCaseUtils {
+    private static final Pattern PATTERN = Pattern.compile("^(.*)!(.*)$");
 
-@Value.Immutable
-public interface PaxosHistoryOnSingleNode {
+    private UseCaseUtils() {
+        // no op
+    }
 
-    @Value.Parameter
-    Map<NamespaceAndUseCase, LearnerAndAcceptorRecords> history();
+    public static String getPaxosUseCasePrefix(String useCase) {
+        Matcher matcher = PATTERN.matcher(useCase);
+        Preconditions.checkState(matcher.find(),
+                "Unexpected use case format", SafeArg.of("useCase", useCase));
+        return matcher.group(1);
+    }
 }

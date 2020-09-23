@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.history.models;
+package com.palantir.timelock.history.models;
+
+import java.util.Map;
 
 import org.immutables.value.Value;
 
-@Value.Immutable
-public interface LearnerUseCase {
-    @Value.Parameter
-    String value();
+import com.palantir.paxos.NamespaceAndUseCase;
 
-    static LearnerUseCase createLearnerUseCase(String paxosUseCase) {
-        // TODO (someone): This is fragile because it MUST match timelock-impl's LocalPaxosComponents.
-        // DO NOT CHANGE THIS VALUE WITHOUT A MIGRATION!
-        return ImmutableLearnerUseCase.of(String.format("%s!learner", paxosUseCase));
-    }
+@Value.Immutable
+public interface PaxosHistoryOnSingleNode {
+
+    @Value.Parameter
+    Map<NamespaceAndUseCase, LearnerAndAcceptorRecords> history();
 }

@@ -14,25 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.history.util;
+package com.palantir.timelock.history.models;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Optional;
 
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
+import org.immutables.value.Value;
 
-public final class UseCaseUtils {
-    private static final Pattern PATTERN = Pattern.compile("^(.*)!(.*)$");
+import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.PaxosValue;
 
-    private UseCaseUtils() {
-        // no op
-    }
+@Value.Immutable
+public interface LearnedAndAcceptedValue {
+    @Value.Parameter
+    Optional<PaxosValue> learnedValue();
 
-    public static String getPaxosUseCasePrefix(String useCase) {
-        Matcher matcher = PATTERN.matcher(useCase);
-        Preconditions.checkState(matcher.find(),
-                "Unexpected use case format", SafeArg.of("useCase", useCase));
-        return matcher.group(1);
-    }
+    @Value.Parameter
+    Optional<PaxosAcceptorState> acceptedValue();
 }

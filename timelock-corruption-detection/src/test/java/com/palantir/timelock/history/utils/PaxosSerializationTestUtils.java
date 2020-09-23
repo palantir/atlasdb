@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history.utils;
+package com.palantir.timelock.history.utils;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;

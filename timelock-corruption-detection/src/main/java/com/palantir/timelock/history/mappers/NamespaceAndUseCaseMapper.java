@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.history.mappers;
+package com.palantir.timelock.history.mappers;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Map;
 
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
-import com.google.common.collect.Maps;
-import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.NamespaceAndUseCase;
 
-public class AcceptorPaxosRoundMapper implements RowMapper<Map.Entry<Long, PaxosAcceptorState>> {
+public class NamespaceAndUseCaseMapper implements RowMapper<NamespaceAndUseCase> {
     @Override
-    public Map.Entry<Long, PaxosAcceptorState> map(ResultSet rs, StatementContext ctx) throws SQLException {
-        PaxosAcceptorState value = PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
-        return Maps.immutableEntry(rs.getLong("seq"), value);
+    public NamespaceAndUseCase map(ResultSet rs, StatementContext ctx) throws SQLException {
+        return ImmutableNamespaceAndUseCase
+                .of(Client.of(rs.getString("namespace")), rs.getString("useCase"));
     }
 }
