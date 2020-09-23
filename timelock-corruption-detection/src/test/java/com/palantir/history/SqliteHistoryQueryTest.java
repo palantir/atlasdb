@@ -78,6 +78,21 @@ public class SqliteHistoryQueryTest {
     }
 
     @Test
+    public void canGetAllCorrectLearnerLogsSince() {
+        long round = 1;
+        writeValueForLogAndRound(learnerLog, round);
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords
+                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
+                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 0L);
+        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(0);
+        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(1);
+
+        PaxosValue paxosValue = learnerAndAcceptorRecords.learnerRecords().get(round);
+        assertThat(paxosValue.getRound()).isEqualTo(round);
+        assertThat(paxosValue.getData()).isEqualTo(longToBytes(round));
+    }
+
+    @Test
     public void canGetAllAcceptorLogsSince() {
         IntStream.rangeClosed(1, 100).forEach(i -> writeAcceptorStateForLogAndRound(acceptorLog, i));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords
