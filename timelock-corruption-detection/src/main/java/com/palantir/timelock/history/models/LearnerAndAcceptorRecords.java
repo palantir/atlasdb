@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,27 +44,12 @@ public interface LearnerAndAcceptorRecords {
         return Optional.ofNullable(acceptorRecords().getOrDefault(seq, null));
     }
 
+    // it is okay to have a set of longs as learner and acceptor records have a limit of 500 entries.
     @Value.Lazy
     default Set<Long> getAllSequenceNumbers() {
         return Stream.of(learnerRecords(), acceptorRecords())
                 .map(Map::keySet)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
-    }
-
-    @Value.Lazy
-    default long getMinSequence() {
-        return getAllSequenceNumbers()
-                .stream()
-                .min(Comparator.naturalOrder())
-                .orElse(Long.MAX_VALUE);
-    }
-
-    @Value.Lazy
-    default long getMaxSequence() {
-        return getAllSequenceNumbers()
-                .stream()
-                .max(Comparator.naturalOrder())
-                .orElse(Long.MIN_VALUE);
     }
 }
