@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history;
+package com.palantir.timelock.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,7 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.history.sqlite.LogVerificationProgressState;
+import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqliteConnections;
 

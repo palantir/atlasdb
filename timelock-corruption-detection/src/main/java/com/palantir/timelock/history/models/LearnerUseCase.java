@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history.models;
+package com.palantir.timelock.history.models;
 
 import org.immutables.value.Value;
 

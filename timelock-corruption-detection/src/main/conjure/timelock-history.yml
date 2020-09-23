@@ -4,10 +4,10 @@ types:
       base-type: any
       external:
         java: com.palantir.paxos.PaxosValue
-    PaxosAcceptorState:
+    PaxosProposalId:
       base-type: any
       external:
-        java: com.palantir.paxos.PaxosAcceptorState
+        java: com.palantir.paxos.PaxosProposalId
     NamespaceAndUseCase:
       base-type: any
       external:
@@ -19,13 +19,19 @@ types:
   definitions:
     default-package: com.palantir.timelock.history
     objects:
+      PaxosAcceptorData:
+        fields:
+          lastPromisedId: PaxosProposalId
+          lastAcceptedId: PaxosProposalId
+          lastAcceptedValue: PaxosValue
+          version: Long
       HistoryQuery:
         fields:
           namespaceAndUseCase: NamespaceAndUseCase
           seq: Long
       PaxosLogWithAcceptedAndLearnedValues:
         fields:
-          acceptedState: optional<PaxosAcceptorState>
+          acceptedState: optional<PaxosAcceptorData>
           paxosValue: optional<PaxosValue>
           seq: Long
       LogsForNamespaceAndUseCase:

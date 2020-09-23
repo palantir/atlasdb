@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history.sqlite;
+package com.palantir.timelock.history.sqlite;
 
 import java.util.Optional;
 import java.util.function.Function;

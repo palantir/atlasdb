@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history;
+package com.palantir.timelock.history;
 
 import java.util.Map;
 import java.util.Set;
@@ -23,13 +23,13 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.history.models.ImmutableLearnerAndAcceptorRecords;
-import com.palantir.history.models.ImmutablePaxosHistoryOnSingleNode;
-import com.palantir.history.models.LearnerAndAcceptorRecords;
-import com.palantir.history.models.PaxosHistoryOnSingleNode;
-import com.palantir.history.models.RawLearnerAndAcceptorRecords;
-import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.history.util.UseCaseUtils;
+import com.palantir.timelock.history.models.ImmutableLearnerAndAcceptorRecords;
+import com.palantir.timelock.history.models.ImmutablePaxosHistoryOnSingleNode;
+import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
+import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import com.palantir.timelock.history.models.RawLearnerAndAcceptorRecords;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.Versionable;

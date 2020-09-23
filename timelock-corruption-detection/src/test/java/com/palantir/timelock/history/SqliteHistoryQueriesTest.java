@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.history;
+package com.palantir.timelock.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import static com.palantir.history.utils.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
-import static com.palantir.history.utils.PaxosSerializationTestUtils.writeValueForLogAndRound;
 
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -31,9 +28,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.history.models.LearnerAndAcceptorRecords;
-import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.history.util.UseCaseUtils;
+import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -42,6 +39,7 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
 public class SqliteHistoryQueriesTest {
     @Rule
@@ -68,7 +66,7 @@ public class SqliteHistoryQueriesTest {
 
     @Test
     public void canGetAllLearnerLogsSince() {
-        IntStream.range(0, 100).forEach(i -> writeValueForLogAndRound(learnerLog, i + 1));
+        IntStream.range(0, 100).forEach(i -> PaxosSerializationTestUtils.writeValueForLogAndRound(learnerLog, i + 1));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords
                 = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
                         CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
@@ -78,7 +76,7 @@ public class SqliteHistoryQueriesTest {
 
     @Test
     public void canGetAllAcceptorLogsSince() {
-        IntStream.range(0, 100).forEach(i -> writeAcceptorStateForLogAndRound(acceptorLog, i + 1));
+        IntStream.range(0, 100).forEach(i -> PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(acceptorLog, i + 1));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords
                 = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
                 CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
@@ -92,7 +90,7 @@ public class SqliteHistoryQueriesTest {
             PaxosStateLog<PaxosValue> otherLog
                     = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(Client.of("client" + i),
                     USE_CASE_LEARNER), dataSource);
-            writeValueForLogAndRound(otherLog, 1L);
+            PaxosSerializationTestUtils.writeValueForLogAndRound(otherLog, 1L);
         });
         Set<NamespaceAndUseCase> allNamespaceAndUseCaseTuples = SqlitePaxosStateLogHistory.create(
                 dataSource).getAllNamespaceAndUseCaseTuples();

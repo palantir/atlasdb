@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.history.models;
+package com.palantir.timelock.history.mappers;
 
-import org.immutables.value.Value;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-@Value.Immutable
-public interface AcceptorUseCase {
+import org.jdbi.v3.core.mapper.RowMapper;
+import org.jdbi.v3.core.statement.StatementContext;
 
-    @Value.Parameter
-    String value();
+import com.palantir.paxos.PaxosRound;
+import com.palantir.paxos.PaxosValue;
+
+public class LearnerPaxosRoundMapper implements RowMapper<PaxosRound<PaxosValue>> {
+    @Override
+    public PaxosRound<PaxosValue> map(ResultSet rs, StatementContext ctx) throws SQLException {
+        PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
+        return PaxosRound.of(rs.getLong("seq"), value);
+    }
 }

@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.history;
+package com.palantir.timelock.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import static com.palantir.history.utils.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
-import static com.palantir.history.utils.PaxosSerializationTestUtils.writeValueForLogAndRound;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,9 +30,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.history.remote.HistoryLoaderAndTransformer;
-import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.history.util.UseCaseUtils;
+import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -44,9 +41,7 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
-import com.palantir.timelock.history.HistoryQuery;
-import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
-import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
+import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
 public class HistoryLoaderAndTransformerTest {
     @Rule
@@ -101,7 +96,7 @@ public class HistoryLoaderAndTransformerTest {
     @Test
     public void canHandleHistoryWithOnlyAcceptorLogs() {
         IntStream.range(0, 100).forEach(i -> {
-            writeAcceptorStateForLogAndRound(acceptorLog, i + 1);
+            PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(acceptorLog, i + 1);
         });
 
         int lastVerified = 27;
@@ -120,7 +115,7 @@ public class HistoryLoaderAndTransformerTest {
     @Test
     public void canHandleHistoryWithOnlyLearnerLogs() {
         IntStream.range(0, 100).forEach(i -> {
-            writeValueForLogAndRound(learnerLog, i + 1);
+            PaxosSerializationTestUtils.writeValueForLogAndRound(learnerLog, i + 1);
         });
 
         int lastVerified = 52;
@@ -176,8 +171,8 @@ public class HistoryLoaderAndTransformerTest {
 
     private void writeToLogs(int start, int end) {
         IntStream.rangeClosed(start, end).forEach(i -> {
-            writeAcceptorStateForLogAndRound(acceptorLog, i);
-            writeValueForLogAndRound(learnerLog, i);
+            PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(acceptorLog, i);
+            PaxosSerializationTestUtils.writeValueForLogAndRound(learnerLog, i);
         });
     }
 }

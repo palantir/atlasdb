@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.history.models;
-
-import java.util.Optional;
+package com.palantir.timelock.history.models;
 
 import org.immutables.value.Value;
 
-import com.palantir.paxos.PaxosAcceptorState;
-import com.palantir.paxos.PaxosValue;
-
 @Value.Immutable
-public interface LearnedAndAcceptedValue {
-    @Value.Parameter
-    Optional<PaxosValue> learnedValue();
+public interface AcceptorUseCase {
 
     @Value.Parameter
-    Optional<PaxosAcceptorState> acceptedValue();
+    String value();
 }

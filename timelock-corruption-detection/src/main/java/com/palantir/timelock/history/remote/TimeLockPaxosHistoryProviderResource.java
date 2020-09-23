@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.history.remote;
+package com.palantir.timelock.history.remote;
 
 import java.util.List;
 
@@ -22,7 +22,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
-import com.palantir.history.LocalHistoryLoader;
+import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.PaxosHistoryOnRemote;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
