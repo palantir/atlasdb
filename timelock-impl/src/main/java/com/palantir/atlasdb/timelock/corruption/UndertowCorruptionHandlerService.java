@@ -24,6 +24,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 
 import io.undertow.server.HandlerWrapper;
+import io.undertow.util.Headers;
 import io.undertow.util.StatusCodes;
 
 public class UndertowCorruptionHandlerService implements UndertowService {
@@ -39,6 +40,7 @@ public class UndertowCorruptionHandlerService implements UndertowService {
                 handler.handleRequest(exchange);
             } else {
                 exchange.setStatusCode(StatusCodes.SERVICE_UNAVAILABLE);
+                exchange.getResponseHeaders().put(Headers.CONTENT_LENGTH, "0"); // 503 with no body
                 exchange.endExchange();
             }
         };
