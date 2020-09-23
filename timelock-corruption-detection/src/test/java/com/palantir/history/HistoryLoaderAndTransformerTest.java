@@ -35,8 +35,10 @@ import org.junit.rules.TemporaryFolder;
 import com.google.common.collect.ImmutableList;
 import com.palantir.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.history.util.UseCaseUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
@@ -52,8 +54,8 @@ public class HistoryLoaderAndTransformerTest {
 
     private static final Client CLIENT = Client.of("client");
     private static final String USE_CASE = "useCase";
-    private static final String USE_CASE_LEARNER = "useCase!learner";
-    private static final String USE_CASE_ACCEPTOR = "useCase!acceptor";
+    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE);
+
 
     private DataSource dataSource;
     private PaxosStateLog<PaxosValue> learnerLog;
@@ -64,47 +66,36 @@ public class HistoryLoaderAndTransformerTest {
     public void setup() {
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         learnerLog = SqlitePaxosStateLog.create(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER), dataSource);
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getLearnerUseCase(USE_CASE).value()), dataSource);
         acceptorLog = SqlitePaxosStateLog.create(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getAcceptorUseCase(USE_CASE).value()), dataSource);
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
     }
 
     @Test
     public void canFetchLogsForQuery() {
-        writeToLogs(100);
+        writeToLogs(1, 100);
         int lastVerified = 27;
-        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified));
         List<LogsForNamespaceAndUseCase> paxosHistory
                 = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
-        assertThat(paxosHistory.size()).isEqualTo(1);
-        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
-
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().namespace()).isEqualTo(CLIENT);
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().useCase()).isEqualTo(USE_CASE);
-        assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(100 - lastVerified);
+        sanityCheckLoadedHistory(paxosHistory, 100 - lastVerified);
     }
 
     @Test
     public void canHandleDuplicateQueries() {
-        writeToLogs(100);
+        writeToLogs(1, 100);
         int minLastVerified = 27;
 
         List<HistoryQuery> queries = IntStream.range(0, 10).boxed().map(
-                idx -> HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), minLastVerified + idx))
+                idx -> HistoryQuery.of(NAMESPACE_AND_USE_CASE, minLastVerified + idx))
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> paxosHistory
                 = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, queries);
 
-        assertThat(paxosHistory.size()).isEqualTo(1);
-        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
-
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().namespace()).isEqualTo(CLIENT);
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().useCase()).isEqualTo(USE_CASE);
-        assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(100 - minLastVerified);
+        sanityCheckLoadedHistory(paxosHistory, 100 - minLastVerified);
     }
 
     @Test
@@ -114,19 +105,13 @@ public class HistoryLoaderAndTransformerTest {
         });
 
         int lastVerified = 27;
-        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory
                 = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
-        assertThat(paxosHistory.size()).isEqualTo(1);
-        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
-
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().namespace()).isEqualTo(CLIENT);
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().useCase()).isEqualTo(USE_CASE);
-        assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(100 - lastVerified);
-
+        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase
+                = sanityCheckLoadedHistory(paxosHistory, 100 - lastVerified);
         PaxosLogWithAcceptedAndLearnedValues singleLog = logsForNamespaceAndUseCase.getLogs().get(0);
         assertThat(singleLog.getAcceptedState()).isPresent();
         assertThat(singleLog.getPaxosValue()).isNotPresent();
@@ -139,19 +124,13 @@ public class HistoryLoaderAndTransformerTest {
         });
 
         int lastVerified = 52;
-        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory
                 = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
-        assertThat(paxosHistory.size()).isEqualTo(1);
-        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
-
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().namespace()).isEqualTo(CLIENT);
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().useCase()).isEqualTo(USE_CASE);
-        assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(100 - lastVerified);
-
+        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase
+                = sanityCheckLoadedHistory(paxosHistory, 100 - lastVerified);
         PaxosLogWithAcceptedAndLearnedValues singleLog = logsForNamespaceAndUseCase.getLogs().get(0);
         assertThat(singleLog.getAcceptedState()).isNotPresent();
         assertThat(singleLog.getPaxosValue()).isPresent();
@@ -160,24 +139,45 @@ public class HistoryLoaderAndTransformerTest {
     @Test
     public void canHandleHistoryWithNoLogs() {
         int lastVerified = 102;
-        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
-                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory
                 = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
-        assertThat(paxosHistory.size()).isEqualTo(1);
-        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
-
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().namespace()).isEqualTo(CLIENT);
-        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase().useCase()).isEqualTo(USE_CASE);
-        assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(0);
+        sanityCheckLoadedHistory(paxosHistory, 0);
     }
 
-    private void writeToLogs(int range) {
-        IntStream.range(0, range).forEach(i -> {
-            writeAcceptorStateForLogAndRound(acceptorLog, i + 1);
-            writeValueForLogAndRound(learnerLog, i + 1);
+    @Test
+    public void canHandleHistoryWithDiscontinuousLogs() {
+        int lastVerified = 3;
+        int firstSeqWithLog = 45;
+
+        writeToLogs(firstSeqWithLog, 100);
+
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified));
+        List<LogsForNamespaceAndUseCase> paxosHistory
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
+
+        sanityCheckLoadedHistory(paxosHistory, (100 - firstSeqWithLog + 1));
+    }
+
+
+    private LogsForNamespaceAndUseCase sanityCheckLoadedHistory(
+            List<LogsForNamespaceAndUseCase> paxosHistory, int logCount) {
+
+        assertThat(paxosHistory.size()).isEqualTo(1);
+
+        LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
+        assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase()).isEqualTo(NAMESPACE_AND_USE_CASE);
+        assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(logCount);
+
+        return logsForNamespaceAndUseCase;
+    }
+
+    private void writeToLogs(int start, int end) {
+        IntStream.rangeClosed(start, end).forEach(i -> {
+            writeAcceptorStateForLogAndRound(acceptorLog, i);
+            writeValueForLogAndRound(learnerLog, i);
         });
     }
 }
