@@ -16,9 +16,12 @@
 
 package com.palantir.history.models;
 
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
@@ -35,32 +38,34 @@ public interface LearnerAndAcceptorRecords {
     Map<Long, PaxosAcceptorState> acceptorRecords();
 
     default Optional<PaxosValue> getLearnedValueAtSeqIfExists(long seq) {
-        return Optional.ofNullable(learnerRecords().getOrDefault(seq, null));
+        return Optional.ofNullable(learnerRecords().get(seq));
     }
 
     default Optional<PaxosAcceptorState> getAcceptedValueAtSeqIfExists(long seq) {
         return Optional.ofNullable(acceptorRecords().getOrDefault(seq, null));
     }
 
-    default long getMinSequence() {
-        long minSeq = Long.MAX_VALUE;
-        if (!learnerRecords().isEmpty()) {
-            minSeq = Math.min(minSeq, Collections.min(learnerRecords().keySet()));
-        }
-        if (!acceptorRecords().isEmpty()) {
-            minSeq = Math.min(minSeq, Collections.min(acceptorRecords().keySet()));
-        }
-        return minSeq;
+    @Value.Lazy
+    default Set<Long> getAllSequenceNumbers() {
+        return Stream.of(learnerRecords(), acceptorRecords())
+                .map(Map::keySet)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
     }
 
+    @Value.Lazy
+    default long getMinSequence() {
+        return getAllSequenceNumbers()
+                .stream()
+                .min(Comparator.naturalOrder())
+                .orElse(Long.MAX_VALUE);
+    }
+
+    @Value.Lazy
     default long getMaxSequence() {
-        long maxSeq = Long.MIN_VALUE;
-        if (!learnerRecords().isEmpty()) {
-            maxSeq = Math.max(maxSeq, Collections.max(learnerRecords().keySet()));
-        }
-        if (!acceptorRecords().isEmpty()) {
-            maxSeq = Math.max(maxSeq, Collections.max(acceptorRecords().keySet()));
-        }
-        return maxSeq;
+        return getAllSequenceNumbers()
+                .stream()
+                .max(Comparator.naturalOrder())
+                .orElse(Long.MIN_VALUE);
     }
 }
