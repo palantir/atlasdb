@@ -43,7 +43,6 @@ import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
-import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
 public class SqliteHistoryQueriesTest {
     @Rule
