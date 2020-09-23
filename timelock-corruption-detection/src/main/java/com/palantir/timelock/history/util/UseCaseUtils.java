@@ -19,11 +19,11 @@ package com.palantir.timelock.history.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.ImmutableAcceptorUseCase;
 import com.palantir.timelock.history.models.ImmutableLearnerUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
-import com.palantir.logsafe.SafeArg;
 
 public final class UseCaseUtils {
     private static final Logger log = LoggerFactory.getLogger(UseCaseUtils.class);

@@ -23,6 +23,9 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.paxos.PaxosRound;
+import com.palantir.paxos.Versionable;
 import com.palantir.timelock.history.models.ImmutableLearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.ImmutablePaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
@@ -30,9 +33,7 @@ import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.models.RawLearnerAndAcceptorRecords;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
-import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.paxos.PaxosRound;
-import com.palantir.paxos.Versionable;
+
 
 //TBD cache implementation
 public final class LocalHistoryLoader {

@@ -28,9 +28,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
-import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -39,6 +36,9 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
 public class SqliteHistoryQueriesTest {
@@ -66,7 +66,8 @@ public class SqliteHistoryQueriesTest {
 
     @Test
     public void canGetAllLearnerLogsSince() {
-        IntStream.range(0, 100).forEach(i -> PaxosSerializationTestUtils.writeValueForLogAndRound(learnerLog, i + 1));
+        IntStream.range(0, 100).forEach(i -> PaxosSerializationTestUtils
+                .writeValueForLogAndRound(learnerLog, i + 1));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords
                 = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
                         CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
