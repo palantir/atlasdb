@@ -204,7 +204,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
                     || getTruststorePassword().isPresent()
                     || getKeystorePath().isPresent()
                     || getKeystorePassword().isPresent()) {
-                log.warn("Your Oracle config is not set to use ConnectionProtocol.TCPS, but some security settings"
+                log.debug("Your Oracle config is not set to use ConnectionProtocol.TCPS, but some security settings"
                         + " have been set. These settings are currently being ignored - please verify that you are"
                         + " OK with this.");
             }
