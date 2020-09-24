@@ -103,15 +103,15 @@ public class PaxosLogHistoryProvider {
         List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
         /**
-         * List of history from all remotes. Each history is map of namespaceAndUseCase to Paxos logs. The Paxos logs
-         * are mapped against sequence numbers.
+         * List of consolidated histories from all remotes. Each history is a map of namespaceAndUseCase
+         * to {@link ConsolidatedLearnerAndAcceptorRecord}.
          */
         List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> historyFromAllRemotes
                 = buildHistoryFromRemoteResponses(rawHistoryFromAllRemotes);
 
         /**
          * Consolidate and build complete history for each (namespace, useCase) pair
-         * from histories loaded from local and remote servers
+         * from histories loaded from local and remote servers.
          */
         return consolidateAndGetHistoriesAcrossAllNodes(
                 lastVerifiedSequences,
@@ -165,7 +165,7 @@ public class PaxosLogHistoryProvider {
 
         /**
          * Rather than having two maps - one for learner records and one for acceptor records,
-         * we now have a sequence number mapped to pair of (learnedValue, acceptedValue).
+         * the consolidated record has a sequence number mapped to pair of (learnedValue, acceptedValue).
          */
         ConsolidatedLearnerAndAcceptorRecord consolidatedLocalRecord
                 = localPaxosHistory.getConsolidatedLocalAndRemoteRecord(namespaceAndUseCase);
@@ -180,7 +180,7 @@ public class PaxosLogHistoryProvider {
                 = combineLocalAndRemoteHistoryLogs(consolidatedLocalRecord, remoteHistoryLogsForNamespaceAndUseCase);
 
         /**
-         * Paxos history for namespace, useCase pair across all nodes in the cluster.
+         * Paxos history for (namespace, useCase) pair across all nodes in the cluster.
          */
         return ImmutableCompletePaxosHistoryForNamespaceAndUseCase.of(
                 namespaceAndUseCase.namespace(),
