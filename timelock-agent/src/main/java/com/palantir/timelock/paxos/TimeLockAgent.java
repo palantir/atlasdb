@@ -227,6 +227,9 @@ public class TimeLockAgent {
                 = namespace -> namespaces.get(namespace).getTimelockService();
         Function<String, LockService> lockServiceGetter
                 = namespace -> namespaces.get(namespace).getLockService();
+        LocalHistoryLoader localHistoryLoader = LocalHistoryLoader.create(
+                SqlitePaxosStateLogHistory.create(sqliteDataSource));
+
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
             registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
@@ -236,14 +239,12 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
                     ConjureLockV1Resource.undertow(redirectRetryTargeter(), lockServiceGetter));
             registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
-                    TimeLockPaxosHistoryProviderResource.undertow(
-                            LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(sqliteDataSource))));
+                    TimeLockPaxosHistoryProviderResource.undertow(localHistoryLoader));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
-            registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(LocalHistoryLoader.create(
-                    SqlitePaxosStateLogHistory.create(sqliteDataSource))));
+            registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(localHistoryLoader));
         }
     }
 
