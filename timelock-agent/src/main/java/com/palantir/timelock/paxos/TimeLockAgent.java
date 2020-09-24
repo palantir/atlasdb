@@ -189,7 +189,7 @@ public class TimeLockAgent {
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler(metricsManager, () -> runtime.get().adjudication().enabled());
-        this.corruptionComponents = paxosResources.leadershipComponents().timeLockCorruptionComponents();
+        this.corruptionComponents = paxosResources.timeLockCorruptionComponents();
     }
 
     private TimestampCreator getTimestampCreator() {

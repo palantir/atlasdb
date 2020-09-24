@@ -36,6 +36,7 @@ public abstract class PaxosResources {
     abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
     public abstract LeadershipContextFactory leadershipContextFactory();
     abstract List<Object> adhocResources();
+    public abstract TimeLockCorruptionComponents timeLockCorruptionComponents();
 
     @Value.Derived
     Map<PaxosUseCase, BatchPaxosResources> leadershipBatchResources() {
@@ -64,10 +65,7 @@ public abstract class PaxosResources {
 
     @Value.Derived
     public LeadershipComponents leadershipComponents() {
-        return new LeadershipComponents(
-                leadershipContextFactory(),
-                leadershipContextFactory().healthCheckPingers(),
-                leadershipContextFactory().remoteCorruptionNotifiers());
+        return new LeadershipComponents(leadershipContextFactory(), leadershipContextFactory().healthCheckPingers());
     }
 
     private static BatchPaxosResources batchResourcesFromComponents(LocalPaxosComponents components) {

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -32,7 +31,6 @@ import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
-import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 
 @Value.Immutable
@@ -106,11 +104,6 @@ public abstract class LeadershipContextFactory implements
     @Value.Derived
     public LeaderElectionHealthCheck leaderElectionHealthCheck() {
         return new LeaderElectionHealthCheck(Instant::now);
-    }
-
-    @Value.Derived
-    List<TimeLockCorruptionNotifier> remoteCorruptionNotifiers() {
-        return remoteClients().getRemoteCorruptionNotifiers();
     }
 
     @Override

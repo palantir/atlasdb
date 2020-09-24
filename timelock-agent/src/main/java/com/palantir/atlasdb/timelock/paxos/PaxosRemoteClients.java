@@ -38,6 +38,7 @@ import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
+import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
 
@@ -149,6 +150,13 @@ public abstract class PaxosRemoteClients {
     @Value.Derived
     public List<TimeLockCorruptionNotifier> getRemoteCorruptionNotifiers() {
         return createInstrumentedRemoteProxies(TimeLockCorruptionNotifier.class, true)
+                .values()
+                .collect(Collectors.toList());
+    }
+
+    @Value.Derived
+    public List<TimeLockPaxosHistoryProvider> getRemoteHistoryProviders() {
+        return createInstrumentedRemoteProxies(TimeLockPaxosHistoryProvider.class, true)
                 .values()
                 .collect(Collectors.toList());
     }
