@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: This change integrates local and remote Paxos histories for TimeLock
+    corruption analysis.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4996
