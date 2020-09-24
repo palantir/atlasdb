@@ -33,6 +33,7 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
+import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 
 @Value.Immutable
@@ -111,6 +112,11 @@ public abstract class LeadershipContextFactory implements
     @Value.Derived
     List<TimeLockCorruptionNotifier> remoteCorruptionNotifiers() {
         return remoteClients().getRemoteCorruptionNotifiers();
+    }
+
+    @Value.Derived
+    List<TimeLockPaxosHistoryProvider> remoteHistoryProviders() {
+        return remoteClients().getRemoteHistoryProviders();
     }
 
     @Override

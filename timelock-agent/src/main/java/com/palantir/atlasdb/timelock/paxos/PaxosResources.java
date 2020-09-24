@@ -24,6 +24,9 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.corruption.CorruptionHealthCheck;
+import com.palantir.atlasdb.timelock.corruption.LocalCorruptionDetector;
+import com.palantir.atlasdb.timelock.corruption.RemoteCorruptionDetector;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -64,10 +67,22 @@ public abstract class PaxosResources {
 
     @Value.Derived
     public LeadershipComponents leadershipComponents() {
-        return new LeadershipComponents(
-                leadershipContextFactory(),
-                leadershipContextFactory().healthCheckPingers(),
-                leadershipContextFactory().remoteCorruptionNotifiers());
+        return new LeadershipComponents(leadershipContextFactory(), leadershipContextFactory().healthCheckPingers());
+    }
+
+    @Value.Derived
+    public TimeLockCorruptionComponents timeLockCorruptionComponents() {
+        RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
+
+        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
+                LocalCorruptionDetector.create(leadershipContextFactory().remoteCorruptionNotifiers()),
+                remoteCorruptionDetector));
+
+        return TimeLockCorruptionComponents.builder()
+                .timeLockCorruptionHealthCheck(healthCheck)
+                .remoteCorruptionDetector(remoteCorruptionDetector)
+                .remoteHistoryProviders(leadershipContextFactory().remoteHistoryProviders())
+                .build();
     }
 
     private static BatchPaxosResources batchResourcesFromComponents(LocalPaxosComponents components) {
