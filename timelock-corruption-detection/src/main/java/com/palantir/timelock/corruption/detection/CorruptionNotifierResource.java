@@ -46,7 +46,7 @@ public final class CorruptionNotifierResource implements UndertowTimeLockCorrupt
     }
 
 
-    public static class JerseyAdapter implements TimeLockCorruptionNotifier {
+    public static final class JerseyAdapter implements TimeLockCorruptionNotifier {
         private final CorruptionNotifierResource delegate;
 
         private JerseyAdapter(CorruptionNotifierResource delegate) {
