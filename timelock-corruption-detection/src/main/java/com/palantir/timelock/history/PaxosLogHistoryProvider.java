@@ -32,12 +32,12 @@ import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.timelock.history.models.ConsolidatedPaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
 import com.palantir.timelock.history.models.ImmutableCompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ImmutableLearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
-import com.palantir.timelock.history.models.NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
@@ -78,15 +78,18 @@ public class PaxosLogHistoryProvider {
     }
 
 
+//     TODO(snanda): Refactor the two parts on translating PaxosHistoryOnRemote to
+//      CompletePaxosHistoryForNamespaceAndUseCase to a separate component
     public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() {
         Map<NamespaceAndUseCase, Long> lastVerifiedSequences = getNamespaceAndUseCaseToLastVerifiedSeqMap();
+
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
         List<HistoryQuery> historyQueries = getHistoryQueryListForRemoteServers(lastVerifiedSequences);
 
         List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
-        List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> historyFromAllRemotes
+        List<ConsolidatedPaxosHistoryOnSingleNode> historyFromAllRemotes
                 = buildHistoryFromRemoteResponses(rawHistoryFromAllRemotes);
 
         return consolidateAndGetHistoriesAcrossAllNodes(
@@ -98,7 +101,7 @@ public class PaxosLogHistoryProvider {
     private List<CompletePaxosHistoryForNamespaceAndUseCase> consolidateAndGetHistoriesAcrossAllNodes(
             Map<NamespaceAndUseCase, Long> lastVerifiedSequences,
             PaxosHistoryOnSingleNode localPaxosHistory,
-            List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> historyFromAllRemotes) {
+            List<ConsolidatedPaxosHistoryOnSingleNode> historyFromAllRemotes) {
         return lastVerifiedSequences.keySet().stream()
                 .map(namespaceAndUseCase -> buildCompleteHistory(
                         namespaceAndUseCase,
@@ -107,7 +110,7 @@ public class PaxosLogHistoryProvider {
                 .collect(Collectors.toList());
     }
 
-    private List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> buildHistoryFromRemoteResponses(
+    private List<ConsolidatedPaxosHistoryOnSingleNode> buildHistoryFromRemoteResponses(
             List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes) {
         return rawHistoryFromAllRemotes.stream()
                 .map(this::buildRecordFromRemoteResponse)
@@ -137,7 +140,7 @@ public class PaxosLogHistoryProvider {
 
     private CompletePaxosHistoryForNamespaceAndUseCase buildCompleteHistory(NamespaceAndUseCase namespaceAndUseCase,
             PaxosHistoryOnSingleNode localPaxosHistory,
-            List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> historyLogsFromRemotes) {
+            List<ConsolidatedPaxosHistoryOnSingleNode> historyLogsFromRemotes) {
 
         ConsolidatedLearnerAndAcceptorRecord consolidatedLocalRecord
                 = localPaxosHistory.getConsolidatedLocalAndRemoteRecord(namespaceAndUseCase);
@@ -156,7 +159,7 @@ public class PaxosLogHistoryProvider {
 
     private List<ConsolidatedLearnerAndAcceptorRecord> extractRemoteHistoryLogsForNamespaceAndUseCase(
             NamespaceAndUseCase namespaceAndUseCase,
-            List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> historyLogsFromRemotes) {
+            List<ConsolidatedPaxosHistoryOnSingleNode> historyLogsFromRemotes) {
         return historyLogsFromRemotes
                 .stream()
                 .map(history -> history.getRecordForNamespaceAndUseCase(namespaceAndUseCase))
@@ -173,7 +176,7 @@ public class PaxosLogHistoryProvider {
                 .build();
     }
 
-    private NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords buildRecordFromRemoteResponse(
+    private ConsolidatedPaxosHistoryOnSingleNode buildRecordFromRemoteResponse(
             PaxosHistoryOnRemote historyOnRemote) {
 
         Map<NamespaceAndUseCase, List<PaxosLogWithAcceptedAndLearnedValues>> namespaceWisePaxosLogs
@@ -184,7 +187,7 @@ public class PaxosLogHistoryProvider {
                         LogsForNamespaceAndUseCase::getLogs)
                 );
 
-        return NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords.of(KeyedStream
+        return ConsolidatedPaxosHistoryOnSingleNode.of(KeyedStream
                 .stream(namespaceWisePaxosLogs)
                 .map(this::getConsolidatedLearnerAndAcceptorRecordFromRemotePaxosLogs)
                 .collectToMap());
@@ -205,9 +208,7 @@ public class PaxosLogHistoryProvider {
                         PaxosLogWithAcceptedAndLearnedValues::getSeq,
                         remoteLog -> ImmutableLearnedAndAcceptedValue.of(
                                 remoteLog.getPaxosValue(),
-                                remoteLog.getAcceptedState()
-                        ))
-                );
+                                remoteLog.getAcceptedState())));
     }
 
     private PaxosHistoryOnRemote fetchHistoryFromRemote(List<HistoryQuery> historyQueries,

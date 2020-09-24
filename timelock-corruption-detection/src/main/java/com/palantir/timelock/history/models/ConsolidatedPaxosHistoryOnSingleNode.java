@@ -24,14 +24,14 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.paxos.NamespaceAndUseCase;
 
 @Value.Immutable
-public interface NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords {
+public interface ConsolidatedPaxosHistoryOnSingleNode {
 
     @Value.Parameter
     Map<NamespaceAndUseCase, ConsolidatedLearnerAndAcceptorRecord> records();
 
-    static NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords of(
+    static ConsolidatedPaxosHistoryOnSingleNode of(
             Map<NamespaceAndUseCase, ConsolidatedLearnerAndAcceptorRecord> records) {
-        return ImmutableNamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords.of(records);
+        return ImmutableConsolidatedPaxosHistoryOnSingleNode.of(records);
     }
 
     default ConsolidatedLearnerAndAcceptorRecord getRecordForNamespaceAndUseCase(
