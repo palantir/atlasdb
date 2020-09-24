@@ -27,9 +27,6 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.corruption.CorruptionHealthCheck;
-import com.palantir.atlasdb.timelock.corruption.LocalCorruptionDetector;
-import com.palantir.atlasdb.timelock.corruption.RemoteCorruptionDetector;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
@@ -48,6 +45,9 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
+import com.palantir.timelock.corruption.detection.LocalCorruptionDetector;
+import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -85,20 +85,6 @@ public final class PaxosResourcesFactory {
                     paxosRuntime,
                     remoteClients);
         }
-    }
-
-    private static TimeLockCorruptionComponents timeLockCorruptionComponents(PaxosRemoteClients remoteClients) {
-        RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
-
-        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
-                LocalCorruptionDetector.create(remoteClients.getRemoteCorruptionNotifiers()),
-                remoteCorruptionDetector));
-
-        return TimeLockCorruptionComponents.builder()
-                .timeLockCorruptionHealthCheck(healthCheck)
-                .remoteCorruptionDetector(remoteCorruptionDetector)
-                .remoteHistoryProviders(remoteClients.getRemoteHistoryProviders())
-                .build();
     }
 
     private static PaxosResources configureLeaderForEachClient(
@@ -276,6 +262,20 @@ public final class PaxosResourcesFactory {
                 .addAdhocResources(new TimestampPaxosResource(paxosComponents))
                 .timestampPaxosComponents(paxosComponents)
                 .timestampServiceFactory(timestampFactory);
+    }
+
+    private static TimeLockCorruptionComponents timeLockCorruptionComponents(PaxosRemoteClients remoteClients) {
+        RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
+
+        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
+                LocalCorruptionDetector.create(remoteClients.getRemoteCorruptionNotifiers()),
+                remoteCorruptionDetector));
+
+        return TimeLockCorruptionComponents.builder()
+                .timeLockCorruptionHealthCheck(healthCheck)
+                .remoteCorruptionDetector(remoteCorruptionDetector)
+                .remoteHistoryProviders(remoteClients.getRemoteHistoryProviders())
+                .build();
     }
 
     @Value.Immutable
