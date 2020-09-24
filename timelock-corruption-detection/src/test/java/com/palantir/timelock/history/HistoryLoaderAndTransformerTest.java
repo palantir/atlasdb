@@ -38,9 +38,10 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.models.AcceptorUseCase;
+import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
 public class HistoryLoaderAndTransformerTest {
@@ -58,10 +59,10 @@ public class HistoryLoaderAndTransformerTest {
     @Before
     public void setup() {
         DataSource dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
-        learnerLog = SqlitePaxosStateLog.create(
-                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getLearnerUseCase(USE_CASE).value()), dataSource);
-        acceptorLog = SqlitePaxosStateLog.create(
-                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getAcceptorUseCase(USE_CASE).value()), dataSource);
+        learnerLog = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT,
+                LearnerUseCase.createLearnerUseCase(USE_CASE).value()), dataSource);
+        acceptorLog = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT,
+                AcceptorUseCase.createAcceptorUseCase(USE_CASE).value()), dataSource);
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
     }
 
