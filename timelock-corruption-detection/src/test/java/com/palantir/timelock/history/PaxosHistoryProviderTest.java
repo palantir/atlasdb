@@ -36,13 +36,16 @@ import org.junit.rules.TemporaryFolder;
 import com.google.common.collect.ImmutableList;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
+import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
@@ -54,10 +57,10 @@ public class PaxosHistoryProviderTest {
 
     private static final Client CLIENT = Client.of("client");
     private static final String USE_CASE = "useCase";
-    private static final String USE_CASE_LEARNER = "useCase!learner";
-    private static final String USE_CASE_ACCEPTOR = "useCase!acceptor";
-    private TimeLockPaxosHistoryProvider remote;
+    private static final String USE_CASE_LEARNER = LearnerUseCase.createLearnerUseCase(USE_CASE).value();
+    private static final String USE_CASE_ACCEPTOR = AcceptorUseCase.createAcceptorUseCase(USE_CASE).value();
 
+    private TimeLockPaxosHistoryProvider remote;
     private DataSource dataSource;
     private PaxosStateLog<PaxosValue> learnerLog;
     private PaxosStateLog<PaxosAcceptorState> acceptorLog;
@@ -70,8 +73,8 @@ public class PaxosHistoryProviderTest {
         remote = mock(TimeLockPaxosHistoryProvider.class);
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
 
-        learnerLog = getLearnerLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER));
-        acceptorLog = getAcceptorLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR));
+        learnerLog = createLearnerLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER));
+        acceptorLog = createAcceptorLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR));
 
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
 
@@ -98,6 +101,29 @@ public class PaxosHistoryProviderTest {
         CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase = completeHistory.get(0);
         assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
         assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, 100);
+    }
+
+    @Test
+    public void canFetchAndCombineDiscontinuousLogs() {
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 7, 54);
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 98, 127);
+
+        int lastVerified = -1;
+
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQuery.of(
+                ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+
+        List<LogsForNamespaceAndUseCase> remoteHistory
+                = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
+
+        when(remote.getPaxosHistory(any(), any())).thenReturn(PaxosHistoryOnRemote.of(remoteHistory));
+
+        List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
+
+        assertThat(completeHistory.size()).isEqualTo(1);
+        CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase = completeHistory.get(0);
+        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
+        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, 78);
     }
 
     @Test
@@ -135,8 +161,8 @@ public class PaxosHistoryProviderTest {
         IntStream.rangeClosed(1, 100).forEach(idx -> {
             Client client = Client.of("" + idx);
             PaxosSerializationTestUtils.writeToLogs(
-                    getAcceptorLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_ACCEPTOR)),
-                    getLearnerLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_LEARNER)),
+                    createAcceptorLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_ACCEPTOR)),
+                    createLearnerLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_LEARNER)),
                     1, idx);
             historyQueries.add(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(client, USE_CASE), -1));
         });
@@ -153,11 +179,11 @@ public class PaxosHistoryProviderTest {
     }
 
     // utils
-    private PaxosStateLog<PaxosValue> getLearnerLog(ImmutableNamespaceAndUseCase namespaceAndUseCase) {
+    private PaxosStateLog<PaxosValue> createLearnerLog(NamespaceAndUseCase namespaceAndUseCase) {
         return SqlitePaxosStateLog.create(namespaceAndUseCase, dataSource);
     }
 
-    private PaxosStateLog<PaxosAcceptorState> getAcceptorLog(ImmutableNamespaceAndUseCase namespaceAndUseCase) {
+    private PaxosStateLog<PaxosAcceptorState> createAcceptorLog(NamespaceAndUseCase namespaceAndUseCase) {
         return SqlitePaxosStateLog.create(namespaceAndUseCase, dataSource);
     }
 

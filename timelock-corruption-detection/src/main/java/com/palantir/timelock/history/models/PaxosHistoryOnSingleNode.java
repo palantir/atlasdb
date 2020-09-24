@@ -36,9 +36,9 @@ public interface PaxosHistoryOnSingleNode {
         if (!history().containsKey(namespaceAndUseCase)) {
             return ImmutableConsolidatedLearnerAndAcceptorRecord.of(ImmutableMap.of());
         }
-        LearnerAndAcceptorRecords records = history().get(namespaceAndUseCase);
+
         return ImmutableConsolidatedLearnerAndAcceptorRecord.of(
-                consolidateRecordsForSequenceRange(records));
+                consolidateRecordsForSequenceRange(history().get(namespaceAndUseCase)));
     }
 
     default Map<Long, LearnedAndAcceptedValue> consolidateRecordsForSequenceRange(LearnerAndAcceptorRecords records) {
