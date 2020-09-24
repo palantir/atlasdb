@@ -20,8 +20,8 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.timelock.history.PaxosAcceptorData;
 
 @Value.Immutable
 public interface LearnedAndAcceptedValue {
@@ -29,5 +29,5 @@ public interface LearnedAndAcceptedValue {
     Optional<PaxosValue> learnedValue();
 
     @Value.Parameter
-    Optional<PaxosAcceptorState> acceptedValue();
+    Optional<PaxosAcceptorData> acceptedValue();
 }

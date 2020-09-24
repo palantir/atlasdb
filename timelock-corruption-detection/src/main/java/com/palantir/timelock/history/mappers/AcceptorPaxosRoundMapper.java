@@ -19,17 +19,28 @@ package com.palantir.timelock.history.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Optional;
 
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
 import com.google.common.collect.Maps;
 import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.timelock.history.PaxosAcceptorData;
 
-public class AcceptorPaxosRoundMapper implements RowMapper<Map.Entry<Long, PaxosAcceptorState>> {
+public class AcceptorPaxosRoundMapper implements RowMapper<Map.Entry<Long, PaxosAcceptorData>> {
     @Override
-    public Map.Entry<Long, PaxosAcceptorState> map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public Map.Entry<Long, PaxosAcceptorData> map(ResultSet rs, StatementContext ctx) throws SQLException {
         PaxosAcceptorState value = PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
-        return Maps.immutableEntry(rs.getLong("seq"), value);
+        return Maps.immutableEntry(rs.getLong("seq"), mapPaxosAcceptorStateToSerializableData(value));
+    }
+
+    private PaxosAcceptorData mapPaxosAcceptorStateToSerializableData(PaxosAcceptorState state) {
+        return PaxosAcceptorData.builder()
+                .lastPromisedId(Optional.ofNullable(state.getLastPromisedId()))
+                .lastAcceptedId(Optional.ofNullable(state.getLastAcceptedId()))
+                .version(state.getVersion())
+                .lastAcceptedValue(Optional.ofNullable(state.getLastAcceptedValue()))
+                .build();
     }
 }
