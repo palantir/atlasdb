@@ -20,6 +20,10 @@ import java.util.Map;
 
 import org.immutables.value.Value;
 
+/**
+ * Rather than having two maps - one for learner records and one for acceptor records,
+ * the consolidated record has a sequence number mapped to pair of (learnedValue, acceptedValue).
+ */
 @Value.Immutable
 public interface ConsolidatedLearnerAndAcceptorRecord {
 

@@ -23,7 +23,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import javax.sql.DataSource;
@@ -51,7 +53,7 @@ import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 
-public class PaxosHistoryProviderTest {
+public class PaxosLogHistoryProviderTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -100,7 +102,7 @@ public class PaxosHistoryProviderTest {
         assertThat(completeHistory.size()).isEqualTo(1);
         CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase = completeHistory.get(0);
         assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
-        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, 100);
+        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, CLIENT, USE_CASE, 100);
     }
 
     @Test
@@ -123,7 +125,7 @@ public class PaxosHistoryProviderTest {
         assertThat(completeHistory.size()).isEqualTo(1);
         CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase = completeHistory.get(0);
         assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
-        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, 78);
+        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, CLIENT, USE_CASE, 78);
     }
 
     @Test
@@ -151,20 +153,27 @@ public class PaxosHistoryProviderTest {
         assertThat(completeHistory.size()).isEqualTo(1);
 
         CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase = completeHistory.get(0);
-        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
-        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, 100 - lastVerified);
+        assertSanityOfFetchedRecords(historyForNamespaceAndUseCase, CLIENT, USE_CASE, 100 - lastVerified);
     }
 
     @Test
-    public void canFetchAndCombineHistoriesAcrossNamespaceAndUseCases() {
+    public void canFetchAndCombineHistoriesAcrossNamespaces() {
         List<HistoryQuery> historyQueries = new ArrayList<>();
+        Set<NamespaceAndUseCase> namespaceAndUseCases = new HashSet();
+
         IntStream.rangeClosed(1, 100).forEach(idx -> {
-            Client client = Client.of("" + idx);
+            Client client = Client.of(idx + "");
+            String useCase = idx + "";
+
             PaxosSerializationTestUtils.writeToLogs(
-                    createAcceptorLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_ACCEPTOR)),
-                    createLearnerLog(ImmutableNamespaceAndUseCase.of(client, USE_CASE_LEARNER)),
+                    createAcceptorLog(ImmutableNamespaceAndUseCase.of(client,
+                            AcceptorUseCase.createAcceptorUseCase(useCase).value())),
+                    createLearnerLog(ImmutableNamespaceAndUseCase.of(client,
+                            LearnerUseCase.createLearnerUseCase(useCase).value())),
                     1, idx);
-            historyQueries.add(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(client, USE_CASE), -1));
+
+            historyQueries.add(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(client, useCase), -1));
+            namespaceAndUseCases.add(ImmutableNamespaceAndUseCase.of(client, useCase));
         });
 
         List<LogsForNamespaceAndUseCase> remoteHistory
@@ -173,9 +182,22 @@ public class PaxosHistoryProviderTest {
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
         assertThat(completeHistory.size()).isEqualTo(100);
-        completeHistory.forEach(historyForNamespaceAndUseCase -> assertSanityOfFetchedRecords(
-                historyForNamespaceAndUseCase, getIntegerValueOfClient(historyForNamespaceAndUseCase)
-        ));
+
+        completeHistory.forEach(historyForNamespaceAndUseCase -> {
+            Client client = historyForNamespaceAndUseCase.namespace();
+            String useCase = historyForNamespaceAndUseCase.useCase();
+
+            assertSanityOfFetchedRecords(
+                    historyForNamespaceAndUseCase,
+                    client,
+                    useCase,
+                    getIntegerValueOfClient(historyForNamespaceAndUseCase));
+
+            // to assert that history for all clients was fetched
+            assertThat(namespaceAndUseCases.remove(ImmutableNamespaceAndUseCase.of(client, useCase))).isTrue();
+
+        });
+        assertThat(namespaceAndUseCases).isEmpty();
     }
 
     // utils
@@ -189,9 +211,12 @@ public class PaxosHistoryProviderTest {
 
     private void assertSanityOfFetchedRecords(
             CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase,
+            Client client,
+            String useCase,
             int numberOfLogs) {
 
-        assertThat(historyForNamespaceAndUseCase.useCase()).isEqualTo(USE_CASE);
+        assertThat(historyForNamespaceAndUseCase.useCase()).isEqualTo(useCase);
+        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(client);
 
         List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords
                 = historyForNamespaceAndUseCase.localAndRemoteLearnerAndAcceptorRecords();

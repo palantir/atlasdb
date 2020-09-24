@@ -77,42 +77,18 @@ public class PaxosLogHistoryProvider {
                 namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
     }
 
-    /**
-     * Gets history from all the nodes for all unique (namespace, useCase) tuples since last verified sequence numbers
-     * i.e. the highest sequence number that was verified since the last time the bounds were reset.
-     *
-     * @throws Exception if fails to fetch history from all remote servers
-     */
-    public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() {
 
-        /**
-         * map of all unique (namespace, useCase) tuples to their respective last verified sequence numbers.
-         */
+    public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() {
         Map<NamespaceAndUseCase, Long> lastVerifiedSequences = getNamespaceAndUseCaseToLastVerifiedSeqMap();
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
-        /**
-         * The history queries are built from the lastVerifiedSequences map above,
-         * required for conjure endpoints to load remote history.
-         */
         List<HistoryQuery> historyQueries = getHistoryQueryListForRemoteServers(lastVerifiedSequences);
 
-        /**
-         * List of logs from all remotes.
-         */
         List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
-        /**
-         * List of consolidated histories from all remotes. Each history is a map of namespaceAndUseCase
-         * to {@link ConsolidatedLearnerAndAcceptorRecord}.
-         */
         List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> historyFromAllRemotes
                 = buildHistoryFromRemoteResponses(rawHistoryFromAllRemotes);
 
-        /**
-         * Consolidate and build complete history for each (namespace, useCase) pair
-         * from histories loaded from local and remote servers.
-         */
         return consolidateAndGetHistoriesAcrossAllNodes(
                 lastVerifiedSequences,
                 localPaxosHistory,
@@ -163,25 +139,15 @@ public class PaxosLogHistoryProvider {
             PaxosHistoryOnSingleNode localPaxosHistory,
             List<NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords> historyLogsFromRemotes) {
 
-        /**
-         * Rather than having two maps - one for learner records and one for acceptor records,
-         * the consolidated record has a sequence number mapped to pair of (learnedValue, acceptedValue).
-         */
         ConsolidatedLearnerAndAcceptorRecord consolidatedLocalRecord
                 = localPaxosHistory.getConsolidatedLocalAndRemoteRecord(namespaceAndUseCase);
 
-        /**
-         * Retrieve history logs of this (namespace, useCase) pair from history logs fetched from remotes.
-         */
         List<ConsolidatedLearnerAndAcceptorRecord> remoteHistoryLogsForNamespaceAndUseCase
                 = extractRemoteHistoryLogsForNamespaceAndUseCase(namespaceAndUseCase, historyLogsFromRemotes);
 
         List<ConsolidatedLearnerAndAcceptorRecord> historyLogsAcrossAllNodes
                 = combineLocalAndRemoteHistoryLogs(consolidatedLocalRecord, remoteHistoryLogsForNamespaceAndUseCase);
 
-        /**
-         * Paxos history for (namespace, useCase) pair across all nodes in the cluster.
-         */
         return ImmutableCompletePaxosHistoryForNamespaceAndUseCase.of(
                 namespaceAndUseCase.namespace(),
                 namespaceAndUseCase.useCase(),
@@ -209,10 +175,7 @@ public class PaxosLogHistoryProvider {
 
     private NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords buildRecordFromRemoteResponse(
             PaxosHistoryOnRemote historyOnRemote) {
-        /**
-         * Build sequence number wise mapped record of learned and accepted values for each
-         * (namespace, useCase) pair from history logs provided by remote.
-         */
+
         Map<NamespaceAndUseCase, List<PaxosLogWithAcceptedAndLearnedValues>> namespaceWisePaxosLogs
                 = historyOnRemote.getLogs()
                 .stream()
