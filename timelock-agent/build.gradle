@@ -5,6 +5,7 @@ apply from: "../gradle/tests.gradle"
 
 dependencies {
     compile project(":timelock-impl")
+    compile project(":timelock-corruption-detection")
 
     // many of these we get as transitive dependencies but I wanted to be super explicit
     // about what dependencies we're actually using

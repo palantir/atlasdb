@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos;
+package com.palantir.timelock.history.models;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 @Value.Immutable
-@JsonDeserialize(as = ImmutableNamespaceAndUseCase.class)
-@JsonSerialize(as = ImmutableNamespaceAndUseCase.class)
-public interface NamespaceAndUseCase {
+public interface AcceptorUseCase {
     @Value.Parameter
-    Client namespace();
+    String value();
 
-    @Value.Parameter
-    String useCase();
+    static AcceptorUseCase createAcceptorUseCase(String paxosUseCase) {
+        // TODO (someone): This is fragile because it MUST match timelock-impl's LocalPaxosComponents.
+        // DO NOT CHANGE THIS VALUE WITHOUT A MIGRATION!
+        return ImmutableAcceptorUseCase.of(String.format("%s!acceptor", paxosUseCase));
+    }
 }

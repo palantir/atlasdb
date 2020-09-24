@@ -1,0 +1,58 @@
+types:
+  imports:
+    PaxosValue:
+      base-type: any
+      external:
+        java: com.palantir.paxos.PaxosValue
+    PaxosProposalId:
+      base-type: any
+      external:
+        java: com.palantir.paxos.PaxosProposalId
+    NamespaceAndUseCase:
+      base-type: any
+      external:
+        java: com.palantir.paxos.NamespaceAndUseCase
+    Long:
+      base-type: any
+      external:
+        java: java.lang.Long
+  definitions:
+    default-package: com.palantir.timelock.history
+    objects:
+      PaxosAcceptorData:
+        fields:
+          lastPromisedId: optional<PaxosProposalId>
+          lastAcceptedId: optional<PaxosProposalId>
+          lastAcceptedValue: optional<PaxosValue>
+          version: Long
+      HistoryQuery:
+        fields:
+          namespaceAndUseCase: NamespaceAndUseCase
+          seq: Long
+      PaxosLogWithAcceptedAndLearnedValues:
+        fields:
+          acceptedState: optional<PaxosAcceptorData>
+          paxosValue: optional<PaxosValue>
+          seq: Long
+      LogsForNamespaceAndUseCase:
+        fields:
+          namespaceAndUseCase: NamespaceAndUseCase
+          logs: list<PaxosLogWithAcceptedAndLearnedValues>
+      PaxosHistoryOnRemote:
+        fields:
+          logs: list<LogsForNamespaceAndUseCase>
+
+services:
+  TimeLockPaxosHistoryProvider:
+    name: TimeLock Paxos History Provider Service
+    default-auth: header
+    package: com.palantir.timelock.history
+    base-path: /tl/history
+    endpoints:
+      getPaxosHistory:
+        http: POST /ph
+        args:
+          historyQueries: list<HistoryQuery>
+        returns: PaxosHistoryOnRemote
+        docs: |
+          The endpoint returns Paxos state logs for the list of <namespace, useCase> pairs provided.

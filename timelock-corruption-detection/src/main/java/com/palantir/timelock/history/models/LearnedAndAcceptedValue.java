@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos;
+package com.palantir.timelock.history.models;
+
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.PaxosValue;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableNamespaceAndUseCase.class)
-@JsonSerialize(as = ImmutableNamespaceAndUseCase.class)
-public interface NamespaceAndUseCase {
+public interface LearnedAndAcceptedValue {
     @Value.Parameter
-    Client namespace();
+    Optional<PaxosValue> learnedValue();
 
     @Value.Parameter
-    String useCase();
+    Optional<PaxosAcceptorState> acceptedValue();
 }

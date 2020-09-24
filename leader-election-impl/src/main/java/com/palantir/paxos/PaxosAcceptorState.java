@@ -105,4 +105,16 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
     public long getVersion() {
         return version;
     }
+
+    public PaxosProposalId getLastPromisedId() {
+        return lastPromisedId;
+    }
+
+    public PaxosProposalId getLastAcceptedId() {
+        return lastAcceptedId;
+    }
+
+    public PaxosValue getLastAcceptedValue() {
+        return lastAcceptedValue;
+    }
 }

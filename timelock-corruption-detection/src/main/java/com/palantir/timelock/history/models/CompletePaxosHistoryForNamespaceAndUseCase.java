@@ -14,20 +14,30 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos;
+package com.palantir.timelock.history.models;
+
+import java.util.List;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.paxos.Client;
 
+/**
+ * Data structure to contain Paxos learner and acceptor state values against sequence numbers
+ * across all nodes for ({@link Client}, useCase) pair.
+ *
+ * Note - The useCase string here only contains the prefix
+ * e.g. clientPaxos as opposed to clientPaxos!learner / clientPaxos!acceptor
+ */
 @Value.Immutable
-@JsonDeserialize(as = ImmutableNamespaceAndUseCase.class)
-@JsonSerialize(as = ImmutableNamespaceAndUseCase.class)
-public interface NamespaceAndUseCase {
+public interface CompletePaxosHistoryForNamespaceAndUseCase {
     @Value.Parameter
     Client namespace();
 
     @Value.Parameter
     String useCase();
+
+    @Value.Parameter
+    List<Map<Long, LearnedAndAcceptedValue>> localAndRemoteLearnerAndAcceptorRecords();
 }

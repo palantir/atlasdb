@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos;
+package com.palantir.timelock.history.util;
 
-import org.immutables.value.Value;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
-@Value.Immutable
-@JsonDeserialize(as = ImmutableNamespaceAndUseCase.class)
-@JsonSerialize(as = ImmutableNamespaceAndUseCase.class)
-public interface NamespaceAndUseCase {
-    @Value.Parameter
-    Client namespace();
+public final class UseCaseUtils {
+    private static final Pattern PATTERN = Pattern.compile("^(.*)!(.*)$");
 
-    @Value.Parameter
-    String useCase();
+    private UseCaseUtils() {
+        // no op
+    }
+
+    public static String getPaxosUseCasePrefix(String useCase) {
+        Matcher matcher = PATTERN.matcher(useCase);
+        Preconditions.checkState(matcher.find(),
+                "Unexpected use case format", SafeArg.of("useCase", useCase));
+        return matcher.group(1);
+    }
 }
