@@ -52,7 +52,8 @@ public class UseCaseUtilsTest {
 
     @Test
     public void blah() throws JsonProcessingException {
-        ImmutableNamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.of(Client.of("gatekeeper"), "client");
+        ImmutableNamespaceAndUseCase namespaceAndUseCase
+                = ImmutableNamespaceAndUseCase.of(Client.of("gatekeeper"), "client");
         List<HistoryQuery> hs = ImmutableList.of(HistoryQuery.of(
                 namespaceAndUseCase, -1));
         ObjectMapper om = new ObjectMapper();

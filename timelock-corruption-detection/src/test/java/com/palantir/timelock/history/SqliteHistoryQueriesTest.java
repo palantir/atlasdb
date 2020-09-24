@@ -18,6 +18,7 @@ package com.palantir.timelock.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import static com.palantir.timelock.history.utils.PaxosSerializationTestUtils.longToBytes;
 import static com.palantir.timelock.history.utils.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
 import static com.palantir.timelock.history.utils.PaxosSerializationTestUtils.writeValueForLogAndRound;
 
@@ -36,7 +37,6 @@ import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosStateLog;
-import com.palantir.paxos.PaxosStateLogTestUtils;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
@@ -89,7 +89,7 @@ public class SqliteHistoryQueriesTest {
 
         PaxosValue paxosValue = learnerAndAcceptorRecords.learnerRecords().get(round);
         assertThat(paxosValue.getRound()).isEqualTo(round);
-        assertThat(paxosValue.getData()).isEqualTo(PaxosStateLogTestUtils.longToBytes(round));
+        assertThat(paxosValue.getData()).isEqualTo(longToBytes(round));
     }
 
     @Test

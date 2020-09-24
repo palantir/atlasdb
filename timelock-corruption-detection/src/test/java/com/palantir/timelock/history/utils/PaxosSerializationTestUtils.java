@@ -48,7 +48,7 @@ public final class PaxosSerializationTestUtils {
                 round, UUID.randomUUID().toString()));
     }
 
-    private static byte[] longToBytes(long value) {
+    public static byte[] longToBytes(long value) {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(value);
         return buffer.array();
