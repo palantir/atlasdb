@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.corruption;
+package com.palantir.timelock.corruption.detection;
 
 import java.util.List;
 
