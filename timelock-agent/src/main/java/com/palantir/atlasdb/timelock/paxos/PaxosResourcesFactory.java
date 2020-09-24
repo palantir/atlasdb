@@ -26,6 +26,10 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.corruption.CorruptionHealthCheck;
+import com.palantir.atlasdb.timelock.corruption.LocalCorruptionDetector;
+import com.palantir.atlasdb.timelock.corruption.RemoteCorruptionDetector;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
@@ -83,6 +87,20 @@ public final class PaxosResourcesFactory {
         }
     }
 
+    private static TimeLockCorruptionComponents timeLockCorruptionComponents(PaxosRemoteClients remoteClients) {
+        RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
+
+        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
+                LocalCorruptionDetector.create(remoteClients.getRemoteCorruptionNotifiers()),
+                remoteCorruptionDetector));
+
+        return TimeLockCorruptionComponents.builder()
+                .timeLockCorruptionHealthCheck(healthCheck)
+                .remoteCorruptionDetector(remoteCorruptionDetector)
+                .remoteHistoryProviders(remoteClients.getRemoteHistoryProviders())
+                .build();
+    }
+
     private static PaxosResources configureLeaderForEachClient(
             ImmutablePaxosResources.Builder resourcesBuilder,
             TimelockPaxosInstallationContext install,
@@ -124,6 +142,7 @@ public final class PaxosResourcesFactory {
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
                 .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+                .timeLockCorruptionComponents(timeLockCorruptionComponents(remoteClients))
                 .build();
     }
 
@@ -172,6 +191,7 @@ public final class PaxosResourcesFactory {
                                 factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
+                .timeLockCorruptionComponents(timeLockCorruptionComponents(remoteClients))
                 .build();
     }
 
