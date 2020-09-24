@@ -19,17 +19,9 @@ package com.palantir.timelock.history.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.List;
-
 import org.junit.Test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.ImmutableNamespaceAndUseCase;
-import com.palantir.timelock.history.HistoryQuery;
 
 public class UseCaseUtilsTest {
     @Test
@@ -48,18 +40,6 @@ public class UseCaseUtilsTest {
     public void parsesUseCasesWithMultipleDelimiters() {
         assertThat(UseCaseUtils.getPaxosUseCasePrefix("a!b!c!d")).isEqualTo("a!b!c");
         assertThat(UseCaseUtils.getPaxosUseCasePrefix("!!!!!!!")).isEqualTo("!!!!!!");
-    }
-
-    @Test
-    public void blah() throws JsonProcessingException {
-        ImmutableNamespaceAndUseCase namespaceAndUseCase
-                = ImmutableNamespaceAndUseCase.of(Client.of("gatekeeper"), "client");
-        List<HistoryQuery> hs = ImmutableList.of(HistoryQuery.of(
-                namespaceAndUseCase, -1));
-        ObjectMapper om = new ObjectMapper();
-        System.out.println(om.writeValueAsString(hs));
-        System.out.println(om.writeValueAsString(namespaceAndUseCase));
-
     }
 
     private void assertHasInvalidFormat(String candidateUseCase) {
