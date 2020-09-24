@@ -28,13 +28,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
+import com.palantir.timelock.history.models.ImmutableCompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ImmutableLearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
+import com.palantir.timelock.history.models.NamespaceAndUseCaseWiseConsolidatedLearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
@@ -49,10 +52,12 @@ public class PaxosLogHistoryProvider {
     private final LogVerificationProgressState logVerificationProgressState;
     private final LocalHistoryLoader localHistoryLoader;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
+    private final List<TimeLockPaxosHistoryProvider> remoteHistoryProviders;
     private Map<NamespaceAndUseCase, Long> verificationProgressStateCache = new ConcurrentHashMap<>();
 
 
-    public PaxosLogHistoryProvider(DataSource dataSource) {
+    public PaxosLogHistoryProvider(DataSource dataSource, List<TimeLockPaxosHistoryProvider> remoteHistoryProviders) {
+        this.remoteHistoryProviders = remoteHistoryProviders;
         this.sqlitePaxosStateLogHistory = SqlitePaxosStateLogHistory.create(dataSource);
         this.logVerificationProgressState = LogVerificationProgressState.create(dataSource);
         this.localHistoryLoader = LocalHistoryLoader.create(this.sqlitePaxosStateLogHistory);

@@ -18,6 +18,7 @@ package com.palantir.timelock.history.utils;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosProposalId;
@@ -28,6 +29,14 @@ public final class PaxosSerializationTestUtils {
 
     private PaxosSerializationTestUtils() {
         // no op
+    }
+
+    public static void writeToLogs(PaxosStateLog<PaxosAcceptorState> acceptorLog,
+            PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
+        IntStream.rangeClosed(start, end).forEach(i -> {
+            writeAcceptorStateForLogAndRound(acceptorLog, i);
+            writeValueForLogAndRound(learnerLog, i);
+        });
     }
 
     public static PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
