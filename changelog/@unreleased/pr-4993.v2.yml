@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: We now have remote endpoints to provide paxos history which is required
+    for TimeLock corruption detecting checks.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4993
