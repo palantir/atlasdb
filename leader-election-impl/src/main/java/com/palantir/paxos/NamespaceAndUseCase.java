@@ -18,7 +18,12 @@ package com.palantir.paxos;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
+@JsonDeserialize(as = ImmutableNamespaceAndUseCase.class)
+@JsonSerialize(as = ImmutableNamespaceAndUseCase.class)
 public interface NamespaceAndUseCase {
     @Value.Parameter
     Client namespace();
