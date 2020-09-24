@@ -16,27 +16,17 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.List;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
-import com.palantir.paxos.Client;
-
-/**
- * Data structure to contain Paxos learner and acceptor state values against sequence numbers
- * across all nodes for ({@link Client}, useCase) pair.
- *
- * Note - The useCase string here only contains the prefix
- * e.g. clientPaxos as opposed to clientPaxos!learner / clientPaxos!acceptor
- */
 @Value.Immutable
-public interface CompletePaxosHistoryForNamespaceAndUseCase {
-    @Value.Parameter
-    Client namespace();
+public interface ConsolidatedLearnerAndAcceptorRecord {
 
     @Value.Parameter
-    String useCase();
+    Map<Long, LearnedAndAcceptedValue> record();
 
-    @Value.Parameter
-    List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords();
+    static ConsolidatedLearnerAndAcceptorRecord of(Map<Long, LearnedAndAcceptedValue> record) {
+        return ImmutableConsolidatedLearnerAndAcceptorRecord.of(record);
+    }
 }
