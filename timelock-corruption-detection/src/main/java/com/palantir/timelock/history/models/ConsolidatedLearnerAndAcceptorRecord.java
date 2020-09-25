@@ -16,18 +16,23 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.Optional;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
-import com.palantir.paxos.PaxosValue;
-import com.palantir.timelock.history.PaxosAcceptorData;
-
+/**
+ * Rather than having two maps - one for learner records and one for acceptor records,
+ * the consolidated record has a sequence number mapped to pair of (learnedValue, acceptedValue).
+ * The data is consolidated this way because most of our assertions are around Paxos values at the same
+ * seq number instead of values across multiple sequence numbers.
+ */
 @Value.Immutable
-public interface LearnedAndAcceptedValue {
-    @Value.Parameter
-    Optional<PaxosValue> learnedValue();
+public interface ConsolidatedLearnerAndAcceptorRecord {
 
     @Value.Parameter
-    Optional<PaxosAcceptorData> acceptedValue();
+    Map<Long, LearnedAndAcceptedValue> record();
+
+    static ConsolidatedLearnerAndAcceptorRecord of(Map<Long, LearnedAndAcceptedValue> record) {
+        return ImmutableConsolidatedLearnerAndAcceptorRecord.of(record);
+    }
 }

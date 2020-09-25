@@ -31,10 +31,10 @@ import org.jdbi.v3.sqlobject.statement.SqlQuery;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.mappers.AcceptorPaxosRoundMapper;
 import com.palantir.timelock.history.mappers.LearnerPaxosRoundMapper;
 import com.palantir.timelock.history.mappers.NamespaceAndUseCaseMapper;
@@ -94,7 +94,7 @@ public final class SqlitePaxosStateLogHistory {
         @SqlQuery("SELECT seq, val FROM paxosLog "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
                 + "ORDER BY seq ASC LIMIT 500")
-        Map<Long, PaxosAcceptorState> getAcceptorLogsSince(
+        Map<Long, PaxosAcceptorData> getAcceptorLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("seq") long seq);

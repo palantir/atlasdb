@@ -169,9 +169,6 @@ public class HistoryLoaderAndTransformerTest {
     }
 
     private void writeToLogs(int start, int end) {
-        IntStream.rangeClosed(start, end).forEach(i -> {
-            PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(acceptorLog, i);
-            PaxosSerializationTestUtils.writeValueForLogAndRound(learnerLog, i);
-        });
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, start, end);
     }
 }

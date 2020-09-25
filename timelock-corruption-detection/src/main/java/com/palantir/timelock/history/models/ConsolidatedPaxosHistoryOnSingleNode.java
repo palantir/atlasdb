@@ -16,18 +16,26 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.Optional;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
-import com.palantir.paxos.PaxosValue;
-import com.palantir.timelock.history.PaxosAcceptorData;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.paxos.NamespaceAndUseCase;
 
 @Value.Immutable
-public interface LearnedAndAcceptedValue {
-    @Value.Parameter
-    Optional<PaxosValue> learnedValue();
+public interface ConsolidatedPaxosHistoryOnSingleNode {
 
     @Value.Parameter
-    Optional<PaxosAcceptorData> acceptedValue();
+    Map<NamespaceAndUseCase, ConsolidatedLearnerAndAcceptorRecord> records();
+
+    static ConsolidatedPaxosHistoryOnSingleNode of(
+            Map<NamespaceAndUseCase, ConsolidatedLearnerAndAcceptorRecord> records) {
+        return ImmutableConsolidatedPaxosHistoryOnSingleNode.of(records);
+    }
+
+    default ConsolidatedLearnerAndAcceptorRecord getRecordForNamespaceAndUseCase(
+            NamespaceAndUseCase namespaceAndUseCase) {
+        return records().getOrDefault(namespaceAndUseCase, ConsolidatedLearnerAndAcceptorRecord.of(ImmutableMap.of()));
+    }
 }

@@ -24,8 +24,8 @@ import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
-import com.palantir.paxos.PaxosAcceptorState;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.timelock.history.PaxosAcceptorData;
 
 @Value.Immutable
 public interface LearnerAndAcceptorRecords {
@@ -34,13 +34,13 @@ public interface LearnerAndAcceptorRecords {
     Map<Long, PaxosValue> learnerRecords();
 
     @Value.Parameter
-    Map<Long, PaxosAcceptorState> acceptorRecords();
+    Map<Long, PaxosAcceptorData> acceptorRecords();
 
     default Optional<PaxosValue> getLearnedValueAtSeqIfExists(long seq) {
         return Optional.ofNullable(learnerRecords().get(seq));
     }
 
-    default Optional<PaxosAcceptorState> getAcceptedValueAtSeqIfExists(long seq) {
+    default Optional<PaxosAcceptorData> getAcceptedValueAtSeqIfExists(long seq) {
         return Optional.ofNullable(acceptorRecords().get(seq));
     }
 

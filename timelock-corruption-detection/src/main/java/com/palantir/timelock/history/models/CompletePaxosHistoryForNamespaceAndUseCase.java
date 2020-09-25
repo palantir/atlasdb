@@ -17,7 +17,6 @@
 package com.palantir.timelock.history.models;
 
 import java.util.List;
-import java.util.Map;
 
 import org.immutables.value.Value;
 
@@ -39,5 +38,5 @@ public interface CompletePaxosHistoryForNamespaceAndUseCase {
     String useCase();
 
     @Value.Parameter
-    List<Map<Long, LearnedAndAcceptedValue>> localAndRemoteLearnerAndAcceptorRecords();
+    List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords();
 }

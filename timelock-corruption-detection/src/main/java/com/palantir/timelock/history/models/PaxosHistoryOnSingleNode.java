@@ -17,14 +17,37 @@
 package com.palantir.timelock.history.models;
 
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.paxos.NamespaceAndUseCase;
 
 @Value.Immutable
 public interface PaxosHistoryOnSingleNode {
-
     @Value.Parameter
     Map<NamespaceAndUseCase, LearnerAndAcceptorRecords> history();
+
+    default ConsolidatedLearnerAndAcceptorRecord getConsolidatedLocalAndRemoteRecord(
+            NamespaceAndUseCase namespaceAndUseCase) {
+
+        if (!history().containsKey(namespaceAndUseCase)) {
+            return ImmutableConsolidatedLearnerAndAcceptorRecord.of(ImmutableMap.of());
+        }
+
+        return ImmutableConsolidatedLearnerAndAcceptorRecord.of(
+                consolidateRecordsForSequenceRange(history().get(namespaceAndUseCase)));
+    }
+
+    default Map<Long, LearnedAndAcceptedValue> consolidateRecordsForSequenceRange(LearnerAndAcceptorRecords records) {
+        return records.getAllSequenceNumbers().stream().collect(
+                Collectors.toMap(Function.identity(), seq -> getLearnedAndAcceptedValues(records, seq)));
+    }
+
+    default LearnedAndAcceptedValue getLearnedAndAcceptedValues(LearnerAndAcceptorRecords records, Long seq) {
+        return ImmutableLearnedAndAcceptedValue.of(records.getLearnedValueAtSeqIfExists(seq),
+                records.getAcceptedValueAtSeqIfExists(seq));
+    }
 }
