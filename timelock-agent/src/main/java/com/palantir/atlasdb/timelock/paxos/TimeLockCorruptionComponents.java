@@ -20,8 +20,8 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.timelock.corruption.CorruptionHealthCheck;
-import com.palantir.atlasdb.timelock.corruption.RemoteCorruptionDetector;
+import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
+import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 
 @Value.Immutable

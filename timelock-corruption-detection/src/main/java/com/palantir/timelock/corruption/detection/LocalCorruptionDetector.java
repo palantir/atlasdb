@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.corruption;
+package com.palantir.timelock.corruption.detection;
 
 import java.time.Duration;
 import java.util.List;
@@ -25,7 +25,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 
-public class LocalCorruptionDetector implements CorruptionDetector {
+public final class LocalCorruptionDetector implements CorruptionDetector {
     private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
     private static final String CORRUPTION_DETECTOR_THREAD_PREFIX = "timelock-corruption-detector";
 
@@ -50,10 +50,10 @@ public class LocalCorruptionDetector implements CorruptionDetector {
 
     private void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(() -> {
-                    if (detectedSignsOfCorruption()) {
-                        killTimeLock();
-                    }
-                },
+            if (detectedSignsOfCorruption()) {
+                killTimeLock();
+            }
+        },
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);

@@ -17,6 +17,7 @@ dependencies {
     compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
 
     compile group: 'com.google.guava', name: 'guava'
+    compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
 
     annotationProcessor group: 'org.immutables', name: 'value'

@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.corruption;
+package com.palantir.timelock.corruption.detection;
 
-public class RemoteCorruptionDetector implements CorruptionDetector {
-    private volatile CorruptionStatus remoteCorruptionState = CorruptionStatus.HEALTHY;
-
-    public void setRemoteCorruptionState() {
-        this.remoteCorruptionState = CorruptionStatus.CORRUPTION;
-    }
-
-    @Override
-    public boolean hasDetectedCorruption() {
-        return remoteCorruptionState.hasCorruption();
-    }
+public interface CorruptionDetector {
+    boolean hasDetectedCorruption();
 }
