@@ -147,8 +147,7 @@ public class PaxosLogHistoryProviderTest {
     public void throwsIfRemoteThrows() {
         PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 100);
         when(remote.getPaxosHistory(any(), any())).thenThrow(new RuntimeException());
-        assertThatThrownBy(paxosLogHistoryProvider::getHistory)
-                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(paxosLogHistoryProvider::getHistory).isInstanceOf(RuntimeException.class);
     }
 
     @Test
@@ -215,7 +214,7 @@ public class PaxosLogHistoryProviderTest {
     // utils
     private Map<NamespaceAndUseCase, Set<PaxosValue>> writeLogsForRangeOfNamespaceUseCasePairs(
             List<HistoryQuery> historyQueries) {
-        return KeyedStream.of(IntStream.rangeClosed(1, 100).boxed()).mapEntries((idx, v) -> {
+        return KeyedStream.of(IntStream.rangeClosed(1, 100).boxed()).mapEntries((idx, unused) -> {
             String useCase = String.valueOf(idx);
             Client client =  Client.of(useCase);
 
