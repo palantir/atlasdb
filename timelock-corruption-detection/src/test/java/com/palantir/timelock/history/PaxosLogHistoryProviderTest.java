@@ -195,7 +195,8 @@ public class PaxosLogHistoryProviderTest {
                 Client client = historyForNamespaceAndUseCase.namespace();
                 String useCase = historyForNamespaceAndUseCase.useCase();
 
-            // we do not PaxosValues in this test for processing cost of computing the set of expected PaxosValues.
+//             we do not validate PaxosValues in this test due to the processing cost of
+//             computing the set of expected PaxosValues.
             assertSanityOfRecords(
                         historyForNamespaceAndUseCase,
                         client,
