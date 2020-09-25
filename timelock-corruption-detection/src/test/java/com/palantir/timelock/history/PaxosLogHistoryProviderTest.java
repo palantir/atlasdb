@@ -200,8 +200,6 @@ public class PaxosLogHistoryProviderTest {
                     String useCase = historyForNamespaceAndUseCase.useCase();
                     NamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.of(client, useCase);
 
-                    // we do not validate PaxosValues in this test due to the processing cost of
-                    // computing the set of expected PaxosValues.
                     assertSanityWithValuesOfFetchedRecords(
                             historyForNamespaceAndUseCase,
                             client,
@@ -209,7 +207,6 @@ public class PaxosLogHistoryProviderTest {
                             getIntegerValueOfClient(historyForNamespaceAndUseCase),
                             expected.get(namespaceAndUseCase));
                     return namespaceAndUseCase;
-
                 }).collect(Collectors.toSet());
 
         assertThat(namespaceAndUseCasesWithHistory).isEqualTo(expected.keySet());
