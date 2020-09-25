@@ -40,6 +40,8 @@ import org.junit.rules.TemporaryFolder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -182,7 +184,7 @@ public class PaxosLogHistoryProviderTest {
     public void canFetchAndCombineHistoriesAcrossNamespaceAndUseCasePairs() {
         List<HistoryQuery> historyQueries = new ArrayList<>();
 
-        Set<NamespaceAndUseCase> expectedNamespaceAndUseCases
+        Map<NamespaceAndUseCase, Set<PaxosValue>> expected
                 = writeLogsForRangeOfNamespaceUseCasePairs(historyQueries);
 
         List<LogsForNamespaceAndUseCase> remoteHistory
@@ -192,41 +194,45 @@ public class PaxosLogHistoryProviderTest {
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
         assertThat(completeHistory.size()).isEqualTo(100);
 
-        Set<ImmutableNamespaceAndUseCase> namespaceAndUseCasesWithHistory
+        Set<NamespaceAndUseCase> namespaceAndUseCasesWithHistory
                 = completeHistory.stream().map(historyForNamespaceAndUseCase -> {
                     Client client = historyForNamespaceAndUseCase.namespace();
                     String useCase = historyForNamespaceAndUseCase.useCase();
+                    NamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.of(client, useCase);
 
-//                  we do not validate PaxosValues in this test due to the processing cost of
-//                  computing the set of expected PaxosValues.
-                    assertSanityOfRecords(
+                    // we do not validate PaxosValues in this test due to the processing cost of
+                    // computing the set of expected PaxosValues.
+                    assertSanityWithValuesOfFetchedRecords(
                             historyForNamespaceAndUseCase,
                             client,
                             useCase,
-                            getIntegerValueOfClient(historyForNamespaceAndUseCase));
-                    return ImmutableNamespaceAndUseCase.of(client, useCase);
+                            getIntegerValueOfClient(historyForNamespaceAndUseCase),
+                            expected.get(namespaceAndUseCase));
+                    return namespaceAndUseCase;
 
                 }).collect(Collectors.toSet());
 
-        assertThat(namespaceAndUseCasesWithHistory).isEqualTo(expectedNamespaceAndUseCases);
+        assertThat(namespaceAndUseCasesWithHistory).isEqualTo(expected.keySet());
     }
 
     // utils
-    private Set<NamespaceAndUseCase> writeLogsForRangeOfNamespaceUseCasePairs(List<HistoryQuery> historyQueries) {
-        return IntStream.rangeClosed(1, 100).boxed().map(idx -> {
+    private Map<NamespaceAndUseCase, Set<PaxosValue>> writeLogsForRangeOfNamespaceUseCasePairs(
+            List<HistoryQuery> historyQueries) {
+        return KeyedStream.of(IntStream.rangeClosed(1, 100).boxed()).mapEntries((idx, v) -> {
             String useCase = String.valueOf(idx);
             Client client =  Client.of(useCase);
 
-            PaxosSerializationTestUtils.writeToLogs(
+            Set<PaxosValue> paxosValues = PaxosSerializationTestUtils.writeToLogs(
                     createAcceptorLog(ImmutableNamespaceAndUseCase.of(client,
                             AcceptorUseCase.createAcceptorUseCase(useCase).value())),
                     createLearnerLog(ImmutableNamespaceAndUseCase.of(client,
                             LearnerUseCase.createLearnerUseCase(useCase).value())),
                     1, idx);
 
-            historyQueries.add(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(client, useCase), -1));
-            return ImmutableNamespaceAndUseCase.of(client, useCase);
-        }).collect(Collectors.toSet());
+            NamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.of(client, useCase);
+            historyQueries.add(HistoryQuery.of(namespaceAndUseCase, -1));
+            return Maps.immutableEntry(namespaceAndUseCase, paxosValues);
+        }).collectToMap();
     }
 
     private PaxosStateLog<PaxosValue> createLearnerLog(NamespaceAndUseCase namespaceAndUseCase) {
