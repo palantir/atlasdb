@@ -114,11 +114,13 @@ public class PaxosLogHistoryProviderTest {
 
     @Test
     public void canFetchAndCombineDiscontinuousLogs() {
-        Set<PaxosValue> paxosValues_1 = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 7, 54);
-        Set<PaxosValue> paxosValues_2 = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 98, 127);
+        Set<PaxosValue> paxosValues1
+                = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 7, 54);
+        Set<PaxosValue> paxosValues2
+                = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 98, 127);
 
         Set<PaxosValue> paxosValues
-                = ImmutableSet.<PaxosValue>builder().addAll(paxosValues_1).addAll(paxosValues_2).build();
+                = ImmutableSet.<PaxosValue>builder().addAll(paxosValues1).addAll(paxosValues2).build();
 
         int lastVerified = -1;
 
@@ -191,20 +193,20 @@ public class PaxosLogHistoryProviderTest {
         assertThat(completeHistory.size()).isEqualTo(100);
 
         Set<ImmutableNamespaceAndUseCase> namespaceAndUseCasesWithHistory
-            = completeHistory.stream().map(historyForNamespaceAndUseCase -> {
-                Client client = historyForNamespaceAndUseCase.namespace();
-                String useCase = historyForNamespaceAndUseCase.useCase();
+                = completeHistory.stream().map(historyForNamespaceAndUseCase -> {
+                    Client client = historyForNamespaceAndUseCase.namespace();
+                    String useCase = historyForNamespaceAndUseCase.useCase();
 
-//             we do not validate PaxosValues in this test due to the processing cost of
-//             computing the set of expected PaxosValues.
-            assertSanityOfRecords(
-                        historyForNamespaceAndUseCase,
-                        client,
-                        useCase,
-                        getIntegerValueOfClient(historyForNamespaceAndUseCase));
-                return ImmutableNamespaceAndUseCase.of(client, useCase);
+//                  we do not validate PaxosValues in this test due to the processing cost of
+//                  computing the set of expected PaxosValues.
+                    assertSanityOfRecords(
+                            historyForNamespaceAndUseCase,
+                            client,
+                            useCase,
+                            getIntegerValueOfClient(historyForNamespaceAndUseCase));
+                    return ImmutableNamespaceAndUseCase.of(client, useCase);
 
-            }).collect(Collectors.toSet());
+                }).collect(Collectors.toSet());
 
         assertThat(namespaceAndUseCasesWithHistory).isEqualTo(expectedNamespaceAndUseCases);
     }
