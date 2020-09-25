@@ -96,7 +96,7 @@ public abstract class TargetedSweepRuntimeConfig {
      */
     @Value.Default
     public boolean enableAutoTuning() {
-        return false;
+        return true;
     }
 
     @Value.Check
