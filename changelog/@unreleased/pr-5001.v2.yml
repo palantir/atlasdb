@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: Targeted Sweep background task auto-tuning, which automatically modifies
+    the number of parallel background tasks and pauses between iterations as needed
+    is now turned on by default.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5001
