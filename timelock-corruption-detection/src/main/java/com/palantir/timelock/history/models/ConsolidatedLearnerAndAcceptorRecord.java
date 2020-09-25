@@ -23,6 +23,8 @@ import org.immutables.value.Value;
 /**
  * Rather than having two maps - one for learner records and one for acceptor records,
  * the consolidated record has a sequence number mapped to pair of (learnedValue, acceptedValue).
+ * The data is consolidated this way because most of our assertions are around Paxos values at the same
+ * seq number instead of values across multiple sequence numbers.
  */
 @Value.Immutable
 public interface ConsolidatedLearnerAndAcceptorRecord {

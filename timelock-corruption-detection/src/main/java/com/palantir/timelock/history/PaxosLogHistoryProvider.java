@@ -184,8 +184,7 @@ public class PaxosLogHistoryProvider {
                 .stream()
                 .collect(Collectors.toMap(
                         LogsForNamespaceAndUseCase::getNamespaceAndUseCase,
-                        LogsForNamespaceAndUseCase::getLogs)
-                );
+                        LogsForNamespaceAndUseCase::getLogs));
 
         return ConsolidatedPaxosHistoryOnSingleNode.of(KeyedStream
                 .stream(namespaceWisePaxosLogs)
@@ -217,7 +216,7 @@ public class PaxosLogHistoryProvider {
             return remote.getPaxosHistory(AUTH_HEADER, historyQueries);
         } catch (Exception exception) {
             log.warn("The remote failed to provide the history,"
-                    + "we cannot perform corruption checks without history from all nodes.", exception);
+                    + " we cannot perform corruption checks without history from all nodes.", exception);
             throw exception;
         }
     }
