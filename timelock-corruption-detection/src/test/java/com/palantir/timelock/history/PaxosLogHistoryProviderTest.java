@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -181,10 +180,13 @@ public class PaxosLogHistoryProviderTest {
 
     @Test
     public void canFetchAndCombineHistoriesAcrossNamespaceAndUseCasePairs() {
-        List<HistoryQuery> historyQueries = new ArrayList<>();
+        Map<NamespaceAndUseCase, Set<PaxosValue>> expected = writeLogsForRangeOfNamespaceUseCasePairs();
+        Set<NamespaceAndUseCase> allNamespaceAndUseCases = expected.keySet();
 
-        Map<NamespaceAndUseCase, Set<PaxosValue>> expected
-                = writeLogsForRangeOfNamespaceUseCasePairs(historyQueries);
+        List<HistoryQuery> historyQueries = allNamespaceAndUseCases
+                .stream()
+                .map(namespaceAndUseCase -> HistoryQuery.of(namespaceAndUseCase, -1))
+                .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> remoteHistory
                 = HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -208,12 +210,11 @@ public class PaxosLogHistoryProviderTest {
                     return namespaceAndUseCase;
                 }).collect(Collectors.toSet());
 
-        assertThat(namespaceAndUseCasesWithHistory).isEqualTo(expected.keySet());
+        assertThat(namespaceAndUseCasesWithHistory).isEqualTo(allNamespaceAndUseCases);
     }
 
     // utils
-    private Map<NamespaceAndUseCase, Set<PaxosValue>> writeLogsForRangeOfNamespaceUseCasePairs(
-            List<HistoryQuery> historyQueries) {
+    private Map<NamespaceAndUseCase, Set<PaxosValue>> writeLogsForRangeOfNamespaceUseCasePairs() {
         return KeyedStream.of(IntStream.rangeClosed(1, 100).boxed()).mapEntries((idx, unused) -> {
             String useCase = String.valueOf(idx);
             Client client =  Client.of(useCase);
@@ -226,7 +227,6 @@ public class PaxosLogHistoryProviderTest {
                     1, idx);
 
             NamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.of(client, useCase);
-            historyQueries.add(HistoryQuery.of(namespaceAndUseCase, -1));
             return Maps.immutableEntry(namespaceAndUseCase, paxosValues);
         }).collectToMap();
     }
