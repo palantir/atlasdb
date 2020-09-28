@@ -59,7 +59,8 @@ public class TimeLockServerHolder extends ExternalResource {
             .dynamicPort()
             .httpsPort(port)
             .keystorePath("var/security/keyStore.jks")
-            .keystorePassword("keystore");
+            .keystorePassword("keystore")
+            .keyManagerPassword("keystore");
 
     private final Supplier<String> configFilePathSupplier;
 
