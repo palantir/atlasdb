@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
 

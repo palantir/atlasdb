@@ -144,6 +144,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void processStartTimestampUpdateOnMultipleBatches() {
+        eventCache = createEventCache(5);
         setupInitialState();
         verifyStage();
 
@@ -171,6 +172,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void smallerUpdateAfterLargeUpdateDoesNotAffectCache() {
+        eventCache = createEventCache(5);
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -186,6 +188,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void largerUpdateAfterSmallUpdateOnlyPicksUpNewEvents() {
+        eventCache = createEventCache(5);
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -202,6 +205,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getCommitUpdateDoesNotContainCommitLocks() {
+        eventCache = createEventCache(5);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         verifyStage();
@@ -236,25 +240,23 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void getEventsForTransactionsReturnsSnapshotWithOldEvents() {
+    public void getEventsForTransactionsReturnsSnapshotWithCondensedEvents() {
         eventCache = createEventCache(3);
         setupInitialState();
-        eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
-        eventCache.removeTransactionStateFromCache(START_TS);
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         verifyStage();
 
-        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(25L), SUCCESS_2);
         verifyStage();
 
-        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.empty());
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(ImmutableSet.of(16L, 25L),
+                Optional.empty());
         assertThat(results.clearCache()).isTrue();
         assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(
-                LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
-                        ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2)).build(4L),
-                UNLOCK_EVENT,
-                LOCK_EVENT,
+                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 6L), 25L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(
+                ImmutableSet.of(REFERENCE),
+                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
                 LOCK_EVENT_2);
     }
 
@@ -301,6 +303,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void clientOnSameVersionAsCacheDoesNotThrow() {
+        eventCache = createEventCache(6);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         assertThat(eventCache.getUpdateForTransactions(

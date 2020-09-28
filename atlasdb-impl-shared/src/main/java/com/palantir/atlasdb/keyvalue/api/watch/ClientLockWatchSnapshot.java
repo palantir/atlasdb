@@ -61,10 +61,20 @@ final class ClientLockWatchSnapshot {
                 ImmutableSet.copyOf(watches));
     }
 
+    LockWatchStateUpdate.Snapshot getSnapshotWithEvents(LockWatchEvents events, UUID versionId) {
+        ClientLockWatchSnapshot freshSnapshot = create();
+        freshSnapshot.resetWithSnapshot(getSnapshot());
+        freshSnapshot.processEvents(events, versionId);
+        return freshSnapshot.getSnapshot();
+    }
+
     void processEvents(LockWatchEvents events, UUID versionId) {
         if (events.events().isEmpty()) {
             return;
         }
+
+        Preconditions.checkArgument(events.versionRange().isPresent(),
+                "Cannot have an empty range of versions with non-zero number of events");
 
         events.events().forEach(event -> event.accept(visitor));
         snapshotVersion = Optional.of(

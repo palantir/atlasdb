@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -49,23 +51,28 @@ final class LockWatchEventLog {
     }
 
     /**
-     * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping.
-     * @param endVersion       mapping from timestamp to identified version from client-side event cache.
-     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive)
+     * @param versionBounds contains:
+     *                     - the latest version the client knows about, which should be before the timestamps in the
+     *                     mapping;
+     *                     - the end version, which is the upper bound of events that should be returned;
+     *                     - the earliest version to which the events may be condensed to in the case of a snapshot.
+     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive);
+     *         this may begin with a snapshot if the latest version is too far behind.
      */
-    public ClientLogEvents getEventsBetweenVersions(
-            Optional<LockWatchVersion> lastKnownVersion,
-            LockWatchVersion endVersion) {
-        Optional<LockWatchVersion> startVersion = lastKnownVersion.map(this::createStartVersion);
-        LockWatchVersion currentVersion = getLatestVersionAndVerify(endVersion);
+    public ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
+        Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
+        LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());
 
         if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(currentVersion, startVersion.get())) {
+            long snapshotVersion = versionBounds.snapshotVersion();
+            Collection<LockWatchEvent> afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(
+                    Optional.of(snapshotVersion + 1), versionBounds.endVersion().version());
+
             return new ClientLogEvents.Builder()
                     .clearCache(true)
                     .events(new LockWatchEvents.Builder()
-                            .addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()))
-                            .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(),
-                                    endVersion.version()))
+                            .addEvents(getCompressedSnapshot(versionBounds))
+                            .addAllEvents(afterSnapshotEvents)
                             .build())
                     .build();
         } else {
@@ -73,7 +80,7 @@ final class LockWatchEventLog {
                     .clearCache(false)
                     .events(new LockWatchEvents.Builder()
                             .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
-                                    Optional.of(startVersion.get().version()), endVersion.version()))
+                                    Optional.of(startVersion.get().version()), versionBounds.endVersion().version()))
                             .build())
                     .build();
         }
@@ -97,6 +104,16 @@ final class LockWatchEventLog {
                 .eventStoreState(eventStore.getStateForTesting())
                 .snapshotState(snapshot.getStateForTesting())
                 .build();
+    }
+
+    private LockWatchEvent getCompressedSnapshot(VersionBounds versionBounds) {
+        long snapshotVersion = versionBounds.snapshotVersion();
+        Collection<LockWatchEvent> collapsibleEvents =
+                eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), snapshotVersion);
+        LockWatchEvents events = new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build();
+
+        return LockWatchCreatedEvent.fromSnapshot(
+                snapshot.getSnapshotWithEvents(events, versionBounds.endVersion().id()));
     }
 
     private boolean differentLeaderOrTooFarBehind(LockWatchVersion currentVersion,

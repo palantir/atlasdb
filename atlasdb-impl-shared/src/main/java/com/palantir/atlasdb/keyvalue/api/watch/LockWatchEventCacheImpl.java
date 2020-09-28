@@ -86,8 +86,26 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 "start or commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
-        return eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion())
-                .toCommitUpdate(startVersion.get(), commitInfo);
+
+        VersionBounds versionBounds = new VersionBounds.Builder()
+                .startVersion(startVersion)
+                .endVersion(commitInfo.commitVersion())
+                .build();
+
+        ClientLogEvents update = eventLog.getEventsBetweenVersions(versionBounds);
+
+        if (update.clearCache()) {
+            return ImmutableInvalidateAll.builder().build();
+        }
+
+        // We don't mind if the exact version is not present, as we are only interested in the events **since** the
+        // transaction started.
+        assertEventsContainRangeOfVersions(
+                Range.closed(startVersion.get().version(), commitInfo.commitVersion().version()),
+                update,
+                true);
+
+        return createCommitUpdate(commitInfo, update.events().events());
     }
 
     @Override
@@ -137,6 +155,34 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         eventLog.retentionEvents();
 
         return cacheUpdate.getVersion();
+    }
+
+    private static CommitUpdate createCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
+        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
+        Set<LockDescriptor> locksTakenOut = new HashSet<>();
+        events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
+        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
+    }
+
+    private static void assertTrue(boolean condition, String message) {
+        if (!condition) {
+            throw new TransactionLockWatchFailedException(message);
+        }
+    }
+
+    private static void assertEventsContainRangeOfVersions(
+            Range<Long> versionRange,
+            ClientLogEvents events,
+            boolean offsetStartVersion) {
+        Range<Long> rangeToTest;
+        if (offsetStartVersion) {
+            rangeToTest = Range.closed(versionRange.lowerEndpoint() + 1, versionRange.upperEndpoint());
+        } else {
+            rangeToTest = versionRange;
+        }
+
+        events.events().versionRange().ifPresent(eventsRange -> assertTrue(eventsRange.encloses(rangeToTest),
+                "Events do not enclose the required versions"));
     }
 
     private static void assertTrue(boolean condition, String message) {

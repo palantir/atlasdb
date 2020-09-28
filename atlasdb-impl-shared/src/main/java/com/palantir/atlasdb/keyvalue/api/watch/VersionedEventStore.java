@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -78,7 +77,10 @@ final class VersionedEventStore {
                 .build();
     }
 
-    private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, Long startVersion) {
+    private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {
+        if (endVersion < startVersion) {
+            return ImmutableList.of();
+        }
         return eventMap.subMap(startVersion, INCLUSIVE, endVersion, INCLUSIVE).values();
     }
 
