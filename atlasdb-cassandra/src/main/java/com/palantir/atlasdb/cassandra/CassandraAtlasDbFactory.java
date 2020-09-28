@@ -124,7 +124,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                         + "\nNote that if the service has already been running, you will have to migrate the timestamp"
                         + " table to Postgres/Oracle and rename it to %s.",
                 timestampTable.map(TableReference::getQualifiedName).orElse("unknown table"),
-                AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE);
+                AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE);
 
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,

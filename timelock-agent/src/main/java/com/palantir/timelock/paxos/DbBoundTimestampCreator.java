@@ -49,7 +49,7 @@ public class DbBoundTimestampCreator implements TimestampCreator {
                 Optional::empty,
                 Optional.of(leaderConfig),
                 Optional.empty(),
-                Optional.of(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE),
+                Optional.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
 

@@ -37,7 +37,8 @@ public final class AtlasDbConstants {
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
     public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.createWithEmptyNamespace("_sweep_progress3");
-    public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
+    public static final TableReference LEGACY_TIMELOCK_TIMESTAMP_TABLE
+            = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
     public static final TableReference COORDINATION_TABLE = TableReference.createWithEmptyNamespace("_coordination");

@@ -10,7 +10,8 @@ dependencies {
   compile project(':commons-db')
   compile project(':commons-api')
   compile group: 'com.palantir.conjure.java.api', name: 'service-config'
-
+  compile group: "org.jdbi", name: 'jdbi3-core'
+  compile group: "org.jdbi", name: 'jdbi3-sqlobject'
 
   testCompile project(':atlasdb-config')
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
