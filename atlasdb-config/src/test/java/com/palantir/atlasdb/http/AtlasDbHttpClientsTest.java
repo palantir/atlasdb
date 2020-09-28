@@ -114,6 +114,7 @@ public class AtlasDbHttpClientsTest {
             .dynamicHttpsPort()
             .keystorePath("var/security/keyStore.jks")
             .keystorePassword("keystore")
+            .keyManagerPassword("keystore")
             .trustStorePath("var/security/keyStore.jks")
             .extensions(RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER)
             .trustStorePassword("keystore");
