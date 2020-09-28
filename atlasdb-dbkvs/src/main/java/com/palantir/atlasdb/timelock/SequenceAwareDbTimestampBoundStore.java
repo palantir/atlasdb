@@ -16,17 +16,46 @@
 
 package com.palantir.atlasdb.timelock;
 
+import java.util.OptionalLong;
+
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class SequenceAwareDbTimestampBoundStore implements TimestampBoundStore {
-    @Override
-    public long getUpperLimit() {
-        return 0;
+public final class SequenceAwareDbTimestampBoundStore implements TimestampBoundStore {
+    private final DbBoundTransactionManager dbBoundTransactionManager;
+
+    private SequenceAwareDbTimestampBoundStore(DbBoundTransactionManager dbBoundTransactionManager) {
+        this.dbBoundTransactionManager = dbBoundTransactionManager;
+        dbBoundTransactionManager.runTaskTransactionScoped(store -> {
+            store.createTimestampTable();
+            return null;
+        });
+    }
+
+    public static TimestampBoundStore create(ConnectionManager connectionManager, String client) {
+        return new SequenceAwareDbTimestampBoundStore(
+                DbBoundTransactionManager.create(connectionManager, client));
     }
 
     @Override
-    public void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
+    public synchronized long getUpperLimit() {
+        return dbBoundTransactionManager.runTaskTransactionScoped(store -> {
+            OptionalLong currentValue = store.read();
+            if (currentValue.isPresent()) {
+                return currentValue.getAsLong();
+            }
 
+            store.initialize(1_000_000);
+            return store.read().orElseThrow(() -> new SafeIllegalStateException("Unexpectedly read empty store"));
+        });
+    }
+
+    @Override
+    public synchronized void storeUpperLimit(long limit) {
+        return dbBoundTransactionManager.runTaskTransactionScoped(store -> {
+
+        })
     }
 }

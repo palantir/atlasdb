@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.jdbi.v3.core.Jdbi;
@@ -26,15 +24,10 @@ import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.nexus.db.pool.ConnectionManager;
 
 public class PostgresPhysicalDbBoundStore implements PhysicalDbBoundStore {
-    private static final Logger log = LoggerFactory.getLogger(OraclePhysicalDbBoundStore.class);
-
     private final Jdbi jdbi;
     private final String client;
 
@@ -51,25 +44,25 @@ public class PostgresPhysicalDbBoundStore implements PhysicalDbBoundStore {
 
     @Override
     public void createTimestampTable() {
-        execute(Queries::createTable);
+        runTaskTransactionScoped(Queries::createTable);
     }
 
     @Override
     public OptionalLong read() {
-        return execute(queries -> queries.read(client));
+        return runTaskTransactionScoped(queries -> queries.read(client));
     }
 
     @Override
     public boolean cas(long limit, long previousLimit) {
-        return execute(queries -> queries.cas(client, limit, previousLimit));
+        return runTaskTransactionScoped(queries -> queries.cas(client, limit, previousLimit));
     }
 
     @Override
     public boolean initialize(long limit) {
-        return execute(queries -> queries.initialize(client, limit));
+        return runTaskTransactionScoped(queries -> queries.initialize(client, limit));
     }
 
-    private <T> T execute(Function<Queries, T> call) {
+    private <T> T runTaskTransactionScoped(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
     }
 
