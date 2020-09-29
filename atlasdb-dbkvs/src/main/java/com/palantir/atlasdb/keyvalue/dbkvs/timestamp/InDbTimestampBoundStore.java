@@ -88,7 +88,8 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         this.tablePrefix = tablePrefix;
     }
 
-    private void init() {
+    // todo snanda - this is ridiculous
+    public void init() {
         try (Connection conn = connManager.getConnection()) {
             createTimestampTable(conn);
         } catch (SQLException error) {
@@ -157,15 +158,17 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
-        return runOperation((connection, oldLimit) -> {
-            if (oldLimit != null) {
-                return oldLimit;
-            }
+        return runOperation((connection, oldLimit) -> getOrCreateUpperLimit(connection, oldLimit));
+    }
 
-            final long startVal = 10000;
-            createLimit(connection, startVal);
-            return startVal;
-        });
+    public long getOrCreateUpperLimit(Connection connection, Long oldLimit) throws SQLException {
+        if (oldLimit != null) {
+            return oldLimit;
+        }
+
+        final long startVal = 10000;
+        createLimit(connection, startVal);
+        return startVal;
     }
 
     @Override
@@ -241,5 +244,25 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
             dbType = ConnectionDbTypes.getDbType(connection);
         }
         return dbType;
+    }
+
+    public long takeBackupAndPoisonTheStore() {
+        return runOperation((connection, oldLimit) -> {
+            long upperLimit = getOrCreateUpperLimit(connection, oldLimit);
+            poisonTable(connection);
+            return upperLimit;
+        });
+    }
+
+    private void poisonTable(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            if (getDbType(connection).equals(DBType.ORACLE)) {
+                statement.execute(String.format("ALTER TABLE %s RENAME COLUMN last_allocated TO LEGACY_last_allocated",
+                        prefixedTimestampTableName()));
+            } else {
+                statement.execute(String.format("ALTER TABLE %s RENAME last_allocated TO LEGACY_last_allocated",
+                        prefixedTimestampTableName()));
+            }
+        }
     }
 }

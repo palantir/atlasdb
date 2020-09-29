@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
@@ -25,6 +27,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private ConnectionManagerAwareDbKvs kvs;
+    private InDbTimestampBoundStore inDbTimestampBoundStore;
 
     @After
     public void tearDown() throws Exception {
@@ -34,9 +37,16 @@ public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundS
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
         kvs = DbkvsPostgresTestSuite.createKvs();
-        return InDbTimestampBoundStore.create(
+        return inDbTimestampBoundStore = InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
                 DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+    }
+
+    @Test
+    public void testTimestampBoundStorePoisoning() {
+        long upperLimit1 = inDbTimestampBoundStore.takeBackupAndPoisonTheStore();
+        Assert.assertEquals(upperLimit1, 10000);
+        Assert.assertThrows(RuntimeException.class, inDbTimestampBoundStore::getUpperLimit);
     }
 }

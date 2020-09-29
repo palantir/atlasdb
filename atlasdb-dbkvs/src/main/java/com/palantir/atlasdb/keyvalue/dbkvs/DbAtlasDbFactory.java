@@ -36,6 +36,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
@@ -105,5 +106,11 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                         dbkvs.getConnectionManager(),
                         AtlasDbConstants.TIMESTAMP_TABLE,
                         dbkvs.getTablePrefix()));
+    }
+
+    @Override
+    public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
+//        return DbTimestampStoreInvalidator.create(rawKvs);
+        return null;
     }
 }
