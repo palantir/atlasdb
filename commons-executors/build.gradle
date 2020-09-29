@@ -9,6 +9,7 @@ dependencies {
     compile project(":commons-executors-api")
     compile "com.palantir.tracing:tracing"
     implementation "com.palantir.tritium:tritium-metrics"
+    implementation "org.jboss.threads:jboss-threads"
 
     testCompile group: 'com.google.guava', name: 'guava'
 }
