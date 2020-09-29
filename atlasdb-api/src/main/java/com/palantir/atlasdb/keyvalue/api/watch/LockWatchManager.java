@@ -21,8 +21,8 @@ import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 
 public abstract class LockWatchManager {
@@ -49,5 +49,5 @@ public abstract class LockWatchManager {
      * that is true if a snapshot or timelock leader election occurred.
      */
     abstract TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> version);
+            Optional<LockWatchVersion> version);
 }

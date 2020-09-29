@@ -35,7 +35,7 @@ import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -77,13 +77,13 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion) {
+    public LockWatchStateUpdate getWatchStateUpdate(Optional<LockWatchVersion> lastKnownVersion) {
         return lockEventLog.getLogDiff(lastKnownVersion);
     }
 
     @Override
     public <T> ValueAndLockWatchStateUpdate<T> runTask(
-            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
+            Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task) {
         return lockEventLog.runTask(lastKnownVersion, task);
     }
 

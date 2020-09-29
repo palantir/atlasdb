@@ -42,13 +42,12 @@ import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.ImmutableIdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 
 public class LockEventLogImplTest {
@@ -59,10 +58,10 @@ public class LockEventLogImplTest {
 
     private static final UUID LOG_ID = UUID.randomUUID();
     private static final UUID STALE_LOG_ID = UUID.randomUUID();
-    private static final Optional<IdentifiedVersion> NEGATIVE_VERSION_CURRENT_LOG_ID = Optional.of(
-            ImmutableIdentifiedVersion.of(LOG_ID, -1L));
-    private static final Optional<IdentifiedVersion> FUTURE_VERSION_CURRENT_LOG_ID = Optional.of(
-            ImmutableIdentifiedVersion.of(LOG_ID, 100L));
+    private static final Optional<LockWatchVersion> NEGATIVE_VERSION_CURRENT_LOG_ID = Optional.of(
+            LockWatchVersion.of(LOG_ID, -1L));
+    private static final Optional<LockWatchVersion> FUTURE_VERSION_CURRENT_LOG_ID = Optional.of(
+            LockWatchVersion.of(LOG_ID, 100L));
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.table");
     private static final String TABLE = TABLE_REF.getQualifiedName();
     private static final LockDescriptor DESCRIPTOR = AtlasRowLockDescriptor.of(TABLE, PtBytes.toBytes("1"));
@@ -167,7 +166,7 @@ public class LockEventLogImplTest {
         LockWatchReference entireTable = LockWatchReferenceUtils.entireTable(TABLE_REF);
         lockWatches.set(createWatchesFor(entireTable));
 
-        LockWatchStateUpdate update = log.getLogDiff(Optional.of(ImmutableIdentifiedVersion.of(STALE_LOG_ID, -1L)));
+        LockWatchStateUpdate update = log.getLogDiff(Optional.of(LockWatchVersion.of(STALE_LOG_ID, -1L)));
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);

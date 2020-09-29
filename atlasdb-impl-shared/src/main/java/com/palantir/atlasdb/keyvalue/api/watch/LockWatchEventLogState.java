@@ -22,7 +22,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockWatchEventLogState.class)
@@ -32,5 +32,5 @@ interface LockWatchEventLogState {
 
     VersionedEventStoreState eventStoreState();
 
-    Optional<IdentifiedVersion> latestVersion();
+    Optional<LockWatchVersion> latestVersion();
 }

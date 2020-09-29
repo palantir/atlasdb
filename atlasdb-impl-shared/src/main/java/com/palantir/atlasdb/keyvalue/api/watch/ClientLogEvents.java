@@ -21,9 +21,9 @@ import java.util.Map;
 
 import org.immutables.value.Value;
 
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 
 @Value.Immutable
@@ -33,7 +33,7 @@ interface ClientLogEvents {
 
     boolean clearCache();
 
-    default TransactionsLockWatchUpdate map(Map<Long, IdentifiedVersion> timestampMap) {
+    default TransactionsLockWatchUpdate map(Map<Long, LockWatchVersion> timestampMap) {
         return ImmutableTransactionsLockWatchUpdate.builder()
                 .startTsToSequence(timestampMap)
                 .events(events())

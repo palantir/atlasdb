@@ -31,7 +31,7 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 
@@ -39,7 +39,7 @@ final class TimestampStateStore {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
     private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
-    void putStartTimestamps(Collection<Long> startTimestamps, IdentifiedVersion version) {
+    void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
         startTimestamps.forEach(startTimestamp -> {
             MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
@@ -47,7 +47,7 @@ final class TimestampStateStore {
         });
     }
 
-    void putCommitUpdates(Collection<TransactionUpdate> transactionUpdates, IdentifiedVersion newVersion) {
+    void putCommitUpdates(Collection<TransactionUpdate> transactionUpdates, LockWatchVersion newVersion) {
         transactionUpdates.forEach(transactionUpdate -> {
             MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
             if (previousEntry == null) {
@@ -77,7 +77,7 @@ final class TimestampStateStore {
         return Optional.ofNullable(Iterables.getFirst(aliveVersions.keySet(), null));
     }
 
-    Optional<IdentifiedVersion> getStartVersion(long startTimestamp) {
+    Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
         return Optional.ofNullable(timestampMap.get(startTimestamp)).map(MapEntry::version);
     }
 
@@ -98,12 +98,12 @@ final class TimestampStateStore {
     @JsonSerialize(as = ImmutableMapEntry.class)
     interface MapEntry {
         @Value.Parameter
-        IdentifiedVersion version();
+        LockWatchVersion version();
 
         @Value.Parameter
         Optional<CommitInfo> commitInfo();
 
-        static MapEntry of(IdentifiedVersion version) {
+        static MapEntry of(LockWatchVersion version) {
             return ImmutableMapEntry.of(version, Optional.empty());
         }
 
@@ -120,9 +120,9 @@ final class TimestampStateStore {
         LockToken commitLockToken();
 
         @Value.Parameter
-        IdentifiedVersion commitVersion();
+        LockWatchVersion commitVersion();
 
-        static CommitInfo of(LockToken commitLockToken, IdentifiedVersion commitVersion) {
+        static CommitInfo of(LockToken commitLockToken, LockWatchVersion commitVersion) {
             return ImmutableCommitInfo.of(commitLockToken, commitVersion);
         }
     }

@@ -24,8 +24,8 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchVersion;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableClientLockWatchSnapshotState.class)
@@ -35,5 +35,5 @@ interface ClientLockWatchSnapshotState {
 
     Set<LockDescriptor> locked();
 
-    Optional<IdentifiedVersion> snapshotVersion();
+    Optional<LockWatchVersion> snapshotVersion();
 }

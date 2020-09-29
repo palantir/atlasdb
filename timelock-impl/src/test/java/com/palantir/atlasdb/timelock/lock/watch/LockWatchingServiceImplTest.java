@@ -43,12 +43,12 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ImmutableIdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 
 public class LockWatchingServiceImplTest {
@@ -294,7 +294,7 @@ public class LockWatchingServiceImplTest {
 
     private void assertLoggedEvents(List<LockWatchEvent> expectedEvents) {
         LockWatchStateUpdate update = lockWatcher.getWatchStateUpdate(
-                Optional.of(ImmutableIdentifiedVersion.of(LOG_ID, -1L)));
+                Optional.of(LockWatchVersion.of(LOG_ID, -1L)));
         List<LockWatchEvent> events = UpdateVisitors.assertSuccess(update).events();
         assertThat(events).isEqualTo(expectedEvents);
     }

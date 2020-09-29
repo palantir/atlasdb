@@ -24,15 +24,15 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableIdentifiedVersion.class)
-@JsonSerialize(as = ImmutableIdentifiedVersion.class)
-public interface IdentifiedVersion {
+@JsonSerialize(as = ImmutableLockWatchVersion.class)
+@JsonDeserialize(as = ImmutableLockWatchVersion.class)
+public interface LockWatchVersion {
     @Value.Parameter
     UUID id();
     @Value.Parameter
     long version();
 
-    static IdentifiedVersion of(UUID id, long version) {
-        return ImmutableIdentifiedVersion.of(id, version);
+    static LockWatchVersion of(UUID id, long version) {
+        return ImmutableLockWatchVersion.of(id, version);
     }
 }
