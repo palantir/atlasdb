@@ -35,11 +35,11 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.ImmutableStartTransactionResponseV4;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
@@ -51,7 +51,6 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.logsafe.Safe;
@@ -125,16 +124,16 @@ public class AsyncTimelockResource {
     @Path("start-atlasdb-transaction-v4")
     public void startTransactions(
             @Suspended final AsyncResponse response, StartTransactionRequestV4 request) {
-        StartTransactionRequestV5 newRequest = ImmutableStartTransactionRequestV5.builder()
+        ConjureStartTransactionsRequest conjureRequest = ConjureStartTransactionsRequest.builder()
                 .requestId(request.requestId())
                 .requestorId(request.requestorId())
                 .numTransactions(request.numTransactions())
                 .build();
-        addJerseyCallback(Futures.transform(timelock.startTransactionsWithWatches(newRequest),
+        addJerseyCallback(Futures.transform(timelock.startTransactionsWithWatches(conjureRequest),
                 newResponse -> ImmutableStartTransactionResponseV4.builder()
-                        .timestamps(newResponse.timestamps())
-                        .immutableTimestamp(newResponse.immutableTimestamp())
-                        .lease(newResponse.lease())
+                        .timestamps(newResponse.getTimestamps())
+                        .immutableTimestamp(newResponse.getImmutableTimestamp())
+                        .lease(newResponse.getLease())
                         .build(), MoreExecutors.directExecutor()), response);
     }
 

@@ -53,14 +53,11 @@ import com.palantir.lock.ByteArrayLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
-import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockResponseV2.Visitor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartTransactionRequestV5;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -94,23 +91,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<ConjureStartTransactionsResponse> startTransactions(
             AuthHeader authHeader, String namespace, ConjureStartTransactionsRequest request) {
-        return handleExceptions(() -> {
-            StartTransactionRequestV5 legacyRequest = ImmutableStartTransactionRequestV5.builder()
-                    .requestId(request.getRequestId())
-                    .requestorId(request.getRequestorId())
-                    .numTransactions(request.getNumTransactions())
-                    .lastKnownLockLogVersion(request.getLastKnownVersion().map(this::toIdentifiedVersion))
-                    .build();
-            ListenableFuture<StartTransactionResponseV5> responseFuture =
-                    forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
-            return Futures.transform(responseFuture, response -> ConjureStartTransactionsResponse.builder()
-                            .immutableTimestamp(response.immutableTimestamp())
-                            .timestamps(response.timestamps())
-                            .lease(response.lease())
-                            .lockWatchUpdate(response.lockWatchUpdate())
-                            .build(),
-                    MoreExecutors.directExecutor());
-        });
+        return handleExceptions(() -> forNamespace(namespace).startTransactionsWithWatches(request));
     }
 
     @Override
