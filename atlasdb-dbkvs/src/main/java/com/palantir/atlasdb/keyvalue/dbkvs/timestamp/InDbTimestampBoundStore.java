@@ -88,8 +88,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         this.tablePrefix = tablePrefix;
     }
 
-    // todo snanda - this is ridiculous
-    public void init() {
+    private void init() {
         try (Connection conn = connManager.getConnection()) {
             createTimestampTable(conn);
         } catch (SQLException error) {

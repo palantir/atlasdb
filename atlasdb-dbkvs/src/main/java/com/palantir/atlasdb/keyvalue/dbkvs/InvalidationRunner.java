@@ -17,13 +17,14 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ConnectionDbTypes.getDbType;
+import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.OptionalLong;
-
-import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.dbutils.QueryRunner;
 import org.immutables.value.Value;
@@ -40,16 +41,21 @@ import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 public class InvalidationRunner {
     private final ConnectionManager connManager;
 
-    public InvalidationRunner(ConnectionManager connManager) {this.connManager = connManager;}
+    public InvalidationRunner(ConnectionManager connManager) {
+        this.connManager = connManager;
+    }
 
     public long getLastAllocatedAndPoison() {
         RetriableTransactions.TransactionResult<Long> result = RetriableTransactions.run(connManager,
                 new RetriableWriteTransaction<Long>() {
-            @GuardedBy("InvalidationRunner.this")
             @Override
             public Long run(Connection connection) throws SQLException {
                 Limits limits = readLimits(connection);
                 TableStatus tableStatus = checkTableStatus(limits);
+
+                if (tableStatus == TableStatus.EMPTY) {
+                    return NO_OP_FAST_FORWARD_TIMESTAMP;
+                }
 
                 if (tableStatus == TableStatus.POISONED) {
                     return limits.legacyUpperLimit().getAsLong();
@@ -88,26 +94,30 @@ public class InvalidationRunner {
 
     private Limits readLimits(Connection connection) throws SQLException {
         ImmutableLimits.Builder limitsBuilder = ImmutableLimits.builder();
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet res = metaData.getTables(null, null, prefixedTimestampTableName(), null);
 
-        String lastAllocatedSql = "SELECT last_allocated FROM " + prefixedTimestampTableName() + " FOR UPDATE";
-        limitsBuilder.upperLimit(runQuery(connection, lastAllocatedSql));
+        if (!res.next()) {
+            return limitsBuilder.build(); // table does not exist;
+        }
 
-        String legacyLastAllocatedSql = "SELECT LEGACY_last_allocated FROM "
-                + prefixedTimestampTableName() + " FOR UPDATE";
-        limitsBuilder.legacyUpperLimit(runQuery(connection, legacyLastAllocatedSql));
-
-        return limitsBuilder.build();
+        QueryRunner run = new QueryRunner();
+        String sql = "SELECT * FROM " + prefixedTimestampTableName();
+        return run.query(connection, sql, rs -> {
+            if (rs.next()) {
+                limitsBuilder.upperLimit(getUpperLimit(rs, "last_allocated"));
+                limitsBuilder.legacyUpperLimit(getUpperLimit(rs, "LEGACY_last_allocated"));
+            }
+            return limitsBuilder.build();
+        });
     }
 
-    private OptionalLong runQuery(Connection connection, String lastAllocatedSql) throws SQLException {
-        QueryRunner run = new QueryRunner();
-        return run.query(connection, lastAllocatedSql, rs -> {
-            if (rs.next()) {
-                return OptionalLong.of(rs.getLong("last_allocated"));
-            } else {
-                return OptionalLong.empty();
-            }
-        });
+    private OptionalLong getUpperLimit(ResultSet rs, String columnLabel) {
+        try {
+            return OptionalLong.of(rs.getLong(columnLabel));
+        } catch (SQLException e) {
+            return OptionalLong.empty();
+        }
     }
 
     private String prefixedTimestampTableName() {
@@ -130,7 +140,7 @@ public class InvalidationRunner {
         if (upperLimitExists) {
             return legacyUpperLimitExists ? TableStatus.ILLEGAL : TableStatus.HEALTHY;
         }
-        return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.HEALTHY; // no data in table / no table ?
+        return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.EMPTY; // no data in table / no table ?
     }
 
     @Value.Immutable
@@ -142,6 +152,7 @@ public class InvalidationRunner {
     private enum TableStatus {
         POISONED,
         HEALTHY,
-        ILLEGAL
+        ILLEGAL,
+        EMPTY
     }
 }
