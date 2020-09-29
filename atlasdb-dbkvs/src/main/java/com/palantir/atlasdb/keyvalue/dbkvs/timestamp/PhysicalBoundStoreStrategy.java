@@ -22,12 +22,16 @@ import java.util.function.Function;
 
 import com.palantir.nexus.db.DBType;
 
+/**
+ * A {@link PhysicalBoundStoreStrategy} is responsible for interaction between a timestamp bound store and the physical
+ * storage of these values.
+ */
 public interface PhysicalBoundStoreStrategy {
+    void createTimestampTable(Connection connection, Function<Connection, DBType> dbTypeExtractor) throws SQLException;
+
     Long readLimit(Connection connection) throws SQLException;
 
     void writeLimit(Connection connection, long limit) throws SQLException;
 
     void createLimit(Connection connection, long limit) throws SQLException;
-
-    void createTimestampTable(Connection connection, Function<Connection, DBType> dbTypeExtractor) throws SQLException;
 }

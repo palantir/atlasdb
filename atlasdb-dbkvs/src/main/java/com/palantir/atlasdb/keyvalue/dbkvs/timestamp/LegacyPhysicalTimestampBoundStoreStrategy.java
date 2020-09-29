@@ -31,13 +31,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 
-public class SingleTablePhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
-    private static final Logger log = LoggerFactory.getLogger(SingleTablePhysicalBoundStoreStrategy.class);
+public class LegacyPhysicalTimestampBoundStoreStrategy implements PhysicalBoundStoreStrategy {
+    private static final Logger log = LoggerFactory.getLogger(LegacyPhysicalTimestampBoundStoreStrategy.class);
 
     private final TableReference timestampTable;
     private final String tablePrefix;
 
-    public SingleTablePhysicalBoundStoreStrategy(TableReference timestampTable, String tablePrefix) {
+    public LegacyPhysicalTimestampBoundStoreStrategy(TableReference timestampTable, String tablePrefix) {
         this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable cannot be null");
         this.tablePrefix = tablePrefix;
     }
