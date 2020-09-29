@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public class ServiceFeedback {
 

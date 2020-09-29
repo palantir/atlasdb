@@ -18,14 +18,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.cassandra.thrift.CfDef;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import org.apache.cassandra.thrift.CfDef;
+import org.junit.Test;
 
 public class ColumnFamilyDefinitionsTest {
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;

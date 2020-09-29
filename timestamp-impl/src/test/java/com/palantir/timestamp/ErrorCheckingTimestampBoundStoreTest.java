@@ -23,11 +23,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.exception.PalantirInterruptedException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import com.palantir.exception.PalantirInterruptedException;
 
 public class ErrorCheckingTimestampBoundStoreTest {
 

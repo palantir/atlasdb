@@ -16,11 +16,10 @@
 
 package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
-import java.util.UUID;
-
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.LockDescriptor;
+import java.util.OptionalLong;
+import java.util.UUID;
 
 public interface VersionedLockWatchState {
     /**

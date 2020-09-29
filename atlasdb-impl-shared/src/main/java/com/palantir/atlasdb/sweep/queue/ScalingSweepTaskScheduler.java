@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.time.Clock;
 import java.io.Closeable;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,10 +27,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.time.Clock;
 
 public class ScalingSweepTaskScheduler implements Closeable {
     private static final Duration COOL_DOWN = Duration.ofMinutes(5L);

@@ -16,11 +16,10 @@
 
 package com.palantir.timelock.history.sqlite;
 
+import com.palantir.paxos.Client;
 import java.util.OptionalLong;
 import java.util.function.Function;
-
 import javax.sql.DataSource;
-
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -28,8 +27,6 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
-
-import com.palantir.paxos.Client;
 
 public final class LogVerificationProgressState {
     private static final long INITIAL_PROGRESS = -1L;

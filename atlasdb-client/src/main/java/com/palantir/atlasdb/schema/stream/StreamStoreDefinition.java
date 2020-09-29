@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import java.util.Map;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public class StreamStoreDefinition {
     // from ArrayList.MAX_ARRAY_SIZE on 64-bit systems

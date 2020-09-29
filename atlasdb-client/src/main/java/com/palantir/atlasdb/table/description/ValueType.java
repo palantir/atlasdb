@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.IOException;
-import java.util.UUID;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -26,6 +23,8 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.IOException;
+import java.util.UUID;
 
 public enum ValueType {
     /**

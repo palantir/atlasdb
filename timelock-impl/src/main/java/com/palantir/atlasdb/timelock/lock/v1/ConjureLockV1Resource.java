@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock.v1;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,18 +29,16 @@ import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.ConjureLockV1Service;
-import com.palantir.lock.ConjureLockV1ServiceEndpoints;
-import com.palantir.lock.ConjureSimpleHeldLocksToken;
-import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.ConjureLockV1ServiceEndpoints;
-import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.UndertowConjureLockV1Service;
 import com.palantir.lock.client.ConjureLockV1Tokens;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     private final ConjureResourceExceptionHandler exceptionHandler;

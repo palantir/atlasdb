@@ -17,11 +17,9 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.palantir.refreshable.Refreshable;
+import java.util.Optional;
+import org.junit.Test;
 
 public class ServerListConfigsTest {
     private static final String CLIENT = "client";

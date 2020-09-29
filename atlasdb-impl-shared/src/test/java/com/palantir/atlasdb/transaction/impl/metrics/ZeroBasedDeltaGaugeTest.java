@@ -18,11 +18,9 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Gauge;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Test;
 
 public class ZeroBasedDeltaGaugeTest {
     private static final long FIVE = 5L;

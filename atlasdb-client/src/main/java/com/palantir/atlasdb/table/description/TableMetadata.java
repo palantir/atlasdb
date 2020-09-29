@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -28,6 +24,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(get = {"get*", "is*", "has*"})

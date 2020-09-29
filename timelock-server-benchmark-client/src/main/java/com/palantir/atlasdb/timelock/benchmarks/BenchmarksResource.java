@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks;
 
-import java.util.Map;
-import java.util.Optional;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -37,6 +34,8 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import java.util.Map;
+import java.util.Optional;
 
 public class BenchmarksResource implements BenchmarksService {
 

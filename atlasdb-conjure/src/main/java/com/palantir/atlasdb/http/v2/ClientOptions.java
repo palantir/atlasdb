@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.net.ProxySelector;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
@@ -31,6 +24,11 @@ import com.palantir.conjure.java.client.config.ClientConfigurations;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.net.ProxySelector;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ClientOptions {

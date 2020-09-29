@@ -18,16 +18,14 @@ package com.palantir.paxos;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.common.concurrent.PTExecutors;
 
 public class PaxosConsensusSlowTest {
 

@@ -19,15 +19,13 @@ package com.palantir.nexus.db.pool.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.nexus.db.pool.config.OracleConnectionConfig.ServiceNameConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Properties;
-
 import org.junit.Test;
-
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import com.palantir.nexus.db.pool.config.OracleConnectionConfig.ServiceNameConfiguration;
 
 public class OracleConnectionConfigTest {
 

@@ -19,21 +19,18 @@ package com.palantir.atlasdb.persistent.rocksdb;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
-
+import okio.ByteString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-
-import okio.ByteString;
 
 public final class RocksDbPersistentStoreTests {
     @ClassRule

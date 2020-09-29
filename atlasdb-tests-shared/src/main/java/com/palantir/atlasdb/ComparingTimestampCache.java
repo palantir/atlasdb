@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb;
 
-import java.util.Objects;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.OffHeapTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -28,6 +23,9 @@ import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Objects;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 public final class ComparingTimestampCache implements TimestampCache {
     private final TimestampCache first;

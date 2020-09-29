@@ -15,19 +15,17 @@
  */
 package com.palantir.atlasdb.timestamp;
 
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
-
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractTimestampServiceTests {
     private static final long ONE_MILLION = 1_000_000;

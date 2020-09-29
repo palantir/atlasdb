@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
-
-import org.apache.commons.lang3.math.NumberUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AdjustableSweepBatchConfigSource {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);

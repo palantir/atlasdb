@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
+import org.junit.ClassRule;
 
 public class DbkvsPostgresTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
     @ClassRule

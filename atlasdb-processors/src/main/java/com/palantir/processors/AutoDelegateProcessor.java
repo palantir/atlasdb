@@ -15,6 +15,14 @@
  */
 package com.palantir.processors;
 
+import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MapMaker;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -24,7 +32,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.FilerException;
@@ -44,16 +51,6 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
-
-import com.google.auto.service.AutoService;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MapMaker;
-import com.google.common.collect.Sets;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeVariableName;
 
 @AutoService(Processor.class)
 public final class AutoDelegateProcessor extends AbstractProcessor {
@@ -98,7 +95,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     }
 
     @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    public boolean process(Set<? extends TypeElement> _annotations, RoundEnvironment roundEnv) {
         if (abortProcessing.get()) {
             // Another instance of AutoDelegateProcessor is running in the current processing environment.
             return false;
@@ -175,7 +172,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     private List<TypeElement> fetchSuperinterfaces(TypeElement baseInterface) {
         List<TypeMirror> interfacesQueue = new ArrayList<>(baseInterface.getInterfaces());
-        Set<TypeMirror> interfacesSet = Sets.newHashSet(interfacesQueue);
+        Set<TypeMirror> interfacesSet = new HashSet<>(interfacesQueue);
         List<TypeElement> superinterfaceElements = new ArrayList<>();
 
         for (int i = 0; i < interfacesQueue.size(); i++) {

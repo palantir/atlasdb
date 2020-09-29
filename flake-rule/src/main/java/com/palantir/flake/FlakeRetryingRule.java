@@ -15,17 +15,15 @@
  */
 package com.palantir.flake;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import java.util.Arrays;
 import java.util.Optional;
-
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 
 /**
  * A {@link TestRule} that retries methods and classes annotated with the {@link ShouldRetry} annotation.

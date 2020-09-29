@@ -16,10 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.math.BigInteger;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureLockV1ServiceBlocking;
@@ -33,6 +29,9 @@ import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.tokens.auth.AuthHeader;
+import java.math.BigInteger;
+import java.util.Optional;
+import java.util.Set;
 
 public class DialogueComposingLockRpcClient implements LockRpcClient {
     private static final AuthHeader UNUSED_AUTH_HEADER = AuthHeader.valueOf("Bearer unused");

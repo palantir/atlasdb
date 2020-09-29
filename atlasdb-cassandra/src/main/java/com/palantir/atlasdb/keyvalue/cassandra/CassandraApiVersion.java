@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.logsafe.SafeArg;
 import java.util.Arrays;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.SafeArg;
 
 public class CassandraApiVersion {
     private static final Logger LOGGER = LoggerFactory.getLogger(CassandraApiVersion.class);

@@ -23,10 +23,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
-
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import org.junit.Test;
 
 public class ShortAndLongTimeoutServicesTest {
     @Test

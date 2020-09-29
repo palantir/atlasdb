@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
-
-import com.google.common.collect.ImmutableList;
 
 @Value.Immutable
 interface LocalAndRemotes<T> {

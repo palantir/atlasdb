@@ -16,23 +16,12 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
 import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
@@ -45,6 +34,14 @@ import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.Client;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {

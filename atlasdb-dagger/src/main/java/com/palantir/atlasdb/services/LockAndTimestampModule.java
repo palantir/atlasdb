@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.util.function.Supplier;
-
-import javax.inject.Singleton;
-
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -28,10 +24,11 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
-
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import java.util.function.Supplier;
+import javax.inject.Singleton;
 
 @Module(includes = LockAndTimestampModule.Bindings.class)
 public class LockAndTimestampModule {

@@ -18,12 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static java.util.stream.Collectors.toSet;
 
-import java.util.Optional;
-import java.util.Set;
-
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.HttpHeaders;
-
 import com.google.common.collect.SetMultimap;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.BooleanPaxosResponse;
@@ -32,6 +26,10 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Optional;
+import java.util.Set;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.HttpHeaders;
 
 public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
 

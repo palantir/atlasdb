@@ -17,14 +17,7 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
+import clojure.lang.Keyword;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -32,8 +25,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.common.streams.KeyedStream;
-
-import clojure.lang.Keyword;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class JepsenHistoryCheckerIntegrationTest {
     @Test

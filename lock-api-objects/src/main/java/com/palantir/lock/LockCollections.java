@@ -15,13 +15,12 @@
  */
 package com.palantir.lock;
 
-import java.util.Comparator;
-import java.util.Map;
-import java.util.SortedMap;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.palantir.logsafe.Preconditions;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.SortedMap;
 
 public final class LockCollections {
 

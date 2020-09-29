@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import org.immutables.value.Value;
-
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)

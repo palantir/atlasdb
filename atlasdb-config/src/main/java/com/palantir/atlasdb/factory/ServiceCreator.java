@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
@@ -30,6 +27,8 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;

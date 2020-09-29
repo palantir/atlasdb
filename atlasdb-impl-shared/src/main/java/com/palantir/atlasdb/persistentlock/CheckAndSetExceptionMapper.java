@@ -15,20 +15,17 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.util.List;
-import java.util.UUID;
-
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.UUID;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetException> {
     private static final Logger log = LoggerFactory.getLogger(CheckAndSetExceptionMapper.class);

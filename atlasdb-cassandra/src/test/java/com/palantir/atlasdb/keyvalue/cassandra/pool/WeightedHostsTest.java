@@ -18,17 +18,15 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
-
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 
 public class WeightedHostsTest {
 

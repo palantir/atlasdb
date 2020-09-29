@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-import java.net.InetSocketAddress;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import java.net.InetSocketAddress;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 

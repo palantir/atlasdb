@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.FuturesCombiner;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -36,6 +30,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryPa
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CassandraAsyncKeyValueService implements AsyncKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(CassandraAsyncKeyValueService.class);

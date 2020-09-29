@@ -17,11 +17,6 @@ package com.palantir.atlasdb.table.description.render;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persister.JsonNodePersister;
@@ -29,6 +24,9 @@ import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import org.junit.Test;
 
 public class TableRendererTest {
 

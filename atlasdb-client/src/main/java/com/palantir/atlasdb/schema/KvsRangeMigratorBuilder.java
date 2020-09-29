@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
 import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -25,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.collect.Maps2;
 import com.palantir.logsafe.Preconditions;
+import java.util.Map;
 
 /**
  * Builder for a {@link KvsRangeMigrator}.

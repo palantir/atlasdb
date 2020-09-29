@@ -16,16 +16,13 @@
 
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
-
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 
 @Value.Immutable
 @Value.Enclosing

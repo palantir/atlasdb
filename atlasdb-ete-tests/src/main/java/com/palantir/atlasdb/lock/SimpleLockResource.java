@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.lock;
 
-import java.security.SecureRandom;
-import java.util.Comparator;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -34,6 +26,13 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import java.security.SecureRandom;
+import java.util.Comparator;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class SimpleLockResource implements LockResource {
     private static final SecureRandom GENERATOR = new SecureRandom();

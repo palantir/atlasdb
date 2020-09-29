@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.timelock.auth.api;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableCredentials.class)
 @JsonSerialize(as = ImmutableCredentials.class)

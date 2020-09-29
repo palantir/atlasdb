@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedSet;
 
 public class ImportRenderer extends Renderer {
     private static final List<String> IMPORT_PREFIXES = ImmutableList.of("java.", "javax.", "org.", "com.", "net.");

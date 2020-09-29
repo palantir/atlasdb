@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Collections;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionLocksCondition implements AdvisoryLocksCondition {
 

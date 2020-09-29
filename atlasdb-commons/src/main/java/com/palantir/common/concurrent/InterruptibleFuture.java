@@ -15,6 +15,7 @@
  */
 package com.palantir.common.concurrent;
 
+import com.palantir.common.base.Throwables;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -26,10 +27,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.annotation.concurrent.GuardedBy;
-
-import com.palantir.common.base.Throwables;
 
 /**
  * A {@link RunnableFuture} whose {@code get} methods will never throw

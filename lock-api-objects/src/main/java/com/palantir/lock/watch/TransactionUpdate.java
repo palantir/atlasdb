@@ -16,9 +16,8 @@
 
 package com.palantir.lock.watch;
 
-import org.immutables.value.Value;
-
 import com.palantir.lock.v2.LockToken;
+import org.immutables.value.Value;
 
 /**
  * This is a record of a transaction that successfully retrieved a commit timestamp, along with the lock token it

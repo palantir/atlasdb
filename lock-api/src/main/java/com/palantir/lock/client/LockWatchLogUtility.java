@@ -16,15 +16,13 @@
 
 package com.palantir.lock.client;
 
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Iterables;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class LockWatchLogUtility {
     private static final Logger log = LoggerFactory.getLogger(LockWatchLogUtility.class);

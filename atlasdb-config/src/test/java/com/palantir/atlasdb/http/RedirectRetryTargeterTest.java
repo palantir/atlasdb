@@ -19,6 +19,8 @@ package com.palantir.atlasdb.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.net.HostAndPort;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -27,11 +29,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.net.HostAndPort;
 
 public class RedirectRetryTargeterTest {
     private static final URL URL_1 = createUrlUnchecked("https", "hostage", 42, "/request/hourai-branch");

@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.logsafe.SafeArg;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SweepQueueCleaner {
     private static final Logger log = LoggerFactory.getLogger(SweepQueueCleaner.class);

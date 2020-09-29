@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 /**
  * An {@link InternalSchemaConfig} contains information that can be used for controlling how the internal schema

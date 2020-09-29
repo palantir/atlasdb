@@ -16,10 +16,9 @@
 
 package com.palantir.timelock.invariants;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class ServerKiller {
     private static final Logger log = LoggerFactory.getLogger(ServerKiller.class);

@@ -22,16 +22,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.tracing.AlwaysSampler;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.Span;
+import java.util.List;
+import java.util.Optional;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CloseableTraceTest {
 

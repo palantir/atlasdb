@@ -16,15 +16,14 @@
 
 package com.palantir.leader.health;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.leader.LeaderElectionServiceMetrics;
+import com.palantir.paxos.Client;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.leader.LeaderElectionServiceMetrics;
-import com.palantir.paxos.Client;
 
 public class LeaderElectionHealthCheck {
     public static final double MAX_ALLOWED_LAST_5_MINUTE_RATE = 0.015;

@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -26,6 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Range;
 import com.palantir.lock.AtlasLockDescriptorRanges;
 import com.palantir.lock.LockDescriptor;
+import org.immutables.value.Value;
 
 public final class LockWatchReferences {
     public static final LockDescriptorRangeVisitor TO_RANGES_VISITOR = new LockDescriptorRangeVisitor();

@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutablePostgresDdlConfig.class)
 @JsonSerialize(as = ImmutablePostgresDdlConfig.class)

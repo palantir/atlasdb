@@ -19,9 +19,8 @@ package com.palantir.atlasdb.internalschema;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import org.junit.Test;
 
 // In these tests we confirm if config is buildable, so we're interested in exceptions (or lack thereof).
 @SuppressWarnings("ResultOfMethodCallIgnored")

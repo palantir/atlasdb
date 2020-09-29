@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
-import java.util.function.LongSupplier;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
@@ -29,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.timestamp.TimestampService;
+import java.util.function.LongSupplier;
 
 public final class CoordinationServices {
     private CoordinationServices() {

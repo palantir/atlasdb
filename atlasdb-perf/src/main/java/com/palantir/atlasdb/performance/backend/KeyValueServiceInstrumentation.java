@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public abstract class KeyValueServiceInstrumentation {
 

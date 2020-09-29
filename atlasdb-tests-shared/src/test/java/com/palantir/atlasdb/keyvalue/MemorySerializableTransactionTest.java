@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import org.junit.ClassRule;
 
 public class MemorySerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule

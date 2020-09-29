@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -32,6 +29,8 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Set;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private static final String NAMESPACE = "test";

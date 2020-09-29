@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.

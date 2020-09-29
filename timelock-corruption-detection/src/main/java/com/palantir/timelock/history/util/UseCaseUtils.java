@@ -16,11 +16,10 @@
 
 package com.palantir.timelock.history.util;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class UseCaseUtils {
     private static final Pattern PATTERN = Pattern.compile("^(.*)!(.*)$");

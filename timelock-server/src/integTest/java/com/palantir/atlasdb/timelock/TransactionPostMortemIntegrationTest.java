@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.time.Duration;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -46,6 +38,12 @@ import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStrea
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.

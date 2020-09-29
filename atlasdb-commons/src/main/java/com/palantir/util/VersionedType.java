@@ -16,7 +16,6 @@
 package com.palantir.util;
 
 import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

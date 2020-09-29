@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.cassandra;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import org.immutables.value.Value;
 
 /**
  * Specifies limits on query sizes when loading cells from an underlying Cassandra key-value service.

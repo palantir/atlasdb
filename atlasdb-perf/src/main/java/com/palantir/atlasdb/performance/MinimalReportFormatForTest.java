@@ -18,7 +18,6 @@ package com.palantir.atlasdb.performance;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
-
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.IterationParams;
 import org.openjdk.jmh.results.BenchmarkResult;

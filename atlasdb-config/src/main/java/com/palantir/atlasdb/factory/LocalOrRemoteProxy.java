@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.factory;
 
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -22,11 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * A proxy that chooses between using a local or remote proxy based on a task that may take a while to complete.

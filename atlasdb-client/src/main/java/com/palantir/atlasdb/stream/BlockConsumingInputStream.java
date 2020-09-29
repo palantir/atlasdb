@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public final class BlockConsumingInputStream extends InputStream {
     private final BlockGetter blockGetter;

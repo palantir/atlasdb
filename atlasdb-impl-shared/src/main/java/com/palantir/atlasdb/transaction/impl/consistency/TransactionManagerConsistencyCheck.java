@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl.consistency;
 
-import java.util.function.Function;
-
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.function.Function;
 
 public interface TransactionManagerConsistencyCheck extends
         Function<TransactionManager, TransactionManagerConsistencyResult> {

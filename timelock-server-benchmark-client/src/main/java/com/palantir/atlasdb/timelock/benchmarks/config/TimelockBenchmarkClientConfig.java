@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.benchmarks.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-
 import io.dropwizard.Configuration;
 
 public class TimelockBenchmarkClientConfig extends Configuration {

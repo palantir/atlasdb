@@ -16,6 +16,14 @@
 
 package com.palantir.atlasdb.persistent.rocksdb;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.tracing.Tracers.ThrowingCallable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,26 +39,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.Nonnull;
-
+import okio.ByteString;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Streams;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.tracing.Tracers.ThrowingCallable;
-
-import okio.ByteString;
 
 public final class RocksDbPersistentStore implements PersistentStore {
     private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);

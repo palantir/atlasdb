@@ -22,16 +22,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.common.streams.KeyedStream;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
+import org.junit.Test;
 
 public class DistributionOutlierControllerTest {
     private static final double MIN_THRESHOLD = 0.1;

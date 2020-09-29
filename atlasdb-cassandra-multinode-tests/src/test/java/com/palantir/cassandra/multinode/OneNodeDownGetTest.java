@@ -18,11 +18,6 @@ package com.palantir.cassandra.multinode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -41,6 +36,9 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import java.util.Map;
+import java.util.Set;
+import org.junit.Test;
 
 public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
     private static final Set<Map.Entry<Cell, Value>> expectedRowEntries = ImmutableMap

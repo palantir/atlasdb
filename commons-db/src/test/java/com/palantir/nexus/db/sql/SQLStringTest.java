@@ -17,11 +17,9 @@ package com.palantir.nexus.db.sql;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.junit.Test;
 
 public class SQLStringTest {
     @Test

@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.metrics;
 
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
-
 import com.codahale.metrics.Metric;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public class FilteredTaggedMetricSet implements TaggedMetricSet {
     private final TaggedMetricSet unfiltered;

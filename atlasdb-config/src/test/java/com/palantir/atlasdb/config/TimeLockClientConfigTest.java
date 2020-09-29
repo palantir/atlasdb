@@ -22,13 +22,11 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.util.List;
+import java.util.Optional;
+import org.junit.Test;
 
 public class TimeLockClientConfigTest {
     private static final String CLIENT = "testClient";

@@ -16,12 +16,11 @@
 
 package com.palantir.leader;
 
-import java.util.Optional;
-import java.util.UUID;
-
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.util.Optional;
+import java.util.UUID;
 
 public final class LocalPingableLeader implements PingableLeader {
     private final PaxosLearner knowledge;

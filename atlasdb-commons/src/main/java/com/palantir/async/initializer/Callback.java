@@ -15,15 +15,13 @@
  */
 package com.palantir.async.initializer;
 
-import java.util.List;
-import java.util.stream.IntStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.stream.IntStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A Callback is a potentially retryable operation on a resource R. The intended use is to specify a task to be run on

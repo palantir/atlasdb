@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL_DELAY;
+import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.MAX_PARALLELISM;
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
@@ -24,23 +27,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL_DELAY;
-import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.MAX_PARALLELISM;
-import static com.palantir.logsafe.testing.Assertions.assertThat;
-
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.concurrent.PTExecutors;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.common.concurrent.PTExecutors;
 
 public class ScalingSweepTaskSchedulerTest {
     private static final SweepIterationResult SUCCESS_HUGE = SweepIterationResults

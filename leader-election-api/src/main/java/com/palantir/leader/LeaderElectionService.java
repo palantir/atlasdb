@@ -15,11 +15,10 @@
  */
 package com.palantir.leader;
 
-import java.io.Serializable;
-import java.util.Optional;
-
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
+import java.io.Serializable;
+import java.util.Optional;
 
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Optional;
-
 import org.immutables.value.Value;
 
 /**

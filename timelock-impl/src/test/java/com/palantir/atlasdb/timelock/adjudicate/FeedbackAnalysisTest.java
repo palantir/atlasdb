@@ -18,14 +18,12 @@ package com.palantir.atlasdb.timelock.adjudicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.UUID;
-import java.util.stream.IntStream;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
+import java.util.UUID;
+import java.util.stream.IntStream;
+import org.junit.Test;
 
 public class FeedbackAnalysisTest {
     private static final String CLIENT = "client_1";

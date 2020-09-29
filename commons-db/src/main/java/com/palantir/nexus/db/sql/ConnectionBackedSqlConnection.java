@@ -15,9 +15,8 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.sql.Connection;
-
 import com.palantir.exception.PalantirSqlException;
+import java.sql.Connection;
 
 public interface ConnectionBackedSqlConnection extends PalantirSqlConnection {
     public void close() throws PalantirSqlException;

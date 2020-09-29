@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import org.immutables.value.Value;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ShardAndStrategy {

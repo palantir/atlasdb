@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen.lock;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
@@ -37,6 +29,12 @@ import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.Pair;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Checker verifying that whenever a lock is granted, there was a time point between the request and the

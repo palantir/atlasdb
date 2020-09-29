@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.List;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -35,6 +28,11 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
+import java.util.List;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultCleanerBuilder {
     private static final Logger log = LoggerFactory.getLogger(DefaultCleanerBuilder.class);

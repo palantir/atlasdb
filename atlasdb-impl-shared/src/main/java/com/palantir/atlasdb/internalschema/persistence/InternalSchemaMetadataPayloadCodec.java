@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -28,6 +23,10 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * The {@link InternalSchemaMetadataPayloadCodec} controls translation between the payload of a

@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.transaction.timestamp;
 
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
@@ -31,6 +26,9 @@ import com.palantir.timestamp.AutoDelegate_ManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DelegatingClientAwareManagedTimestampService
         implements AutoDelegate_ManagedTimestampService, ClientAwareManagedTimestampService {

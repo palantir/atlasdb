@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.io.Closeable;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.DBType;
+import java.io.Closeable;
 
 public interface DbTableFactory extends Closeable {
     DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns);
