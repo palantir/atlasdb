@@ -60,8 +60,7 @@ import com.palantir.lock.v2.LockResponseV2.Visitor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.ImmutableIdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -271,7 +270,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
     }
 
-    private IdentifiedVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
-        return ImmutableIdentifiedVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
+    private LockWatchVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
+        return LockWatchVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
     }
 }

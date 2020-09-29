@@ -28,7 +28,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
@@ -48,13 +48,13 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public synchronized LockWatchStateUpdate getLogDiff(Optional<IdentifiedVersion> fromVersion) {
+    public synchronized LockWatchStateUpdate getLogDiff(Optional<LockWatchVersion> fromVersion) {
         return tryGetNextEvents(fromVersion).orElseGet(this::calculateSnapshot);
     }
 
     @Override
     public synchronized <T> ValueAndLockWatchStateUpdate<T> runTask(
-            Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
+            Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task) {
         T t = task.get();
         LockWatchStateUpdate logDiff = getLogDiff(lastKnownVersion);
         return ValueAndLockWatchStateUpdate.of(logDiff, t);
@@ -76,7 +76,7 @@ public class LockEventLogImpl implements LockEventLog {
         slidingWindow.add(LockWatchCreatedEvent.builder(newWatches.references(), openLocks));
     }
 
-    private Optional<LockWatchStateUpdate> tryGetNextEvents(Optional<IdentifiedVersion> fromVersion) {
+    private Optional<LockWatchStateUpdate> tryGetNextEvents(Optional<LockWatchVersion> fromVersion) {
         if (!fromVersion.isPresent() || !fromVersion.get().id().equals(logId)) {
             return Optional.empty();
         }

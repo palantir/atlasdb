@@ -30,9 +30,9 @@ import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -59,7 +59,7 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
     }
 
     TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> version) {
+            Optional<LockWatchVersion> version) {
         return lockWatchEventCache.getUpdateForTransactions(startTimestamps, version);
     }
 

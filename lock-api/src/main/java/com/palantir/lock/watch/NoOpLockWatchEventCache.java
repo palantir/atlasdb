@@ -25,14 +25,14 @@ import java.util.stream.Collectors;
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
-    private static final IdentifiedVersion FAKE_VERSION = IdentifiedVersion.of(UUID.randomUUID(), -1L);
+    private static final LockWatchVersion FAKE_VERSION = LockWatchVersion.of(UUID.randomUUID(), -1L);
 
     private NoOpLockWatchEventCache() {
         // singleton
     }
 
     @Override
-    public Optional<IdentifiedVersion> lastKnownVersion() {
+    public Optional<LockWatchVersion> lastKnownVersion() {
         return Optional.empty();
     }
 
@@ -52,7 +52,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
 
     @Override
     public TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> version) {
+            Optional<LockWatchVersion> version) {
         return ImmutableTransactionsLockWatchUpdate.builder()
                 .clearCache(true)
                 .startTsToSequence(

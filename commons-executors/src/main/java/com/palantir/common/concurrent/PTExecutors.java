@@ -40,6 +40,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.jboss.threads.ViewExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
  */
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public final class PTExecutors {
-    private static Logger log = LoggerFactory.getLogger(PTExecutors.class);
+    private static final Logger log = LoggerFactory.getLogger(PTExecutors.class);
 
     private static final Supplier<ExecutorService> SHARED_EXECUTOR = Suppliers.memoize(() ->
             // Shared pool uses 60 second idle thread timeouts for greater reuse
@@ -169,7 +170,7 @@ public final class PTExecutors {
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
         return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, new AtlasRenamingExecutorService(AtlasViewExecutor.builder(SHARED_EXECUTOR.get())
+                PTExecutors.wrap(name, new AtlasRenamingExecutorService(ViewExecutor.builder(SHARED_EXECUTOR.get())
                         .setMaxSize(Math.min(Short.MAX_VALUE, maxThreads))
                         .setQueueLimit(0)
                         .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
@@ -247,8 +248,8 @@ public final class PTExecutors {
      */
     public static ExecutorService newFixedThreadPool(int numThreads, String name) {
         return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, new AtlasRenamingExecutorService(AtlasViewExecutor.builder(SHARED_EXECUTOR.get())
-                .setMaxSize(numThreads)
+                PTExecutors.wrap(name, new AtlasRenamingExecutorService(ViewExecutor.builder(SHARED_EXECUTOR.get())
+                .setMaxSize(Math.min(numThreads, Short.MAX_VALUE))
                 .setQueueLimit(Integer.MAX_VALUE)
                 .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
                 .build(),

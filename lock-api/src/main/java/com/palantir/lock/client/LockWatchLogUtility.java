@@ -22,8 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.SafeArg;
 
 final class LockWatchLogUtility {
@@ -33,7 +33,7 @@ final class LockWatchLogUtility {
         // no op
     }
 
-    static void logTransactionEvents(Optional<IdentifiedVersion> requestedVersion, LockWatchStateUpdate update) {
+    static void logTransactionEvents(Optional<LockWatchVersion> requestedVersion, LockWatchStateUpdate update) {
         if (log.isDebugEnabled()) {
             Optional<LockWatchStateUpdate.Success> successfulUpdate = update.accept(
                     new LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>>() {

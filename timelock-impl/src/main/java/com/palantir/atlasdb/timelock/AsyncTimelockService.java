@@ -38,7 +38,7 @@ import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
@@ -68,7 +68,7 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
             ConjureStartTransactionsRequest request);
 
     ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(int numTimestamps,
-            Optional<IdentifiedVersion> lastKnownVersion);
+            Optional<LockWatchVersion> lastKnownVersion);
 
     ListenableFuture<LeaderTime> leaderTime();
 

@@ -24,12 +24,12 @@ import java.util.UUID;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
@@ -37,7 +37,7 @@ final class ClientLockWatchSnapshot {
     private final Set<LockWatchReferences.LockWatchReference> watches;
     private final Set<LockDescriptor> locked;
     private final EventVisitor visitor;
-    private Optional<IdentifiedVersion> snapshotVersion;
+    private Optional<LockWatchVersion> snapshotVersion;
 
     static ClientLockWatchSnapshot create() {
         return new ClientLockWatchSnapshot();
@@ -66,14 +66,14 @@ final class ClientLockWatchSnapshot {
         }
 
         events.events().forEach(event -> event.accept(visitor));
-        snapshotVersion = Optional.of(IdentifiedVersion.of(versionId, events.latestSequence().get()));
+        snapshotVersion = Optional.of(LockWatchVersion.of(versionId, events.latestSequence().get()));
     }
 
     void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
         reset();
         watches.addAll(snapshot.lockWatches());
         locked.addAll(snapshot.locked());
-        snapshotVersion = Optional.of(IdentifiedVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
+        snapshotVersion = Optional.of(LockWatchVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
     }
 
     void reset() {
@@ -82,7 +82,7 @@ final class ClientLockWatchSnapshot {
         locked.clear();
     }
 
-    Optional<IdentifiedVersion> getSnapshotVersion() {
+    Optional<LockWatchVersion> getSnapshotVersion() {
         return snapshotVersion;
     }
 

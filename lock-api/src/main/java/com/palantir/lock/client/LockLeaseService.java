@@ -42,7 +42,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
@@ -93,7 +93,7 @@ class LockLeaseService {
                 lease);
     }
 
-    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<IdentifiedVersion> maybeVersion,
+    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<LockWatchVersion> maybeVersion,
             int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
@@ -114,7 +114,7 @@ class LockLeaseService {
                 .build();
     }
 
-    GetCommitTimestampsResponse getCommitTimestamps(Optional<IdentifiedVersion> maybeVersion, int batchSize) {
+    GetCommitTimestampsResponse getCommitTimestamps(Optional<LockWatchVersion> maybeVersion, int batchSize) {
         GetCommitTimestampsRequest request = GetCommitTimestampsRequest.builder()
                 .numTimestamps(batchSize)
                 .lastKnownVersion(toConjure(maybeVersion))
@@ -192,7 +192,7 @@ class LockLeaseService {
                 .collect(Collectors.toSet());
     }
 
-    private Optional<ConjureIdentifiedVersion> toConjure(Optional<IdentifiedVersion> maybeVersion) {
+    private Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
         return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
                 .id(identifiedVersion.id())
                 .version(identifiedVersion.version())

@@ -24,7 +24,7 @@ public interface LockWatchEventCache {
     /**
      * Returns the last known lock watch version for the cache.
      */
-    Optional<IdentifiedVersion> lastKnownVersion();
+    Optional<LockWatchVersion> lastKnownVersion();
 
     /**
      * Updates the cache with the update, and identifies the given timestamps with that lock watch state.
@@ -53,7 +53,7 @@ public interface LockWatchEventCache {
      */
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> version);
+            Optional<LockWatchVersion> version);
 
     /**
      * Removes the given timestamp from the cache, along with all associated state. This may update the earliest
