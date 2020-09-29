@@ -96,7 +96,7 @@ public class LockWatchEventCacheIntegrationTest {
     private static final Set<Long> TIMESTAMPS = ImmutableSet.of(START_TS);
     private static final Set<Long> TIMESTAMPS_2 = ImmutableSet.of(16L);
     private static final String BASE = "src/test/resources/lockwatch-event-cache-output/";
-    private static final Mode MODE = Mode.CI;
+    private static final Mode MODE = Mode.DEV;
 
     private enum Mode {
         DEV,
@@ -253,7 +253,7 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void removingEntriesRetentionsEventsInLog() {
+    public void removingEntriesDoesNotRetentionEventsInLog() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         verifyStage();

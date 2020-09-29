@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.UUID;
@@ -45,21 +44,6 @@ public final class TimestampStateStoreTest {
     }
 
     @Test
-    public void earliestVersionUpdatesWhenAllTimestampsRemovedForVersion() {
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), version1);
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), version2);
-
-        assertThat(timestampStateStore.getEarliestVersion()).hasValue(1L);
-
-        removeAndCheckEarliestVersion(100L, 1L);
-        removeAndCheckEarliestVersion(800L, 1L);
-        removeAndCheckEarliestVersion(200L, 17L);
-
-        timestampStateStore.remove(400L);
-        assertThat(timestampStateStore.getEarliestVersion()).isEmpty();
-    }
-
-    @Test
     public void cannotPutCommitUpdateTwice() {
         TransactionUpdate update = ImmutableTransactionUpdate.builder()
                 .startTs(100L)
@@ -85,10 +69,5 @@ public final class TimestampStateStoreTest {
         assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), version2))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start timestamp missing from map");
-    }
-
-    private void removeAndCheckEarliestVersion(long timestamp, long sequence) {
-        timestampStateStore.remove(timestamp);
-        assertThat(timestampStateStore.getEarliestVersion()).hasValue(sequence);
     }
 }

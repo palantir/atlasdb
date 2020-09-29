@@ -17,28 +17,43 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.List;
-import java.util.Map;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.Range;
 import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 interface ClientLogEvents {
 
-    List<LockWatchEvent> events();
+    LockWatchEvents events();
 
     boolean clearCache();
 
-    default TransactionsLockWatchUpdate map(Map<Long, IdentifiedVersion> timestampMap) {
-        return ImmutableTransactionsLockWatchUpdate.builder()
-                .startTsToSequence(timestampMap)
-                .events(events())
-                .clearCache(clearCache())
-                .build();
+    @Value.Derived
+    default Range<Long> eventsBySequence() {
+        for (int i = 0; i < events().size() - 1; ++i) {
+            Preconditions.checkArgument(events().get(i).sequence() + 1 == events().get(i + 1).sequence(),
+                    "Events form a non-contiguous sequence");
+        }
+
+
+        long sequenceId = -1;
+        events().forEach(event -> {
+
+        });
+
+        return Range.closed(1L, 2L);
+    }
+
+    default boolean containsVersion(IdentifiedVersion identifiedVersion) {
+        eventsBySequence().contains(identifiedVersion.version());
+    }
+
+    @Value.Check
+    default void checkContiguous() {
     }
 
     class Builder extends ImmutableClientLogEvents.Builder {}

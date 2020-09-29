@@ -16,6 +16,7 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -30,4 +31,11 @@ public interface TransactionsLockWatchUpdate {
     List<LockWatchEvent> events();
     Map<Long, IdentifiedVersion> startTsToSequence();
     boolean clearCache();
+
+    @Value.Check
+    default void checkVersions() {
+        Map<Long, LockWatchEvent> eventsBySequence = Collections.emptyMap();
+
+
+    }
 }

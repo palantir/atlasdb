@@ -16,16 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
 import com.google.common.collect.Streams;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface LockWatchEvents {
@@ -33,7 +34,18 @@ public interface LockWatchEvents {
 
     Optional<Long> latestSequence();
 
-    static LockWatchEvents create(Set<Map.Entry<Long, LockWatchEvent>> versionToEventSet) {
+    default void checkContiguous() {
+        if (events().isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < events().size() - 1; ++i) {
+            Preconditions.checkArgument(events().get(i).sequence() + 1 == events().get(i + 1).sequence(),
+                    "Events form a non-contiguous sequence");
+        }
+    }
+
+    static LockWatchEvents create(Collection<Map.Entry<Long, LockWatchEvent>> versionToEventSet) {
         if (versionToEventSet.isEmpty()) {
             return ImmutableLockWatchEvents.builder().build();
         } else {

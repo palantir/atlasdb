@@ -37,6 +37,7 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableInvalidateAll;
 import com.palantir.lock.watch.ImmutableInvalidateSome;
+import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -79,7 +80,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> updateVersion = processEventLogUpdate(update);
         updateVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
-        retentionEventsInLog();
     }
 
     @Override
@@ -114,16 +114,23 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps,
             Optional<IdentifiedVersion> lastKnownVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
+        // I think technically we now need to handle the case where we have the timestamps but not the events.
+        // We should either kill the transactions that point to retentioned events or
+
         Map<Long, IdentifiedVersion> timestampToVersion = getTimestampMappings(startTimestamps);
+
+        // TODO: should probably check lastKnownVersion for sanity is not newer than any of the transaction versions
+
         IdentifiedVersion endVersion = Collections.max(timestampToVersion.values(),
                 Comparator.comparingLong(IdentifiedVersion::version));
-        return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampToVersion);
+
+        return getTransactionLockWatchUpdate(eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion),
+                timestampToVersion);
     }
 
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
-        retentionEventsInLog();
     }
 
     @VisibleForTesting
@@ -137,13 +144,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return timestampToVersion;
     }
 
-    private void retentionEventsInLog() {
-        Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
-        timestampStateStore.getEarliestVersion().flatMap(sequence ->
-                currentVersion.map(version -> IdentifiedVersion.of(version.id(), sequence)))
-                .map(IdentifiedVersion::version).ifPresent(eventLog::removeEventsBefore);
-    }
-
     @VisibleForTesting
     LockWatchEventCacheState getStateForTesting() {
         return ImmutableLockWatchEventCacheState.builder()
@@ -152,6 +152,20 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .build();
     }
 
+    private TransactionsLockWatchUpdate getTransactionLockWatchUpdate(ClientLogEvents clientLogEvents,
+            Map<Long, IdentifiedVersion> timestampMap) {
+
+        // Do this based on ranges. Basically calc the minMax
+        timestampMap.values().forEach(
+                version -> assertTrue(clientLogEvents.containsVersion(version),
+                        "Event for transaction was retentioned"));
+
+        return ImmutableTransactionsLockWatchUpdate.builder()
+                .startTsToSequence(timestampMap)
+                .events(clientLogEvents.events())
+                .clearCache(clientLogEvents.clearCache())
+                .build();
+    }
 
     private void assertTrue(boolean condition, String message) {
         if (!condition) {
@@ -172,6 +186,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         if (cacheUpdate.shouldClearCache()) {
             timestampStateStore.clear();
         }
+
+        eventLog.retentionEventsInLog();
 
         return cacheUpdate.getVersion();
     }

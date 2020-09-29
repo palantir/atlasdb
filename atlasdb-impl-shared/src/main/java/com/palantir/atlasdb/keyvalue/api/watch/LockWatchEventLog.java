@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -30,8 +29,12 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 final class LockWatchEventLog {
+
+    // Ideally should be the same as com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl
+    private static final int MAX_EVENTS = 1000;
+
     private final ClientLockWatchSnapshot snapshot;
-    private final VersionedEventStore eventStore = new VersionedEventStore();
+    private final VersionedEventStore eventStore = new VersionedEventStore(MAX_EVENTS);
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
     static LockWatchEventLog create() {
@@ -56,10 +59,9 @@ final class LockWatchEventLog {
     }
 
     /**
-     * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping;
-     * @param endVersion       mapping from timestamp to identified version from client-side event cache;
-     * @return lock watch events that occurred from (exclusive) the provided version, up to (inclusive) the latest
-     * version in the timestamp to version map.
+     * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping.
+     * @param endVersion       last version we are interested in
+     * @return lock watch events that occurred from (exclusive) the provided version, up to (inclusive) the endVersion.
      */
     public ClientLogEvents getEventsBetweenVersions(
             Optional<IdentifiedVersion> lastKnownVersion,
@@ -68,6 +70,23 @@ final class LockWatchEventLog {
         IdentifiedVersion currentVersion = getLatestVersionAndVerify(endVersion);
 
         if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(currentVersion, startVersion.get())) {
+
+            // TODO: compress the snapshot.
+            // Do we gain much from that? I guess we will, given that with 1000 we'll send stuff that's no
+            // longer referencable, with with a snapshot, we'll just send the current set.
+
+            //            ClientLockWatchSnapshot newSnapshot = ClientLockWatchSnapshot.create();
+            //            newSnapshot.resetWithSnapshot(snapshot.getSnapshot());
+            //
+            //            Collection<LockWatchEvent> eventsBetweenVersionsInclusive = eventStore.getEventsBetweenVersionsInclusive(
+            //                    Optional.empty(), endVersion.version());
+            //            List<Map.Entry<Long, LockWatchEvent>> collect = eventsBetweenVersionsInclusive.stream().map(event ->
+            //                    Maps.immutableEntry(event.sequence(), event)).collect(Collectors.toList());
+            //            newSnapshot.processEvents(LockWatchEvents.create(collect), currentVersion.id());
+            //            return new ClientLogEvents.Builder()
+            //                    .clearCache(true)
+            //                    .addEvents(LockWatchCreatedEvent.fromSnapshot(newSnapshot.getSnapshot()))
+            //                    .build();
             return new ClientLogEvents.Builder()
                     .clearCache(true)
                     .addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()))
@@ -83,9 +102,9 @@ final class LockWatchEventLog {
         }
     }
 
-    void removeEventsBefore(long earliestSequence) {
+    void retentionEventsInLog() {
         getLatestKnownVersion().ifPresent(version -> {
-            LockWatchEvents eventsToBeRemoved = eventStore.getAndRemoveElementsUpToExclusive(earliestSequence);
+            LockWatchEvents eventsToBeRemoved = eventStore.getRetentionedEvents();
             snapshot.processEvents(eventsToBeRemoved, version.id());
         });
     }
@@ -133,23 +152,18 @@ final class LockWatchEventLog {
         }
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
-            assertEventsAreContiguousAndNoEventsMissing(success.events());
+            assertNoEventsMissing(success.events());
             latestVersion = Optional.of(IdentifiedVersion.of(success.logId(), eventStore.putAll(success.events())));
         }
     }
 
-    private void assertEventsAreContiguousAndNoEventsMissing(List<LockWatchEvent> events) {
-        if (events.isEmpty()) {
+    private void assertNoEventsMissing(LockWatchEvents events) {
+        if (events.events().isEmpty()) {
             return;
         }
 
-        for (int i = 0; i < events.size() - 1; ++i) {
-            Preconditions.checkArgument(events.get(i).sequence() + 1 == events.get(i + 1).sequence(),
-                    "Events form a non-contiguous sequence");
-        }
-
         if (latestVersion.isPresent()) {
-            LockWatchEvent firstEvent = Iterables.getFirst(events, null);
+            LockWatchEvent firstEvent = Iterables.getFirst(events.events(), null);
             Preconditions.checkNotNull(firstEvent, "First element not preset in list of events");
             Preconditions.checkArgument(firstEvent.sequence() <= latestVersion.get().version()
                             || latestVersion.get().version() + 1 == firstEvent.sequence(),
