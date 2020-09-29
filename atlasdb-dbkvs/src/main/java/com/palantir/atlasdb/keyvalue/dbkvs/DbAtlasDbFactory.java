@@ -110,7 +110,6 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
-//        return DbTimestampStoreInvalidator.create(rawKvs);
-        return null;
+        return DbTimestampStoreInvalidator.create(rawKvs);
     }
 }

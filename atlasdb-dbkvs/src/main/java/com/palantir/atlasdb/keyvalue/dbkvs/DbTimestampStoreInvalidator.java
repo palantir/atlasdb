@@ -17,29 +17,25 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class DbTimestampStoreInvalidator implements TimestampStoreInvalidator {
-    private final DbKvs kvs;
-    private final InDbTimestampBoundStore store;
+    private final InvalidationRunner invalidationRunner;
 
-    public DbTimestampStoreInvalidator(DbKvs kvs, InDbTimestampBoundStore store) {
-        this.kvs = kvs;
-        this.store = store;
+    public DbTimestampStoreInvalidator(ConnectionManagerAwareDbKvs kvs) {
+        this.invalidationRunner = new InvalidationRunner(kvs.getConnectionManager());
     }
 
-    public static TimestampStoreInvalidator create(KeyValueService kvs, InDbTimestampBoundStore store) {
-        Preconditions.checkArgument(kvs instanceof DbKvs,
-                "DbTimestampStoreInvalidator should be instantiated with a DbKvs!");
-        return new DbTimestampStoreInvalidator((DbKvs) kvs, store);
+    public static TimestampStoreInvalidator create(KeyValueService kvs) {
+        Preconditions.checkArgument(kvs instanceof ConnectionManagerAwareDbKvs,
+                "DbTimestampStoreInvalidator should be instantiated with a ConnectionManagerAwareDbKvs!");
+        return new DbTimestampStoreInvalidator((ConnectionManagerAwareDbKvs) kvs);
     }
 
     @Override
     public long backupAndInvalidate() {
-        store.init(); // creates a table
-        return store.takeBackupAndPoisonTheStore();
+        return invalidationRunner.getLastAllocatedAndPoison();
     }
 }
