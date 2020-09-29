@@ -49,9 +49,7 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -290,7 +288,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         lockService.getLockWatchingService().registerUnlock(locksUnlocked);
     }
 
-    private static LockWatchVersion fromConjure(ConjureIdentifiedVersion conjure) {
-        return LockWatchVersion.of(conjure.getId(), conjure.getVersion());
+    private static IdentifiedVersion fromConjure(ConjureIdentifiedVersion conjure) {
+        return IdentifiedVersion.of(conjure.getId(), conjure.getVersion());
     }
 }
