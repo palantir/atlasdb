@@ -51,7 +51,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
      * Use only if you have already initialized the timestamp table. This exists for legacy support.
      */
     public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        this(connManager, new LegacyPhysicalTimestampBoundStoreStrategy(timestampTable, EMPTY_TABLE_PREFIX));
+        this(connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, "chocolate"));
     }
 
     public static InDbTimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable) {
@@ -64,11 +64,8 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
             String tablePrefixString) {
         InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(
                 connManager,
-                new LegacyPhysicalTimestampBoundStoreStrategy(timestampTable, tablePrefixString)
-        );
-
+                new MultiSequencePhysicalBoundStoreStrategy(timestampTable, "tom"));
         inDbTimestampBoundStore.init();
-
         return inDbTimestampBoundStore;
     }
 
