@@ -31,11 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 @JsonDeserialize(as = ImmutableLockWatchTestRuntimeConfig.class)
 @Value.Immutable
 public abstract class LockWatchTestRuntimeConfig {
-    @Value.Default
     @JsonProperty("namespace")
-    Optional<String> namespaceToWatch() {
-        return Optional.empty();
-    }
+    abstract Optional<String> namespaceToWatch();
 
     @Value.Default
     @JsonProperty("tables")

@@ -20,8 +20,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 
@@ -40,7 +40,7 @@ public final class NoOpLockWatchManager extends LockWatchManager {
 
     @Override
     TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<IdentifiedVersion> version) {
+            Optional<LockWatchVersion> version) {
         return NoOpLockWatchEventCache.INSTANCE.getUpdateForTransactions(startTimestamps, version);
     }
 }

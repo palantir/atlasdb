@@ -27,15 +27,15 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class TimestampStateStoreTest {
     private static UUID leader = UUID.randomUUID();
-    private static IdentifiedVersion version1 = IdentifiedVersion.of(leader, 1L);
-    private static IdentifiedVersion version2 = IdentifiedVersion.of(leader, 17L);
+    private static LockWatchVersion version1 = LockWatchVersion.of(leader, 1L);
+    private static LockWatchVersion version2 = LockWatchVersion.of(leader, 17L);
 
     private TimestampStateStore timestampStateStore;
 

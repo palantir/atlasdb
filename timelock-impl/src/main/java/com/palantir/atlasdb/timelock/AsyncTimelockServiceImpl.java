@@ -52,7 +52,7 @@ import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
@@ -222,7 +222,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
-            int numTimestamps, Optional<IdentifiedVersion> lastKnownVersion) {
+            int numTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
         TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
         return Futures.immediateFuture(GetCommitTimestampsResponse.of(
                 freshTimestamps.getLowerBound(),
@@ -266,12 +266,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(Optional<IdentifiedVersion> lastKnownVersion) {
+    public LockWatchStateUpdate getWatchStateUpdate(Optional<LockWatchVersion> lastKnownVersion) {
         return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion);
     }
 
     @Override
-    public <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<IdentifiedVersion> lastKnownVersion, Supplier<T> task) {
+    public <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task) {
         throw new UnsupportedOperationException("Exposing this method is too dangerous.");
     }
 

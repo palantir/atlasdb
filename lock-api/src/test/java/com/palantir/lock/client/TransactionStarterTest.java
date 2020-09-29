@@ -58,10 +58,10 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
@@ -70,7 +70,7 @@ public class TransactionStarterTest {
     @Mock
     private LockLeaseService lockLeaseService;
     private final LockWatchEventCache lockWatchEventCache = spy(NoOpLockWatchEventCache.INSTANCE);
-    private final Optional<IdentifiedVersion> version = lockWatchEventCache.lastKnownVersion();
+    private final Optional<LockWatchVersion> version = lockWatchEventCache.lastKnownVersion();
     private TransactionStarter transactionStarter;
 
     private static final int NUM_PARTITIONS = 16;

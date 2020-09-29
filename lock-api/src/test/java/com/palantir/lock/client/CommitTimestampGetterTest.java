@@ -42,12 +42,11 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.IdentifiedVersion;
-import com.palantir.lock.watch.ImmutableIdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 
 public final class CommitTimestampGetterTest {
@@ -66,9 +65,9 @@ public final class CommitTimestampGetterTest {
                     ImmutableSet.of(StringLockDescriptor.of("lock1")),
                     LockToken.of(UUID.randomUUID()))
                     .build(1)));
-    private static final Optional<IdentifiedVersion> IDENTIFIED_VERSION_1 = Optional.empty();
-    private static final Optional<IdentifiedVersion> IDENTIFIED_VERSION_2 = Optional.of(
-            ImmutableIdentifiedVersion.of(UUID.randomUUID(), -1));
+    private static final Optional<LockWatchVersion> IDENTIFIED_VERSION_1 = Optional.empty();
+    private static final Optional<LockWatchVersion> IDENTIFIED_VERSION_2 = Optional.of(
+            LockWatchVersion.of(UUID.randomUUID(), -1));
 
     private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
     private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
@@ -105,7 +104,7 @@ public final class CommitTimestampGetterTest {
                 eq(UPDATE_2));
     }
 
-    private void whenGetCommitTimestamps(Optional<IdentifiedVersion> maybeVersion, int count, int start, int end,
+    private void whenGetCommitTimestamps(Optional<LockWatchVersion> maybeVersion, int count, int start, int end,
             LockWatchStateUpdate update) {
         when(lockLeaseService.getCommitTimestamps(maybeVersion, count)).thenReturn(GetCommitTimestampsResponse.builder()
                 .inclusiveLower(start)

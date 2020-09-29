@@ -47,13 +47,13 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -237,7 +237,7 @@ public class LockWatchEventCacheIntegrationTest {
         TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.empty());
         assertThat(results.clearCache()).isTrue();
         assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(16L, IdentifiedVersion.of(LEADER, 7L)));
+                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
         assertThat(results.events()).containsExactly(
                 LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
                         ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
@@ -291,7 +291,7 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         assertThat(eventCache.getUpdateForTransactions(
                 TIMESTAMPS,
-                Optional.of(IdentifiedVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
+                Optional.of(LockWatchVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
     }
 
     @Test

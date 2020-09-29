@@ -18,15 +18,15 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
 
-import com.palantir.lock.watch.IdentifiedVersion;
+import com.palantir.lock.watch.LockWatchVersion;
 
 final class CacheUpdate {
     static final CacheUpdate FAILED = new CacheUpdate(true, Optional.empty());
 
     private final boolean shouldClearCache;
-    private final Optional<IdentifiedVersion> version;
+    private final Optional<LockWatchVersion> version;
 
-    CacheUpdate(boolean shouldClearCache, Optional<IdentifiedVersion> version) {
+    CacheUpdate(boolean shouldClearCache, Optional<LockWatchVersion> version) {
         this.shouldClearCache = shouldClearCache;
         this.version = version;
     }
@@ -35,7 +35,7 @@ final class CacheUpdate {
         return shouldClearCache;
     }
 
-    Optional<IdentifiedVersion> getVersion() {
+    Optional<LockWatchVersion> getVersion() {
         return version;
     }
 }

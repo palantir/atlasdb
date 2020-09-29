@@ -33,9 +33,9 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 
 final class CommitTimestampGetter implements AutoCloseable {
@@ -67,7 +67,7 @@ final class CommitTimestampGetter implements AutoCloseable {
             int count = batch.size();
             List<Long> commitTimestamps = new ArrayList<>();
             while (commitTimestamps.size() < count) {
-                Optional<IdentifiedVersion> requestedVersion = cache.lastKnownVersion();
+                Optional<LockWatchVersion> requestedVersion = cache.lastKnownVersion();
                 GetCommitTimestampsResponse response = leaseService.getCommitTimestamps(requestedVersion,
                         count - commitTimestamps.size());
                 commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
