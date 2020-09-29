@@ -200,7 +200,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return Leased.of(lockImmutableTimestampResponse, leasedLock.lease());
     }
 
-
     @Override
     public ListenableFuture<ConjureStartTransactionsResponse> startTransactionsWithWatches(
             ConjureStartTransactionsRequest request) {
