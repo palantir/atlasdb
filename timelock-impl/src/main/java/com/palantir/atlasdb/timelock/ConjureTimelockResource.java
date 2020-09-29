@@ -95,23 +95,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<ConjureStartTransactionsResponse> startTransactions(
             AuthHeader authHeader, String namespace, ConjureStartTransactionsRequest request) {
-        return handleExceptions(() -> {
-            StartTransactionRequestV5 legacyRequest = ImmutableStartTransactionRequestV5.builder()
-                    .requestId(request.getRequestId())
-                    .requestorId(request.getRequestorId())
-                    .numTransactions(request.getNumTransactions())
-                    .lastKnownLockLogVersion(request.getLastKnownVersion().map(this::toIdentifiedVersion))
-                    .build();
-            ListenableFuture<StartTransactionResponseV5> responseFuture =
-                    forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
-            return Futures.transform(responseFuture, response -> ConjureStartTransactionsResponse.builder()
-                            .immutableTimestamp(response.immutableTimestamp())
-                            .timestamps(response.timestamps())
-                            .lease(response.lease())
-                            .lockWatchUpdate(response.lockWatchUpdate())
-                            .build(),
-                    MoreExecutors.directExecutor());
-        });
+        return handleExceptions(() -> forNamespace(namespace).startTransactionsWithWatches(request));
     }
 
     @Override

@@ -23,6 +23,9 @@ import java.util.function.Supplier;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
@@ -199,25 +202,27 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return Leased.of(lockImmutableTimestampResponse, leasedLock.lease());
     }
 
+
     @Override
-    public ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(
-            StartTransactionRequestV5 request) {
+    public ListenableFuture<ConjureStartTransactionsResponse> startTransactionsWithWatches(
+            ConjureStartTransactionsRequest request) {
         return Futures.immediateFuture(startTransactionsWithWatchesSync(request));
     }
 
-    private StartTransactionResponseV5 startTransactionsWithWatchesSync(StartTransactionRequestV5 request) {
+    private ConjureStartTransactionsResponse startTransactionsWithWatchesSync(ConjureStartTransactionsRequest request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
-                lockImmutableTimestampWithLease(request.requestId());
+                lockImmutableTimestampWithLease(request.getRequestId());
 
         ValueAndLockWatchStateUpdate<PartitionedTimestamps> timestampsAndUpdate = lockService.getLockWatchingService()
-                .runTask(request.lastKnownLockLogVersion(), () ->
-                        timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions()));
+                .runTask(request.getLastKnownVersion().map(AsyncTimelockServiceImpl::fromConjure), () ->
+                        timestampService.getFreshTimestampsForClient(request.getRequestorId(), request.getNumTransactions()));
 
-        return StartTransactionResponseV5.of(
-                leasedLockImmutableTimestampResponse.value(),
-                timestampsAndUpdate.value(),
-                leasedLockImmutableTimestampResponse.lease(),
-                timestampsAndUpdate.lockWatchStateUpdate());
+        return ConjureStartTransactionsResponse.builder()
+                .immutableTimestamp(leasedLockImmutableTimestampResponse.value())
+                .timestamps(timestampsAndUpdate.value())
+                .lease(leasedLockImmutableTimestampResponse.lease())
+                .lockWatchUpdate(timestampsAndUpdate.lockWatchStateUpdate())
+                .build();
     }
 
     @Override
@@ -283,5 +288,9 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public void registerUnlock(Set<LockDescriptor> locksUnlocked) {
         lockService.getLockWatchingService().registerUnlock(locksUnlocked);
+    }
+
+    private static LockWatchVersion fromConjure(ConjureIdentifiedVersion conjure) {
+        return LockWatchVersion.of(conjure.getId(), conjure.getVersion());
     }
 }

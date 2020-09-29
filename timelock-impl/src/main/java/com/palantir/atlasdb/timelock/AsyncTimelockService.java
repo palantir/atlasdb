@@ -20,6 +20,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.client.IdentifiedLockRequest;
@@ -64,7 +66,8 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
 
     StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request);
 
-    ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(StartTransactionRequestV5 request);
+    ListenableFuture<ConjureStartTransactionsResponse> startTransactionsWithWatches(
+            ConjureStartTransactionsRequest request);
 
     ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(int numTimestamps,
             Optional<IdentifiedVersion> lastKnownVersion);
