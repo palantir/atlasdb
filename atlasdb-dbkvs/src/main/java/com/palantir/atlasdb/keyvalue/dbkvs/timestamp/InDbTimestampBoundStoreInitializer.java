@@ -30,14 +30,14 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 
-public class InDbTimestampBoundStoreHelper {
-    private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
+public class InDbTimestampBoundStoreInitializer {
+    private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStoreInitializer.class);
     private final ConnectionManager connManager;
 
     @GuardedBy("this") // lazy init to avoid db connections in constructors
     private DBType dbType;
 
-    public InDbTimestampBoundStoreHelper(ConnectionManager connManager) {
+    public InDbTimestampBoundStoreInitializer(ConnectionManager connManager) {
         this.connManager = connManager;
     }
 
@@ -74,7 +74,7 @@ public class InDbTimestampBoundStoreHelper {
     }
 
     @GuardedBy("this")
-    private DBType getDbType(Connection connection) {
+    private synchronized DBType getDbType(Connection connection) {
         if (dbType == null) {
             dbType = ConnectionDbTypes.getDbType(connection);
         }

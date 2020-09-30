@@ -21,14 +21,13 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.OptionalLong;
 
 import org.apache.commons.dbutils.QueryRunner;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ConnectionDbTypes;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStoreHelper;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStoreInitializer;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
@@ -36,49 +35,42 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
-import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 
 public class InvalidationRunner {
     private static final String LAST_ALLOCATED = "last_allocated";
     private static final String LEGACY_LAST_ALLOCATED = "legacy_last_allocated";
 
     private final ConnectionManager connManager;
-    private final InDbTimestampBoundStoreHelper helper;
+    private final InDbTimestampBoundStoreInitializer helper;
 
     public InvalidationRunner(ConnectionManager connManager) {
         this.connManager = connManager;
-        this.helper = new InDbTimestampBoundStoreHelper(connManager);
+        this.helper = new InDbTimestampBoundStoreInitializer(connManager);
     }
 
     public void createTableIfDoesNotExist() {
         helper.createTableIfDoesNotExist(prefixedTimestampTableName());
     }
 
-    public long getLastAllocatedAndPoison() {
+    public long getLastAllocatedTimestampAndPoisonInDbStore() {
         RetriableTransactions.TransactionResult<Long> result = RetriableTransactions.run(connManager,
-                new RetriableWriteTransaction<Long>() {
-                    @Override
-                    public Long run(Connection connection) throws SQLException {
-                        Limits limits = getLimits(connection);
-                        TableStatus tableStatus = checkTableStatus(limits);
+                connection -> {
+                    Limits limits = getLimits(connection);
+                    TableStatus tableStatus = checkTableStatus(limits);
 
-                        if (tableStatus == TableStatus.POISONED) {
-                            return limits.legacyUpperLimit().value()
-                                    .orElse(AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP);
-                        }
-
-                        long lastAllocated;
-
-                        if (tableStatus == TableStatus.NO_DATA) {
-                            lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-                        } else {
-                            lastAllocated = limits.upperLimit().value()
-                                    .orElse(AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP);
-                        }
-
-                        poisonTable(connection);
-                        return lastAllocated;
+                    if (tableStatus == TableStatus.POISONED) {
+                        return limits.legacyUpperLimit().value();
                     }
+
+                    long lastAllocated;
+                    if (tableStatus == TableStatus.NO_DATA) {
+                        lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
+                    } else {
+                        lastAllocated = limits.upperLimit().value();
+                    }
+
+                    poisonTable(connection);
+                    return lastAllocated;
                 });
         switch (result.getStatus()) {
             case SUCCESSFUL:
@@ -108,7 +100,6 @@ public class InvalidationRunner {
     }
 
     private Limits getLimits(Connection connection) throws SQLException {
-        ImmutableLimits.Builder limitsBuilder = ImmutableLimits.builder();
         DatabaseMetaData metaData = connection.getMetaData();
         ResultSet res = metaData.getTables(null, null, prefixedTimestampTableName(), null);
 
@@ -116,32 +107,32 @@ public class InvalidationRunner {
                 + "InDbTimestampBoundStore but the data table does not exist. "
                 + "We should never reach here. Please contact support.");
 
-        return limitsBuilder
-                .upperLimit(getColumnStatus(LAST_ALLOCATED, metaData, connection))
-                .legacyUpperLimit(getColumnStatus(LEGACY_LAST_ALLOCATED, metaData, connection))
+        return ImmutableLimits.builder()
+                .upperLimit(getColumnStatus(LAST_ALLOCATED, connection))
+                .legacyUpperLimit(getColumnStatus(LEGACY_LAST_ALLOCATED, connection))
                 .build();
     }
 
-    private ColumnStatus getColumnStatus(String colName, DatabaseMetaData metaData, Connection connection)
-            throws SQLException {
-        ImmutableColumnStatus.Builder columnStatusBuilder = ImmutableColumnStatus.builder();
-        ResultSet columns = metaData.getColumns(null, null, prefixedTimestampTableName(), colName);
-
-        if (columns.next()) {
-            columnStatusBuilder.exists(true);
-
+    private ColumnStatus getColumnStatus(String colName, Connection connection) throws SQLException {
+        if (hasColumn(connection, colName)) {
             String sql = String.format("SELECT %s FROM %s FOR UPDATE", colName, prefixedTimestampTableName());
             QueryRunner run = new QueryRunner();
             return run.query(connection, sql, rs -> {
                 if (rs.next()) {
-                    return columnStatusBuilder.value(rs.getLong(colName)).build();
+                    return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
                 }
-                return columnStatusBuilder.build();
+                return ColumnStatus.columnStatusWithoutValue();
             });
 
         } else {
-            return columnStatusBuilder.build();
+            return ColumnStatus.voidColumnStatus();
         }
+    }
+
+    private boolean hasColumn(Connection connection, String colName) throws SQLException {
+        return connection.getMetaData()
+                .getColumns(null, null, prefixedTimestampTableName(), colName)
+                .next();
     }
 
     private String prefixedTimestampTableName() {
@@ -179,7 +170,23 @@ public class InvalidationRunner {
         default Boolean exists() {
             return false;
         }
-        OptionalLong value();
+
+        @Value.Default
+        default long value() {
+            return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
+        }
+
+        static ColumnStatus columnStatusWithValue(long value) {
+            return ImmutableColumnStatus.builder().exists(true).value(value).build();
+        }
+
+        static ColumnStatus columnStatusWithoutValue() {
+            return ImmutableColumnStatus.builder().exists(true).build();
+        }
+
+        static ColumnStatus voidColumnStatus() {
+            return ImmutableColumnStatus.builder().build();
+        }
     }
 
     private enum TableStatus {
