@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.DatabaseTsBoundSchema;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
 
 public class DatabaseTsBoundPersisterConfigurationTest {
@@ -28,7 +30,17 @@ public class DatabaseTsBoundPersisterConfigurationTest {
     public void canCreateWithInMemoryKvsConfig() {
         DatabaseTsBoundPersisterConfiguration config = ImmutableDatabaseTsBoundPersisterConfiguration.builder()
                 .keyValueServiceConfig(new InMemoryAtlasDbConfig())
+                .databaseTsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
                 .build();
         assertThat(config).isNotNull();
+    }
+
+    @Test
+    public void mustIndicateDatabaseTsBoundSchemaExplicitly() {
+        assertThatThrownBy(() -> ImmutableDatabaseTsBoundPersisterConfiguration.builder()
+                .keyValueServiceConfig(new InMemoryAtlasDbConfig())
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("some of required attributes are not set");
     }
 }
