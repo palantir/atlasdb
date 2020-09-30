@@ -125,13 +125,13 @@ public class InvalidationRunner {
                         .upperLimit(lastAllocatedStatusBuilder.value(
                                 getUpperLimitForColumn(rs, "last_allocated")).build())
 
-                        .legacyUpperLimit(lastAllocatedStatusBuilder.value(
+                        .legacyUpperLimit(legacyAllocatedStatusBuilder.value(
                                 getUpperLimitForColumn(rs, "LEGACY_last_allocated")).build())
                         .build();
             }
             return limitsBuilder
-                    .upperLimit(getVoidColumnStatus())
-                    .legacyUpperLimit(getVoidColumnStatus())
+                    .upperLimit(lastAllocatedStatusBuilder.build())
+                    .legacyUpperLimit(legacyAllocatedStatusBuilder.build())
                     .build();
         });
     }
