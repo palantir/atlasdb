@@ -75,12 +75,11 @@ public class DBKvsPostgresInvadationRunnerTest {
 
     @Test
     public void poisoningMultipleTimesIsAllowed() {
-        store.storeUpperLimit(12000);
+        store.storeUpperLimit(TIMESTAMP_1);
         store.getUpperLimit();
-        invalidationRunner.createTableIfDoesNotExist();
-        invalidationRunner.getLastAllocatedAndPoison();
-        invalidationRunner.getLastAllocatedAndPoison();
-        invalidationRunner.getLastAllocatedAndPoison();
+        assertThat(invalidationRunner.getLastAllocatedAndPoison()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.getLastAllocatedAndPoison()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.getLastAllocatedAndPoison()).isEqualTo(TIMESTAMP_1);
     }
 
     @Test
