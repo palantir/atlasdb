@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.OptionalLong;
 import java.util.function.Function;
 
@@ -28,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 
