@@ -110,9 +110,10 @@ public class InvalidationRunner {
         ImmutableLimits.Builder limitsBuilder = ImmutableLimits.builder();
         DatabaseMetaData metaData = connection.getMetaData();
         ResultSet res = metaData.getTables(null, null, prefixedTimestampTableName(), null);
-        if (!res.next()) {
-            return limitsBuilder.build(); // Illegal - table does not exist;
-        }
+
+        Preconditions.checkState(res.next(), "We are in the process of invalidating the "
+                + "InDbTimestampBoundStore but the data table does not exist. "
+                + "We should never reach here. Please contact support.");
 
         return limitsBuilder
                 .upperLimit(getColumnStatus(LAST_ALLOCATED, metaData, connection))
@@ -128,7 +129,7 @@ public class InvalidationRunner {
         if (columns.next()) {
             columnStatusBuilder.exists(true);
 
-            String sql = String.format("SELECT %s FROM %s", colName, prefixedTimestampTableName());
+            String sql = String.format("SELECT %s FROM %s FOR UPDATE", colName, prefixedTimestampTableName());
             QueryRunner run = new QueryRunner();
             return run.query(connection, sql, rs -> {
                 if (rs.next()) {
