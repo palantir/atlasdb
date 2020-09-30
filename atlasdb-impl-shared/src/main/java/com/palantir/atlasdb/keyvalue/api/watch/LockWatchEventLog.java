@@ -31,7 +31,7 @@ import com.palantir.logsafe.SafeArg;
 
 final class LockWatchEventLog {
     private final ClientLockWatchSnapshot snapshot;
-    private final VersionedEventStore eventStore = new VersionedEventStore();
+    private final VersionedEventStore eventStore = new VersionedEventStore(maxEvents);
     private Optional<IdentifiedVersion> latestVersion = Optional.empty();
 
     static LockWatchEventLog create() {
@@ -83,9 +83,9 @@ final class LockWatchEventLog {
         }
     }
 
-    void removeEventsBefore(long earliestSequence) {
+    void removeEventsBefore() {
         getLatestKnownVersion().ifPresent(version -> {
-            LockWatchEvents eventsToBeRemoved = eventStore.getAndRemoveElementsUpToExclusive(earliestSequence);
+            LockWatchEvents eventsToBeRemoved = eventStore.retentionEvents();
             snapshot.processEvents(eventsToBeRemoved, version.id());
         });
     }

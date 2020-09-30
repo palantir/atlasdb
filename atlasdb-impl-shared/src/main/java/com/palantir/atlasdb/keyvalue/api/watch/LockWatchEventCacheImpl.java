@@ -79,7 +79,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<IdentifiedVersion> updateVersion = processEventLogUpdate(update);
         updateVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
-        retentionEventsInLog();
     }
 
     @Override
@@ -123,7 +122,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
-        retentionEventsInLog();
     }
 
     @VisibleForTesting
@@ -138,10 +136,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private void retentionEventsInLog() {
-        Optional<IdentifiedVersion> currentVersion = eventLog.getLatestKnownVersion();
-        timestampStateStore.getEarliestVersion().flatMap(sequence ->
-                currentVersion.map(version -> IdentifiedVersion.of(version.id(), sequence)))
-                .map(IdentifiedVersion::version).ifPresent(eventLog::removeEventsBefore);
+        eventLog.removeEventsBefore();
     }
 
     @VisibleForTesting
@@ -172,6 +167,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         if (cacheUpdate.shouldClearCache()) {
             timestampStateStore.clear();
         }
+
+        retentionEventsInLog();
 
         return cacheUpdate.getVersion();
     }
