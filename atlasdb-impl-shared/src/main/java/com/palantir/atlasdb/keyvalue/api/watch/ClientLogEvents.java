@@ -24,7 +24,6 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
