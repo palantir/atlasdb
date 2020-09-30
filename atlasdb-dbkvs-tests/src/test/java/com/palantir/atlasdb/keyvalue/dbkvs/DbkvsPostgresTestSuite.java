@@ -48,7 +48,8 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
         PostgresEmbeddedDbTimestampBoundStoreTest.class,
         PostgresMultiSeriesDbTimestampBoundStoreTest.class,
         DbKvsPostgresGetCandidateCellsForSweepingTest.class,
-        DbKvsSweepProgressStoreIntegrationTest.class
+        DbKvsSweepProgressStoreIntegrationTest.class,
+        DBKvsPostgresInvalidationRunnerTest.class
         })
 public final class DbkvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
