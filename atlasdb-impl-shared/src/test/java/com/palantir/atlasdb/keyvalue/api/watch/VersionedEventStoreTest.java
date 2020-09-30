@@ -39,13 +39,13 @@ public final class VersionedEventStoreTest {
 
     @Before
     public void before() {
-        eventStore = new VersionedEventStore();
+        eventStore = new VersionedEventStore(maxEvents);
     }
 
     @Test
     public void getAndRemoveElementsUpToExclusiveDoesNotIncludeEndVersion() {
         eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3));
-        LockWatchEvents events = eventStore.getAndRemoveElementsUpToExclusive(3L);
+        LockWatchEvents events = eventStore.retentionEvents(3L);
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
         assertThat(events.latestSequence()).hasValue(2L);
         assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
