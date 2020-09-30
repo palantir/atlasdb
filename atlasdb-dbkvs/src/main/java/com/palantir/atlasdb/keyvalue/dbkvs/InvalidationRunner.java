@@ -40,6 +40,9 @@ import com.palantir.nexus.db.pool.RetriableTransactions;
 import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 
 public class InvalidationRunner {
+    private static final String LAST_ALLOCATED = "last_allocated";
+    private static final String LEGACY_LAST_ALLOCATED = "legacy_last_allocated";
+
     private final ConnectionManager connManager;
     private final InDbTimestampBoundStoreHelper helper;
 
@@ -57,7 +60,7 @@ public class InvalidationRunner {
                 new RetriableWriteTransaction<Long>() {
             @Override
             public Long run(Connection connection) throws SQLException {
-                Limits limits = readLimits(connection);
+                Limits limits = getLimits(connection);
                 TableStatus tableStatus = checkTableStatus(limits);
 
                 if (tableStatus == TableStatus.POISONED) {
@@ -103,57 +106,39 @@ public class InvalidationRunner {
         }
     }
 
-    private Limits readLimits(Connection connection) throws SQLException {
+    private Limits getLimits(Connection connection) throws SQLException {
         ImmutableLimits.Builder limitsBuilder = ImmutableLimits.builder();
         DatabaseMetaData metaData = connection.getMetaData();
         ResultSet res = metaData.getTables(null, null, prefixedTimestampTableName(), null);
-
         if (!res.next()) {
             return limitsBuilder.build(); // Illegal - table does not exist;
         }
-        QueryRunner run = new QueryRunner();
-        String sql = String.format("SELECT * FROM %s", prefixedTimestampTableName());
-        return run.query(connection, sql, rs -> {
-            ImmutableColumnStatus.Builder lastAllocatedStatusBuilder = ImmutableColumnStatus.builder();
-            ImmutableColumnStatus.Builder legacyAllocatedStatusBuilder = ImmutableColumnStatus.builder();
 
-            lastAllocatedStatusBuilder.exists(getColumnStatus(rs, "last_allocated"));
-            legacyAllocatedStatusBuilder.exists(getColumnStatus(rs, "LEGACY_last_allocated"));
-
-            if (rs.next()) {
-                return limitsBuilder
-                        .upperLimit(lastAllocatedStatusBuilder.value(
-                                getUpperLimitForColumn(rs, "last_allocated")).build())
-
-                        .legacyUpperLimit(legacyAllocatedStatusBuilder.value(
-                                getUpperLimitForColumn(rs, "LEGACY_last_allocated")).build())
-                        .build();
-            }
-            return limitsBuilder
-                    .upperLimit(lastAllocatedStatusBuilder.build())
-                    .legacyUpperLimit(legacyAllocatedStatusBuilder.build())
-                    .build();
-        });
+        return limitsBuilder
+                .upperLimit(getColumnStatus(LAST_ALLOCATED, metaData, connection))
+                .legacyUpperLimit(getColumnStatus(LEGACY_LAST_ALLOCATED, metaData, connection))
+                .build();
     }
 
-    private ImmutableColumnStatus getVoidColumnStatus() {
-        return ImmutableColumnStatus.builder().build();
-    }
+    private ColumnStatus getColumnStatus(String colName, DatabaseMetaData metaData, Connection connection)
+            throws SQLException {
+        ImmutableColumnStatus.Builder columnStatusBuilder = ImmutableColumnStatus.builder();
+        ResultSet columns = metaData.getColumns(null, null, prefixedTimestampTableName(), colName);
 
-    private boolean getColumnStatus(ResultSet rs, String columnLabel) {
-        try {
-            rs.findColumn(columnLabel);
-            return true;
-        } catch (SQLException e) {
-            return false;
-        }
-    }
+        if (columns.next()) {
+            columnStatusBuilder.exists(true);
 
-    private OptionalLong getUpperLimitForColumn(ResultSet rs, String columnLabel) {
-        try {
-            return OptionalLong.of(rs.getLong(columnLabel));
-        } catch (SQLException e) {
-            return OptionalLong.empty();
+            String sql = String.format("SELECT %s FROM %s", colName, prefixedTimestampTableName());
+            QueryRunner run = new QueryRunner();
+            return run.query(connection, sql, rs -> {
+                if (rs.next()) {
+                    columnStatusBuilder.value(rs.getLong(colName)).build();
+                }
+                return columnStatusBuilder.build();
+            });
+
+        } else {
+            return columnStatusBuilder.build();
         }
     }
 
