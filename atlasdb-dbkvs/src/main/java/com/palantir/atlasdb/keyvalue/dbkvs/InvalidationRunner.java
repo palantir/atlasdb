@@ -61,7 +61,7 @@ public class InvalidationRunner {
                 TableStatus tableStatus = checkTableStatus(limits);
 
                 if (tableStatus == TableStatus.POISONED) {
-                    return limits.legacyUpperLimit().getAsLong();
+                    return limits.legacyUpperLimit().value().orElse(NO_OP_FAST_FORWARD_TIMESTAMP);
                 }
 
                 long lastAllocated;
@@ -69,7 +69,7 @@ public class InvalidationRunner {
                 if (tableStatus == TableStatus.NO_DATA) {
                     lastAllocated = NO_OP_FAST_FORWARD_TIMESTAMP;
                 } else {
-                    lastAllocated = limits.upperLimit().getAsLong();
+                    lastAllocated = limits.upperLimit().value().orElse(NO_OP_FAST_FORWARD_TIMESTAMP);
                 }
 
                 poisonTable(connection);
@@ -111,19 +111,45 @@ public class InvalidationRunner {
         if (!res.next()) {
             return limitsBuilder.build(); // Illegal - table does not exist;
         }
-
         QueryRunner run = new QueryRunner();
-        String sql = "SELECT * FROM " + prefixedTimestampTableName();
+        String sql = String.format("SELECT * FROM %s", prefixedTimestampTableName());
         return run.query(connection, sql, rs -> {
+            ImmutableColumnStatus.Builder lastAllocatedStatusBuilder = ImmutableColumnStatus.builder();
+            ImmutableColumnStatus.Builder legacyAllocatedStatusBuilder = ImmutableColumnStatus.builder();
+
+            lastAllocatedStatusBuilder.exists(getColumnStatus(rs, "last_allocated"));
+            legacyAllocatedStatusBuilder.exists(getColumnStatus(rs, "LEGACY_last_allocated"));
+
             if (rs.next()) {
-                limitsBuilder.upperLimit(getUpperLimit(rs, "last_allocated"));
-                limitsBuilder.legacyUpperLimit(getUpperLimit(rs, "LEGACY_last_allocated"));
+                return limitsBuilder
+                        .upperLimit(lastAllocatedStatusBuilder.value(
+                                getUpperLimitForColumn(rs, "last_allocated")).build())
+
+                        .legacyUpperLimit(lastAllocatedStatusBuilder.value(
+                                getUpperLimitForColumn(rs, "LEGACY_last_allocated")).build())
+                        .build();
             }
-            return limitsBuilder.build();
+            return limitsBuilder
+                    .upperLimit(getVoidColumnStatus())
+                    .legacyUpperLimit(getVoidColumnStatus())
+                    .build();
         });
     }
 
-    private OptionalLong getUpperLimit(ResultSet rs, String columnLabel) {
+    private ImmutableColumnStatus getVoidColumnStatus() {
+        return ImmutableColumnStatus.builder().build();
+    }
+
+    private boolean getColumnStatus(ResultSet rs, String columnLabel) {
+        try {
+            rs.findColumn(columnLabel);
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    private OptionalLong getUpperLimitForColumn(ResultSet rs, String columnLabel) {
         try {
             return OptionalLong.of(rs.getLong(columnLabel));
         } catch (SQLException e) {
@@ -145,8 +171,8 @@ public class InvalidationRunner {
     }
 
     private TableStatus getTableStatus(Limits limits) {
-        boolean upperLimitExists = limits.upperLimit().isPresent();
-        boolean legacyUpperLimitExists = limits.legacyUpperLimit().isPresent();
+        boolean upperLimitExists = limits.upperLimit().exists();
+        boolean legacyUpperLimitExists = limits.legacyUpperLimit().exists();
 
         if (upperLimitExists) {
             return legacyUpperLimitExists ? TableStatus.ILLEGAL_COLUMNS : TableStatus.HEALTHY;
@@ -156,8 +182,17 @@ public class InvalidationRunner {
 
     @Value.Immutable
     interface Limits {
-        OptionalLong upperLimit();
-        OptionalLong legacyUpperLimit();
+        ColumnStatus upperLimit();
+        ColumnStatus legacyUpperLimit();
+    }
+
+    @Value.Immutable
+    interface ColumnStatus {
+        @Value.Default
+        default Boolean exists() {
+            return false;
+        }
+        OptionalLong value();
     }
 
     private enum TableStatus {
