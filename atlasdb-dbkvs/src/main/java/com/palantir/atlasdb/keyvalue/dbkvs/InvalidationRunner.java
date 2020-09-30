@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ConnectionDbTypes.getDbType;
-import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -30,7 +27,9 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ConnectionDbTypes;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStoreHelper;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
@@ -64,15 +63,17 @@ public class InvalidationRunner {
                         TableStatus tableStatus = checkTableStatus(limits);
 
                         if (tableStatus == TableStatus.POISONED) {
-                            return limits.legacyUpperLimit().value().orElse(NO_OP_FAST_FORWARD_TIMESTAMP);
+                            return limits.legacyUpperLimit().value()
+                                    .orElse(AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP);
                         }
 
                         long lastAllocated;
 
                         if (tableStatus == TableStatus.NO_DATA) {
-                            lastAllocated = NO_OP_FAST_FORWARD_TIMESTAMP;
+                            lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
                         } else {
-                            lastAllocated = limits.upperLimit().value().orElse(NO_OP_FAST_FORWARD_TIMESTAMP);
+                            lastAllocated = limits.upperLimit().value()
+                                    .orElse(AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP);
                         }
 
                         poisonTable(connection);
@@ -96,7 +97,7 @@ public class InvalidationRunner {
 
     private void poisonTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            if (getDbType(connection).equals(DBType.ORACLE)) {
+            if (ConnectionDbTypes.getDbType(connection).equals(DBType.ORACLE)) {
                 statement.execute(String.format("ALTER TABLE %s RENAME COLUMN last_allocated TO LEGACY_last_allocated",
                         prefixedTimestampTableName()));
             } else {

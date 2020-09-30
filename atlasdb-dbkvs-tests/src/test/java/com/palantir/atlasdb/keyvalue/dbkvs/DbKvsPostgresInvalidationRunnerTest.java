@@ -1,4 +1,3 @@
-
 /*
  * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
@@ -32,7 +31,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class DBKvsPostgresInvalidationRunnerTest {
+public class DbKvsPostgresInvalidationRunnerTest {
     private final ConnectionManagerAwareDbKvs kvs = DbkvsPostgresTestSuite.createKvs();
     private final TimestampBoundStore store = getStore();
     private final InvalidationRunner invalidationRunner = new InvalidationRunner(kvs.getConnectionManager());

@@ -37,7 +37,9 @@ public class InDbTimestampBoundStoreHelper {
     @GuardedBy("this") // lazy init to avoid db connections in constructors
     private DBType dbType;
 
-    public InDbTimestampBoundStoreHelper(ConnectionManager connManager) {this.connManager = connManager;}
+    public InDbTimestampBoundStoreHelper(ConnectionManager connManager) {
+        this.connManager = connManager;
+    }
 
     public void createTableIfDoesNotExist(String prefixedTimestampTableName) {
         try (Connection conn = connManager.getConnection()) {
