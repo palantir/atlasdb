@@ -70,6 +70,16 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         return inDbTimestampBoundStore;
     }
 
+    public static InDbTimestampBoundStore createMultiTableForSeries(
+            ConnectionManager connManager,
+            TableReference timestampTable,
+            String series) {
+        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager,
+                new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series));
+        inDbTimestampBoundStore.init();
+        return inDbTimestampBoundStore;
+    }
+
     private InDbTimestampBoundStore(ConnectionManager connManager,
             PhysicalBoundStoreStrategy physicalBoundStoreStrategy) {
         this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
@@ -157,7 +167,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized void storeUpperLimit(final long limit) {
         runOperation((connection, oldLimit) -> {
-            if (oldLimit != null) {
+            if (oldLimit.isPresent()) {
                 physicalBoundStoreStrategy.writeLimit(connection, limit);
             } else {
                 physicalBoundStoreStrategy.createLimit(connection, limit);

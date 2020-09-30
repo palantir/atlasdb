@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
+public class PostgresEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private ConnectionManagerAwareDbKvs kvs;
 
     @After
