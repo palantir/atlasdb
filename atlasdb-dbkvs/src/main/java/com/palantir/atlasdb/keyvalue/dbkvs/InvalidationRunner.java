@@ -30,6 +30,7 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStoreHelper;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
@@ -40,9 +41,15 @@ import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 
 public class InvalidationRunner {
     private final ConnectionManager connManager;
+    private final InDbTimestampBoundStoreHelper helper;
 
     public InvalidationRunner(ConnectionManager connManager) {
         this.connManager = connManager;
+        this.helper = new InDbTimestampBoundStoreHelper(connManager);
+    }
+
+    public void createTableIfDoesNotExist() {
+        helper.createTableIfDoesNotExist(prefixedTimestampTableName());
     }
 
     public long getLastAllocatedAndPoison() {
@@ -53,16 +60,20 @@ public class InvalidationRunner {
                 Limits limits = readLimits(connection);
                 TableStatus tableStatus = checkTableStatus(limits);
 
-                if (tableStatus == TableStatus.EMPTY) {
-                    return NO_OP_FAST_FORWARD_TIMESTAMP;
-                }
-
                 if (tableStatus == TableStatus.POISONED) {
                     return limits.legacyUpperLimit().getAsLong();
                 }
 
+                long lastAllocated;
+
+                if (tableStatus == TableStatus.NO_DATA) {
+                    lastAllocated = NO_OP_FAST_FORWARD_TIMESTAMP;
+                } else {
+                    lastAllocated = limits.upperLimit().getAsLong();
+                }
+
                 poisonTable(connection);
-                return limits.upperLimit().getAsLong();
+                return lastAllocated;
             }
         });
         switch (result.getStatus()) {
@@ -98,7 +109,7 @@ public class InvalidationRunner {
         ResultSet res = metaData.getTables(null, null, prefixedTimestampTableName(), null);
 
         if (!res.next()) {
-            return limitsBuilder.build(); // table does not exist;
+            return limitsBuilder.build(); // Illegal - table does not exist;
         }
 
         QueryRunner run = new QueryRunner();
@@ -127,7 +138,7 @@ public class InvalidationRunner {
     private TableStatus checkTableStatus(Limits limits) {
         TableStatus status = getTableStatus(limits);
 
-        Preconditions.checkState(status != TableStatus.ILLEGAL,
+        Preconditions.checkState(status != TableStatus.ILLEGAL_COLUMNS,
                 "We detected the table has both current as well as legacy columns."
                         + "This is unexpected. Please contact support.");
         return status;
@@ -138,9 +149,9 @@ public class InvalidationRunner {
         boolean legacyUpperLimitExists = limits.legacyUpperLimit().isPresent();
 
         if (upperLimitExists) {
-            return legacyUpperLimitExists ? TableStatus.ILLEGAL : TableStatus.HEALTHY;
+            return legacyUpperLimitExists ? TableStatus.ILLEGAL_COLUMNS : TableStatus.HEALTHY;
         }
-        return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.EMPTY; // no data in table / no table ?
+        return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.NO_DATA; // no data in table
     }
 
     @Value.Immutable
@@ -150,9 +161,9 @@ public class InvalidationRunner {
     }
 
     private enum TableStatus {
+        NO_DATA,
         POISONED,
         HEALTHY,
-        ILLEGAL,
-        EMPTY
+        ILLEGAL_COLUMNS,
     }
 }
