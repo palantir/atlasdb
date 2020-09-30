@@ -122,9 +122,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                         + " persistence. However, if you are need to persist the timestamp service state in the"
                         + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
                         + "\nNote that if the service has already been running, you will have to migrate the timestamp"
-                        + " table to Postgres/Oracle and rename it to %s.",
-                timestampTable.map(TableReference::getQualifiedName).orElse("unknown table"),
-                AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE);
+                        + " table to Postgres/Oracle: please contact support. DO NOT TRY TO FIX THIS YOURSELF.",
+                timestampTable.map(TableReference::getQualifiedName).orElse("unknown table"));
 
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
