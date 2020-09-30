@@ -116,6 +116,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Map<Long, LockWatchVersion> timestampToVersion = getTimestampMappings(startTimestamps);
         LockWatchVersion endVersion = Collections.max(timestampToVersion.values(),
                 Comparator.comparingLong(LockWatchVersion::version));
+
+        ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
+
+
         return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampToVersion);
     }
 

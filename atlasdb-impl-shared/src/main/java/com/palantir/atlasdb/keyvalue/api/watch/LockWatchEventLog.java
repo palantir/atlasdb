@@ -30,8 +30,10 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 final class LockWatchEventLog {
+    private static final int MAX_EVENTS = 1000;
+
     private final ClientLockWatchSnapshot snapshot;
-    private final VersionedEventStore eventStore = new VersionedEventStore(maxEvents);
+    private final VersionedEventStore eventStore = new VersionedEventStore(MAX_EVENTS);
     private Optional<LockWatchVersion> latestVersion = Optional.empty();
 
     static LockWatchEventLog create() {
