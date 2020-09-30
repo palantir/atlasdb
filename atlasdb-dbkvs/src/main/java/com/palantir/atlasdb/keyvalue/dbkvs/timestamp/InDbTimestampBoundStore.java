@@ -62,19 +62,19 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
             ConnectionManager connManager,
             TableReference timestampTable,
             String tablePrefixString) {
-        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(
-                connManager,
-                new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString));
-        inDbTimestampBoundStore.init();
-        return inDbTimestampBoundStore;
+        return createWithStrategy(connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString));
     }
 
-    public static InDbTimestampBoundStore createMultiTableForSeries(
+    public static InDbTimestampBoundStore createForMultiSeries(
             ConnectionManager connManager,
             TableReference timestampTable,
             String series) {
-        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager,
-                new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series));
+        return createWithStrategy(connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series));
+    }
+
+    private static InDbTimestampBoundStore createWithStrategy(ConnectionManager connManager,
+            PhysicalBoundStoreStrategy strategy) {
+        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager, strategy);
         inDbTimestampBoundStore.init();
         return inDbTimestampBoundStore;
     }

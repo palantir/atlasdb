@@ -83,7 +83,7 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
     }
 
     private InDbTimestampBoundStore createDbTimestampBoundStore(String series) {
-        return InDbTimestampBoundStore.createMultiTableForSeries(
+        return InDbTimestampBoundStore.createForMultiSeries(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE,
                 series);
