@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.OptionalLong;
 import java.util.function.Function;
 
 import org.apache.commons.dbutils.QueryRunner;
@@ -44,47 +45,31 @@ public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundSto
     @Override
     public void createTimestampTable(Connection connection, Function<Connection, DBType> dbTypeExtractor)
             throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            if (dbTypeExtractor.apply(connection).equals(DBType.ORACLE)) {
-                createTimestampTableIgnoringAlreadyExistsError(statement);
-            } else {
-                statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ("
-                                + " client VARCHAR(2000) NOT NULL,"
-                                + " last_allocated int8 NOT NULL,"
-                                + " PRIMARY KEY (client))",
-                        timestampTable.getQualifiedName()));
-            }
-        }
-    }
-
-    private void createTimestampTableIgnoringAlreadyExistsError(Statement statement) throws SQLException {
-        try {
-            statement.execute(String.format("CREATE TABLE %s ("
-                            + " client VARCHAR(2000) NOT NULL,"
-                            + " last_allocated NUMBER(38) NOT NULL,"
-                            + " CONSTRAINT %s_pk PRIMARY KEY (client))",
-                    timestampTable.getQualifiedName(),
-                    timestampTable.getQualifiedName()));
-        } catch (SQLException e) {
-            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
-                log.error("Error occurred creating the Oracle timestamp table", e);
-                throw e;
-            }
-        }
+        PhysicalBoundStoreDatabaseUtils.createTimestampTable(
+                connection,
+                dbTypeExtractor,
+                ImmutableCreateTimestampTableQueries.builder().postgresQuery(
+                        String.format("CREATE TABLE IF NOT EXISTS %s ("
+                                        + " client VARCHAR(2000) NOT NULL,"
+                                        + " last_allocated int8 NOT NULL,"
+                                        + " PRIMARY KEY (client))",
+                                timestampTable.getQualifiedName()))
+                .oracleQuery(
+                        String.format("CREATE TABLE %s ("
+                                        + " client VARCHAR(2000) NOT NULL,"
+                                        + " last_allocated NUMBER(38) NOT NULL,"
+                                        + " CONSTRAINT %s_pk PRIMARY KEY (client))",
+                                timestampTable.getQualifiedName(),
+                                timestampTable.getQualifiedName()))
+                .build());
     }
 
     @Override
-    public Long readLimit(Connection connection) throws SQLException {
+    public OptionalLong readLimit(Connection connection) throws SQLException {
         String sql = String.format("SELECT last_allocated FROM %s WHERE client = ? FOR UPDATE",
                 timestampTable.getQualifiedName());
         QueryRunner run = new QueryRunner();
-        return run.query(connection, sql, rs -> {
-            if (rs.next()) {
-                return rs.getLong("last_allocated");
-            } else {
-                return null;
-            }
-        }, series);
+        return run.query(connection, sql, PhysicalBoundStoreDatabaseUtils::getLastAllocatedColumn, series);
     }
 
     @Override

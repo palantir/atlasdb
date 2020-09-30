@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.OptionalLong;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -51,7 +52,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
      * Use only if you have already initialized the timestamp table. This exists for legacy support.
      */
     public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        this(connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, "chocolate"));
+        this(connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, EMPTY_TABLE_PREFIX));
     }
 
     public static InDbTimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable) {
@@ -64,7 +65,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
             String tablePrefixString) {
         InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(
                 connManager,
-                new MultiSequencePhysicalBoundStoreStrategy(timestampTable, "tom"));
+                new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString));
         inDbTimestampBoundStore.init();
         return inDbTimestampBoundStore;
     }
@@ -84,7 +85,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private interface Operation {
-        long run(Connection connection, @Nullable Long oldLimit) throws SQLException;
+        long run(Connection connection, OptionalLong oldLimit) throws SQLException;
     }
 
     @GuardedBy("this")
@@ -93,12 +94,10 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
             @GuardedBy("InDbTimestampBoundStore.this")
             @Override
             public Long run(Connection connection) throws SQLException {
-                Long oldLimit = physicalBoundStoreStrategy.readLimit(connection);
+                OptionalLong oldLimit = physicalBoundStoreStrategy.readLimit(connection);
                 if (currentLimit != null) {
-                    if (oldLimit != null) {
-                        if (currentLimit.equals(oldLimit)) {
-                            // match, good
-                        } else {
+                    if (oldLimit.isPresent()) {
+                        if (oldLimit.getAsLong() != currentLimit) {
                             // mismatch
                             throw new MultipleRunningTimestampServiceError(
                                     "Timestamp limit changed underneath us (limit in memory: " + currentLimit
@@ -145,8 +144,8 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized long getUpperLimit() {
         return runOperation((connection, oldLimit) -> {
-            if (oldLimit != null) {
-                return oldLimit;
+            if (oldLimit.isPresent()) {
+                return oldLimit.getAsLong();
             }
 
             final long startVal = 10000;

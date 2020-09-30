@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.OptionalLong;
 import java.util.function.Function;
 
 import org.apache.commons.dbutils.QueryRunner;
@@ -43,16 +44,24 @@ public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrat
     }
 
     @Override
-    public Long readLimit(Connection connection) throws SQLException {
+    public void createTimestampTable(Connection connection, Function<Connection, DBType> dbTypeExtractor)
+            throws SQLException {
+        PhysicalBoundStoreDatabaseUtils.createTimestampTable(
+                connection,
+                dbTypeExtractor,
+                ImmutableCreateTimestampTableQueries.builder()
+                        .postgresQuery(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
+                                prefixedTimestampTableName()))
+                        .oracleQuery(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
+                                prefixedTimestampTableName()))
+                        .build());
+    }
+
+    @Override
+    public OptionalLong readLimit(Connection connection) throws SQLException {
         String sql = "SELECT last_allocated FROM " + prefixedTimestampTableName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
-        return run.query(connection, sql, rs -> {
-            if (rs.next()) {
-                return rs.getLong("last_allocated");
-            } else {
-                return null;
-            }
-        });
+        return run.query(connection, sql, PhysicalBoundStoreDatabaseUtils::getLastAllocatedColumn);
     }
 
     @Override
@@ -70,31 +79,6 @@ public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrat
         run.update(connection,
                 String.format("INSERT INTO %s (last_allocated) VALUES (?)", prefixedTimestampTableName()),
                 limit);
-    }
-
-    @Override
-    public void createTimestampTable(Connection connection, Function<Connection, DBType> dbTypeExtractor)
-            throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            if (dbTypeExtractor.apply(connection).equals(DBType.ORACLE)) {
-                createTimestampTableIgnoringAlreadyExistsError(statement);
-            } else {
-                statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
-                        prefixedTimestampTableName()));
-            }
-        }
-    }
-
-    private void createTimestampTableIgnoringAlreadyExistsError(Statement statement) throws SQLException {
-        try {
-            statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
-                    prefixedTimestampTableName()));
-        } catch (SQLException e) {
-            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
-                log.error("Error occurred creating the Oracle timestamp table", e);
-                throw e;
-            }
-        }
     }
 
     private String prefixedTimestampTableName() {

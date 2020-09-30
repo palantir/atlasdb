@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.OptionalLong;
 import java.util.function.Function;
 
 import com.palantir.nexus.db.DBType;
@@ -29,7 +30,7 @@ import com.palantir.nexus.db.DBType;
 public interface PhysicalBoundStoreStrategy {
     void createTimestampTable(Connection connection, Function<Connection, DBType> dbTypeExtractor) throws SQLException;
 
-    Long readLimit(Connection connection) throws SQLException;
+    OptionalLong readLimit(Connection connection) throws SQLException;
 
     void writeLimit(Connection connection, long limit) throws SQLException;
 
