@@ -134,7 +134,7 @@ public class InvalidationRunner {
             QueryRunner run = new QueryRunner();
             return run.query(connection, sql, rs -> {
                 if (rs.next()) {
-                    columnStatusBuilder.value(rs.getLong(colName)).build();
+                    return columnStatusBuilder.value(rs.getLong(colName)).build();
                 }
                 return columnStatusBuilder.build();
             });
