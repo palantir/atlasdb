@@ -17,12 +17,9 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -113,14 +110,18 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps,
             Optional<LockWatchVersion> lastKnownVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
-        Map<Long, LockWatchVersion> timestampToVersion = getTimestampMappings(startTimestamps);
-        LockWatchVersion endVersion = Collections.max(timestampToVersion.values(),
-                Comparator.comparingLong(LockWatchVersion::version));
-
+        TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
+        LockWatchVersion endVersion = timestampMapping.maxVersion();
         ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
 
+        events.versionRange().ifPresent(range -> {
+            assertTrue(range.lowerEndpoint() <= timestampMapping.minVersion().version(),
+                    "Early versions already deleted from cache");
+            assertTrue(range.upperEndpoint() >= timestampMapping.maxVersion().version(),
+                    "Late versions already deleted from cache");
+        });
 
-        return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampToVersion);
+        return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampMapping.timestampMapping());
     }
 
     @Override
@@ -129,14 +130,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @VisibleForTesting
-    Map<Long, LockWatchVersion> getTimestampMappings(Set<Long> startTimestamps) {
-        Map<Long, LockWatchVersion> timestampToVersion = new HashMap<>();
+    TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
+        TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
         startTimestamps.forEach(timestamp -> {
             Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
             assertTrue(entry.isPresent(), "start timestamp missing from map");
-            timestampToVersion.put(timestamp, entry.get());
+            mappingBuilder.putTimestampMapping(timestamp, entry.get());
         });
-        return timestampToVersion;
+        return mappingBuilder.build();
     }
 
     private void retentionEventsInLog() {
