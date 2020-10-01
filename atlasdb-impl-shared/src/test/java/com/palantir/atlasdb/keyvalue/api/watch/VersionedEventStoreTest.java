@@ -55,8 +55,8 @@ public final class VersionedEventStoreTest {
     @Test
     public void containsReturnsTrueForValuesLargerThanFirstKey() {
         eventStore.putAll(ImmutableList.of(EVENT_4));
-        assertThat(eventStore.containsEntriesLessThanOrEqualTo(1L)).isFalse();
-        assertThat(eventStore.containsEntriesLessThanOrEqualTo(5L)).isTrue();
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(1L)).isFalse();
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(5L)).isTrue();
     }
 
     @Test

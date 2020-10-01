@@ -59,7 +59,7 @@ final class VersionedEventStore {
         return builder.build();
     }
 
-    boolean containsEntriesLessThanOrEqualTo(long key) {
+    boolean containsEntryLessThanOrEqualTo(long key) {
         return eventMap.floorKey(key) != null;
     }
 
