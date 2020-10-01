@@ -37,6 +37,6 @@ public interface DbTimestampCreationParameters {
         Preconditions.checkState(tsBoundSchema() != DatabaseTsBoundSchema.MULTIPLE_SERIES || series().isPresent(),
                 "Cannot have a multiple series configuration without a series specified");
         Preconditions.checkState(tsBoundSchema() != DatabaseTsBoundSchema.ONE_SERIES || !series().isPresent(),
-                "Cannot have a multiple series configuration without a series specified");
+                "Cannot have a single series configuration with a series specified");
     }
 }
