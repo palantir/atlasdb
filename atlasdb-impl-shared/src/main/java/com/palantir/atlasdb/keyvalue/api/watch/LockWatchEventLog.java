@@ -112,10 +112,10 @@ final class LockWatchEventLog {
         long snapshotVersion = versionBounds.snapshotVersion();
         Collection<LockWatchEvent> collapsibleEvents =
                 eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), snapshotVersion);
+        LockWatchEvents events = new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build();
 
         return LockWatchCreatedEvent.fromSnapshot(
-                snapshot.getSnapshotWithEvents(new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build(),
-                        versionBounds.endVersion().id()));
+                snapshot.getSnapshotWithEvents(events, versionBounds.endVersion().id()));
     }
 
     private boolean differentLeaderOrTooFarBehind(LockWatchVersion currentVersion,
