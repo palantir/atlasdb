@@ -102,7 +102,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         CommitInfo commitInfo = maybeCommitInfo.get();
 
-        ClientLogEvents update = eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion());
+        VersionBounds versionBounds = new VersionBounds.Builder()
+                .startVersion(startVersion)
+                .endVersion(commitInfo.commitVersion())
+                .build();
+
+        ClientLogEvents update = eventLog.getEventsBetweenVersions(versionBounds);
 
         // We don't mind if the exact version is not present, as we are only interested in the events **since** the
         // transaction started.
@@ -127,7 +132,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         LockWatchVersion endVersion = LockWatchVersion.of(timestampMapping.leader(),
                 timestampMapping.versionRange().upperEndpoint());
 
-        ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
+        VersionBounds versionBounds = new VersionBounds.Builder()
+                .startVersion(lastKnownVersion)
+                .endVersion(endVersion)
+                .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
+                .build();
+
+        ClientLogEvents events = eventLog.getEventsBetweenVersions(versionBounds);
 
         // If the client is at the same version as the earliest version in the timestamp mapping, then they will
         // only receive versions after that - and therefore the range of versions coming back from the events will not
@@ -148,7 +159,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @VisibleForTesting
-    TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
+    LockWatchEventCacheState getStateForTesting() {
+        return ImmutableLockWatchEventCacheState.builder()
+                .timestampStoreState(timestampStateStore.getStateForTesting())
+                .logState(eventLog.getStateForTesting())
+                .build();
+    }
+
+    private TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
         TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
         startTimestamps.forEach(timestamp -> {
             Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
@@ -157,15 +175,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         });
         return mappingBuilder.build();
     }
-
-    @VisibleForTesting
-    LockWatchEventCacheState getStateForTesting() {
-        return ImmutableLockWatchEventCacheState.builder()
-                .timestampStoreState(timestampStateStore.getStateForTesting())
-                .logState(eventLog.getStateForTesting())
-                .build();
-    }
-
 
     private Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         CacheUpdate cacheUpdate = eventLog.processUpdate(update);

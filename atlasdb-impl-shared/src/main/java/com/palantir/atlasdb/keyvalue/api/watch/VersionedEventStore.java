@@ -77,7 +77,10 @@ final class VersionedEventStore {
                 .build();
     }
 
-    private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, Long startVersion) {
+    private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {
+        if (endVersion < startVersion) {
+            return ImmutableList.of();
+        }
         return eventMap.subMap(startVersion, INCLUSIVE, endVersion, INCLUSIVE).values();
     }
 
