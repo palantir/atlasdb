@@ -23,19 +23,15 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 
 import org.apache.commons.dbutils.QueryRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.DBType;
 
 public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
-    private static final Logger log = LoggerFactory.getLogger(MultiSequencePhysicalBoundStoreStrategy.class);
-
     private final TableReference timestampTable;
-    private final String series;
+    private final TimestampSeries series;
 
-    public MultiSequencePhysicalBoundStoreStrategy(TableReference timestampTable, String series) {
+    public MultiSequencePhysicalBoundStoreStrategy(TableReference timestampTable, TimestampSeries series) {
         this.timestampTable = timestampTable;
         this.series = series;
     }
@@ -76,7 +72,7 @@ public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundSto
                 timestampTable.getQualifiedName());
         try (PreparedStatement statement = connection.prepareStatement(updateTs)) {
             statement.setLong(1, limit);
-            statement.setString(2, series);
+            statement.setString(2, series.series());
             statement.executeUpdate();
         }
     }

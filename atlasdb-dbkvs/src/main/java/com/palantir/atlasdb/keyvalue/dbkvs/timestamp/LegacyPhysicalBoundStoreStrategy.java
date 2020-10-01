@@ -23,16 +23,12 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 
 import org.apache.commons.dbutils.QueryRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 
 public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
-    private static final Logger log = LoggerFactory.getLogger(LegacyPhysicalBoundStoreStrategy.class);
-
     private final TableReference timestampTable;
     private final String tablePrefix;
 

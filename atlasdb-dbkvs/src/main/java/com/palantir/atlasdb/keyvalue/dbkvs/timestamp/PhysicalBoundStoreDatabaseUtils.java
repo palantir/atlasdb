@@ -58,6 +58,8 @@ public final class PhysicalBoundStoreDatabaseUtils {
                 log.error("Error occurred creating the Oracle timestamp table", e);
                 throw e;
             }
+            // The table already exists and we thus couldn't create it.
+            // Note that in Postgres this is taken care of by the query itself.
         }
     }
 

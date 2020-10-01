@@ -68,7 +68,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     public static InDbTimestampBoundStore createForMultiSeries(
             ConnectionManager connManager,
             TableReference timestampTable,
-            String series) {
+            TimestampSeries series) {
         return createWithStrategy(connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series));
     }
 
