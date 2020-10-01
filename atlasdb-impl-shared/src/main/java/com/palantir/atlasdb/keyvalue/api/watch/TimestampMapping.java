@@ -41,11 +41,9 @@ interface TimestampMapping {
                 .values()
                 .stream()
                 .map(LockWatchVersion::version)
-                .min(Long::compareTo);
+                .max(Long::compareTo);
 
-        Preconditions.checkState(firstVersion.isPresent(),
-                "Cannot compute timestamp mapping for empty map of timestamps");
-        Preconditions.checkState(lastVersion.isPresent(),
+        Preconditions.checkState(firstVersion.isPresent() && lastVersion.isPresent(),
                 "Cannot compute timestamp mapping for empty map of timestamps");
 
         return Range.closed(firstVersion.get(), lastVersion.get());

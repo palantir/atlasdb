@@ -17,11 +17,9 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;

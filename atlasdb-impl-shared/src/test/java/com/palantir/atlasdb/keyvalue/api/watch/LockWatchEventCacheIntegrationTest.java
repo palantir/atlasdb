@@ -205,13 +205,23 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getCommitUpdateDoesNotContainCommitLocks() {
+        eventCache = createEventCache(5);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         verifyStage();
 
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(1L);
-        assertThat(commitUpdate.accept(new CommitUpdateVisitor()))
-                .containsExactlyInAnyOrder(DESCRIPTOR);
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS);
+        assertThat(commitUpdate.accept(new CommitUpdateVisitor())).containsExactlyInAnyOrder(DESCRIPTOR);
+    }
+
+    @Test
+    public void getCommitUpdateIsInvalidatedAllIfEventsHaveBeenDeleted() {
+        eventCache = createEventCache(2);
+        setupInitialState();
+        eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
+
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS);
+        assertThat(commitUpdate.accept(new InvalidatedAllVisitor())).isTrue();
     }
 
     @Test
@@ -292,11 +302,13 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void upToDateClientDoesNotThrow() {
+        eventCache = createEventCache(6);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        assertThat(eventCache.getUpdateForTransactions(
-                TIMESTAMPS,
-                Optional.of(LockWatchVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
+        assertThatCode(() -> eventCache.getUpdateForTransactions(
+                ImmutableSet.of(START_TS, 16L),
+                Optional.of(LockWatchVersion.of(LEADER, 3L))))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -362,6 +374,19 @@ public class LockWatchEventCacheIntegrationTest {
         @Override
         public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
             return invalidatedLocks;
+        }
+    }
+
+    private static final class InvalidatedAllVisitor implements CommitUpdate.Visitor<Boolean> {
+
+        @Override
+        public Boolean invalidateAll() {
+            return true;
+        }
+
+        @Override
+        public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            return false;
         }
     }
 }

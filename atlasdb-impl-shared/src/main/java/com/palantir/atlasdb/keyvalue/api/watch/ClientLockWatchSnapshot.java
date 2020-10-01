@@ -62,7 +62,7 @@ final class ClientLockWatchSnapshot {
     }
 
     void processEvents(LockWatchEvents events, UUID versionId) {
-        if (!events.events().isEmpty()) {
+        if (events.events().isEmpty()) {
             return;
         }
 

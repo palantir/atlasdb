@@ -53,7 +53,7 @@ final class LockWatchEventLog {
     /**
      * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping;
      * @param endVersion       mapping from timestamp to identified version from client-side event cache;
-     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive).
+     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive)
      */
     public ClientLogEvents getEventsBetweenVersions(
             Optional<LockWatchVersion> lastKnownVersion,
@@ -103,7 +103,8 @@ final class LockWatchEventLog {
 
     private boolean differentLeaderOrTooFarBehind(LockWatchVersion currentVersion,
             LockWatchVersion startVersion) {
-        return !startVersion.id().equals(currentVersion.id()) || !eventStore.containsEntryLessThanOrEqualTo(startVersion.version());
+        return !startVersion.id().equals(currentVersion.id())
+                || !eventStore.containsEntryLessThanOrEqualTo(startVersion.version());
     }
 
     private LockWatchVersion createStartVersion(LockWatchVersion startVersion) {
