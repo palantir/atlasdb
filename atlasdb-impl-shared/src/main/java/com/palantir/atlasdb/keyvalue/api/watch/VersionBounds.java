@@ -21,6 +21,7 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 interface VersionBounds {
@@ -37,6 +38,20 @@ interface VersionBounds {
     @Value.Derived
     default long snapshotVersion() {
         return earliestSnapshotVersion().orElseGet(() -> endVersion().version());
+    }
+
+    @Value.Check
+    default void checkTimestampOrdering() {
+        if (startVersion().isPresent()) {
+            Preconditions.checkArgument(startVersion().get().version() <= endVersion().version(),
+                    "The start version version cannot exceed the end version");
+
+            Preconditions.checkArgument(startVersion().get().version() <= snapshotVersion(),
+                    "The start version cannot exceed the snapshot version");
+        }
+
+        Preconditions.checkArgument(snapshotVersion() <= endVersion().version(),
+                "The snapshot version cannot exceed the end version");
     }
 
     class Builder extends ImmutableVersionBounds.Builder {}
