@@ -16,43 +16,25 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Range;
 import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 interface ClientLogEvents {
 
-    List<LockWatchEvent> events();
+    LockWatchEvents events();
 
     boolean clearCache();
-
-    @Value.Derived
-    default Optional<Range<Long>> versionRange() {
-        if (events().isEmpty()) {
-            return Optional.empty();
-        } else {
-            LockWatchEvent firstEvent = Iterables.getFirst(events(), null);
-            Preconditions.checkNotNull(firstEvent, "Should never try to compute version range from empty list");
-            LockWatchEvent lastEvent = Iterables.getLast(events());
-            return Optional.of(Range.closed(firstEvent.sequence(), lastEvent.sequence()));
-        }
-    }
 
     default TransactionsLockWatchUpdate map(Map<Long, LockWatchVersion> timestampMap) {
         return ImmutableTransactionsLockWatchUpdate.builder()
                 .startTsToSequence(timestampMap)
-                .events(events())
+                .events(events().events())
                 .clearCache(clearCache())
                 .build();
     }

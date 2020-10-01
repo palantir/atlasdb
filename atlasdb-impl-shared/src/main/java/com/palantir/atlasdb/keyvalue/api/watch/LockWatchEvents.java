@@ -17,31 +17,44 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.Streams;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface LockWatchEvents {
     List<LockWatchEvent> events();
 
-    Optional<Long> latestSequence();
+    @Value.Derived
+    default Optional<Long> firstVersion() {
+        return events()
+                .stream()
+                .map(LockWatchEvent::sequence)
+                .min(Long::compareTo);
+    }
 
-    static LockWatchEvents create(Set<Map.Entry<Long, LockWatchEvent>> versionToEventSet) {
-        if (versionToEventSet.isEmpty()) {
-            return ImmutableLockWatchEvents.builder().build();
-        } else {
-            return ImmutableLockWatchEvents.builder()
-                    .addAllEvents(versionToEventSet.stream().map(Map.Entry::getValue).collect(Collectors.toList()))
-                    .latestSequence(Streams.findLast(versionToEventSet.stream()).map(Map.Entry::getKey))
-                    .build();
+    @Value.Derived
+    default Optional<Long> lastVersion() {
+        return events()
+                .stream()
+                .map(LockWatchEvent::sequence)
+                .max(Long::compareTo);
+    }
+
+    @Value.Check
+    default void contiguousSequence() {
+        if (events().isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < events().size() - 1; ++i) {
+            Preconditions.checkArgument(events().get(i).sequence() + 1 == events().get(i + 1).sequence(),
+                    "Events form a non-contiguous sequence");
         }
     }
 
+    class Builder extends ImmutableLockWatchEvents.Builder {}
 }

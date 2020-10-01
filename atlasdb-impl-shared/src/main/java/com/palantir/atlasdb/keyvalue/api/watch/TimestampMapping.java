@@ -46,7 +46,7 @@ interface TimestampMapping {
         Optional<LockWatchVersion> maxVersion = timestampMapping()
                 .values()
                 .stream()
-                .min(COMPARATOR);
+                .max(COMPARATOR);
         Preconditions.checkState(maxVersion.isPresent(),
                 "Cannot compute timestamp mapping for empty map of timestamps");
         return maxVersion.get();

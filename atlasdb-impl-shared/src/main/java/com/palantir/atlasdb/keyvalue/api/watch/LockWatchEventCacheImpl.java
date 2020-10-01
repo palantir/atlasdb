@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -102,7 +101,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             return ImmutableInvalidateAll.builder().build();
         }
 
-        return createCommitUpdate(commitInfo, update.events());
+        return createCommitUpdate(commitInfo, update.events().events());
     }
 
     @Override
@@ -114,12 +113,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         LockWatchVersion endVersion = timestampMapping.maxVersion();
         ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
 
-        events.versionRange().ifPresent(range -> {
-            assertTrue(range.lowerEndpoint() <= timestampMapping.minVersion().version(),
-                    "Early versions already deleted from cache");
-            assertTrue(range.upperEndpoint() >= timestampMapping.maxVersion().version(),
-                    "Late versions already deleted from cache");
-        });
+        events.events().firstVersion().ifPresent(
+                minVersion -> assertTrue(minVersion <= timestampMapping.minVersion().version(),
+                        "Earliest version in the timestamp mapping has already been deleted from the event cache"));
+        events.events().lastVersion().ifPresent(
+                maxVersion -> assertTrue(maxVersion >= timestampMapping.maxVersion().version(),
+                        "Latest version in the timestamp mapping has already been deleted from the event cache"));
 
         return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampMapping.timestampMapping());
     }

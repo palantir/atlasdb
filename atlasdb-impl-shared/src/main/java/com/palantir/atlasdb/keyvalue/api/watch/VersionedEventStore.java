@@ -20,12 +20,12 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 
@@ -53,11 +53,10 @@ final class VersionedEventStore {
 
     LockWatchEvents retentionEvents() {
         int numToRetention = Math.max(0, eventMap.size() - maxEvents);
-        Set<Map.Entry<Long, LockWatchEvent>> elementsUpToVersion = eventMap.entrySet().stream().limit(
-                numToRetention).collect(Collectors.toSet());
-        LockWatchEvents events = LockWatchEvents.create(elementsUpToVersion);
-        elementsUpToVersion.clear();
-        return events;
+        LockWatchEvents.Builder builder = new LockWatchEvents.Builder();
+        Iterators.consumingIterator(Iterators.limit(eventMap.entrySet().iterator(), numToRetention))
+                .forEachRemaining(entry -> builder.addEvents(entry.getValue()));
+        return builder.build();
     }
 
     boolean contains(long key) {

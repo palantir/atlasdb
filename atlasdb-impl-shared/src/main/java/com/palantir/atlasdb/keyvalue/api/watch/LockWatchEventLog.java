@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -72,15 +71,19 @@ final class LockWatchEventLog {
         if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(currentVersion, startVersion.get())) {
             return new ClientLogEvents.Builder()
                     .clearCache(true)
-                    .addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()))
-                    .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), endVersion.version()))
+                    .events(new LockWatchEvents.Builder()
+                            .addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()))
+                            .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(),
+                                    endVersion.version()))
+                            .build())
                     .build();
         } else {
             return new ClientLogEvents.Builder()
                     .clearCache(false)
-                    .addAllEvents(
-                            eventStore.getEventsBetweenVersionsInclusive(Optional.of(startVersion.get().version()),
-                                    endVersion.version()))
+                    .events(new LockWatchEvents.Builder()
+                            .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
+                                    Optional.of(startVersion.get().version()), endVersion.version()))
+                            .build())
                     .build();
         }
     }
@@ -140,24 +143,24 @@ final class LockWatchEventLog {
         }
     }
 
-    private void assertEventsAreContiguousAndNoEventsMissing(List<LockWatchEvent> events) {
-        if (events.isEmpty()) {
+    private void assertEventsAreContiguousAndNoEventsMissing(List<LockWatchEvent> eventsList) {
+        if (eventsList.isEmpty()) {
             return;
         }
 
-        for (int i = 0; i < events.size() - 1; ++i) {
-            Preconditions.checkArgument(events.get(i).sequence() + 1 == events.get(i + 1).sequence(),
-                    "Events form a non-contiguous sequence");
-        }
+        LockWatchEvents events = new LockWatchEvents.Builder()
+                .addAllEvents(eventsList)
+                .build();
 
         if (latestVersion.isPresent()) {
-            LockWatchEvent firstEvent = Iterables.getFirst(events, null);
-            Preconditions.checkNotNull(firstEvent, "First element not preset in list of events");
-            Preconditions.checkArgument(firstEvent.sequence() <= latestVersion.get().version()
-                            || latestVersion.get().version() + 1 == firstEvent.sequence(),
+            Preconditions.checkArgument(events.firstVersion().isPresent(),
+                    "First element not preset in list of events");
+            long firstVersion = events.firstVersion().get();
+            Preconditions.checkArgument(firstVersion <= latestVersion.get().version()
+                            || latestVersion.get().version() + 1 == firstVersion,
                     "Events missing between last snapshot and this batch of events",
                     SafeArg.of("latestVersionSequence", latestVersion.get().version()),
-                    SafeArg.of("firstNewVersionSequence", firstEvent.sequence()));
+                    SafeArg.of("firstNewVersionSequence", firstVersion));
         }
     }
 
