@@ -22,4 +22,8 @@ import org.immutables.value.Value;
 public interface TimestampSeries {
     @Value.Parameter
     String series();
+
+    static TimestampSeries of(String value) {
+        return ImmutableTimestampSeries.of(value);
+    }
 }
