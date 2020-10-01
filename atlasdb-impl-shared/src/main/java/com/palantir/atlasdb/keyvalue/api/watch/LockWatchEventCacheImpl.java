@@ -114,13 +114,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
         LockWatchVersion endVersion = timestampMapping.maxVersion();
         ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
-
-        events.events().firstVersion().ifPresent(
-                minVersion -> assertTrue(minVersion <= timestampMapping.minVersion().version(),
-                        "Earliest version in the timestamp mapping has already been deleted from the event cache"));
-        events.events().lastVersion().ifPresent(
-                maxVersion -> assertTrue(maxVersion >= timestampMapping.maxVersion().version(),
-                        "Latest version in the timestamp mapping has already been deleted from the event cache"));
+        assertEventsStillPresentForTimestamps(timestampMapping, events);
 
         return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampMapping.timestampMapping());
     }
@@ -150,19 +144,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
 
-    private void assertTrue(boolean condition, String message) {
-        if (!condition) {
-            throw new TransactionLockWatchFailedException(message);
-        }
-    }
-
-    private CommitUpdate createCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
-        Set<LockDescriptor> locksTakenOut = new HashSet<>();
-        events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
-    }
-
     private Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         CacheUpdate cacheUpdate = eventLog.processUpdate(update);
 
@@ -173,6 +154,30 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         eventLog.retentionEvents();
 
         return cacheUpdate.getVersion();
+    }
+
+    private static CommitUpdate createCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
+        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
+        Set<LockDescriptor> locksTakenOut = new HashSet<>();
+        events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
+        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
+    }
+
+    private static void assertTrue(boolean condition, String message) {
+        if (!condition) {
+            throw new TransactionLockWatchFailedException(message);
+        }
+    }
+
+    private static void assertEventsStillPresentForTimestamps(
+            TimestampMapping timestampMapping,
+            ClientLogEvents events) {
+        events.events().firstVersion().ifPresent(
+                minVersion -> assertTrue(minVersion <= timestampMapping.minVersion().version(),
+                        "Earliest version in the timestamp mapping has already been deleted from the event cache"));
+        events.events().lastVersion().ifPresent(
+                maxVersion -> assertTrue(maxVersion >= timestampMapping.maxVersion().version(),
+                        "Latest version in the timestamp mapping has already been deleted from the event cache"));
     }
 
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {

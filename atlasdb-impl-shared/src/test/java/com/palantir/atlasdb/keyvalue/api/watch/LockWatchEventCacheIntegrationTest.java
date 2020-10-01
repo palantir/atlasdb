@@ -321,6 +321,26 @@ public class LockWatchEventCacheIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    public void timestampEventsRetentionedThrows() {
+        eventCache = createEventCache(1);
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
+
+        assertThatThrownBy(() -> eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.empty()))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+    }
+
+    @Test
+    public void newEventsCauseOldEventsToBeDeleted() {
+        eventCache = createEventCache(3);
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
+        verifyStage();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
+        verifyStage();
+    }
+
     private void setupInitialState() {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SNAPSHOT);
     }
