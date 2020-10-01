@@ -21,6 +21,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Optional;
 
 import org.apache.commons.dbutils.QueryRunner;
 import org.immutables.value.Value;
@@ -61,7 +62,7 @@ public class InvalidationRunner {
                     TableStatus tableStatus = checkTableStatus(limits);
 
                     if (tableStatus == TableStatus.POISONED) {
-                        return limits.legacyUpperLimit().value();
+                        return limits.legacyUpperLimit().get().value();
                     }
                     return poisonStoreAndGetLastAllocatedTimestamp(connection, limits, tableStatus);
                 });
@@ -89,7 +90,7 @@ public class InvalidationRunner {
         if (tableStatus == TableStatus.NO_DATA) {
             lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
         } else {
-            lastAllocated = limits.upperLimit().value();
+            lastAllocated = limits.upperLimit().get().value();
         }
         poisonTable(connection);
         return lastAllocated;
@@ -121,7 +122,7 @@ public class InvalidationRunner {
                 .build();
     }
 
-    private ColumnStatus getColumnStatus(String colName, Connection connection) throws SQLException {
+    private Optional<ColumnStatus> getColumnStatus(String colName, Connection connection) throws SQLException {
         if (hasColumn(connection, colName)) {
             String sql = String.format("SELECT %s FROM %s FOR UPDATE", colName, prefixedTimestampTableName());
             QueryRunner run = new QueryRunner();
@@ -133,7 +134,7 @@ public class InvalidationRunner {
             });
 
         } else {
-            return ColumnStatus.voidColumnStatus();
+            return Optional.empty();
         }
     }
 
@@ -157,8 +158,8 @@ public class InvalidationRunner {
     }
 
     private TableStatus getTableStatus(Limits limits) {
-        boolean upperLimitExists = limits.upperLimit().exists();
-        boolean legacyUpperLimitExists = limits.legacyUpperLimit().exists();
+        boolean upperLimitExists = limits.upperLimit().isPresent();
+        boolean legacyUpperLimitExists = limits.legacyUpperLimit().isPresent();
 
         if (upperLimitExists) {
             return legacyUpperLimitExists ? TableStatus.BOTH_COLUMNS : TableStatus.HEALTHY;
@@ -168,32 +169,23 @@ public class InvalidationRunner {
 
     @Value.Immutable
     interface Limits {
-        ColumnStatus upperLimit();
-        ColumnStatus legacyUpperLimit();
+        Optional<ColumnStatus> upperLimit();
+        Optional<ColumnStatus> legacyUpperLimit();
     }
 
     @Value.Immutable
     interface ColumnStatus {
         @Value.Default
-        default Boolean exists() {
-            return false;
-        }
-
-        @Value.Default
         default long value() {
             return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
         }
 
-        static ColumnStatus columnStatusWithValue(long value) {
-            return ImmutableColumnStatus.builder().exists(true).value(value).build();
+        static Optional<ColumnStatus> columnStatusWithValue(long value) {
+            return Optional.of(ImmutableColumnStatus.builder().value(value).build());
         }
 
-        static ColumnStatus columnStatusWithoutValue() {
-            return ImmutableColumnStatus.builder().exists(true).build();
-        }
-
-        static ColumnStatus voidColumnStatus() {
-            return ImmutableColumnStatus.builder().build();
+        static Optional<ColumnStatus> columnStatusWithoutValue() {
+            return Optional.of(ImmutableColumnStatus.builder().build());
         }
     }
 
