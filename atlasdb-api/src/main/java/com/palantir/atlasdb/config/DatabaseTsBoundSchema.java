@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
+package com.palantir.atlasdb.config;
 
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface TimestampSeries {
-    @Value.Parameter
-    String series();
+public enum DatabaseTsBoundSchema {
+    ONE_SERIES,
+    MULTIPLE_SERIES
 }

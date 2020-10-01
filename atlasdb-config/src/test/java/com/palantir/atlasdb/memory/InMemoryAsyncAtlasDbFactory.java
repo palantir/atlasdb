@@ -21,6 +21,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import com.google.auto.service.AutoService;
+import com.palantir.atlasdb.config.DbTimestampCreationParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -58,7 +59,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<TableReference> unused,
+            Optional<DbTimestampCreationParameters> unused,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         if (initializeAsync) {

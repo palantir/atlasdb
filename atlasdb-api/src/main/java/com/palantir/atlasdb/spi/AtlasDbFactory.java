@@ -22,9 +22,9 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.config.DbTimestampCreationParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -65,7 +65,7 @@ public interface AtlasDbFactory {
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<TableReference> timestampTable,
+            Optional<DbTimestampCreationParameters> dbTimestampCreationParameters,
             boolean initializeAsync);
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {

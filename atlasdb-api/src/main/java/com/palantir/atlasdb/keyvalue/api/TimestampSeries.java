@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.config;
+package com.palantir.atlasdb.keyvalue.api;
 
-public enum DatabaseTsBoundSchema {
-    ONE_SERIES,
-    MULTIPLE_SERIES;
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface TimestampSeries {
+    @Value.Parameter
+    String series();
 }

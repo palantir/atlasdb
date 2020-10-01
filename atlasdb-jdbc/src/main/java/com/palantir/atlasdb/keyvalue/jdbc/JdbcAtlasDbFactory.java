@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.config.DbTimestampCreationParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -76,16 +77,17 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<TableReference> timestampTable,
+            Optional<DbTimestampCreationParameters> creationParameters,
             boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
-        Preconditions.checkArgument(!timestampTable.isPresent()
-                        || timestampTable.get().equals(AtlasDbConstants.TIMESTAMP_TABLE),
-                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table found: "
-                        + timestampTable.map(TableReference::getQualifiedName).orElse("unknown table")
+        Preconditions.checkArgument(creationParameters.flatMap(DbTimestampCreationParameters::tableReference)
+                        .map(AtlasDbConstants.TIMESTAMP_TABLE::equals)
+                        .orElse(true),
+                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp params found: "
+                        + creationParameters
                         + "\nThis can happen if you configure the timelock server to use JDBC KVS for timestamp"
                         + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
                         + " persistence. However, if you are need to persist the timestamp service state in the"

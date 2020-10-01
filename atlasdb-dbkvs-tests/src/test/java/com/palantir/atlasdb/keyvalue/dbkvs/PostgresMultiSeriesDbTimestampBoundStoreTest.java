@@ -24,7 +24,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ImmutableTimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.TimestampSeries;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 

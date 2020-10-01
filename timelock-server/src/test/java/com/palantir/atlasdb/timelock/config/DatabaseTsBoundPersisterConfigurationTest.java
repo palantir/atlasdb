@@ -22,7 +22,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
-import com.palantir.timelock.config.DatabaseTsBoundSchema;
+import com.palantir.atlasdb.config.DatabaseTsBoundSchema;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
 
 public class DatabaseTsBoundPersisterConfigurationTest {

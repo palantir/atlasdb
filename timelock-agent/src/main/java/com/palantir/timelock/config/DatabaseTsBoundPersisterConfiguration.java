@@ -31,9 +31,6 @@ public abstract class DatabaseTsBoundPersisterConfiguration implements TsBoundPe
     @JsonProperty("key-value-service")
     public abstract KeyValueServiceConfig keyValueServiceConfig();
 
-    @JsonProperty("schema")
-    public abstract DatabaseTsBoundSchema databaseTsBoundSchema();
-
     /*
      * "relational" is hard-coded from DbKeyValueServiceConfig
      * to avoid taking a compile time dependency on atlasdb-dbkvs

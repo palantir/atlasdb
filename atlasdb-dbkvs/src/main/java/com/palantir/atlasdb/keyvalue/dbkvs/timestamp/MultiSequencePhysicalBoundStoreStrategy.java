@@ -25,6 +25,7 @@ import java.util.function.Function;
 import org.apache.commons.dbutils.QueryRunner;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.nexus.db.DBType;
 
 public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
