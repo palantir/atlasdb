@@ -138,12 +138,12 @@ final class LockWatchEventLog {
         }
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
-            assertEventsAreContiguousAndNoEventsMissing(success.events());
+            assertNoEventsAreMissing(success.events());
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(success.events())));
         }
     }
 
-    private void assertEventsAreContiguousAndNoEventsMissing(List<LockWatchEvent> eventsList) {
+    private void assertNoEventsAreMissing(List<LockWatchEvent> eventsList) {
         if (eventsList.isEmpty()) {
             return;
         }

@@ -29,6 +29,4 @@ import com.google.common.collect.SortedSetMultimap;
 @JsonDeserialize(as = ImmutableTimestampStateStoreState.class)
 interface TimestampStateStoreState {
     Map<Long, TimestampStateStore.MapEntry> timestampMap();
-
-    SortedSetMultimap<Long, Long> aliveVersions();
 }

@@ -37,13 +37,11 @@ import com.palantir.logsafe.Preconditions;
 
 final class TimestampStateStore {
     private final Map<Long, MapEntry> timestampMap = new HashMap<>();
-    private final SortedSetMultimap<Long, Long> aliveVersions = TreeMultimap.create();
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
         startTimestamps.forEach(startTimestamp -> {
             MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
-            aliveVersions.put(version.version(), startTimestamp);
         });
     }
 
@@ -64,17 +62,11 @@ final class TimestampStateStore {
     }
 
     void remove(long startTimestamp) {
-        Optional.ofNullable(timestampMap.remove(startTimestamp))
-                .ifPresent(entry -> aliveVersions.remove(entry.version().version(), startTimestamp));
+        Optional.ofNullable(timestampMap.remove(startTimestamp));
     }
 
     void clear() {
         timestampMap.clear();
-        aliveVersions.clear();
-    }
-
-    Optional<Long> getEarliestVersion() {
-        return Optional.ofNullable(Iterables.getFirst(aliveVersions.keySet(), null));
     }
 
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
@@ -89,7 +81,6 @@ final class TimestampStateStore {
     TimestampStateStoreState getStateForTesting() {
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
-                .aliveVersions(aliveVersions)
                 .build();
     }
 
