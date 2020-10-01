@@ -240,27 +240,11 @@ public class LockWatchEventCacheIntegrationTest {
     @Test
     public void getEventsForTransactionsReturnsSnapshotWithCondensedEvents() {
         setupInitialState();
-        eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
-        eventCache.removeTransactionStateFromCache(START_TS);
-        verifyStage();
-
-        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
-        verifyStage();
-
-        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.empty());
-        assertThat(results.clearCache()).isTrue();
-        assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
-                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(7L));
-    }
-
-    @Test
-    public void getEventsForTransactionsReturnsPartialSnapshot() {
-        eventCache = createEventCache(5);
-        setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+        verifyStage();
+
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(25L), SUCCESS_2);
+        verifyStage();
 
         TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(ImmutableSet.of(16L, 25L),
                 Optional.empty());
