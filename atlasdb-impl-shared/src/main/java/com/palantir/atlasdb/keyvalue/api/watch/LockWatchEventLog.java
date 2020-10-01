@@ -59,6 +59,7 @@ final class LockWatchEventLog {
      *                     - the earliest version to which the events may be condensed to in the case of a snapshot.
      * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive);
      *         this may begin with a snapshot if the latest version is too far behind.
+     * This may begin with a snapshot if the latest version is too far behind.
      */
     public ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
         Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
@@ -111,10 +112,10 @@ final class LockWatchEventLog {
         long snapshotVersion = versionBounds.snapshotVersion();
         Collection<LockWatchEvent> collapsibleEvents =
                 eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), snapshotVersion);
-        LockWatchEvents events = new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build();
 
         return LockWatchCreatedEvent.fromSnapshot(
-                snapshot.getSnapshotWithEvents(events, versionBounds.endVersion().id()));
+                snapshot.getSnapshotWithEvents(new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build(),
+                        versionBounds.endVersion().id()));
     }
 
     private boolean differentLeaderOrTooFarBehind(LockWatchVersion currentVersion,
