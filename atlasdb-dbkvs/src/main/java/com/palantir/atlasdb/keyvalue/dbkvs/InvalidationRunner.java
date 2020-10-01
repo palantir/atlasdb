@@ -123,19 +123,18 @@ public class InvalidationRunner {
     }
 
     private Optional<ColumnStatus> getColumnStatus(String colName, Connection connection) throws SQLException {
-        if (hasColumn(connection, colName)) {
-            String sql = String.format("SELECT %s FROM %s FOR UPDATE", colName, prefixedTimestampTableName());
-            QueryRunner run = new QueryRunner();
-            return run.query(connection, sql, rs -> {
-                if (rs.next()) {
-                    return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
-                }
-                return ColumnStatus.columnStatusWithoutValue();
-            });
-
-        } else {
+        if (!hasColumn(connection, colName)) {
             return Optional.empty();
         }
+
+        String sql = String.format("SELECT %s FROM %s FOR UPDATE", colName, prefixedTimestampTableName());
+        QueryRunner run = new QueryRunner();
+        return run.query(connection, sql, rs -> {
+            if (rs.next()) {
+                return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
+            }
+            return ColumnStatus.columnStatusWithoutValue();
+        });
     }
 
     private boolean hasColumn(Connection connection, String colName) throws SQLException {
