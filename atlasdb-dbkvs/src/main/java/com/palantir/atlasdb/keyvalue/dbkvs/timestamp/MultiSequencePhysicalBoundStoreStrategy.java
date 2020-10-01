@@ -63,7 +63,7 @@ public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundSto
         String sql = String.format("SELECT last_allocated FROM %s WHERE client = ? FOR UPDATE",
                 timestampTable.getQualifiedName());
         QueryRunner run = new QueryRunner();
-        return run.query(connection, sql, PhysicalBoundStoreDatabaseUtils::getLastAllocatedColumn, series);
+        return run.query(connection, sql, PhysicalBoundStoreDatabaseUtils::getLastAllocatedColumn, series.series());
     }
 
     @Override
@@ -83,7 +83,7 @@ public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundSto
         run.update(connection,
                 String.format("INSERT INTO %s (client, last_allocated) VALUES (?, ?)",
                         timestampTable.getQualifiedName()),
-                series,
+                series.series(),
                 limit);
     }
 }
