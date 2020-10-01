@@ -91,8 +91,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
                         + " persistence. However, if you are need to persist the timestamp service state in the"
                         + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
                         + "\nNote that if the service has already been running, you will have to migrate the timestamp"
-                        + " table to Postgres/Oracle and rename it to %s.",
-                AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE);
+                        + " table to Postgres/Oracle: please contact support. DO NOT TRY TO FIX THIS YOURSELF.");
 
         AtlasDbVersion.ensureVersionReported();
         return PersistentTimestampServiceImpl.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));

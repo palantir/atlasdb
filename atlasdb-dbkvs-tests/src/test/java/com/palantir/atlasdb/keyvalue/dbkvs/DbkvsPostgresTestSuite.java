@@ -45,7 +45,8 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
         DbkvsPostgresSerializableTransactionTest.class,
         DbkvsPostgresSweepTaskRunnerTest.class,
         DbkvsBackgroundSweeperIntegrationTest.class,
-        PostgresDbTimestampBoundStoreTest.class,
+        PostgresEmbeddedDbTimestampBoundStoreTest.class,
+        PostgresMultiSeriesDbTimestampBoundStoreTest.class,
         DbKvsPostgresGetCandidateCellsForSweepingTest.class,
         DbKvsSweepProgressStoreIntegrationTest.class
         })
