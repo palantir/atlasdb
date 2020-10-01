@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,7 +53,20 @@ interface TimestampMapping {
 
     @Value.Derived
     default UUID leader() {
-        
+        Optional<UUID> leader = timestampMapping()
+                .values()
+                .stream()
+                .findAny()
+                .map(LockWatchVersion::id);
+
+        Preconditions.checkState(leader.isPresent(),
+                "Cannot compute timestamp mapping for empty map of timestamps");
+
+        Preconditions.checkState(
+                timestampMapping().values().stream().allMatch(version -> version.id().equals(leader.get())),
+                "All versions must be on the same leader");
+
+        return leader.get();
     }
 
     class Builder extends ImmutableTimestampMapping.Builder {}

@@ -121,7 +121,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Optional<LockWatchVersion> lastKnownVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
-        LockWatchVersion endVersion = timestampMapping.versionRange().upperEndpoint();
+        LockWatchVersion endVersion = LockWatchVersion.of(timestampMapping.leader(),
+                timestampMapping.versionRange().upperEndpoint());
         ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
         assertEventsContainRangeOfVersions(timestampMapping.versionRange(), events);
 
