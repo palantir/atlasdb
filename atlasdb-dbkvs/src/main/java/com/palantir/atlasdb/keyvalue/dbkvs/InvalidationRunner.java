@@ -170,6 +170,10 @@ public class InvalidationRunner {
         return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.NO_DATA; // no data in table
     }
 
+    private String prefixedTimestampTableName() {
+        return tablePrefix + timestampTable.getQualifiedName();
+    }
+
     @Value.Immutable
     interface Limits {
         Optional<ColumnStatus> upperLimit();
@@ -190,10 +194,6 @@ public class InvalidationRunner {
         static Optional<ColumnStatus> columnStatusWithoutValue() {
             return Optional.of(ImmutableColumnStatus.builder().build());
         }
-    }
-
-    private String prefixedTimestampTableName() {
-        return tablePrefix + timestampTable.getQualifiedName();
     }
 
     private enum TableStatus {
