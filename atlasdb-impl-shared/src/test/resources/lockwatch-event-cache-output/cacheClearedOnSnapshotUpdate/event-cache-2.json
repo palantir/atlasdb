@@ -34,9 +34,6 @@
         },
         "commitInfo" : null
       }
-    },
-    "aliveVersions" : {
-      "7" : [ 123, 1255 ]
     }
   }
 }

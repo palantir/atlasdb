@@ -29,23 +29,17 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 final class LockWatchEventLog {
-    private static final int MAX_EVENTS = 1000;
-
     private final ClientLockWatchSnapshot snapshot;
-    private final VersionedEventStore eventStore = new VersionedEventStore(MAX_EVENTS);
+    private final VersionedEventStore eventStore;
     private Optional<LockWatchVersion> latestVersion = Optional.empty();
 
-    static LockWatchEventLog create() {
-        return create(ClientLockWatchSnapshot.create());
+    static LockWatchEventLog create(int maxEvents) {
+        return new LockWatchEventLog(ClientLockWatchSnapshot.create(), maxEvents);
     }
 
-    @VisibleForTesting
-    static LockWatchEventLog create(ClientLockWatchSnapshot snapshot) {
-        return new LockWatchEventLog(snapshot);
-    }
-
-    private LockWatchEventLog(ClientLockWatchSnapshot snapshot) {
+    private LockWatchEventLog(ClientLockWatchSnapshot snapshot, int maxEvents) {
         this.snapshot = snapshot;
+        this.eventStore = new VersionedEventStore(maxEvents);
     }
 
     CacheUpdate processUpdate(LockWatchStateUpdate update) {
@@ -88,7 +82,7 @@ final class LockWatchEventLog {
         }
     }
 
-    void removeEventsBefore() {
+    void retentionEvents() {
         getLatestKnownVersion().ifPresent(version -> {
             LockWatchEvents eventsToBeRemoved = eventStore.retentionEvents();
             snapshot.processEvents(eventsToBeRemoved, version.id());
@@ -110,7 +104,7 @@ final class LockWatchEventLog {
 
     private boolean differentLeaderOrTooFarBehind(LockWatchVersion currentVersion,
             LockWatchVersion startVersion) {
-        return !startVersion.id().equals(currentVersion.id()) || !eventStore.contains(startVersion.version());
+        return !startVersion.id().equals(currentVersion.id()) || !eventStore.containsEntriesLessThanOrEqualTo(startVersion.version());
     }
 
     private LockWatchVersion createStartVersion(LockWatchVersion startVersion) {

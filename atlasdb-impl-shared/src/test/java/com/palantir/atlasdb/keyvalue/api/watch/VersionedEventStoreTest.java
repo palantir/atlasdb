@@ -39,23 +39,24 @@ public final class VersionedEventStoreTest {
 
     @Before
     public void before() {
-        eventStore = new VersionedEventStore(1000);
+        eventStore = new VersionedEventStore(2);
     }
 
     @Test
-    public void getAndRemoveElementsUpToExclusiveDoesNotIncludeEndVersion() {
+    public void getAndRemoveElementsRemovesOldestElements() {
         eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3));
+        eventStore.putAll(ImmutableList.of(EVENT_4));
         LockWatchEvents events = eventStore.retentionEvents();
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
-        assertThat(events.latestSequence()).hasValue(2L);
+        assertThat(events.lastVersion()).hasValue(2L);
         assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
     }
 
     @Test
     public void containsReturnsTrueForValuesLargerThanFirstKey() {
         eventStore.putAll(ImmutableList.of(EVENT_4));
-        assertThat(eventStore.contains(1L)).isFalse();
-        assertThat(eventStore.contains(5L)).isTrue();
+        assertThat(eventStore.containsEntriesLessThanOrEqualTo(1L)).isFalse();
+        assertThat(eventStore.containsEntriesLessThanOrEqualTo(5L)).isTrue();
     }
 
     @Test

@@ -116,7 +116,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Before
     public void before() {
-        eventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create());
+        eventCache = createEventCache(3);
         part = 1;
     }
 
@@ -144,6 +144,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void processStartTimestampUpdateOnMultipleBatches() {
+        eventCache = createEventCache(5);
         setupInitialState();
         verifyStage();
 
@@ -171,6 +172,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void smallerUpdateAfterLargeUpdateDoesNotAffectCache() {
+        eventCache = createEventCache(5);
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -186,6 +188,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void largerUpdateAfterSmallUpdateOnlyPicksUpNewEvents() {
+        eventCache = createEventCache(5);
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -240,7 +243,9 @@ public class LockWatchEventCacheIntegrationTest {
                 ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
         assertThat(results.events()).containsExactly(
                 LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
-                        ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
+                        ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2)).build(4L),
+                UNLOCK_EVENT,
+                LOCK_EVENT,
                 LOCK_EVENT_2);
     }
 
@@ -253,7 +258,7 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void removingEntriesRetentionsEventsInLog() {
+    public void removingEntriesDoesNotRetentionVersions() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         verifyStage();
@@ -318,6 +323,10 @@ public class LockWatchEventCacheIntegrationTest {
 
     private void setupInitialState() {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SNAPSHOT);
+    }
+
+    private static LockWatchEventCacheImpl createEventCache(int maxSize) {
+        return new LockWatchEventCacheImpl(LockWatchEventLog.create(maxSize));
     }
 
     private static final class CommitUpdateVisitor implements CommitUpdate.Visitor<Set<LockDescriptor>> {

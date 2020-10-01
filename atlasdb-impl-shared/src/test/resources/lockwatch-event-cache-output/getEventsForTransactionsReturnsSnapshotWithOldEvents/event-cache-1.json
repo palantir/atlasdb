@@ -48,7 +48,6 @@
     }
   },
   "timestampStoreState" : {
-    "timestampMap" : { },
-    "aliveVersions" : { }
+    "timestampMap" : { }
   }
 }

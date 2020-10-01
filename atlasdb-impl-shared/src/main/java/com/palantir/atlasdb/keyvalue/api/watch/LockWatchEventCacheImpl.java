@@ -49,12 +49,14 @@ import com.palantir.logsafe.Preconditions;
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
+    private static final int MAX_EVENTS = 1000;
+
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(LockWatchEventLog.create()), NoOpLockWatchEventCache.INSTANCE,
+                new LockWatchEventCacheImpl(LockWatchEventLog.create(MAX_EVENTS)), NoOpLockWatchEventCache.INSTANCE,
                 metricsManager);
     }
 
@@ -139,10 +141,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return mappingBuilder.build();
     }
 
-    private void retentionEventsInLog() {
-        eventLog.removeEventsBefore();
-    }
-
     @VisibleForTesting
     LockWatchEventCacheState getStateForTesting() {
         return ImmutableLockWatchEventCacheState.builder()
@@ -172,7 +170,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             timestampStateStore.clear();
         }
 
-        retentionEventsInLog();
+        eventLog.retentionEvents();
 
         return cacheUpdate.getVersion();
     }
