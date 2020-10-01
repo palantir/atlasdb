@@ -15,6 +15,7 @@
     },
     "eventStoreState" : {
       "eventMap" : {
+
         "6" : {
           "type" : "lock",
           "sequence" : 6,
@@ -34,6 +35,7 @@
           "lockToken" : {
             "requestId" : "888fcd7a-b3d7-4d2a-9d2c-3d61cde1ba44"
           }
+
         }
       }
     },

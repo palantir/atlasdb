@@ -102,7 +102,16 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         CommitInfo commitInfo = maybeCommitInfo.get();
 
-        ClientLogEvents update = eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion());
+        VersionBounds versionBounds = new VersionBounds.Builder()
+                .startVersion(startVersion)
+                .endVersion(commitInfo.commitVersion())
+                .build();
+
+        ClientLogEvents update = eventLog.getEventsBetweenVersions(versionBounds);
+
+        if (update.clearCache()) {
+            return ImmutableInvalidateAll.builder().build();
+        }
 
         if (update.clearCache()) {
             return ImmutableInvalidateAll.builder().build();
@@ -127,7 +136,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         LockWatchVersion endVersion = LockWatchVersion.of(timestampMapping.leader(),
                 timestampMapping.versionRange().upperEndpoint());
 
-        ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
+        VersionBounds versionBounds = new VersionBounds.Builder()
+                .startVersion(lastKnownVersion)
+                .endVersion(endVersion)
+                .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
+                .build();
+
+        ClientLogEvents events = eventLog.getEventsBetweenVersions(versionBounds);
 
         // If the client is at the same version as the earliest version in the timestamp mapping, then they will
         // only receive versions after that - and therefore the range of versions coming back from the events will not
