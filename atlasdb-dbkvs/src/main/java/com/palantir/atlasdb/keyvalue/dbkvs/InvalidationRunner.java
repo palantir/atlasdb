@@ -26,10 +26,10 @@ import java.util.Optional;
 import org.apache.commons.dbutils.QueryRunner;
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.BoundStoreUtils;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ConnectionDbTypes;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStoreInitializer;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.CreateTimestampTableQueries;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PhysicalBoundStoreDatabaseUtils;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
@@ -45,15 +45,28 @@ public class InvalidationRunner {
     private static final String LEGACY_LAST_ALLOCATED = "legacy_last_allocated";
 
     private final ConnectionManager connManager;
-    private final InDbTimestampBoundStoreInitializer helper;
+    private final TableReference timestampTable;
+    private final String tablePrefix;
 
-    public InvalidationRunner(ConnectionManager connManager) {
+    public InvalidationRunner(ConnectionManager connManager, TableReference timestampTable, String tablePrefixString) {
         this.connManager = connManager;
-        this.helper = new InDbTimestampBoundStoreInitializer(connManager);
+        this.timestampTable = timestampTable;
+        this.tablePrefix = tablePrefixString;
     }
 
     public void createTableIfDoesNotExist() {
-        helper.createTableIfDoesNotExist(prefixedTimestampTableName());
+        try (Connection conn = connManager.getConnection()) {
+            createTimestampTable(conn);
+        } catch (SQLException error) {
+            throw PalantirSqlException.create(error);
+        }
+    }
+
+    public void createTimestampTable(Connection conn) throws SQLException {
+        PhysicalBoundStoreDatabaseUtils.createTimestampTable(
+                conn,
+                ConnectionDbTypes::getDbType,
+                CreateTimestampTableQueries.getCreateTableQueriesForLegacyStore(prefixedTimestampTableName()));
     }
 
     public long ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp() {
@@ -84,7 +97,7 @@ public class InvalidationRunner {
         }
     }
 
-    public Long poisonStoreAndGetLastAllocatedTimestamp(Connection connection, Limits limits,
+    private Long poisonStoreAndGetLastAllocatedTimestamp(Connection connection, Limits limits,
             TableStatus tableStatus) throws SQLException {
 
         long lastAllocated;
@@ -124,7 +137,7 @@ public class InvalidationRunner {
     }
 
     private Optional<ColumnStatus> getColumnStatus(String colName, Connection connection) throws SQLException {
-        if (!BoundStoreUtils.hasColumn(connection, prefixedTimestampTableName(), colName)) {
+        if (!PhysicalBoundStoreDatabaseUtils.hasColumn(connection, prefixedTimestampTableName(), colName)) {
             return Optional.empty();
         }
 
@@ -136,10 +149,6 @@ public class InvalidationRunner {
             }
             return ColumnStatus.columnStatusWithoutValue();
         });
-    }
-
-    private static String prefixedTimestampTableName() {
-        return AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE.getQualifiedName();
     }
 
     private TableStatus checkTableStatus(Limits limits) {
@@ -183,10 +192,14 @@ public class InvalidationRunner {
         }
     }
 
+    private String prefixedTimestampTableName() {
+        return tablePrefix + timestampTable.getQualifiedName();
+    }
+
     private enum TableStatus {
         NO_DATA,
         POISONED,
         HEALTHY,
-        BOTH_COLUMNS,
+        BOTH_COLUMNS, // Both last_allocated and poisoned columns exist
     }
 }

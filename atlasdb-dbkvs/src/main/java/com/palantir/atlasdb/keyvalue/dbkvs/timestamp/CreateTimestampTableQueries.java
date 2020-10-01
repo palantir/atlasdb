@@ -16,18 +16,19 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import org.immutables.value.Value;
 
-public class BoundStoreUtils {
+@Value.Immutable
+public interface CreateTimestampTableQueries {
+    String postgresQuery();
+    String oracleQuery();
 
-    public BoundStoreUtils() {
-        // do not initialize utilities class
-    }
-
-    public static boolean hasColumn(Connection connection, String tablePattern, String colNamePattern) throws SQLException {
-        return connection.getMetaData()
-                .getColumns(null, null, tablePattern, colNamePattern)
-                .next();
+    static CreateTimestampTableQueries getCreateTableQueriesForLegacyStore(String prefixedTimestampTableName) {
+        return ImmutableCreateTimestampTableQueries.builder()
+                .postgresQuery(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
+                        prefixedTimestampTableName))
+                .oracleQuery(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
+                        prefixedTimestampTableName))
+                .build();
     }
 }

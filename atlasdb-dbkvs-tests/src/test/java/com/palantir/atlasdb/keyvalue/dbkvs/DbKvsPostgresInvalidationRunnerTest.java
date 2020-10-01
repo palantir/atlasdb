@@ -38,12 +38,14 @@ public class DbKvsPostgresInvalidationRunnerTest {
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TimestampBoundStore store = getStore();
-    private final InvalidationRunner invalidationRunner = new InvalidationRunner(kvs.getConnectionManager());
+    private final InvalidationRunner invalidationRunner = new InvalidationRunner(kvs.getConnectionManager(),
+            AtlasDbConstants.TIMESTAMP_TABLE,
+            DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     private static final long TIMESTAMP_1 = 12000;
 
     @Before
     public void setUp() {
-        kvs.dropTable(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE);
+        kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         invalidationRunner.createTableIfDoesNotExist();
     }
 
@@ -89,7 +91,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public InDbTimestampBoundStore getStore() {
         return InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
-                AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE,
+                AtlasDbConstants.TIMESTAMP_TABLE,
                 DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     }
 
