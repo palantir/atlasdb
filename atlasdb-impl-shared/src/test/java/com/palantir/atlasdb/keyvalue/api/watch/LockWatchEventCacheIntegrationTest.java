@@ -238,7 +238,7 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void getEventsForTransactionsReturnsSnapshotWithOldEvents() {
+    public void getEventsForTransactionsReturnsSnapshotWithCondensedEvents() {
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         eventCache.removeTransactionStateFromCache(START_TS);
@@ -251,11 +251,25 @@ public class LockWatchEventCacheIntegrationTest {
         assertThat(results.clearCache()).isTrue();
         assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
                 ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(
-                LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
-                        ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2)).build(4L),
-                UNLOCK_EVENT,
-                LOCK_EVENT,
+        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
+                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(7L));
+    }
+
+    @Test
+    public void getEventsForTransactionsReturnsPartialSnapshot() {
+        eventCache = createEventCache(5);
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(25L), SUCCESS_2);
+
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(ImmutableSet.of(16L, 25L),
+                Optional.empty());
+        assertThat(results.clearCache()).isTrue();
+        assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
+                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 6L), 25L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(
+                ImmutableSet.of(REFERENCE),
+                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
                 LOCK_EVENT_2);
     }
 
