@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
 
@@ -48,10 +49,7 @@ public final class VersionedEventStoreTest {
         eventStore.putAll(ImmutableList.of(EVENT_4));
         LockWatchEvents events = eventStore.retentionEvents();
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
-        assertThat(events.events()
-                .stream()
-                .map(LockWatchEvent::sequence)
-                .max(Long::compareTo)).hasValue(2L);
+        assertThat(events.versionRange().map(Range::upperEndpoint)).hasValue(2L);
         assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
     }
 
