@@ -159,14 +159,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @VisibleForTesting
-    LockWatchEventCacheState getStateForTesting() {
-        return ImmutableLockWatchEventCacheState.builder()
-                .timestampStoreState(timestampStateStore.getStateForTesting())
-                .logState(eventLog.getStateForTesting())
-                .build();
-    }
-
-    private TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
+    TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
         TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
         startTimestamps.forEach(timestamp -> {
             Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
@@ -175,6 +168,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         });
         return mappingBuilder.build();
     }
+
+    @VisibleForTesting
+    LockWatchEventCacheState getStateForTesting() {
+        return ImmutableLockWatchEventCacheState.builder()
+                .timestampStoreState(timestampStateStore.getStateForTesting())
+                .logState(eventLog.getStateForTesting())
+                .build();
+    }
+
 
     private Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         CacheUpdate cacheUpdate = eventLog.processUpdate(update);
