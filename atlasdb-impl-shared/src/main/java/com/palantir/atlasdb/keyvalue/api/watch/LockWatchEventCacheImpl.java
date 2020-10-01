@@ -129,7 +129,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
         assertEventsContainRangeOfVersions(timestampMapping.versionRange(), events);
 
-        return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampMapping.timestampMapping());
+        return events.map(timestampMapping.timestampMapping());
     }
 
     @Override
