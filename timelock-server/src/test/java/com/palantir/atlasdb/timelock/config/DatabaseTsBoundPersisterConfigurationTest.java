@@ -30,17 +30,7 @@ public class DatabaseTsBoundPersisterConfigurationTest {
     public void canCreateWithInMemoryKvsConfig() {
         DatabaseTsBoundPersisterConfiguration config = ImmutableDatabaseTsBoundPersisterConfiguration.builder()
                 .keyValueServiceConfig(new InMemoryAtlasDbConfig())
-                .databaseTsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
                 .build();
         assertThat(config).isNotNull();
-    }
-
-    @Test
-    public void mustIndicateDatabaseTsBoundSchemaExplicitly() {
-        assertThatThrownBy(() -> ImmutableDatabaseTsBoundPersisterConfiguration.builder()
-                .keyValueServiceConfig(new InMemoryAtlasDbConfig())
-                .build())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("some of required attributes are not set");
     }
 }
