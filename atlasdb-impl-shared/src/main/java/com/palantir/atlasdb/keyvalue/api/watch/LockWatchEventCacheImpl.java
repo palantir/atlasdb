@@ -123,6 +123,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
         LockWatchVersion endVersion = LockWatchVersion.of(timestampMapping.leader(),
                 timestampMapping.versionRange().upperEndpoint());
+        lastKnownVersion.ifPresent(version -> assertTrue(version.version() < endVersion.version(),
+                "Cannot get events for transactions where the last known version is after the latest transaction"));
+
         ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
         assertEventsContainRangeOfVersions(timestampMapping.versionRange(), events);
 
@@ -180,8 +183,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private static void assertEventsContainRangeOfVersions(Range<Long> versionRange, ClientLogEvents events) {
-        events.events().versionRange().ifPresent(
-                range -> assertTrue(range.encloses(versionRange), "Events do not enclose the required versions"));
+        events.events().versionRange().ifPresent(eventsRange -> assertTrue(eventsRange.encloses(versionRange),
+                "Events do not enclose the required versions"));
     }
 
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
