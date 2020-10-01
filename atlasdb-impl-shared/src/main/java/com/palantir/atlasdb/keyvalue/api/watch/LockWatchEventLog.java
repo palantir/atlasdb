@@ -51,8 +51,8 @@ final class LockWatchEventLog {
     }
 
     /**
-     * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping;
-     * @param endVersion       mapping from timestamp to identified version from client-side event cache;
+     * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping.
+     * @param endVersion       mapping from timestamp to identified version from client-side event cache.
      * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive)
      */
     public ClientLogEvents getEventsBetweenVersions(
