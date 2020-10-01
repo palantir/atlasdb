@@ -329,6 +329,9 @@ public class LockWatchEventCacheIntegrationTest {
 
         assertThatThrownBy(() -> eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.empty()))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+
+        assertThatThrownBy(() -> eventCache.getCommitUpdate(START_TS))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
     }
 
     @Test
