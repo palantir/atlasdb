@@ -29,7 +29,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class DbKvsPostgresInvalidationRunnerTest {
@@ -63,7 +63,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
     @Test
     public void cannotReadAfterBeingPoisoned() {
         invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp();
-        assertBoundNotReadable();
+        assertBoundNotReadableAfterBeingPoisoned();
     }
 
     @Test
@@ -83,7 +83,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
                 .isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
         assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
                 .isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
-        assertBoundNotReadable();
+        assertBoundNotReadableAfterBeingPoisoned();
     }
 
     public InDbTimestampBoundStore getStore() {
@@ -93,7 +93,9 @@ public class DbKvsPostgresInvalidationRunnerTest {
                 DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     }
 
-    private void assertBoundNotReadable() {
-        assertThatThrownBy(store::getUpperLimit).isInstanceOf(PalantirSqlException.class);
+    private void assertBoundNotReadableAfterBeingPoisoned() {
+        assertThatThrownBy(store::getUpperLimit)
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("The store will not service requests as it had been poisoned");
     }
 }

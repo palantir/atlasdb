@@ -27,6 +27,7 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.BoundStoreUtils;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ConnectionDbTypes;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStoreInitializer;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -123,7 +124,7 @@ public class InvalidationRunner {
     }
 
     private Optional<ColumnStatus> getColumnStatus(String colName, Connection connection) throws SQLException {
-        if (!hasColumn(connection, colName)) {
+        if (!BoundStoreUtils.hasColumn(connection, prefixedTimestampTableName(), colName)) {
             return Optional.empty();
         }
 
@@ -135,12 +136,6 @@ public class InvalidationRunner {
             }
             return ColumnStatus.columnStatusWithoutValue();
         });
-    }
-
-    private boolean hasColumn(Connection connection, String colName) throws SQLException {
-        return connection.getMetaData()
-                .getColumns(null, null, prefixedTimestampTableName(), colName)
-                .next();
     }
 
     private static String prefixedTimestampTableName() {
