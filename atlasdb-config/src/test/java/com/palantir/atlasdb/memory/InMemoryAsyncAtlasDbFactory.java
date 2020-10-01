@@ -24,7 +24,6 @@ import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.DbTimestampCreationParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryTimestampService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
