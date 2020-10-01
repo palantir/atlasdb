@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 
@@ -29,19 +30,24 @@ public interface LockWatchEvents {
     List<LockWatchEvent> events();
 
     @Value.Derived
-    default Optional<Long> firstVersion() {
-        return events()
+    default Optional<Range<Long>> versionRange() {
+        Optional<Long> firstVersion = events()
                 .stream()
                 .map(LockWatchEvent::sequence)
                 .min(Long::compareTo);
-    }
-
-    @Value.Derived
-    default Optional<Long> lastVersion() {
-        return events()
+        Optional<Long> lastVersion = events()
                 .stream()
                 .map(LockWatchEvent::sequence)
                 .max(Long::compareTo);
+
+        if (!firstVersion.isPresent() && !lastVersion.isPresent()) {
+            return Optional.empty();
+        }
+
+        Preconditions.checkArgument(firstVersion.isPresent() && lastVersion.isPresent(),
+                "Both first and last version must be present");
+
+        return Optional.of(Range.closed(firstVersion.get(), lastVersion.get()));
     }
 
     @Value.Check

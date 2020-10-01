@@ -24,6 +24,7 @@ import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -103,6 +104,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         ClientLogEvents update = eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion());
 
+        assertEventsContainRangeOfVersions(
+                Range.closed(startVersion.get().version(), commitInfo.commitVersion().version()),
+                update);
+
         if (update.clearCache()) {
             return ImmutableInvalidateAll.builder().build();
         }
@@ -116,9 +121,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Optional<LockWatchVersion> lastKnownVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
-        LockWatchVersion endVersion = timestampMapping.maxVersion();
+        LockWatchVersion endVersion = timestampMapping.versionRange().upperEndpoint();
         ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
-        assertEventsStillPresentForTimestamps(timestampMapping, events);
+        assertEventsContainRangeOfVersions(timestampMapping.versionRange(), events);
 
         return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampMapping.timestampMapping());
     }
@@ -173,15 +178,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         }
     }
 
-    private static void assertEventsStillPresentForTimestamps(
-            TimestampMapping timestampMapping,
-            ClientLogEvents events) {
-        events.events().firstVersion().ifPresent(
-                minVersion -> assertTrue(minVersion <= timestampMapping.minVersion().version(),
-                        "Earliest version in the timestamp mapping has already been deleted from the event cache"));
-        events.events().lastVersion().ifPresent(
-                maxVersion -> assertTrue(maxVersion >= timestampMapping.maxVersion().version(),
-                        "Latest version in the timestamp mapping has already been deleted from the event cache"));
+    private static void assertEventsContainRangeOfVersions(Range<Long> versionRange, ClientLogEvents events) {
+        events.events().versionRange().ifPresent(
+                range -> assertTrue(range.encloses(versionRange), "Events do not enclose the required versions"));
     }
 
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {

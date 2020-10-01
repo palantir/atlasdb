@@ -19,37 +19,42 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 interface TimestampMapping {
-    Comparator<LockWatchVersion> COMPARATOR = Comparator.comparingLong(LockWatchVersion::version);
     Map<Long, LockWatchVersion> timestampMapping();
 
     @Value.Derived
-    default LockWatchVersion minVersion() {
-        Optional<LockWatchVersion> minVersion = timestampMapping()
+    default Range<Long> versionRange() {
+        Optional<Long> firstVersion = timestampMapping()
                 .values()
                 .stream()
-                .min(COMPARATOR);
-        Preconditions.checkState(minVersion.isPresent(),
+                .map(LockWatchVersion::version)
+                .min(Long::compareTo);
+        Optional<Long> lastVersion = timestampMapping()
+                .values()
+                .stream()
+                .map(LockWatchVersion::version)
+                .min(Long::compareTo);
+
+        Preconditions.checkState(firstVersion.isPresent(),
                 "Cannot compute timestamp mapping for empty map of timestamps");
-        return minVersion.get();
+        Preconditions.checkState(lastVersion.isPresent(),
+                "Cannot compute timestamp mapping for empty map of timestamps");
+
+        return Range.closed(firstVersion.get(), lastVersion.get());
     }
 
     @Value.Derived
-    default LockWatchVersion maxVersion() {
-        Optional<LockWatchVersion> maxVersion = timestampMapping()
-                .values()
-                .stream()
-                .max(COMPARATOR);
-        Preconditions.checkState(maxVersion.isPresent(),
-                "Cannot compute timestamp mapping for empty map of timestamps");
-        return maxVersion.get();
+    default UUID leader() {
+        
     }
 
     class Builder extends ImmutableTimestampMapping.Builder {}

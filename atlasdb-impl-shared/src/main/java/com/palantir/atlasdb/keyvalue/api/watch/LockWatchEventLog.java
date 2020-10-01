@@ -146,9 +146,9 @@ final class LockWatchEventLog {
                 .build();
 
         if (latestVersion.isPresent()) {
-            Preconditions.checkArgument(events.firstVersion().isPresent(),
+            Preconditions.checkArgument(events.versionRange().isPresent(),
                     "First element not preset in list of events");
-            long firstVersion = events.firstVersion().get();
+            long firstVersion = events.versionRange().get().lowerEndpoint();
             Preconditions.checkArgument(firstVersion <= latestVersion.get().version()
                             || latestVersion.get().version() + 1 == firstVersion,
                     "Events missing between last snapshot and this batch of events",

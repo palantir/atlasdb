@@ -48,7 +48,10 @@ public final class VersionedEventStoreTest {
         eventStore.putAll(ImmutableList.of(EVENT_4));
         LockWatchEvents events = eventStore.retentionEvents();
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
-        assertThat(events.lastVersion()).hasValue(2L);
+        assertThat(events.events()
+                .stream()
+                .map(LockWatchEvent::sequence)
+                .max(Long::compareTo)).hasValue(2L);
         assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
     }
 

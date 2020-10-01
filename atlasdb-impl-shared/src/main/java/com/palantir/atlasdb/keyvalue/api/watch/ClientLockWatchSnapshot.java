@@ -61,12 +61,18 @@ final class ClientLockWatchSnapshot {
     }
 
     void processEvents(LockWatchEvents events, UUID versionId) {
-        if (!events.lastVersion().isPresent()) {
+        if (!events.events()
+                .stream()
+                .map(LockWatchEvent::sequence)
+                .max(Long::compareTo).isPresent()) {
             return;
         }
 
         events.events().forEach(event -> event.accept(visitor));
-        snapshotVersion = Optional.of(LockWatchVersion.of(versionId, events.lastVersion().get()));
+        snapshotVersion = Optional.of(LockWatchVersion.of(versionId, events.events()
+                .stream()
+                .map(LockWatchEvent::sequence)
+                .max(Long::compareTo).get()));
     }
 
     void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {
