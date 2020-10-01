@@ -49,7 +49,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
 
     @Test
     public void returnsDefaultTsWhenTableIsEmpty() {
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore())
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
                 .isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
     }
 
@@ -57,12 +57,12 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public void poisonsEmptyTableAndReturnsStoredBound() {
         store.getUpperLimit();
         store.storeUpperLimit(TIMESTAMP_1);
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
     }
 
     @Test
     public void cannotReadAfterBeingPoisoned() {
-        invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore();
+        invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp();
         assertBoundNotReadable();
     }
 
@@ -70,18 +70,18 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public void poisoningMultipleTimesIsAllowed() {
         store.storeUpperLimit(TIMESTAMP_1);
         store.getUpperLimit();
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore()).isEqualTo(TIMESTAMP_1);
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore()).isEqualTo(TIMESTAMP_1);
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
     }
 
     @Test
     public void poisoningEmptyTableMultipleTimesIsAllowed() {
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore())
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
                 .isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore())
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
                 .isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
-        assertThat(invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore())
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
                 .isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
         assertBoundNotReadable();
     }

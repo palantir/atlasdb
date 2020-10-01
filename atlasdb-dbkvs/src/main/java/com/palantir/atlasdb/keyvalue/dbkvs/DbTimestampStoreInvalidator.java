@@ -37,6 +37,6 @@ public class DbTimestampStoreInvalidator implements TimestampStoreInvalidator {
     @Override
     public long backupAndInvalidate() {
         invalidationRunner.createTableIfDoesNotExist();
-        return invalidationRunner.getLastAllocatedTimestampAndPoisonInDbStore();
+        return invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp();
     }
 }

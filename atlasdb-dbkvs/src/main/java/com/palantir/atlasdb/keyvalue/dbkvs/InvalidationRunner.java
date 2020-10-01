@@ -32,6 +32,8 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
@@ -52,7 +54,7 @@ public class InvalidationRunner {
         helper.createTableIfDoesNotExist(prefixedTimestampTableName());
     }
 
-    public long getLastAllocatedTimestampAndPoisonInDbStore() {
+    public long ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp() {
         RetriableTransactions.TransactionResult<Long> result = RetriableTransactions.run(connManager,
                 connection -> {
                     Limits limits = getLimits(connection);
@@ -61,17 +63,9 @@ public class InvalidationRunner {
                     if (tableStatus == TableStatus.POISONED) {
                         return limits.legacyUpperLimit().value();
                     }
-
-                    long lastAllocated;
-                    if (tableStatus == TableStatus.NO_DATA) {
-                        lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-                    } else {
-                        lastAllocated = limits.upperLimit().value();
-                    }
-
-                    poisonTable(connection);
-                    return lastAllocated;
+                    return poisonStoreAndGetLastAllocatedTimestamp(connection, limits, tableStatus);
                 });
+
         switch (result.getStatus()) {
             case SUCCESSFUL:
                 return result.getResultValue();
@@ -83,18 +77,32 @@ public class InvalidationRunner {
                 }
                 throw Throwables.rewrapAndThrowUncheckedException(error);
             default:
-                throw new IllegalStateException("Unrecognized transaction status " + result.getStatus());
+                throw new SafeIllegalStateException("Unrecognized transaction status.",
+                        SafeArg.of("status", result.getStatus()));
         }
+    }
+
+    public Long poisonStoreAndGetLastAllocatedTimestamp(Connection connection, Limits limits,
+            TableStatus tableStatus) throws SQLException {
+
+        long lastAllocated;
+        if (tableStatus == TableStatus.NO_DATA) {
+            lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
+        } else {
+            lastAllocated = limits.upperLimit().value();
+        }
+        poisonTable(connection);
+        return lastAllocated;
     }
 
     private void poisonTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             if (ConnectionDbTypes.getDbType(connection).equals(DBType.ORACLE)) {
-                statement.execute(String.format("ALTER TABLE %s RENAME COLUMN last_allocated TO LEGACY_last_allocated",
-                        prefixedTimestampTableName()));
+                statement.execute(String.format("ALTER TABLE %s RENAME COLUMN %s TO %s",
+                        prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
             } else {
-                statement.execute(String.format("ALTER TABLE %s RENAME last_allocated TO LEGACY_last_allocated",
-                        prefixedTimestampTableName()));
+                statement.execute(String.format("ALTER TABLE %s RENAME %s TO %s",
+                        prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
             }
         }
     }
@@ -135,15 +143,15 @@ public class InvalidationRunner {
                 .next();
     }
 
-    private String prefixedTimestampTableName() {
+    private static String prefixedTimestampTableName() {
         return AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE.getQualifiedName();
     }
 
     private TableStatus checkTableStatus(Limits limits) {
         TableStatus status = getTableStatus(limits);
 
-        Preconditions.checkState(status != TableStatus.ILLEGAL_COLUMNS,
-                "We detected the table has both current as well as legacy columns."
+        Preconditions.checkState(status != TableStatus.BOTH_COLUMNS,
+                "We detected the table has been poisoned but last_allocated column still exists."
                         + "This is unexpected. Please contact support.");
         return status;
     }
@@ -153,7 +161,7 @@ public class InvalidationRunner {
         boolean legacyUpperLimitExists = limits.legacyUpperLimit().exists();
 
         if (upperLimitExists) {
-            return legacyUpperLimitExists ? TableStatus.ILLEGAL_COLUMNS : TableStatus.HEALTHY;
+            return legacyUpperLimitExists ? TableStatus.BOTH_COLUMNS : TableStatus.HEALTHY;
         }
         return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.NO_DATA; // no data in table
     }
@@ -193,6 +201,6 @@ public class InvalidationRunner {
         NO_DATA,
         POISONED,
         HEALTHY,
-        ILLEGAL_COLUMNS,
+        BOTH_COLUMNS,
     }
 }
