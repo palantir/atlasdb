@@ -57,8 +57,8 @@ final class LockWatchEventLog {
      *                     mapping;
      *                     - the end version, which is the upper bound of events that should be returned;
      *                     - the earliest version to which the events may be condensed to in the case of a snapshot.
-     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive).
-     * This may begin with a snapshot if the latest version is too far behind.
+     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive);
+     *         this may begin with a snapshot if the latest version is too far behind.
      */
     public ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
         Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
