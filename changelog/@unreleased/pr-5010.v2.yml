@@ -1,5 +1,5 @@
-type: fix
-fix:
+type: feature
+feature:
   description: This change adds the mechanism for reading a timestamp bound from a
     DbKVS store and poisoning it. This is required for automated migration from DbKVS
     backed embedded services to a TimeLock server.
