@@ -46,14 +46,18 @@ interface TimestampMapping {
                 .findAny()
                 .map(LockWatchVersion::id);
 
-        Preconditions.checkState(leader.isPresent(),
-                "Cannot compute timestamp mapping for empty map of timestamps");
+        Preconditions.checkState(leader.isPresent(), "Leader must be present");
 
         Preconditions.checkState(
                 timestampMapping().values().stream().allMatch(version -> version.id().equals(leader.get())),
                 "All versions must be on the same leader");
 
         return leader.get();
+    }
+
+    @Value.Check
+    default void nonEmptyMapping() {
+        Preconditions.checkArgument(!timestampMapping().isEmpty(), "Cannot process an empty timestamp map");
     }
 
     class Builder extends ImmutableTimestampMapping.Builder {}
