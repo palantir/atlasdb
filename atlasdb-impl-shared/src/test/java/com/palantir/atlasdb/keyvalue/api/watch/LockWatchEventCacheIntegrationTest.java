@@ -304,7 +304,7 @@ public class LockWatchEventCacheIntegrationTest {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         assertThat(eventCache.getUpdateForTransactions(
-                TIMESTAMPS,
+                TIMESTAMPS_2,
                 Optional.of(LockWatchVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
     }
 

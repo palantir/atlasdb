@@ -17,32 +17,20 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.ImmutableInvalidateAll;
-import com.palantir.lock.watch.ImmutableInvalidateSome;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 /**
@@ -98,21 +86,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 "start or commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
-
-        ClientLogEvents update = eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion());
-
-        if (update.clearCache()) {
-            return ImmutableInvalidateAll.builder().build();
-        }
-
-        // We don't mind if the exact version is not present, as we are only interested in the events **since** the
-        // transaction started.
-        assertEventsContainRangeOfVersions(
-                Range.closed(startVersion.get().version(), commitInfo.commitVersion().version()),
-                update,
-                true);
-
-        return createCommitUpdate(commitInfo, update.events().events());
+        return eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion())
+                .toCommitUpdate(startVersion.get(), commitInfo);
     }
 
     @Override
@@ -121,39 +96,17 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Optional<LockWatchVersion> lastKnownVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
-        LockWatchVersion endVersion = LockWatchVersion.of(timestampMapping.leader(),
-                timestampMapping.versionRange().upperEndpoint());
 
-        ClientLogEvents events = eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion);
+        lastKnownVersion.ifPresent(version -> assertTrue(version.version() <= timestampMapping.lastVersion().version(),
+                "Cannot get update for transactions when the last known version is more recent than the transactions"));
 
-        // If the client is at the same version as the earliest version in the timestamp mapping, then they will
-        // only receive versions after that - and therefore the range of versions coming back from the events will not
-        // enclose the versions in the mapping. This flag makes sure that we don't throw on this case
-        boolean offsetStartVersion = lastKnownVersion.map(
-                version -> version.version() == timestampMapping.versionRange().lowerEndpoint()).orElse(false);
-
-        assertEventsContainRangeOfVersions(
-                timestampMapping.versionRange(),
-                events,
-                offsetStartVersion);
-
-        return events.toTransactionsLockWatchUpdate(timestampMapping.timestampMapping());
+        return eventLog.getEventsBetweenVersions(lastKnownVersion, timestampMapping.lastVersion())
+                .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
     }
 
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
-    }
-
-    @VisibleForTesting
-    TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
-        TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
-        startTimestamps.forEach(timestamp -> {
-            Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
-            assertTrue(entry.isPresent(), "start timestamp missing from map");
-            mappingBuilder.putTimestampMapping(timestamp, entry.get());
-        });
-        return mappingBuilder.build();
     }
 
     @VisibleForTesting
@@ -164,6 +117,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .build();
     }
 
+    private TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
+        TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
+        startTimestamps.forEach(timestamp -> {
+            Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
+            assertTrue(entry.isPresent(), "start timestamp missing from map");
+            mappingBuilder.putTimestampMapping(timestamp, entry.get());
+        });
+        return mappingBuilder.build();
+    }
 
     private Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         CacheUpdate cacheUpdate = eventLog.processUpdate(update);
@@ -177,58 +139,9 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return cacheUpdate.getVersion();
     }
 
-    private static CommitUpdate createCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
-        Set<LockDescriptor> locksTakenOut = new HashSet<>();
-        events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
-    }
-
     private static void assertTrue(boolean condition, String message) {
         if (!condition) {
             throw new TransactionLockWatchFailedException(message);
-        }
-    }
-
-    private static void assertEventsContainRangeOfVersions(
-            Range<Long> versionRange,
-            ClientLogEvents events,
-            boolean offsetStartVersion) {
-        Range<Long> rangeToTest;
-        if (offsetStartVersion) {
-            rangeToTest = Range.closed(versionRange.lowerEndpoint() + 1, versionRange.upperEndpoint());
-        } else {
-            rangeToTest = versionRange;
-        }
-
-        events.events().versionRange().ifPresent(eventsRange -> assertTrue(eventsRange.encloses(rangeToTest),
-                "Events do not enclose the required versions"));
-    }
-
-    private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        private final LockToken commitLocksToken;
-
-        private LockEventVisitor(LockToken commitLocksToken) {
-            this.commitLocksToken = commitLocksToken;
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            if (lockEvent.lockToken().equals(commitLocksToken)) {
-                return ImmutableSet.of();
-            } else {
-                return lockEvent.lockDescriptors();
-            }
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
-            return ImmutableSet.of();
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            return lockWatchCreatedEvent.lockDescriptors();
         }
     }
 }

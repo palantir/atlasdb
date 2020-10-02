@@ -41,6 +41,11 @@ interface TimestampMapping {
     }
 
     @Value.Derived
+    default LockWatchVersion lastVersion() {
+        return LockWatchVersion.of(leader(), versionRange().upperEndpoint());
+    }
+
+    @Value.Derived
     default UUID leader() {
         return timestampMapping()
                 .values()
