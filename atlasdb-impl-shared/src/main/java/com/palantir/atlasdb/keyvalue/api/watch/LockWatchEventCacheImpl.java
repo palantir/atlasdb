@@ -140,7 +140,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 events,
                 offsetStartVersion);
 
-        return events.map(timestampMapping.timestampMapping());
+        return events.toTransactionsLockWatchUpdate(timestampMapping.timestampMapping());
     }
 
     @Override
