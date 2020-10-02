@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
@@ -61,12 +62,13 @@ final class ClientLockWatchSnapshot {
     }
 
     void processEvents(LockWatchEvents events, UUID versionId) {
-        if (!events.latestSequence().isPresent()) {
+        if (events.events().isEmpty()) {
             return;
         }
 
         events.events().forEach(event -> event.accept(visitor));
-        snapshotVersion = Optional.of(LockWatchVersion.of(versionId, events.latestSequence().get()));
+        snapshotVersion = Optional.of(
+                LockWatchVersion.of(versionId, events.versionRange().map(Range::upperEndpoint).get()));
     }
 
     void resetWithSnapshot(LockWatchStateUpdate.Snapshot snapshot) {

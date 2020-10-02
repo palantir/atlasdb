@@ -22,13 +22,10 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.SortedSetMultimap;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableTimestampStateStoreState.class)
 @JsonDeserialize(as = ImmutableTimestampStateStoreState.class)
 interface TimestampStateStoreState {
     Map<Long, TimestampStateStore.MapEntry> timestampMap();
-
-    SortedSetMultimap<Long, Long> aliveVersions();
 }

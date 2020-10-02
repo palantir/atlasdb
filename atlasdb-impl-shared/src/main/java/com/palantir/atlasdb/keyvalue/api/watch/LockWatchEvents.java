@@ -17,31 +17,50 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.List;
-import java.util.Map;
+import java.util.LongSummaryStatistics;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.Streams;
+import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface LockWatchEvents {
     List<LockWatchEvent> events();
 
-    Optional<Long> latestSequence();
+    @Value.Derived
+    default Optional<Range<Long>> versionRange() {
+        LongSummaryStatistics summary = events().stream().mapToLong(LockWatchEvent::sequence).summaryStatistics();
 
-    static LockWatchEvents create(Set<Map.Entry<Long, LockWatchEvent>> versionToEventSet) {
-        if (versionToEventSet.isEmpty()) {
-            return ImmutableLockWatchEvents.builder().build();
+        if (summary.getCount() == 0) {
+            return Optional.empty();
         } else {
-            return ImmutableLockWatchEvents.builder()
-                    .addAllEvents(versionToEventSet.stream().map(Map.Entry::getValue).collect(Collectors.toList()))
-                    .latestSequence(Streams.findLast(versionToEventSet.stream()).map(Map.Entry::getKey))
-                    .build();
+            return Optional.of(Range.closed(summary.getMin(), summary.getMax()));
         }
     }
 
+    @Value.Check
+    default void contiguousSequence() {
+        if (events().isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < events().size() - 1; ++i) {
+            Preconditions.checkArgument(events().get(i).sequence() + 1 == events().get(i + 1).sequence(),
+                    "Events form a non-contiguous sequence");
+        }
+    }
+
+    @Value.Check
+    default void rangeOnlyPresentIffEventsAre() {
+        if (events().isEmpty()) {
+            Preconditions.checkState(!versionRange().isPresent(), "Cannot have a version range with no events");
+        } else {
+            Preconditions.checkState(versionRange().isPresent(), "Non-empty events must have a version range");
+        }
+    }
+
+    class Builder extends ImmutableLockWatchEvents.Builder {}
 }

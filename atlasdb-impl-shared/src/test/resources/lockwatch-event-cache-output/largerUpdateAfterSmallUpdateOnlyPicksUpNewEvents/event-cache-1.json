@@ -60,10 +60,6 @@
         },
         "commitInfo" : null
       }
-    },
-    "aliveVersions" : {
-      "3" : [ 1 ],
-      "5" : [ 11, 12 ]
     }
   }
 }

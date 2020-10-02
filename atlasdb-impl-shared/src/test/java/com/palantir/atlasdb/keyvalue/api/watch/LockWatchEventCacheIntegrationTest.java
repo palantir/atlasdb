@@ -116,7 +116,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Before
     public void before() {
-        eventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create());
+        eventCache = createEventCache(5);
         part = 1;
     }
 
@@ -206,9 +206,20 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         verifyStage();
 
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(1L);
-        assertThat(commitUpdate.accept(new CommitUpdateVisitor()))
-                .containsExactlyInAnyOrder(DESCRIPTOR);
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS);
+        assertThat(commitUpdate.accept(new CommitUpdateVisitor())).containsExactlyInAnyOrder(DESCRIPTOR);
+    }
+
+    @Test
+    public void getCommitUpdateIsInvalidatedAllIfEventsHaveBeenDeleted() {
+        eventCache = createEventCache(2);
+        setupInitialState();
+        eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_2);
+        verifyStage();
+
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS);
+        assertThat(commitUpdate.accept(new InvalidatedAllVisitor())).isTrue();
     }
 
     @Test
@@ -226,6 +237,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getEventsForTransactionsReturnsSnapshotWithOldEvents() {
+        eventCache = createEventCache(3);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         eventCache.removeTransactionStateFromCache(START_TS);
@@ -240,7 +252,9 @@ public class LockWatchEventCacheIntegrationTest {
                 ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
         assertThat(results.events()).containsExactly(
                 LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
-                        ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
+                        ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2)).build(4L),
+                UNLOCK_EVENT,
+                LOCK_EVENT,
                 LOCK_EVENT_2);
     }
 
@@ -253,7 +267,7 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void removingEntriesRetentionsEventsInLog() {
+    public void removingEntriesDoesNotRetentionVersions() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         verifyStage();
@@ -286,12 +300,22 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void upToDateClientDoesNotThrow() {
+    public void clientOnSameVersionAsCacheDoesNotThrow() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         assertThat(eventCache.getUpdateForTransactions(
-                TIMESTAMPS,
+                TIMESTAMPS_2,
                 Optional.of(LockWatchVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
+    }
+
+    @Test
+    public void clientOnSameVersionAsTransactionDoesNotThrow() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+        assertThat(eventCache.getUpdateForTransactions(
+                ImmutableSet.of(START_TS, 16L),
+                Optional.of(LockWatchVersion.of(LEADER, 3L))).events())
+                .containsExactly(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT);
     }
 
     @Test
@@ -316,8 +340,35 @@ public class LockWatchEventCacheIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    public void timestampEventsRetentionedThrows() {
+        eventCache = createEventCache(1);
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
+
+        assertThatThrownBy(() -> eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.empty()))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+
+        assertThatThrownBy(() -> eventCache.getCommitUpdate(START_TS))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+    }
+
+    @Test
+    public void newEventsCauseOldEventsToBeDeleted() {
+        eventCache = createEventCache(3);
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
+        verifyStage();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
+        verifyStage();
+    }
+
     private void setupInitialState() {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SNAPSHOT);
+    }
+
+    private static LockWatchEventCacheImpl createEventCache(int maxSize) {
+        return new LockWatchEventCacheImpl(LockWatchEventLog.create(maxSize));
     }
 
     private static final class CommitUpdateVisitor implements CommitUpdate.Visitor<Set<LockDescriptor>> {
@@ -330,6 +381,19 @@ public class LockWatchEventCacheIntegrationTest {
         @Override
         public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
             return invalidatedLocks;
+        }
+    }
+
+    private static final class InvalidatedAllVisitor implements CommitUpdate.Visitor<Boolean> {
+
+        @Override
+        public Boolean invalidateAll() {
+            return true;
+        }
+
+        @Override
+        public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            return false;
         }
     }
 }

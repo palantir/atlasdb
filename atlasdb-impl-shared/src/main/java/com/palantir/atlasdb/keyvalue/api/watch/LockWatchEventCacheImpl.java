@@ -17,35 +17,20 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.ImmutableInvalidateAll;
-import com.palantir.lock.watch.ImmutableInvalidateSome;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 
 /**
@@ -53,12 +38,15 @@ import com.palantir.logsafe.Preconditions;
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
+    // This value should be the same as in TimeLock's LockEventLogImpl.
+    private static final int MAX_EVENTS = 1000;
+
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(LockWatchEventLog.create()), NoOpLockWatchEventCache.INSTANCE,
+                new LockWatchEventCacheImpl(LockWatchEventLog.create(MAX_EVENTS)), NoOpLockWatchEventCache.INSTANCE,
                 metricsManager);
     }
 
@@ -79,7 +67,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             LockWatchStateUpdate update) {
         Optional<LockWatchVersion> updateVersion = processEventLogUpdate(update);
         updateVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
-        retentionEventsInLog();
     }
 
     @Override
@@ -99,14 +86,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 "start or commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
-
-        ClientLogEvents update = eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion());
-
-        if (update.clearCache()) {
-            return ImmutableInvalidateAll.builder().build();
-        }
-
-        return createCommitUpdate(commitInfo, update.events());
+        return eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion())
+                .toCommitUpdate(startVersion.get(), commitInfo);
     }
 
     @Override
@@ -114,34 +95,18 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps,
             Optional<LockWatchVersion> lastKnownVersion) {
         Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
-        Map<Long, LockWatchVersion> timestampToVersion = getTimestampMappings(startTimestamps);
-        LockWatchVersion endVersion = Collections.max(timestampToVersion.values(),
-                Comparator.comparingLong(LockWatchVersion::version));
-        return eventLog.getEventsBetweenVersions(lastKnownVersion, endVersion).map(timestampToVersion);
+        TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
+
+        lastKnownVersion.ifPresent(version -> assertTrue(version.version() <= timestampMapping.lastVersion().version(),
+                "Cannot get update for transactions when the last known version is more recent than the transactions"));
+
+        return eventLog.getEventsBetweenVersions(lastKnownVersion, timestampMapping.lastVersion())
+                .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
     }
 
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
-        retentionEventsInLog();
-    }
-
-    @VisibleForTesting
-    Map<Long, LockWatchVersion> getTimestampMappings(Set<Long> startTimestamps) {
-        Map<Long, LockWatchVersion> timestampToVersion = new HashMap<>();
-        startTimestamps.forEach(timestamp -> {
-            Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
-            assertTrue(entry.isPresent(), "start timestamp missing from map");
-            timestampToVersion.put(timestamp, entry.get());
-        });
-        return timestampToVersion;
-    }
-
-    private void retentionEventsInLog() {
-        Optional<LockWatchVersion> currentVersion = eventLog.getLatestKnownVersion();
-        timestampStateStore.getEarliestVersion().flatMap(sequence ->
-                currentVersion.map(version -> LockWatchVersion.of(version.id(), sequence)))
-                .map(LockWatchVersion::version).ifPresent(eventLog::removeEventsBefore);
     }
 
     @VisibleForTesting
@@ -152,18 +117,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .build();
     }
 
-
-    private void assertTrue(boolean condition, String message) {
-        if (!condition) {
-            throw new TransactionLockWatchFailedException(message);
-        }
-    }
-
-    private CommitUpdate createCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
-        Set<LockDescriptor> locksTakenOut = new HashSet<>();
-        events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
+    private TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
+        TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
+        startTimestamps.forEach(timestamp -> {
+            Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
+            assertTrue(entry.isPresent(), "start timestamp missing from map");
+            mappingBuilder.putTimestampMapping(timestamp, entry.get());
+        });
+        return mappingBuilder.build();
     }
 
     private Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {
@@ -173,33 +134,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             timestampStateStore.clear();
         }
 
+        eventLog.retentionEvents();
+
         return cacheUpdate.getVersion();
     }
 
-    private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        private final LockToken commitLocksToken;
-
-        private LockEventVisitor(LockToken commitLocksToken) {
-            this.commitLocksToken = commitLocksToken;
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            if (lockEvent.lockToken().equals(commitLocksToken)) {
-                return ImmutableSet.of();
-            } else {
-                return lockEvent.lockDescriptors();
-            }
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
-            return ImmutableSet.of();
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            return lockWatchCreatedEvent.lockDescriptors();
+    private static void assertTrue(boolean condition, String message) {
+        if (!condition) {
+            throw new TransactionLockWatchFailedException(message);
         }
     }
 }

@@ -17,21 +17,26 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
 
+    private final int maxEvents;
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
+
+    VersionedEventStore(int maxEvents) {
+        Preconditions.checkArgument(maxEvents > 0, "maxEvents must be positive");
+        this.maxEvents = maxEvents;
+    }
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
         Optional<Long> startVersion = maybeStartVersion
@@ -44,19 +49,20 @@ final class VersionedEventStore {
                 .orElseGet(ImmutableList::of);
     }
 
-    LockWatchEvents getAndRemoveElementsUpToExclusive(long endVersion) {
-        Set<Map.Entry<Long, LockWatchEvent>> elementsUpToVersion = eventMap.headMap(endVersion).entrySet();
-        LockWatchEvents events = LockWatchEvents.create(elementsUpToVersion);
-        elementsUpToVersion.clear();
-        return events;
+    LockWatchEvents retentionEvents() {
+        int numToRetention = Math.max(0, eventMap.size() - maxEvents);
+        LockWatchEvents.Builder builder = new LockWatchEvents.Builder();
+        Iterators.consumingIterator(Iterators.limit(eventMap.entrySet().iterator(), numToRetention))
+                .forEachRemaining(entry -> builder.addEvents(entry.getValue()));
+        return builder.build();
     }
 
-    boolean contains(long key) {
+    boolean containsEntryLessThanOrEqualTo(long key) {
         return eventMap.floorKey(key) != null;
     }
 
-    long putAll(Iterable<LockWatchEvent> events) {
-        events.forEach(event -> eventMap.put(event.sequence(), event));
+    long putAll(LockWatchEvents events) {
+        events.events().forEach(event -> eventMap.put(event.sequence(), event));
         return getLastKey();
     }
 
