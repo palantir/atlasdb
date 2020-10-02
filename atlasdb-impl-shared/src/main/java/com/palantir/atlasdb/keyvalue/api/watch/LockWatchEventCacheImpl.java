@@ -50,10 +50,7 @@ import com.palantir.logsafe.Preconditions;
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    /**
-     * This value should be at least as large as the max size in LockEventLogImpl. If it is smaller, it is possible that
-     * new events are immediately deleted.
-     */
+    // This value should be the same as in TimeLock's LockEventLogImpl.
     private static final int MAX_EVENTS = 1000;
 
     private final LockWatchEventLog eventLog;

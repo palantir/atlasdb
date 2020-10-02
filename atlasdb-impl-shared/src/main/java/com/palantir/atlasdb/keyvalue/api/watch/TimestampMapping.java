@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,21 +33,9 @@ interface TimestampMapping {
 
     @Value.Derived
     default Range<Long> versionRange() {
-        Optional<Long> firstVersion = timestampMapping()
-                .values()
-                .stream()
-                .map(LockWatchVersion::version)
-                .min(Long::compareTo);
-        Optional<Long> lastVersion = timestampMapping()
-                .values()
-                .stream()
-                .map(LockWatchVersion::version)
-                .max(Long::compareTo);
-
-        Preconditions.checkState(firstVersion.isPresent() && lastVersion.isPresent(),
-                "Cannot compute timestamp mapping for empty map of timestamps");
-
-        return Range.closed(firstVersion.get(), lastVersion.get());
+        LongSummaryStatistics summary = timestampMapping().values().stream().mapToLong(
+                LockWatchVersion::version).summaryStatistics();
+        return Range.closed(summary.getMin(), summary.getMax());
     }
 
     @Value.Derived
