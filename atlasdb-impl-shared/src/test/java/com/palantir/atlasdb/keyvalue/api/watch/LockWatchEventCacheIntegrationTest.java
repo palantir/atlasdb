@@ -300,14 +300,22 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void upToDateClientDoesNotThrow() {
-        eventCache = createEventCache(5);
+    public void clientOnSameVersionAsCacheDoesNotThrow() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        assertThatCode(() -> eventCache.getUpdateForTransactions(
+        assertThat(eventCache.getUpdateForTransactions(
+                TIMESTAMPS,
+                Optional.of(LockWatchVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
+    }
+
+    @Test
+    public void clientOnSameVersionAsTransactionDoesNotThrow() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+        assertThat(eventCache.getUpdateForTransactions(
                 ImmutableSet.of(START_TS, 16L),
-                Optional.of(LockWatchVersion.of(LEADER, 3L))))
-                .doesNotThrowAnyException();
+                Optional.of(LockWatchVersion.of(LEADER, 3L))).events())
+                .containsExactly(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT);
     }
 
     @Test
