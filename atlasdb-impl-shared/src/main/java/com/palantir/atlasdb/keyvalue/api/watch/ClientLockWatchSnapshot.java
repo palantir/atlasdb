@@ -66,9 +66,6 @@ final class ClientLockWatchSnapshot {
             return;
         }
 
-        Preconditions.checkArgument(events.versionRange().isPresent(),
-                "Cannot have an empty range of versions with non-zero number of events");
-
         events.events().forEach(event -> event.accept(visitor));
         snapshotVersion = Optional.of(
                 LockWatchVersion.of(versionId, events.versionRange().map(Range::upperEndpoint).get()));

@@ -62,5 +62,14 @@ public interface LockWatchEvents {
         }
     }
 
+    @Value.Check
+    default void rangeOnlyPresentIffEventsAre() {
+        if (events().isEmpty()) {
+            Preconditions.checkState(!versionRange().isPresent(), "Cannot have a version range with no events");
+        } else {
+            Preconditions.checkState(versionRange().isPresent(), "Non-empty events must have a version range");
+        }
+    }
+
     class Builder extends ImmutableLockWatchEvents.Builder {}
 }
