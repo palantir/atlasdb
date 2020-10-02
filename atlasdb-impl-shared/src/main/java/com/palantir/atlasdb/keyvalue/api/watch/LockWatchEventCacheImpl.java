@@ -104,16 +104,16 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         ClientLogEvents update = eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion());
 
+        if (update.clearCache()) {
+            return ImmutableInvalidateAll.builder().build();
+        }
+
         // We don't mind if the exact version is not present, as we are only interested in the events **since** the
         // transaction started.
         assertEventsContainRangeOfVersions(
                 Range.closed(startVersion.get().version(), commitInfo.commitVersion().version()),
                 update,
                 true);
-
-        if (update.clearCache()) {
-            return ImmutableInvalidateAll.builder().build();
-        }
 
         return createCommitUpdate(commitInfo, update.events().events());
     }
@@ -134,6 +134,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         // enclose the versions in the mapping. This flag makes sure that we don't throw on this case
         boolean offsetStartVersion = lastKnownVersion.map(
                 version -> version.version() == timestampMapping.versionRange().lowerEndpoint()).orElse(false);
+
         assertEventsContainRangeOfVersions(
                 timestampMapping.versionRange(),
                 events,
