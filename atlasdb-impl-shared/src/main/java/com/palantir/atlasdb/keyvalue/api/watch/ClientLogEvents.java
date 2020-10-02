@@ -53,7 +53,8 @@ interface ClientLogEvents {
 
     default TransactionsLockWatchUpdate toTransactionsLockWatchUpdate(
             TimestampMapping timestampMapping,
-            Optional<LockWatchVersion> lastKnownVersion) {        // If the client is at the same version as the earliest version in the timestamp mapping, then they will
+            Optional<LockWatchVersion> lastKnownVersion) {
+        // If the client is at the same version as the earliest version in the timestamp mapping, then they will
         // only receive versions after that - and therefore the range of versions coming back from the events will not
         // enclose the versions in the mapping. This flag makes sure that we don't throw on this case
         boolean offsetStartVersion = lastKnownVersion.map(
@@ -88,8 +89,7 @@ interface ClientLogEvents {
 
         Range<Long> rangeToTest;
         if (offsetStartVersion) {
-            rangeToTest = Range.closed(versionRange.lowerEndpoint() + 1,
-                    versionRange.upperEndpoint());
+            rangeToTest = Range.closed(versionRange.lowerEndpoint() + 1, versionRange.upperEndpoint());
         } else {
             rangeToTest = versionRange;
         }

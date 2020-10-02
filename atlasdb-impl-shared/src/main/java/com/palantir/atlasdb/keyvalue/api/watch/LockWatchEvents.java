@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.Optional;
 
 import org.immutables.value.Value;
@@ -31,23 +32,13 @@ public interface LockWatchEvents {
 
     @Value.Derived
     default Optional<Range<Long>> versionRange() {
-        Optional<Long> firstVersion = events()
-                .stream()
-                .map(LockWatchEvent::sequence)
-                .min(Long::compareTo);
-        Optional<Long> lastVersion = events()
-                .stream()
-                .map(LockWatchEvent::sequence)
-                .max(Long::compareTo);
+        LongSummaryStatistics summary = events().stream().mapToLong(LockWatchEvent::sequence).summaryStatistics();
 
-        if (!firstVersion.isPresent() && !lastVersion.isPresent()) {
+        if (summary.getCount() == 0) {
             return Optional.empty();
+        } else {
+            return Optional.of(Range.closed(summary.getMin(), summary.getMax()));
         }
-
-        Preconditions.checkArgument(firstVersion.isPresent() && lastVersion.isPresent(),
-                "Both first and last version must be present");
-
-        return Optional.of(Range.closed(firstVersion.get(), lastVersion.get()));
     }
 
     @Value.Check
