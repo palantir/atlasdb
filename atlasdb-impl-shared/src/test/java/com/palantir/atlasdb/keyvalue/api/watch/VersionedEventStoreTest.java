@@ -18,7 +18,10 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.Optional;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -45,31 +48,36 @@ public final class VersionedEventStoreTest {
 
     @Test
     public void getAndRemoveElementsRemovesOldestElements() {
-        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3));
-        eventStore.putAll(ImmutableList.of(EVENT_4));
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3));
+        eventStore.putAll(makeEvents(EVENT_4));
         LockWatchEvents events = eventStore.retentionEvents();
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
-        assertThat(events.versionRange().map(Range::upperEndpoint)).hasValue(2L);
         assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
     }
 
     @Test
     public void containsReturnsTrueForValuesLargerThanFirstKey() {
-        eventStore.putAll(ImmutableList.of(EVENT_4));
+        eventStore.putAll(makeEvents(EVENT_4));
         assertThat(eventStore.containsEntryLessThanOrEqualTo(1L)).isFalse();
         assertThat(eventStore.containsEntryLessThanOrEqualTo(5L)).isTrue();
     }
 
     @Test
     public void getEventsBetweenVersionsReturnsInclusiveOnBounds() {
-        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.of(2L), 3L)).containsExactly(EVENT_2, EVENT_3);
     }
 
     @Test
     public void getEventsBetweenVersionsStartsFromFirstKeyIfNotSpecified() {
-        eventStore.putAll(ImmutableList.of(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), 3L))
                 .containsExactly(EVENT_1, EVENT_2, EVENT_3);
+    }
+
+    private LockWatchEvents makeEvents(LockWatchEvent... events) {
+        return new LockWatchEvents.Builder()
+                .addEvents(events)
+                .build();
     }
 }

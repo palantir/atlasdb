@@ -23,6 +23,8 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
@@ -40,19 +42,12 @@ interface TimestampMapping {
 
     @Value.Derived
     default UUID leader() {
-        Optional<UUID> leader = timestampMapping()
+        return timestampMapping()
                 .values()
                 .stream()
-                .findAny()
-                .map(LockWatchVersion::id);
-
-        Preconditions.checkState(leader.isPresent(), "Leader must be present");
-
-        Preconditions.checkState(
-                timestampMapping().values().stream().allMatch(version -> version.id().equals(leader.get())),
-                "All versions must be on the same leader");
-
-        return leader.get();
+                .map(LockWatchVersion::id)
+                .distinct()
+                .collect(MoreCollectors.onlyElement());
     }
 
     @Value.Check

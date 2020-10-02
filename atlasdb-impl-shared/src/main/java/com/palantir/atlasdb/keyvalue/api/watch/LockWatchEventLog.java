@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -132,19 +131,18 @@ final class LockWatchEventLog {
         }
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
-            assertNoEventsAreMissing(success.events());
-            latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(success.events())));
+            LockWatchEvents events = new LockWatchEvents.Builder()
+                    .addAllEvents(success.events())
+                    .build();
+            assertNoEventsAreMissing(events);
+            latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
         }
     }
 
-    private void assertNoEventsAreMissing(List<LockWatchEvent> eventsList) {
-        if (eventsList.isEmpty()) {
+    private void assertNoEventsAreMissing(LockWatchEvents events) {
+        if (events.events().isEmpty()) {
             return;
         }
-
-        LockWatchEvents events = new LockWatchEvents.Builder()
-                .addAllEvents(eventsList)
-                .build();
 
         if (latestVersion.isPresent()) {
             Preconditions.checkArgument(events.versionRange().isPresent(),

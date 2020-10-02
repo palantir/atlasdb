@@ -61,8 +61,8 @@ final class VersionedEventStore {
         return eventMap.floorKey(key) != null;
     }
 
-    long putAll(Iterable<LockWatchEvent> events) {
-        events.forEach(event -> eventMap.put(event.sequence(), event));
+    long putAll(LockWatchEvents events) {
+        events.events().forEach(event -> eventMap.put(event.sequence(), event));
         return getLastKey();
     }
 
