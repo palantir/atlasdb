@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidato
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.timestamp.TimestampCreationParametersCheck;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -113,9 +113,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             KeyValueService rawKvs,
             Optional<DbTimestampCreationParameters> creationParameters,
             boolean initializeAsync) {
-        Preconditions.checkArgument(creationParameters.flatMap(DbTimestampCreationParameters::tableReference)
-                        .map(AtlasDbConstants.TIMESTAMP_TABLE::equals)
-                        .orElse(true),
+        Preconditions.checkArgument(
+                TimestampCreationParametersCheck.areCreationParametersConsistentWithDefaults(creationParameters),
                 "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp params found: "
                         + creationParameters
                         + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"

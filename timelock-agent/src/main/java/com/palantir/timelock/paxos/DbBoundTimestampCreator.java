@@ -19,8 +19,10 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DatabaseTsBoundSchema;
+import com.palantir.atlasdb.config.DbTimestampCreationParameters;
 import com.palantir.atlasdb.config.ImmutableDbTimestampCreationParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
@@ -51,10 +53,7 @@ public class DbBoundTimestampCreator implements TimestampCreator {
                 Optional::empty,
                 Optional.of(leaderConfig),
                 Optional.empty(),
-                Optional.of(ImmutableDbTimestampCreationParameters.builder()
-                        .series(ImmutableTimestampSeries.of(client.value()))
-                        .tsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
-                        .build()),
+                Optional.of(getTimestampCreationParameters(client)),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
 
@@ -62,5 +61,13 @@ public class DbBoundTimestampCreator implements TimestampCreator {
 
         return () -> new DelegatingManagedTimestampService(timestampService,
                 (TimestampManagementService) timestampService);
+    }
+
+    @VisibleForTesting
+    static DbTimestampCreationParameters getTimestampCreationParameters(Client client) {
+        return ImmutableDbTimestampCreationParameters.builder()
+                .series(ImmutableTimestampSeries.of(client.value()))
+                .tsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
+                .build();
     }
 }
