@@ -109,16 +109,16 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         ClientLogEvents update = eventLog.getEventsBetweenVersions(versionBounds);
 
+        if (update.clearCache()) {
+            return ImmutableInvalidateAll.builder().build();
+        }
+
         // We don't mind if the exact version is not present, as we are only interested in the events **since** the
         // transaction started.
         assertEventsContainRangeOfVersions(
                 Range.closed(startVersion.get().version(), commitInfo.commitVersion().version()),
                 update,
                 true);
-
-        if (update.clearCache()) {
-            return ImmutableInvalidateAll.builder().build();
-        }
 
         return createCommitUpdate(commitInfo, update.events().events());
     }

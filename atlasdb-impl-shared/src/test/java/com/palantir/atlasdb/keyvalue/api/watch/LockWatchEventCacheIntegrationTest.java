@@ -219,6 +219,7 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache = createEventCache(2);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
+        verifyStage();
 
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS);
         assertThat(commitUpdate.accept(new InvalidatedAllVisitor())).isTrue();
