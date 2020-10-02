@@ -113,10 +113,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             return ImmutableInvalidateAll.builder().build();
         }
 
-        if (update.clearCache()) {
-            return ImmutableInvalidateAll.builder().build();
-        }
-
         // We don't mind if the exact version is not present, as we are only interested in the events **since** the
         // transaction started.
         assertEventsContainRangeOfVersions(
