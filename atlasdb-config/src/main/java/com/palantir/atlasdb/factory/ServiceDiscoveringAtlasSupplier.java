@@ -78,7 +78,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         initializeAsync));
         timestampService = () ->
                 atlasFactory.createManagedTimestampService(getKeyValueService(), timestampTable, initializeAsync);
-        timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
+        timestampStoreInvalidator = () -> atlasFactory
+                .createTimestampStoreInvalidator(getKeyValueService(), timestampTable);
     }
 
     public KeyValueService getKeyValueService() {

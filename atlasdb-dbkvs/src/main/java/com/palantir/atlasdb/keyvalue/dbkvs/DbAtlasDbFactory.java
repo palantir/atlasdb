@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,11 +37,13 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
     private static final Logger log = LoggerFactory.getLogger(DbAtlasDbFactory.class);
     public static final String TYPE = "relational";
+    private static final String EMPTY_TABLE_PREFIX = "";
 
     @Override
     public String getType() {
@@ -95,15 +98,43 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     private static InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,
             ConnectionManagerAwareDbKvs dbkvs) {
-        return timestampTable
-                .map(tableReference -> InDbTimestampBoundStore.create(
-                    dbkvs.getConnectionManager(),
-                    tableReference
-                    /* Not using the table prefix here, as the tableRef should contain any necessary prefix.*/
-                    ))
-                .orElseGet(() -> InDbTimestampBoundStore.create(
-                        dbkvs.getConnectionManager(),
-                        AtlasDbConstants.TIMESTAMP_TABLE,
-                        dbkvs.getTablePrefix()));
+        TimestampTableNameAndPrefix timestampTableNameAndPrefix = TimestampTableNameAndPrefix
+                .getTimestampTableNameAndPrefix(timestampTable, dbkvs);
+        return InDbTimestampBoundStore.create(
+                dbkvs.getConnectionManager(),
+                timestampTableNameAndPrefix.tableRef(),
+                timestampTableNameAndPrefix.prefix());
+    }
+
+    @Override
+    public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs,
+            Optional<TableReference> timestampTable) {
+        TimestampTableNameAndPrefix timestampTableNameAndPrefix = TimestampTableNameAndPrefix
+                .getTimestampTableNameAndPrefix(timestampTable, (ConnectionManagerAwareDbKvs) rawKvs);
+        return DbTimestampStoreInvalidator.create(rawKvs,
+                timestampTableNameAndPrefix.tableRef(),
+                timestampTableNameAndPrefix.prefix());
+    }
+
+    @Value.Immutable
+    interface TimestampTableNameAndPrefix {
+        TableReference tableRef();
+
+        @Value.Default
+        default String prefix() {
+            return EMPTY_TABLE_PREFIX;
+        }
+
+        static TimestampTableNameAndPrefix getTimestampTableNameAndPrefix(Optional<TableReference> timestampTable,
+                ConnectionManagerAwareDbKvs dbkvs) {
+            return timestampTable
+                    .map(tableReference -> ImmutableTimestampTableNameAndPrefix.builder()
+                            .tableRef(tableReference)
+                            .build())
+                    .orElseGet(() -> ImmutableTimestampTableNameAndPrefix.builder()
+                            .tableRef(AtlasDbConstants.TIMESTAMP_TABLE)
+                            .prefix(dbkvs.getTablePrefix())
+                            .build());
+        }
     }
 }
