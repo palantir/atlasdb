@@ -68,7 +68,8 @@ public interface AtlasDbFactory {
             Optional<DbTimestampCreationSetting> dbTimestampCreationParameters,
             boolean initializeAsync);
 
-    default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
+    default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs,
+            Optional<DbTimestampCreationSetting> timestampTable) {
         return () -> {
             log.warn("AtlasDB doesn't yet support automated migration for KVS type {}.", getType());
             return NO_OP_FAST_FORWARD_TIMESTAMP;

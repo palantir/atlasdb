@@ -39,11 +39,13 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
     private static final Logger log = LoggerFactory.getLogger(DbAtlasDbFactory.class);
     public static final String TYPE = "relational";
+    private static final String EMPTY_TABLE_PREFIX = "";
 
     @Override
     public String getType() {
@@ -123,7 +125,33 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     private static InDbTimestampBoundStore defaultTimestampBoundStore(ConnectionManagerAwareDbKvs dbkvs) {
         return InDbTimestampBoundStore.create(
                 dbkvs.getConnectionManager(),
-                AtlasDbConstants.TIMESTAMP_TABLE,
-                dbkvs.getTablePrefix());
+                defaultTimestampTable(),
+                defaultTablePrefix(dbkvs));
+    }
+
+    @Override
+    public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs,
+            Optional<DbTimestampCreationSetting> creationParameters) {
+        ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
+        return creationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
+                .multipleSeries((table, unused) -> timestampStoreInvalidator(dbkvs, table))
+                .singleSeries(table -> timestampStoreInvalidator(dbkvs, table)))
+                .orElseGet(() -> timestampStoreInvalidator(dbkvs, Optional.empty()));
+    }
+
+    public TimestampStoreInvalidator timestampStoreInvalidator(ConnectionManagerAwareDbKvs dbKvs,
+            Optional<TableReference> tableReference) {
+        return tableReference
+                .map(ref -> DbTimestampStoreInvalidator.create(dbKvs,ref, EMPTY_TABLE_PREFIX))
+                .orElseGet(() -> DbTimestampStoreInvalidator
+                        .create(dbKvs, defaultTimestampTable(), defaultTablePrefix(dbKvs)));
+    }
+
+    private static TableReference defaultTimestampTable() {
+        return AtlasDbConstants.TIMESTAMP_TABLE;
+    }
+
+    private static String defaultTablePrefix(ConnectionManagerAwareDbKvs dbKvs) {
+        return dbKvs.getTablePrefix();
     }
 }
