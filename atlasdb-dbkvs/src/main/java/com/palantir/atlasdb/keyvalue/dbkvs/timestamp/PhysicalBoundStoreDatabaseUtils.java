@@ -23,6 +23,7 @@ import java.sql.Statement;
 import java.util.OptionalLong;
 import java.util.function.Function;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,10 +71,9 @@ public final class PhysicalBoundStoreDatabaseUtils {
         }
     }
 
-    public static boolean hasColumn(Connection connection, String tablePattern, String colNamePattern)
-            throws SQLException {
-        return connection.getMetaData()
-                .getColumns(null, null, tablePattern, colNamePattern)
-                .next();
+    @Value.Immutable
+    interface CreateTimestampTableQueries {
+        String postgresQuery();
+        String oracleQuery();
     }
 }

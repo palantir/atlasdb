@@ -26,7 +26,6 @@ import org.apache.commons.dbutils.QueryRunner;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 
 public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
@@ -44,17 +43,16 @@ public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrat
         PhysicalBoundStoreDatabaseUtils.createTimestampTable(
                 connection,
                 dbTypeExtractor,
-                CreateTimestampTableQueries.getCreateTableQueriesForLegacyStore(prefixedTimestampTableName()));
+                ImmutableCreateTimestampTableQueries.builder()
+                        .postgresQuery(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
+                                prefixedTimestampTableName()))
+                        .oracleQuery(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
+                                prefixedTimestampTableName()))
+                        .build());
     }
 
     @Override
     public OptionalLong readLimit(Connection connection) throws SQLException {
-        if (!PhysicalBoundStoreDatabaseUtils.hasColumn(connection,
-                prefixedTimestampTableName(),
-                "last_allocated")) {
-            throw new SafeIllegalStateException("The store will not service requests as it had been poisoned during"
-                    + " migration to external TimeLock.");
-        }
         String sql = "SELECT last_allocated FROM " + prefixedTimestampTableName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
         return run.query(connection, sql, PhysicalBoundStoreDatabaseUtils::getLastAllocatedColumn);
