@@ -41,6 +41,8 @@ public interface TemplateVariables {
     Integer getLocalServerPort();
     TimestampPaxos getClientPaxos();
     PaxosLeaderMode getLeaderMode();
+    @Nullable
+    DbKvsConnectionConfig getDbConfig();
 
     @Value.Default
     default Integer getLocalProxyPort() {
@@ -76,6 +78,15 @@ public interface TemplateVariables {
         default boolean isBatchSingleLeader() {
             return false;
         }
+    }
+
+    @Value.Immutable
+    interface DbKvsConnectionConfig {
+        String getDbLogin();
+        String getDbPassword();
+        String getHost();
+        int getPort();
+        String getDbName();
     }
 
     static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(

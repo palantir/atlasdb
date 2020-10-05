@@ -94,6 +94,7 @@ public class TimeLockServerHolder extends ExternalResource {
         timelockServer.before();
         isRunning = true;
         initialised = true;
+        System.out.println(this.installConfig());
     }
 
     @Override

@@ -27,7 +27,6 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresGetCandidateCellsForSweepingTest;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -40,17 +39,18 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        DbkvsPostgresTargetedSweepIntegrationTest.class,
-        DbkvsPostgresKeyValueServiceTest.class,
-        DbkvsPostgresSerializableTransactionTest.class,
-        DbkvsPostgresSweepTaskRunnerTest.class,
-        DbkvsBackgroundSweeperIntegrationTest.class,
-        PostgresEmbeddedDbTimestampBoundStoreTest.class,
-        PostgresMultiSeriesDbTimestampBoundStoreTest.class,
-        DbKvsPostgresGetCandidateCellsForSweepingTest.class,
-        DbKvsSweepProgressStoreIntegrationTest.class,
-        DbKvsPostgresInvalidationRunnerTest.class
-        })
+//        DbkvsPostgresTargetedSweepIntegrationTest.class,
+//        DbkvsPostgresKeyValueServiceTest.class,
+//        DbkvsPostgresSerializableTransactionTest.class,
+//        DbkvsPostgresSweepTaskRunnerTest.class,
+//        DbkvsBackgroundSweeperIntegrationTest.class,
+//        PostgresEmbeddedDbTimestampBoundStoreTest.class,
+//        PostgresMultiSeriesDbTimestampBoundStoreTest.class,
+//        DbKvsPostgresGetCandidateCellsForSweepingTest.class,
+//        DbKvsSweepProgressStoreIntegrationTest.class,
+        DbKvsPostgresInvalidationRunnerTest.class,
+//        Blah.class
+})
 public final class DbkvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
 

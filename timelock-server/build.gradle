@@ -71,6 +71,8 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
+    testCompile group: 'junit', name: 'junit'
 
     testCommonAnnotationProcessor group: 'org.immutables', name: 'value'
     testCommonCompileOnly 'org.immutables:value::annotations'
@@ -88,4 +90,10 @@ dependencies {
 
     // TODO(fdesouza): Remove this once PDS-95791 is resolved.
     integTestImplementation project(":examples:profile-client")
+}
+
+test {
+    maxHeapSize = "1024m"
+    include '**/*Suite.class'
+    maxParallelForks 2
 }
