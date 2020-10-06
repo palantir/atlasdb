@@ -5,19 +5,6 @@ install:
       data-directory: "${sqliteDataDirectory}"
     is-new-service: false
     leader-mode: ${leaderMode}
-  timestampBoundPersistence:
-    key-value-service:
-      connection:
-        dbLogin: ${dbConfig.dbLogin}
-        dbName: "${dbConfig.dbName}"
-        dbPassword: "${dbConfig.dbPassword}"
-        host: "${dbConfig.host}"
-        port: "${dbConfig.port}"
-        type: postgres
-      ddl:
-        type: postgres
-      type: relational
-    type: database
   cluster:
     cluster:
       security:
@@ -32,6 +19,18 @@ install:
 </#list>
     local-server: "localhost:${localProxyPort?c}"
   timestampBoundPersistence:
+      key-value-service:
+        connection:
+          dbLogin: ${dbConfig.dbLogin}
+          dbName: "${dbConfig.dbName}"
+          dbPassword: "${dbConfig.dbPassword}"
+          host: "${dbConfig.host}"
+          port: 5432
+          type: postgres
+        ddl:
+          type: postgres
+        type: relational
+      type: database
 
 runtime:
   paxos:
