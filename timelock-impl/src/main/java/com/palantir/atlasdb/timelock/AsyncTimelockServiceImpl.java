@@ -30,7 +30,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
-import com.palantir.atlasdb.timelock.lock.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.AsyncLockServiceImpl;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
@@ -61,12 +61,12 @@ import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
-    private final AsyncLockService lockService;
+    private final AsyncLockServiceImpl lockService;
     private final ClientAwareManagedTimestampService timestampService;
     private final LockLog lockLog;
 
     public AsyncTimelockServiceImpl(
-            AsyncLockService lockService,
+            AsyncLockServiceImpl lockService,
             ManagedTimestampService timestampService,
             LockLog lockLog) {
         this.lockService = lockService;

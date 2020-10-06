@@ -44,7 +44,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
 
-public class AsyncLockServiceEteTest {
+public class AsyncLockServiceImplEteTest {
 
     private static final UUID REQUEST_1 = UUID.randomUUID();
     private static final UUID REQUEST_2 = UUID.randomUUID();
@@ -65,7 +65,7 @@ public class AsyncLockServiceEteTest {
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
     private final HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
     private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks);
-    private final AsyncLockService service = new AsyncLockService(
+    private final AsyncLockServiceImpl service = new AsyncLockServiceImpl(
             new LockCollection(),
             new ImmutableTimestampTracker(),
             new LockAcquirer(new LockLog(new MetricRegistry(), () -> 2L),

@@ -25,13 +25,13 @@ import org.junit.Test;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 
-public class AsyncLockServiceTest {
+public class AsyncLockServiceImplTest {
 
     @Test
     public void executorsShutDownAfterClose() {
         ScheduledExecutorService reaperExecutor = PTExecutors.newSingleThreadScheduledExecutor();
         ScheduledExecutorService timeoutExecutor = PTExecutors.newSingleThreadScheduledExecutor();
-        AsyncLockService asyncLockService = AsyncLockService.createDefault(
+        AsyncLockServiceImpl asyncLockService = AsyncLockServiceImpl.createDefault(
                 new LockLog(MetricsManagers.createForTests().getRegistry(), () -> 1L),
                 reaperExecutor,
                 timeoutExecutor

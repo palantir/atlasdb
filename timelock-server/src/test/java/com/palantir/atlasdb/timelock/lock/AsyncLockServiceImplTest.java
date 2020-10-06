@@ -42,7 +42,7 @@ import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
-public class AsyncLockServiceTest {
+public class AsyncLockServiceImplTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
 
@@ -61,7 +61,7 @@ public class AsyncLockServiceTest {
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
-    private final AsyncLockService lockService = new AsyncLockService(
+    private final AsyncLockServiceImpl lockService = new AsyncLockServiceImpl(
             locks,
             immutableTimestampTracker,
             acquirer,

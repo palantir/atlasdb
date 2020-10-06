@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.lock.LockDescriptor;
@@ -35,9 +34,9 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 
-public class AsyncLockService implements Closeable {
+public class AsyncLockServiceImpl implements Closeable {
 
-    private static final Logger log = LoggerFactory.getLogger(AsyncLockService.class);
+    private static final Logger log = LoggerFactory.getLogger(AsyncLockServiceImpl.class);
 
     private final LockCollection locks;
     private final LockAcquirer lockAcquirer;
@@ -59,7 +58,7 @@ public class AsyncLockService implements Closeable {
      * @param timeoutExecutor executor for timing out lock requests that have blocked for longer than permitted
      * @return an asynchronous lock service
      */
-    public static AsyncLockService createDefault(
+    public static AsyncLockServiceImpl createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor) {
@@ -70,7 +69,7 @@ public class AsyncLockService implements Closeable {
         LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks);
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
-        return new AsyncLockService(
+        return new AsyncLockServiceImpl(
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
                 lockAcquirer,
@@ -83,7 +82,7 @@ public class AsyncLockService implements Closeable {
     }
 
     @VisibleForTesting
-    AsyncLockService(
+    AsyncLockServiceImpl(
             LockCollection locks,
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,

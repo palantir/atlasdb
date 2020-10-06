@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.timelock.lock.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.AsyncLockServiceImpl;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.timestamp.ManagedTimestampService;
 
@@ -32,7 +32,7 @@ public class AsyncTimelockServiceImplTest {
     public void delegatesInitializationCheck() {
         ManagedTimestampService mockMts = mock(ManagedTimestampService.class);
         AsyncTimelockServiceImpl service = new AsyncTimelockServiceImpl(
-                mock(AsyncLockService.class),
+                mock(AsyncLockServiceImpl.class),
                 mockMts,
                 mock(LockLog.class));
         when(mockMts.isInitialized())
