@@ -15,10 +15,22 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.math.BigInteger;
+import java.util.Set;
+
 import org.immutables.value.Value;
 
 import com.google.common.util.concurrent.Futures;
+import com.palantir.lock.HeldLocksGrant;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.lock.impl.AsyncLockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
@@ -26,11 +38,11 @@ import com.palantir.timestamp.TimestampService;
 @Value.Immutable
 public interface TimeLockServices {
     static TimeLockServices create(
-            LockService lockService,
+            AsyncLockService lockService,
             AsyncTimelockService timelockService,
             AsyncTimelockResource timelockResource) {
         return ImmutableTimeLockServices.builder()
-                .lockService(lockService)
+                .asyncLockService(lockService)
                 .timelockService(timelockService)
                 .timelockResource(timelockResource)
                 .build();
@@ -41,8 +53,119 @@ public interface TimeLockServices {
     // The RPC-independent leadership-enabled implementation of the timelock service
     AsyncTimelockService getTimelockService();
 
+    // Async lock service
+    AsyncLockService getAsyncLockService();
+
     @Deprecated
-    LockService getLockService();
+    @Value.Derived
+    default LockService getLockService() {
+        return new LockService() {
+            @Override
+            public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) {
+                return Futures.getUnchecked(getAsyncLockService().lockWithFullLockResponse(client, request));
+            }
+
+            @Override
+            public boolean unlock(HeldLocksToken token) {
+                return Futures.getUnchecked(getAsyncLockService().unlock(token));
+            }
+
+            @Override
+            public boolean unlockSimple(SimpleHeldLocksToken token) {
+                return Futures.getUnchecked(getAsyncLockService().unlockSimple(token));
+            }
+
+            @Override
+            public boolean unlockAndFreeze(HeldLocksToken token) {
+                return Futures.getUnchecked(getAsyncLockService().unlockAndFreeze(token));
+            }
+
+            @Override
+            public Set<HeldLocksToken> getTokens(LockClient client) {
+                return Futures.getUnchecked(getAsyncLockService().getTokens(client));
+            }
+
+            @Override
+            public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
+                return Futures.getUnchecked(getAsyncLockService().refreshTokens(tokens));
+            }
+
+            @Override
+            public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
+                return Futures.getUnchecked(getAsyncLockService().refreshGrant(grant));
+            }
+
+            @Override
+            public HeldLocksGrant refreshGrant(BigInteger grantId) {
+                return Futures.getUnchecked(getAsyncLockService().refreshGrant(grantId));
+            }
+
+            @Override
+            public HeldLocksGrant convertToGrant(HeldLocksToken token) {
+                return Futures.getUnchecked(getAsyncLockService().convertToGrant(token));
+            }
+
+            @Override
+            public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
+                return Futures.getUnchecked(getAsyncLockService().useGrant(client, grant));
+            }
+
+            @Override
+            public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
+                return Futures.getUnchecked(getAsyncLockService().useGrant(client, grantId));
+            }
+
+            @Override
+            public Long getMinLockedInVersionId() {
+                return Futures.getUnchecked(getAsyncLockService().getMinLockedInVersionId());
+            }
+
+            @Override
+            public Long getMinLockedInVersionId(LockClient client) {
+                return Futures.getUnchecked(getAsyncLockService().getMinLockedInVersionId(client));
+            }
+
+            @Override
+            public LockServerOptions getLockServerOptions() {
+                return Futures.getUnchecked(getAsyncLockService().getLockServerOptions());
+            }
+
+            @Override
+            public long currentTimeMillis() {
+                return Futures.getUnchecked(getAsyncLockService().currentTimeMillis());
+            }
+
+            @Override
+            public void logCurrentState() {
+                Futures.getUnchecked(getAsyncLockService().logCurrentState());
+            }
+
+            @Override
+            public LockRefreshToken lock(String client, LockRequest request) {
+                return Futures.getUnchecked(getAsyncLockService().lock(client, request));
+            }
+
+            @Override
+            public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) {
+                return Futures.getUnchecked(getAsyncLockService().lockAndGetHeldLocks(client, request));
+            }
+
+            @Override
+            public boolean unlock(LockRefreshToken token) {
+                return Futures.getUnchecked(getAsyncLockService().unlock(token));
+            }
+
+            @Override
+            public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
+                return Futures.getUnchecked(getAsyncLockService().refreshLockRefreshTokens(tokens));
+            }
+
+            @Override
+            public Long getMinLockedInVersionId(String client) {
+                return Futures.getUnchecked(getAsyncLockService().getMinLockedInVersionId(client));
+            }
+        };
+    }
 
     @Deprecated
     @Value.Derived

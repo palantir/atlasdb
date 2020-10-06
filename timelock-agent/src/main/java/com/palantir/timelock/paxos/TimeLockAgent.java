@@ -60,6 +60,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.health.LeaderElectionHealthReport;
 import com.palantir.lock.LockService;
+import com.palantir.lock.impl.AsyncLockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -356,8 +357,9 @@ public class TimeLockAgent {
     }
 
     /**
-     * Creates timestamp and lock services for the given client. It is expected that for each client there should
-     * only be (up to) one active timestamp service, and one active lock service at any time.
+     * Creates timestamp and lock services for the given client. It is expected that for each client there should only
+     * be (up to) one active timestamp service, and one active lock service at any time.
+     *
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
@@ -374,7 +376,7 @@ public class TimeLockAgent {
 
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
                 .createTimestampService(typedClient, leaderConfig);
-        Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
+        Supplier<AsyncLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 

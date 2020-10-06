@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock;
+package com.palantir.lock.impl;
 
-public interface AsyncLockService {
+import java.io.Closeable;
+
+public interface AsyncCloseableLockService extends AsyncLockService, Closeable {
 }
