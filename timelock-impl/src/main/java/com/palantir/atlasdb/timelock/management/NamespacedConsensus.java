@@ -22,15 +22,15 @@ import com.palantir.timestamp.TimestampService;
 
 public class NamespacedConsensus {
     /**
-     * Gets a fresh timestamp for namespace from {@link TimestampService#getFreshTimestamp()} and fast forwards
-     * the timestamp by 1 million for the given namespace.
+     * Gets a fresh timestamp for namespace from {@link TimestampService#getFreshTimestamp()} and fast forwards the
+     * timestamp by 1 million for the given namespace.
      *
      * @param namespace namespace for which consensus has to be achieved
      */
     public static void achieveConsensusForNamespace(TimelockNamespaces timelockNamespaces,
             String namespace) {
         TimeLockServices timeLockServices = timelockNamespaces.get(namespace);
-        long timestamp = timeLockServices.getTimelockService().getFreshTimestamp() + 1000000L;
+        long timestamp = timeLockServices.getTimestampService().getFreshTimestamp() + 1000000L;
         timeLockServices.getTimestampManagementService().fastForwardTimestamp(timestamp);
     }
 }

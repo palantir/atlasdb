@@ -39,10 +39,9 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
-public interface AsyncTimelockService extends ManagedTimestampService, LockWatchingService, Closeable {
+public interface AsyncTimelockService extends AsyncManagedTimestampService, LockWatchingService, Closeable {
 
     ListenableFuture<Long> currentTimeMillis();
 

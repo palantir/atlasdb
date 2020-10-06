@@ -86,11 +86,9 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         leadershipComponents.registerClientForLeaderElectionHealthCheck(client);
 
         return TimeLockServices.create(
-                asyncTimelockService,
                 lockService,
                 asyncTimelockService,
-                asyncTimelockResource,
-                asyncTimelockService);
+                asyncTimelockResource);
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
@@ -117,6 +115,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     *
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated

@@ -17,32 +17,62 @@ package com.palantir.atlasdb.timelock;
 
 import org.immutables.value.Value;
 
+import com.google.common.util.concurrent.Futures;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 @Value.Immutable
 public interface TimeLockServices {
     static TimeLockServices create(
-            TimestampService timestampService,
             LockService lockService,
             AsyncTimelockService timelockService,
-            AsyncTimelockResource timelockResource,
-            TimestampManagementService timestampManagementService) {
+            AsyncTimelockResource timelockResource) {
         return ImmutableTimeLockServices.builder()
-                .timestampService(timestampService)
                 .lockService(lockService)
-                .timestampManagementService(timestampManagementService)
                 .timelockService(timelockService)
                 .timelockResource(timelockResource)
                 .build();
     }
 
-    TimestampService getTimestampService();
-    LockService getLockService();
     // The Jersey endpoints
     AsyncTimelockResource getTimelockResource();
     // The RPC-independent leadership-enabled implementation of the timelock service
     AsyncTimelockService getTimelockService();
-    TimestampManagementService getTimestampManagementService();
+
+    @Deprecated
+    LockService getLockService();
+
+    @Deprecated
+    @Value.Derived
+    default TimestampService getTimestampService() {
+        return new TimestampService() {
+            @Override
+            public long getFreshTimestamp() {
+                return Futures.getUnchecked(getTimelockService().getFreshTimestamp());
+            }
+
+            @Override
+            public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+                return Futures.getUnchecked(getTimelockService().getFreshTimestamps(numTimestampsRequested));
+            }
+        };
+    }
+
+    @Deprecated
+    @Value.Derived
+    default TimestampManagementService getTimestampManagementService() {
+        return new TimestampManagementService() {
+            @Override
+            public void fastForwardTimestamp(long currentTimestamp) {
+                Futures.getUnchecked(getTimelockService().fastForwardTimestamp(currentTimestamp));
+            }
+
+            @Override
+            public String ping() {
+                return Futures.getUnchecked(getTimelockService().ping());
+            }
+        };
+    }
 }
