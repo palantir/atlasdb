@@ -58,7 +58,8 @@ public class LeadershipComponents {
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
         LeadershipContext context = getOrCreateNewLeadershipContext(client);
-        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leaderElectionService());
+        T instance = AwaitingLeadershipProxy.newProxyInstance(client, clazz, delegateSupplier,
+                context.leaderElectionService());
 
         // this is acceptable since the proxy returned implements Closeable and needs to be closed
         Closeable closeableInstance = (Closeable) instance;
@@ -112,9 +113,9 @@ public class LeadershipComponents {
         }
 
         /**
-         * Attempts to register a collection of {@link Closeable}s to be closed when shutting down Timelock.
-         * If timelock has already been shutdown, any {@link Closeable}s passed here will be <em>immediately</em>
-         * closed, and a {@link NotCurrentLeaderException} will be thrown.
+         * Attempts to register a collection of {@link Closeable}s to be closed when shutting down Timelock. If timelock
+         * has already been shutdown, any {@link Closeable}s passed here will be <em>immediately</em> closed, and a
+         * {@link NotCurrentLeaderException} will be thrown.
          *
          * @param closeables collection of {@link Closeable}s to be closed when timelock shuts down.
          */

@@ -20,13 +20,17 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -36,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.hash.Hashing;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -45,12 +50,14 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import com.palantir.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
@@ -61,19 +68,15 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
     private static final ListeningScheduledExecutorService schedulingExecutor =
             MoreExecutors.listeningDecorator(PTExecutors.newScheduledThreadPoolExecutor(1));
-    private static final ListeningExecutorService executionExecutor = MoreExecutors.listeningDecorator(
-            PTExecutors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
-    private static final AsyncRetrier<StillLeadingStatus> statusRetrier = new AsyncRetrier<>(
-            MAX_NO_QUORUM_RETRIES,
-            Duration.ofMillis(700),
-            schedulingExecutor,
-            executionExecutor,
-            status -> status != StillLeadingStatus.NO_QUORUM);
+    private static final Map<Integer, ListeningExecutorService> shardedExecutionExecutors = createShardedExecutors();
 
-    public static <U> U newProxyInstance(Class<U> interfaceClass,
+    public static <U> U newProxyInstance(
+            Client client,
+            Class<U> interfaceClass,
             Supplier<U> delegateSupplier,
             LeaderElectionService leaderElectionService) {
         AwaitingLeadershipProxy<U> proxy = new AwaitingLeadershipProxy<>(
+                client,
                 delegateSupplier,
                 leaderElectionService,
                 interfaceClass);
@@ -85,9 +88,19 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 proxy);
     }
 
+    private static Map<Integer, ListeningExecutorService> createShardedExecutors() {
+        Stream<Integer> processors = IntStream.range(0, Runtime.getRuntime().availableProcessors()).boxed();
+        return KeyedStream.of(processors)
+                .map(processorId -> MoreExecutors.listeningDecorator(PTExecutors.newSingleThreadExecutor()))
+                .collectToMap();
+    }
+
     private final Supplier<T> delegateSupplier;
     private final LeaderElectionService leaderElectionService;
+    private final ListeningExecutorService executionExecutor;
+    private final AsyncRetrier<StillLeadingStatus> statusRetrier;
     private final ExecutorService executor;
+
     /**
      * This is used as the handoff point between the executor doing the blocking and the invocation calls.  It is set by
      * the executor after the delegateRef is set. It is cleared out by invoke which will close the delegate and spawn a
@@ -99,6 +112,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private volatile boolean isClosed;
 
     private AwaitingLeadershipProxy(
+            Client client,
             Supplier<T> delegateSupplier,
             LeaderElectionService leaderElectionService,
             Class<T> interfaceClass) {
@@ -112,10 +126,19 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
 
+        this.executionExecutor = shardedExecutionExecutors.get(
+                Hashing.murmur3_32().hashString(client.value(), StandardCharsets.UTF_8).asInt()
+                        % Runtime.getRuntime().availableProcessors());
+        this.statusRetrier = new AsyncRetrier<>(
+                MAX_NO_QUORUM_RETRIES,
+                Duration.ofMillis(700),
+                schedulingExecutor,
+                executionExecutor,
+                status -> status != StillLeadingStatus.NO_QUORUM);
+
         Arrays.stream(interfaceClass.getMethods()).filter(method -> !method.getName().equals("close")).forEach(
                 this::assertAsyncMethod);
     }
-
 
     private void tryToGainLeadership() {
         Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();

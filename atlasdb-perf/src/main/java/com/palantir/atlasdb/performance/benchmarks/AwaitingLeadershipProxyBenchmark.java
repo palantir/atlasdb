@@ -42,6 +42,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.paxos.Client;
 
 @Measurement(iterations = 10, time = 2)
 @Warmup(iterations = 6, time = 1)
@@ -52,6 +53,7 @@ import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 public class AwaitingLeadershipProxyBenchmark {
     private final LeaderAwareService service =
             AwaitingLeadershipProxy.newProxyInstance(
+                    Client.of("client"),
                     LeaderAwareService.class,
                     () -> LeaderAwareImpl.INSTANCE,
                     FakeLeaderElectionService.INSTANCE);
