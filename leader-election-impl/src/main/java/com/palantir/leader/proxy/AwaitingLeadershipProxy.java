@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -42,7 +43,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
@@ -51,7 +51,6 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
@@ -72,8 +71,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             status -> status != StillLeadingStatus.NO_QUORUM);
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
-                                         Supplier<U> delegateSupplier,
-                                         LeaderElectionService leaderElectionService) {
+            Supplier<U> delegateSupplier,
+            LeaderElectionService leaderElectionService) {
         AwaitingLeadershipProxy<U> proxy = new AwaitingLeadershipProxy<>(
                 delegateSupplier,
                 leaderElectionService,
@@ -82,7 +81,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
-                new Class<?>[] { interfaceClass, Closeable.class },
+                new Class<?>[] {interfaceClass, Closeable.class},
                 proxy);
     }
 
@@ -90,9 +89,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private final LeaderElectionService leaderElectionService;
     private final ExecutorService executor;
     /**
-     * This is used as the handoff point between the executor doing the blocking
-     * and the invocation calls.  It is set by the executor after the delegateRef is set.
-     * It is cleared out by invoke which will close the delegate and spawn a new blocking task.
+     * This is used as the handoff point between the executor doing the blocking and the invocation calls.  It is set by
+     * the executor after the delegateRef is set. It is cleared out by invoke which will close the delegate and spawn a
+     * new blocking task.
      */
     private final AtomicReference<LeadershipToken> leadershipTokenRef;
     private final AtomicReference<T> delegateRef;
@@ -112,7 +111,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         this.delegateRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
+
+        Arrays.stream(interfaceClass.getMethods()).filter(method -> !method.getName().equals("close")).forEach(
+                this::assertAsyncMethod);
     }
+
 
     private void tryToGainLeadership() {
         Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
@@ -163,7 +166,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         return false;
     }
 
-    private void onGainedLeadership(LeadershipToken leadershipToken)  {
+    private void onGainedLeadership(LeadershipToken leadershipToken) {
         log.debug("Gained leadership, getting delegate to start serving calls");
         // We are now the leader, we should create a delegate so we can service calls
         T delegate = null;
@@ -242,29 +245,31 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     return Futures.immediateFuture(maybeValidDelegate);
                 }, MoreExecutors.directExecutor());
 
-        if (!method.getReturnType().equals(ListenableFuture.class)) {
-            T delegate = AtlasFutures.getUnchecked(delegateFuture);
-            try (CloseableTracer ignored = CloseableTracer.startSpan("execute-on-delegate")) {
-                return method.invoke(delegate, args);
-            } catch (InvocationTargetException e) {
-                throw handleDelegateThrewException(leadershipToken, e);
-            }
-        } else {
-            return FluentFuture.from(delegateFuture)
-                    .transformAsync(
-                            delegate ->
-                                    Tracers.wrapListenableFuture("execute-on-delegate-async", () -> {
-                                        try {
-                                            return (ListenableFuture<Object>) method.invoke(delegate, args);
-                                        } catch (IllegalAccessException | InvocationTargetException e) {
-                                            return Futures.immediateFailedFuture(e);
-                                        }
-                                    }),
-                            executionExecutor)
-                    .catchingAsync(InvocationTargetException.class, e -> {
-                        throw handleDelegateThrewException(leadershipToken, e);
-                    }, executionExecutor);
-        }
+        assertAsyncMethod(method);
+
+        //        if (!method.getReturnType().equals(ListenableFuture.class)) {
+        //            T delegate = AtlasFutures.getUnchecked(delegateFuture);
+        //            try (CloseableTracer ignored = CloseableTracer.startSpan("execute-on-delegate")) {
+        //                return method.invoke(delegate, args);
+        //            } catch (InvocationTargetException e) {
+        //                throw handleDelegateThrewException(leadershipToken, e);
+        //            }
+        //        } else {
+        return FluentFuture.from(delegateFuture)
+                .transformAsync(
+                        delegate ->
+                                Tracers.wrapListenableFuture("execute-on-delegate-async", () -> {
+                                    try {
+                                        return (ListenableFuture<Object>) method.invoke(delegate, args);
+                                    } catch (IllegalAccessException | InvocationTargetException e) {
+                                        return Futures.immediateFailedFuture(e);
+                                    }
+                                }),
+                        executionExecutor)
+                .catchingAsync(InvocationTargetException.class, e -> {
+                    throw handleDelegateThrewException(leadershipToken, e);
+                }, executionExecutor);
+        //        }
     }
 
     private RuntimeException handleDelegateThrewException(
@@ -340,4 +345,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
 
+    private void assertAsyncMethod(Method method) {
+        Preconditions.checkArgument(method.getReturnType().equals(ListenableFuture.class),
+                "Only async methods supported");
+    }
 }

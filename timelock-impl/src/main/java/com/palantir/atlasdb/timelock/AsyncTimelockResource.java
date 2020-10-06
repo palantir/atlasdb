@@ -90,33 +90,33 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock-immutable-timestamp")
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return timelock.lockImmutableTimestamp(request);
+        return Futures.getUnchecked(timelock.lockImmutableTimestamp(request));
     }
 
     @POST
     @Path("start-atlasdb-transaction")
     public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(IdentifiedTimeLockRequest request) {
-        return timelock.deprecatedStartTransaction(request);
+        return Futures.getUnchecked(timelock.deprecatedStartTransaction(request));
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
     public StartIdentifiedAtlasDbTransactionResponse deprecatedStartTransactionV2(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startTransaction(request).toStartTransactionResponse();
+        return Futures.getUnchecked(timelock.startTransaction(request)).toStartTransactionResponse();
     }
 
     @POST
     @Path("start-atlasdb-transaction-v3")
     public StartAtlasDbTransactionResponseV3 deprecatedStartTransactionV3(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startTransaction(request);
+        return Futures.getUnchecked(timelock.startTransaction(request));
     }
 
     /**
-     * Returns a {@link StartTransactionResponseV4} which has a single immutable ts, and a range of timestamps to
-     * be used as start timestamps.
-     *
+     * Returns a {@link StartTransactionResponseV4} which has a single immutable ts, and a range of timestamps to be
+     * used as start timestamps.
+     * <p>
      * It is guaranteed to have at least one usable timestamp matching the partition criteria in the returned timestamp
      * range, but there is no other guarantee given. (It can be less than number of requested timestamps)
      */
@@ -140,7 +140,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
-        return timelock.getImmutableTimestamp();
+        return Futures.getUnchecked(timelock.getImmutableTimestamp());
     }
 
     @POST
@@ -197,11 +197,12 @@ public class AsyncTimelockResource {
     @POST
     @Path("current-time-millis")
     public long currentTimeMillis() {
-        return timelock.currentTimeMillis();
+        return Futures.getUnchecked(timelock.currentTimeMillis());
     }
 
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     *
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated

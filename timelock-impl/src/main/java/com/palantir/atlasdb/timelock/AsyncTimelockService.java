@@ -44,7 +44,7 @@ import com.palantir.timestamp.TimestampRange;
 
 public interface AsyncTimelockService extends ManagedTimestampService, LockWatchingService, Closeable {
 
-    long currentTimeMillis();
+    ListenableFuture<Long> currentTimeMillis();
 
     ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens);
 
@@ -54,15 +54,16 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
 
     ListenableFuture<LockResponseV2> lock(IdentifiedLockRequest request);
 
-    long getImmutableTimestamp();
+    ListenableFuture<Long> getImmutableTimestamp();
 
-    LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
+    ListenableFuture<LockImmutableTimestampResponse> lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
-    StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request);
+    ListenableFuture<StartAtlasDbTransactionResponse> deprecatedStartTransaction(IdentifiedTimeLockRequest request);
 
-    StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request);
+    ListenableFuture<StartAtlasDbTransactionResponseV3> startTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request);
 
-    StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request);
+    ListenableFuture<StartTransactionResponseV4> startTransactions(StartTransactionRequestV4 request);
 
     ListenableFuture<ConjureStartTransactionsResponse> startTransactionsWithWatches(
             ConjureStartTransactionsRequest request);
