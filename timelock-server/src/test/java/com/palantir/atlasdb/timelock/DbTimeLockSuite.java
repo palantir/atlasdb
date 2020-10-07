@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+
+package com.palantir.atlasdb.timelock;
+
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.concurrent.Callable;
 
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
 
+import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -36,27 +47,14 @@ import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
+import com.palantir.timelock.config.PaxosInstallConfiguration;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-//        DbkvsPostgresTargetedSweepIntegrationTest.class,
-//        DbkvsPostgresKeyValueServiceTest.class,
-//        DbkvsPostgresSerializableTransactionTest.class,
-//        DbkvsPostgresSweepTaskRunnerTest.class,
-//        DbkvsBackgroundSweeperIntegrationTest.class,
-//        PostgresEmbeddedDbTimestampBoundStoreTest.class,
-//        PostgresMultiSeriesDbTimestampBoundStoreTest.class,
-//        DbKvsPostgresGetCandidateCellsForSweepingTest.class,
-//        DbKvsSweepProgressStoreIntegrationTest.class,
-        DbKvsPostgresInvalidationRunnerTest.class,
-//        BlahSuite.class
+@RunWith(ParameterizedSuite.class)
+@Suite.SuiteClasses({
+        DbKvsMNPTLIT.class
 })
-public final class DbkvsPostgresTestSuite {
+public class DbTimeLockSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
-
-    private DbkvsPostgresTestSuite() {
-        // Test suite
-    }
 
     @ClassRule
     public static final DockerComposeRule docker = DockerComposeRule.builder()
@@ -80,7 +78,6 @@ public final class DbkvsPostgresTestSuite {
                 .port(POSTGRES_PORT_NUMBER);
 
         InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
-
         ConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
                 .dbLogin("palantir")
@@ -121,4 +118,35 @@ public final class DbkvsPostgresTestSuite {
     public static ConnectionManagerAwareDbKvs createKvs() {
         return ConnectionManagerAwareDbKvs.create(getKvsConfig());
     }
+
+    public static TemplateVariables.DbKvsConnectionConfig getKvsTemplateVariables() {
+        DockerPort port = docker.containers()
+                .container("postgres")
+                .port(POSTGRES_PORT_NUMBER);
+
+        InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
+
+        return ImmutableTemplateVariables.DbKvsConnectionConfig.builder()
+                .dbName("atlas")
+                .dbLogin("palantir")
+                .dbPassword("palantir")
+                .host(postgresAddress.getHostName())
+                .port(postgresAddress.getPort())
+                .build();
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<ClusterSupplier> params() {
+        return ImmutableSet.of(ClusterSupplier.of(() -> new TestableTimelockCluster(
+                "db TimeLock",
+                "dbKvsServer.ftl",
+                generateThreeNodeTimelockCluster(9080, builder ->
+                        builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
+                                .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
+                                .dbConfig(getKvsTemplateVariables())))));
+    }
+
+    @Rule
+    @Parameterized.Parameter
+    public ClusterSupplier clusterSupplier;
 }

@@ -58,8 +58,8 @@ import com.palantir.paxos.PaxosQuorumChecker;
 
 public class TestableTimelockCluster implements TestRule {
 
-    private final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    private boolean isReady = false;
     private final String name;
     private final List<TemporaryConfigurationHolder> configs;
     private final Set<TestableTimelockServer> servers;
@@ -105,12 +105,16 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     private void waitUntilReadyToServeNamespaces(List<String> namespaces) {
+        if (isReady) {
+            return;
+        }
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
                         namespaces.forEach(namespace -> client(namespace).throughWireMockProxy().getFreshTimestamp());
+                        isReady = true;
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -216,6 +220,10 @@ public class TestableTimelockCluster implements TestRule {
 
     NamespacedClients uncachedNamespacedClients(String namespace) {
         return NamespacedClients.from(namespace, proxyFactory);
+    }
+
+    public List<TemporaryConfigurationHolder> getConfigs() {
+        return configs;
     }
 
     private static final class FailoverProxyFactory implements NamespacedClients.ProxyFactory {

@@ -25,7 +25,7 @@ install:
           dbName: "${dbConfig.dbName}"
           dbPassword: "${dbConfig.dbPassword}"
           host: "${dbConfig.host}"
-          port: 5432
+          port: "${dbConfig.port?c}"
           type: postgres
         ddl:
           type: postgres

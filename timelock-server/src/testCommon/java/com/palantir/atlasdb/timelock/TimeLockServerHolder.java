@@ -20,7 +20,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Scanner;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -154,6 +156,9 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     synchronized void start() {
+        if (isRunning) {
+            return;
+        }
         try {
             before();
         } catch (Exception e) {
@@ -164,6 +169,17 @@ public class TimeLockServerHolder extends ExternalResource {
     TimeLockInstallConfiguration installConfig() {
         checkTimelockInitialised();
         ObjectMapper mapper = Jackson.newObjectMapper(new YAMLFactory());
+        Scanner myReader = null;
+        try {
+            myReader = new Scanner(new File(configFilePathSupplier.get()));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        while (myReader.hasNextLine()) {
+            String data = myReader.nextLine();
+            System.out.println(data);
+        }
+        myReader.close();
         try {
             return mapper.readValue(new File(configFilePathSupplier.get()), CombinedTimeLockServerConfiguration.class)
                     .install();

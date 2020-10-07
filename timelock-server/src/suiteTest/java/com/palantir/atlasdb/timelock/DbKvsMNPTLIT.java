@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock;
+
+import java.io.IOException;
 
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -23,27 +26,41 @@ import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 
 @RunWith(Parameterized.class)
-public class MultiNodePaxosTimeLockServerIntegrationTest extends AbstractTests {
-
+public class DbKvsMNPTLIT extends AbstractTests {
     @ClassRule
-    public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_PAXOS);
+    public static ParameterInjector<ClusterSupplier> injector =
+            ParameterInjector
+                    .withFallBackConfiguration(() -> ClusterSupplier.of(() -> SingleLeaderPaxosSuite.BATCHED_PAXOS));
 
     @Parameterized.Parameter
-    public TestableTimelockCluster cluster;
+    public ClusterSupplier cluster;
 
     @Parameterized.Parameters(name = "{0}")
-    public static Iterable<TestableTimelockCluster> params() {
+    public static Iterable<ClusterSupplier> params() {
         return injector.getParameter();
     }
 
     @Override
     protected TestableTimelockCluster getFirstCluster() {
-        return params().iterator().next();
+        return params().iterator().next().getCluster();
     }
 
     @Override
     protected TestableTimelockCluster getCluster() {
-        return cluster;
+        TestableTimelockCluster c = cluster.getCluster();
+        try {
+            c.temporaryFolder.create();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        for (TemporaryConfigurationHolder config : c.getConfigs()) {
+            try {
+                config.before();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return c;
     }
 }
