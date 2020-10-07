@@ -52,6 +52,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
+import com.palantir.paxos.Client;
 import com.palantir.tracing.RenderTracingRule;
 
 public class AwaitingLeadershipProxyTest {
@@ -62,6 +63,7 @@ public class AwaitingLeadershipProxyTest {
     private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
     private final Runnable mockRunnable = mock(Runnable.class);
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
+    private final Client client = Client.of("client");
 
     @Rule public final ExpectedException expect = ExpectedException.none();
 
@@ -82,7 +84,7 @@ public class AwaitingLeadershipProxyTest {
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
-                Runnable.class, delegateSupplier, leaderElectionService);
+                client, Runnable.class, delegateSupplier, leaderElectionService);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -108,7 +110,7 @@ public class AwaitingLeadershipProxyTest {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy =
                 AwaitingLeadershipProxy.newProxyInstance(
-                        ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+                        client, ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -127,7 +129,7 @@ public class AwaitingLeadershipProxyTest {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy =
                 AwaitingLeadershipProxy.newProxyInstance(
-                        ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+                        client, ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -146,7 +148,7 @@ public class AwaitingLeadershipProxyTest {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy =
                 AwaitingLeadershipProxy.newProxyInstance(
-                        ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+                        client, ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -180,7 +182,7 @@ public class AwaitingLeadershipProxyTest {
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
 
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
-                Runnable.class, delegateSupplier, leaderElectionService);
+                client, Runnable.class, delegateSupplier, leaderElectionService);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -253,6 +255,7 @@ public class AwaitingLeadershipProxyTest {
                 .thenReturn(leadershipToken);
 
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                client,
                 Runnable.class,
                 delegateSupplier,
                 leaderElectionService);
@@ -305,7 +308,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private Callable proxyFor(Callable fn) {
-        return AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService);
+        return AwaitingLeadershipProxy.newProxyInstance(client, Callable.class, () -> fn, leaderElectionService);
     }
 
     private void waitForLeadershipToBeGained() throws InterruptedException {
