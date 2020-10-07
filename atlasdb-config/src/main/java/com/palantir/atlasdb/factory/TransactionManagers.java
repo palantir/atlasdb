@@ -185,6 +185,7 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -1197,10 +1198,10 @@ public abstract class TransactionManagers {
                 leaderConfig,
                 userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
-        LockService localLock = AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader);
+        LockService localLock = AwaitingLeadershipProxy.newProxyInstance(Client.of("embedded"), LockService.class, lock::get, leader);
 
         ManagedTimestampService managedTimestampProxy =
-                AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
+                AwaitingLeadershipProxy.newProxyInstance(Client.of("embedded"), ManagedTimestampService.class, time::get, leader);
 
         // These facades are necessary because of the semantics of the JAX-RS algorithm (in particular, accepting
         // just the managed timestamp service will *not* work).
