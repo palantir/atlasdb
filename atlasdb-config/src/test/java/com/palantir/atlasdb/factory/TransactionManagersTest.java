@@ -126,6 +126,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
@@ -549,7 +550,7 @@ public class TransactionManagersTest {
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService lockService = LockServiceImpl.create();
         LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
-                LockService.class, () -> lockService, leader);
+                Client.of(CLIENT), LockService.class, () -> lockService, leader);
         LockService localOrRemoteLock = LocalOrRemoteProxy.newProxyInstance(
                 LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
         try {
