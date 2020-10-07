@@ -27,6 +27,8 @@ import com.palantir.atlasdb.timelock.util.ParameterInjector;
 
 @RunWith(Parameterized.class)
 public class DbKvsMNPTLIT extends AbstractTests {
+    private boolean trial = false;
+
     @ClassRule
     public static ParameterInjector<ClusterSupplier> injector =
             ParameterInjector
@@ -48,6 +50,13 @@ public class DbKvsMNPTLIT extends AbstractTests {
     @Override
     protected TestableTimelockCluster getCluster() {
         TestableTimelockCluster c = cluster.getCluster();
+        setupBeforeClass(c);
+        return c;
+    }
+
+    private void setupBeforeClass(TestableTimelockCluster c) {
+        if (trial) return;
+        trial = true;
         try {
             c.temporaryFolder.create();
         } catch (IOException e) {
@@ -60,7 +69,5 @@ public class DbKvsMNPTLIT extends AbstractTests {
                 e.printStackTrace();
             }
         }
-
-        return c;
     }
 }

@@ -53,7 +53,7 @@ public class TestableTimelockServer {
 
     private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET = ImmutableSet.of(
             PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
-    private final TimeLockServerHolder serverHolder;
+    public final TimeLockServerHolder serverHolder;
     private final TestProxies proxies;
     private final ProxyFactory proxyFactory;
 

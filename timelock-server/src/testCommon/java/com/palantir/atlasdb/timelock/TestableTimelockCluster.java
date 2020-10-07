@@ -59,10 +59,9 @@ import com.palantir.paxos.PaxosQuorumChecker;
 public class TestableTimelockCluster implements TestRule {
 
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-    private boolean isReady = false;
     private final String name;
     private final List<TemporaryConfigurationHolder> configs;
-    private final Set<TestableTimelockServer> servers;
+    public final Set<TestableTimelockServer> servers;
     private final Multimap<TestableTimelockServer, TestableTimelockServer> serverToOtherServers;
     private final FailoverProxyFactory proxyFactory;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
@@ -105,16 +104,12 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     private void waitUntilReadyToServeNamespaces(List<String> namespaces) {
-        if (isReady) {
-            return;
-        }
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
                         namespaces.forEach(namespace -> client(namespace).throughWireMockProxy().getFreshTimestamp());
-                        isReady = true;
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -137,6 +132,7 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     TestableTimelockServer currentLeaderFor(String namespace) {
+        System.out.println(currentLeaders(namespace).get(namespace));
         return Iterables.getOnlyElement(currentLeaders(namespace).get(namespace));
     }
 

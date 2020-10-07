@@ -27,7 +27,6 @@ import org.junit.runners.Suite;
 
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.MultiLeaderMultiNodePaxosTimeLockIntegrationTest;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
@@ -35,7 +34,7 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses({
         MultiNodePaxosTimeLockServerIntegrationTest.class,
-        MultiLeaderMultiNodePaxosTimeLockIntegrationTest.class
+//        MultiLeaderMultiNodePaxosTimeLockIntegrationTest.class
         })
 public final class MultiLeaderPaxosSuite {
 
