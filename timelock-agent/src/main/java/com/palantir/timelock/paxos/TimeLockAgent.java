@@ -60,7 +60,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.health.LeaderElectionHealthReport;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;

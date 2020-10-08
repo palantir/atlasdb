@@ -23,9 +23,9 @@ import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.impl.AsyncCloseableLockService;
+import com.palantir.atlasdb.timelock.lock.AsyncCloseableLockService;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.impl.ThreadPooledLockService;
+import com.palantir.atlasdb.timelock.lock.ThreadPooledLockService;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
 public class LockCreator {

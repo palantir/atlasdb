@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.lock.impl.TooManyRequestsException;
+import com.palantir.atlasdb.timelock.lock.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 
 public class ConjureResourceExceptionHandler {

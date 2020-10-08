@@ -40,7 +40,7 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.lock.impl.TooManyRequestsException;
+import com.palantir.atlasdb.timelock.lock.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;

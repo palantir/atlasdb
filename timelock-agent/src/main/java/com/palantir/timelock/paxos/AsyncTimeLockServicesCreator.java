@@ -24,18 +24,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
-import com.palantir.lock.impl.AsyncLockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockServiceImpl;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -79,9 +81,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         AsyncLockService lockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
                 AsyncLockService.class,
-                // TODO: Fix this
-                rawLockServiceSupplier
-                /*Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get)*/);
+                Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get));
 
         leadershipComponents.registerClientForLeaderElectionHealthCheck(client);
 

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.palantir.atlasdb.timelock.lock;
 
-package com.palantir.lock.impl;
-
-import java.io.Closeable;
-
-public interface AsyncCloseableLockService extends AsyncLockService, Closeable {
+public class TooManyRequestsException extends RuntimeException {
+    public TooManyRequestsException(String message) {
+        super(message);
+    }
 }

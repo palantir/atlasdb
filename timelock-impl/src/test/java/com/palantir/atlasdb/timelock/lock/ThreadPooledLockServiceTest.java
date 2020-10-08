@@ -24,7 +24,6 @@ import java.util.concurrent.Semaphore;
 import org.junit.Test;
 
 import com.palantir.lock.CloseableLockService;
-import com.palantir.lock.impl.ThreadPooledLockService;
 
 public class ThreadPooledLockServiceTest {
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.impl;
+package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Set;
 

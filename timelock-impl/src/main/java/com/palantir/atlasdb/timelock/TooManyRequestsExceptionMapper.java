@@ -19,7 +19,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.atlasdb.http.ExceptionMappers;
-import com.palantir.lock.impl.TooManyRequestsException;
+import com.palantir.atlasdb.timelock.lock.TooManyRequestsException;
 
 public class TooManyRequestsExceptionMapper implements ExceptionMapper<TooManyRequestsException> {
     public static final int TOO_MANY_REQUESTS_429 = 429;

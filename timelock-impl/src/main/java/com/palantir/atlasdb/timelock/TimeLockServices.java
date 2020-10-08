@@ -30,7 +30,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
-import com.palantir.lock.impl.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;

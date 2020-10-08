@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.impl;
+package com.palantir.atlasdb.timelock.lock;
 
 import java.math.BigInteger;
 import java.util.Set;
@@ -27,8 +27,9 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.processors.AutoDelegate;
 
-//@AutoDelegate
+@AutoDelegate
 public interface AsyncLockService extends AsyncRemoteLockService {
     ListenableFuture<LockResponse> lockWithFullLockResponse(LockClient client, LockRequest request);
     ListenableFuture<Boolean> unlock(HeldLocksToken token);
