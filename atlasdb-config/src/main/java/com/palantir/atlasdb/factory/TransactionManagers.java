@@ -1198,10 +1198,12 @@ public abstract class TransactionManagers {
                 leaderConfig,
                 userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
-        LockService localLock = AwaitingLeadershipProxy.newProxyInstance(Client.of("embedded"), LockService.class, lock::get, leader);
+        LockService localLock = AwaitingLeadershipProxy.newProxyInstance(Client.of("embedded"),
+                LockService.class, lock::get, leader);
 
         ManagedTimestampService managedTimestampProxy =
-                AwaitingLeadershipProxy.newProxyInstance(Client.of("embedded"), ManagedTimestampService.class, time::get, leader);
+                AwaitingLeadershipProxy.newProxyInstance(Client.of("embedded"),
+                        ManagedTimestampService.class, time::get, leader);
 
         // These facades are necessary because of the semantics of the JAX-RS algorithm (in particular, accepting
         // just the managed timestamp service will *not* work).
