@@ -23,12 +23,14 @@ import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -149,9 +151,13 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
                 executionExecutor,
                 status -> status != StillLeadingStatus.NO_QUORUM);
 
-        Arrays.stream(interfaceClass.getMethods()).filter(this::isNotAsync).forEach(method -> {
-            log.info("Found non-async method", SafeArg.of("method", method));
-        });
+        List<Method> nonAsyncMethods = Arrays.stream(interfaceClass.getMethods()).filter(this::isNotAsync).collect(
+                Collectors.toList());
+        if (nonAsyncMethods.isEmpty()) {
+            log.info("Found no non-async methods. Well done");
+        } else {
+            nonAsyncMethods.forEach(method -> log.info("Found non-async method", SafeArg.of("method", method)));
+        }
     }
 
     private void tryToGainLeadership() {
