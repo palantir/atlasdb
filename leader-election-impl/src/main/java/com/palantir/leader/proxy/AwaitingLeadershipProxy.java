@@ -77,6 +77,15 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             Class<U> interfaceClass,
             Supplier<U> delegateSupplier,
             LeaderElectionService leaderElectionService) {
+        return AwaitingLeadershipProxy2.newProxyInstance(client, interfaceClass, delegateSupplier,
+                leaderElectionService);
+    }
+
+    public static <U> U newProxyInstanceImpl(
+            Client client,
+            Class<U> interfaceClass,
+            Supplier<U> delegateSupplier,
+            LeaderElectionService leaderElectionService) {
         AwaitingLeadershipProxy<U> proxy = new AwaitingLeadershipProxy<>(
                 delegateSupplier,
                 leaderElectionService,
