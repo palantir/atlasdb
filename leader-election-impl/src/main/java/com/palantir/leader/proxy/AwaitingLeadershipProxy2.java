@@ -129,7 +129,7 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
             Supplier<T> delegateSupplier,
             LeaderElectionService leaderElectionService,
             Class<T> interfaceClass) {
-        com.palantir.logsafe.Preconditions.checkNotNull(delegateSupplier,
+        Preconditions.checkNotNull(delegateSupplier,
                 "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
@@ -141,7 +141,7 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
 
         int processorId = Math.abs(Hashing.murmur3_32().hashString(client.value(), StandardCharsets.UTF_8).asInt())
                 % Runtime.getRuntime().availableProcessors();
-        this.executionExecutor = Preconditions.checkNotNull(shardedExecutionExecutors.get(processorId));
+        this.executionExecutor = Preconditions.checkNotNull(shardedExecutionExecutors.get(processorId), "executor");
         this.statusRetrier = new AsyncRetrier<>(
                 MAX_NO_QUORUM_RETRIES,
                 Duration.ofMillis(700),
@@ -339,7 +339,7 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
                     // operationFuture.cancel(false);
                 }
             }, MoreExecutors.directExecutor());
-            
+
             return returnValueFuture;
         }
     }
@@ -349,7 +349,7 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
     }
 
     private Object checkDelegateAndReturn(T maybeValidDelegate, T delegateFromFuture, Object returnValue) {
-        Preconditions.checkArgument(delegateFromFuture == maybeValidDelegate);
+        Preconditions.checkArgument(delegateFromFuture == maybeValidDelegate, "delegate changed");
         return returnValue;
     }
 
