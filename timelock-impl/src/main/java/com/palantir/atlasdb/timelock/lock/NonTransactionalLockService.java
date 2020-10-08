@@ -29,9 +29,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.HeldLocksTokens;
 import com.palantir.lock.LockRefreshToken;
@@ -61,41 +58,38 @@ public class NonTransactionalLockService implements AutoDelegate_AsyncLockServic
     }
 
     @Override
-    public ListenableFuture<Long> getMinLockedInVersionId(String client) {
+    public Long getMinLockedInVersionId(String client) {
         log.warn("Client {} attempted to getMinLockedInVersionId() on a non-transactional lock service!"
                         + " If you are using async timelock, this suggests that one of your AtlasDB clients still"
                         + " expects synchronous lock (i.e. is on a version of AtlasDB prior to 0.49.0). Please check"
                         + " that all AtlasDB clients are using AtlasDB >= 0.49.0.",
                 UnsafeArg.of("client", client));
-        return Futures.immediateFailedFuture(
-                new BadRequestException("getMinLockedInVersionId() not supported on non-transactional lock"
-                        + " service. Please consult the server logs for more detail."));
+        throw new BadRequestException("getMinLockedInVersionId() not supported on non-transactional lock"
+                + " service. Please consult the server logs for more detail.");
     }
 
     @Override
-    public ListenableFuture<Boolean> unlock(HeldLocksToken token) {
+    public boolean unlock(HeldLocksToken token) {
         return delegate().unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(token));
     }
 
     @Override
-    public ListenableFuture<Boolean> unlock(LockRefreshToken token) {
+    public boolean unlock(LockRefreshToken token) {
         return delegate().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
     }
 
     @Override
-    public ListenableFuture<Set<HeldLocksToken>> refreshTokens(Iterable<HeldLocksToken> tokens) {
+    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
         Set<LockRefreshToken> refreshTokens = ImmutableSet.copyOf(
                 Iterables.transform(tokens, HeldLocksTokens.getRefreshTokenFun()));
-        return Futures.transform(delegate().refreshLockRefreshTokens(refreshTokens), goodTokens -> {
-            Set<HeldLocksToken> ret = Sets.newHashSetWithExpectedSize(refreshTokens.size());
-            Map<LockRefreshToken, HeldLocksToken> tokenMap = Maps.uniqueIndex(tokens,
-                    HeldLocksTokens.getRefreshTokenFun());
-            for (LockRefreshToken goodToken : goodTokens) {
-                HeldLocksToken lock = tokenMap.get(goodToken);
-                ret.add(goodToken.refreshTokenWithExpriationDate(lock));
-            }
-            return ret;
-        }, MoreExecutors.directExecutor());
+        Set<LockRefreshToken> goodTokens = delegate().refreshLockRefreshTokens(refreshTokens);
+        Set<HeldLocksToken> ret = Sets.newHashSetWithExpectedSize(refreshTokens.size());
+        Map<LockRefreshToken, HeldLocksToken> tokenMap = Maps.uniqueIndex(tokens, HeldLocksTokens.getRefreshTokenFun());
+        for (LockRefreshToken goodToken : goodTokens) {
+            HeldLocksToken lock = tokenMap.get(goodToken);
+            ret.add(goodToken.refreshTokenWithExpriationDate(lock));
+        }
+        return ret;
     }
 
     @Override

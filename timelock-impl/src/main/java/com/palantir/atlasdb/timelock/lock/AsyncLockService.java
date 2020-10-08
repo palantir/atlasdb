@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.lock;
 import java.math.BigInteger;
 import java.util.Set;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -31,20 +30,20 @@ import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
 public interface AsyncLockService extends AsyncRemoteLockService {
-    ListenableFuture<LockResponse> lockWithFullLockResponse(LockClient client, LockRequest request);
-    ListenableFuture<Boolean> unlock(HeldLocksToken token);
-    ListenableFuture<Boolean> unlockSimple(SimpleHeldLocksToken token);
-    ListenableFuture<Boolean> unlockAndFreeze(HeldLocksToken token);
-    ListenableFuture<Set<HeldLocksToken>> getTokens(LockClient client);
-    ListenableFuture<Set<HeldLocksToken>> refreshTokens(Iterable<HeldLocksToken> tokens);
-    ListenableFuture<HeldLocksGrant> refreshGrant(HeldLocksGrant grant);
-    ListenableFuture<HeldLocksGrant> refreshGrant(BigInteger grantId);
-    ListenableFuture<HeldLocksGrant> convertToGrant(HeldLocksToken token);
-    ListenableFuture<HeldLocksToken> useGrant(LockClient client, HeldLocksGrant grant);
-    ListenableFuture<HeldLocksToken> useGrant(LockClient client, BigInteger grantId);
-    ListenableFuture<Long> getMinLockedInVersionId();
-    ListenableFuture<Long> getMinLockedInVersionId(LockClient client);
-    ListenableFuture<LockServerOptions> getLockServerOptions();
-    ListenableFuture<Long> currentTimeMillis();
-    ListenableFuture<Void> logCurrentState();
+    LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException;
+    boolean unlock(HeldLocksToken token);
+    boolean unlockSimple(SimpleHeldLocksToken token);
+    boolean unlockAndFreeze(HeldLocksToken token);
+    Set<HeldLocksToken> getTokens(LockClient client);
+    Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens);
+    HeldLocksGrant refreshGrant(HeldLocksGrant grant);
+    HeldLocksGrant refreshGrant(BigInteger grantId);
+    HeldLocksGrant convertToGrant(HeldLocksToken token);
+    HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant);
+    HeldLocksToken useGrant(LockClient client, BigInteger grantId);
+    Long getMinLockedInVersionId();
+    Long getMinLockedInVersionId(LockClient client);
+    LockServerOptions getLockServerOptions();
+    long currentTimeMillis();
+    void logCurrentState();
 }

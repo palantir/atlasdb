@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
-import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.lock.AsyncLockServiceImpl;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -39,7 +38,7 @@ public class AsyncTimelockServiceImplTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        assertFalse(Futures.getUnchecked(service.isInitialized()));
-        assertTrue(Futures.getUnchecked(service.isInitialized()));
+        assertFalse(service.isInitialized());
+        assertTrue(service.isInitialized());
     }
 }

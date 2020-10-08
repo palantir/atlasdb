@@ -113,9 +113,9 @@ public class LeadershipComponents {
         }
 
         /**
-         * Attempts to register a collection of {@link Closeable}s to be closed when shutting down Timelock. If timelock
-         * has already been shutdown, any {@link Closeable}s passed here will be <em>immediately</em> closed, and a
-         * {@link NotCurrentLeaderException} will be thrown.
+         * Attempts to register a collection of {@link Closeable}s to be closed when shutting down Timelock.
+         * If timelock has already been shutdown, any {@link Closeable}s passed here will be <em>immediately</em>
+         * closed, and a {@link NotCurrentLeaderException} will be thrown.
          *
          * @param closeables collection of {@link Closeable}s to be closed when timelock shuts down.
          */

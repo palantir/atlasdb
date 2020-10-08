@@ -20,10 +20,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -75,32 +73,32 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public ListenableFuture<Boolean> isInitialized() {
-        return Futures.immediateFuture(timestampService.isInitialized());
+    public boolean isInitialized() {
+        return timestampService.isInitialized();
     }
 
     @Override
-    public ListenableFuture<Long> getFreshTimestamp() {
-        return Futures.immediateFuture(timestampService.getFreshTimestamp());
+    public long getFreshTimestamp() {
+        return timestampService.getFreshTimestamp();
     }
 
     @Override
-    public ListenableFuture<TimestampRange> getFreshTimestamps(int numTimestampsRequested) {
-        return Futures.immediateFuture(timestampService.getFreshTimestamps(numTimestampsRequested));
+    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        return timestampService.getFreshTimestamps(numTimestampsRequested);
     }
 
     @Override
-    public ListenableFuture<LockImmutableTimestampResponse> lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.getRequestId());
 
-        return Futures.immediateFuture(leasedLockImmutableTimestampResponse.value());
+        return leasedLockImmutableTimestampResponse.value();
     }
 
     @Override
-    public ListenableFuture<Long> getImmutableTimestamp() {
+    public long getImmutableTimestamp() {
         long timestamp = timestampService.getFreshTimestamp();
-        return Futures.immediateFuture(lockService.getImmutableTimestamp().orElse(timestamp));
+        return lockService.getImmutableTimestamp().orElse(timestamp);
     }
 
     @Override
@@ -154,24 +152,22 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public ListenableFuture<StartAtlasDbTransactionResponse> deprecatedStartTransaction(
-            IdentifiedTimeLockRequest request) {
-        return FluentFuture.from(lockImmutableTimestamp(request))
-                .transformAsync(res -> FluentFuture.from(getFreshTimestamp()).transform(
-                        freshTimestamp -> StartAtlasDbTransactionResponse.of(res, freshTimestamp),
-                        MoreExecutors.directExecutor()),
-                        MoreExecutors.directExecutor());
+    public StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request) {
+        return StartAtlasDbTransactionResponse.of(
+                lockImmutableTimestamp(request),
+                getFreshTimestamp());
     }
 
     @Override
-    public ListenableFuture<StartAtlasDbTransactionResponseV3> startTransaction(
+    public StartAtlasDbTransactionResponseV3 startTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return FluentFuture.from(
-                startTransactions(StartTransactionRequestV4.createForRequestor(request.requestorId(), 1)))
-                .transform(startTransactionResponseV4 -> StartAtlasDbTransactionResponseV3.of(
-                        startTransactionResponseV4.immutableTimestamp(),
-                        getTimestampAndPartition(startTransactionResponseV4.timestamps()),
-                        startTransactionResponseV4.lease()), MoreExecutors.directExecutor());
+        StartTransactionResponseV4 startTransactionResponseV4 =
+                startTransactions(StartTransactionRequestV4.createForRequestor(request.requestorId(), 1));
+
+        return StartAtlasDbTransactionResponseV3.of(
+                startTransactionResponseV4.immutableTimestamp(),
+                getTimestampAndPartition(startTransactionResponseV4.timestamps()),
+                startTransactionResponseV4.lease());
     }
 
     private static TimestampAndPartition getTimestampAndPartition(PartitionedTimestamps partitionedTimestamps) {
@@ -179,17 +175,17 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public ListenableFuture<StartTransactionResponseV4> startTransactions(StartTransactionRequestV4 request) {
+    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 
         PartitionedTimestamps partitionedTimestamps =
                 timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions());
 
-        return Futures.immediateFuture(StartTransactionResponseV4.of(
+        return StartTransactionResponseV4.of(
                 leasedLockImmutableTimestampResponse.value(),
                 partitionedTimestamps,
-                leasedLockImmutableTimestampResponse.lease()));
+                leasedLockImmutableTimestampResponse.lease());
     }
 
     private Leased<LockImmutableTimestampResponse> lockImmutableTimestampWithLease(UUID requestId) {
@@ -230,11 +226,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
             int numTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
-        return FluentFuture.from(getFreshTimestamps(numTimestamps))
-                .transform(freshTimestamps -> GetCommitTimestampsResponse.of(
-                        freshTimestamps.getLowerBound(),
-                        freshTimestamps.getUpperBound(),
-                        getWatchStateUpdate(lastKnownVersion)), MoreExecutors.directExecutor());
+        TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
+        return Futures.immediateFuture(GetCommitTimestampsResponse.of(
+                freshTimestamps.getLowerBound(),
+                freshTimestamps.getUpperBound(),
+                getWatchStateUpdate(lastKnownVersion)));
     }
 
     @Override
@@ -244,23 +240,22 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest) {
-        return getFreshTimestamps(timestampsToRequest);
+        return Futures.immediateFuture(getFreshTimestamps(timestampsToRequest));
     }
 
     @Override
-    public ListenableFuture<Long> currentTimeMillis() {
-        return Futures.immediateFuture(System.currentTimeMillis());
+    public long currentTimeMillis() {
+        return System.currentTimeMillis();
     }
 
     @Override
-    public ListenableFuture<Void> fastForwardTimestamp(long currentTimestamp) {
+    public void fastForwardTimestamp(long currentTimestamp) {
         timestampService.fastForwardTimestamp(currentTimestamp);
-        return Futures.immediateFuture(null);
     }
 
     @Override
-    public ListenableFuture<String> ping() {
-        return Futures.immediateFuture(timestampService.ping());
+    public String ping() {
+        return timestampService.ping();
     }
 
     @Override

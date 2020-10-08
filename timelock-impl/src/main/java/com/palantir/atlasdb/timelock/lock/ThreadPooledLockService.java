@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -47,132 +45,116 @@ public class ThreadPooledLockService implements AsyncCloseableLockService {
 
     @Nullable
     @Override
-    public ListenableFuture<LockRefreshToken> lock(String client, LockRequest request) {
-        return toFuture(() -> wrapper.applyWithPermit(lockService -> lockService.lock(client, request)));
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
+        return wrapper.applyWithPermit(lockService -> lockService.lock(client, request));
     }
 
     @Override
-    public ListenableFuture<HeldLocksToken> lockAndGetHeldLocks(String client, LockRequest request) {
-        return toFuture(() -> wrapper.applyWithPermit(lockService -> lockService.lockAndGetHeldLocks(client, request)));
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
+        return wrapper.applyWithPermit(lockService -> lockService.lockAndGetHeldLocks(client, request));
     }
 
     @Override
-    public ListenableFuture<Boolean> unlock(LockRefreshToken token) {
-        return toFuture(() -> delegate.unlock(token));
+    public boolean unlock(LockRefreshToken token) {
+        return delegate.unlock(token);
     }
 
     @Override
-    public ListenableFuture<Set<LockRefreshToken>> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
-        return toFuture(() -> delegate.refreshLockRefreshTokens(tokens));
-    }
-
-    @Nullable
-    @Override
-    public ListenableFuture<Long> getMinLockedInVersionId(String client) {
-        return toFuture(() -> delegate.getMinLockedInVersionId(client));
-    }
-
-    @Override
-    public ListenableFuture<LockResponse> lockWithFullLockResponse(LockClient client, LockRequest request) {
-        return toFuture(
-                () -> wrapper.applyWithPermit(lockService -> lockService.lockWithFullLockResponse(client, request)));
-    }
-
-    @Override
-    public ListenableFuture<Boolean> unlock(HeldLocksToken token) {
-        return toFuture(() -> delegate.unlock(token));
-    }
-
-    @Override
-    public ListenableFuture<Boolean> unlockSimple(SimpleHeldLocksToken token) {
-        return toFuture(() -> delegate.unlockSimple(token));
-    }
-
-    @Override
-    public ListenableFuture<Boolean> unlockAndFreeze(HeldLocksToken token) {
-        return toFuture(() -> delegate.unlockAndFreeze(token));
-    }
-
-    @Override
-    public ListenableFuture<Set<HeldLocksToken>> getTokens(LockClient client) {
-        return toFuture(() -> delegate.getTokens(client));
-    }
-
-    @Override
-    public ListenableFuture<Set<HeldLocksToken>> refreshTokens(Iterable<HeldLocksToken> tokens) {
-        return toFuture(() -> delegate.refreshTokens(tokens));
+    public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
+        return delegate.refreshLockRefreshTokens(tokens);
     }
 
     @Nullable
     @Override
-    public ListenableFuture<HeldLocksGrant> refreshGrant(HeldLocksGrant grant) {
-        return toFuture(() -> delegate.refreshGrant(grant));
+    public Long getMinLockedInVersionId(String client) {
+        return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
+        return wrapper.applyWithPermit(lockService -> lockService.lockWithFullLockResponse(client, request));
+    }
+
+    @Override
+    public boolean unlock(HeldLocksToken token) {
+        return delegate.unlock(token);
+    }
+
+    @Override
+    public boolean unlockSimple(SimpleHeldLocksToken token) {
+        return delegate.unlockSimple(token);
+    }
+
+    @Override
+    public boolean unlockAndFreeze(HeldLocksToken token) {
+        return delegate.unlockAndFreeze(token);
+    }
+
+    @Override
+    public Set<HeldLocksToken> getTokens(LockClient client) {
+        return delegate.getTokens(client);
+    }
+
+    @Override
+    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
+        return delegate.refreshTokens(tokens);
     }
 
     @Nullable
     @Override
-    public ListenableFuture<HeldLocksGrant> refreshGrant(BigInteger grantId) {
-        return toFuture(() -> delegate.refreshGrant(grantId));
-    }
-
-    @Override
-    public ListenableFuture<HeldLocksGrant> convertToGrant(HeldLocksToken token) {
-        return toFuture(() -> delegate.convertToGrant(token));
-    }
-
-    @Override
-    public ListenableFuture<HeldLocksToken> useGrant(LockClient client, HeldLocksGrant grant) {
-        return toFuture(() -> delegate.useGrant(client, grant));
-    }
-
-    @Override
-    public ListenableFuture<HeldLocksToken> useGrant(LockClient client, BigInteger grantId) {
-        return toFuture(() -> delegate.useGrant(client, grantId));
+    public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
+        return delegate.refreshGrant(grant);
     }
 
     @Nullable
     @Override
-    public ListenableFuture<Long> getMinLockedInVersionId() {
-        return toFuture(delegate::getMinLockedInVersionId);
+    public HeldLocksGrant refreshGrant(BigInteger grantId) {
+        return delegate.refreshGrant(grantId);
     }
 
     @Override
-    public ListenableFuture<Long> getMinLockedInVersionId(LockClient client) {
-        return toFuture(() -> delegate.getMinLockedInVersionId(client));
+    public HeldLocksGrant convertToGrant(HeldLocksToken token) {
+        return delegate.convertToGrant(token);
     }
 
     @Override
-    public ListenableFuture<LockServerOptions> getLockServerOptions() {
-        return toFuture(delegate::getLockServerOptions);
+    public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
+        return delegate.useGrant(client, grant);
     }
 
     @Override
-    public ListenableFuture<Long> currentTimeMillis() {
-        return toFuture(delegate::currentTimeMillis);
+    public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
+        return delegate.useGrant(client, grantId);
+    }
+
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId() {
+        return delegate.getMinLockedInVersionId();
     }
 
     @Override
-    public ListenableFuture<Void> logCurrentState() {
-        return toFuture(() -> {
-            delegate.logCurrentState();
-            return null;
-        });
+    public Long getMinLockedInVersionId(LockClient client) {
+        return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public LockServerOptions getLockServerOptions() {
+        return delegate.getLockServerOptions();
+    }
+
+    @Override
+    public long currentTimeMillis() {
+        return delegate.currentTimeMillis();
+    }
+
+    @Override
+    public void logCurrentState() {
+        delegate.logCurrentState();
     }
 
     @Override
     public void close() throws IOException {
         delegate.close();
-    }
-
-    private <V> ListenableFuture<V> toFuture(CheckedSupplier<V, InterruptedException> supplier) {
-        try {
-            return Futures.immediateFuture(supplier.get());
-        } catch (InterruptedException e) {
-            return Futures.immediateFailedFuture(e);
-        }
-    }
-
-    private interface CheckedSupplier<T, K extends Exception> {
-        T get() throws K;
     }
 }

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.QueryParam;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.logsafe.Safe;
 
 public interface AsyncTimestampManagementService {
@@ -28,8 +27,8 @@ public interface AsyncTimestampManagementService {
             SENTINEL_TIMESTAMP + ""; // can't use valueOf/toString because we need a compile time constant!
     String PING_RESPONSE = "pong";
 
-    ListenableFuture<Void> fastForwardTimestamp(
+    void fastForwardTimestamp(
             @Safe @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp);
 
-    ListenableFuture<String> ping();
+    String ping();
 }

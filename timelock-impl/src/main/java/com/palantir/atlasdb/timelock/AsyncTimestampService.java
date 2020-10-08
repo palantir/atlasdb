@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
 import com.palantir.timestamp.TimestampRange;
@@ -26,11 +24,11 @@ import com.palantir.timestamp.TimestampRange;
 public interface AsyncTimestampService {
 
     @DoDelegate
-    default ListenableFuture<Boolean> isInitialized() {
-        return Futures.immediateFuture(true);
+    default boolean isInitialized() {
+        return true;
     }
 
-    ListenableFuture<Long> getFreshTimestamp();
+    long getFreshTimestamp();
 
-    ListenableFuture<TimestampRange> getFreshTimestamps(int numTimestampsRequested);
+    TimestampRange getFreshTimestamps(int numTimestampsRequested);
 }
