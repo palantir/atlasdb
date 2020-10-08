@@ -29,7 +29,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.exception.PalantirSqlException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class DbKvsPostgresInvalidationRunnerTest {
@@ -96,8 +96,6 @@ public class DbKvsPostgresInvalidationRunnerTest {
     }
 
     private void assertBoundNotReadableAfterBeingPoisoned() {
-        assertThatThrownBy(store::getUpperLimit)
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("The store will not service requests as it had been poisoned");
+        assertThatThrownBy(store::getUpperLimit).isInstanceOf(PalantirSqlException.class);
     }
 }

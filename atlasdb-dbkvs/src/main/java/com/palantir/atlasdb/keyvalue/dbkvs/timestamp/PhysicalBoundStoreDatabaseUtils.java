@@ -23,6 +23,7 @@ import java.sql.Statement;
 import java.util.OptionalLong;
 import java.util.function.Function;
 
+import org.postgresql.util.PSQLState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +54,7 @@ public final class PhysicalBoundStoreDatabaseUtils {
         try {
             statement.execute(oracleQuery);
         } catch (SQLException e) {
-            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
+            if (!tableAlreadyExistsError(e)) {
                 log.error("Error occurred creating the Oracle timestamp table", e);
                 throw e;
             }
@@ -62,18 +63,23 @@ public final class PhysicalBoundStoreDatabaseUtils {
         }
     }
 
+    public static boolean tableAlreadyExistsError(SQLException e) {
+        return e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
+    }
+
+    public static boolean oracleColumnDoesNotExistError(SQLException e) {
+        return e.getMessage().contains(OracleErrorConstants.ORACLE_COLUMN_DOES_NOT_EXIST_ERROR);
+    }
+
+    public static boolean postgresColumnDoesNotExistError(SQLException e) {
+        return e.getSQLState().equals(PSQLState.UNDEFINED_COLUMN.getState());
+    }
+
     public static OptionalLong getLastAllocatedColumn(ResultSet rs) throws SQLException {
         if (rs.next()) {
             return OptionalLong.of(rs.getLong("last_allocated"));
         } else {
             return OptionalLong.empty();
         }
-    }
-
-    public static boolean hasColumn(Connection connection, String tablePattern, String colNamePattern)
-            throws SQLException {
-        return connection.getMetaData()
-                .getColumns(null, null, tablePattern, colNamePattern)
-                .next();
     }
 }

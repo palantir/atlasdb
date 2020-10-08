@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PhysicalBoundStoreDatabaseUtils.oracleColumnDoesNotExistError;
+import static com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -99,13 +102,14 @@ public class InvalidationRunner {
 
     private Long poisonStoreAndGetLastAllocatedTimestamp(Connection connection, Limits limits,
             TableStatus tableStatus) throws SQLException {
-
         long lastAllocated;
+
         if (tableStatus == TableStatus.NO_DATA) {
             lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
         } else {
             lastAllocated = limits.upperLimit().get().value();
         }
+
         poisonTable(connection);
         return lastAllocated;
     }
@@ -113,11 +117,35 @@ public class InvalidationRunner {
     private void poisonTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             if (ConnectionDbTypes.getDbType(connection).equals(DBType.ORACLE)) {
-                statement.execute(String.format("ALTER TABLE %s RENAME COLUMN %s TO %s",
-                        prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
+                poisonOracleTable(connection, statement);
             } else {
-                statement.execute(String.format("ALTER TABLE %s RENAME %s TO %s",
-                        prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
+                poisonPostgresTable(connection, statement);
+            }
+        }
+    }
+
+    private void poisonOracleTable(Connection connection, Statement statement) throws SQLException {
+        try {
+            statement.execute(String.format("ALTER TABLE %s RENAME COLUMN %s TO %s",
+                    prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
+        } catch (SQLException e) {
+            if (!oracleColumnDoesNotExistError(e)) {
+                throw e;
+            }
+            // Do not need to commit transaction here as Oracle doesn't throw an exception when a
+            // query fails on a connection within a transaction.
+        }
+    }
+
+    private void poisonPostgresTable(Connection connection, Statement statement) throws SQLException {
+        try {
+            statement.execute(String.format("ALTER TABLE %s RENAME %s TO %s",
+                    prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
+        } catch (SQLException e) {
+            if (!postgresColumnDoesNotExistError(e)) {
+                throw e;
+            } else {
+                connection.commit();
             }
         }
     }
@@ -130,25 +158,30 @@ public class InvalidationRunner {
                 + "InDbTimestampBoundStore but the data table does not exist. "
                 + "We should never reach here. Please contact support.");
 
-        return ImmutableLimits.builder()
-                .upperLimit(getColumnStatus(LAST_ALLOCATED, connection))
-                .legacyUpperLimit(getColumnStatus(LEGACY_LAST_ALLOCATED, connection))
-                .build();
-    }
-
-    private Optional<ColumnStatus> getColumnStatus(String colName, Connection connection) throws SQLException {
-        if (!PhysicalBoundStoreDatabaseUtils.hasColumn(connection, prefixedTimestampTableName(), colName)) {
-            return Optional.empty();
-        }
-
-        String sql = String.format("SELECT %s FROM %s FOR UPDATE", colName, prefixedTimestampTableName());
+        String sql = String.format("SELECT * FROM %s FOR UPDATE", prefixedTimestampTableName());
         QueryRunner run = new QueryRunner();
         return run.query(connection, sql, rs -> {
             if (rs.next()) {
-                return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
+                return ImmutableLimits.builder()
+                        .upperLimit(getColumnStatusFromResultSet(rs, LAST_ALLOCATED))
+                        .legacyUpperLimit(getColumnStatusFromResultSet(rs, LEGACY_LAST_ALLOCATED))
+                        .build();
+            } else {
+                return ImmutableLimits.builder().build();
             }
-            return ColumnStatus.columnStatusWithoutValue();
         });
+    }
+
+    private Optional<ColumnStatus> getColumnStatusFromResultSet(ResultSet rs, String colName) throws SQLException {
+        try {
+            return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
+        } catch (SQLException e) {
+            if (oracleColumnDoesNotExistError(e) || postgresColumnDoesNotExistError(e)) {
+                return Optional.empty();
+            } else {
+                throw e;
+            }
+        }
     }
 
     private TableStatus checkTableStatus(Limits limits) {
