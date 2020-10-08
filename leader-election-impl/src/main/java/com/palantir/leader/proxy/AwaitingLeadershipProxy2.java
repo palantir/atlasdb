@@ -317,8 +317,8 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
-                    returnValueFuture.setException(t);
+                public void onFailure(Throwable throwable) {
+                    returnValueFuture.setException(throwable);
                     // TODO: Maybe cancel?
                     // delegateFuture.cancel(false);
                 }
@@ -333,8 +333,8 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
-                    returnValueFuture.setException(t);
+                public void onFailure(Throwable throwable) {
+                    returnValueFuture.setException(throwable);
                     // TODO: Maybe cancel?
                     // operationFuture.cancel(false);
                 }
