@@ -319,7 +319,7 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
                 @Override
                 public void onFailure(Throwable throwable) {
                     returnValueFuture.setException(throwable);
-                    // TODO: Maybe cancel?
+                    // TODO(jakubk): Maybe cancel?
                     // delegateFuture.cancel(false);
                 }
             }, MoreExecutors.directExecutor());
@@ -335,7 +335,7 @@ public final class AwaitingLeadershipProxy2<T> extends AbstractInvocationHandler
                 @Override
                 public void onFailure(Throwable throwable) {
                     returnValueFuture.setException(throwable);
-                    // TODO: Maybe cancel?
+                    // TODO(jakubk): Maybe cancel?
                     // operationFuture.cancel(false);
                 }
             }, MoreExecutors.directExecutor());
