@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +52,8 @@ import com.palantir.paxos.Client;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class AwaitingLeadershipProxyBenchmark {
+    private static final Duration LEADER_CHECK_DURATION = Duration.ofMillis(2);
+
     private final LeaderAwareService service =
             AwaitingLeadershipProxy.newProxyInstance(
                     Client.of("client"),
@@ -93,6 +96,7 @@ public class AwaitingLeadershipProxyBenchmark {
 
         @Override
         public ListenableFuture<?> somethingAsync() {
+            // This isn't a trivial costing thing in general. More realistic would be to spin for a bit
             return Futures.immediateFuture(somethingBlocking());
         }
     }
@@ -129,7 +133,9 @@ public class AwaitingLeadershipProxyBenchmark {
 
         @Override
         public ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken providedToken) {
-            return executor.schedule(() -> StillLeadingStatus.LEADING, 2, TimeUnit.MILLISECONDS);
+            // TODO: this isn't quite how this works, but it probably ends up behaving this way.
+            return executor.schedule(() -> StillLeadingStatus.LEADING, LEADER_CHECK_DURATION.toNanos(),
+                    TimeUnit.NANOSECONDS);
         }
 
         @Override
