@@ -315,8 +315,8 @@ public class AwaitingLeadershipProxyTest {
 
     private <U> U newProxyInstance(
             Class<U> interfaceClass,
-            Supplier<U> delegateSupplier) {
+            Supplier<U> theDelegateSupplier) {
         return AwaitingLeadershipProxy2.newProxyInstance(
-                Client.of("test"), interfaceClass, delegateSupplier, leaderElectionService);
+                Client.of("test"), interfaceClass, theDelegateSupplier, leaderElectionService);
     }
 }
