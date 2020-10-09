@@ -24,54 +24,33 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.tokens.auth.AuthHeader;
 
-public class NamespacedConjureTimelockService {
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-    private final String namespace;
-    private final ConjureTimelockService conjureTimelockService;
+public interface NamespacedConjureTimelockService {
 
-    public NamespacedConjureTimelockService(ConjureTimelockService conjureTimelockService, String namespace) {
-        this.namespace = namespace;
-        this.conjureTimelockService = conjureTimelockService;
-    }
+    ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request);
 
-    public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
-        return conjureTimelockService.startTransactions(AUTH_HEADER, namespace, request);
-    }
+    ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request);
 
-    public ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request) {
-        return conjureTimelockService.getFreshTimestamps(AUTH_HEADER, namespace, request);
-    }
+    GetCommitTimestampsResponse getCommitTimestamps(GetCommitTimestampsRequest request);
 
-    public GetCommitTimestampsResponse getCommitTimestamps(GetCommitTimestampsRequest request) {
-        return conjureTimelockService.getCommitTimestamps(AUTH_HEADER, namespace, request);
-    }
+    LeaderTime leaderTime();
 
-    public LeaderTime leaderTime() {
-        return conjureTimelockService.leaderTime(AUTH_HEADER, namespace);
-    }
+    ConjureLockResponse lock(ConjureLockRequest request);
 
-    public ConjureLockResponse lock(ConjureLockRequest request) {
-        return conjureTimelockService.lock(AUTH_HEADER, namespace, request);
-    }
+    ConjureWaitForLocksResponse waitForLocks(ConjureLockRequest request);
 
-    public ConjureWaitForLocksResponse waitForLocks(ConjureLockRequest request) {
-        return conjureTimelockService.waitForLocks(AUTH_HEADER, namespace, request);
-    }
+    ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request);
 
-    public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
-        return conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
-    }
+    ConjureUnlockResponse unlock(ConjureUnlockRequest request);
 
-    public ConjureUnlockResponse unlock(ConjureUnlockRequest request) {
-        return conjureTimelockService.unlock(AUTH_HEADER, namespace, request);
+    interface Factory {
+        NamespacedConjureTimelockService create(Namespace namespace);
     }
 }

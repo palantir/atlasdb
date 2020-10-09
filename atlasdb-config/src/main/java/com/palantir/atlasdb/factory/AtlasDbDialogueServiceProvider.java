@@ -32,6 +32,10 @@ import com.palantir.atlasdb.http.v2.DialogueClientOptions;
 import com.palantir.atlasdb.http.v2.FastFailoverProxy;
 import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
+import com.palantir.atlasdb.timelock.api.ConjureLeaderTimesRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLeaderTimesResponse;
+import com.palantir.atlasdb.timelock.api.ConjureMultiNamespaceTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureMultiNamespaceTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
@@ -49,6 +53,7 @@ import com.palantir.lock.client.DialogueComposingLockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementRpcClient;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 /**
@@ -111,6 +116,26 @@ public final class AtlasDbDialogueServiceProvider {
                         conjureTimelockServiceBlockingMetrics));
 
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
+    }
+
+    ConjureMultiNamespaceTimelockService getConjureMultiNamespaceTimelockService() {
+        final ConjureMultiNamespaceTimelockServiceBlocking shortTimeoutService
+                = dialogueClientFactory.get(ConjureMultiNamespaceTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+
+        final ConjureMultiNamespaceTimelockServiceBlocking withProxy = FastFailoverProxy.newProxyInstance(
+                ConjureMultiNamespaceTimelockServiceBlocking.class,
+                () -> shortTimeoutService);
+
+        final ConjureMultiNamespaceTimelockServiceBlocking instrumented = AtlasDbMetrics.instrumentWithTaggedMetrics(
+                taggedMetricRegistry,
+                ConjureMultiNamespaceTimelockServiceBlocking.class,
+                withProxy);
+        return new ConjureMultiNamespaceTimelockService() {
+            @Override
+            public ConjureLeaderTimesResponse leaderTime(AuthHeader authHeader, ConjureLeaderTimesRequest request) {
+                return instrumented.leaderTime(authHeader, request);
+            }
+        };
     }
 
     TimestampManagementRpcClient getTimestampManagementRpcClient() {

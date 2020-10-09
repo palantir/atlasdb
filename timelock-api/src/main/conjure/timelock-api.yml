@@ -54,6 +54,20 @@ types:
           timestamps: PartitionedTimestamps
           lease: Lease
           lockWatchUpdate: LockWatchStateUpdate
+      Namespace:
+        alias: string
+      ConjureBatchStartTransactionsRequest:
+        fields:
+          requests: map<Namespace, ConjureStartTransactionsRequest>
+      ConjureBatchStartTransactionsResponse:
+        fields:
+          requests: map<Namespace, ConjureStartTransactionsResponse>
+      ConjureLeaderTimesRequest:
+        fields:
+          requests: set<Namespace>
+      ConjureLeaderTimesResponse:
+        fields:
+          responses: map<Namespace, LeaderTime>
       ConjureGetFreshTimestampsRequest:
         fields:
           numTimestamps: integer
@@ -111,9 +125,18 @@ types:
         fields:
           references: set<LockWatchReference>
 
-
-
 services:
+  ConjureMultiNamespaceTimelockService:
+    name: Multi-namespace Timelock service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.api
+    base-path: /mtl
+    endpoints:
+      leaderTime:
+        http: POST /lt
+        args:
+          request: ConjureLeaderTimesRequest
+        returns: ConjureLeaderTimesResponse
   ConjureTimelockService:
     name: Timelock service
     default-auth: header

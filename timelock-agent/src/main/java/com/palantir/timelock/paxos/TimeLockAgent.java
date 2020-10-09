@@ -36,6 +36,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
+import com.palantir.atlasdb.timelock.ConjureMultiNamespaceTimelockResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -235,6 +236,9 @@ public class TimeLockAgent {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
             registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
                     ConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+                    ConjureMultiNamespaceTimelockResource.undertow(
+                            redirectRetryTargeter(), asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
                     ConjureLockWatchingResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(presentUndertowRegistrar,

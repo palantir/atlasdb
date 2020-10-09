@@ -126,6 +126,7 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -167,7 +168,10 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.client.DefaultNamespacedConjureTimelockService;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.MultiNamespaceNamespacedConjureTimelockService;
+import com.palantir.lock.client.MultiNamespaceTimelockService;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.ProfilingTimelockService;
@@ -296,6 +300,11 @@ public abstract class TransactionManagers {
         return newMinimalDialogueFactory();
     }
 
+    @Value.Default
+    Optional<MultiNamespaceTimelockService.Factory> multiNamespaceTimelockService() {
+        return Optional.empty();
+    }
+
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
         return ImmutableTransactionManagers.builder();
     }
@@ -400,7 +409,8 @@ public abstract class TransactionManagers {
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent(),
                 lockDiagnosticComponents(),
-                reloadingFactory());
+                reloadingFactory(),
+                multiNamespaceTimelockService());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -950,7 +960,8 @@ public abstract class TransactionManagers {
                         invalidator,
                         UserAgents.tryParse(userAgent),
                         Optional.empty(),
-                        newMinimalDialogueFactory());
+                        newMinimalDialogueFactory(),
+                        Optional.empty());
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -971,7 +982,8 @@ public abstract class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
-            DialogueClients.ReloadingFactory reloadingFactory) {
+            DialogueClients.ReloadingFactory reloadingFactory,
+            Optional<MultiNamespaceTimelockService.Factory> maybeMultiNamespaceTimelockServiceFactory) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -982,7 +994,8 @@ public abstract class TransactionManagers {
                 invalidator,
                 userAgent,
                 lockDiagnosticComponents,
-                reloadingFactory);
+                reloadingFactory,
+                maybeMultiNamespaceTimelockServiceFactory);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
                         withRefreshingLockService(lockAndTimestampServices)));
@@ -1040,7 +1053,8 @@ public abstract class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
-            DialogueClients.ReloadingFactory reloadingFactory) {
+            DialogueClients.ReloadingFactory reloadingFactory,
+            Optional<MultiNamespaceTimelockService.Factory> maybeMultiNamespaceTimelockServiceFactory) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -1063,7 +1077,8 @@ public abstract class TransactionManagers {
                     invalidator,
                     userAgent,
                     lockDiagnosticComponents,
-                    reloadingFactory);
+                    reloadingFactory,
+                    maybeMultiNamespaceTimelockServiceFactory);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
         }
@@ -1093,7 +1108,8 @@ public abstract class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
-            DialogueClients.ReloadingFactory reloadingFactory) {
+            DialogueClients.ReloadingFactory reloadingFactory,
+            Optional<MultiNamespaceTimelockService.Factory> maybeMultiNamespaceTimelockServiceFactory) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
 
@@ -1106,7 +1122,8 @@ public abstract class TransactionManagers {
                         userAgent,
                         timelockNamespace,
                         lockDiagnosticComponents,
-                        reloadingFactory);
+                        reloadingFactory,
+                        maybeMultiNamespaceTimelockServiceFactory);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(),
@@ -1136,7 +1153,8 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             String timelockNamespace,
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
-            DialogueClients.ReloadingFactory reloadingFactory) {
+            DialogueClients.ReloadingFactory reloadingFactory,
+            Optional<MultiNamespaceTimelockService.Factory> maybeMultiNamespaceTimelockServiceFactory) {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
@@ -1147,6 +1165,11 @@ public abstract class TransactionManagers {
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
         ConjureTimelockService conjureTimelockService = serviceProvider.getConjureTimelockService();
+
+        Optional<MultiNamespaceTimelockService> maybeMultiNamespaceTimelockService =
+                maybeMultiNamespaceTimelockServiceFactory.map(factory ->
+                        factory.create(serviceProvider::getConjureMultiNamespaceTimelockService));
+
         TimelockRpcClient timelockClient = serviceProvider.getTimelockRpcClient();
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -1161,7 +1184,14 @@ public abstract class TransactionManagers {
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         NamespacedConjureTimelockService namespacedConjureTimelockService
-                = new NamespacedConjureTimelockService(withDiagnosticsConjureTimelockService, timelockNamespace);
+                = maybeMultiNamespaceTimelockService.map(
+                    multiNamespaceTimelockService -> (NamespacedConjureTimelockService)
+                            new MultiNamespaceNamespacedConjureTimelockService(
+                                    Namespace.of(timelockNamespace), withDiagnosticsConjureTimelockService,
+                                    multiNamespaceTimelockService))
+                .orElseGet(
+                    () -> new DefaultNamespacedConjureTimelockService(withDiagnosticsConjureTimelockService,
+                            timelockNamespace));
 
         LockWatchEventCache lockWatchEventCache = LockWatchEventCacheImpl.create(metricsManager);
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
