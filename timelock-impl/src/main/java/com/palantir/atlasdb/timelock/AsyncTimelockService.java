@@ -41,6 +41,16 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 
+// Most QPS endpoints in order:
+// 1. leadertime (async/conjuretimelockservice)
+// 2. unlock (async/conjuretimelockservice)
+// 3. starttransactions (async, although the impl can potentially block, I think/starttransactions).
+// 4. refreshlockrefreshtokens conjurelockv1service (sync, need to check impl, but it goes into LockService, so likely blocking?)
+// 5. getfreshtimestamps (async / conjuretimelockservice)
+// 6. lockandgetheldlocks (sync / conjurelockv1service)
+// 7. unlocksimple (sync / conjurelockv1service)
+// 8. lock (async / conjuretimelockservice)
+// 9. getcommittimestamp (async / conjuretimelockservice)
 public interface AsyncTimelockService extends AsyncManagedTimestampService, LockWatchingService, Closeable {
 
     long currentTimeMillis();
