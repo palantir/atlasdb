@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PhysicalBoundStoreDatabaseUtils.oracleColumnDoesNotExistError;
-import static com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -129,7 +126,7 @@ public class InvalidationRunner {
             statement.execute(String.format("ALTER TABLE %s RENAME COLUMN %s TO %s",
                     prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
         } catch (SQLException e) {
-            if (!oracleColumnDoesNotExistError(e)) {
+            if (!PhysicalBoundStoreDatabaseUtils.oracleColumnDoesNotExistError(e)) {
                 throw e;
             }
             // Do not need to commit transaction here as Oracle doesn't throw an exception when a
@@ -142,7 +139,7 @@ public class InvalidationRunner {
             statement.execute(String.format("ALTER TABLE %s RENAME %s TO %s",
                     prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
         } catch (SQLException e) {
-            if (!postgresColumnDoesNotExistError(e)) {
+            if (!PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError(e)) {
                 throw e;
             } else {
                 connection.commit();
@@ -176,7 +173,8 @@ public class InvalidationRunner {
         try {
             return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
         } catch (SQLException e) {
-            if (oracleColumnDoesNotExistError(e) || postgresColumnDoesNotExistError(e)) {
+            if (PhysicalBoundStoreDatabaseUtils.oracleColumnDoesNotExistError(e)
+                    || PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError(e)) {
                 return Optional.empty();
             } else {
                 throw e;
@@ -222,10 +220,6 @@ public class InvalidationRunner {
 
         static Optional<ColumnStatus> columnStatusWithValue(long value) {
             return Optional.of(ImmutableColumnStatus.builder().value(value).build());
-        }
-
-        static Optional<ColumnStatus> columnStatusWithoutValue() {
-            return Optional.of(ImmutableColumnStatus.builder().build());
         }
     }
 

@@ -63,16 +63,16 @@ public final class PhysicalBoundStoreDatabaseUtils {
         }
     }
 
-    public static boolean tableAlreadyExistsError(SQLException e) {
-        return e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
+    public static boolean tableAlreadyExistsError(SQLException exception) {
+        return exception.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
     }
 
-    public static boolean oracleColumnDoesNotExistError(SQLException e) {
-        return e.getMessage().contains(OracleErrorConstants.ORACLE_COLUMN_DOES_NOT_EXIST_ERROR);
+    public static boolean oracleColumnDoesNotExistError(SQLException exception) {
+        return exception.getMessage().contains(OracleErrorConstants.ORACLE_COLUMN_DOES_NOT_EXIST_ERROR);
     }
 
-    public static boolean postgresColumnDoesNotExistError(SQLException e) {
-        return e.getSQLState().equals(PSQLState.UNDEFINED_COLUMN.getState());
+    public static boolean postgresColumnDoesNotExistError(SQLException exception) {
+        return exception.getSQLState().equals(PSQLState.UNDEFINED_COLUMN.getState());
     }
 
     public static OptionalLong getLastAllocatedColumn(ResultSet rs) throws SQLException {
