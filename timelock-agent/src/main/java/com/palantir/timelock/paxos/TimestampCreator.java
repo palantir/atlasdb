@@ -21,6 +21,11 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
 
-public interface TimestampCreator {
+public interface TimestampCreator extends AutoCloseable {
     Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig);
+
+    @Override
+    default void close() {
+        // Do nothing
+    }
 }

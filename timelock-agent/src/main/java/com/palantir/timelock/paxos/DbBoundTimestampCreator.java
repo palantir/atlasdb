@@ -18,46 +18,45 @@ package com.palantir.timelock.paxos;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.Client;
-import com.palantir.timestamp.DelegatingManagedTimestampService;
+import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class DbBoundTimestampCreator implements TimestampCreator {
 
-    private KeyValueServiceConfig kvsConfig;
+    private final ServiceDiscoveringDatabaseTimeLockSupplier serviceDiscoveringDatabaseTimeLockSupplier;
 
-    public DbBoundTimestampCreator(KeyValueServiceConfig kvsConfig) {
-        this.kvsConfig = kvsConfig;
+    private DbBoundTimestampCreator(
+            ServiceDiscoveringDatabaseTimeLockSupplier serviceDiscoveringDatabaseTimeLockSupplier) {
+        this.serviceDiscoveringDatabaseTimeLockSupplier = serviceDiscoveringDatabaseTimeLockSupplier;
+    }
+
+    public static TimestampCreator create(
+            KeyValueServiceConfig kvsConfig,
+            MetricsManager metricsManager,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> kvsRuntimeConfig,
+            LeaderConfig leaderConfig) {
+        return new DbBoundTimestampCreator(
+                new ServiceDiscoveringDatabaseTimeLockSupplier(
+                        metricsManager,
+                        kvsConfig,
+                        kvsRuntimeConfig,
+                        leaderConfig,
+                        Optional.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE)));
     }
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig) {
-        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
-                new MetricsManager(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton(), x -> false),
-                kvsConfig,
-                Optional::empty,
-                Optional.of(leaderConfig),
-                Optional.empty(),
-                Optional.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
+        return () -> serviceDiscoveringDatabaseTimeLockSupplier.getManagedTimestampService(client);
+    }
 
-        TimestampService timestampService = atlasFactory.getManagedTimestampService();
-        Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
-                "The timestamp service is not a managed timestamp service.");
-
-        return () -> new DelegatingManagedTimestampService(timestampService,
-                (TimestampManagementService) timestampService);
+    @Override
+    public void close() {
+        serviceDiscoveringDatabaseTimeLockSupplier.close();
     }
 }

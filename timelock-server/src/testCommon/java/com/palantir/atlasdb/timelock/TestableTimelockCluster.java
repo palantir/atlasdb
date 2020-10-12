@@ -235,7 +235,6 @@ public class TestableTimelockCluster implements TestRule {
 
     RuleChain getRuleChain() {
         RuleChain ruleChain = RuleChain.outerRule(temporaryFolder);
-        ruleChain = ruleChain.around(new DbKvsRule());
 
         for (TemporaryConfigurationHolder config : configs) {
             ruleChain = ruleChain.around(config);

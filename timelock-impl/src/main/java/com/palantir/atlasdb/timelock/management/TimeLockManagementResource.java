@@ -40,7 +40,6 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
-
     private TimeLockManagementResource(Set<PersistentNamespaceLoader> namespaceLoaders,
             TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter) {
@@ -101,6 +100,9 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
 
     private static Set<PersistentNamespaceLoader> createNamespaceLoaders(
             PersistentNamespaceContext persistentNamespaceContext) {
+        if (persistentNamespaceContext.databasePersistence().isPresent()) {
+            return ImmutableSet.of(new DatabaseNamespaceLoader());
+        }
         PersistentNamespaceLoader diskLoader = new DiskNamespaceLoader(persistentNamespaceContext.fileDataDirectory());
         PersistentNamespaceLoader sqliteLoader = SqliteNamespaceLoader.create(
                 persistentNamespaceContext.sqliteDataSource());

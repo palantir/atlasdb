@@ -112,7 +112,6 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
             @Override
             public void stop() {
-                timeLockAgent.shutdown();
             }
         });
         environment.lifecycle().addLifeCycleListener(new LifeCycle.Listener() {
@@ -138,6 +137,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
             @Override
             public void lifeCycleStopped(LifeCycle event) {
+                timeLockAgent.shutdown();
                 shutdownFuture.set(null);
             }
         });

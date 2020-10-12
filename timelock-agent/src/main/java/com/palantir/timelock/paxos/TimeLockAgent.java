@@ -29,11 +29,13 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
@@ -197,9 +199,13 @@ public class TimeLockAgent {
         if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
             return new PaxosTimestampCreator(paxosResources.timestampServiceFactory());
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
-            return new DbBoundTimestampCreator(
-                    ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
-                            .keyValueServiceConfig());
+            DatabaseTsBoundPersisterConfiguration persisterConfiguration
+                    = (DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence;
+            return DbBoundTimestampCreator.create(
+                    persisterConfiguration.keyValueServiceConfig(),
+                    metricsManager,
+                    Optional::empty,
+                    createLeaderConfig());
         }
         throw new RuntimeException(String.format("Unknown TsBoundPersisterConfiguration found %s",
                 timestampBoundPersistence.getClass()));
@@ -279,15 +285,26 @@ public class TimeLockAgent {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(undertowRegistrar.get(), TimeLockManagementResource.undertow(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
+                    PersistentNamespaceContext.of(
+                            rootDataDirectory, sqliteDataSource, getDatabaseConfigurationIfPresent()),
                     namespaces,
                     redirectRetryTargeter()));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
+                    PersistentNamespaceContext.of(
+                            rootDataDirectory, sqliteDataSource, getDatabaseConfigurationIfPresent()),
                     namespaces,
                     redirectRetryTargeter()));
         }
+    }
+
+    private Optional<KeyValueServiceConfig> getDatabaseConfigurationIfPresent() {
+        TsBoundPersisterConfiguration tsBoundPersisterConfiguration = install.timestampBoundPersistence();
+        if (tsBoundPersisterConfiguration instanceof DatabaseTsBoundPersisterConfiguration) {
+            return Optional.of((DatabaseTsBoundPersisterConfiguration) tsBoundPersisterConfiguration)
+                    .map(DatabaseTsBoundPersisterConfiguration::keyValueServiceConfig);
+        }
+        return Optional.empty();
     }
 
     private void registerTimeLockCorruptionJerseyFilter() {
@@ -362,13 +379,7 @@ public class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
-        List<String> uris = install.cluster().clusterMembers();
-        ImmutableLeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
-                .addLeaders(uris.toArray(new String[0]))
-                .localServer(install.cluster().localServer())
-                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
-                .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
-                .build();
+        LeaderConfig leaderConfig = createLeaderConfig();
 
         Client typedClient = Client.of(client);
 
@@ -376,6 +387,16 @@ public class TimeLockAgent {
                 .createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
+    }
+
+    private LeaderConfig createLeaderConfig() {
+        List<String> uris = install.cluster().clusterMembers();
+        return ImmutableLeaderConfig.builder()
+                .addLeaders(uris.toArray(new String[0]))
+                .localServer(install.cluster().localServer())
+                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
+                .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
+                .build();
     }
 
     public HealthStatusReport timeLockAdjudicationFeedback() {
@@ -389,5 +410,6 @@ public class TimeLockAgent {
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
         sqliteDataSource.close();
+        timestampCreator.close();
     }
 }
