@@ -19,6 +19,18 @@ install:
 </#list>
     local-server: "localhost:${localProxyPort?c}"
   timestampBoundPersistence:
+    key-value-service:
+      connection:
+        dbLogin: palantir
+        dbName: atlas
+        dbPassword: palantir
+        host: localhost
+        port: 5432
+        type: postgres
+      ddl:
+        type: postgres
+      type: relational
+    type: database
 
 runtime:
   paxos:
