@@ -1,6 +1,0 @@
-type: improvement
-improvement:
-  description: Refactored the lock watch event cache to retention events based on
-    the size of the cache, instead of keeping alive only relevant versions.
-  links:
-  - https://github.com/palantir/atlasdb/pull/5012
