@@ -98,8 +98,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .endVersion(commitInfo.commitVersion())
                 .build();
 
-        ClientLogEvents update = eventLog.getEventsBetweenVersions(versionBounds);
-        return update.toCommitUpdate(startVersion.get(), commitInfo);
+        return eventLog.getEventsBetweenVersions(versionBounds).toCommitUpdate(startVersion.get(), commitInfo);
     }
 
     @Override
@@ -155,21 +154,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         eventLog.retentionEvents();
 
         return cacheUpdate.getVersion();
-    }
-
-    private static void assertEventsContainRangeOfVersions(
-            Range<Long> versionRange,
-            ClientLogEvents events,
-            boolean offsetStartVersion) {
-        Range<Long> rangeToTest;
-        if (offsetStartVersion) {
-            rangeToTest = Range.closed(versionRange.lowerEndpoint() + 1, versionRange.upperEndpoint());
-        } else {
-            rangeToTest = versionRange;
-        }
-
-        events.events().versionRange().ifPresent(eventsRange -> assertTrue(eventsRange.encloses(rangeToTest),
-                "Events do not enclose the required versions"));
     }
 
     private static void assertTrue(boolean condition, String message) {
