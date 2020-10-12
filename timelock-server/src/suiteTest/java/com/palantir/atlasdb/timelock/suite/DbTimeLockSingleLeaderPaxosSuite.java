@@ -38,9 +38,7 @@ import com.palantir.atlasdb.timelock.TestableTimelockServerConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 
 @RunWith(ParameterizedSuite.class)
-@Suite.SuiteClasses({
-        MultiNodePaxosTimeLockServerIntegrationTest.class
-})
+@Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
 public class DbTimeLockSingleLeaderPaxosSuite {
     private static final Iterable<TemplateVariables> TEMPLATE_VARIABLES = generateThreeNodeTimelockCluster(
             9086,
