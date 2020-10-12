@@ -43,6 +43,9 @@ import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 public class DbKvsRule implements TestRule {
+    private static final int POSTGRES_PORT = 5432;
+    private static final int FIVE_SECONDS = 5;
+
     private final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/testCommon/resources/docker-compose.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
@@ -55,28 +58,28 @@ public class DbKvsRule implements TestRule {
         return RuleChain.outerRule(docker)
                 .around(new ExternalResource() {
                     @Override
-                    protected void before() throws Throwable {
+                    protected void before() {
                         waitUntilDbkvsIsUp();
                     }
 
                     @Override
-                    protected void after() throws Throwable {
+                    protected void after() {
                         // no op
                     }
                 }).apply(base, description);
     }
 
-    public void waitUntilDbkvsIsUp() {
+    private void waitUntilDbkvsIsUp() {
         Awaitility.await()
                 .atMost(Duration.ONE_MINUTE)
                 .pollInterval(Duration.ONE_SECOND)
                 .until(canCreateKeyValueService());
     }
 
-    public DbKeyValueServiceConfig getKvsConfig() {
+    private DbKeyValueServiceConfig getKvsConfig() {
         DockerPort port = docker.containers()
                 .container("postgres")
-                .port(5432); // TODO (jkong): wat
+                .port(POSTGRES_PORT);
 
         InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
 
@@ -102,7 +105,7 @@ public class DbKvsRule implements TestRule {
             try {
                 kvs = createKvs();
                 try (Connection connection = kvs.getConnectionManager().getConnection()) {
-                    return connection.isValid(5);
+                    return connection.isValid(FIVE_SECONDS);
                 }
             } catch (Exception ex) {
                 if (ex.getMessage().contains("The connection attempt failed.")
@@ -119,7 +122,7 @@ public class DbKvsRule implements TestRule {
         };
     }
 
-    public ConnectionManagerAwareDbKvs createKvs() {
+    private ConnectionManagerAwareDbKvs createKvs() {
         return ConnectionManagerAwareDbKvs.create(getKvsConfig());
     }
 }
