@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;

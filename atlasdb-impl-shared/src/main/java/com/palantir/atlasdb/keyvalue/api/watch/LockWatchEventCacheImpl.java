@@ -17,20 +17,14 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.ImmutableInvalidateSome;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
