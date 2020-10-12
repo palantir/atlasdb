@@ -129,8 +129,7 @@ public class InvalidationRunner {
             if (!PhysicalBoundStoreDatabaseUtils.oracleColumnDoesNotExistError(e)) {
                 throw e;
             }
-            // Do not need to commit transaction here as Oracle doesn't throw an exception when a
-            // query fails on a connection within a transaction.
+            connection.rollback();
         }
     }
 
@@ -141,9 +140,8 @@ public class InvalidationRunner {
         } catch (SQLException e) {
             if (!PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError(e)) {
                 throw e;
-            } else {
-                connection.commit();
             }
+            connection.rollback();
         }
     }
 
