@@ -34,7 +34,7 @@ import com.palantir.lock.watch.ImmutableInvalidateSome;
 import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;

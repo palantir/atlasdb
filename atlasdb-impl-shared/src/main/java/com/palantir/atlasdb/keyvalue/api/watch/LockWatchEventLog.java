@@ -23,6 +23,7 @@ import java.util.Optional;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
@@ -52,8 +53,8 @@ final class LockWatchEventLog {
 
     /**
      * @param versionBounds contains:
-     *                     - the latest version the client knows about, which should be before the timestamps in the
-     *                     mapping;
+     *                     - the latest version the client knows about, which should be before or equal to the
+     *                       timestamps in the mapping;
      *                     - the end version, which is the upper bound of events that should be returned;
      *                     - the earliest version to which the events may be condensed to in the case of a snapshot.
      * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive);
@@ -113,7 +114,7 @@ final class LockWatchEventLog {
         LockWatchEvents events = new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build();
 
         return LockWatchCreatedEvent.fromSnapshot(
-                snapshot.getSnapshotWithEvents(events, versionBounds.endVersion().id()));
+                snapshot.getSnapshotWithEvents(events, versionBounds.leader()));
     }
 
     private boolean differentLeaderOrTooFarBehind(LockWatchVersion currentVersion,

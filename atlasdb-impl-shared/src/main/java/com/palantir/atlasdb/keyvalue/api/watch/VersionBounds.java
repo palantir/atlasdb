@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -38,6 +39,11 @@ interface VersionBounds {
     @Value.Derived
     default long snapshotVersion() {
         return earliestSnapshotVersion().orElseGet(() -> endVersion().version());
+    }
+
+    @Value.Derived
+    default UUID leader() {
+        return endVersion().id();
     }
 
     @Value.Check

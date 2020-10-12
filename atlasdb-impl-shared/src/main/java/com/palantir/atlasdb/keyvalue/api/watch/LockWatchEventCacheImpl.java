@@ -17,14 +17,20 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.ImmutableInvalidateSome;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -93,19 +99,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .build();
 
         ClientLogEvents update = eventLog.getEventsBetweenVersions(versionBounds);
-
-        if (update.clearCache()) {
-            return ImmutableInvalidateAll.builder().build();
-        }
-
-        // We don't mind if the exact version is not present, as we are only interested in the events **since** the
-        // transaction started.
-        assertEventsContainRangeOfVersions(
-                Range.closed(startVersion.get().version(), commitInfo.commitVersion().version()),
-                update,
-                true);
-
-        return createCommitUpdate(commitInfo, update.events().events());
+        return update.toCommitUpdate(startVersion.get(), commitInfo);
     }
 
     @Override
@@ -118,7 +112,13 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         lastKnownVersion.ifPresent(version -> assertTrue(version.version() <= timestampMapping.lastVersion().version(),
                 "Cannot get update for transactions when the last known version is more recent than the transactions"));
 
-        return eventLog.getEventsBetweenVersions(lastKnownVersion, timestampMapping.lastVersion())
+        VersionBounds versionBounds = new VersionBounds.Builder()
+                .startVersion(lastKnownVersion)
+                .endVersion(timestampMapping.lastVersion())
+                .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
+                .build();
+
+        return eventLog.getEventsBetweenVersions(versionBounds)
                 .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
     }
 
@@ -155,19 +155,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         eventLog.retentionEvents();
 
         return cacheUpdate.getVersion();
-    }
-
-    private static CommitUpdate createCommitUpdate(CommitInfo commitInfo, List<LockWatchEvent> events) {
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
-        Set<LockDescriptor> locksTakenOut = new HashSet<>();
-        events.forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
-    }
-
-    private static void assertTrue(boolean condition, String message) {
-        if (!condition) {
-            throw new TransactionLockWatchFailedException(message);
-        }
     }
 
     private static void assertEventsContainRangeOfVersions(

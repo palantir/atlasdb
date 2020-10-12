@@ -144,7 +144,6 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void processStartTimestampUpdateOnMultipleBatches() {
-        eventCache = createEventCache(5);
         setupInitialState();
         verifyStage();
 
@@ -172,7 +171,6 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void smallerUpdateAfterLargeUpdateDoesNotAffectCache() {
-        eventCache = createEventCache(5);
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -188,7 +186,6 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void largerUpdateAfterSmallUpdateOnlyPicksUpNewEvents() {
-        eventCache = createEventCache(5);
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -205,7 +202,6 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getCommitUpdateDoesNotContainCommitLocks() {
-        eventCache = createEventCache(5);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         verifyStage();
@@ -303,7 +299,6 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void clientOnSameVersionAsCacheDoesNotThrow() {
-        eventCache = createEventCache(6);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         assertThat(eventCache.getUpdateForTransactions(
