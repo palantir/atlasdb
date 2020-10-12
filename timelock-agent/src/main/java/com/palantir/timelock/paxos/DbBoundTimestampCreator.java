@@ -27,7 +27,7 @@ import com.palantir.paxos.Client;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
 import com.palantir.timestamp.ManagedTimestampService;
 
-public class DbBoundTimestampCreator implements TimestampCreator {
+public final class DbBoundTimestampCreator implements TimestampCreator {
 
     private final ServiceDiscoveringDatabaseTimeLockSupplier serviceDiscoveringDatabaseTimeLockSupplier;
 

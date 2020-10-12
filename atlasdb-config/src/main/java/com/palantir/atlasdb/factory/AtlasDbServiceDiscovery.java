@@ -23,7 +23,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public class AtlasDbServiceDiscovery {
+public final class AtlasDbServiceDiscovery {
     private AtlasDbServiceDiscovery() {
         // util
     }
