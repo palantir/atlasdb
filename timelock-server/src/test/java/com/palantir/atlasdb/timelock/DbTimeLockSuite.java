@@ -34,7 +34,6 @@ import org.junit.runners.Suite;
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
@@ -60,7 +59,7 @@ public class DbTimeLockSuite {
     public static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
-            .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbkvsPostgresTestSuite.class))
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbTimeLockSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 
