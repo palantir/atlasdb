@@ -146,13 +146,6 @@ public class InvalidationRunner {
     }
 
     private Limits getLimits(Connection connection) throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
-        ResultSet res = metaData.getTables(null, null, prefixedTimestampTableName(), null);
-
-        Preconditions.checkState(res.next(), "We are in the process of invalidating the "
-                + "InDbTimestampBoundStore but the data table does not exist. "
-                + "We should never reach here. Please contact support.");
-
         String sql = String.format("SELECT * FROM %s FOR UPDATE", prefixedTimestampTableName());
         QueryRunner run = new QueryRunner();
         return run.query(connection, sql, rs -> {
