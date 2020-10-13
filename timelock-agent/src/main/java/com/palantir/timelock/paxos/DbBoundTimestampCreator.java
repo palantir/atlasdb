@@ -18,8 +18,12 @@ package com.palantir.timelock.paxos;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
+import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.paxos.Client;
@@ -55,5 +59,10 @@ public final class DbBoundTimestampCreator implements TimestampCreator {
     @Override
     public void close() {
         serviceDiscoveringDatabaseTimeLockSupplier.close();
+    }
+
+    @VisibleForTesting
+    static DbTimestampCreationSetting getTimestampCreationParameters(Client client) {
+        return DbTimestampCreationSettings.multipleSeries(Optional.empty(), TimestampSeries.of(client.value()));
     }
 }

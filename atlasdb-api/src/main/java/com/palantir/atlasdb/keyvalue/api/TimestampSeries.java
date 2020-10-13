@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
+package com.palantir.atlasdb.keyvalue.api;
 
 import org.immutables.value.Value;
 
@@ -22,4 +22,8 @@ import org.immutables.value.Value;
 public interface TimestampSeries {
     @Value.Parameter
     String series();
+
+    static TimestampSeries of(String value) {
+        return ImmutableTimestampSeries.of(value);
+    }
 }

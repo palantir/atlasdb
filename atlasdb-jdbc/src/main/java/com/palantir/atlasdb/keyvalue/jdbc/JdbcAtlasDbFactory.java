@@ -24,13 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.timestamp.TimestampCreationParametersCheck;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -76,16 +76,16 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<TableReference> timestampTable,
+            Optional<DbTimestampCreationSetting> creationParameters,
             boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
-        Preconditions.checkArgument(!timestampTable.isPresent()
-                        || timestampTable.get().equals(AtlasDbConstants.TIMESTAMP_TABLE),
-                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table found: "
-                        + timestampTable.map(TableReference::getQualifiedName).orElse("unknown table")
+        Preconditions.checkArgument(
+                TimestampCreationParametersCheck.areCreationParametersConsistentWithDefaults(creationParameters),
+                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp params found: "
+                        + creationParameters
                         + "\nThis can happen if you configure the timelock server to use JDBC KVS for timestamp"
                         + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
                         + " persistence. However, if you are need to persist the timestamp service state in the"

@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
@@ -58,7 +58,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            Optional<TableReference> timestampTable,
+            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
@@ -73,8 +73,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         namespace,
                         timestampSupplier,
                         initializeAsync));
-        timestampService = () ->
-                atlasFactory.createManagedTimestampService(getKeyValueService(), timestampTable, initializeAsync);
+        timestampService = () -> atlasFactory.createManagedTimestampService(
+                        getKeyValueService(), dbTimestampCreationParameters, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
