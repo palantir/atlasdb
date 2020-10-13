@@ -30,7 +30,6 @@ import org.junit.runners.Suite;
 
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.ImmutableTestableTimelockServerConfiguration;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TemplateVariables;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
