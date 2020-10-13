@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -44,7 +43,6 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
     public ServiceDiscoveringDatabaseTimeLockSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             LeaderConfig leaderConfig,
             Optional<TableReference> timestampTable) {
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
@@ -52,7 +50,7 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
                 () -> atlasFactory.createRawKeyValueService(
                         metricsManager,
                         config,
-                        runtimeConfig,
+                        Optional::empty,
                         Optional.of(leaderConfig),
                         Optional.empty(), // This refers to an AtlasDB namespace - we use the config to talk to the db
                         AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE, // This is how we give out timestamps!

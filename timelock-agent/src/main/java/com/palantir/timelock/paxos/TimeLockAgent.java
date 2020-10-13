@@ -204,7 +204,6 @@ public class TimeLockAgent {
             return DbBoundTimestampCreator.create(
                     persisterConfiguration.keyValueServiceConfig(),
                     metricsManager,
-                    Optional::empty,
                     createLeaderConfig());
         }
         throw new RuntimeException(String.format("Unknown TsBoundPersisterConfiguration found %s",
@@ -286,25 +285,20 @@ public class TimeLockAgent {
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(undertowRegistrar.get(), TimeLockManagementResource.undertow(
                     PersistentNamespaceContext.of(
-                            rootDataDirectory, sqliteDataSource, getDatabaseConfigurationIfPresent()),
+                            rootDataDirectory, sqliteDataSource, isUsingDatabasePersistence()),
                     namespaces,
                     redirectRetryTargeter()));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
                     PersistentNamespaceContext.of(
-                            rootDataDirectory, sqliteDataSource, getDatabaseConfigurationIfPresent()),
+                            rootDataDirectory, sqliteDataSource, isUsingDatabasePersistence()),
                     namespaces,
                     redirectRetryTargeter()));
         }
     }
 
-    private Optional<KeyValueServiceConfig> getDatabaseConfigurationIfPresent() {
-        TsBoundPersisterConfiguration tsBoundPersisterConfiguration = install.timestampBoundPersistence();
-        if (tsBoundPersisterConfiguration instanceof DatabaseTsBoundPersisterConfiguration) {
-            return Optional.of((DatabaseTsBoundPersisterConfiguration) tsBoundPersisterConfiguration)
-                    .map(DatabaseTsBoundPersisterConfiguration::keyValueServiceConfig);
-        }
-        return Optional.empty();
+    private boolean isUsingDatabasePersistence() {
+        return install.timestampBoundPersistence() instanceof DatabaseTsBoundPersisterConfiguration;
     }
 
     private void registerTimeLockCorruptionJerseyFilter() {

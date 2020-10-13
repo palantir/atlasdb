@@ -32,16 +32,16 @@ public interface PersistentNamespaceContext {
 
     DataSource sqliteDataSource();
 
-    Optional<KeyValueServiceConfig> databasePersistence();
+    boolean isUsingDatabasePersistence();
 
     static PersistentNamespaceContext of(
             Path fileDataDirectory,
             DataSource sqliteDataSource,
-            Optional<KeyValueServiceConfig> databasePersistence) {
+            boolean isUsingDatabasePersistence) {
         return ImmutablePersistentNamespaceContext.builder()
                 .fileDataDirectory(fileDataDirectory)
                 .sqliteDataSource(sqliteDataSource)
-                .databasePersistence(databasePersistence)
+                .isUsingDatabasePersistence(isUsingDatabasePersistence)
                 .build();
     }
 }

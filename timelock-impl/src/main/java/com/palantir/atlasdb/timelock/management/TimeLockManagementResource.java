@@ -100,7 +100,7 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
 
     private static Set<PersistentNamespaceLoader> createNamespaceLoaders(
             PersistentNamespaceContext persistentNamespaceContext) {
-        if (persistentNamespaceContext.databasePersistence().isPresent()) {
+        if (persistentNamespaceContext.isUsingDatabasePersistence()) {
             return ImmutableSet.of(new DatabaseNamespaceLoader());
         }
         PersistentNamespaceLoader diskLoader = new DiskNamespaceLoader(persistentNamespaceContext.fileDataDirectory());

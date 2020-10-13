@@ -21,7 +21,6 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
@@ -39,13 +38,11 @@ public final class DbBoundTimestampCreator implements TimestampCreator {
     public static TimestampCreator create(
             KeyValueServiceConfig kvsConfig,
             MetricsManager metricsManager,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> kvsRuntimeConfig,
             LeaderConfig leaderConfig) {
         return new DbBoundTimestampCreator(
                 new ServiceDiscoveringDatabaseTimeLockSupplier(
                         metricsManager,
                         kvsConfig,
-                        kvsRuntimeConfig,
                         leaderConfig,
                         Optional.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE)));
     }
