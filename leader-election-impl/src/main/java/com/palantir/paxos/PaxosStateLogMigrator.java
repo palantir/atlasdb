@@ -35,6 +35,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
@@ -66,6 +67,8 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             context.migrationState().setCutoff(cutoff);
             context.migrationState().migrateToMigratedState();
             return cutoff;
+        } else {
+            validateConsistency(context);
         }
         return context.migrationState().getCutoff();
     }
@@ -115,6 +118,40 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             }
         }
         target.writeBatchOfRounds(batch);
+    }
+
+    private static <V extends Persistable & Versionable> void validateConsistency(MigrationContext<V> context) {
+        long migrationCutoff = calculateCutoff(context);
+        long persistedCutoff = context.migrationState().getCutoff();
+        long greatestSourceEntry = context.sourceLog().getGreatestLogEntry();
+        long greatestDestinationEntry = context.destinationLog().getGreatestLogEntry();
+        Preconditions.checkState(migrationCutoff <= persistedCutoff,
+                "The migration to the destination state log was already performed in the past, but the "
+                        + "persisted cutoff value does not match a freshly calculated one. This indicates the source "
+                        + "log has advanced since the migration was performed which could lead to data corruption if "
+                        + "allowed to continue.",
+                SafeArg.of("fresh cutoff", migrationCutoff),
+                SafeArg.of("persisted cutoff", persistedCutoff),
+                SafeArg.of("source greatest entry", greatestSourceEntry));
+        if (greatestSourceEntry == PaxosAcceptor.NO_LOG_ENTRY) {
+            return;
+        }
+        try {
+            V source = context.hydrator().hydrateFromBytes(context.sourceLog().readRound(greatestSourceEntry));
+            byte[] destinationBytes = context.destinationLog().readRound(greatestSourceEntry);
+            V dest = destinationBytes != null ? context.hydrator().hydrateFromBytes(destinationBytes) : null;
+            Preconditions.checkState(source.equals(dest),
+                    "The migration to the destination state log was already performed in the past, but the "
+                            + "entry with the greatest sequence in source log does not match the entry in the "
+                            + "destination log. This indicates the source log has advanced since the migration was "
+                            + "performed which could lead to data corruption if allowed to continue.",
+                    SafeArg.of("source entry", source),
+                    SafeArg.of("destination entry", dest));
+        } catch (IOException e) {
+            Preconditions.checkState(false,
+                    "Unable to verify consistency between source and destination paxos logs because the "
+                            + "source log seems to be corrupted");
+        }
     }
 
     @Value.Immutable
