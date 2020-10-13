@@ -26,11 +26,9 @@ import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
 
 /**
