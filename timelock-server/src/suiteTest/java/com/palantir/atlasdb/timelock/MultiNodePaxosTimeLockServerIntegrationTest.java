@@ -50,6 +50,7 @@ import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
@@ -77,7 +78,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> DbTimeLockSingleLeaderPaxosSuite.DB_TIMELOCK_CLUSTER);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -306,7 +307,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void canGetAllNamespaces() {
-        Assume.assumeFalse("DB Timelock currently doesn't support getAllNamespaces().", cluster.isDbTimelock());
         String randomNamespace = UUID.randomUUID().toString();
         cluster.client(randomNamespace).throughWireMockProxy().getFreshTimestamp();
 

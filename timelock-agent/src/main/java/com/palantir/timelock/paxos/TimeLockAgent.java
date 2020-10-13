@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -226,7 +227,8 @@ public class TimeLockAgent {
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
                 .persistentNamespaceContext(PersistentNamespaceContexts.dbBound(
-                        dbTimeLockSupplier.getTimestampSeriesProvider()))
+                        dbTimeLockSupplier.getTimestampSeriesProvider(
+                                AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE)))
                 .build();
     }
 

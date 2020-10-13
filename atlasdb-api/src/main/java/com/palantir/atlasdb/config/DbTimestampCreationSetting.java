@@ -26,8 +26,8 @@ import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 @Data
 public abstract class DbTimestampCreationSetting {
     public interface Cases<R> {
-        R multipleSeries(Optional<TableReference> tableReference, TimestampSeries series);
-        R singleSeries(Optional<TableReference> tableReference);
+        R multipleSeries(TableReference tableReference, TimestampSeries series);
+        R singleSeries(Optional<TableReference> tableReferenceOverride);
     }
 
     public abstract <R> R match(Cases<R> cases);
