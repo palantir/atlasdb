@@ -18,25 +18,24 @@ package com.palantir.atlasdb.config;
 
 import java.util.Optional;
 
-import org.immutables.value.Value;
+import org.derive4j.Data;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
-import com.palantir.logsafe.Preconditions;
 
-@Value.Immutable
-public interface DbTimestampCreationParameters {
-    Optional<TableReference> tableReference();
-
-    DatabaseTsBoundSchema tsBoundSchema();
-
-    Optional<TimestampSeries> series();
-
-    @Value.Check
-    default void check() {
-        Preconditions.checkState(tsBoundSchema() != DatabaseTsBoundSchema.MULTIPLE_SERIES || series().isPresent(),
-                "Cannot have a multiple series configuration without a series specified");
-        Preconditions.checkState(tsBoundSchema() != DatabaseTsBoundSchema.ONE_SERIES || !series().isPresent(),
-                "Cannot have a single series configuration with a series specified");
+@Data
+public abstract class DbTimestampCreationSetting {
+    public interface Cases<R> {
+        R multipleSeries(Optional<TableReference> tableReference, TimestampSeries series);
+        R singleSeries(Optional<TableReference> tableReference);
     }
+
+    public abstract <R> R match(Cases<R> cases);
+
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract boolean equals(Object obj);
+    @Override
+    public abstract String toString();
 }

@@ -23,9 +23,8 @@ import java.util.Optional;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.DatabaseTsBoundSchema;
-import com.palantir.atlasdb.config.DbTimestampCreationParameters;
-import com.palantir.atlasdb.config.ImmutableDbTimestampCreationParameters;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
+import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 
@@ -38,62 +37,47 @@ public class TimestampCreationParametersCheckTest {
 
     @Test
     public void oneSeriesWithNoTableSpecifiedIsConsistentWithDefaults() {
-        assertConsistent(ImmutableDbTimestampCreationParameters.builder()
-                .tsBoundSchema(DatabaseTsBoundSchema.ONE_SERIES)
-                .build());
+        assertConsistent(DbTimestampCreationSettings.singleSeries(Optional.empty()));
+
     }
 
     @Test
     public void oneSeriesWithDefaultTableSpecifiedIsConsistentWithDefaults() {
-        assertConsistent(ImmutableDbTimestampCreationParameters.builder()
-                .tsBoundSchema(DatabaseTsBoundSchema.ONE_SERIES)
-                .tableReference(AtlasDbConstants.TIMESTAMP_TABLE)
-                .build());
+        assertConsistent(DbTimestampCreationSettings.singleSeries(Optional.of(AtlasDbConstants.TIMESTAMP_TABLE)));
     }
 
     @Test
     public void oneSeriesWithDbTimeLockTablesIsInconsistentWithDefaults() {
-        assertInconsistent(ImmutableDbTimestampCreationParameters.builder()
-                .tsBoundSchema(DatabaseTsBoundSchema.ONE_SERIES)
-                .tableReference(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE)
-                .build());
-        assertInconsistent(ImmutableDbTimestampCreationParameters.builder()
-                .tsBoundSchema(DatabaseTsBoundSchema.ONE_SERIES)
-                .tableReference(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE)
-                .build());
+        assertInconsistent(DbTimestampCreationSettings.singleSeries(
+                Optional.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE)));
+        assertInconsistent(DbTimestampCreationSettings.singleSeries(
+                Optional.of(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE)));
     }
 
     @Test
     public void oneSeriesWithRandomTablesIsInconsistentWithDefaults() {
-        assertInconsistent(ImmutableDbTimestampCreationParameters.builder()
-                .tsBoundSchema(DatabaseTsBoundSchema.ONE_SERIES)
-                .tableReference(TableReference.createFromFullyQualifiedName("abc.tom"))
-                .build());
+        assertInconsistent(DbTimestampCreationSettings.singleSeries(
+                Optional.of(TableReference.createFromFullyQualifiedName("abc.tom"))));
     }
 
     @Test
     public void multipleSeriesIsInconsistentWithDefaults() {
-        assertInconsistent(ImmutableDbTimestampCreationParameters.builder()
-                .tsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
-                .series(TimestampSeries.of("einszweidreivierfünf"))
-                .build());
-        assertInconsistent(ImmutableDbTimestampCreationParameters.builder()
-                .tsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
-                .series(TimestampSeries.of("onetwothreefourfive"))
-                .tableReference(TableReference.createFromFullyQualifiedName("def.tony"))
-                .build());
+        assertInconsistent(DbTimestampCreationSettings.multipleSeries(Optional.empty(), TimestampSeries.of("einszwo")));
+        assertInconsistent(DbTimestampCreationSettings.multipleSeries(
+                Optional.of(TableReference.createFromFullyQualifiedName("def.tony")),
+                TimestampSeries.of("onetwothreefourfive")));
     }
 
-    private static void assertConsistent(DbTimestampCreationParameters parameters) {
+    private static void assertConsistent(DbTimestampCreationSetting parameters) {
         assertThat(areParametersConsistent(parameters)).isTrue();
     }
 
-    private static boolean areParametersConsistent(DbTimestampCreationParameters parameters) {
+    private static boolean areParametersConsistent(DbTimestampCreationSetting parameters) {
         return TimestampCreationParametersCheck.areCreationParametersConsistentWithDefaults(
                 Optional.of(parameters));
     }
 
-    private static void assertInconsistent(DbTimestampCreationParameters parameters) {
+    private static void assertInconsistent(DbTimestampCreationSetting parameters) {
         assertThat(areParametersConsistent(parameters)).isFalse();
     }
 }

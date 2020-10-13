@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.config.DbTimestampCreationParameters;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -61,7 +61,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            Optional<DbTimestampCreationParameters> dbTimestampCreationParameters,
+            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;

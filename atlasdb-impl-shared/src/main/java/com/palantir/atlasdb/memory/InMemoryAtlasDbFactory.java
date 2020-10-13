@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
-import com.palantir.atlasdb.config.DbTimestampCreationParameters;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -84,7 +84,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<DbTimestampCreationParameters> unused,
+            Optional<DbTimestampCreationSetting> unused,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");

@@ -25,11 +25,10 @@ import org.slf4j.LoggerFactory;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.DatabaseTsBoundSchema;
-import com.palantir.atlasdb.config.DbTimestampCreationParameters;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
+import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
@@ -79,7 +78,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<DbTimestampCreationParameters> creationParameters,
+            Optional<DbTimestampCreationSetting> creationParameters,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
@@ -101,14 +100,10 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static boolean doCreationParametersDeviateFromDefaults(
-            Optional<DbTimestampCreationParameters> dbTimestampCreationParameters) {
-        if (!dbTimestampCreationParameters.isPresent()) {
-            return false;
-        }
-        DbTimestampCreationParameters presentParameters = dbTimestampCreationParameters.get();
-        if (presentParameters.tsBoundSchema() != DatabaseTsBoundSchema.ONE_SERIES) {
-            return true;
-        }
-        return presentParameters.tableReference().map(AtlasDbConstants.TIMESTAMP_TABLE::equals).orElse(false);
+            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
+        return dbTimestampCreationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
+                .multipleSeries((ig, nore) -> true)
+                .singleSeries(tableRef -> !tableRef.map(AtlasDbConstants.TIMESTAMP_TABLE::equals).orElse(false)))
+                .orElse(false);
     }
 }

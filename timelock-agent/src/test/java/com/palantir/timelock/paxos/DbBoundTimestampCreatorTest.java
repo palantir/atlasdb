@@ -18,10 +18,11 @@ package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+
 import org.junit.Test;
 
-import com.palantir.atlasdb.config.DatabaseTsBoundSchema;
-import com.palantir.atlasdb.config.ImmutableDbTimestampCreationParameters;
+import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.paxos.Client;
 
@@ -32,14 +33,9 @@ public class DbBoundTimestampCreatorTest {
     @Test
     public void timestampCreationParametersMaintainClientName() {
         assertThat(DbBoundTimestampCreator.getTimestampCreationParameters(CLIENT_1)).isEqualTo(
-                ImmutableDbTimestampCreationParameters.builder()
-                        .series(TimestampSeries.of(CLIENT_1.value()))
-                        .tsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
-                        .build());
+                DbTimestampCreationSettings.multipleSeries(Optional.empty(), TimestampSeries.of(CLIENT_1.value())));
+
         assertThat(DbBoundTimestampCreator.getTimestampCreationParameters(CLIENT_2)).isEqualTo(
-                ImmutableDbTimestampCreationParameters.builder()
-                        .series(TimestampSeries.of(CLIENT_2.value()))
-                        .tsBoundSchema(DatabaseTsBoundSchema.MULTIPLE_SERIES)
-                        .build());
+                DbTimestampCreationSettings.multipleSeries(Optional.empty(), TimestampSeries.of(CLIENT_2.value())));
     }
 }

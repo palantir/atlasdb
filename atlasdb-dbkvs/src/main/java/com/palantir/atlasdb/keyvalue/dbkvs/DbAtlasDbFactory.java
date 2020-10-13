@@ -25,17 +25,18 @@ import org.slf4j.LoggerFactory;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.DatabaseTsBoundSchema;
-import com.palantir.atlasdb.config.DbTimestampCreationParameters;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
+import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 
@@ -82,7 +83,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<DbTimestampCreationParameters> creationParameters,
+            Optional<DbTimestampCreationSetting> creationParameters,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
@@ -96,31 +97,27 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static InDbTimestampBoundStore createTimestampBoundStore(
-            Optional<DbTimestampCreationParameters> creationParameters,
+            Optional<DbTimestampCreationSetting> creationParameters,
             ConnectionManagerAwareDbKvs dbkvs) {
-        if (creationParameters.isPresent()) {
-            DbTimestampCreationParameters presentParameters = creationParameters.get();
-            if (presentParameters.tsBoundSchema() == DatabaseTsBoundSchema.MULTIPLE_SERIES) {
-                return InDbTimestampBoundStore.createForMultiSeries(
-                        dbkvs.getConnectionManager(),
-                        presentParameters.tableReference().orElse(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE),
-                        presentParameters.series().orElseThrow(() -> new SafeIllegalStateException(
-                                "Unexpectedly had multiple series creation params without series - AtlasDB bug.")));
-            }
+        return creationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
+                .multipleSeries((table, series) -> multiSeries(dbkvs, table, series))
+                .singleSeries(table -> singleSeries(dbkvs, table)))
+                .orElseGet(() -> defaultTimestampBoundStore(dbkvs));
+    }
 
-            if (presentParameters.tsBoundSchema() == DatabaseTsBoundSchema.ONE_SERIES) {
-                if (presentParameters.tableReference().isPresent()) {
-                    // Not using the table prefix here, as the tableRef should contain any necessary prefix.
-                    return InDbTimestampBoundStore.create(
-                            dbkvs.getConnectionManager(),
-                            presentParameters.tableReference().get());
-                }
+    private static InDbTimestampBoundStore singleSeries(ConnectionManagerAwareDbKvs dbkvs,
+            Optional<TableReference> tableRef) {
+        // Not using the table prefix here, as the tableRef should contain any necessary prefix.
+        return tableRef.map(reference -> InDbTimestampBoundStore.create(dbkvs.getConnectionManager(), reference))
+                .orElseGet(() -> defaultTimestampBoundStore(dbkvs));
+    }
 
-                // One series and table unspecified is the default
-                return defaultTimestampBoundStore(dbkvs);
-            }
-        }
-        return defaultTimestampBoundStore(dbkvs);
+    private static InDbTimestampBoundStore multiSeries(ConnectionManagerAwareDbKvs dbkvs,
+            Optional<TableReference> tableRef, TimestampSeries series) {
+        return InDbTimestampBoundStore.createForMultiSeries(
+                dbkvs.getConnectionManager(),
+                tableRef.orElse(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE),
+                series);
     }
 
     private static InDbTimestampBoundStore defaultTimestampBoundStore(ConnectionManagerAwareDbKvs dbkvs) {
