@@ -24,9 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -97,13 +95,5 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
 
         AtlasDbVersion.ensureVersionReported();
         return PersistentTimestampServiceImpl.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));
-    }
-
-    private static boolean doCreationParametersDeviateFromDefaults(
-            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
-        return dbTimestampCreationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
-                .multipleSeries((ig, nore) -> true)
-                .singleSeries(tableRef -> !tableRef.map(AtlasDbConstants.TIMESTAMP_TABLE::equals).orElse(false)))
-                .orElse(false);
     }
 }

@@ -38,7 +38,6 @@ public class TimestampCreationParametersCheckTest {
     @Test
     public void oneSeriesWithNoTableSpecifiedIsConsistentWithDefaults() {
         assertConsistent(DbTimestampCreationSettings.singleSeries(Optional.empty()));
-
     }
 
     @Test
