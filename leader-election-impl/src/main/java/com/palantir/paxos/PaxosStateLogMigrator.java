@@ -124,10 +124,9 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         long migrationCutoff = calculateCutoff(context);
         long persistedCutoff = context.migrationState().getCutoff();
         long greatestSourceEntry = context.sourceLog().getGreatestLogEntry();
-        long greatestDestinationEntry = context.destinationLog().getGreatestLogEntry();
         Preconditions.checkState(migrationCutoff <= persistedCutoff,
                 "The migration to the destination state log was already performed in the past, but the "
-                        + "persisted cutoff value does not match a freshly calculated one. This indicates the source "
+                        + "persisted cutoff value does not match a newly calculated one. This indicates the source "
                         + "log has advanced since the migration was performed which could lead to data corruption if "
                         + "allowed to continue.",
                 SafeArg.of("fresh cutoff", migrationCutoff),
@@ -150,7 +149,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         } catch (IOException e) {
             Preconditions.checkState(false,
                     "Unable to verify consistency between source and destination paxos logs because the "
-                            + "source log seems to be corrupted");
+                            + "source log entry could not be read.");
         }
     }
 
