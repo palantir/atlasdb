@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: Timelock now verifies consistency of the file based paxos state log
+    with SQLite and fails to start if the check fails. It was previously possible
+    to migrate to SQLite, force a downgrade and use file based log, then upgrade again
+    and skip running the migration again without detecting the inconsistent state.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5026
