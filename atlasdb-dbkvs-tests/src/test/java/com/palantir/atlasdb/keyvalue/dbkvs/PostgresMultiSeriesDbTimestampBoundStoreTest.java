@@ -21,17 +21,16 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ImmutableTimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.TimestampSeries;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
-    private static final TimestampSeries DEFAULT_SERIES = ImmutableTimestampSeries.of("defaultSeries");
-    private static final TimestampSeries SERIES_1 = ImmutableTimestampSeries.of("series1");
-    private static final TimestampSeries SERIES_2 = ImmutableTimestampSeries.of("series2");
+    private static final TimestampSeries DEFAULT_SERIES = TimestampSeries.of("defaultSeries");
+    private static final TimestampSeries SERIES_1 = TimestampSeries.of("series1");
+    private static final TimestampSeries SERIES_2 = TimestampSeries.of("series2");
 
     private static final long FIFTY_MILLION = 50_000_000L;
     private static final long ONE_BILLION = 1_000_000_000L;

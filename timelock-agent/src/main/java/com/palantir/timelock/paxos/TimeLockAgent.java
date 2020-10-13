@@ -198,8 +198,7 @@ public class TimeLockAgent {
             return new PaxosTimestampCreator(paxosResources.timestampServiceFactory());
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
             return new DbBoundTimestampCreator(
-                    ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
-                            .keyValueServiceConfig());
+                    ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence).keyValueServiceConfig());
         }
         throw new RuntimeException(String.format("Unknown TsBoundPersisterConfiguration found %s",
                 timestampBoundPersistence.getClass()));

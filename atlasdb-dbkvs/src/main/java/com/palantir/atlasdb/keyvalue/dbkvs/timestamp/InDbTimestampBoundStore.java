@@ -22,6 +22,7 @@ import java.util.OptionalLong;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
