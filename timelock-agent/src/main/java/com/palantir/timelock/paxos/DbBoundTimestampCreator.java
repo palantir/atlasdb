@@ -23,8 +23,6 @@ import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -33,17 +31,9 @@ public final class DbBoundTimestampCreator implements TimestampCreator {
 
     private final ServiceDiscoveringDatabaseTimeLockSupplier serviceDiscoveringDatabaseTimeLockSupplier;
 
-    private DbBoundTimestampCreator(
+    public DbBoundTimestampCreator(
             ServiceDiscoveringDatabaseTimeLockSupplier serviceDiscoveringDatabaseTimeLockSupplier) {
         this.serviceDiscoveringDatabaseTimeLockSupplier = serviceDiscoveringDatabaseTimeLockSupplier;
-    }
-
-    public static TimestampCreator create(
-            KeyValueServiceConfig kvsConfig,
-            MetricsManager metricsManager,
-            LeaderConfig leaderConfig) {
-        return new DbBoundTimestampCreator(
-                new ServiceDiscoveringDatabaseTimeLockSupplier(metricsManager, kvsConfig, leaderConfig));
     }
 
     @Override

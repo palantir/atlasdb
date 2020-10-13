@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.management;
+package com.palantir.timelock.management;
 
-import java.nio.file.Path;
+import org.immutables.value.Value;
 
-import javax.sql.DataSource;
+import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
+import com.palantir.timelock.paxos.TimestampCreator;
 
-import org.derive4j.Data;
-
-import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
-
-@Data
-public interface PersistentNamespaceContext {
-    interface Cases<R> {
-        R timestampBoundPaxos(Path fileDataDirectory, DataSource sqliteDataSource);
-        R dbBound(TimestampSeriesProvider seriesProvider);
-    }
-
-    <R> R match(PersistentNamespaceContext.Cases<R> cases);
+@Value.Immutable
+public interface TimestampStorage {
+    TimestampCreator timestampCreator();
+    PersistentNamespaceContext persistentNamespaceContext();
 }
