@@ -43,12 +43,7 @@ public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrat
         PhysicalBoundStoreDatabaseUtils.createTimestampTable(
                 connection,
                 dbTypeExtractor,
-                ImmutableCreateTimestampTableQueries.builder()
-                        .postgresQuery(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
-                                prefixedTimestampTableName()))
-                        .oracleQuery(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
-                                prefixedTimestampTableName()))
-                        .build());
+                CreateTimestampTableQueries.getCreateTableQueriesForLegacyStore(prefixedTimestampTableName()));
     }
 
     @Override
