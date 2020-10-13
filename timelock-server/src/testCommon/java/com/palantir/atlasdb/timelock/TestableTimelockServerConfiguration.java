@@ -26,4 +26,11 @@ public interface TestableTimelockServerConfiguration {
     default boolean needsPostgresDatabase() {
         return false;
     }
+
+    static TestableTimelockServerConfiguration of(TemplateVariables templateVariables, boolean needsPostgresDatabase) {
+        return ImmutableTestableTimelockServerConfiguration.builder()
+                .templateVariables(templateVariables)
+                .needsPostgresDatabase(needsPostgresDatabase)
+                .build();
+    }
 }

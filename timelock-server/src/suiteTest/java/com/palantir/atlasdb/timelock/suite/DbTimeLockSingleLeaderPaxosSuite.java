@@ -48,10 +48,7 @@ public class DbTimeLockSingleLeaderPaxosSuite {
                     .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER));
     private static final List<TestableTimelockServerConfiguration> TESTABLE_CONFIGURATIONS = StreamSupport.stream(
             TEMPLATE_VARIABLES.spliterator(), false)
-            .map(variables -> ImmutableTestableTimelockServerConfiguration.builder()
-                    .templateVariables(variables)
-                    .needsPostgresDatabase(true)
-                    .build())
+            .map(variables -> TestableTimelockServerConfiguration.of(variables, true))
             .collect(Collectors.toList());
 
     public static final TestableTimelockCluster DB_TIMELOCK_CLUSTER = new TestableTimelockCluster(
