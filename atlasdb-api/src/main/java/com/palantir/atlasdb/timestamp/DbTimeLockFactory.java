@@ -26,6 +26,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 
+/**
+ * See {@link com.palantir.atlasdb.spi.AtlasDbFactory}. A {@link DbTimeLockFactory} is an extension of an
+ * AtlasDbFactory that is expected to make suitable decisions around certain parameters to create a raw key-value
+ * service, and it also supports extracting the timestamp series known about by the underlying database.
+ */
 public interface DbTimeLockFactory {
     String getType();
 
