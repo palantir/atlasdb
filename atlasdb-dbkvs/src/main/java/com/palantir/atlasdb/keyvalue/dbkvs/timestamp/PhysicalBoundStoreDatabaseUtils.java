@@ -67,8 +67,12 @@ public final class PhysicalBoundStoreDatabaseUtils {
         return exception.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
     }
 
-    public static boolean oracleColumnDoesNotExistError(SQLException exception) {
-        return exception.getMessage().contains(OracleErrorConstants.ORACLE_COLUMN_DOES_NOT_EXIST_ERROR);
+    public static boolean oracleDuplicateColumnError(SQLException exception) {
+        return exception.getMessage().contains(OracleErrorConstants.ORACLE_DUPLICATE_COLUMN_ERROR);
+    }
+
+    public static boolean oracleInvalidColumnError(SQLException exception) {
+        return exception.getMessage().contains("Invalid column name");
     }
 
     public static boolean postgresColumnDoesNotExistError(SQLException exception) {

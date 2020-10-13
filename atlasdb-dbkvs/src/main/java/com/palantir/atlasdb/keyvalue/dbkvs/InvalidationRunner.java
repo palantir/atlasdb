@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -126,7 +125,7 @@ public class InvalidationRunner {
             statement.execute(String.format("ALTER TABLE %s RENAME COLUMN %s TO %s",
                     prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
         } catch (SQLException e) {
-            if (!PhysicalBoundStoreDatabaseUtils.oracleColumnDoesNotExistError(e)) {
+            if (!PhysicalBoundStoreDatabaseUtils.oracleDuplicateColumnError(e)) {
                 throw e;
             }
             connection.rollback();
@@ -164,7 +163,7 @@ public class InvalidationRunner {
         try {
             return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
         } catch (SQLException e) {
-            if (PhysicalBoundStoreDatabaseUtils.oracleColumnDoesNotExistError(e)
+            if (PhysicalBoundStoreDatabaseUtils.oracleInvalidColumnError(e)
                     || PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError(e)) {
                 return Optional.empty();
             } else {
