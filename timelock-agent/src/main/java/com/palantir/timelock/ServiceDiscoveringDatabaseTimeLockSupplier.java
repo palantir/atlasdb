@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -38,13 +39,12 @@ import com.palantir.timestamp.ManagedTimestampService;
  */
 public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable {
     private final Supplier<KeyValueService> keyValueService;
-    private final Function<Client, ManagedTimestampService> timestampServiceFactory;
+    private final Function<DbTimestampCreationSetting, ManagedTimestampService> timestampServiceFactory;
 
     public ServiceDiscoveringDatabaseTimeLockSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            LeaderConfig leaderConfig,
-            Optional<TableReference> timestampTable) {
+            LeaderConfig leaderConfig) {
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(
@@ -55,9 +55,11 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
                         Optional.empty(), // This refers to an AtlasDB namespace - we use the config to talk to the db
                         AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE, // This is how we give out timestamps!
                         AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC));
-        timestampServiceFactory = _client ->
+        timestampServiceFactory = creationSetting ->
                 atlasFactory.createManagedTimestampService(
-                        keyValueService.get(), timestampTable, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                        keyValueService.get(),
+                        Optional.of(creationSetting),
+                        AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     @Override
@@ -65,7 +67,7 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
         keyValueService.get().close();
     }
 
-    public synchronized ManagedTimestampService getManagedTimestampService(Client client) {
-        return timestampServiceFactory.apply(client);
+    public synchronized ManagedTimestampService getManagedTimestampService(DbTimestampCreationSetting setting) {
+        return timestampServiceFactory.apply(setting);
     }
 }

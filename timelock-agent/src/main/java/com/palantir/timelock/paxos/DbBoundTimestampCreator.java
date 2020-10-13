@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -44,16 +43,13 @@ public final class DbBoundTimestampCreator implements TimestampCreator {
             MetricsManager metricsManager,
             LeaderConfig leaderConfig) {
         return new DbBoundTimestampCreator(
-                new ServiceDiscoveringDatabaseTimeLockSupplier(
-                        metricsManager,
-                        kvsConfig,
-                        leaderConfig,
-                        Optional.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE)));
+                new ServiceDiscoveringDatabaseTimeLockSupplier(metricsManager, kvsConfig, leaderConfig));
     }
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig) {
-        return () -> serviceDiscoveringDatabaseTimeLockSupplier.getManagedTimestampService(client);
+        return () -> serviceDiscoveringDatabaseTimeLockSupplier.getManagedTimestampService(
+                getTimestampCreationParameters(client));
     }
 
     @Override
