@@ -54,7 +54,7 @@ public final class PhysicalBoundStoreDatabaseUtils {
         try {
             statement.execute(oracleQuery);
         } catch (SQLException e) {
-            if (!tableAlreadyExistsError(e)) {
+            if (!isTableAlreadyExistsError(e)) {
                 log.error("Error occurred creating the Oracle timestamp table", e);
                 throw e;
             }
@@ -63,19 +63,19 @@ public final class PhysicalBoundStoreDatabaseUtils {
         }
     }
 
-    public static boolean tableAlreadyExistsError(SQLException exception) {
+    public static boolean isTableAlreadyExistsError(SQLException exception) {
         return exception.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
     }
 
-    public static boolean oracleDuplicateColumnError(SQLException exception) {
+    public static boolean isOracleDuplicateColumnError(SQLException exception) {
         return exception.getMessage().contains(OracleErrorConstants.ORACLE_DUPLICATE_COLUMN_ERROR);
     }
 
-    public static boolean oracleInvalidColumnError(SQLException exception) {
+    public static boolean isOracleInvalidColumnError(SQLException exception) {
         return exception.getMessage().contains("Invalid column name");
     }
 
-    public static boolean postgresColumnDoesNotExistError(SQLException exception) {
+    public static boolean isPostgresColumnDoesNotExistError(SQLException exception) {
         return exception.getSQLState().equals(PSQLState.UNDEFINED_COLUMN.getState());
     }
 

@@ -98,21 +98,16 @@ public class InvalidationRunner {
 
     private Long poisonStoreAndGetLastAllocatedTimestamp(Connection connection, Limits limits,
             TableStatus tableStatus) throws SQLException {
-        long lastAllocated;
-
-        if (tableStatus == TableStatus.NO_DATA) {
-            lastAllocated = AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-        } else {
-            lastAllocated = limits.upperLimit().get().value();
-        }
-
+        long lastAllocated = tableStatus == TableStatus.NO_DATA
+                ? AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP
+                : limits.upperLimit().get().value();
         poisonTable(connection);
         return lastAllocated;
     }
 
     private void poisonTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            if (ConnectionDbTypes.getDbType(connection).equals(DBType.ORACLE)) {
+            if (ConnectionDbTypes.getDbType(connection) == DBType.ORACLE) {
                 poisonOracleTable(connection, statement);
             } else {
                 poisonPostgresTable(connection, statement);
@@ -125,7 +120,7 @@ public class InvalidationRunner {
             statement.execute(String.format("ALTER TABLE %s RENAME COLUMN %s TO %s",
                     prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
         } catch (SQLException e) {
-            if (!PhysicalBoundStoreDatabaseUtils.oracleDuplicateColumnError(e)) {
+            if (!PhysicalBoundStoreDatabaseUtils.isOracleDuplicateColumnError(e)) {
                 throw e;
             }
             connection.rollback();
@@ -137,7 +132,7 @@ public class InvalidationRunner {
             statement.execute(String.format("ALTER TABLE %s RENAME %s TO %s",
                     prefixedTimestampTableName(), LAST_ALLOCATED, LEGACY_LAST_ALLOCATED));
         } catch (SQLException e) {
-            if (!PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError(e)) {
+            if (!PhysicalBoundStoreDatabaseUtils.isPostgresColumnDoesNotExistError(e)) {
                 throw e;
             }
             connection.rollback();
@@ -163,8 +158,8 @@ public class InvalidationRunner {
         try {
             return ColumnStatus.columnStatusWithValue(rs.getLong(colName));
         } catch (SQLException e) {
-            if (PhysicalBoundStoreDatabaseUtils.oracleInvalidColumnError(e)
-                    || PhysicalBoundStoreDatabaseUtils.postgresColumnDoesNotExistError(e)) {
+            if (PhysicalBoundStoreDatabaseUtils.isOracleInvalidColumnError(e)
+                    || PhysicalBoundStoreDatabaseUtils.isPostgresColumnDoesNotExistError(e)) {
                 return Optional.empty();
             } else {
                 throw e;
@@ -188,7 +183,7 @@ public class InvalidationRunner {
         if (upperLimitExists) {
             return legacyUpperLimitExists ? TableStatus.BOTH_COLUMNS : TableStatus.HEALTHY;
         }
-        return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.NO_DATA; // no data in table
+        return legacyUpperLimitExists ? TableStatus.POISONED : TableStatus.NO_DATA;
     }
 
     private String prefixedTimestampTableName() {
