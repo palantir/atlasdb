@@ -24,9 +24,11 @@ import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTA
 
 import java.util.Optional;
 
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
@@ -51,58 +53,64 @@ public class DbTimestampStoreInvalidatorCreationTest {
 
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
-
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TableReference otherTable = TableReference.createWithEmptyNamespace("fooBar");
-    private final TimestampBoundStore otherStore = getStore(otherTable,"");
+    private final String prefix = "";
+
+    private final TimestampBoundStore store = getStore(AtlasDbConstants.TIMESTAMP_TABLE,
+            DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+    private final TimestampBoundStore otherStore = getStore(otherTable, prefix);
+
+    private final InvalidationRunner invalidationRunner = new InvalidationRunner(kvs.getConnectionManager(),
+            otherTable,
+            prefix);
     private static final long TIMESTAMP_1 = 12000;
 
-
-    @Test
-    public void canNoInvalidatorForMultiSeries() {
-        otherStore.storeUpperLimit(TIMESTAMP_1);
-        otherStore.getUpperLimit();
-
-        ServiceDiscoveringAtlasSupplier atlasSupplier = createAtlasSupplier(
-                DbkvsPostgresTestSuite.getKvsConfig(),
-                Optional.of(DbTimestampCreationSettings.multipleSeries(Optional.of(otherTable), TimestampSeries.of("blah"))));
-        TimestampStoreInvalidator timestampStoreInvalidator = atlasSupplier.getTimestampStoreInvalidator();
-        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
+    @Before
+    public void setUp() {
+        kvs.dropTables(ImmutableSet.of(otherTable, AtlasDbConstants.TIMESTAMP_TABLE));
+        invalidationRunner.createTableIfDoesNotExist();
     }
 
     @Test
-    public void canInvalidatorForSingleSeries() {
-        otherStore.storeUpperLimit(12027);
-        otherStore.getUpperLimit();
-        ServiceDiscoveringAtlasSupplier atlasSupplier = createAtlasSupplier(
-                DbkvsPostgresTestSuite.getKvsConfig(),
+    public void doesNotInvalidateMultiSeriesTable() {
+        TimestampStoreInvalidator timestampStoreInvalidator = getTimestampStoreInvalidator(
+                Optional.of(DbTimestampCreationSettings.multipleSeries(Optional.of(otherTable),
+                        TimestampSeries.of("test"))));
+        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
+
+        assertStoreNotPoisoned(otherStore);
+    }
+
+    @Test
+    public void canInvalidatorForSingleSeriesTable() {
+        TimestampStoreInvalidator timestampStoreInvalidator = getTimestampStoreInvalidator(
                 Optional.of(DbTimestampCreationSettings.singleSeries(Optional.of(otherTable))));
-        TimestampStoreInvalidator timestampStoreInvalidator = atlasSupplier.getTimestampStoreInvalidator();
-        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(12027);
+        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(TIMESTAMP_1);
+
+        assertBoundNotReadableAfterBeingPoisoned(otherStore);
     }
 
     @Test
-    public void createsInvalidatorForDefaultSingleSeries() {
-        otherStore.storeUpperLimit(TIMESTAMP_1);
-        otherStore.getUpperLimit();
-        ServiceDiscoveringAtlasSupplier atlasSupplier = createAtlasSupplier(
-                DbkvsPostgresTestSuite.getKvsConfig(),
-                Optional.of(DbTimestampCreationSettings.singleSeries(Optional.empty())));
-        TimestampStoreInvalidator timestampStoreInvalidator = atlasSupplier.getTimestampStoreInvalidator();
+    public void invalidatesDefaultTableForDefaultSingleSeries() {
+        TimestampStoreInvalidator timestampStoreInvalidator =
+                getTimestampStoreInvalidator(Optional.of(DbTimestampCreationSettings.singleSeries(Optional.empty())));
+
         assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
+
+        assertStoreNotPoisoned(otherStore);
+        assertBoundNotReadableAfterBeingPoisoned(store);
     }
 
     @Test
-    public void createsDefaultInvalidatorForEmptyParameters() {
-        otherStore.storeUpperLimit(TIMESTAMP_1);
-        otherStore.getUpperLimit();
-        ServiceDiscoveringAtlasSupplier atlasSupplier = createAtlasSupplier(
-                DbkvsPostgresTestSuite.getKvsConfig(),
-                Optional.empty());
-        TimestampStoreInvalidator timestampStoreInvalidator = atlasSupplier.getTimestampStoreInvalidator();
-        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
-    }
+    public void invalidatesDefaultTableForEmptyParameters() {
+        TimestampStoreInvalidator timestampStoreInvalidator = getTimestampStoreInvalidator(Optional.empty());
 
+        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
+
+        assertStoreNotPoisoned(otherStore);
+        assertBoundNotReadableAfterBeingPoisoned(store);
+    }
 
     public InDbTimestampBoundStore getStore(TableReference tableReference, String tablePrefix) {
         return InDbTimestampBoundStore.create(
@@ -111,8 +119,24 @@ public class DbTimestampStoreInvalidatorCreationTest {
                 tablePrefix);
     }
 
+    private void assertStoreNotPoisoned(TimestampBoundStore store) {
+        assertThat(store.getUpperLimit()).isEqualTo(TIMESTAMP_1);
+    }
+
     private void assertBoundNotReadableAfterBeingPoisoned(TimestampBoundStore store) {
         assertThatThrownBy(store::getUpperLimit).isInstanceOf(PalantirSqlException.class);
+    }
+
+
+    public TimestampStoreInvalidator getTimestampStoreInvalidator(
+            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
+        otherStore.storeUpperLimit(TIMESTAMP_1);
+        otherStore.getUpperLimit();
+
+        ServiceDiscoveringAtlasSupplier atlasSupplier = createAtlasSupplier(
+                DbkvsPostgresTestSuite.getKvsConfig(),
+                dbTimestampCreationParameters);
+        return atlasSupplier.getTimestampStoreInvalidator();
     }
 
     private ServiceDiscoveringAtlasSupplier createAtlasSupplier(KeyValueServiceConfig providedKvsConfig,
