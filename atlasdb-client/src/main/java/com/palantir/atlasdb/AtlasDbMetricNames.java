@@ -65,6 +65,7 @@ public final class AtlasDbMetricNames {
     public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
     public static final String BATCH_SIZE_MEAN = "batchSizeMean";
+    public static final String SWEEP_DELAY = "sweepDelay";
     public static final Set<String> TARGETED_SWEEP_PROGRESS_METRIC_NAMES = ImmutableSet.of(
             ENQUEUED_WRITES,
             ENTRIES_READ,
@@ -73,7 +74,8 @@ public final class AtlasDbMetricNames {
             SWEEP_TS,
             LAST_SWEPT_TS,
             LAG_MILLIS,
-            BATCH_SIZE_MEAN);
+            BATCH_SIZE_MEAN,
+            SWEEP_DELAY);
 
     public static final String SWEEP_OUTCOME = "outcome";
     public static final String TAG_OUTCOME = "status";
