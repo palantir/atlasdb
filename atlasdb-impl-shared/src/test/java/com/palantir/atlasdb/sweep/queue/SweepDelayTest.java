@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BATCH_CELLS_LOW_THRESHOLD;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.DEFAULT_MAX_PAUSE_MILLIS;
@@ -37,11 +36,6 @@ public class SweepDelayTest {
 
     private final AtomicLong metrics = new AtomicLong();
     private SweepDelay delay = new SweepDelay(INITIAL_DELAY, metrics::set);
-
-    @Test
-    public void metricsUseInitialDelayInitially() {
-        assertThat(metrics).hasValue(INITIAL_DELAY);
-    }
 
     @Test
     public void iterationWithNormalBatchReturnsInitialPause() {

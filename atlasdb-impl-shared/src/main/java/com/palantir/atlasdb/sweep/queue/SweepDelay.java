@@ -50,7 +50,6 @@ class SweepDelay {
         this.initialPause = Math.max(MIN_PAUSE_MILLIS, configPause);
         this.updateMetrics = updateMetrics;
         this.currentPause = new AtomicLong(initialPause);
-        updateMetrics.accept(initialPause);
     }
 
     long getInitialPause() {
