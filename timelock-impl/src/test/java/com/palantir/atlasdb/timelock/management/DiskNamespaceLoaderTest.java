@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -62,8 +63,10 @@ public class DiskNamespaceLoaderTest {
                 .create(testUrl, ImmutableList.of(testUrl));
 
         Path rootFolderPath = tempFolder.getRoot().toPath();
-        PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContext.of(rootFolderPath, SqliteConnections
-                        .getPooledDataSource(rootFolderPath));
+        PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContext.of(
+                rootFolderPath,
+                SqliteConnections.getPooledDataSource(rootFolderPath),
+                false);
 
         TimelockNamespaces namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
 

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timelock.paxos;
 
-import java.util.function.Supplier;
+package com.palantir.atlasdb.timelock.management;
 
-import com.palantir.atlasdb.config.LeaderConfig;
+import java.util.Set;
+
 import com.palantir.paxos.Client;
-import com.palantir.timestamp.ManagedTimestampService;
 
-public interface TimestampCreator extends AutoCloseable {
-    Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig);
-
-    void close();
+public class DatabaseNamespaceLoader implements PersistentNamespaceLoader {
+    @Override
+    public Set<Client> getAllPersistedNamespaces() {
+        throw new UnsupportedOperationException("Loading all namespaces from the database is not supported yet!");
+    }
 }

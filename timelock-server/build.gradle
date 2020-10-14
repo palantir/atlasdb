@@ -56,6 +56,7 @@ dependencies {
     }
 
     testCompile group: 'com.palantir.conjure.java.runtime', name: 'client-config'
+    testCompile project(":atlasdb-container-test-utils")
     testCompile project(":atlasdb-tests-shared")
     testCompile project(":atlasdb-dbkvs")
     testCompile (project(":atlasdb-cassandra")) {
@@ -71,6 +72,9 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
+
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
 
     testCommonAnnotationProcessor group: 'org.immutables', name: 'value'
     testCommonCompileOnly 'org.immutables:value::annotations'
