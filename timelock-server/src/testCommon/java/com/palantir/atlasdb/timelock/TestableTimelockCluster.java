@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.awaitility.Awaitility;
 import org.junit.rules.RuleChain;
@@ -62,6 +63,7 @@ public class TestableTimelockCluster implements TestRule {
 
     private final String name;
     private final List<TemporaryConfigurationHolder> configs;
+    private final boolean needsPostgresDatabase;
     private final Set<TestableTimelockServer> servers;
     private final Multimap<TestableTimelockServer, TestableTimelockServer> serverToOtherServers;
     private final FailoverProxyFactory proxyFactory;
@@ -78,9 +80,21 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     public TestableTimelockCluster(String name, String configFileTemplate, Iterable<TemplateVariables> variables) {
+        this(name, configFileTemplate, StreamSupport.stream(variables.spliterator(), false)
+                .map(variablesInstance -> ImmutableTestableTimelockServerConfiguration.builder()
+                        .templateVariables(variablesInstance)
+                        .build())
+                .collect(Collectors.toList()));
+    }
+
+    public TestableTimelockCluster(
+            String name, String configFileTemplate, List<TestableTimelockServerConfiguration> configurations) {
         this.name = name;
-        Map<TemplateVariables, TemporaryConfigurationHolder> configMap = KeyedStream.of(variables)
-                .map(variable -> getConfigHolder(configFileTemplate, variable))
+        this.needsPostgresDatabase = configurations.stream()
+                .anyMatch(TestableTimelockServerConfiguration::needsPostgresDatabase);
+        Map<TemplateVariables, TemporaryConfigurationHolder> configMap = KeyedStream.of(configurations)
+                .mapKeys(TestableTimelockServerConfiguration::templateVariables)
+                .map(configuration -> getConfigHolder(configFileTemplate, configuration.templateVariables()))
                 .collectToMap();
         this.configs = ImmutableList.copyOf(configMap.values());
         this.servers = ImmutableSet.copyOf(KeyedStream.stream(configMap)
@@ -98,6 +112,10 @@ public class TestableTimelockCluster implements TestRule {
 
     private static String name() {
         return Hashing.murmur3_32().hashLong(new Random().nextLong()).toString();
+    }
+
+    boolean isDbTimelock() {
+        return needsPostgresDatabase;
     }
 
     void waitUntilLeaderIsElected(List<String> namespaces) {
@@ -235,6 +253,10 @@ public class TestableTimelockCluster implements TestRule {
 
     RuleChain getRuleChain() {
         RuleChain ruleChain = RuleChain.outerRule(temporaryFolder);
+
+        if (needsPostgresDatabase) {
+            ruleChain = ruleChain.around(new DbKvsRule());
+        }
 
         for (TemporaryConfigurationHolder config : configs) {
             ruleChain = ruleChain.around(config);

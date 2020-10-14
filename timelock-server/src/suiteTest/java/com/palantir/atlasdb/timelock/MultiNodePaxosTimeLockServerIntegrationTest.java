@@ -306,6 +306,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void canGetAllNamespaces() {
+        Assume.assumeFalse("DB Timelock currently doesn't support getAllNamespaces().", cluster.isDbTimelock());
         String randomNamespace = UUID.randomUUID().toString();
         cluster.client(randomNamespace).throughWireMockProxy().getFreshTimestamp();
 
@@ -469,6 +470,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     private void abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere() {
         Assume.assumeTrue(cluster == FIRST_CLUSTER);
+        Assume.assumeFalse(cluster.isDbTimelock()); // We will never test only DB timelock when releasing.
     }
 
     private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
