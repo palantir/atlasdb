@@ -28,7 +28,6 @@ import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL
 import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.MAX_PARALLELISM;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 
-import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -370,9 +369,7 @@ public class ScalingSweepTaskSchedulerTest {
         };
         ScalingSweepTaskScheduler nondeterministicScheduler = new ScalingSweepTaskScheduler(
                 PTExecutors.newScheduledThreadPool(1),
-                System::currentTimeMillis,
                 delay,
-                Duration.ZERO,
                 oneIteration,
                 schedulerEnabled::get);
 
@@ -405,9 +402,7 @@ public class ScalingSweepTaskSchedulerTest {
     private ScalingSweepTaskScheduler createScheduler(SweepDelay sweepDelay) {
         return new ScalingSweepTaskScheduler(
                 deterministicScheduler,
-                clockMillis::get,
                 sweepDelay,
-                Duration.ofMillis(2L),
                 sweepIteration,
                 schedulerEnabled::get);
     }
