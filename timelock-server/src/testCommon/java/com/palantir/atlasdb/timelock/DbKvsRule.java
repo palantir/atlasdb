@@ -101,9 +101,7 @@ public class DbKvsRule implements TestRule {
 
     private Callable<Boolean> canCreateKeyValueService() {
         return () -> {
-            ConnectionManagerAwareDbKvs kvs = null;
-            try {
-                kvs = createKvs();
+            try (ConnectionManagerAwareDbKvs kvs = createKvs()) {
                 try (Connection connection = kvs.getConnectionManager().getConnection()) {
                     return connection.isValid(FIVE_SECONDS);
                 }
@@ -113,10 +111,6 @@ public class DbKvsRule implements TestRule {
                     return false;
                 } else {
                     throw ex;
-                }
-            } finally {
-                if (kvs != null) {
-                    kvs.close();
                 }
             }
         };
