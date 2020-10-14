@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Upgraded rocksdbjni to 6.11 which has a fix for https://nvd.nist.gov/vuln/detail/CVE-2019-12900.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5029
