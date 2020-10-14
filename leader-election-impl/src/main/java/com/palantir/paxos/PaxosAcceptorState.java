@@ -119,12 +119,8 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         return lastAcceptedValue;
     }
 
-    /**
-     * Standard equals implementation, note that {@link #version} is not persisted and as such is not used in the
-     * calculation.
-     */
     @Override
-    public boolean equals(Object obj) {
+    public boolean equalsIgnoringVersion(Versionable obj) {
         if (this == obj) {
             return true;
         }
@@ -142,14 +138,5 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
             return false;
         }
         return Objects.equal(lastAcceptedValue, other.lastAcceptedValue);
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((lastPromisedId == null) ? 0 : lastPromisedId.hashCode());
-        result = prime * result + ((lastAcceptedId == null) ? 0 : lastAcceptedId.hashCode());
-        return prime * result + ((lastAcceptedValue == null) ? 0 : lastAcceptedValue.hashCode());
     }
 }

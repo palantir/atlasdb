@@ -37,6 +37,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
@@ -139,7 +140,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             V source = context.hydrator().hydrateFromBytes(context.sourceLog().readRound(greatestSourceEntry));
             byte[] destinationBytes = context.destinationLog().readRound(greatestSourceEntry);
             V dest = destinationBytes != null ? context.hydrator().hydrateFromBytes(destinationBytes) : null;
-            Preconditions.checkState(source.equals(dest),
+            Preconditions.checkState(source.equalsIgnoringVersion(dest),
                     "The migration to the destination state log was already performed in the past, but the "
                             + "entry with the greatest sequence in source log does not match the entry in the "
                             + "destination log. This indicates the source log has advanced since the migration was "
@@ -147,9 +148,8 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                     SafeArg.of("source entry", source),
                     SafeArg.of("destination entry", dest));
         } catch (IOException e) {
-            Preconditions.checkState(false,
-                    "Unable to verify consistency between source and destination paxos logs because the "
-                            + "source log entry could not be read.");
+            throw new SafeIllegalArgumentException("Unable to verify consistency between source and destination paxos "
+                    + "logs because the source log entry could not be read.");
         }
     }
 

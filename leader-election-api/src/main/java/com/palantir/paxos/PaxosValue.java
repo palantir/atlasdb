@@ -108,6 +108,11 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     }
 
     @Override
+    public boolean equalsIgnoringVersion(Versionable other) {
+        return equals(other);
+    }
+
+    @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;

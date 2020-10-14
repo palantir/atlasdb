@@ -16,7 +16,8 @@
 
 package com.palantir.paxos;
 
-import org.assertj.core.api.Assertions;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.Test;
 
 public class PaxosAcceptorStateTest {
@@ -31,7 +32,7 @@ public class PaxosAcceptorStateTest {
                 LAST_ACCEPTED,
                 VALUE);
         PaxosAcceptorState hydrated = PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(state.persistToBytes());
-        Assertions.assertThat(state).isEqualTo(hydrated);
+        assertThat(state.equalsIgnoringVersion(hydrated)).isTrue();
     }
 
     @Test
@@ -41,14 +42,14 @@ public class PaxosAcceptorStateTest {
 
         state = state.withState(LAST_PROMISED, LAST_ACCEPTED, VALUE);
         otherState = otherState.withState(LAST_PROMISED, LAST_ACCEPTED, VALUE);
-        Assertions.assertThat(state).isEqualTo(otherState);
+        assertThat(state.equalsIgnoringVersion(otherState)).isTrue();
     }
 
     @Test
     public void inequalityForPromised() {
         PaxosAcceptorState state = PaxosAcceptorState.newState(LAST_PROMISED);
         PaxosAcceptorState otherState = PaxosAcceptorState.newState(new PaxosProposalId(16, "id"));
-        Assertions.assertThat(state).isNotEqualTo(otherState);
+        assertThat(state.equalsIgnoringVersion(otherState)).isFalse();
     }
 
     @Test
@@ -58,7 +59,7 @@ public class PaxosAcceptorStateTest {
 
         state = state.withState(LAST_PROMISED, LAST_ACCEPTED, VALUE);
         otherState = otherState.withState(LAST_PROMISED, new PaxosProposalId(13, "other"), VALUE);
-        Assertions.assertThat(state).isNotEqualTo(otherState);
+        assertThat(state.equalsIgnoringVersion(otherState)).isFalse();
     }
 
     @Test
@@ -68,6 +69,6 @@ public class PaxosAcceptorStateTest {
 
         state = state.withState(LAST_PROMISED, LAST_ACCEPTED, VALUE);
         otherState = otherState.withState(LAST_PROMISED, LAST_ACCEPTED, PaxosStateLogTestUtils.valueForRound(12));
-        Assertions.assertThat(state).isNotEqualTo(otherState);
+        assertThat(state.equalsIgnoringVersion(otherState)).isFalse();
     }
 }
