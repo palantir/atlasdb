@@ -432,6 +432,16 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void fastForwardDoesNotGoBack() {
+        long freshTimestamp = client.getFreshTimestamp();
+
+        long fastForwardTimestamp = freshTimestamp + 100_000_000;
+        client.timestampManagementService().fastForwardTimestamp(fastForwardTimestamp);
+        client.timestampManagementService().fastForwardTimestamp(freshTimestamp);
+        assertThat(client.getFreshTimestamp()).isGreaterThan(fastForwardTimestamp);
+    }
+
+    @Test
     public void fastForwardsDoNotHaveCrossNamespaceImpact() {
         long freshTimestamp = client.getFreshTimestamp();
 
@@ -443,6 +453,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(client.getFreshTimestamp())
                 .isGreaterThan(freshTimestamp)
                 .isLessThan(fastForwardTimestamp);
+        assertThat(other.getFreshTimestamp())
+                .isGreaterThan(fastForwardTimestamp);
     }
 
     @Test
