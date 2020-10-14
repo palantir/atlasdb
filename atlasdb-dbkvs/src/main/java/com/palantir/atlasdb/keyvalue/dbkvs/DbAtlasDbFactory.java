@@ -134,9 +134,14 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Optional<DbTimestampCreationSetting> creationParameters) {
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
         return creationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
-                .multipleSeries((table, unused) -> timestampStoreInvalidator(dbkvs, table))
+                .multipleSeries((table, series) -> defaultTimestampStoreInvalidator(dbkvs, creationParameters)) // Do not create invalidator for multi series table
                 .singleSeries(table -> timestampStoreInvalidator(dbkvs, table)))
                 .orElseGet(() -> timestampStoreInvalidator(dbkvs, Optional.empty()));
+    }
+
+    public TimestampStoreInvalidator defaultTimestampStoreInvalidator(KeyValueService rawKvs,
+            Optional<DbTimestampCreationSetting> creationParameters) {
+        return AtlasDbFactory.super.createTimestampStoreInvalidator(rawKvs, creationParameters);
     }
 
     public TimestampStoreInvalidator timestampStoreInvalidator(ConnectionManagerAwareDbKvs dbKvs,
