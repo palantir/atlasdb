@@ -71,7 +71,8 @@ final class LockWatchEventLog {
         } else {
             lastKnownVersion.ifPresent(version ->
                     Preconditions.checkState(version.version() <= endVersion.version(),
-                "Cannot get update for transactions when the last known version is more recent than the transactions"));
+                            "Cannot get update for transactions when the last known version is more recent than the "
+                                    + "transactions"));
             return new ClientLogEvents.Builder()
                     .clearCache(false)
                     .events(new LockWatchEvents.Builder()
