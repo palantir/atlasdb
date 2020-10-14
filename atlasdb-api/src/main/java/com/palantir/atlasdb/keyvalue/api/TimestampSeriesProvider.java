@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.management;
+package com.palantir.atlasdb.keyvalue.api;
 
-import java.nio.file.Path;
+import java.util.Set;
 
-import javax.sql.DataSource;
-
-import org.derive4j.Data;
-
-import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
-
-@Data
-public interface PersistentNamespaceContext {
-    interface Cases<R> {
-        R timestampBoundPaxos(Path fileDataDirectory, DataSource sqliteDataSource);
-        R dbBound(TimestampSeriesProvider seriesProvider);
-    }
-
-    <R> R match(PersistentNamespaceContext.Cases<R> cases);
+public interface TimestampSeriesProvider {
+    Set<TimestampSeries> getKnownSeries();
 }

@@ -26,8 +26,9 @@ import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 
@@ -38,26 +39,23 @@ import com.palantir.timestamp.ManagedTimestampService;
 public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable {
     private final Supplier<KeyValueService> keyValueService;
     private final Function<DbTimestampCreationSetting, ManagedTimestampService> timestampServiceFactory;
+    private final TimestampSeriesProvider timestampSeriesProvider;
 
     public ServiceDiscoveringDatabaseTimeLockSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             LeaderConfig leaderConfig) {
-        AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
+        DbTimeLockFactory dbTimeLockFactory = AtlasDbServiceDiscovery.createDbTimeLockFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(
-                () -> atlasFactory.createRawKeyValueService(
-                        metricsManager,
-                        config,
-                        Optional::empty,
-                        Optional.of(leaderConfig),
-                        Optional.empty(), // This refers to an AtlasDB namespace - we use the config to talk to the db
-                        AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE, // This is how we give out timestamps!
-                        AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC));
+                () -> dbTimeLockFactory.createRawKeyValueService(metricsManager, config, leaderConfig));
         timestampServiceFactory = creationSetting ->
-                atlasFactory.createManagedTimestampService(
+                dbTimeLockFactory.createManagedTimestampService(
                         keyValueService.get(),
                         Optional.of(creationSetting),
                         AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        timestampSeriesProvider = dbTimeLockFactory.createTimestampSeriesProvider(
+                keyValueService.get(),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     @Override
@@ -67,5 +65,9 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
 
     public synchronized ManagedTimestampService getManagedTimestampService(DbTimestampCreationSetting setting) {
         return timestampServiceFactory.apply(setting);
+    }
+
+    public synchronized TimestampSeriesProvider getTimestampSeriesProvider() {
+        return timestampSeriesProvider;
     }
 }

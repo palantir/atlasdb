@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
@@ -100,13 +101,18 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
 
     private static Set<PersistentNamespaceLoader> createNamespaceLoaders(
             PersistentNamespaceContext persistentNamespaceContext) {
-        if (persistentNamespaceContext.isUsingDatabasePersistence()) {
-            return ImmutableSet.of(new DatabaseNamespaceLoader());
-        }
-        PersistentNamespaceLoader diskLoader = new DiskNamespaceLoader(persistentNamespaceContext.fileDataDirectory());
-        PersistentNamespaceLoader sqliteLoader = SqliteNamespaceLoader.create(
-                persistentNamespaceContext.sqliteDataSource());
-        return ImmutableSet.of(diskLoader, sqliteLoader);
+        return PersistentNamespaceContexts.caseOf(persistentNamespaceContext)
+                .timestampBoundPaxos((fileDataDirectory, sqliteDataSource) -> {
+                    PersistentNamespaceLoader diskLoader = new DiskNamespaceLoader(fileDataDirectory);
+                    PersistentNamespaceLoader sqliteLoader = SqliteNamespaceLoader.create(sqliteDataSource);
+                    return ImmutableSet.of(diskLoader, sqliteLoader);
+                })
+                .dbBound(seriesProvider -> ImmutableSet.of(
+                        () -> seriesProvider.getKnownSeries()
+                                .stream()
+                                .map(TimestampSeries::series)
+                                .map(Client::of)
+                                .collect(Collectors.toSet())));
     }
 
     public static final class JerseyAdapter implements TimeLockManagementService {
