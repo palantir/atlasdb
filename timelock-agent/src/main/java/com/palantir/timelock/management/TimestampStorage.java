@@ -16,8 +16,6 @@
 
 package com.palantir.timelock.management;
 
-import java.io.Closeable;
-
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
