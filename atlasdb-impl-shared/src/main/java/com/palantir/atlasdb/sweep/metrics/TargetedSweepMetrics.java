@@ -137,8 +137,8 @@ public class TargetedSweepMetrics {
         updateMetricsIfPresent(shardStrategy, metrics -> metrics.registerEntriesReadInBatch(batchSize));
     }
 
-    public void updateSweepDelay(ShardAndStrategy shardStrategy, long delay) {
-        updateMetricsIfPresent(shardStrategy, metrics -> metrics.updateSweepDelay(delay));
+    public void updateSweepDelay(SweeperStrategy strategy, long delay) {
+        updateMetricsIfPresent(strategy, metrics -> metrics.updateSweepDelay(delay));
     }
 
     private void updateMetricsIfPresent(ShardAndStrategy shardStrategy, Consumer<MetricsForStrategy> update) {

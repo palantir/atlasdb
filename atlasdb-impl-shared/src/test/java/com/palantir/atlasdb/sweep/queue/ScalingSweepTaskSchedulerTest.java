@@ -31,6 +31,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongConsumer;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
@@ -52,7 +53,8 @@ public class ScalingSweepTaskSchedulerTest {
     private final Callable<SweepIterationResult> sweepIteration = mock(Callable.class);
     private final AtomicBoolean schedulerEnabled = new AtomicBoolean(true);
     private final ScalingSweepTaskScheduler scheduler = createScheduler(delay);
-    private final ScalingSweepTaskScheduler schedulerWithDelay = createScheduler(new SweepDelay(DELAY));
+    private final AtomicLong metrics = new AtomicLong();
+    private final ScalingSweepTaskScheduler schedulerWithDelay = createScheduler(new SweepDelay(DELAY, metrics::set));
 
     private boolean firstIteration = true;
 
@@ -115,7 +117,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenVeryFewEntriesIncreasePause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L);
+        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_TINY);
 
@@ -127,7 +129,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenVeryManyEntriesDecreasePause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L);
+        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_HUGE);
 
@@ -139,7 +141,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void exceptionalIterationsDoNotAffectPause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L);
+        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(
                 SweepIterationResults.otherError(),
