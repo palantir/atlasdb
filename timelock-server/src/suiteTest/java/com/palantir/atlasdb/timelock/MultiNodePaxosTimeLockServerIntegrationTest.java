@@ -432,6 +432,32 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void fastForwardDoesNotGoBack() {
+        long freshTimestamp = client.getFreshTimestamp();
+
+        long fastForwardTimestamp = freshTimestamp + 100_000_000;
+        client.timestampManagementService().fastForwardTimestamp(fastForwardTimestamp);
+        client.timestampManagementService().fastForwardTimestamp(freshTimestamp);
+        assertThat(client.getFreshTimestamp()).isGreaterThan(fastForwardTimestamp);
+    }
+
+    @Test
+    public void fastForwardsDoNotHaveCrossNamespaceImpact() {
+        long freshTimestamp = client.getFreshTimestamp();
+
+        long fastForwardTimestamp = freshTimestamp + 100_000_000;
+        NamespacedClients other = cluster.clientForRandomNamespace().throughWireMockProxy();
+        other.timestampManagementService().fastForwardTimestamp(fastForwardTimestamp);
+
+        cluster.failoverToNewLeader(client.namespace());
+        assertThat(client.getFreshTimestamp())
+                .isGreaterThan(freshTimestamp)
+                .isLessThan(fastForwardTimestamp);
+        assertThat(other.getFreshTimestamp())
+                .isGreaterThan(fastForwardTimestamp);
+    }
+
+    @Test
     public void stressTestForPaxosEndpoints() {
         abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
         TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
