@@ -27,10 +27,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class ScalingSweepTaskScheduler implements Closeable {
-    static final int BATCH_CELLS_LOW_THRESHOLD = 1_000;
-    static final int BATCH_CELLS_HIGH_THRESHOLD = SweepQueueUtils.SWEEP_BATCH_SIZE * 2 / 3;
     static final long INITIAL_DELAY = 1_000L;
-    static final int MAX_PARALLELISM = 128;
 
     private final ScheduledExecutorService executorService;
     private final SweepDelay delay;

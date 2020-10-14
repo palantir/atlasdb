@@ -137,6 +137,10 @@ public class TargetedSweepMetrics {
         updateMetricsIfPresent(shardStrategy, metrics -> metrics.registerEntriesReadInBatch(batchSize));
     }
 
+    public void updateSweepDelay(ShardAndStrategy shardStrategy, long delay) {
+        updateMetricsIfPresent(shardStrategy, metrics -> metrics.updateSweepDelay(delay));
+    }
+
     private void updateMetricsIfPresent(ShardAndStrategy shardStrategy, Consumer<MetricsForStrategy> update) {
         updateMetricsIfPresent(shardStrategy.strategy(), update);
     }
@@ -172,6 +176,7 @@ public class TargetedSweepMetrics {
         private final Gauge<Long> millisSinceLastSwept;
         private final SweepOutcomeMetrics outcomeMetrics;
         private final SlidingWindowMeanGauge batchSizeMean;
+        private final CurrentValueMetric<Long> sweepDelay;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -185,6 +190,7 @@ public class TargetedSweepMetrics {
             lastSweptTs = createLastSweptTsMetric(recomputeMillis);
             millisSinceLastSwept = createMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
             batchSizeMean = new SlidingWindowMeanGauge();
+            sweepDelay = new CurrentValueMetric<>();
 
             TargetedSweepMetricPublicationFilter filter = createMetricPublicationFilter();
             registerProgressMetrics(strategy, filter);
@@ -210,6 +216,7 @@ public class TargetedSweepMetrics {
             progressMetrics.lastSweptTimestamp().strategy(strategy).build(lastSweptTs);
             progressMetrics.millisSinceLastSweptTs().strategy(strategy).build(millisSinceLastSwept);
             progressMetrics.batchSizeMean().strategy(strategy).build(batchSizeMean);
+            progressMetrics.sweepDelay().strategy(strategy).build(sweepDelay);
         }
 
         private TargetedSweepMetricPublicationFilter createMetricPublicationFilter() {
@@ -278,12 +285,16 @@ public class TargetedSweepMetrics {
             lastSweptTs.update(shard, sweptTs);
         }
 
-        public void registerOccurrenceOf(SweepOutcome outcome) {
+        private void registerOccurrenceOf(SweepOutcome outcome) {
             outcomeMetrics.registerOccurrenceOf(outcome);
         }
 
-        public void registerEntriesReadInBatch(long batchSize) {
+        private void registerEntriesReadInBatch(long batchSize) {
             batchSizeMean.update(batchSize);
+        }
+
+        private void updateSweepDelay(long delay) {
+            sweepDelay.setValue(delay);
         }
     }
 
