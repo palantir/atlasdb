@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Fix LockWatch bug where a leader election could cause all requests
+    to get updates to fail.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5031
