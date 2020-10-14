@@ -220,11 +220,9 @@ public class TimeLockAgent {
 
     private TimestampStorage createDatabaseTimestampStorage(
             DatabaseTsBoundPersisterConfiguration timestampBoundPersistence) {
-        DatabaseTsBoundPersisterConfiguration persisterConfiguration
-                = timestampBoundPersistence;
         ServiceDiscoveringDatabaseTimeLockSupplier dbTimeLockSupplier =
                 new ServiceDiscoveringDatabaseTimeLockSupplier(
-                        metricsManager, persisterConfiguration.keyValueServiceConfig(), createLeaderConfig());
+                        metricsManager, timestampBoundPersistence.keyValueServiceConfig(), createLeaderConfig());
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
                 .persistentNamespaceContext(PersistentNamespaceContexts.dbBound(
@@ -420,6 +418,6 @@ public class TimeLockAgent {
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
         sqliteDataSource.close();
-        timestampStorage.timestampCreator().close();
+        timestampStorage.close();
     }
 }

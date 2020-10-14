@@ -16,13 +16,19 @@
 
 package com.palantir.timelock.management;
 
+import java.io.Closeable;
+
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
 import com.palantir.timelock.paxos.TimestampCreator;
 
 @Value.Immutable
-public interface TimestampStorage {
+public interface TimestampStorage extends AutoCloseable {
     TimestampCreator timestampCreator();
     PersistentNamespaceContext persistentNamespaceContext();
+
+    default void close() {
+        timestampCreator().close();
+    }
 }
