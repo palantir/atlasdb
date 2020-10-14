@@ -140,12 +140,12 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                 .orElseGet(() -> timestampStoreInvalidator(dbkvs, Optional.empty()));
     }
 
-    public TimestampStoreInvalidator defaultTimestampStoreInvalidator(KeyValueService rawKvs,
+    private TimestampStoreInvalidator defaultTimestampStoreInvalidator(KeyValueService rawKvs,
             Optional<DbTimestampCreationSetting> creationParameters) {
         return AtlasDbFactory.super.createTimestampStoreInvalidator(rawKvs, creationParameters);
     }
 
-    public TimestampStoreInvalidator timestampStoreInvalidator(ConnectionManagerAwareDbKvs dbKvs,
+    private TimestampStoreInvalidator timestampStoreInvalidator(ConnectionManagerAwareDbKvs dbKvs,
             Optional<TableReference> tableReference) {
         return tableReference
                 .map(ref -> DbTimestampStoreInvalidator.create(dbKvs, ref, EMPTY_TABLE_PREFIX))
