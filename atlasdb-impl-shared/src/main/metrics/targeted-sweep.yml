@@ -49,3 +49,8 @@ namespaces:
         tags:
           - strategy
         docs: Mean number of entries read in a batch from the targeted sweep queue.
+      sweepDelay:
+        type: gauge
+        tags:
+          - strategy
+        docs: The latest delay between iterations of targeted sweep.
