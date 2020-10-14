@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.io.Closeable;
-import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

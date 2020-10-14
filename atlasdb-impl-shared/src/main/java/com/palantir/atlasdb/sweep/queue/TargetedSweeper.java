@@ -231,7 +231,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             this.numThreads = numThreads;
             this.sweepStrategy = sweepStrategy;
             this.delay = new SweepDelay(runtime.get().pauseMillis(),
-                    delay -> metrics.updateSweepDelayMetric(sweepStrategy, delay));
+                    millis -> metrics.updateSweepDelayMetric(sweepStrategy, millis));
         }
 
         private void scheduleBackgroundThreads() {

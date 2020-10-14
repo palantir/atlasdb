@@ -31,7 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongConsumer;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
