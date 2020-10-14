@@ -37,6 +37,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -134,15 +135,13 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Optional<DbTimestampCreationSetting> creationParameters) {
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
         return creationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
-                // Do not create invalidator for multi series table
-                .multipleSeries((table, series) -> defaultTimestampStoreInvalidator(dbkvs, creationParameters))
-                .singleSeries(table -> timestampStoreInvalidator(dbkvs, table)))
+                .singleSeries(table -> timestampStoreInvalidator(dbkvs, table))
+                .otherwise(() -> {
+                    throw new SafeIllegalStateException("Invalidator must only be called by embedded DB timeLock that "
+                            + "does not support multi series timestamp store. This is unexpected, "
+                            + "please contact support.");
+                }))
                 .orElseGet(() -> timestampStoreInvalidator(dbkvs, Optional.empty()));
-    }
-
-    private TimestampStoreInvalidator defaultTimestampStoreInvalidator(KeyValueService rawKvs,
-            Optional<DbTimestampCreationSetting> creationParameters) {
-        return AtlasDbFactory.super.createTimestampStoreInvalidator(rawKvs, creationParameters);
     }
 
     private TimestampStoreInvalidator timestampStoreInvalidator(ConnectionManagerAwareDbKvs dbKvs,

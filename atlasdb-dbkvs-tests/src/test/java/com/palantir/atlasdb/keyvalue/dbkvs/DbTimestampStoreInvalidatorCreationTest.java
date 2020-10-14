@@ -44,6 +44,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -74,12 +75,12 @@ public class DbTimestampStoreInvalidatorCreationTest {
 
     @Test
     public void doesNotInvalidateMultiSeriesTable() {
-        TimestampStoreInvalidator timestampStoreInvalidator = storeUpperLimitAndGetTimestampStoreInvalidator(
+        assertThatThrownBy(() -> storeUpperLimitAndGetTimestampStoreInvalidator(
                 Optional.of(DbTimestampCreationSettings.multipleSeries(Optional.of(otherTable),
-                        TimestampSeries.of("test"))));
-        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
-
-        assertStoreNotPoisoned(otherStore);
+                        TimestampSeries.of("test")))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Invalidator must only be called by embedded DB timeLock that does not support "
+                        + "multi series timestamp store. This is unexpected, please contact support.");
     }
 
     @Test
