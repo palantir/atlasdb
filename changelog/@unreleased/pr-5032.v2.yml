@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: Fixed a regression that caused targeted sweep to always run with only
+    a single thread per strategy. As a consequence, targeted sweep auto scaling only
+    affects the pause between iterations and has no bearing on the number of parallel
+    tasks. Added a metric `targetedSweepProgress.sweepDelay` that tracks the latest
+    delay per strategy in milliseconds.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5032
