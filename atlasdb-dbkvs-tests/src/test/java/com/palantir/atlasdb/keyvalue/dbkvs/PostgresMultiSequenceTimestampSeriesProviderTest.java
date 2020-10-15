@@ -51,20 +51,13 @@ public class PostgresMultiSequenceTimestampSeriesProviderTest {
 
     @After
     public void tearDown() {
-        kvs.truncateTable(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE);
         kvs.close();
-    }
-
-    @Test
-    public void resilientToEmptyTimestampTable() {
-        kvs.truncateTable(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE);
-        assertThat(seriesProvider.getKnownSeries()).isEmpty();
     }
 
     @Test
     public void reportsSingleKnownSeries() {
         boundStore.storeUpperLimit(2_345_678);
-        assertThat(seriesProvider.getKnownSeries()).containsExactlyInAnyOrder(DEFAULT_SERIES);
+        assertThat(seriesProvider.getKnownSeries()).contains(DEFAULT_SERIES);
     }
 
     @Test
@@ -81,7 +74,7 @@ public class PostgresMultiSequenceTimestampSeriesProviderTest {
                 .stream()
                 .map(TimestampSeries::series)
                 .collect(Collectors.toSet());
-        assertThat(knownSeries).hasSameElementsAs(clients);
+        assertThat(clients).isSubsetOf(knownSeries);
     }
 
     private static InDbTimestampBoundStore createDbTimestampBoundStore(
