@@ -139,7 +139,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
+    public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs,
+            Optional<DbTimestampCreationSetting> unused) {
         return CassandraTimestampStoreInvalidator.create(rawKvs);
     }
 }
