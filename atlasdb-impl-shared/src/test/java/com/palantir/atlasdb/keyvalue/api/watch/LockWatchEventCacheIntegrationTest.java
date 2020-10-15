@@ -42,6 +42,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -254,6 +255,50 @@ public class LockWatchEventCacheIntegrationTest {
                 ImmutableSet.of(REFERENCE),
                 ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
                 LOCK_EVENT_2);
+    }
+
+    @Test
+    public void getEventsForTransactionsNoCondensing() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
+        verifyStage();
+
+        // Client is behind and needs a snapshot, but no compression can be done as the first transaction is at the
+        // first version
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(
+                Sets.union(TIMESTAMPS, TIMESTAMPS_2),
+                Optional.empty());
+        assertThat(results.clearCache()).isTrue();
+        assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
+                ImmutableMap.of(START_TS, LockWatchVersion.of(LEADER, 3L), 16L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events()).containsExactly(
+                LockWatchCreatedEvent.builder(
+                ImmutableSet.of(),
+                ImmutableSet.of(DESCRIPTOR_2)).build(3L),
+                WATCH_EVENT,
+                UNLOCK_EVENT,
+                LOCK_EVENT,
+                LOCK_EVENT_2);
+    }
+
+    @Test
+    public void getEventsForTransactionsMaxCondensing() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
+        verifyStage();
+
+        // Client is behind, and all events will be condensed into a single snapshot and no other events
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(
+                TIMESTAMPS_2,
+                Optional.empty());
+        assertThat(results.clearCache()).isTrue();
+        assertThat(results.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(
+                ImmutableSet.of(REFERENCE),
+                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(7L));
     }
 
     @Test
