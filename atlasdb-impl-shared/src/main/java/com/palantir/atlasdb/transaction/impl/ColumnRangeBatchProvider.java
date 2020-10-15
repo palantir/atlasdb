@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -33,6 +27,10 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, Value>> {
     private final KeyValueService keyValueService;

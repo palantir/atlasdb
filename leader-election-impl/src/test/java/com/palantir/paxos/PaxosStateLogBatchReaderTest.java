@@ -16,15 +16,15 @@
 
 package com.palantir.paxos;
 
+import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
-
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -33,10 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 public class PaxosStateLogBatchReaderTest {
     private static final int START_SEQUENCE = 123;

@@ -16,6 +16,12 @@
 
 package com.palantir.atlasdb.http.v2;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.common.base.Throwables;
+import com.palantir.conjure.java.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -24,15 +30,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Supplier;
-
 import org.immutables.value.Value;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.common.base.Throwables;
-import com.palantir.conjure.java.api.errors.QosException;
-import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 
 /**
  * This proxy exists to support "fast failover" behaviour with no limit as to the number of attempts made; instead,

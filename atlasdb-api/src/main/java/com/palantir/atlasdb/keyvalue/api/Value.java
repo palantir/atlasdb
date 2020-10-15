@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Objects;
-
-import javax.annotation.Nonnull;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Represents a value in the key-value store (including its timestamp).

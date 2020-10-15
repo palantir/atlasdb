@@ -16,28 +16,24 @@
 
 package com.palantir.paxos;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
 import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
 import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.common.streams.KeyedStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import javax.sql.DataSource;
-
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.common.streams.KeyedStream;
 
 public class FileToSqlitePaxosStateLogIntegrationTest {
     @Rule

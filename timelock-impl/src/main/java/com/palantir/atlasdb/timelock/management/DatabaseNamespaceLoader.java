@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import java.util.Set;
-
 import com.palantir.paxos.Client;
+import java.util.Set;
 
 public class DatabaseNamespaceLoader implements PersistentNamespaceLoader {
     @Override

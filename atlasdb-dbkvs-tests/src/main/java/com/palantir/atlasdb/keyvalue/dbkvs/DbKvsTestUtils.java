@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class DbKvsTestUtils {
     private DbKvsTestUtils() {

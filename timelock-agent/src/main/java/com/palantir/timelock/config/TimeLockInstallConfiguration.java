@@ -15,16 +15,14 @@
  */
 package com.palantir.timelock.config;
 
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.paxos.Client;
+import java.util.Map;
+import org.immutables.value.Value;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.

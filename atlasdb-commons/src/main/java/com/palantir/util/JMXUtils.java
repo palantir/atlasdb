@@ -15,6 +15,8 @@
  */
 package com.palantir.util;
 
+import com.google.common.collect.Collections2;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.ReferenceQueue;
@@ -26,7 +28,6 @@ import java.net.Socket;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.RMISocketFactory;
-
 import javax.management.Attribute;
 import javax.management.AttributeList;
 import javax.management.AttributeNotFoundException;
@@ -47,12 +48,8 @@ import javax.management.StringValueExp;
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Collections2;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  */

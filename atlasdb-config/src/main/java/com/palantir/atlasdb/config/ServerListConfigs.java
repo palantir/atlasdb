@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.config;
 
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.palantir.refreshable.Refreshable;
 
 public final class ServerListConfigs {
     private ServerListConfigs() {

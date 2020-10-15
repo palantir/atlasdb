@@ -15,15 +15,13 @@
  */
 package com.palantir.util;
 
+import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 
 public class MutuallyExclusiveSetLockTest {
     /** True iff test threads should release all their resources. */

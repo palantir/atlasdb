@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.SocketTimeoutException;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -32,6 +27,10 @@ import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.dialogue.Channel;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class AtlasDbHttpClients {
 

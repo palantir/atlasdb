@@ -16,8 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.function.Supplier;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
@@ -37,6 +35,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.function.Supplier;
 
 public class DialogueAdaptingConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockServiceBlocking dialogueDelegate;

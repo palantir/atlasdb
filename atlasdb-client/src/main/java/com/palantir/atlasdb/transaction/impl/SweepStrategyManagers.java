@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +27,9 @@ import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class SweepStrategyManagers {
     private SweepStrategyManagers() {

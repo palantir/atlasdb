@@ -15,14 +15,11 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import static java.lang.Math.max;
-
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.TypeName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.VarName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.typeName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.varName;
-
-import java.util.List;
+import static java.lang.Math.max;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -32,6 +29,7 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 class RowOrDynamicColumnRenderer extends Renderer {

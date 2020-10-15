@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import java.util.Map;
 
 public abstract class Container {
     public abstract String getDockerComposeFile();

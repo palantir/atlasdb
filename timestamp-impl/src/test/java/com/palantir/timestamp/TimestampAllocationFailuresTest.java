@@ -24,12 +24,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
-
-import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class TimestampAllocationFailuresTest {
     private static final RuntimeException FAILURE = new IllegalStateException();

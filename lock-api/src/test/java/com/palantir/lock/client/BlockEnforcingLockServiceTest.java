@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Streams;
 import java.net.SocketTimeoutException;
 import java.time.Clock;
 import java.time.Duration;
@@ -35,12 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.immutables.value.Value;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-
-import com.google.common.collect.Streams;
 
 @SuppressWarnings("unchecked") // Mocks with generic types
 public class BlockEnforcingLockServiceTest {

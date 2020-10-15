@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.schema.indexing;
 
-import java.io.File;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -26,6 +24,7 @@ import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.io.File;
 
 public class IndexTestSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new IndexTestSchema();

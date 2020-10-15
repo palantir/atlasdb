@@ -16,17 +16,6 @@
 
 package com.palantir.timelock.history;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
-import javax.sql.DataSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
@@ -43,6 +32,14 @@ import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PaxosLogHistoryProvider {
     private static final Logger log = LoggerFactory.getLogger(PaxosLogHistoryProvider.class);

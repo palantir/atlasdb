@@ -18,15 +18,13 @@ package com.palantir.atlasdb.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
+import java.util.Optional;
+import org.junit.Test;
 
 public class TimestampCreationParametersCheckTest {
     @Test

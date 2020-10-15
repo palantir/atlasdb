@@ -19,11 +19,6 @@ package com.palantir.timelock;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
@@ -38,6 +33,9 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class ServiceDiscoveringDatabaseTimeLockSupplierTest {
     private static final TimestampSeries SERIES = TimestampSeries.of("series");

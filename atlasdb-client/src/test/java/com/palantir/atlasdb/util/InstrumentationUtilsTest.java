@@ -21,11 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.LongSupplier;
-
-import org.junit.Test;
-
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.function.LongSupplier;
+import org.junit.Test;
 
 public class InstrumentationUtilsTest {
     private static final RuntimeException EXCEPTION = new RuntimeException();

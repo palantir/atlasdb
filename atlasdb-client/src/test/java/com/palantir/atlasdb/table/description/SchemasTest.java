@@ -15,10 +15,16 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.SweepSchema;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
-
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
@@ -28,14 +34,6 @@ import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.SweepSchema;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly", "checkstyle:WhitespaceAround"})
 public class SchemasTest {
@@ -144,4 +142,3 @@ public class SchemasTest {
         return getSimpleTableDefinition(tableRef).toTableMetadata().persistToBytes();
     }
 }
-

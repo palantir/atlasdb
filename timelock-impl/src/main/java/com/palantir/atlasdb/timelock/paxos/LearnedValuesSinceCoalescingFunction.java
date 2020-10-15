@@ -16,14 +16,8 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static java.util.stream.Collectors.toMap;
-
 import static com.google.common.collect.ImmutableSortedMap.toImmutableSortedMap;
-
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Set;
+import static java.util.stream.Collectors.toMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -33,6 +27,10 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Set;
 
 final class LearnedValuesSinceCoalescingFunction
         implements CoalescingRequestFunction<WithSeq<Client>, PaxosUpdate> {

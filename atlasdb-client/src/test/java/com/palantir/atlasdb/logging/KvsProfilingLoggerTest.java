@@ -22,11 +22,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import org.junit.After;
-import org.junit.Test;
-
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
+import org.junit.After;
+import org.junit.Test;
 
 public class KvsProfilingLoggerTest {
     private static final String LOG_TEMPLATE_1 = "The method {} was called.";

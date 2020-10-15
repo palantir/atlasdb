@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 import org.junit.Test;

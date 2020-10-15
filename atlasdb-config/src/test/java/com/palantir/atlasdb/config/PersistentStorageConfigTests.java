@@ -19,17 +19,15 @@ package com.palantir.atlasdb.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-
 import org.assertj.core.util.Files;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PersistentStorageConfigTests {
     private static final File CURRENT_WORKING_DIR = Files.currentFolder();

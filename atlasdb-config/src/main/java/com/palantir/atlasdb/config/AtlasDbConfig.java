@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -36,6 +28,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)

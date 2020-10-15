@@ -15,16 +15,14 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.MoreObjects;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.logsafe.Preconditions;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LockServerLock implements ClientAwareReadWriteLock {
     private static final Logger log = LoggerFactory.getLogger(LockServerLock.class);

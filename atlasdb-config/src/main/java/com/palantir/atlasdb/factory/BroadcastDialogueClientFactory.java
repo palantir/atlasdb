@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -38,6 +33,10 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.Channel;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Provides a mechanism for creating individual proxy for each node in a cluster that use Dialogue for communication

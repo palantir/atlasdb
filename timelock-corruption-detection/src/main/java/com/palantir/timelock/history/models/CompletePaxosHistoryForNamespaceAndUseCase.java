@@ -16,11 +16,9 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.palantir.paxos.Client;
+import java.util.List;
+import org.immutables.value.Value;
 
 /**
  * Data structure to contain Paxos learner and acceptor state values against sequence numbers

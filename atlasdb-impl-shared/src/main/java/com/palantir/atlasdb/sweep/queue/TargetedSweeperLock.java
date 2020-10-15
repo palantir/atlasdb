@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Optional;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.util.Optional;
 
 public final class TargetedSweeperLock {
     private final ShardAndStrategy shardStrategy;

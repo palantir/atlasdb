@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
-import com.palantir.atlasdb.annotation.Reusable;
-import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.AbstractMessage;
@@ -38,6 +26,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
 import com.googlecode.protobuf.format.JsonFormat.ParseException;
+import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -49,6 +38,14 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Immutable
 @SuppressWarnings("checkstyle:all") // too many warnings to fix

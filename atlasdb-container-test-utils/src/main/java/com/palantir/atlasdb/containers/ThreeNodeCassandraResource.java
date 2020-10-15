@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.containers;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.junit.rules.ExternalResource;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -30,6 +23,11 @@ import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.junit.rules.ExternalResource;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 public class ThreeNodeCassandraResource extends ExternalResource implements KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> supplier;

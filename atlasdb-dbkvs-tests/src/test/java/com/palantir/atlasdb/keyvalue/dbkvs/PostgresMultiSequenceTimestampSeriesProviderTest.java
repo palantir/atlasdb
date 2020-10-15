@@ -18,15 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
@@ -34,6 +25,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.MultiSequenceTimestampSeriesProvider;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class PostgresMultiSequenceTimestampSeriesProviderTest {
     private static final TimestampSeries DEFAULT_SERIES = TimestampSeries.of("default");

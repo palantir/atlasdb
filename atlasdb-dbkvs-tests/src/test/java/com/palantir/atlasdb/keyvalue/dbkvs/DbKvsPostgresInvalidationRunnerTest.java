@@ -16,18 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-
-import java.time.Duration;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeoutException;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
 
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
@@ -36,6 +27,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class DbKvsPostgresInvalidationRunnerTest {
     @ClassRule

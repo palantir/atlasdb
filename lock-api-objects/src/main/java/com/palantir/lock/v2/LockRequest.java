@@ -15,15 +15,13 @@
  */
 package com.palantir.lock.v2;
 
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Preconditions;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockRequest.class)

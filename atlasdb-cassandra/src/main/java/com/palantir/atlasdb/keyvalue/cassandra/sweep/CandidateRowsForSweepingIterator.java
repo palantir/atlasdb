@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import java.util.List;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -26,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.common.base.ClosableIterator;
+import java.util.List;
 
 public class CandidateRowsForSweepingIterator extends AbstractIterator<List<CandidateRowForSweeping>>
         implements ClosableIterator<List<CandidateRowForSweeping>> {

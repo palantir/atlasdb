@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.OptionalLong;
 import java.util.function.Function;
-
 import org.postgresql.util.PSQLState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
-import com.palantir.nexus.db.DBType;
 
 public final class PhysicalBoundStoreDatabaseUtils {
     private static final Logger log = LoggerFactory.getLogger(PhysicalBoundStoreDatabaseUtils.class);

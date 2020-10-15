@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HttpHeaders;
+import com.palantir.common.remoting.HeaderAccessUtils;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import javax.ws.rs.core.MediaType;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
@@ -28,11 +30,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.net.HttpHeaders;
-import com.palantir.common.remoting.HeaderAccessUtils;
 
 @State(Scope.Thread)
 public class HttpBenchmarks {

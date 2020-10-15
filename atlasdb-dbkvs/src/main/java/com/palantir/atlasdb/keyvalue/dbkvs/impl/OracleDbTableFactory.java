@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleWriteTable;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
+import java.util.concurrent.ExecutorService;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;

@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -25,6 +22,8 @@ import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class AtlasDeserializersTest {
     private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(

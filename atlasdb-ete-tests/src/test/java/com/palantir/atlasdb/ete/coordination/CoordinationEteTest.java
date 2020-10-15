@@ -18,11 +18,10 @@ package com.palantir.atlasdb.ete.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.EteSetup;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CoordinationEteTest {
     private static final int VERSION_ONE = 1;

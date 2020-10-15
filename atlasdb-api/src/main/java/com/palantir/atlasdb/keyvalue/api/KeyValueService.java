@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -31,6 +26,10 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A service which stores key-value pairs.

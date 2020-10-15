@@ -17,14 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Mockito.mock;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.function.UnaryOperator;
-
-import org.junit.ClassRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -33,6 +25,12 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.function.UnaryOperator;
+import org.junit.ClassRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {

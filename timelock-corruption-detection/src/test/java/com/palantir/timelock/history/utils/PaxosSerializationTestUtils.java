@@ -16,16 +16,15 @@
 
 package com.palantir.timelock.history.utils;
 
+import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.PaxosProposalId;
+import com.palantir.paxos.PaxosStateLog;
+import com.palantir.paxos.PaxosValue;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import com.palantir.paxos.PaxosAcceptorState;
-import com.palantir.paxos.PaxosProposalId;
-import com.palantir.paxos.PaxosStateLog;
-import com.palantir.paxos.PaxosValue;
 
 public final class PaxosSerializationTestUtils {
 

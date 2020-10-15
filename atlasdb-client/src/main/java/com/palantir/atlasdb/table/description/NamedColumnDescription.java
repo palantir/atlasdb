@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import javax.annotation.concurrent.Immutable;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class NamedColumnDescription {

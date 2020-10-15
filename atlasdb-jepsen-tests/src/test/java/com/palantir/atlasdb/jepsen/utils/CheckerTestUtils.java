@@ -17,13 +17,12 @@ package com.palantir.atlasdb.jepsen.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
+import java.util.List;
+import java.util.function.Supplier;
 
 public final class CheckerTestUtils {
     private CheckerTestUtils() {

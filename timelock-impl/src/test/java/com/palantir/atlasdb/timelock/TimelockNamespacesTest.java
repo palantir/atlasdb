@@ -25,26 +25,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-
 @RunWith(MockitoJUnitRunner.class)
 public class TimelockNamespacesTest {
     private static final String CLIENT_A = "a-client";
     private static final String CLIENT_B = "b-client";
-    
+
     private static final int DEFAULT_MAX_NUMBER_OF_CLIENTS = 5;
 
     private final TimeLockServices servicesA = mock(TimeLockServices.class);
@@ -68,7 +66,7 @@ public class TimelockNamespacesTest {
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
-    
+
     @Test
     public void returnsProperServiceForEachClient() {
         assertThat(namespaces.get(CLIENT_A)).isEqualTo(servicesA);

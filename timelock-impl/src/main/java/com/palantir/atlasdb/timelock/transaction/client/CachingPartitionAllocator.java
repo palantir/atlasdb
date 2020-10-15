@@ -16,18 +16,17 @@
 
 package com.palantir.atlasdb.timelock.transaction.client;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 public class CachingPartitionAllocator<T> implements NumericPartitionAllocator<T> {
     private final LoadingCache<T, Integer> loadingCache;

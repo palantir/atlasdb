@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
-
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import java.util.Arrays;
 
 public class LightweightOppToken implements Comparable<LightweightOppToken> {
 

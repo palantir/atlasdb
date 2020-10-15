@@ -20,14 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +30,12 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ToplistDeltaFilteringTableLevelMetricsControllerTest {
     private final Clock mockClock = mock(Clock.class);

@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import java.util.SortedSet;
-
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.util.SortedSet;
 
 public final class ColumnRenderers {
     private ColumnRenderers() {

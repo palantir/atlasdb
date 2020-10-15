@@ -16,12 +16,6 @@
 
 package com.palantir.timestamp;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,6 +27,10 @@ import com.palantir.common.proxy.TimingProxy;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.timer.LoggingOperationTimer;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * This uses smart batching to queue up requests and send them all as one larger batch.

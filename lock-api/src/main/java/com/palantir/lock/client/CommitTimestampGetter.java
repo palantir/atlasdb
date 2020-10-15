@@ -16,15 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
-import org.immutables.value.Value;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -37,6 +28,13 @@ import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import org.immutables.value.Value;
 
 final class CommitTimestampGetter implements AutoCloseable {
     private final DisruptorAutobatcher<Request, Long> autobatcher;

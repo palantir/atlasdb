@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 @JsonSubTypes({

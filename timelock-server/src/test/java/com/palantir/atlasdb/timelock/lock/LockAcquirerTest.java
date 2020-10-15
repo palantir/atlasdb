@@ -27,21 +27,19 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Test;
-import org.mockito.InOrder;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Test;
+import org.mockito.InOrder;
 
 public class LockAcquirerTest {
 

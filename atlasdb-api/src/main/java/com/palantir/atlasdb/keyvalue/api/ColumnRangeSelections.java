@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
+import java.io.Serializable;
 
 public final class ColumnRangeSelections implements Serializable {
     private static final long serialVersionUID = 1L;

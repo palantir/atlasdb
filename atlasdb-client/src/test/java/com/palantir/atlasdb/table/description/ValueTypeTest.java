@@ -18,12 +18,9 @@ package com.palantir.atlasdb.table.description;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.UUID;
-
-import org.junit.Test;
-
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.util.Pair;
+import java.util.UUID;
+import org.junit.Test;
 
 public class ValueTypeTest {
     private static final String BYTE_ARRAY = "byte[]";

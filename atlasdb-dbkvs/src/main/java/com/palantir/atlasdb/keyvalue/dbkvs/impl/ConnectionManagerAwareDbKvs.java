@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.sql.Connection;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
@@ -31,6 +28,8 @@ import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
 import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
+import java.sql.Connection;
+import java.util.function.Supplier;
 
 // This class should be removed and replaced by DbKvs when InDbTimestampStore depends directly on DbKvs
 public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {

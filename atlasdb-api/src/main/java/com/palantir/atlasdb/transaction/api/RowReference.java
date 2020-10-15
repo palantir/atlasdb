@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)

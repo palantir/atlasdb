@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -25,6 +23,7 @@ import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TableCell;
 import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.api.TableRowResult;
+import java.io.IOException;
 
 public class RangeTokenDeserializer extends StdDeserializer<RangeToken> {
     private static final long serialVersionUID = 1L;

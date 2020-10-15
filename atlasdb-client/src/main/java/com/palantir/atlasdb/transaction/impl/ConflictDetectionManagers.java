@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ConflictDetectionManagers {
     private static final Logger log = LoggerFactory.getLogger(ConflictDetectionManagers.class);

@@ -16,15 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Optional;
-
-import org.apache.commons.dbutils.QueryRunner;
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.ConnectionDbTypes;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.CreateTimestampTableQueries;
@@ -38,6 +29,13 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Optional;
+import org.apache.commons.dbutils.QueryRunner;
+import org.immutables.value.Value;
 
 public class InvalidationRunner {
     private static final String LAST_ALLOCATED = "last_allocated";

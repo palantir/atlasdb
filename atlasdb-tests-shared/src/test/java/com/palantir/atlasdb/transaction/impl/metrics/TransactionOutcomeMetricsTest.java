@@ -17,12 +17,6 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 
 import static com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert.assertThat;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.IntStream;
-
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -31,6 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.IntStream;
+import org.junit.Test;
 
 public class TransactionOutcomeMetricsTest {
     private static final Namespace NAMESPACE = Namespace.DEFAULT_NAMESPACE;

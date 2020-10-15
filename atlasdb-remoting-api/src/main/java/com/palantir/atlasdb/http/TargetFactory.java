@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.http;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 public interface TargetFactory {
     <T> InstanceAndVersion<T> createProxy(

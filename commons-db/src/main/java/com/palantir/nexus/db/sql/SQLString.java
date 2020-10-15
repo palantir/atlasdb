@@ -15,6 +15,14 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.SqlClause;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,19 +33,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
-
 import javax.annotation.concurrent.GuardedBy;
-
 import org.apache.commons.lang3.Validate;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.SqlClause;
 
 // class extended by other projects
 @SuppressWarnings("WeakerAccess")

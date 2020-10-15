@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.Optional;
 
 public interface CassandraAsyncKeyValueServiceFactory {
     Optional<AsyncKeyValueService> constructAsyncKeyValueService(

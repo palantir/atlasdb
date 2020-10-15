@@ -17,10 +17,15 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.TestProxyUtils;
+import com.palantir.atlasdb.todo.ImmutableTodo;
+import com.palantir.atlasdb.todo.Todo;
+import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.timestamp.TimestampService;
 import java.io.File;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
@@ -30,13 +35,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.TestProxyUtils;
-import com.palantir.atlasdb.todo.ImmutableTodo;
-import com.palantir.atlasdb.todo.Todo;
-import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.timestamp.TimestampService;
 
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".

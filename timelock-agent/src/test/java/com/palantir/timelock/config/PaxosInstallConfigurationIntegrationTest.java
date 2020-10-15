@@ -19,17 +19,15 @@ package com.palantir.timelock.config;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 
 public class PaxosInstallConfigurationIntegrationTest {
     private static final String SERVER_A = "a";

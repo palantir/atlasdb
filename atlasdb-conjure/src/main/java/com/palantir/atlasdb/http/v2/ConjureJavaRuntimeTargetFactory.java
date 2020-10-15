@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
@@ -32,6 +29,8 @@ import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
 import com.palantir.util.CachedTransformingSupplier;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();

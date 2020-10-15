@@ -15,12 +15,17 @@
  */
 package com.palantir.atlasdb.console;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.console.module.AtlasCoreModule;
+import groovy.lang.Binding;
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -30,14 +35,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.codehaus.groovy.tools.shell.Main;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.console.module.AtlasCoreModule;
-
-import groovy.lang.Binding;
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
 
 public class AtlasConsoleMain {
 

@@ -16,13 +16,12 @@
 
 package com.palantir.lock.watch;
 
+import com.google.common.collect.RangeSet;
+import com.palantir.lock.LockDescriptor;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
-
-import com.google.common.collect.RangeSet;
-import com.palantir.lock.LockDescriptor;
 
 public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
     private final OptionalLong version;

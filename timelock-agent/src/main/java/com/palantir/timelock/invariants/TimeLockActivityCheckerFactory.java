@@ -16,9 +16,6 @@
 
 package com.palantir.timelock.invariants;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TimeLockActivityCheckerFactory {
     private final TimeLockInstallConfiguration installConfiguration;

@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface RemoteServiceConfiguration {

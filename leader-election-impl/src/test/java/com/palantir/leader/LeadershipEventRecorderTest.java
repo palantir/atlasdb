@@ -20,14 +20,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import java.util.Optional;
-
-import org.junit.After;
-import org.junit.Test;
-
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.util.Optional;
+import org.junit.After;
+import org.junit.Test;
 
 public class LeadershipEventRecorderTest {
 

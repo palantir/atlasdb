@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.sweep.queue.clear;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Set;
 
 public interface TableClearer {
     void deleteAllRowsInTables(Set<TableReference> tables);

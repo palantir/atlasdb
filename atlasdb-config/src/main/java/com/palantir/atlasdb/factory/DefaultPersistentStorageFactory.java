@@ -16,18 +16,16 @@
 
 package com.palantir.atlasdb.factory;
 
+import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.UUID;
-
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
 /**
  * Constructs a new {@link PersistentStore} with new persistent storage connection on each call of

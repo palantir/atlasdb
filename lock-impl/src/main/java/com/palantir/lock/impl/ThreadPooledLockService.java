@@ -15,13 +15,6 @@
  */
 package com.palantir.lock.impl;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Set;
-import java.util.concurrent.Semaphore;
-
-import javax.annotation.Nullable;
-
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -32,6 +25,11 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Set;
+import java.util.concurrent.Semaphore;
+import javax.annotation.Nullable;
 
 public class ThreadPooledLockService implements CloseableLockService {
     private final ThreadPooledWrapper<LockService> wrapper;

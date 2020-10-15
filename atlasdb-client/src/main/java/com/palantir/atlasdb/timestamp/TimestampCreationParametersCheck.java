@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timestamp;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
+import java.util.Optional;
 
 public final class TimestampCreationParametersCheck {
     private TimestampCreationParametersCheck() {

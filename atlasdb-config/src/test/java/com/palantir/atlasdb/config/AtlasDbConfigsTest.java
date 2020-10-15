@@ -17,6 +17,10 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.config.crypto.KeyFileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -24,15 +28,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
-import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.config.crypto.KeyFileUtils;
 
 public class AtlasDbConfigsTest {
     private static String previousKeyPathProperty;

@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
-import java.util.LongSummaryStatistics;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.LongSummaryStatistics;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface LockWatchEvents {

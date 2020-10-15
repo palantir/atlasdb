@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.cache;
 
-import java.util.function.LongSupplier;
-
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.function.LongSupplier;
+import javax.annotation.Nullable;
 
 public final class OffHeapTimestampCache implements TimestampCache {
     private final OffHeapCache<Long, Long> offHeapCache;

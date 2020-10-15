@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.OptionalLong;
 import java.util.function.Function;
-
 import org.apache.commons.dbutils.QueryRunner;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
-import com.palantir.nexus.db.DBType;
 
 public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
     private final TableReference timestampTable;

@@ -18,18 +18,15 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-
+import java.util.List;
+import java.util.stream.Collectors;
 import okio.ByteString;
+import org.junit.Test;
 
 public class AtlasLockDescriptorUtilsTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");

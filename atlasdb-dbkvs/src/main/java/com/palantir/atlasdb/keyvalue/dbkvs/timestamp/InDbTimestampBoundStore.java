@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.OptionalLong;
-
-import javax.annotation.concurrent.GuardedBy;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.common.base.Throwables;
@@ -34,6 +28,10 @@ import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
 import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.OptionalLong;
+import javax.annotation.concurrent.GuardedBy;
 
 // TODO(hsaraogi): switch to using ptdatabase sql running, which more gracefully supports multiple db types.
 public class InDbTimestampBoundStore implements TimestampBoundStore {

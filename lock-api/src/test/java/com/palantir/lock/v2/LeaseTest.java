@@ -18,13 +18,11 @@ package com.palantir.lock.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.common.time.NanoTime;
+import java.time.Duration;
+import org.junit.Test;
 
 public class LeaseTest {
     private static final LeadershipId LEADERSHIP_ID_1 = LeadershipId.random();

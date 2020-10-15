@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.Closeable;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -41,6 +37,9 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.io.Closeable;
+import java.util.Optional;
+import java.util.Set;
 
 public interface AsyncTimelockService extends ManagedTimestampService, LockWatchingService, Closeable {
 

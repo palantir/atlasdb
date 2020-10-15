@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.util.ServiceLoader;
-import java.util.function.Function;
-
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ServiceLoader;
+import java.util.function.Function;
 
 public final class AtlasDbServiceDiscovery {
     private AtlasDbServiceDiscovery() {

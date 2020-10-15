@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.List;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -32,6 +25,10 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import javax.annotation.concurrent.GuardedBy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // TODO move to persistentlock package?
 public class PersistentLockManager implements AutoCloseable {

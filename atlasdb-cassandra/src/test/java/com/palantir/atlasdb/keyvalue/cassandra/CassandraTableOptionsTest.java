@@ -18,9 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.table.description.TableMetadata;
+import org.junit.Test;
 
 public class CassandraTableOptionsTest {
     private static final TableMetadata DENSELY_ACCESSED_WIDE_ROWS_METADATA

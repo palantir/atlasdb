@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.services;
 
+import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-
 import org.junit.Test;
-
-import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.AtlasDbConfigs;
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 
 public class AtlasDbServicesTest {
 

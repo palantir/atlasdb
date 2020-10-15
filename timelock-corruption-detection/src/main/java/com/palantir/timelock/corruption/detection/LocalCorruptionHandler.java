@@ -16,13 +16,6 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
@@ -30,6 +23,11 @@ import com.github.rholder.retry.WaitStrategies;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LocalCorruptionHandler {
     private static final Logger log = LoggerFactory.getLogger(

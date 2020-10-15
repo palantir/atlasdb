@@ -21,15 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
@@ -40,6 +31,13 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
+import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class HeldLocksCollectionTest {
 

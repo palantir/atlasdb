@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
@@ -38,6 +32,10 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 interface ClientLogEvents {

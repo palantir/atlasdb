@@ -16,17 +16,15 @@
 
 package com.palantir.paxos;
 
-import java.io.IOException;
-import java.nio.file.Path;
-
-import org.apache.commons.io.FileUtils;
-import org.sqlite.SQLiteConfig;
-import org.sqlite.javax.SQLiteConnectionPoolDataSource;
-
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.io.IOException;
+import java.nio.file.Path;
+import org.apache.commons.io.FileUtils;
+import org.sqlite.SQLiteConfig;
+import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 /**
  * This class is responsible for creating Sqlite connections to an instance.

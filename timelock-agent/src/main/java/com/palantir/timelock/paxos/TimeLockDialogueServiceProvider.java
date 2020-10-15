@@ -16,9 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Map;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -37,6 +34,8 @@ import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.stream.Stream;
 
 public final class TimeLockDialogueServiceProvider {
     private final DialogueClients.ReloadingFactory reloadingFactory;

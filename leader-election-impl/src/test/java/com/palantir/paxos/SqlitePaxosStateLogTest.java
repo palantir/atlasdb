@@ -16,12 +16,15 @@
 
 package com.palantir.paxos;
 
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
+import static com.palantir.paxos.PaxosStateLogTestUtils.wrap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
-import static com.palantir.paxos.PaxosStateLogTestUtils.wrap;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -29,18 +32,11 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-
 import javax.sql.DataSource;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
     @Rule

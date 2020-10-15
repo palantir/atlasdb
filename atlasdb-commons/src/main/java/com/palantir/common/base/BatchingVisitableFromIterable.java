@@ -15,13 +15,12 @@
  */
 package com.palantir.common.base;
 
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.collect.Iterables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.proxy.SingleCallProxy;
+import java.util.Iterator;
+import java.util.List;
 
 public class BatchingVisitableFromIterable<T> extends AbstractBatchingVisitable<T> {
 

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
 import java.util.concurrent.TimeUnit;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

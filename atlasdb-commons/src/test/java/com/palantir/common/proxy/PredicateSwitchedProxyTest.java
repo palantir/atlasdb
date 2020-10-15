@@ -22,7 +22,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
-
 import org.junit.Test;
 
 public class PredicateSwitchedProxyTest {

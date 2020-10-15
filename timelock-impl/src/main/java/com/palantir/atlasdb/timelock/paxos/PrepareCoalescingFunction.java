@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -27,6 +24,8 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Map;
+import java.util.Set;
 
 final class PrepareCoalescingFunction implements
         CoalescingRequestFunction<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> {

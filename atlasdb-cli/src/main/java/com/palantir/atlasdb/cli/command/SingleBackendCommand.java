@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.IOException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
     private static final Logger log = LoggerFactory.getLogger(SingleBackendCommand.class);

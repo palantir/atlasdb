@@ -17,7 +17,6 @@
 package com.palantir.timelock.history.models;
 
 import java.util.Map;
-
 import org.immutables.value.Value;
 
 /**

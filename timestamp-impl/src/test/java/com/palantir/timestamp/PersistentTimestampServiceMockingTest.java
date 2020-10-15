@@ -77,4 +77,3 @@ public class PersistentTimestampServiceMockingTest {
         timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
     }
 }
-

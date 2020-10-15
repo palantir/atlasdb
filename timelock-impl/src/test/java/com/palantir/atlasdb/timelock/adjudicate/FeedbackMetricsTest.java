@@ -21,10 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
-
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
@@ -33,6 +29,9 @@ import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
 
 public class FeedbackMetricsTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");

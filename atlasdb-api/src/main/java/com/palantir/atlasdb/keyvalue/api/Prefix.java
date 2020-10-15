@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import javax.annotation.Nonnull;
-
 import com.palantir.common.annotation.Immutable;
 import com.palantir.logsafe.Preconditions;
+import javax.annotation.Nonnull;
 
 /**
  * Represents a partial row to be used for range requests.

@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OracleTableInitializer implements DbTableInitializer {
     private static final Logger log = LoggerFactory.getLogger(OracleTableInitializer.class);

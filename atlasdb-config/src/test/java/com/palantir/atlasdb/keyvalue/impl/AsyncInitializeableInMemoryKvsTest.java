@@ -19,13 +19,11 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.exception.NotInitializedException;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
+import org.junit.Test;
 
 public class AsyncInitializeableInMemoryKvsTest {
 
