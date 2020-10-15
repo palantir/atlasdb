@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
@@ -32,15 +31,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
@@ -61,12 +58,12 @@ public class ServiceDiscoveringAtlasSupplier {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            Optional<TableReference> timestampTable,
+            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
 
-        AtlasDbFactory atlasFactory = createAtlasFactoryOfCorrectType(config);
+        AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(
                         metricsManager,
@@ -76,8 +73,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         namespace,
                         timestampSupplier,
                         initializeAsync));
-        timestampService = () ->
-                atlasFactory.createManagedTimestampService(getKeyValueService(), timestampTable, initializeAsync);
+        timestampService = () -> atlasFactory.createManagedTimestampService(
+                        getKeyValueService(), dbTimestampCreationParameters, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
@@ -110,18 +107,6 @@ public class ServiceDiscoveringAtlasSupplier {
             log.error("[timestamp-service-creation] The timestamp service was fetched for a second time. "
                     + "We tried to output thread dumps to a temporary file, but encountered an error.", e);
         }
-    }
-
-    private AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig config) {
-        for (AtlasDbFactory factory : ServiceLoader.load(AtlasDbFactory.class)) {
-            if (config.type().equalsIgnoreCase(factory.getType())) {
-                return factory;
-            }
-        }
-        throw new SafeIllegalStateException("No atlas provider for the configured type could be found. "
-                + "Ensure that the implementation of the AtlasDbFactory is annotated "
-                + "@AutoService(AtlasDbFactory.class) and that it is on your classpath.",
-                SafeArg.of("type", config.type()));
     }
 
     @VisibleForTesting

@@ -257,6 +257,21 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
+    public void leaderChangeWhenGettingUpdateForTransactionsDoesNotThrow() {
+        setupInitialState();
+        UUID newLeader = UUID.randomUUID();
+        LockWatchVersion spuriousVersion = LockWatchVersion.of(newLeader, 99999L);
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS,
+                Optional.of(spuriousVersion));
+
+        assertThat(results.clearCache()).isTrue();
+        assertThat(results.startTsToSequence()).containsExactlyEntriesOf(
+                ImmutableMap.of(START_TS, LockWatchVersion.of(LEADER, 3L)));
+        assertThat(results.events()).containsExactly(
+                LockWatchCreatedEvent.fromSnapshot((LockWatchStateUpdate.Snapshot) SNAPSHOT));
+    }
+
+    @Test
     public void leaderChangeClearsCaches() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,

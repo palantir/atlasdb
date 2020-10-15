@@ -26,9 +26,11 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
@@ -46,7 +48,7 @@ import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
-import com.palantir.atlasdb.timelock.management.PersistentNamespaceContext;
+import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
@@ -63,6 +65,7 @@ import com.palantir.lock.LockService;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -76,6 +79,8 @@ import com.palantir.timelock.history.remote.TimeLockPaxosHistoryProviderResource
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
+import com.palantir.timelock.management.ImmutableTimestampStorage;
+import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -91,7 +96,7 @@ public class TimeLockAgent {
     private final Optional<Consumer<UndertowService>> undertowRegistrar;
     private final PaxosResources paxosResources;
     private final LockCreator lockCreator;
-    private final TimestampCreator timestampCreator;
+    private final TimestampStorage timestampStorage;
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
@@ -174,7 +179,7 @@ public class TimeLockAgent {
         this.paxosResources = paxosResources;
         this.sqliteDataSource = sqliteDataSource;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
-        this.timestampCreator = getTimestampCreator();
+        this.timestampStorage = getTimestampStorage();
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
 
@@ -192,17 +197,39 @@ public class TimeLockAgent {
         this.corruptionComponents = paxosResources.timeLockCorruptionComponents();
     }
 
-    private TimestampCreator getTimestampCreator() {
+    private TimestampStorage getTimestampStorage() {
         TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
         if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
-            return new PaxosTimestampCreator(paxosResources.timestampServiceFactory());
+            return createPaxosBasedTimestampStorage();
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
-            return new DbBoundTimestampCreator(
-                    ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
-                            .keyValueServiceConfig());
+            return createDatabaseTimestampStorage(
+                    (DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence);
         }
         throw new RuntimeException(String.format("Unknown TsBoundPersisterConfiguration found %s",
                 timestampBoundPersistence.getClass()));
+    }
+
+    private TimestampStorage createPaxosBasedTimestampStorage() {
+        return ImmutableTimestampStorage.builder()
+                .timestampCreator(new PaxosTimestampCreator(paxosResources.timestampServiceFactory()))
+                .persistentNamespaceContext(
+                        PersistentNamespaceContexts.timestampBoundPaxos(
+                                install.paxos().dataDirectory().toPath(),
+                                sqliteDataSource))
+                .build();
+    }
+
+    private TimestampStorage createDatabaseTimestampStorage(
+            DatabaseTsBoundPersisterConfiguration timestampBoundPersistence) {
+        ServiceDiscoveringDatabaseTimeLockSupplier dbTimeLockSupplier =
+                new ServiceDiscoveringDatabaseTimeLockSupplier(
+                        metricsManager, timestampBoundPersistence.keyValueServiceConfig(), createLeaderConfig());
+        return ImmutableTimestampStorage.builder()
+                .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
+                .persistentNamespaceContext(PersistentNamespaceContexts.dbBound(
+                        dbTimeLockSupplier.getTimestampSeriesProvider(
+                                AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE)))
+                .build();
     }
 
     private void createAndRegisterResources() {
@@ -279,12 +306,12 @@ public class TimeLockAgent {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(undertowRegistrar.get(), TimeLockManagementResource.undertow(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
+                    timestampStorage.persistentNamespaceContext(),
                     namespaces,
                     redirectRetryTargeter()));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    PersistentNamespaceContext.of(rootDataDirectory, sqliteDataSource),
+                    timestampStorage.persistentNamespaceContext(),
                     namespaces,
                     redirectRetryTargeter()));
         }
@@ -362,20 +389,24 @@ public class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
+        LeaderConfig leaderConfig = createLeaderConfig();
+
+        Client typedClient = Client.of(client);
+
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampStorage.timestampCreator()
+                .createTimestampService(typedClient, leaderConfig);
+        Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
+        return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
+    }
+
+    private LeaderConfig createLeaderConfig() {
         List<String> uris = install.cluster().clusterMembers();
-        ImmutableLeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
+        return ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[0]))
                 .localServer(install.cluster().localServer())
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
                 .build();
-
-        Client typedClient = Client.of(client);
-
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
-                .createTimestampService(typedClient, leaderConfig);
-        Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
-        return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 
     public HealthStatusReport timeLockAdjudicationFeedback() {
@@ -389,5 +420,6 @@ public class TimeLockAgent {
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
         sqliteDataSource.close();
+        timestampStorage.close();
     }
 }

@@ -17,22 +17,19 @@
 package com.palantir.atlasdb.timelock.management;
 
 import java.nio.file.Path;
-import java.sql.Connection;
 
 import javax.sql.DataSource;
 
-import org.immutables.value.Value;
+import org.derive4j.Data;
 
-@Value.Immutable
+import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
+
+@Data
 public interface PersistentNamespaceContext {
-    Path fileDataDirectory();
-
-    DataSource sqliteDataSource();
-
-    static PersistentNamespaceContext of(Path fileDataDirectory, DataSource sqliteDataSource) {
-        return ImmutablePersistentNamespaceContext.builder()
-                .fileDataDirectory(fileDataDirectory)
-                .sqliteDataSource(sqliteDataSource)
-                .build();
+    interface Cases<R> {
+        R timestampBoundPaxos(Path fileDataDirectory, DataSource sqliteDataSource);
+        R dbBound(TimestampSeriesProvider seriesProvider);
     }
+
+    <R> R match(PersistentNamespaceContext.Cases<R> cases);
 }

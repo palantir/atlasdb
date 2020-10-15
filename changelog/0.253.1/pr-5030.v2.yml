@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: DB TimeLock now supports the getAllNamespaces() endpoint - previously it would throw.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5030

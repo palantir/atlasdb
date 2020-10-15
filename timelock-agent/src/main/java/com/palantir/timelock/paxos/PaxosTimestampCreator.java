@@ -23,7 +23,6 @@ import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
 
 public class PaxosTimestampCreator implements TimestampCreator {
-
     private final Factory<ManagedTimestampService> timestampServiceFactory;
 
     PaxosTimestampCreator(Factory<ManagedTimestampService> timestampServiceFactory) {
@@ -35,4 +34,8 @@ public class PaxosTimestampCreator implements TimestampCreator {
         return () -> timestampServiceFactory.create(client);
     }
 
+    @Override
+    public void close() {
+        // no op
+    }
 }

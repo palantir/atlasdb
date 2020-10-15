@@ -23,7 +23,7 @@ import java.sql.Statement;
 import java.util.OptionalLong;
 import java.util.function.Function;
 
-import org.immutables.value.Value;
+import org.postgresql.util.PSQLState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ public final class PhysicalBoundStoreDatabaseUtils {
         try {
             statement.execute(oracleQuery);
         } catch (SQLException e) {
-            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
+            if (!isTableAlreadyExistsError(e)) {
                 log.error("Error occurred creating the Oracle timestamp table", e);
                 throw e;
             }
@@ -63,17 +63,27 @@ public final class PhysicalBoundStoreDatabaseUtils {
         }
     }
 
+    public static boolean isTableAlreadyExistsError(SQLException exception) {
+        return exception.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
+    }
+
+    public static boolean isOracleDuplicateColumnError(SQLException exception) {
+        return exception.getMessage().contains(OracleErrorConstants.ORACLE_DUPLICATE_COLUMN_ERROR);
+    }
+
+    public static boolean isOracleInvalidColumnError(SQLException exception) {
+        return exception.getMessage().contains("Invalid column name");
+    }
+
+    public static boolean isPostgresColumnDoesNotExistError(SQLException exception) {
+        return exception.getSQLState().equals(PSQLState.UNDEFINED_COLUMN.getState());
+    }
+
     public static OptionalLong getLastAllocatedColumn(ResultSet rs) throws SQLException {
         if (rs.next()) {
             return OptionalLong.of(rs.getLong("last_allocated"));
         } else {
             return OptionalLong.empty();
         }
-    }
-
-    @Value.Immutable
-    interface CreateTimestampTableQueries {
-        String postgresQuery();
-        String oracleQuery();
     }
 }

@@ -99,11 +99,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps,
             Optional<LockWatchVersion> lastKnownVersion) {
-        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
-
-        lastKnownVersion.ifPresent(version -> assertTrue(version.version() <= timestampMapping.lastVersion().version(),
-                "Cannot get update for transactions when the last known version is more recent than the transactions"));
 
         VersionBounds versionBounds = new VersionBounds.Builder()
                 .startVersion(lastKnownVersion)

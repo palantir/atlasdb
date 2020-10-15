@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongConsumer;
 
 /**
  * This class calculates the delay for the next iteration of targeted sweep from the current delay and the outcome
@@ -41,11 +42,13 @@ class SweepDelay {
 
     private final long initialPause;
     private final long maxPauseMillis;
+    private final LongConsumer sweepDelayMetricsUpdater;
     private final AtomicLong currentPause;
 
-    SweepDelay(long configPause) {
+    SweepDelay(long configPause, LongConsumer sweepDelayMetricsUpdater) {
         this.maxPauseMillis = Math.max(DEFAULT_MAX_PAUSE_MILLIS, configPause);
         this.initialPause = Math.max(MIN_PAUSE_MILLIS, configPause);
+        this.sweepDelayMetricsUpdater = sweepDelayMetricsUpdater;
         this.currentPause = new AtomicLong(initialPause);
     }
 
@@ -58,12 +61,14 @@ class SweepDelay {
     }
 
     long getNextPause(SweepIterationResult result) {
-        return SweepIterationResults.caseOf(result)
+        long lastDelay = SweepIterationResults.caseOf(result)
                 .success(this::updateCurrentPauseAndGet)
                 .unableToAcquireShard_(maxPauseMillis)
                 .insufficientConsistency_(BACKOFF)
                 .otherError_(maxPauseMillis)
                 .disabled_(BACKOFF);
+        sweepDelayMetricsUpdater.accept(lastDelay);
+        return lastDelay;
     }
 
     private long updateCurrentPauseAndGet(long numSwept) {

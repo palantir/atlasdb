@@ -50,7 +50,7 @@ import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
+import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.ConjureLockRefreshToken;
@@ -77,7 +77,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> DbTimeLockSingleLeaderPaxosSuite.DB_TIMELOCK_CLUSTER);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -431,6 +431,32 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void fastForwardDoesNotGoBack() {
+        long freshTimestamp = client.getFreshTimestamp();
+
+        long fastForwardTimestamp = freshTimestamp + 100_000_000;
+        client.timestampManagementService().fastForwardTimestamp(fastForwardTimestamp);
+        client.timestampManagementService().fastForwardTimestamp(freshTimestamp);
+        assertThat(client.getFreshTimestamp()).isGreaterThan(fastForwardTimestamp);
+    }
+
+    @Test
+    public void fastForwardsDoNotHaveCrossNamespaceImpact() {
+        long freshTimestamp = client.getFreshTimestamp();
+
+        long fastForwardTimestamp = freshTimestamp + 100_000_000;
+        NamespacedClients other = cluster.clientForRandomNamespace().throughWireMockProxy();
+        other.timestampManagementService().fastForwardTimestamp(fastForwardTimestamp);
+
+        cluster.failoverToNewLeader(client.namespace());
+        assertThat(client.getFreshTimestamp())
+                .isGreaterThan(freshTimestamp)
+                .isLessThan(fastForwardTimestamp);
+        assertThat(other.getFreshTimestamp())
+                .isGreaterThan(fastForwardTimestamp);
+    }
+
+    @Test
     public void stressTestForPaxosEndpoints() {
         abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
         TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
@@ -469,6 +495,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     private void abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere() {
         Assume.assumeTrue(cluster == FIRST_CLUSTER);
+        Assume.assumeFalse(cluster.isDbTimelock()); // We will never test only DB timelock when releasing.
     }
 
     private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {

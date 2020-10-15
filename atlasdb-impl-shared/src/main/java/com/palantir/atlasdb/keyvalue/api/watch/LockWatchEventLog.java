@@ -52,13 +52,9 @@ final class LockWatchEventLog {
     }
 
     /**
-     * @param versionBounds contains:
-     *                     - the latest version the client knows about, which should be before or equal to the
-     *                       timestamps in the mapping;
-     *                     - the end version, which is the upper bound of events that should be returned;
-     *                     - the earliest version to which the events may be condensed to in the case of a snapshot.
      * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive);
-     *         this may begin with a snapshot if the latest version is too far behind.
+     *         this may begin with a snapshot if the latest version is too far behind, and this snapshot may be
+     *         condensed.
      */
     public ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
         Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
@@ -82,6 +78,10 @@ final class LockWatchEventLog {
                             .build())
                     .build();
         } else {
+            versionBounds.startVersion().ifPresent(version ->
+                    Preconditions.checkState(version.version() <= versionBounds.endVersion().version(),
+                            "Cannot get update for transactions when the last known version is more recent than the "
+                                    + "transactions"));
             return new ClientLogEvents.Builder()
                     .clearCache(false)
                     .events(new LockWatchEvents.Builder()

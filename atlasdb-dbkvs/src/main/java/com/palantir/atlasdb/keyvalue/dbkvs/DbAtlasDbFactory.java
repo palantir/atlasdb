@@ -25,9 +25,12 @@ import org.slf4j.LoggerFactory;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
+import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -80,7 +83,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<TableReference> timestampTable,
+            Optional<DbTimestampCreationSetting> creationParameters,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
@@ -90,20 +93,37 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
-        return PersistentTimestampServiceImpl.create(createTimestampBoundStore(timestampTable, dbkvs));
+        return PersistentTimestampServiceImpl.create(createTimestampBoundStore(creationParameters, dbkvs));
     }
 
-    private static InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,
+    private static InDbTimestampBoundStore createTimestampBoundStore(
+            Optional<DbTimestampCreationSetting> creationParameters,
             ConnectionManagerAwareDbKvs dbkvs) {
-        return timestampTable
-                .map(tableReference -> InDbTimestampBoundStore.create(
-                    dbkvs.getConnectionManager(),
-                    tableReference
-                    /* Not using the table prefix here, as the tableRef should contain any necessary prefix.*/
-                    ))
-                .orElseGet(() -> InDbTimestampBoundStore.create(
-                        dbkvs.getConnectionManager(),
-                        AtlasDbConstants.TIMESTAMP_TABLE,
-                        dbkvs.getTablePrefix()));
+        return creationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
+                .multipleSeries((table, series) -> multiSeries(dbkvs, table, series))
+                .singleSeries(table -> singleSeries(dbkvs, table)))
+                .orElseGet(() -> defaultTimestampBoundStore(dbkvs));
+    }
+
+    private static InDbTimestampBoundStore singleSeries(ConnectionManagerAwareDbKvs dbkvs,
+            Optional<TableReference> tableRef) {
+        // Not using the table prefix here, as the tableRef should contain any necessary prefix.
+        return tableRef.map(reference -> InDbTimestampBoundStore.create(dbkvs.getConnectionManager(), reference))
+                .orElseGet(() -> defaultTimestampBoundStore(dbkvs));
+    }
+
+    private static InDbTimestampBoundStore multiSeries(ConnectionManagerAwareDbKvs dbkvs,
+            TableReference tableRef, TimestampSeries series) {
+        return InDbTimestampBoundStore.createForMultiSeries(
+                dbkvs.getConnectionManager(),
+                tableRef,
+                series);
+    }
+
+    private static InDbTimestampBoundStore defaultTimestampBoundStore(ConnectionManagerAwareDbKvs dbkvs) {
+        return InDbTimestampBoundStore.create(
+                dbkvs.getConnectionManager(),
+                AtlasDbConstants.TIMESTAMP_TABLE,
+                dbkvs.getTablePrefix());
     }
 }

@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
+package com.palantir.atlasdb.timelock.management;
 
-import org.immutables.value.Value;
+import java.util.Set;
 
-@Value.Immutable
-public interface TimestampSeries {
-    @Value.Parameter
-    String series();
+import com.palantir.paxos.Client;
+
+public class DatabaseNamespaceLoader implements PersistentNamespaceLoader {
+    @Override
+    public Set<Client> getAllPersistedNamespaces() {
+        throw new UnsupportedOperationException("Loading all namespaces from the database is not supported yet!");
+    }
 }

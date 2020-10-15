@@ -16,13 +16,14 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BATCH_CELLS_LOW_THRESHOLD;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.DEFAULT_MAX_PAUSE_MILLIS;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.MIN_PAUSE_MILLIS;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
@@ -33,56 +34,66 @@ public class SweepDelayTest {
             .success((BATCH_CELLS_LOW_THRESHOLD + SWEEP_BATCH_SIZE) / 2);
     private static final long INITIAL_DELAY = 250L;
 
-    private SweepDelay delay = new SweepDelay(INITIAL_DELAY);
+    private final AtomicLong metrics = new AtomicLong();
+    private SweepDelay delay = new SweepDelay(INITIAL_DELAY, metrics::set);
 
     @Test
     public void iterationWithNormalBatchReturnsInitialPause() {
         assertThat(delay.getNextPause(SUCCESS)).isEqualTo(INITIAL_DELAY);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
     public void configurationBelowMinimumIsSetToMinimum() {
-        SweepDelay negativeDelay = new SweepDelay(-5L);
+        SweepDelay negativeDelay = new SweepDelay(-5L, metrics::set);
 
         assertThat(negativeDelay.getNextPause(SUCCESS)).isEqualTo(MIN_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(MIN_PAUSE_MILLIS);
     }
 
     @Test
     public void configurationAboveDefaultMaximumIsRespected() {
-        SweepDelay largeDelay = new SweepDelay(2 * DEFAULT_MAX_PAUSE_MILLIS);
+        SweepDelay largeDelay = new SweepDelay(2 * DEFAULT_MAX_PAUSE_MILLIS, metrics::set);
 
         assertThat(largeDelay.getNextPause(SUCCESS)).isEqualTo(2 * DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(2 * DEFAULT_MAX_PAUSE_MILLIS);
     }
 
     @Test
     public void unableToAcquireShardReturnsMaxPause() {
         assertThat(delay.getNextPause(SweepIterationResults.unableToAcquireShard()))
                 .isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(DEFAULT_MAX_PAUSE_MILLIS);
     }
 
     @Test
     public void insufficientConsistencyReturnsBackoff() {
         assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency())).isEqualTo(BACKOFF);
+        assertThat(metrics).hasValue(BACKOFF);
     }
 
     @Test
     public void otherErrorReturnsMaxPause() {
         assertThat(delay.getNextPause(SweepIterationResults.otherError())).isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(DEFAULT_MAX_PAUSE_MILLIS);
     }
 
     @Test
     public void disabledReturnsBackoff() {
         assertThat(delay.getNextPause(SweepIterationResults.disabled())).isEqualTo(BACKOFF);
+        assertThat(metrics).hasValue(BACKOFF);
     }
 
     @Test
     public void iterationWithSmallBatchIncreasesPause() {
         assertThat(delay.getNextPause(SUCCESS_TOO_FAST)).isGreaterThan(INITIAL_DELAY);
+        assertThat(metrics).hasValueGreaterThan(INITIAL_DELAY);
     }
 
     @Test
     public void iterationWithFullBatchReducesPause() {
         assertThat(delay.getNextPause(SUCCESS_TOO_SLOW)).isLessThan(INITIAL_DELAY);
+        assertThat(metrics).hasValueLessThan(INITIAL_DELAY);
     }
 
     @Test
@@ -90,12 +101,14 @@ public class SweepDelayTest {
         sweepTwentyIterationsWithResult(SUCCESS_TOO_FAST);
         assertThat(delay.getNextPause(SUCCESS_TOO_FAST))
                 .isGreaterThanOrEqualTo((long) (DEFAULT_MAX_PAUSE_MILLIS * 0.95));
+        assertThat(metrics).hasValueGreaterThanOrEqualTo((long) (DEFAULT_MAX_PAUSE_MILLIS * 0.95));
     }
 
     @Test
     public void consistentFullBatchesGravitatesTowardsMinimumPause() {
         sweepTwentyIterationsWithResult(SUCCESS_TOO_SLOW);
-        assertThat(delay.getNextPause(SUCCESS_TOO_SLOW)).isGreaterThanOrEqualTo((long) (MIN_PAUSE_MILLIS * 1.05));
+        assertThat(delay.getNextPause(SUCCESS_TOO_SLOW)).isLessThanOrEqualTo((long) (MIN_PAUSE_MILLIS * 1.05));
+        assertThat(metrics).hasValueLessThanOrEqualTo((long) (MIN_PAUSE_MILLIS * 1.05));
     }
 
     @Test

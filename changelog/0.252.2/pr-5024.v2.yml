@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: |-
+    Fixed bugs in DB TimeLock. Specifically:
+      - we used to create one instance of the KVS (and hence one instance of the Hikari connection pool) per client; now we only create one for the entire life of TimeLock.
+      - we used to not close the KVS when timelock stops; we now do.
+      - we would silently fail and give the user fewer namespaces if they decided to call the getAllNamespaces() endpoint. We now throw, which is a safer solution.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5024
