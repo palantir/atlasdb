@@ -124,6 +124,8 @@ public class TimeLockAgent {
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
 
+        // Upgrading the schema version should generally happen AFTER any migration has finished running. Keep this in
+        // mind for any potential live migrations
         PersistedSchemaVersion persistedSchemaVersion = PersistedSchemaVersion
                 .create(installationContext.sqliteDataSource());
         persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
