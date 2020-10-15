@@ -28,7 +28,7 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public class PersistedSchemaVersion {
+public final class PersistedSchemaVersion {
     private static final String ONLY_ROW = "r";
     private final Jdbi jdbi;
 
@@ -51,7 +51,7 @@ public class PersistedSchemaVersion {
         return jdbi.withExtension(Queries.class, call::apply);
     }
 
-    public void upgradeVersion(long targetVersion) {
+    void upgradeVersion(long targetVersion) {
         execute(dao -> {
             if (dao.getVersion(ONLY_ROW).orElse(0L) < targetVersion) {
                 dao.setVersion(ONLY_ROW, targetVersion);
@@ -60,7 +60,7 @@ public class PersistedSchemaVersion {
         });
     }
 
-    public long getVersion() {
+    long getVersion() {
         return execute(dao -> dao.getVersion(ONLY_ROW))
                 .orElseThrow(() -> new SafeIllegalStateException("No persisted schema version found."));
     }
@@ -70,7 +70,7 @@ public class PersistedSchemaVersion {
         boolean createSchemaVersionTable();
 
         @SqlUpdate("INSERT OR REPLACE INTO schema_version (row, version) VALUES (?, ?)")
-        boolean setVersion(String row, long version);
+        void setVersion(String row, long version);
 
         @SqlQuery("SELECT version FROM schema_version WHERE row = ?")
         Optional<Long> getVersion(String row);
