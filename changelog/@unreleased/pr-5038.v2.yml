@@ -1,29 +1,6 @@
 type: improvement
 improvement:
   description: |-
-    make oracle protocol case insensitive
-
-    **Goals (and why)**:
-
-    Makes the protocol (tcp/tcps) case insensitive in oracle configs.
-    Previously oracle connection configs required the protocol to be
-    upper-case. Most of our other internal products allow any case
-    on the oracle protocol, so the requirement here for it to be
-    upper-case in config results in some errors when people try to
-    configure oracle.
-
-    **Implementation Description (bullets)**:
-
-    Adds jackson annotations to the ConnectionProtocol enum.
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-
-    Added a unit test.
-
-    **Concerns (what feedback would you like?)**: N/A
-
-    **Where should we start reviewing?**: N/A
-
-    **Priority (whenever / two weeks / yesterday)**: high - allowing this to be case insensitive avoids configuration errors and helps with interoperability with other products that don't enforce case sensitivity on the oracle protocol.
+    The protocol (TCP/TCPS) is now case insensitive in oracle configs.
   links:
   - https://github.com/palantir/atlasdb/pull/5038
