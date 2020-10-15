@@ -16,7 +16,6 @@
 package com.palantir.timelock.paxos;
 
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -98,6 +97,7 @@ public class TimeLockAgent {
     private final TimestampStorage timestampStorage;
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
+    private final PersistedSchemaVersion persistedSchemaVersion;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
     private final TimeLockCorruptionComponents corruptionComponents;
@@ -124,6 +124,10 @@ public class TimeLockAgent {
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
 
+        PersistedSchemaVersion persistedSchemaVersion = PersistedSchemaVersion
+                .create(installationContext.sqliteDataSource());
+        persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
+
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
                 install,
@@ -134,6 +138,7 @@ public class TimeLockAgent {
                 registrar,
                 paxosResources,
                 userAgent,
+                persistedSchemaVersion,
                 installationContext.sqliteDataSource());
         agent.createAndRegisterResources();
         return agent;
@@ -169,7 +174,9 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             PaxosResources paxosResources,
-            UserAgent userAgent, HikariDataSource sqliteDataSource) {
+            UserAgent userAgent,
+            PersistedSchemaVersion persistedSchemaVersion,
+            HikariDataSource sqliteDataSource) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
@@ -179,6 +186,7 @@ public class TimeLockAgent {
         this.sqliteDataSource = sqliteDataSource;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampStorage = getTimestampStorage();
+        this.persistedSchemaVersion = persistedSchemaVersion;
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
 
@@ -301,7 +309,6 @@ public class TimeLockAgent {
     }
 
     private void registerManagementResource() {
-        Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(undertowRegistrar.get(), TimeLockManagementResource.undertow(
                     timestampStorage.persistentNamespaceContext(),
@@ -351,9 +358,7 @@ public class TimeLockAgent {
 
     @SuppressWarnings("unused")
     public long getSchemaVersion() {
-        // So far there's only been one schema version. For future schema versions, we will have to persist the version
-        // to disk somehow, so that we can check if var/data/paxos will have data in the expected format.
-        return SCHEMA_VERSION;
+        return persistedSchemaVersion.getVersion();
     }
 
     @SuppressWarnings("unused")
