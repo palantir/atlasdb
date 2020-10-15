@@ -22,13 +22,18 @@ import static org.mockito.Mockito.mock;
 
 import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.SimpleTimeLimiter;
+import com.google.common.util.concurrent.TimeLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
@@ -43,7 +48,6 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -127,7 +131,11 @@ public class DbTimestampStoreInvalidatorCreationTest {
     }
 
     private void assertBoundNotReadableAfterBeingPoisoned(TimestampBoundStore store) {
-        assertThatThrownBy(store::getUpperLimit).isInstanceOf(PalantirSqlException.class);
+        // This timeout is only meant for tests, the server retries for 3 minutes
+        TimeLimiter limit = SimpleTimeLimiter.create(Executors.newSingleThreadExecutor());
+        assertThatThrownBy(() ->
+                limit.runWithTimeout(store::getUpperLimit, Duration.ofSeconds(1)))
+                .isInstanceOf(TimeoutException.class);
     }
 
 

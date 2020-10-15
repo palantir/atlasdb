@@ -21,15 +21,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 
+import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.util.concurrent.SimpleTimeLimiter;
+import com.google.common.util.concurrent.TimeLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.exception.PalantirSqlException;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class DbKvsPostgresInvalidationRunnerTest {
@@ -96,6 +101,10 @@ public class DbKvsPostgresInvalidationRunnerTest {
     }
 
     private void assertBoundNotReadableAfterBeingPoisoned() {
-        assertThatThrownBy(store::getUpperLimit).isInstanceOf(PalantirSqlException.class);
+        // This timeout is only meant for tests, the server retries for 3 minutes
+        TimeLimiter limit = SimpleTimeLimiter.create(Executors.newSingleThreadExecutor());
+        assertThatThrownBy(() ->
+                limit.runWithTimeout(store::getUpperLimit, Duration.ofSeconds(1)))
+                .isInstanceOf(TimeoutException.class);
     }
 }
