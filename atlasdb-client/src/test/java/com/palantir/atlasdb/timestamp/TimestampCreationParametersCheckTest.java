@@ -61,9 +61,8 @@ public class TimestampCreationParametersCheckTest {
 
     @Test
     public void multipleSeriesIsInconsistentWithDefaults() {
-        assertInconsistent(DbTimestampCreationSettings.multipleSeries(Optional.empty(), TimestampSeries.of("einszwo")));
         assertInconsistent(DbTimestampCreationSettings.multipleSeries(
-                Optional.of(TableReference.createFromFullyQualifiedName("def.tony")),
+                TableReference.createFromFullyQualifiedName("def.tony"),
                 TimestampSeries.of("onetwothreefourfive")));
     }
 

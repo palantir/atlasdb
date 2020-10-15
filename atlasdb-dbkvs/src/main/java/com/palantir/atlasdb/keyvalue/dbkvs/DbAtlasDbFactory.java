@@ -113,10 +113,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static InDbTimestampBoundStore multiSeries(ConnectionManagerAwareDbKvs dbkvs,
-            Optional<TableReference> tableRef, TimestampSeries series) {
+            TableReference tableRef, TimestampSeries series) {
         return InDbTimestampBoundStore.createForMultiSeries(
                 dbkvs.getConnectionManager(),
-                tableRef.orElse(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE),
+                tableRef,
                 series);
     }
 

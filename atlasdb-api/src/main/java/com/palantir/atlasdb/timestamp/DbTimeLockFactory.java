@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timestamp;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -41,8 +40,11 @@ public interface DbTimeLockFactory {
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
-            Optional<DbTimestampCreationSetting> dbTimestampCreationSetting,
+            DbTimestampCreationSetting dbTimestampCreationSetting,
             boolean initializeAsync);
 
-    TimestampSeriesProvider createTimestampSeriesProvider(KeyValueService rawKvs, boolean initializeAsync);
+    TimestampSeriesProvider createTimestampSeriesProvider(
+            KeyValueService rawKvs,
+            TableReference tableReference,
+            boolean initializeAsync);
 }
