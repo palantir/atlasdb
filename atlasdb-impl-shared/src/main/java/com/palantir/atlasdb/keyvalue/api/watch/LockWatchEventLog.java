@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -64,9 +65,14 @@ final class LockWatchEventLog {
         LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());
 
         if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(currentVersion, startVersion.get())) {
-            long snapshotVersion = versionBounds.snapshotVersion();
-            Collection<LockWatchEvent> afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(
-                    Optional.of(snapshotVersion + 1), versionBounds.endVersion().version());
+            long snapshotVersion = versionBounds.snapshotVersion() + 1;
+            Collection<LockWatchEvent> afterSnapshotEvents;
+            if (snapshotVersion > versionBounds.endVersion().version()) {
+                afterSnapshotEvents = ImmutableList.of();
+            } else {
+                afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(Optional.of(snapshotVersion),
+                        versionBounds.endVersion().version());
+            }
 
             return new ClientLogEvents.Builder()
                     .clearCache(true)
@@ -150,25 +156,8 @@ final class LockWatchEventLog {
             LockWatchEvents events = new LockWatchEvents.Builder()
                     .addAllEvents(success.events())
                     .build();
-            assertNoEventsAreMissing(events);
+            events.assertNoEventsAreMissing(latestVersion);
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
-        }
-    }
-
-    private void assertNoEventsAreMissing(LockWatchEvents events) {
-        if (events.events().isEmpty()) {
-            return;
-        }
-
-        if (latestVersion.isPresent()) {
-            Preconditions.checkArgument(events.versionRange().isPresent(),
-                    "First element not preset in list of events");
-            long firstVersion = events.versionRange().get().lowerEndpoint();
-            Preconditions.checkArgument(firstVersion <= latestVersion.get().version()
-                            || latestVersion.get().version() + 1 == firstVersion,
-                    "Events missing between last snapshot and this batch of events",
-                    SafeArg.of("latestVersionSequence", latestVersion.get().version()),
-                    SafeArg.of("firstNewVersionSequence", firstVersion));
         }
     }
 

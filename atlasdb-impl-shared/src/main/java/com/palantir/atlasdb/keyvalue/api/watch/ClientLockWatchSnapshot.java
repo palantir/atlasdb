@@ -73,6 +73,7 @@ final class ClientLockWatchSnapshot {
             return;
         }
 
+        events.assertNoEventsAreMissing(snapshotVersion);
         events.events().forEach(event -> event.accept(visitor));
         snapshotVersion = Optional.of(
                 LockWatchVersion.of(versionId, events.versionRange().map(Range::upperEndpoint).get()));
