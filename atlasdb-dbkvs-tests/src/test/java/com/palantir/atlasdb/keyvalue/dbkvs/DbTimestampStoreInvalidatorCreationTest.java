@@ -80,7 +80,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
     @Test
     public void doesNotInvalidateMultiSeriesTable() {
         assertThatThrownBy(() -> storeUpperLimitAndGetTimestampStoreInvalidator(
-                Optional.of(DbTimestampCreationSettings.multipleSeries(otherTable,
+                Optional.of(DbTimestampCreationSettings.multipleSeries(Optional.of(otherTable),
                         TimestampSeries.of("test")))))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Invalidator must only be called by embedded DB timeLock that does not support "
