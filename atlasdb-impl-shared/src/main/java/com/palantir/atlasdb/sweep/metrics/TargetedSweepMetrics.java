@@ -176,7 +176,7 @@ public class TargetedSweepMetrics {
         private final Gauge<Long> millisSinceLastSwept;
         private final SweepOutcomeMetrics outcomeMetrics;
         private final SlidingWindowMeanGauge batchSizeMean;
-        private final CurrentValueMetric<Long> sweepDelay;
+        private final CurrentValueMetric<Long> sweepDelayMetric;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -190,7 +190,7 @@ public class TargetedSweepMetrics {
             lastSweptTs = createLastSweptTsMetric(recomputeMillis);
             millisSinceLastSwept = createMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
             batchSizeMean = new SlidingWindowMeanGauge();
-            sweepDelay = new CurrentValueMetric<>();
+            sweepDelayMetric = new CurrentValueMetric<>();
 
             TargetedSweepMetricPublicationFilter filter = createMetricPublicationFilter();
             registerProgressMetrics(strategy, filter);
@@ -216,7 +216,7 @@ public class TargetedSweepMetrics {
             progressMetrics.lastSweptTimestamp().strategy(strategy).build(lastSweptTs);
             progressMetrics.millisSinceLastSweptTs().strategy(strategy).build(millisSinceLastSwept);
             progressMetrics.batchSizeMean().strategy(strategy).build(batchSizeMean);
-            progressMetrics.sweepDelay().strategy(strategy).build(sweepDelay);
+            progressMetrics.sweepDelay().strategy(strategy).build(sweepDelayMetric);
         }
 
         private TargetedSweepMetricPublicationFilter createMetricPublicationFilter() {
@@ -294,7 +294,7 @@ public class TargetedSweepMetrics {
         }
 
         private void updateSweepDelayMetric(long delay) {
-            sweepDelay.setValue(delay);
+            sweepDelayMetric.setValue(delay);
         }
     }
 

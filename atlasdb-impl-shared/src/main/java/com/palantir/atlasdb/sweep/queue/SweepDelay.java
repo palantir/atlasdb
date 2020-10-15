@@ -42,13 +42,13 @@ class SweepDelay {
 
     private final long initialPause;
     private final long maxPauseMillis;
-    private final LongConsumer updateMetrics;
+    private final LongConsumer sweepDelayMetricsUpdater;
     private final AtomicLong currentPause;
 
-    SweepDelay(long configPause, LongConsumer updateMetrics) {
+    SweepDelay(long configPause, LongConsumer sweepDelayMetricsUpdater) {
         this.maxPauseMillis = Math.max(DEFAULT_MAX_PAUSE_MILLIS, configPause);
         this.initialPause = Math.max(MIN_PAUSE_MILLIS, configPause);
-        this.updateMetrics = updateMetrics;
+        this.sweepDelayMetricsUpdater = sweepDelayMetricsUpdater;
         this.currentPause = new AtomicLong(initialPause);
     }
 
@@ -67,7 +67,7 @@ class SweepDelay {
                 .insufficientConsistency_(BACKOFF)
                 .otherError_(maxPauseMillis)
                 .disabled_(BACKOFF);
-        updateMetrics.accept(lastDelay);
+        sweepDelayMetricsUpdater.accept(lastDelay);
         return lastDelay;
     }
 
