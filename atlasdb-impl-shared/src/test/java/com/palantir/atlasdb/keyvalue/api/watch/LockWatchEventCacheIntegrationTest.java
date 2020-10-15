@@ -237,27 +237,6 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void getEventsForTransactionsReturnsSnapshotWithCondensedEvents() {
-        eventCache = createEventCache(3);
-        setupInitialState();
-        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        verifyStage();
-
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(25L), SUCCESS_2);
-        verifyStage();
-
-        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(ImmutableSet.of(16L, 25L),
-                Optional.empty());
-        assertThat(results.clearCache()).isTrue();
-        assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 6L), 25L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(
-                ImmutableSet.of(REFERENCE),
-                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
-                LOCK_EVENT_2);
-    }
-
-    @Test
     public void getEventsForTransactionsNoCondensing() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
@@ -279,6 +258,27 @@ public class LockWatchEventCacheIntegrationTest {
                 WATCH_EVENT,
                 UNLOCK_EVENT,
                 LOCK_EVENT,
+                LOCK_EVENT_2);
+    }
+
+    @Test
+    public void getEventsForTransactionsSomeCondensing() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+        verifyStage();
+
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(25L), SUCCESS_2);
+        verifyStage();
+
+        // Client is behind and needs a snapshot, and some but not all events will be condensed
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(ImmutableSet.of(16L, 25L),
+                Optional.empty());
+        assertThat(results.clearCache()).isTrue();
+        assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
+                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 6L), 25L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(
+                ImmutableSet.of(REFERENCE),
+                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
                 LOCK_EVENT_2);
     }
 
