@@ -21,11 +21,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.pool.config.OracleConnectionConfig.ServiceNameConfiguration;
 
@@ -161,6 +164,25 @@ public class OracleConnectionConfigTest {
                 .dbLogin(LOGIN)
                 .host(HOST)
                 .port(PORT);
+    }
+
+    @Test
+    public void protocolCaseInsensitiveTest() throws IOException {
+        // protocol (tcp or tcps) should be case insensitive in config
+        ObjectMapper mapper = new ObjectMapper();
+
+        Map<String, ConnectionProtocol> serializedProtocols = ImmutableMap.<String, ConnectionProtocol>builder()
+                .put("\"TCP\"", ConnectionProtocol.TCP)
+                .put("\"tcp\"", ConnectionProtocol.TCP)
+                .put("\"TCPS\"", ConnectionProtocol.TCPS)
+                .put("\"tcps\"", ConnectionProtocol.TCPS)
+                .build();
+
+        for (Map.Entry<String, ConnectionProtocol> entry : serializedProtocols.entrySet()) {
+            ConnectionProtocol protocol = mapper.readValue(entry.getKey(), ConnectionProtocol.class);
+            assertThat(protocol)
+                    .isEqualTo(entry.getValue());
+        }
     }
 
 }
