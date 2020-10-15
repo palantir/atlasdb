@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -160,25 +161,17 @@ public class PaxosStateLogMigrationIntegrationTest {
     }
 
     @Test
-    public void migrateOnlyOnce() throws IOException {
+    public void failWhenOldLogWritesAtGreaterSequenceAfterMigrationAlreadyRan() throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        createPaxosComponents();
 
         long newRound = LATEST_ROUND_BEFORE_MIGRATING + 3;
         fileBasedLearnerLog.writeRound(newRound, valueForRound(newRound));
 
-        createPaxosComponents();
-
-        PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(paxosComponents.getLearnerParameters(CLIENT));
-        assertValuePresent(LATEST_ROUND_BEFORE_MIGRATING, sqliteLog);
-        assertValueAbsent(newRound, sqliteLog);
-
-        PaxosLearner learner = paxosComponents.learner(CLIENT);
-        assertValueNotLearned(newRound, learner);
-
-        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
-        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
+        assertThatThrownBy(this::createPaxosComponents)
+                .as("Written to file based log at greater sequence after migration alredy ran")
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

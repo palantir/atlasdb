@@ -37,7 +37,6 @@ import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
 import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -204,25 +203,34 @@ public class PaxosStateLogMigratorTest {
     }
 
     @Test
-    public void doNotMigrateIfAlreadyMigratedAndReturnOldCutoff() {
-        long lowerBound = 10;
+    public void doNotMigrateIfAlreadyMigrated() {
+        long lowerBound = 5;
+        long upperBound = 75;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        long expectedCutoff = upperBound - PaxosStateLogMigrator.SAFETY_BUFFER;
+        migrateFrom(source, OptionalLong.empty());
+        verify(target, times(1)).writeBatchOfRounds(any(Iterable.class));
+
+        long cutoff = migrateFrom(source, OptionalLong.empty());
+        assertThat(cutoff).isEqualTo(expectedCutoff);
+        verify(target, times(1)).writeBatchOfRounds(any(Iterable.class));
+    }
+
+    @Test
+    public void doNotMigrateIfAlreadyMigratedWithSpecifiedBound() {
+        long lowerBound = 5;
         long upperBound = 75;
         insertValuesWithinBounds(lowerBound, upperBound, source);
 
         long bound = 60;
         long expectedCutoff = bound - PaxosStateLogMigrator.SAFETY_BUFFER;
         migrateFrom(source, OptionalLong.of(bound));
+        verify(target, times(1)).writeBatchOfRounds(any(Iterable.class));
 
-        List<PaxosValue> newValuesWritten = new ArrayList<>();
-        newValuesWritten.addAll(insertValuesWithinBounds(1, 5, source));
-        newValuesWritten.addAll(insertValuesWithinBounds(80, 85, source));
-        long cutoff = migrateFrom(source, OptionalLong.of(0));
-
+        long cutoff = migrateFrom(source, OptionalLong.of(bound));
         assertThat(cutoff).isEqualTo(expectedCutoff);
-        assertThat(target.getLeastLogEntry()).isEqualTo(expectedCutoff);
-        assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
-
-        newValuesWritten.forEach(value -> assertThat(readRoundUnchecked(target, value.seq)).isNull());
+        verify(target, times(1)).writeBatchOfRounds(any(Iterable.class));
     }
 
     @Test
@@ -299,6 +307,94 @@ public class PaxosStateLogMigratorTest {
 
         assertThatThrownBy(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context))
                 .isEqualTo(expectedException);
+    }
+
+    @Test
+    public void failWhenAlreadyMigratedButSourceAdvancedChangingCutoff() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        insertValuesWithinBounds(upperBound + 50, upperBound + 50, source);
+        insertValuesWithinBounds(upperBound + 50, upperBound + 50, target);
+        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.empty())).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void failWhenAlreadyMigratedButSourceAdvancedWithoutChangingCutoffAndEntriesDoNotMatch() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        insertValuesWithinBounds(upperBound + 1, upperBound + 1, source);
+        target.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
+        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.empty())).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void failWhenAlreadyMigratedButSourceAdvancedWithoutChangingCutoffAndNoEntryInTarget() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        insertValuesWithinBounds(upperBound + 1, upperBound + 1, source);
+        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.empty())).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void failWhenAlreadyMigratedButSourceAdvancedAndEntriesDoNotMatchWhenSpecifyingLowerBound() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.of(150));
+
+        source.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
+        insertValuesWithinBounds(upperBound + 1, upperBound + 100, target);
+        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.of(150))).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void failWhenAlreadyMigratedButSourceAdvancedAndNoEntryInTargetWhenSpecifyingLowerBound() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.of(150));
+
+        source.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
+        insertValuesWithinBounds(upperBound + 2, upperBound + 100, target);
+        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.of(150))).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void doNotFailWhenAlreadyMigratedAndSourceTruncatedPartially() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        source.truncate(250 - 10);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty())).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void doNotFailWhenAlreadyMigratedAndSourceTruncatedFully() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        source.truncate(250);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty())).doesNotThrowAnyException();
     }
 
     private long migrateFrom(PaxosStateLog<PaxosValue> sourceLog) {
