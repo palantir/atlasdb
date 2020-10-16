@@ -21,6 +21,11 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface LockWatchEventCache {
+
+    default boolean isEnabled() {
+        return true;
+    }
+
     /**
      * Returns the last known lock watch version for the cache.
      */
