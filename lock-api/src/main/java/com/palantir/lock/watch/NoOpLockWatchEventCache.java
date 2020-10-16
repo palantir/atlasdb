@@ -32,6 +32,11 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
+    public boolean isEnabled() {
+        return false;
+    }
+
+    @Override
     public Optional<LockWatchVersion> lastKnownVersion() {
         return Optional.empty();
     }

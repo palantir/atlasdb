@@ -75,6 +75,11 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
         registerWatchesWithTimelock();
     }
 
+    @Override
+    boolean isEnabled() {
+        return lockWatchEventCache.isEnabled();
+    }
+
     private void registerWatchesWithTimelock() {
         if (lockWatchReferences.isEmpty()) {
             return;

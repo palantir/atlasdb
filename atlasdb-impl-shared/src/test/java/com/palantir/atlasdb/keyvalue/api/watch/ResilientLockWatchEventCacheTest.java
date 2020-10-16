@@ -16,10 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -52,6 +54,26 @@ public final class ResilientLockWatchEventCacheTest {
     @Before
     public void before() {
         proxyCache = ResilientLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache, metricsManager);
+    }
+
+    @Test
+    public void testCanDelegateIsEnabled() {
+        when(defaultCache.isEnabled()).thenReturn(true);
+        when(fallbackCache.isEnabled()).thenReturn(false);
+
+        assertThat(proxyCache.isEnabled()).isTrue();
+        verify(defaultCache).isEnabled();
+
+        RuntimeException runtimeException = new RuntimeException();
+        when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
+        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).hasCause(runtimeException)
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+
+        assertThat(proxyCache.isEnabled()).isFalse();
+        verify(fallbackCache).isEnabled();
+
+        verify(defaultCache).getCommitUpdate(0L);
+        verifyNoMoreInteractions(defaultCache, fallbackCache);
     }
 
     @Test
