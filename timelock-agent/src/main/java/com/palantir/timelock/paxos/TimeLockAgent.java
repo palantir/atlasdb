@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -60,6 +61,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.health.LeaderElectionHealthReport;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -85,7 +87,7 @@ import com.zaxxer.hikari.HikariDataSource;
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
     // Schema version from 2 onwards are on SQLite
-    private static final Long SCHEMA_VERSION = 3L;
+    static final Long SCHEMA_VERSION = 3L;
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
@@ -129,6 +131,7 @@ public class TimeLockAgent {
         PersistedSchemaVersion persistedSchemaVersion = PersistedSchemaVersion
                 .create(installationContext.sqliteDataSource());
         persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
+        verifySchemaVersion(persistedSchemaVersion);
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
@@ -334,6 +337,13 @@ public class TimeLockAgent {
             UndertowService service) {
         presentUndertowRegistrar.accept(
                 UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
+    }
+
+    static void verifySchemaVersion(PersistedSchemaVersion persistedSchemaVersion) {
+        Preconditions.checkState(persistedSchemaVersion.getVersion() == SCHEMA_VERSION,
+                "Persisted schema version does not match timelock's current schema version.",
+                SafeArg.of("current schema version", SCHEMA_VERSION),
+                SafeArg.of("persisted schema version", persistedSchemaVersion.getVersion()));
     }
 
     @SuppressWarnings("unused") // used by external health checks

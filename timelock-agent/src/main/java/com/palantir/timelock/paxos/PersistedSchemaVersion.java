@@ -28,7 +28,8 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public final class PersistedSchemaVersion {
+@SuppressWarnings("FinalClass")
+public class PersistedSchemaVersion {
     private static final String ONLY_ROW = "r";
     private final Jdbi jdbi;
 
