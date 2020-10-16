@@ -34,9 +34,7 @@ public abstract class LockWatchManager {
 
     // These methods are hidden on purpose as they should not be generally available, only for brave souls!
 
-    boolean isEnabled() {
-        return true;
-    }
+    abstract boolean isEnabled();
 
     /**
      * Gets the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the

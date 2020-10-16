@@ -34,6 +34,11 @@ public final class NoOpLockWatchManager extends LockWatchManager {
     }
 
     @Override
+    boolean isEnabled() {
+        return NoOpLockWatchEventCache.INSTANCE.isEnabled();
+    }
+
+    @Override
     CommitUpdate getCommitUpdate(long startTs) {
         return NoOpLockWatchEventCache.INSTANCE.getCommitUpdate(startTs);
     }
