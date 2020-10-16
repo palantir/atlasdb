@@ -12,18 +12,18 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.netflix.nebula:gradle-info-plugin:7.1.4'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
-        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
-        classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
+        classpath 'com.netflix.nebula:gradle-info-plugin:7.1.4'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:17.2.1'
         classpath 'com.palantir.baseline:gradle-baseline-java:1.8.2'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
-        classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
+        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.10.1'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:17.2.1'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
+        classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
+        classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
         classpath 'gradle.plugin.org.inferred:gradle-processors:3.3.0'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
     }
 }
 
