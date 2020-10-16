@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.http;
 
+import com.palantir.common.streams.KeyedStream;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
-
-import com.palantir.common.streams.KeyedStream;
 
 public enum AtlasDbHttpProtocolVersion {
     LEGACY_OR_UNKNOWN("1.0"),
     CONJURE_JAVA_RUNTIME("2.0");
 
-    private static final Map<String, AtlasDbHttpProtocolVersion> KNOWN_VERSION_STRINGS
-            = KeyedStream.of(Arrays.stream(AtlasDbHttpProtocolVersion.values()))
-                    .mapKeys(AtlasDbHttpProtocolVersion::getProtocolVersionString)
-                    .collectToMap();
+    private static final Map<String, AtlasDbHttpProtocolVersion> KNOWN_VERSION_STRINGS = KeyedStream.of(
+                    Arrays.stream(AtlasDbHttpProtocolVersion.values()))
+            .mapKeys(AtlasDbHttpProtocolVersion::getProtocolVersionString)
+            .collectToMap();
 
     private final String protocolVersionString;
 

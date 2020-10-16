@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.util.Map;
+import java.util.Set;
 
 public final class NoOpLockWatchingCache implements LockWatchingCache {
     public static final NoOpLockWatchingCache INSTANCE = new NoOpLockWatchingCache();

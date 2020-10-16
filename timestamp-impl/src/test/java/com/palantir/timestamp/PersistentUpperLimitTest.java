@@ -40,6 +40,7 @@ public class PersistentUpperLimitTest {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
+
     private final TimestampAllocationFailures allocationFailures = mock(TimestampAllocationFailures.class);
 
     @Before
@@ -118,5 +119,4 @@ public class PersistentUpperLimitTest {
 
         assertThat(upperLimit.get(), is(INITIAL_UPPER_LIMIT));
     }
-
 }

@@ -50,6 +50,6 @@ package com.palantir.atlasdb.table.description.constraints;
  *                                List&lt;LinkChangeSet&gt; linkChangeSets).
  *
  */
-public interface RowConstraint extends Constraint{
+public interface RowConstraint extends Constraint {
     /*  Marker interface   */
 }

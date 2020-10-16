@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
-
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.rules.TemporaryFolder;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -64,10 +52,21 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.rules.TemporaryFolder;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
 public abstract class TransactionTestSetup {
     @ClassRule
     public static final TemporaryFolder PERSISTENT_STORAGE_FOLDER = new TemporaryFolder();
+
     private static PersistentStore persistentStore;
 
     @BeforeClass
@@ -82,10 +81,10 @@ public abstract class TransactionTestSetup {
         persistentStore.close();
     }
 
-    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
-            "ns.atlasdb_transactions_test_table");
-    protected static final TableReference TEST_TABLE_THOROUGH = TableReference.createFromFullyQualifiedName(
-            "ns.atlasdb_transactions_test_table_thorough");
+    protected static final TableReference TEST_TABLE =
+            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table");
+    protected static final TableReference TEST_TABLE_THOROUGH =
+            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table_thorough");
 
     private final KvsManager kvsManager;
     private final TransactionManagerManager tmManager;
@@ -115,7 +114,8 @@ public abstract class TransactionTestSetup {
     public void setUp() {
         timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
 
-        lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
+        lockService = LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build());
         lockClient = LockClient.of("test_client");
 
         keyValueService = getKeyValueService();
@@ -168,8 +168,15 @@ public abstract class TransactionTestSetup {
     protected TransactionManager createManager() {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
-                keyValueService, timestampService, timestampManagementService, lockClient, lockService,
-                transactionService, conflictDetectionManager, sweepStrategyManager, timestampCache,
+                keyValueService,
+                timestampService,
+                timestampManagementService,
+                lockClient,
+                lockService,
+                transactionService,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
     }
@@ -199,9 +206,9 @@ public abstract class TransactionTestSetup {
         byte[] column = PtBytes.toBytes(columnName);
         Cell cell = Cell.create(row, column);
         byte[] valueBytes = Cells.convertRowResultsToCells(
-                txn.getRows(tableRef,
-                        ImmutableSet.of(row),
-                        ColumnSelection.create(ImmutableSet.of(column))).values()).get(cell);
+                        txn.getRows(tableRef, ImmutableSet.of(row), ColumnSelection.create(ImmutableSet.of(column)))
+                                .values())
+                .get(cell);
         return valueBytes != null ? PtBytes.toString(valueBytes) : null;
     }
 
@@ -228,7 +235,8 @@ public abstract class TransactionTestSetup {
 
     Pair<String, Long> getDirect(TableReference tableRef, String rowName, String columnName, long timestamp) {
         Cell cell = createCell(rowName, columnName);
-        Value valueBytes = keyValueService.get(tableRef, ImmutableMap.of(cell, timestamp)).get(cell);
+        Value valueBytes =
+                keyValueService.get(tableRef, ImmutableMap.of(cell, timestamp)).get(cell);
         return valueBytes != null
                 ? Pair.create(PtBytes.toString(valueBytes.getContents()), valueBytes.getTimestamp())
                 : null;

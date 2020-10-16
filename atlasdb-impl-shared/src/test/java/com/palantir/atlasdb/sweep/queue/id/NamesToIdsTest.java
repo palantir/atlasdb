@@ -18,12 +18,11 @@ package com.palantir.atlasdb.sweep.queue.id;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import org.junit.Test;
 
 public final class NamesToIdsTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("namespace"), "table");
@@ -32,8 +31,7 @@ public final class NamesToIdsTest {
 
     @Test
     public void testWorkflow() {
-        assertThat(namesToIds.storeAsPending(TABLE, 1))
-                .isEqualTo(SweepTableIdentifier.pending(1));
+        assertThat(namesToIds.storeAsPending(TABLE, 1)).isEqualTo(SweepTableIdentifier.pending(1));
         namesToIds.storeAsPending(TABLE, 1, 2);
         assertThat(namesToIds.currentMapping(TABLE)).contains(SweepTableIdentifier.pending(2));
         namesToIds.moveToComplete(TABLE, 2);
@@ -42,10 +40,8 @@ public final class NamesToIdsTest {
 
     @Test
     public void testConflicts() {
-        assertThat(namesToIds.storeAsPending(TABLE, 1))
-                .isEqualTo(SweepTableIdentifier.pending(1));
-        assertThat(namesToIds.storeAsPending(TABLE, 2))
-                .isEqualTo(SweepTableIdentifier.pending(1));
+        assertThat(namesToIds.storeAsPending(TABLE, 1)).isEqualTo(SweepTableIdentifier.pending(1));
+        assertThat(namesToIds.storeAsPending(TABLE, 2)).isEqualTo(SweepTableIdentifier.pending(1));
         namesToIds.storeAsPending(TABLE, 2, 3);
         assertThat(namesToIds.currentMapping(TABLE)).contains(SweepTableIdentifier.pending(1));
         assertThatExceptionOfType(IllegalStateException.class)

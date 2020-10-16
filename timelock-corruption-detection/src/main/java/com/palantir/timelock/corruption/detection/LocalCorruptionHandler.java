@@ -16,13 +16,6 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
@@ -30,19 +23,23 @@ import com.github.rholder.retry.WaitStrategies;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LocalCorruptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(
-            LocalCorruptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(LocalCorruptionHandler.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final List<TimeLockCorruptionNotifier> corruptionNotifiers;
     private final Retryer<Void> corruptionNotifyRetryer;
 
-    public LocalCorruptionHandler(
-            List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+    public LocalCorruptionHandler(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
         this.corruptionNotifiers = corruptionNotifiers;
-        this.corruptionNotifyRetryer = new Retryer<>(StopStrategies.stopAfterAttempt(5),
+        this.corruptionNotifyRetryer = new Retryer<>(
+                StopStrategies.stopAfterAttempt(5),
                 WaitStrategies.fixedWait(200, TimeUnit.MILLISECONDS),
                 attempt -> !attempt.hasResult());
     }
@@ -60,8 +57,10 @@ public class LocalCorruptionHandler {
         } catch (ExecutionException e) {
             log.info("Failed to report corruption to remote.", e);
         } catch (RetryException e) {
-            log.info("Exhausted all attempts to notify remote of corruption.",
-                    SafeArg.of("numberOfAttempts", e.getNumberOfFailedAttempts()), e);
+            log.info(
+                    "Exhausted all attempts to notify remote of corruption.",
+                    SafeArg.of("numberOfAttempts", e.getNumberOfFailedAttempts()),
+                    e);
         }
     }
 }

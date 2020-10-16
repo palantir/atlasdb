@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 
 @State(Scope.Benchmark)
 public class TransactionDeleteBenchmarks {
@@ -53,5 +51,4 @@ public class TransactionDeleteBenchmarks {
     public Object batchDelete(RegeneratingTable.TransactionBatchRegeneratingTable table) {
         return doDelete(table);
     }
-
 }

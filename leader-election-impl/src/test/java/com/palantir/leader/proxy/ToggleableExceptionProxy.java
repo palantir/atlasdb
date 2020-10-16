@@ -15,26 +15,23 @@
  */
 package com.palantir.leader.proxy;
 
+import com.palantir.common.base.Throwables;
+import com.palantir.common.proxy.DelegatingInvocationHandler;
+import com.palantir.logsafe.Preconditions;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.palantir.common.base.Throwables;
-import com.palantir.common.proxy.DelegatingInvocationHandler;
-import com.palantir.logsafe.Preconditions;
-
 public final class ToggleableExceptionProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(Class<T> interfaceClass,
-                                         T delegate,
-                                         AtomicBoolean throwException,
-                                         Exception exception) {
+    public static <T> T newProxyInstance(
+            Class<T> interfaceClass, T delegate, AtomicBoolean throwException, Exception exception) {
         return (T) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
-                new Class<?>[] { interfaceClass },
+                new Class<?>[] {interfaceClass},
                 new ToggleableExceptionProxy(delegate, throwException, exception));
     }
 
@@ -42,9 +39,7 @@ public final class ToggleableExceptionProxy implements DelegatingInvocationHandl
     final AtomicBoolean throwException;
     final Exception exception;
 
-    private ToggleableExceptionProxy(Object delegate,
-                                     AtomicBoolean throwException,
-                                     Exception exception) {
+    private ToggleableExceptionProxy(Object delegate, AtomicBoolean throwException, Exception exception) {
         Preconditions.checkNotNull(delegate, "delegate should not be null.");
         Preconditions.checkNotNull(throwException, "thrownException should not be null.");
         Preconditions.checkNotNull(exception, "exception should not be null.");
@@ -78,5 +73,4 @@ public final class ToggleableExceptionProxy implements DelegatingInvocationHandl
     public Object getDelegate() {
         return delegate;
     }
-
 }

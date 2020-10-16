@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.logging;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
@@ -35,6 +22,16 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KvsProfilingLogger {
 
@@ -44,8 +41,8 @@ public class KvsProfilingLogger {
     private static final Logger log = LoggerFactory.getLogger(KvsProfilingLogger.class);
 
     public static final int DEFAULT_THRESHOLD_MILLIS = 1000;
-    private static volatile Predicate<Stopwatch> slowLogPredicate = createLogPredicateForThresholdMillis(
-            DEFAULT_THRESHOLD_MILLIS);
+    private static volatile Predicate<Stopwatch> slowLogPredicate =
+            createLogPredicateForThresholdMillis(DEFAULT_THRESHOLD_MILLIS);
 
     @FunctionalInterface
     public interface LoggingFunction {
@@ -97,18 +94,20 @@ public class KvsProfilingLogger {
     }
 
     public static void maybeLog(Runnable runnable, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        maybeLog((Supplier<Object>) () -> {
-            runnable.run();
-            return null;
-        }, logger);
+        maybeLog(
+                (Supplier<Object>) () -> {
+                    runnable.run();
+                    return null;
+                },
+                logger);
     }
 
     public static <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
         return maybeLog(action::get, logger, (loggingFunction, result) -> {});
     }
 
-    public static <T, E extends Exception> T maybeLog(CallableCheckedException<T, E> action,
-            BiConsumer<LoggingFunction, Stopwatch> primaryLogger) throws E {
+    public static <T, E extends Exception> T maybeLog(
+            CallableCheckedException<T, E> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger) throws E {
         return maybeLog(action, primaryLogger, ((loggingFunction, result) -> {}));
     }
 
@@ -118,14 +117,14 @@ public class KvsProfilingLogger {
      *
      * Please see the documentation of {@link Monitor} for more information on how the logging functions are invoked.
      */
-    public static <T, E extends Exception> T maybeLog(CallableCheckedException<T, E> action,
+    public static <T, E extends Exception> T maybeLog(
+            CallableCheckedException<T, E> action,
             BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
-            BiConsumer<LoggingFunction, T> additionalLoggerWithAccessToResult) throws E {
+            BiConsumer<LoggingFunction, T> additionalLoggerWithAccessToResult)
+            throws E {
         if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
-            Monitor<T> monitor = Monitor.createMonitor(
-                    primaryLogger,
-                    additionalLoggerWithAccessToResult,
-                    slowLogPredicate);
+            Monitor<T> monitor =
+                    Monitor.createMonitor(primaryLogger, additionalLoggerWithAccessToResult, slowLogPredicate);
             try {
                 T res = action.call();
                 monitor.registerResult(res);
@@ -150,26 +149,28 @@ public class KvsProfilingLogger {
     public static <T, E extends Exception> ListenableFuture<T> maybeLogAsync(
             CallableCheckedException<ListenableFuture<T>, E> action,
             BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
-            BiConsumer<LoggingFunction, T> additionalLoggerWithAccessToResult) throws E {
+            BiConsumer<LoggingFunction, T> additionalLoggerWithAccessToResult)
+            throws E {
         ListenableFuture<T> future = action.call();
         if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
-            Monitor<T> monitor = Monitor.createMonitor(
-                    primaryLogger,
-                    additionalLoggerWithAccessToResult,
-                    slowLogPredicate);
-            Futures.addCallback(future, new FutureCallback<T>() {
-                @Override
-                public void onSuccess(@Nullable T result) {
-                    monitor.registerResult(result);
-                    monitor.log();
-                }
+            Monitor<T> monitor =
+                    Monitor.createMonitor(primaryLogger, additionalLoggerWithAccessToResult, slowLogPredicate);
+            Futures.addCallback(
+                    future,
+                    new FutureCallback<T>() {
+                        @Override
+                        public void onSuccess(@Nullable T result) {
+                            monitor.registerResult(result);
+                            monitor.log();
+                        }
 
-                @Override
-                public void onFailure(Throwable t) {
-                    monitor.registerException(new Exception(t));
-                    monitor.log();
-                }
-            }, MoreExecutors.directExecutor());
+                        @Override
+                        public void onFailure(Throwable t) {
+                            monitor.registerException(new Exception(t));
+                            monitor.log();
+                        }
+                    },
+                    MoreExecutors.directExecutor());
         }
         return future;
     }
@@ -183,7 +184,8 @@ public class KvsProfilingLogger {
         private R result;
         private Exception exception;
 
-        private Monitor(Stopwatch stopwatch,
+        private Monitor(
+                Stopwatch stopwatch,
                 BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
                 BiConsumer<LoggingFunction, R> additionalLoggerWithAccessToResult,
                 Predicate<Stopwatch> slowLogPredicate) {
@@ -193,14 +195,12 @@ public class KvsProfilingLogger {
             this.slowLogPredicate = slowLogPredicate;
         }
 
-        static <V> Monitor<V> createMonitor(BiConsumer<LoggingFunction,
-                Stopwatch> primaryLogger,
+        static <V> Monitor<V> createMonitor(
+                BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
                 BiConsumer<LoggingFunction, V> additionalLoggerWithAccessToResult,
                 Predicate<Stopwatch> slowLogPredicate) {
-            return new Monitor<>(Stopwatch.createStarted(),
-                    primaryLogger,
-                    additionalLoggerWithAccessToResult,
-                    slowLogPredicate);
+            return new Monitor<>(
+                    Stopwatch.createStarted(), primaryLogger, additionalLoggerWithAccessToResult, slowLogPredicate);
         }
 
         void registerResult(R res) {
@@ -247,7 +247,7 @@ public class KvsProfilingLogger {
         return stopwatch -> stopwatch.elapsed(TimeUnit.MILLISECONDS) > thresholdMillis;
     }
 
-    public interface CallableCheckedException<T, E extends Exception>  {
+    public interface CallableCheckedException<T, E extends Exception> {
         T call() throws E;
     }
 }

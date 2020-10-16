@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.NavigableMap;
-
-import com.google.common.collect.Maps;
 
 /**
  * A simple PuncherStore that does not actually persist. This is useful for unit testing, because
@@ -33,8 +32,7 @@ final class InMemoryPuncherStore implements PuncherStore {
         return new InMemoryPuncherStore();
     }
 
-    private InMemoryPuncherStore() {
-    }
+    private InMemoryPuncherStore() {}
 
     private final NavigableMap<Long, Long> map = makeMap();
 

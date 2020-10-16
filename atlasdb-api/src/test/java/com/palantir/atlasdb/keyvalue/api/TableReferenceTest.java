@@ -42,5 +42,4 @@ public class TableReferenceTest {
         assertEquals(lower.getNamespace(), Namespace.EMPTY_NAMESPACE);
         assertEquals(lower.getTablename(), upperBar.toLowerCase());
     }
-
 }

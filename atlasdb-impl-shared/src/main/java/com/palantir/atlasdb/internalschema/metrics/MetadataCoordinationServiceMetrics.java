@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.internalschema.metrics;
 
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Clock;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -32,6 +25,11 @@ import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.monitoring.TrackerUtils;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class MetadataCoordinationServiceMetrics {
     private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
@@ -65,8 +63,8 @@ public final class MetadataCoordinationServiceMetrics {
      * @param metricsManager metrics manager to register the gauge on
      * @param metadataCoordinationService metadata coordination service that should be tracked
      */
-    private static void registerValidityBoundMetric(MetricsManager metricsManager,
-            CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
+    private static void registerValidityBoundMetric(
+            MetricsManager metricsManager, CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
                 AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND,
@@ -74,7 +72,8 @@ public final class MetadataCoordinationServiceMetrics {
                         log,
                         Clock.defaultClock(),
                         AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND,
-                        () -> metadataCoordinationService.getLastKnownLocalValue()
+                        () -> metadataCoordinationService
+                                .getLastKnownLocalValue()
                                 .map(ValueAndBound::bound)
                                 .orElse(Long.MIN_VALUE)));
     }
@@ -90,17 +89,20 @@ public final class MetadataCoordinationServiceMetrics {
      * @param metadataCoordinationService metadata coordination service that should be tracked
      */
     // TODO (jkong): Cache the reads from the supplier, but/and handle exceptions in the gauges.
-    private static void registerTransactionsSchemaVersionMetrics(MetricsManager metricsManager,
+    private static void registerTransactionsSchemaVersionMetrics(
+            MetricsManager metricsManager,
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService,
             TimestampService timestampService) {
         Supplier<Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>> valueAndBoundSupplier =
                 () -> MetadataCoordinationServiceMetrics.getTimestampToTransactionsTableSchemaVersionMap(
                         metadataCoordinationService);
-        registerMetricForTransactionsSchemaVersionAtTimestamp(metricsManager,
+        registerMetricForTransactionsSchemaVersionAtTimestamp(
+                metricsManager,
                 AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
                 valueAndBoundSupplier,
                 ValueAndBound::bound);
-        registerMetricForTransactionsSchemaVersionAtTimestamp(metricsManager,
+        registerMetricForTransactionsSchemaVersionAtTimestamp(
+                metricsManager,
                 AtlasDbMetricNames.COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION,
                 valueAndBoundSupplier,
                 unused -> timestampService.getFreshTimestamp());
@@ -109,16 +111,18 @@ public final class MetadataCoordinationServiceMetrics {
     private static Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>
             getTimestampToTransactionsTableSchemaVersionMap(
                     CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
-        Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
-                = metadataCoordinationService.getLastKnownLocalValue();
+        Optional<ValueAndBound<InternalSchemaMetadata>> latestValue =
+                metadataCoordinationService.getLastKnownLocalValue();
         return latestValue
                 .map(ValueAndBound::value)
                 .flatMap(Function.identity())
                 .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                .map(partitioningMap -> ValueAndBound.of(partitioningMap, latestValue.get().bound()));
+                .map(partitioningMap ->
+                        ValueAndBound.of(partitioningMap, latestValue.get().bound()));
     }
 
-    private static void registerMetricForTransactionsSchemaVersionAtTimestamp(MetricsManager metricsManager,
+    private static void registerMetricForTransactionsSchemaVersionAtTimestamp(
+            MetricsManager metricsManager,
             String metricName,
             Supplier<Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>> timestampMapSupplier,
             Function<ValueAndBound<TimestampPartitioningMap<Integer>>, Long> timestampQuery) {
@@ -126,12 +130,10 @@ public final class MetadataCoordinationServiceMetrics {
                 MetadataCoordinationServiceMetrics.class,
                 metricName,
                 TrackerUtils.createCachingExceptionHandlingGauge(
-                        log,
-                        Clock.defaultClock(),
-                        metricName,
-                        () -> timestampMapSupplier.get()
-                                .map(mapAndBound -> getVersionAtTimestamp(
-                                        mapAndBound.value(), timestampQuery.apply(mapAndBound)))
+                        log, Clock.defaultClock(), metricName, () -> timestampMapSupplier
+                                .get()
+                                .map(mapAndBound ->
+                                        getVersionAtTimestamp(mapAndBound.value(), timestampQuery.apply(mapAndBound)))
                                 .orElse(null)));
     }
 

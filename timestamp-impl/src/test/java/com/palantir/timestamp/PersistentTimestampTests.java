@@ -30,9 +30,8 @@ import org.junit.Test;
 public class PersistentTimestampTests {
 
     public static final long UPPER_LIMIT = 1000 * 1000;
-    public static final long INITIAL_TIMESTAMP =  UPPER_LIMIT - 1000;
+    public static final long INITIAL_TIMESTAMP = UPPER_LIMIT - 1000;
     public static final long INITIAL_REMAINING_TIMESTAMPS = UPPER_LIMIT - INITIAL_TIMESTAMP;
-
 
     private final PersistentUpperLimit upperLimit = mock(PersistentUpperLimit.class);
     private PersistentTimestamp timestamp;
@@ -57,23 +56,19 @@ public class PersistentTimestampTests {
         assertThat(timestamp.incrementBy(10).size(), is(10L));
     }
 
-    @Test public void
-    shouldIncreaseUpperLimitWhenHandingOutNewTimestamps() {
-        assertThat(
-                timestamp.incrementBy(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
-                is(UPPER_LIMIT + 10));
+    @Test
+    public void shouldIncreaseUpperLimitWhenHandingOutNewTimestamps() {
+        assertThat(timestamp.incrementBy(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(), is(UPPER_LIMIT + 10));
 
         verify(upperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
     }
 
-    @Test public void
-    canFastForwardToANewMinimumTimestamp() {
+    @Test
+    public void canFastForwardToANewMinimumTimestamp() {
         long newMinimum = 2 * UPPER_LIMIT;
         timestamp.increaseTo(newMinimum);
 
         assertThat(timestamp.incrementBy(1).getLowerBound(), is(newMinimum + 1L));
         verify(upperLimit).increaseToAtLeast(longThat(is(greaterThan(newMinimum))));
     }
-
 }
-

@@ -37,7 +37,7 @@ public interface OperationTimer {
         public void end();
 
         public static final TimingState NULL = () -> {
-            //empty
+            // empty
         };
     }
 }

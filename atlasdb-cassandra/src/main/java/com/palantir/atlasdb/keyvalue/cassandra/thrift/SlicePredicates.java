@@ -15,23 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import java.nio.ByteBuffer;
-
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
-
 public final class SlicePredicates {
 
-    private SlicePredicates() { }
+    private SlicePredicates() {}
 
     public static SlicePredicate latestVersionForColumn(byte[] columnName, long maxTimestampExclusive) {
-        return create(
-                Range.singleColumn(columnName, maxTimestampExclusive),
-                Limit.ONE);
+        return create(Range.singleColumn(columnName, maxTimestampExclusive), Limit.ONE);
     }
 
     public static SlicePredicate rangeTombstoneForColumn(byte[] columnName, long maxTimestampExclusive) {
@@ -42,8 +38,8 @@ public final class SlicePredicates {
                 Limit.NO_LIMIT);
     }
 
-    public static SlicePredicate rangeTombstoneIncludingSentinelForColumn(byte[] columnName,
-            long maxTimestampExclusive) {
+    public static SlicePredicate rangeTombstoneIncludingSentinelForColumn(
+            byte[] columnName, long maxTimestampExclusive) {
         return create(
                 Range.of(
                         Range.startOfColumn(columnName, maxTimestampExclusive),
@@ -52,11 +48,7 @@ public final class SlicePredicates {
     }
 
     public static SlicePredicate create(Range range, Limit limit) {
-        SliceRange slice = new SliceRange(
-                range.start(),
-                range.end(),
-                false,
-                limit.value());
+        SliceRange slice = new SliceRange(range.start(), range.end(), false, limit.value());
 
         SlicePredicate predicate = new SlicePredicate();
         predicate.setSlice_range(slice);
@@ -79,28 +71,26 @@ public final class SlicePredicates {
         }
 
         static ByteBuffer startOfColumn(byte[] columnName, long maxTimestampExclusive) {
-            return CassandraKeyValueServices.makeCompositeBuffer(
-                    columnName,
-                    maxTimestampExclusive - 1);
+            return CassandraKeyValueServices.makeCompositeBuffer(columnName, maxTimestampExclusive - 1);
         }
 
         static ByteBuffer endOfColumnIncludingSentinels(byte[] columnName) {
-            return CassandraKeyValueServices.makeCompositeBuffer(
-                    columnName,
-                    -1);
+            return CassandraKeyValueServices.makeCompositeBuffer(columnName, -1);
         }
 
         static ByteBuffer endOfColumnExcludingSentinels(byte[] columnName) {
-            return CassandraKeyValueServices.makeCompositeBuffer(
-                    columnName,
-                    0);
+            return CassandraKeyValueServices.makeCompositeBuffer(columnName, 0);
         }
 
         static Range of(ByteBuffer startInclusive, ByteBuffer endInclusive) {
-            return ImmutableRange.builder().start(startInclusive).end(endInclusive).build();
+            return ImmutableRange.builder()
+                    .start(startInclusive)
+                    .end(endInclusive)
+                    .build();
         }
 
         ByteBuffer start();
+
         ByteBuffer end();
     }
 
@@ -117,5 +107,4 @@ public final class SlicePredicates {
 
         int value();
     }
-
 }

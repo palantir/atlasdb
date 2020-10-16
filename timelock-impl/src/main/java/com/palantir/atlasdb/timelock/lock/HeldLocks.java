@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.annotation.concurrent.GuardedBy;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import java.util.Collection;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
 
 public class HeldLocks {
 
@@ -43,8 +41,12 @@ public class HeldLocks {
     private boolean isUnlocked = false;
 
     @VisibleForTesting
-    HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks,
-            UUID requestId, LeaseExpirationTimer expirationTimer, LockWatchingService lockWatchingService) {
+    HeldLocks(
+            LockLog lockLog,
+            Collection<AsyncLock> acquiredLocks,
+            UUID requestId,
+            LeaseExpirationTimer expirationTimer,
+            LockWatchingService lockWatchingService) {
         this.lockLog = lockLog;
         this.acquiredLocks = acquiredLocks;
         this.token = LockToken.of(requestId);
@@ -52,10 +54,18 @@ public class HeldLocks {
         this.lockWatchingService = lockWatchingService;
     }
 
-    public static HeldLocks create(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId,
-            LeaderClock leaderClock, LockWatchingService lockWatchingService) {
-        HeldLocks locks = new HeldLocks(lockLog, acquiredLocks, requestId,
-                new LeaseExpirationTimer(() -> leaderClock.time().currentTime()), lockWatchingService);
+    public static HeldLocks create(
+            LockLog lockLog,
+            Collection<AsyncLock> acquiredLocks,
+            UUID requestId,
+            LeaderClock leaderClock,
+            LockWatchingService lockWatchingService) {
+        HeldLocks locks = new HeldLocks(
+                lockLog,
+                acquiredLocks,
+                requestId,
+                new LeaseExpirationTimer(() -> leaderClock.time().currentTime()),
+                lockWatchingService);
         locks.registerLock();
         return locks;
     }
@@ -125,9 +135,6 @@ public class HeldLocks {
     }
 
     private Set<LockDescriptor> getLockDescriptors() {
-        return acquiredLocks.stream()
-                .map(AsyncLock::getDescriptor)
-                .collect(Collectors.toSet());
+        return acquiredLocks.stream().map(AsyncLock::getDescriptor).collect(Collectors.toSet());
     }
-
 }

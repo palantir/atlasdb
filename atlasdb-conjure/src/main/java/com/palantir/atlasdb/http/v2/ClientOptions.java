@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.net.ProxySelector;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
@@ -31,6 +24,11 @@ import com.palantir.conjure.java.client.config.ClientConfigurations;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.net.ProxySelector;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ClientOptions {
@@ -44,14 +42,20 @@ public abstract class ClientOptions {
             .build();
 
     public abstract Duration connectTimeout();
+
     public abstract Duration readTimeout();
+
     public abstract Duration backoffSlotSize();
+
     public abstract Duration failedUrlCooldown();
+
     public abstract int maxNumRetries();
+
     @Value.Default
     public ClientConfiguration.ClientQoS clientQoS() {
         return ClientConfiguration.ClientQoS.ENABLED;
     }
+
     @Value.Default
     public ClientConfiguration.ServerQoS serverQoS() {
         return ClientConfiguration.ServerQoS.AUTOMATIC_RETRY;
@@ -59,9 +63,10 @@ public abstract class ClientOptions {
 
     public ClientConfiguration serverListToClient(ServerListConfig serverConfig) {
         ServiceConfiguration partialConfig = ServiceConfiguration.builder()
-                .security(serverConfig.sslConfiguration().orElseThrow(
-                        () -> new SafeIllegalStateException("CJR must be configured with SSL",
-                                SafeArg.of("serverConfig", serverConfig))))
+                .security(serverConfig
+                        .sslConfiguration()
+                        .orElseThrow(() -> new SafeIllegalStateException(
+                                "CJR must be configured with SSL", SafeArg.of("serverConfig", serverConfig))))
                 .addAllUris(serverConfig.servers())
                 .proxy(serverConfig.proxyConfiguration())
                 .connectTimeout(connectTimeout())
@@ -79,13 +84,12 @@ public abstract class ClientOptions {
     }
 
     public ClientConfiguration create(
-            List<String> endpointUris,
-            Optional<ProxySelector> proxy,
-            TrustContext trustContext) {
-        ClientConfiguration partialConfig = ClientConfigurations.of(endpointUris,
-                trustContext.sslSocketFactory(), trustContext.x509TrustManager());
+            List<String> endpointUris, Optional<ProxySelector> proxy, TrustContext trustContext) {
+        ClientConfiguration partialConfig =
+                ClientConfigurations.of(endpointUris, trustContext.sslSocketFactory(), trustContext.x509TrustManager());
 
-        ClientConfiguration.Builder builder = ClientConfiguration.builder().from(partialConfig)
+        ClientConfiguration.Builder builder = ClientConfiguration.builder()
+                .from(partialConfig)
                 .connectTimeout(connectTimeout())
                 .readTimeout(readTimeout())
                 .backoffSlotSize(backoffSlotSize())
@@ -122,18 +126,21 @@ public abstract class ClientOptions {
 
     private static void setupTimeouts(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
         builder.connectTimeout(ClientOptionsConstants.CONNECT_TIMEOUT.toJavaDuration())
-                .readTimeout(parameters.shouldUseExtendedTimeout()
-                        ? ClientOptionsConstants.LONG_READ_TIMEOUT.toJavaDuration()
-                        : ClientOptionsConstants.SHORT_READ_TIMEOUT.toJavaDuration());
+                .readTimeout(
+                        parameters.shouldUseExtendedTimeout()
+                                ? ClientOptionsConstants.LONG_READ_TIMEOUT.toJavaDuration()
+                                : ClientOptionsConstants.SHORT_READ_TIMEOUT.toJavaDuration());
     }
 
     private static void setupRetrying(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
         builder.backoffSlotSize(ClientOptionsConstants.STANDARD_BACKOFF_SLOT_SIZE.toJavaDuration())
-                .maxNumRetries(parameters.definitiveRetryIndication()
-                        ? ClientOptionsConstants.STANDARD_MAX_RETRIES
-                        : ClientOptionsConstants.NO_RETRIES)
-                .failedUrlCooldown(parameters.definitiveRetryIndication()
-                        ? ClientOptionsConstants.STANDARD_FAILED_URL_COOLDOWN.toJavaDuration()
-                        : ClientOptionsConstants.NON_RETRY_FAILED_URL_COOLDOWN.toJavaDuration());
+                .maxNumRetries(
+                        parameters.definitiveRetryIndication()
+                                ? ClientOptionsConstants.STANDARD_MAX_RETRIES
+                                : ClientOptionsConstants.NO_RETRIES)
+                .failedUrlCooldown(
+                        parameters.definitiveRetryIndication()
+                                ? ClientOptionsConstants.STANDARD_FAILED_URL_COOLDOWN.toJavaDuration()
+                                : ClientOptionsConstants.NON_RETRY_FAILED_URL_COOLDOWN.toJavaDuration());
     }
 }

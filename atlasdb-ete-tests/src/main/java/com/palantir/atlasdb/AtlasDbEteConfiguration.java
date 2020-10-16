@@ -15,19 +15,18 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Optional;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-
 import io.dropwizard.Configuration;
+import java.util.Optional;
 
 public class AtlasDbEteConfiguration extends Configuration {
     private final AtlasDbConfig atlasdb;
     private final Optional<AtlasDbRuntimeConfig> atlasdbRuntime;
 
-    public AtlasDbEteConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb,
+    public AtlasDbEteConfiguration(
+            @JsonProperty("atlasdb") AtlasDbConfig atlasdb,
             @JsonProperty("atlasDbRuntime") Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig) {
         this.atlasdb = atlasdb;
         this.atlasdbRuntime = atlasDbRuntimeConfig;
@@ -40,5 +39,4 @@ public class AtlasDbEteConfiguration extends Configuration {
     public Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
         return atlasdbRuntime;
     }
-
 }

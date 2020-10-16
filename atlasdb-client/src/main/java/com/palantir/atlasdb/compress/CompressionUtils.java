@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.compress;
 
-import java.io.IOException;
-
-import org.xerial.snappy.Snappy;
-
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
+import org.xerial.snappy.Snappy;
 
 public final class CompressionUtils {
     private CompressionUtils() {

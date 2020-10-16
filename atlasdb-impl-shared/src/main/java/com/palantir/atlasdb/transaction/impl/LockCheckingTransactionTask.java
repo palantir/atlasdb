@@ -40,15 +40,15 @@ public class LockCheckingTransactionTask<T, E extends Exception> implements Tran
     private final TimelockService timelockService;
     private final LockToken immutableTsLock;
 
-    public LockCheckingTransactionTask(TransactionTask<T, E> delegate,
-            TimelockService timelockService,
-            LockToken immutableTsLock) {
+    public LockCheckingTransactionTask(
+            TransactionTask<T, E> delegate, TimelockService timelockService, LockToken immutableTsLock) {
         this.delegate = delegate;
         this.timelockService = timelockService;
         this.immutableTsLock = immutableTsLock;
     }
 
-    @Override public T execute(Transaction transaction) throws E {
+    @Override
+    public T execute(Transaction transaction) throws E {
         try {
             return delegate.execute(transaction);
         } catch (Exception ex) {
@@ -65,6 +65,8 @@ public class LockCheckingTransactionTask<T, E extends Exception> implements Tran
     }
 
     private boolean immutableTsLockIsValid() {
-        return !timelockService.refreshLockLeases(ImmutableSet.of(immutableTsLock)).isEmpty();
+        return !timelockService
+                .refreshLockLeases(ImmutableSet.of(immutableTsLock))
+                .isEmpty();
     }
 }

@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedMap;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -44,6 +37,12 @@ import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedMap;
 
 /**
  *
@@ -90,9 +89,10 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     private void tryInitialize() {
         TableMetadata scrubTableMeta = TableMetadata.internal()
                 .singleRowComponent("row", ValueType.BLOB)
-                .dynamicColumns(ImmutableList.of(
-                        NameComponentDescription.of("table", ValueType.VAR_STRING),
-                        NameComponentDescription.of("col", ValueType.BLOB)),
+                .dynamicColumns(
+                        ImmutableList.of(
+                                NameComponentDescription.of("table", ValueType.VAR_STRING),
+                                NameComponentDescription.of("col", ValueType.BLOB)),
                         ValueType.VAR_LONG)
                 .build();
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
@@ -105,11 +105,10 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
 
     @Override
     public void queueCellsForScrubbing(
-            Multimap<Cell, TableReference> cellToTableRefs,
-            long scrubTimestamp,
-            int batchSize) {
+            Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp, int batchSize) {
         Map<Cell, byte[]> values = Maps.newHashMap();
-        for (Map.Entry<Cell, Collection<TableReference>> entry : cellToTableRefs.asMap().entrySet()) {
+        for (Map.Entry<Cell, Collection<TableReference>> entry :
+                cellToTableRefs.asMap().entrySet()) {
             Cell cell = entry.getKey();
             for (TableReference tableRef : entry.getValue()) {
                 byte[] tableBytes = EncodingUtils.encodeVarString(tableRef.getQualifiedName());
@@ -122,10 +121,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
             for (Entry<Cell, byte[]> e : batch) {
                 batchMap.put(e.getKey(), e.getValue());
             }
-            keyValueService.put(
-                    AtlasDbConstants.SCRUB_TABLE,
-                    batchMap,
-                    scrubTimestamp);
+            keyValueService.put(AtlasDbConstants.SCRUB_TABLE, batchMap, scrubTimestamp);
         }
     }
 
@@ -133,8 +129,10 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     public void markCellsAsScrubbed(Map<TableReference, Multimap<Cell, Long>> cellToScrubTimestamp, int batchSize) {
         Multimap<Cell, Long> batch = ArrayListMultimap.create();
         for (Entry<TableReference, Multimap<Cell, Long>> tableEntry : cellToScrubTimestamp.entrySet()) {
-            byte[] tableBytes = EncodingUtils.encodeVarString(tableEntry.getKey().getQualifiedName());
-            for (Entry<Cell, Collection<Long>> cellEntry : tableEntry.getValue().asMap().entrySet()) {
+            byte[] tableBytes =
+                    EncodingUtils.encodeVarString(tableEntry.getKey().getQualifiedName());
+            for (Entry<Cell, Collection<Long>> cellEntry :
+                    tableEntry.getValue().asMap().entrySet()) {
                 byte[] col = EncodingUtils.add(tableBytes, cellEntry.getKey().getColumnName());
                 Cell cell = Cell.create(cellEntry.getKey().getRowName(), col);
                 for (Long timestamp : cellEntry.getValue()) {
@@ -153,19 +151,17 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
 
     @Override
     public BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(
-            long maxScrubTimestamp /* exclusive */,
-            byte[] startRow,
-            byte[] endRow) {
+            long maxScrubTimestamp /* exclusive */, byte[] startRow, byte[] endRow) {
         return new AbstractBatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(
-                    int batchSizeHint,
-                    ConsistentVisitor<SortedMap<Long, Multimap<TableReference, Cell>>, K> visitor) throws K {
+                    int batchSizeHint, ConsistentVisitor<SortedMap<Long, Multimap<TableReference, Cell>>, K> visitor)
+                    throws K {
                 ClosableIterator<RowResult<Value>> iterator =
                         getIteratorToScrub(batchSizeHint, maxScrubTimestamp, startRow, endRow);
                 try {
-                    BatchingVisitableFromIterable.create(iterator).batchAccept(
-                            batchSizeHint, batch -> visitor.visitOne(transformRows(batch)));
+                    BatchingVisitableFromIterable.create(iterator)
+                            .batchAccept(batchSizeHint, batch -> visitor.visitOne(transformRows(batch)));
                 } finally {
                     iterator.close();
                 }
@@ -174,10 +170,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     private ClosableIterator<RowResult<Value>> getIteratorToScrub(
-            int batchSizeHint,
-            long maxScrubTimestamp,
-            byte[] startRow,
-            byte[] endRow) {
+            int batchSizeHint, long maxScrubTimestamp, byte[] startRow, byte[] endRow) {
         RangeRequest.Builder range = RangeRequest.builder();
         if (startRow != null) {
             range = range.startRowInclusive(startRow);
@@ -186,9 +179,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
             range = range.endRowExclusive(endRow);
         }
         return keyValueService.getRange(
-                AtlasDbConstants.SCRUB_TABLE,
-                range.batchHint(batchSizeHint).build(),
-                maxScrubTimestamp);
+                AtlasDbConstants.SCRUB_TABLE, range.batchHint(batchSizeHint).build(), maxScrubTimestamp);
     }
 
     private SortedMap<Long, Multimap<TableReference, Cell>> transformRows(List<RowResult<Value>> input) {

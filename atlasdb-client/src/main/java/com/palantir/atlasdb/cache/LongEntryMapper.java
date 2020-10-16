@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.cache;
 
-import javax.annotation.Nonnull;
-
 import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
-
+import javax.annotation.Nonnull;
 import okio.ByteString;
 
 public final class LongEntryMapper implements EntryMapper<Long, Long> {

@@ -16,12 +16,13 @@
 package com.palantir.util;
 
 import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface VersionedType<T> {
-    @Nullable T value();
+    @Nullable
+    T value();
+
     long version();
 
     static <T> VersionedType<T> of(T value, long version) {

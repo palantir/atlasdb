@@ -17,11 +17,9 @@ package com.palantir.atlasdb.schema;
 
 import static org.junit.Assert.fail;
 
-import java.util.regex.Pattern;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import java.util.regex.Pattern;
+import org.junit.Test;
 
 public class NamespaceTest {
 
@@ -97,5 +95,4 @@ public class NamespaceTest {
         expectFailure(".", Namespace.STRICTLY_CHECKED_NAME);
         expectFailure("name.space", Namespace.STRICTLY_CHECKED_NAME);
     }
-
 }

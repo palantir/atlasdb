@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.OptionalLong;
 import java.util.function.Function;
-
 import org.apache.commons.dbutils.QueryRunner;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
-import com.palantir.nexus.db.DBType;
 
 public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
     private final TableReference timestampTable;
@@ -43,34 +41,34 @@ public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundSto
         PhysicalBoundStoreDatabaseUtils.createTimestampTable(
                 connection,
                 dbTypeExtractor,
-                ImmutableCreateTimestampTableQueries.builder().postgresQuery(
-                        String.format("CREATE TABLE IF NOT EXISTS %s ("
+                ImmutableCreateTimestampTableQueries.builder()
+                        .postgresQuery(String.format(
+                                "CREATE TABLE IF NOT EXISTS %s ("
                                         + " client VARCHAR(2000) NOT NULL,"
                                         + " last_allocated int8 NOT NULL,"
                                         + " PRIMARY KEY (client))",
                                 timestampTable.getQualifiedName()))
-                .oracleQuery(
-                        String.format("CREATE TABLE %s ("
+                        .oracleQuery(String.format(
+                                "CREATE TABLE %s ("
                                         + " client VARCHAR(2000) NOT NULL,"
                                         + " last_allocated NUMBER(38) NOT NULL,"
                                         + " CONSTRAINT %s_pk PRIMARY KEY (client))",
-                                timestampTable.getQualifiedName(),
-                                timestampTable.getQualifiedName()))
-                .build());
+                                timestampTable.getQualifiedName(), timestampTable.getQualifiedName()))
+                        .build());
     }
 
     @Override
     public OptionalLong readLimit(Connection connection) throws SQLException {
-        String sql = String.format("SELECT last_allocated FROM %s WHERE client = ? FOR UPDATE",
-                timestampTable.getQualifiedName());
+        String sql = String.format(
+                "SELECT last_allocated FROM %s WHERE client = ? FOR UPDATE", timestampTable.getQualifiedName());
         QueryRunner run = new QueryRunner();
         return run.query(connection, sql, PhysicalBoundStoreDatabaseUtils::getLastAllocatedColumn, series.series());
     }
 
     @Override
     public void writeLimit(Connection connection, long limit) throws SQLException {
-        String updateTs = String.format("UPDATE %s SET last_allocated = ? WHERE client = ?",
-                timestampTable.getQualifiedName());
+        String updateTs =
+                String.format("UPDATE %s SET last_allocated = ? WHERE client = ?", timestampTable.getQualifiedName());
         try (PreparedStatement statement = connection.prepareStatement(updateTs)) {
             statement.setLong(1, limit);
             statement.setString(2, series.series());
@@ -81,9 +79,10 @@ public class MultiSequencePhysicalBoundStoreStrategy implements PhysicalBoundSto
     @Override
     public void createLimit(Connection connection, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        run.update(connection,
-                String.format("INSERT INTO %s (client, last_allocated) VALUES (?, ?)",
-                        timestampTable.getQualifiedName()),
+        run.update(
+                connection,
+                String.format(
+                        "INSERT INTO %s (client, last_allocated) VALUES (?, ?)", timestampTable.getQualifiedName()),
                 series.series(),
                 limit);
     }

@@ -15,21 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
-
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 
 /**
  * Executes Thrift queries using the supplied {@link TracingQueryRunner}, wrapping {@link UnavailableException} with
@@ -42,11 +40,13 @@ class WrappingQueryRunner {
         this.queryRunner = queryRunner;
     }
 
-    Void batchMutate(String kvsMethodName,
+    Void batchMutate(
+            String kvsMethodName,
             CassandraClient client,
             Set<TableReference> tableRefs,
             MutationMap map,
-            ConsistencyLevel consistency) throws TException {
+            ConsistencyLevel consistency)
+            throws TException {
         try {
             return queryRunner.run(client, tableRefs, () -> {
                 client.batch_mutate(kvsMethodName, map.toMap(), consistency);
@@ -65,9 +65,12 @@ class WrappingQueryRunner {
             TableReference tableRef,
             List<ByteBuffer> rowNames,
             SlicePredicate pred,
-            ConsistencyLevel consistency) throws TException {
+            ConsistencyLevel consistency)
+            throws TException {
         try {
-            return queryRunner.run(client, tableRef,
+            return queryRunner.run(
+                    client,
+                    tableRef,
                     () -> client.multiget_slice(kvsMethodName, tableRef, rowNames, pred, consistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
@@ -80,10 +83,11 @@ class WrappingQueryRunner {
             CassandraClient client,
             TableReference tableRef,
             List<KeyPredicate> request,
-            ConsistencyLevel consistency) throws TException {
+            ConsistencyLevel consistency)
+            throws TException {
         try {
-            return queryRunner.run(client, tableRef,
-                    () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
+            return queryRunner.run(
+                    client, tableRef, () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
                     "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);

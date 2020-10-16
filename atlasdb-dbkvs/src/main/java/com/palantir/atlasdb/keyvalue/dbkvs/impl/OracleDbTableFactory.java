@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleWriteTable;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
+import java.util.concurrent.ExecutorService;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
@@ -36,7 +35,8 @@ public class OracleDbTableFactory implements DbTableFactory {
     private final TableValueStyleCache valueStyleCache;
     private final ExecutorService compactionTimeoutExecutor;
 
-    public OracleDbTableFactory(OracleDdlConfig config,
+    public OracleDbTableFactory(
+            OracleDdlConfig config,
             OracleTableNameGetter oracleTableNameGetter,
             OraclePrefixedTableNames oraclePrefixedTableNames,
             TableValueStyleCache valueStyleCache,
@@ -55,8 +55,8 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter, valueStyleCache,
-                compactionTimeoutExecutor);
+        return OracleDdlTable.create(
+                tableRef, conns, config, oracleTableNameGetter, valueStyleCache, compactionTimeoutExecutor);
     }
 
     @Override
@@ -69,8 +69,8 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableValueStyle tableValueStyle =
                 valueStyleCache.getTableType(connectionSupplier, tableRef, config.metadataTable());
         String shortTableName = getTableName(connectionSupplier, tableRef);
-        DbQueryFactory queryFactory = new OracleQueryFactory(
-                config, shortTableName, tableValueStyle == TableValueStyle.OVERFLOW);
+        DbQueryFactory queryFactory =
+                new OracleQueryFactory(config, shortTableName, tableValueStyle == TableValueStyle.OVERFLOW);
         return new DbReadTable(connectionSupplier, queryFactory);
     }
 

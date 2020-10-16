@@ -18,18 +18,17 @@ package com.palantir.atlasdb.ete.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.EteSetup;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CoordinationEteTest {
     private static final int VERSION_ONE = 1;
     private static final int NEW_VERSION = 5888888;
 
-    private final CoordinationResource coordinationResource
-            = EteSetup.createClientToSingleNode(CoordinationResource.class);
+    private final CoordinationResource coordinationResource =
+            EteSetup.createClientToSingleNode(CoordinationResource.class);
 
     private long lowerBoundOnTimestamps;
 
@@ -40,7 +39,8 @@ public class CoordinationEteTest {
 
     @Test
     public void defaultTransactionsSchemaVersionIsOne() {
-        assertThat(coordinationResource.getTransactionsSchemaVersion(lowerBoundOnTimestamps)).isEqualTo(1);
+        assertThat(coordinationResource.getTransactionsSchemaVersion(lowerBoundOnTimestamps))
+                .isEqualTo(1);
     }
 
     @Test
@@ -59,6 +59,7 @@ public class CoordinationEteTest {
     }
 
     public static void assertTransactionsSchemaVersionIsNow(int expectedVersion, CoordinationResource resource) {
-        assertThat(resource.getTransactionsSchemaVersion(resource.getFreshTimestamp())).isEqualTo(expectedVersion);
+        assertThat(resource.getTransactionsSchemaVersion(resource.getFreshTimestamp()))
+                .isEqualTo(expectedVersion);
     }
 }

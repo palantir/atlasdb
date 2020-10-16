@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,6 +27,9 @@ import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 
 public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> {
     private static final long serialVersionUID = 1L;
@@ -49,13 +48,13 @@ public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> 
         TableMetadata metadata = metadataCache.getMetadata(tableName);
         for (JsonNode rowResult : node.get("data")) {
             byte[] row = AtlasDeserializers.deserializeRow(metadata.getRowMetadata(), rowResult.get("row"));
-            ImmutableSortedMap.Builder<byte[], byte[]> cols = ImmutableSortedMap.orderedBy(
-                    UnsignedBytes.lexicographicalComparator());
+            ImmutableSortedMap.Builder<byte[], byte[]> cols =
+                    ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
             if (metadata.getColumns().hasDynamicColumns()) {
                 for (JsonNode colVal : rowResult.get("cols")) {
                     byte[] col = AtlasDeserializers.deserializeCol(metadata.getColumns(), colVal.get("col"));
-                    byte[] val = AtlasDeserializers.deserializeVal(metadata.getColumns().getDynamicColumn().getValue(),
-                            colVal.get("val"));
+                    byte[] val = AtlasDeserializers.deserializeVal(
+                            metadata.getColumns().getDynamicColumn().getValue(), colVal.get("val"));
                     cols.put(col, val);
                 }
             } else {

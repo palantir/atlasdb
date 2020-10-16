@@ -19,11 +19,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
@@ -48,11 +43,15 @@ import com.palantir.paxos.Client;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TestableTimelockServer {
 
-    private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET = ImmutableSet.of(
-            PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
+    private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET =
+            ImmutableSet.of(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
     private final TimeLockServerHolder serverHolder;
     private final TestProxies proxies;
     private final ProxyFactory proxyFactory;
@@ -96,8 +95,10 @@ public class TestableTimelockServer {
         if (switchToBatched) {
             BatchPingableLeader batchPingableLeader =
                     proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
-            return namespaces -> batchPingableLeader.ping(PSEUDO_LEADERSHIP_CLIENT_SET).isEmpty()
-                    ? ImmutableSet.of() : ImmutableSet.copyOf(namespaces);
+            return namespaces ->
+                    batchPingableLeader.ping(PSEUDO_LEADERSHIP_CLIENT_SET).isEmpty()
+                            ? ImmutableSet.of()
+                            : ImmutableSet.copyOf(namespaces);
         }
 
         switch (mode) {
@@ -115,9 +116,8 @@ public class TestableTimelockServer {
                 BatchPingableLeader batchPingableLeader =
                         proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
                 return namespaces -> {
-                    Set<Client> typedNamespaces = Streams.stream(namespaces)
-                            .map(Client::of)
-                            .collect(Collectors.toSet());
+                    Set<Client> typedNamespaces =
+                            Streams.stream(namespaces).map(Client::of).collect(Collectors.toSet());
 
                     return batchPingableLeader.ping(typedNamespaces).stream()
                             .map(Client::value)
@@ -177,7 +177,8 @@ public class TestableTimelockServer {
 
     private StubMapping namespacesIsProxiedToTimelock(MappingBuilder mappingBuilder) {
         return mappingBuilder
-                .willReturn(aResponse().proxiedFrom(serverHolder.getTimelockUri())
+                .willReturn(aResponse()
+                        .proxiedFrom(serverHolder.getTimelockUri())
                         .withAdditionalRequestHeader(
                                 "User-Agent", UserAgents.format(TimeLockServerHolder.WIREMOCK_USER_AGENT)))
                 .atPriority(1)
@@ -207,7 +208,5 @@ public class TestableTimelockServer {
         public <T> T createProxy(Class<T> clazz, ProxyMode proxyMode) {
             return proxies.singleNode(serverHolder, clazz, proxyMode);
         }
-
     }
-
 }

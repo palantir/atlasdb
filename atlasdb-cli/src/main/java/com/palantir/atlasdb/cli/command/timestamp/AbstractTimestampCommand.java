@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.Set;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -32,22 +23,30 @@ import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractTimestampCommand extends SingleBackendCommand {
 
-    private static final OutputPrinter printer = new OutputPrinter(
-            LoggerFactory.getLogger(AbstractTimestampCommand.class));
+    private static final OutputPrinter printer =
+            new OutputPrinter(LoggerFactory.getLogger(AbstractTimestampCommand.class));
 
-    @Option(name = {"-f", "--file"},
+    @Option(
+            name = {"-f", "--file"},
             title = "TIMESTAMP_FILE",
             type = OptionType.GROUP,
             description = "Write/Read the timestamp for this command via the specified file.")
     private File file;
 
-    @Option(name = {"-t", "--timestamp"},
+    @Option(
+            name = {"-t", "--timestamp"},
             title = "TIMESTAMP",
             type = OptionType.GROUP,
             description = "The timestamp for to use for this command")
@@ -65,8 +64,8 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
 
     private void initialize() {
         if (!requireTimestamp() && timestamp != null) {
-            throw new SafeIllegalArgumentException("This command does not require an input timestamp"
-                    + " but you specified one.");
+            throw new SafeIllegalArgumentException(
+                    "This command does not require an input timestamp" + " but you specified one.");
         } else if (requireTimestamp() && ((timestamp == null && file == null) || (timestamp != null && file != null))) {
             throw new SafeIllegalArgumentException("This command requires an input timestamp, "
                     + "so you must specify one and only one (either directly or via a file).");
@@ -80,8 +79,8 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
         try {
             timestampString = StringUtils.strip(Iterables.getOnlyElement(Files.readAllLines(file.toPath())));
         } catch (IOException e) {
-            printer.error("IOException thrown reading timestamp from file: {}",
-                    SafeArg.of("file path", file.getPath()));
+            printer.error(
+                    "IOException thrown reading timestamp from file: {}", SafeArg.of("file path", file.getPath()));
             throw Throwables.propagate(e);
         }
         return Long.parseLong(timestampString);

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -28,6 +22,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableSweepPriorityOverrideConfig.class)
 @JsonDeserialize(as = ImmutableSweepPriorityOverrideConfig.class)
@@ -84,8 +82,8 @@ public abstract class SweepPriorityOverrideConfig {
 
     @Value.Check
     void validateTableNames() {
-        Stream.concat(priorityTables().stream(), blacklistTables().stream()).forEach(
-                tableName -> Preconditions.checkState(
+        Stream.concat(priorityTables().stream(), blacklistTables().stream())
+                .forEach(tableName -> Preconditions.checkState(
                         TableReference.isFullyQualifiedName(tableName),
                         "%s is not a fully qualified table name",
                         tableName));
@@ -93,7 +91,8 @@ public abstract class SweepPriorityOverrideConfig {
 
     @Value.Check
     void validatePriorityTablesAndBlacklistTablesAreDisjoint() {
-        Preconditions.checkState(Sets.intersection(priorityTables(), blacklistTables()).isEmpty(),
+        Preconditions.checkState(
+                Sets.intersection(priorityTables(), blacklistTables()).isEmpty(),
                 "The priority and blacklist tables should not have any overlap, but found %s",
                 Sets.intersection(priorityTables(), blacklistTables()));
     }

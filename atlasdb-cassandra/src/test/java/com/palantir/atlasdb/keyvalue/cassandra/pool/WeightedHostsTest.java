@@ -18,17 +18,15 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
-
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 
 public class WeightedHostsTest {
 
@@ -54,9 +52,12 @@ public class WeightedHostsTest {
     public void testWeightedHostsWithLowActivityPool() {
         InetSocketAddress lowActivityHost = new InetSocketAddress(2);
         Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                lowActivityHost, createMockClientPoolingContainerWithUtilization(0));
+                new InetSocketAddress(0),
+                createMockClientPoolingContainerWithUtilization(10),
+                new InetSocketAddress(1),
+                createMockClientPoolingContainerWithUtilization(10),
+                lowActivityHost,
+                createMockClientPoolingContainerWithUtilization(0));
 
         NavigableMap<Integer, InetSocketAddress> result = WeightedHosts.create(pools).hosts;
 
@@ -78,9 +79,12 @@ public class WeightedHostsTest {
     public void testWeightedHostsWithMaxActivityPool() {
         InetSocketAddress highActivityHost = new InetSocketAddress(2);
         Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(5),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(5),
-                highActivityHost, createMockClientPoolingContainerWithUtilization(20));
+                new InetSocketAddress(0),
+                createMockClientPoolingContainerWithUtilization(5),
+                new InetSocketAddress(1),
+                createMockClientPoolingContainerWithUtilization(5),
+                highActivityHost,
+                createMockClientPoolingContainerWithUtilization(20));
 
         NavigableMap<Integer, InetSocketAddress> result = WeightedHosts.create(pools).hosts;
 

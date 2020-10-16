@@ -19,17 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -45,6 +34,15 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
 import com.palantir.common.random.RandomBytes;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CassandraAsyncKeyValueServiceTests {
@@ -61,15 +59,14 @@ public class CassandraAsyncKeyValueServiceTests {
             .build();
 
     private AsyncKeyValueService asyncKeyValueService;
+
     @Mock
     private CqlClient cqlClient;
 
     @Before
     public void setUp() {
         asyncKeyValueService = CassandraAsyncKeyValueService.create(
-                KEYSPACE,
-                cqlClient,
-                AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
+                KEYSPACE, cqlClient, AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
     }
 
     @After

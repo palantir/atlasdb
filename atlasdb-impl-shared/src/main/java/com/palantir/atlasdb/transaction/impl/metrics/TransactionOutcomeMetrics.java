@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.Map;
-import java.util.function.Predicate;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
@@ -26,6 +23,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Tracks various states of an AtlasDB transaction, and marks associated meters in the
@@ -62,7 +61,8 @@ public class TransactionOutcomeMetrics {
     }
 
     public void markWriteWriteConflict(TableReference tableReference) {
-        getMeterForTable(TransactionOutcome.WRITE_WRITE_CONFLICT, tableReference).mark();
+        getMeterForTable(TransactionOutcome.WRITE_WRITE_CONFLICT, tableReference)
+                .mark();
     }
 
     public void markReadWriteConflict(TableReference tableReference) {
@@ -91,14 +91,12 @@ public class TransactionOutcomeMetrics {
     }
 
     private Meter getMeter(TransactionOutcome outcome, Map<String, String> safeTags) {
-        return metricsManager.getTaggedRegistry().meter(
-                getMetricName(outcome, safeTags));
+        return metricsManager.getTaggedRegistry().meter(getMetricName(outcome, safeTags));
     }
 
     private Meter getMeterForTable(TransactionOutcome outcome, TableReference tableReference) {
-        TableReference safeTableReference = safeForLogging.test(tableReference)
-                ? tableReference
-                : LoggingArgs.PLACEHOLDER_TABLE_REFERENCE;
+        TableReference safeTableReference =
+                safeForLogging.test(tableReference) ? tableReference : LoggingArgs.PLACEHOLDER_TABLE_REFERENCE;
         return getMeter(outcome, ImmutableMap.of("tableReference", safeTableReference.getQualifiedName()));
     }
 

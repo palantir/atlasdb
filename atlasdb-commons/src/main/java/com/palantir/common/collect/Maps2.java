@@ -15,17 +15,18 @@
  */
 package com.palantir.common.collect;
 
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Maps;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class Maps2 {
-    private Maps2() {/* */}
+    private Maps2() {
+        /* */
+    }
 
     public static <K, V> ImmutableMap<K, V> fromEntries(Iterable<? extends Map.Entry<K, V>> it) {
         Builder<K, V> builder = ImmutableMap.builder();

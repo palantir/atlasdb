@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
@@ -28,7 +24,9 @@ import com.palantir.atlasdb.jepsen.lock.RefreshCorrectnessChecker;
 import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
 import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
 import com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker;
-
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class JepsenHistoryCheckers {
     private JepsenHistoryCheckers() {
@@ -36,10 +34,8 @@ public final class JepsenHistoryCheckers {
     }
 
     @VisibleForTesting
-    static final List<Supplier<Checker>> TIMESTAMP_CHECKERS = ImmutableList.of(
-            MonotonicChecker::new,
-            NonOverlappingReadsMonotonicChecker::new,
-            UniquenessChecker::new);
+    static final List<Supplier<Checker>> TIMESTAMP_CHECKERS =
+            ImmutableList.of(MonotonicChecker::new, NonOverlappingReadsMonotonicChecker::new, UniquenessChecker::new);
 
     @VisibleForTesting
     static final List<Supplier<Checker>> LOCK_CHECKERS = ImmutableList.of(
@@ -57,9 +53,6 @@ public final class JepsenHistoryCheckers {
 
     @VisibleForTesting
     static JepsenHistoryChecker createWithCheckers(List<Supplier<Checker>> checkers) {
-        return new JepsenHistoryChecker(
-                checkers.stream()
-                        .map(Supplier::get)
-                        .collect(Collectors.toList()));
+        return new JepsenHistoryChecker(checkers.stream().map(Supplier::get).collect(Collectors.toList()));
     }
 }

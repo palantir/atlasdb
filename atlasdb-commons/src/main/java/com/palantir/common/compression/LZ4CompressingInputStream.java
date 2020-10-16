@@ -15,14 +15,12 @@
  */
 package com.palantir.common.compression;
 
+import com.google.common.io.ByteStreams;
+import com.palantir.logsafe.Preconditions;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.Checksum;
-
-import com.google.common.io.ByteStreams;
-import com.palantir.logsafe.Preconditions;
-
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
@@ -59,7 +57,8 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
         super(delegate, LZ4_HEADER_SIZE + COMPRESSOR.maxCompressedLength(blockSize));
         this.blockSize = blockSize;
         this.uncompressedBuffer = new byte[blockSize];
-        Checksum checksum = XXHashFactory.fastestInstance().newStreamingHash32(DEFAULT_SEED).asChecksum();
+        Checksum checksum =
+                XXHashFactory.fastestInstance().newStreamingHash32(DEFAULT_SEED).asChecksum();
         OutputStream delegateOutputStream = new InternalByteArrayOutputStream();
         this.compressingStream = new LZ4BlockOutputStream(delegateOutputStream, blockSize, COMPRESSOR, checksum, true);
         this.finished = false;
@@ -142,5 +141,4 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
             LZ4CompressingInputStream.this.write(b, off, len);
         }
     }
-
 }

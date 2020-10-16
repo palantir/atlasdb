@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.time.Duration;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -46,6 +38,12 @@ import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStrea
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -63,19 +61,20 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
             .attachStartTimestampToLockRequestDescriptions(true)
             .build();
     private static final ProfileTableFactory TABLE_FACTORY = ProfileTableFactory.of();
-    private static final TableReference TABLE_REFERENCE = TABLE_FACTORY.getUserProfileTable(null).getTableRef();
+    private static final TableReference TABLE_REFERENCE =
+            TABLE_FACTORY.getUserProfileTable(null).getTableRef();
     private static final int LOCK_TRACKER_SIZE = 10_000;
 
     private TransactionManagerContext transactionManagerContext;
-    private ClientLockDiagnosticCollector diagnosticCollector
-            = new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG);
+    private ClientLockDiagnosticCollector diagnosticCollector =
+            new ClientLockDiagnosticCollectorImpl(LOCK_DIAGNOSTIC_CONFIG);
     private LocalLockTracker lockTracker = new LocalLockTracker(LOCK_TRACKER_SIZE);
     private TransactionPostMortemRunner runner;
 
     @Before
     public void setUp() {
-        AtlasDbRuntimeConfig runtimeConfig = AtlasDbRuntimeConfig.withSweepDisabled()
-                .withTransaction(TRANSACTION_CONFIG);
+        AtlasDbRuntimeConfig runtimeConfig =
+                AtlasDbRuntimeConfig.withSweepDisabled().withTransaction(TRANSACTION_CONFIG);
         transactionManagerContext = TimeLockTestUtils.createTransactionManager(
                 cluster,
                 TIMELOCK_CLIENT.value(),
@@ -104,10 +103,12 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 23L)));
         runWithRetryVoid(store -> store.deletePhotoStreamId(row));
 
-        FullDiagnosticDigest<String> digest = runner.conductPostMortem(row, PhotoStreamId.of(0L).persistColumnName());
+        FullDiagnosticDigest<String> digest =
+                runner.conductPostMortem(row, PhotoStreamId.of(0L).persistColumnName());
 
-        System.out.println(
-                ObjectMappers.newServerObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(digest));
+        System.out.println(ObjectMappers.newServerObjectMapper()
+                .writerWithDefaultPrettyPrinter()
+                .writeValueAsString(digest));
     }
 
     private void runWithRetryVoid(Consumer<UserProfileTable> task) {

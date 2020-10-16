@@ -15,6 +15,7 @@
  */
 package com.palantir.timestamp;
 
+import com.palantir.logsafe.Safe;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
 import javax.ws.rs.DefaultValue;
@@ -24,8 +25,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.logsafe.Safe;
 
 @Path("/timestamp-management")
 public interface TimestampManagementService {

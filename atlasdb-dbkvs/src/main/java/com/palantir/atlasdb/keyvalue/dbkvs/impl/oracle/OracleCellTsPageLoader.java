@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -42,6 +37,10 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 // Unlike Postgres, Oracle doesn't properly support the "row value" syntax. If we want to start
 // our scan from a given (row_name, col_name, ts) tuple, we can't say
@@ -84,10 +83,11 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
 
-    public OracleCellTsPageLoader(SqlConnectionSupplier connectionPool,
-                                  OracleTableNameGetter tableNameGetter,
-                                  TableValueStyleCache valueStyleCache,
-                                  OracleDdlConfig config) {
+    public OracleCellTsPageLoader(
+            SqlConnectionSupplier connectionPool,
+            OracleTableNameGetter tableNameGetter,
+            TableValueStyleCache valueStyleCache,
+            OracleDdlConfig config) {
         this.connectionPool = connectionPool;
         this.tableNameGetter = tableNameGetter;
         this.valueStyleCache = valueStyleCache;
@@ -95,8 +95,8 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
     }
 
     @Override
-    public Iterator<List<CellTsPairInfo>> createPageIterator(TableReference tableRef,
-                                                             CandidateCellForSweepingRequest request) {
+    public Iterator<List<CellTsPairInfo>> createPageIterator(
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
         TableDetails tableDetails = getTableDetailsUsingNewConnection(tableRef);
         return new PageIterator(
                 connectionPool,
@@ -115,8 +115,12 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
         CellTsPairToken token;
         long cellTsPairsAlreadyExaminedInCurrentRow = 0L;
 
-        PageIterator(SqlConnectionSupplier connectionPool, CandidateCellForSweepingRequest request,
-                     TableDetails tableDetails, int sqlRowLimit, byte[] startRowInclusive) {
+        PageIterator(
+                SqlConnectionSupplier connectionPool,
+                CandidateCellForSweepingRequest request,
+                TableDetails tableDetails,
+                int sqlRowLimit,
+                byte[] startRowInclusive) {
             this.connectionPool = connectionPool;
             this.request = request;
             this.tableDetails = tableDetails;
@@ -169,21 +173,30 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             FullQuery.Builder queryBuilder = FullQuery.builder()
                     .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING */ ")
                     .append("SELECT * FROM (")
-                    .append("  SELECT /*+ INDEX_ASC(t ").append(pkIndex).append(") ")
-                    .append("             NO_INDEX_SS(t ").append(pkIndex).append(")")
-                    .append("             NO_INDEX_FFS(t ").append(pkIndex).append(") */")
+                    .append("  SELECT /*+ INDEX_ASC(t ")
+                    .append(pkIndex)
+                    .append(") ")
+                    .append("             NO_INDEX_SS(t ")
+                    .append(pkIndex)
+                    .append(")")
+                    .append("             NO_INDEX_FFS(t ")
+                    .append(pkIndex)
+                    .append(") */")
                     .append("  row_name, col_name, ts");
             if (request.shouldCheckIfLatestValueIsEmpty()) {
                 appendEmptyValueFlagSelector(queryBuilder);
             }
             queryBuilder
-                    .append("  FROM ").append(tableDetails.shortName).append(" t")
+                    .append("  FROM ")
+                    .append(tableDetails.shortName)
+                    .append(" t")
                     .append("  WHERE ts < ? ", request.maxTimestampExclusive());
             SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
             appendRangePredicates(singleRow, queryBuilder);
             return queryBuilder
                     .append("  ORDER BY row_name, col_name, ts")
-                    .append(") WHERE rownum <= ").append(sqlRowLimit)
+                    .append(") WHERE rownum <= ")
+                    .append(sqlRowLimit)
                     .append(" ORDER BY row_name, col_name, ts")
                     .build();
         }
@@ -194,17 +207,14 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
                 if (token.startColInclusive().length > 0) {
                     builder.append(" AND col_name >= ?", token.startColInclusive());
                     if (token.startTsInclusive() != null) {
-                        builder.append(" AND (col_name > ? OR ts >= ?)",
-                                token.startColInclusive(),
-                                token.startTsInclusive());
+                        builder.append(
+                                " AND (col_name > ? OR ts >= ?)", token.startColInclusive(), token.startTsInclusive());
                     }
                 }
             } else {
                 RangePredicateHelper.create(false, DBType.ORACLE, builder)
                         .startCellTsInclusive(
-                                token.startRowInclusive(),
-                                token.startColInclusive(),
-                                token.startTsInclusive());
+                                token.startRowInclusive(), token.startColInclusive(), token.startTsInclusive());
             }
         }
 
@@ -221,9 +231,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
 
         private AgnosticLightResultSet executeQuery(SqlConnection conn, FullQuery query) {
             return conn.selectLightResultSetUnregisteredQueryWithFetchSize(
-                    query.getQuery(),
-                    sqlRowLimit,
-                    query.getArgs());
+                    query.getQuery(), sqlRowLimit, query.getArgs());
         }
 
         private void updateCountOfExaminedCellTsPairsInCurrentRow(List<CellTsPairInfo> results) {
@@ -257,7 +265,6 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
                 return CellTsPairToken.continueRow(lastResult);
             }
         }
-
     }
 
     private static class TableDetails {
@@ -280,5 +287,4 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             throw new RuntimeException(e);
         }
     }
-
 }

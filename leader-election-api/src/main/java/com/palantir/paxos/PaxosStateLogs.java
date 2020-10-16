@@ -46,5 +46,4 @@ public final class PaxosStateLogs {
 
         return null;
     }
-
 }

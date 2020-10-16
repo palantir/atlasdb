@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Set;
-
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.TearDown;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -33,6 +25,12 @@ import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Set;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.TearDown;
 
 /**
  * State class for creating a single Atlas table with one wide row.
@@ -82,10 +80,7 @@ public abstract class WideRowTable {
         services = conn.connect();
         if (!services.getKeyValueService().getAllTableNames().contains(getTableRef())) {
             tableRef = Benchmarks.createTableWithDynamicColumns(
-                    services.getKeyValueService(),
-                    getTableRef(),
-                    Tables.ROW_COMPONENT,
-                    Tables.COLUMN_COMPONENT);
+                    services.getKeyValueService(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_COMPONENT);
             storeData();
         }
     }
@@ -117,5 +112,4 @@ public abstract class WideRowTable {
     private Cell cell(int index) {
         return Cell.create(Tables.ROW_BYTES.array(), ("col_" + index).getBytes(StandardCharsets.UTF_8));
     }
-
 }

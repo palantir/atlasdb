@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.http;
 
-import java.net.URL;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -30,6 +23,12 @@ import com.google.common.net.HostAndPort;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.net.URL;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 public final class RedirectRetryTargeter {
     private final List<URL> otherServers;
@@ -43,7 +42,8 @@ public final class RedirectRetryTargeter {
     }
 
     public static RedirectRetryTargeter create(URL localServer, List<URL> clusterUrls) {
-        Preconditions.checkArgument(clusterUrls.contains(localServer),
+        Preconditions.checkArgument(
+                clusterUrls.contains(localServer),
                 "Local server not found in the list of cluster URLs.",
                 SafeArg.of("localServer", localServer),
                 SafeArg.of("clusterUrls", clusterUrls));

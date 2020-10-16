@@ -15,19 +15,17 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
     protected AbstractTaskCheckpointer checkpointer;
@@ -120,9 +118,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         return ret;
     }
 
-    private void verifyCheckpoints(final String extraId,
-                                   final Map<Long, byte[]> startById,
-                                   Transaction txn) {
+    private void verifyCheckpoints(final String extraId, final Map<Long, byte[]> startById, Transaction txn) {
         for (Entry<Long, byte[]> e : startById.entrySet()) {
             byte[] oldCheckpoint = checkpointer.getCheckpoint(extraId, e.getKey(), txn);
             byte[] currentCheckpoint = e.getValue();

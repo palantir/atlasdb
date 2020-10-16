@@ -22,16 +22,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.Test;
 
 public class FeedbackHandlerTest {
     private static final ConjureTimeLockClientFeedback FEEDBACK = ConjureTimeLockClientFeedback.builder()
@@ -84,6 +82,7 @@ public class FeedbackHandlerTest {
         handler.handle(FEEDBACK);
         assertThat(metricsManager.getPublishableMetrics().getMetrics())
                 .containsKey(METRIC_NAME)
-                .satisfies(map -> assertThat(((Gauge<Long>) map.get(METRIC_NAME)).getValue()).isEqualTo(1L));
+                .satisfies(map -> assertThat(((Gauge<Long>) map.get(METRIC_NAME)).getValue())
+                        .isEqualTo(1L));
     }
 }

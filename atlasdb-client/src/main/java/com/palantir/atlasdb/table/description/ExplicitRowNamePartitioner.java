@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
+import java.util.Arrays;
+import java.util.List;
 
 public class ExplicitRowNamePartitioner implements RowNamePartitioner {
     final ValueType valueType;
@@ -94,8 +93,8 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
 
         @Override
         public String toString() {
-            return "CompoundRowNamePartitioner [prefix=" + Arrays.toString(prefix)
-                    + ", nextPartition=" + nextPartition + "]";
+            return "CompoundRowNamePartitioner [prefix=" + Arrays.toString(prefix) + ", nextPartition=" + nextPartition
+                    + "]";
         }
 
         @Override
@@ -131,7 +130,6 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
             }
             return true;
         }
-
     }
 
     @Override
@@ -172,5 +170,4 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
         }
         return true;
     }
-
 }

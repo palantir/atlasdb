@@ -66,11 +66,7 @@ interface KeyValueServiceLogArbitrator {
 
     boolean isInternalTableReferenceSafe(String internalTableReference);
 
-    boolean isRowComponentNameSafe(
-            TableReference tableReference,
-            String rowComponentName);
+    boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName);
 
-    boolean isColumnNameSafe(
-            TableReference tableReference,
-            String longNameForColumn);
+    boolean isColumnNameSafe(TableReference tableReference, String longNameForColumn);
 }

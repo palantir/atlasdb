@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.List;
 import java.util.Map;
-
-import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public interface ConstraintCheckable {
     /**
@@ -38,6 +37,5 @@ public interface ConstraintCheckable {
      * is intended to be used for garbage collection (where all values are being read).
      */
     List<String> findConstraintFailuresNoRead(
-            Map<Cell, byte[]> reads,
-            AtlasDbConstraintCheckingMode constraintCheckingMode);
+            Map<Cell, byte[]> reads, AtlasDbConstraintCheckingMode constraintCheckingMode);
 }

@@ -19,16 +19,14 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
+import java.util.Arrays;
+import org.junit.Test;
 
 public class CompressionUtilsTest {
     @Test
     public void testCompressAndDecompress() {
-        byte[] original = new byte[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+        byte[] original = new byte[] {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
         byte[] compressed = CompressionUtils.compress(original, Compression.NONE);
         assertArrayEquals(original, compressed);
@@ -52,7 +50,7 @@ public class CompressionUtilsTest {
 
     @Test
     public void testDecompressException() {
-        byte[] compressed = new byte[] { 1, 2, 3 };  // invalid
+        byte[] compressed = new byte[] {1, 2, 3}; // invalid
         boolean threwIllegalArgumentException = false;
         try {
             CompressionUtils.decompress(compressed, Compression.SNAPPY);
@@ -64,7 +62,7 @@ public class CompressionUtilsTest {
 
     @Test
     public void testDecompressExceptionWithSnappy() {
-        byte[] compressed = new byte[] { 1, 2, 3 };  // invalid
+        byte[] compressed = new byte[] {1, 2, 3}; // invalid
         boolean threwIllegalArgumentException = false;
         try {
             CompressionUtils.decompressWithSnappy(compressed);

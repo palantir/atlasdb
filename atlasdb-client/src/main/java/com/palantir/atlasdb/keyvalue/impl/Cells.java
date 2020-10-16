@@ -15,20 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.SortedSet;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.AbstractIterator;
@@ -51,21 +37,36 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.SortedSet;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Cells {
     private static final Logger log = LoggerFactory.getLogger(Cells.class);
 
-    private Cells() { /* */ }
+    private Cells() {
+        /* */
+    }
 
     public static SortedSet<byte[]> getRows(Iterable<Cell> cells) {
         if (Iterables.isEmpty(cells)) {
-            return ImmutableSortedSet.orderedBy(UnsignedBytes.lexicographicalComparator()).build();
+            return ImmutableSortedSet.orderedBy(UnsignedBytes.lexicographicalComparator())
+                    .build();
         }
-        return FluentIterable.from(cells).transform(Cell::getRowName)
+        return FluentIterable.from(cells)
+                .transform(Cell::getRowName)
                 .toSortedSet(UnsignedBytes.lexicographicalComparator());
     }
 
-    static final byte[] SMALLEST_NAME = new byte[] { 0 };
+    static final byte[] SMALLEST_NAME = new byte[] {0};
     static final byte[] LARGEST_NAME = getLargestName();
 
     static byte[] getLargestName() {
@@ -104,8 +105,8 @@ public final class Cells {
         NavigableMap<byte[], NavigableMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
-            NavigableMap<byte[], T> sortedMap = ret.computeIfAbsent(row,
-                    rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
+            NavigableMap<byte[], T> sortedMap =
+                    ret.computeIfAbsent(row, rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
             sortedMap.put(e.getKey().getColumnName(), e.getValue());
         }
         return ret;
@@ -122,28 +123,29 @@ public final class Cells {
         final PeekingIterator<Entry<Cell, T>> it = Iterators.peekingIterator(sortedIterator.iterator());
         Iterator<Map.Entry<byte[], NavigableMap<byte[], T>>> resultIt =
                 new AbstractIterator<Map.Entry<byte[], NavigableMap<byte[], T>>>() {
-            byte[] row = null;
-            NavigableMap<byte[], T> map = null;
-            @Override
-            protected Entry<byte[], NavigableMap<byte[], T>> computeNext() {
-                if (!it.hasNext()) {
-                    return endOfData();
-                }
-                row = it.peek().getKey().getRowName();
-                ImmutableSortedMap.Builder<byte[], T> mapBuilder = ImmutableSortedMap.orderedBy(
-                        UnsignedBytes.lexicographicalComparator());
-                while (it.hasNext()) {
-                    Entry<Cell, T> peek = it.peek();
-                    if (!Arrays.equals(peek.getKey().getRowName(), row)) {
-                        break;
+                    byte[] row = null;
+                    NavigableMap<byte[], T> map = null;
+
+                    @Override
+                    protected Entry<byte[], NavigableMap<byte[], T>> computeNext() {
+                        if (!it.hasNext()) {
+                            return endOfData();
+                        }
+                        row = it.peek().getKey().getRowName();
+                        ImmutableSortedMap.Builder<byte[], T> mapBuilder =
+                                ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
+                        while (it.hasNext()) {
+                            Entry<Cell, T> peek = it.peek();
+                            if (!Arrays.equals(peek.getKey().getRowName(), row)) {
+                                break;
+                            }
+                            mapBuilder.put(peek.getKey().getColumnName(), peek.getValue());
+                            it.next();
+                        }
+                        map = mapBuilder.build();
+                        return Maps.immutableEntry(row, map);
                     }
-                    mapBuilder.put(peek.getKey().getColumnName(), peek.getValue());
-                    it.next();
-                }
-                map = mapBuilder.build();
-                return Maps.immutableEntry(row, map);
-            }
-        };
+                };
         return RowResults.viewOfEntries(resultIt);
     }
 
@@ -164,7 +166,8 @@ public final class Cells {
     }
 
     public static long getApproxSizeOfCell(Cell cell) {
-        return cell.getColumnName().length + cell.getRowName().length
+        return cell.getColumnName().length
+                + cell.getRowName().length
                 + TransactionConstants.APPROX_IN_MEM_CELL_OVERHEAD_BYTES;
     }
 
@@ -179,11 +182,8 @@ public final class Cells {
         return BaseEncoding.base16().lowerCase().encode(name);
     }
 
-    public static CellConflict createConflictWithMetadata(KeyValueService kv,
-                                                          TableReference tableRef,
-                                                          Cell cell,
-                                                          long theirStartTs,
-                                                          long theirCommitTs) {
+    public static CellConflict createConflictWithMetadata(
+            KeyValueService kv, TableReference tableRef, Cell cell, long theirStartTs, long theirCommitTs) {
         TableMetadata metadata = KeyValueServices.getTableMetadataSafe(kv, tableRef);
         return new CellConflict(cell, getHumanReadableCellName(metadata, cell), theirStartTs, theirCommitTs);
     }
@@ -199,8 +199,10 @@ public final class Cells {
             String rowName = metadata.getRowMetadata().renderToJson(cell.getRowName());
             String colName;
             if (metadata.getColumns().hasDynamicColumns()) {
-                colName = metadata.getColumns().getDynamicColumn().getColumnNameDesc().renderToJson(
-                        cell.getColumnName());
+                colName = metadata.getColumns()
+                        .getDynamicColumn()
+                        .getColumnNameDesc()
+                        .renderToJson(cell.getColumnName());
             } else {
                 colName = PtBytes.toString(cell.getColumnName());
             }

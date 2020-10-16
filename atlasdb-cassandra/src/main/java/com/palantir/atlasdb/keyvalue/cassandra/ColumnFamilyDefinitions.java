@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Map;
-import java.util.Optional;
-
-import org.apache.cassandra.thrift.CfDef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,6 +25,11 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import java.util.Optional;
+import org.apache.cassandra.thrift.CfDef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class ColumnFamilyDefinitions {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
@@ -56,7 +54,8 @@ final class ColumnFamilyDefinitions {
         Map<String, String> compressionOptions = getCompressionOptions(tableMetadata);
         cf.setCompression_options(compressionOptions);
 
-        boolean appendHeavyAndReadLight = tableMetadata.map(TableMetadata::isAppendHeavyAndReadLight).orElse(false);
+        boolean appendHeavyAndReadLight =
+                tableMetadata.map(TableMetadata::isAppendHeavyAndReadLight).orElse(false);
         if (appendHeavyAndReadLight) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
             cf.setCompaction_strategy_optionsIsSet(false);
@@ -64,29 +63,34 @@ final class ColumnFamilyDefinitions {
 
         cf.setGc_grace_seconds(gcGraceSeconds);
 
-        double bloomFilterFpChance = tableMetadata.map(CassandraTableOptions::bloomFilterFpChance)
+        double bloomFilterFpChance = tableMetadata
+                .map(CassandraTableOptions::bloomFilterFpChance)
                 .orElse(CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE);
         cf.setBloom_filter_fp_chance(bloomFilterFpChance);
 
-        int minIndexInterval = tableMetadata.map(CassandraTableOptions::minIndexInterval)
+        int minIndexInterval = tableMetadata
+                .map(CassandraTableOptions::minIndexInterval)
                 .orElse(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL);
         cf.setMin_index_interval(minIndexInterval);
 
-        int maxIndexInterval = tableMetadata.map(CassandraTableOptions::maxIndexInterval)
+        int maxIndexInterval = tableMetadata
+                .map(CassandraTableOptions::maxIndexInterval)
                 .orElse(CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL);
         cf.setMax_index_interval(maxIndexInterval);
         return cf;
     }
 
     private static Map<String, String> getCompressionOptions(Optional<TableMetadata> tableMetadata) {
-        int explicitCompressionBlockSizeKb = tableMetadata.map(TableMetadata::getExplicitCompressionBlockSizeKB)
+        int explicitCompressionBlockSizeKb = tableMetadata
+                .map(TableMetadata::getExplicitCompressionBlockSizeKB)
                 .orElse(0);
         int actualCompressionBlockSizeKb = explicitCompressionBlockSizeKb == 0
                 ? AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB
                 : explicitCompressionBlockSizeKb;
         return ImmutableMap.<String, String>builder()
                 .put(CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE)
-                .put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
+                .put(
+                        CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
                         Integer.toString(actualCompressionBlockSizeKb))
                 .build();
     }
@@ -96,7 +100,7 @@ final class ColumnFamilyDefinitions {
      *  include compression options, but also does not require raw metadata to be passed in.
      *
      *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
-    */
+     */
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {
         CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
@@ -128,37 +132,38 @@ final class ColumnFamilyDefinitions {
     static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
         if (!equalsIgnoringClasspath(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
-            logMismatch("compaction strategy",
-                    tableName,
-                    clientSide.compaction_strategy,
-                    clusterSide.compaction_strategy);
+            logMismatch(
+                    "compaction strategy", tableName, clientSide.compaction_strategy, clusterSide.compaction_strategy);
             return false;
         }
         if (!optionsMapsFunctionallyEqual(
                 clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
-            logMismatch("compaction strategy options",
+            logMismatch(
+                    "compaction strategy options",
                     tableName,
                     clientSide.compaction_strategy_options,
                     clusterSide.compaction_strategy_options);
             return false;
         }
         if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
-            logMismatch("gc_grace_seconds period",
-                    tableName,
-                    clientSide.gc_grace_seconds,
-                    clusterSide.gc_grace_seconds);
+            logMismatch(
+                    "gc_grace_seconds period", tableName, clientSide.gc_grace_seconds, clusterSide.gc_grace_seconds);
             return false;
         }
         if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance) {
-            logMismatch("bloom filter false positive chance",
+            logMismatch(
+                    "bloom filter false positive chance",
                     tableName,
                     clientSide.bloom_filter_fp_chance,
                     clusterSide.bloom_filter_fp_chance);
             return false;
         }
-        if (!(clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY).equals(
-                clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
-            logMismatch("compression chunk length",
+        if (!(clientSide
+                .compression_options
+                .get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)
+                .equals(clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
+            logMismatch(
+                    "compression chunk length",
                     tableName,
                     clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
                     clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
@@ -169,8 +174,9 @@ final class ColumnFamilyDefinitions {
             if (clientSide.compaction_strategy != null
                     && clusterSide.compaction_strategy != null
                     && !(clientSide.compaction_strategy.endsWith(clusterSide.compaction_strategy)
-                    || clusterSide.compaction_strategy.endsWith(clientSide.compaction_strategy))) {
-                logMismatch("compaction strategy",
+                            || clusterSide.compaction_strategy.endsWith(clientSide.compaction_strategy))) {
+                logMismatch(
+                        "compaction strategy",
                         tableName,
                         clientSide.compaction_strategy,
                         clusterSide.compaction_strategy);
@@ -178,26 +184,21 @@ final class ColumnFamilyDefinitions {
             }
         }
         if (clientSide.min_index_interval != clusterSide.min_index_interval) {
-            logMismatch("min index interval",
-                    tableName,
-                    clientSide.min_index_interval,
-                    clusterSide.min_index_interval);
+            logMismatch("min index interval", tableName, clientSide.min_index_interval, clusterSide.min_index_interval);
             return false;
         }
         if (clientSide.max_index_interval != clusterSide.max_index_interval) {
-            logMismatch("max index interval",
-                    tableName,
-                    clientSide.max_index_interval,
-                    clusterSide.max_index_interval);
+            logMismatch("max index interval", tableName, clientSide.max_index_interval, clusterSide.max_index_interval);
             return false;
         }
 
         return true;
     }
 
-    private static void logMismatch(String fieldName, String tableName,
-            Object clientSideVersion, Object clusterSideVersion) {
-        log.info("Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
+    private static void logMismatch(
+            String fieldName, String tableName, Object clientSideVersion, Object clusterSideVersion) {
+        log.info(
+                "Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
                 SafeArg.of("disagreementType", fieldName),
                 LoggingArgs.tableRef(TableReference.createUnsafe(tableName)),
                 SafeArg.of("clientVersion", clientSideVersion),

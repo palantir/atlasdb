@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.cassandra;
 
-
-import java.net.InetSocketAddress;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -31,17 +24,19 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.net.InetSocketAddress;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public final class CassandraServersConfigs {
-    private CassandraServersConfigs() {
-
-    }
+    private CassandraServersConfigs() {}
 
     private static final String PORT_NUMBER_ERROR = "%s port number should be a positive number";
 
     private static void checkPortNumbers(Set<InetSocketAddress> socketAddresses, String portName) {
-        socketAddresses.forEach(host -> Preconditions.checkState(host.getPort() > 0,
-                PORT_NUMBER_ERROR, SafeArg.of(portName, host.getPort())));
+        socketAddresses.forEach(host ->
+                Preconditions.checkState(host.getPort() > 0, PORT_NUMBER_ERROR, SafeArg.of(portName, host.getPort())));
     }
 
     public interface Visitor<T> {
@@ -75,8 +70,9 @@ public final class CassandraServersConfigs {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ImmutableDefaultConfig.class)
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = ImmutableDefaultConfig.class, name = DefaultConfig.TYPE),
-            @JsonSubTypes.Type(value = ImmutableCqlCapableConfig.class, name = CqlCapableConfig.TYPE)})
+        @JsonSubTypes.Type(value = ImmutableDefaultConfig.class, name = DefaultConfig.TYPE),
+        @JsonSubTypes.Type(value = ImmutableCqlCapableConfig.class, name = CqlCapableConfig.TYPE)
+    })
     public interface CassandraServersConfig {
 
         <T> T accept(Visitor<T> visitor);
@@ -143,8 +139,7 @@ public final class CassandraServersConfigs {
             return thriftHosts().stream()
                     .map(InetSocketAddress::getHostName)
                     .collect(Collectors.toSet())
-                    .equals(cqlHosts()
-                            .stream()
+                    .equals(cqlHosts().stream()
                             .map(InetSocketAddress::getHostName)
                             .collect(Collectors.toSet()));
         }

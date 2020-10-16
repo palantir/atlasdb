@@ -15,18 +15,17 @@
  */
 package com.palantir.atlasdb.stream;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableStreamStorePersistenceConfiguration.class)
 @JsonDeserialize(as = ImmutableStreamStorePersistenceConfiguration.class)
 @Value.Immutable
 public interface StreamStorePersistenceConfiguration {
-    StreamStorePersistenceConfiguration DEFAULT_CONFIG = ImmutableStreamStorePersistenceConfiguration.builder()
-            .build();
+    StreamStorePersistenceConfiguration DEFAULT_CONFIG =
+            ImmutableStreamStorePersistenceConfiguration.builder().build();
 
     /**
      * The number of blocks that a nontransactional storeStream() will store before pausing for
@@ -57,9 +56,9 @@ public interface StreamStorePersistenceConfiguration {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(numBlocksToWriteBeforePause() > 0,
-                "Number of blocks to write before pausing must be positive");
-        Preconditions.checkState(writePauseDurationMillis() >= 0,
-                "Pause duration between batches of writes must be non-negative");
+        Preconditions.checkState(
+                numBlocksToWriteBeforePause() > 0, "Number of blocks to write before pausing must be positive");
+        Preconditions.checkState(
+                writePauseDurationMillis() >= 0, "Pause duration between batches of writes must be non-negative");
     }
 }

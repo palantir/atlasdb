@@ -16,20 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
-
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableSet;
@@ -42,6 +28,17 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLong;
+import java.time.Duration;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunction<Client, PaxosLong> {
@@ -64,9 +61,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     // as an optimisation to avoid copying, we can share the same materialised view for a string of cache keys issued
     // by the same instance of the server (i.e. not restarted, cache keys haven't expired).
     private final Cache<AcceptorCacheKey, ConcurrentMap<Client, PaxosLong>> cacheKeysToCaches =
-            Caffeine.newBuilder()
-                    .expireAfterAccess(Duration.ofMinutes(1))
-                    .build();
+            Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(1)).build();
 
     BatchingPaxosLatestSequenceCache(BatchPaxosAcceptor delegate) {
         this.delegate = delegate;
@@ -97,9 +92,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                     }
                 }
             } catch (InvalidAcceptorCacheKeyException e) {
-                log.info("Cache key is invalid, invalidating cache and retrying",
-                        SafeArg.of("attempt", attempt),
-                        e);
+                log.info("Cache key is invalid, invalidating cache and retrying", SafeArg.of("attempt", attempt), e);
                 // another request might have already reset or updated the cache key if this call is slow,
                 // let's not waste their work
                 latestCacheKey.compareAndSet(timestampedCacheKey, null);
@@ -135,9 +128,10 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                     .ifPresent(digest -> processDigest(currentCachedEntries, digest));
             return getResponseMap(currentCachedEntries, requestedClients);
         } else {
-            processDigest(currentCachedEntries, delegate.latestSequencesPreparedOrAccepted(
-                    Optional.of(timestampedCacheKey.cacheKey()),
-                    newClients));
+            processDigest(
+                    currentCachedEntries,
+                    delegate.latestSequencesPreparedOrAccepted(
+                            Optional.of(timestampedCacheKey.cacheKey()), newClients));
             return getResponseMap(currentCachedEntries, requestedClients);
         }
     }
@@ -174,8 +168,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     }
 
     private static Map<Client, PaxosLong> getResponseMap(
-            ConcurrentMap<Client, PaxosLong> currentCachedEntries,
-            Set<Client> requestedClients) {
+            ConcurrentMap<Client, PaxosLong> currentCachedEntries, Set<Client> requestedClients) {
         return Maps.toMap(requestedClients, client -> currentCachedEntries.getOrDefault(client, DEFAULT_VALUE));
     }
 
@@ -184,5 +177,4 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                 .max(Comparator.comparingLong(PaxosLong::getValue))
                 .orElseThrow(() -> new SafeIllegalArgumentException("No Paxos Value could be picked"));
     }
-
 }

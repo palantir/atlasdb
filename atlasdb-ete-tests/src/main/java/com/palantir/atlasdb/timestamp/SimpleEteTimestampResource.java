@@ -35,5 +35,4 @@ public class SimpleEteTimestampResource implements EteTimestampResource {
     public void fastForwardTimestamp(long currentTimestamp) {
         transactionManager.getTimestampManagementService().fastForwardTimestamp(currentTimestamp);
     }
-
 }

@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,6 +24,7 @@ import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
 
 public class TableRowSelectionDeserializer extends StdDeserializer<TableRowSelection> {
     private static final long serialVersionUID = 1L;

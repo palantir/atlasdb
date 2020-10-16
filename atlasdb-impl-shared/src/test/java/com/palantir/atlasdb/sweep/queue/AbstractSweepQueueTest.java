@@ -17,14 +17,6 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.mockito.Mockito.spy;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import org.assertj.core.api.Assertions;
-import org.junit.After;
-import org.junit.Before;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -42,12 +34,18 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import org.assertj.core.api.Assertions;
+import org.junit.After;
+import org.junit.Before;
 
 public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
     static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.thorough");
-    static final TableReference TABLE_THOR_MIGRATION = TableReference.createFromFullyQualifiedName(
-            "test.thoroughmigration");
+    static final TableReference TABLE_THOR_MIGRATION =
+            TableReference.createFromFullyQualifiedName("test.thoroughmigration");
     static final TableReference TABLE_NOTH = TableReference.createFromFullyQualifiedName("test.nothing");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
     static final long TS = SweepQueueUtils.TS_COARSE_GRANULARITY + 100L;
@@ -55,9 +53,12 @@ public abstract class AbstractSweepQueueTest {
     static final long TS_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS);
     static final long TS2_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS2);
     static final int DEFAULT_SHARDS = 8;
-    static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
-    static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
-    static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
+    static final int FIXED_SHARD =
+            WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
+    static final int CONS_SHARD =
+            WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
+    static final int THOR_SHARD =
+            WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
     static final int THOR_MIGRATION_SHARD =
             WriteInfo.tombstone(TABLE_THOR_MIGRATION, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
 
@@ -99,10 +100,7 @@ public abstract class AbstractSweepQueueTest {
     }
 
     static byte[] metadataBytes(SweepStrategy sweepStrategy) {
-        return TableMetadata.builder()
-                .sweepStrategy(sweepStrategy)
-                .build()
-                .persistToBytes();
+        return TableMetadata.builder().sweepStrategy(sweepStrategy).build().persistToBytes();
     }
 
     int writeToDefaultCellCommitted(SweepQueueTable queueWriter, long timestamp, TableReference tableRef) {
@@ -123,8 +121,8 @@ public abstract class AbstractSweepQueueTest {
         return write(queueWriter, timestamp, DEFAULT_CELL, false, tableRef);
     }
 
-    int writeToDefaultCellCommitedAt(SweepQueueTable queueWriter, long startTs, long commitTs,
-            TableReference tableRef) {
+    int writeToDefaultCellCommitedAt(
+            SweepQueueTable queueWriter, long startTs, long commitTs, TableReference tableRef) {
         putTimestampIntoTransactionTable(startTs, commitTs);
         return write(queueWriter, startTs, DEFAULT_CELL, false, tableRef);
     }

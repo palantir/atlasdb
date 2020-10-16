@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.squareup.javapoet.MethodSpec;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Renderers {
     private Renderers() {
@@ -98,12 +97,9 @@ public class Renderers {
     }
 
     public static MethodSpec.Builder addParametersFromRowComponents(
-            MethodSpec.Builder methodFactory,
-            TableMetadata tableMetadata) {
+            MethodSpec.Builder methodFactory, TableMetadata tableMetadata) {
         for (NameComponentDescription rowPart : getRowComponents(tableMetadata)) {
-            methodFactory.addParameter(
-                    rowPart.getType().getJavaClass(),
-                    rowPart.getComponentName());
+            methodFactory.addParameter(rowPart.getType().getJavaClass(), rowPart.getComponentName());
         }
         return methodFactory;
     }
@@ -118,7 +114,7 @@ public class Renderers {
 
     public static List<NameComponentDescription> getRowComponents(TableMetadata tableMetadata) {
         NameMetadataDescription rowMetadata = tableMetadata.getRowMetadata();
-        List <NameComponentDescription> rowParts = rowMetadata.getRowParts();
+        List<NameComponentDescription> rowParts = rowMetadata.getRowParts();
         return rowMetadata.numberOfComponentsHashed() == 0 ? rowParts : rowParts.subList(1, rowParts.size());
     }
 }

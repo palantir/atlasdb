@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Observability;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 public final class Autobatchers {
 
@@ -90,7 +88,9 @@ public final class Autobatchers {
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private Observability observability = Observability.UNDECIDED;
-        @Nullable private String purpose;
+
+        @Nullable
+        private String purpose;
 
         private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
             this.handlerFactory = handlerFactory;
@@ -115,15 +115,12 @@ public final class Autobatchers {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
-            EventHandler<BatchElement<I, O>> tracingHandler =
-                    new TracingEventHandler<>(handler, DEFAULT_BUFFER_SIZE);
+            EventHandler<BatchElement<I, O>> tracingHandler = new TracingEventHandler<>(handler, DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
             return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
         }
-
     }
-
 }

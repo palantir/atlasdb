@@ -16,8 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -33,6 +31,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Set;
 
 public class BatchTimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     private final PaxosUseCase paxosUseCase;
@@ -40,9 +39,7 @@ public class BatchTimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     private final BatchPaxosAcceptorRpcClient rpcClient;
 
     public BatchTimelockPaxosAcceptorAdapter(
-            PaxosUseCase paxosUseCase,
-            Client client,
-            BatchPaxosAcceptorRpcClient rpcClient) {
+            PaxosUseCase paxosUseCase, Client client, BatchPaxosAcceptorRpcClient rpcClient) {
         this.paxosUseCase = paxosUseCase;
         this.client = client;
         this.rpcClient = rpcClient;
@@ -50,14 +47,13 @@ public class BatchTimelockPaxosAcceptorAdapter implements PaxosAcceptor {
 
     public static PaxosAcceptor singleLeader(BatchPaxosAcceptorRpcClient rpcClient) {
         return new BatchTimelockPaxosAcceptorAdapter(
-                PaxosUseCase.LEADER_FOR_ALL_CLIENTS,
-                PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT,
-                rpcClient);
+                PaxosUseCase.LEADER_FOR_ALL_CLIENTS, PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT, rpcClient);
     }
 
     @Override
     public PaxosPromise prepare(long seq, PaxosProposalId pid) {
-        Set<WithSeq<PaxosPromise>> result = rpcClient.prepare(paxosUseCase, asMultimap(seq, pid)).get(client);
+        Set<WithSeq<PaxosPromise>> result =
+                rpcClient.prepare(paxosUseCase, asMultimap(seq, pid)).get(client);
         checkResult(result);
         return Iterables.getOnlyElement(result).value();
     }
@@ -74,13 +70,15 @@ public class BatchTimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     @Override
     public long getLatestSequencePreparedOrAccepted() {
         // TODO(gmaretic): this makes sense for this adapter since we only use a single client
-        return rpcClient.latestSequencesPreparedOrAccepted(paxosUseCase, null, ImmutableSet.of(client))
+        return rpcClient
+                .latestSequencesPreparedOrAccepted(paxosUseCase, null, ImmutableSet.of(client))
                 .updates()
                 .get(client);
     }
 
     private <T> void checkResult(Set<T> result) {
-        Preconditions.checkState(result.size() == 1,
+        Preconditions.checkState(
+                result.size() == 1,
                 "Unexpected result {} in a call for client {}.",
                 SafeArg.of("result", result),
                 SafeArg.of("client", client));

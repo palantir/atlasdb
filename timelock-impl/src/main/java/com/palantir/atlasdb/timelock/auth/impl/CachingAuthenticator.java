@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.auth.impl;
 
-import java.util.Map;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +24,9 @@ import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Password;
+import java.util.Map;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 public class CachingAuthenticator implements Authenticator {
     private final ImmutableMap<ClientId, BCryptedSecret> credentials;
@@ -37,9 +35,7 @@ public class CachingAuthenticator implements Authenticator {
 
     CachingAuthenticator(Map<ClientId, BCryptedSecret> credentials) {
         this.credentials = ImmutableMap.copyOf(credentials);
-        this.cache = Caffeine.newBuilder()
-                .maximumSize(1000)
-                .build(this::authenticateInternal);
+        this.cache = Caffeine.newBuilder().maximumSize(1000).build(this::authenticateInternal);
     }
 
     public static Authenticator create(Map<ClientId, BCryptedSecret> credentials) {
@@ -64,6 +60,7 @@ public class CachingAuthenticator implements Authenticator {
     @Value.Immutable
     interface ClientCredentials {
         ClientId id();
+
         Password password();
 
         static ClientCredentials of(ClientId id, Password password) {

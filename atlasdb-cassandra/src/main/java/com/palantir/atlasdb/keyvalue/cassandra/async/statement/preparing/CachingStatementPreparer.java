@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing;
 
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.PreparedStatement;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -27,19 +25,17 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.QueryType;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.immutables.value.Value;
 
 public final class CachingStatementPreparer implements StatementPreparer {
 
-    private static final String CACHE_NAME_PREFIX = MetricRegistry.name(
-            CachingStatementPreparer.class,
-            "prepared",
-            "statements");
+    private static final String CACHE_NAME_PREFIX =
+            MetricRegistry.name(CachingStatementPreparer.class, "prepared", "statements");
 
     public static CachingStatementPreparer create(
-            StatementPreparer statementPreparer,
-            TaggedMetricRegistry taggedMetricRegistry,
-            int cacheSize) {
-        Cache<CacheKey, PreparedStatement> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
+            StatementPreparer statementPreparer, TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
+        Cache<CacheKey, PreparedStatement> cache =
+                Caffeine.newBuilder().maximumSize(cacheSize).build();
         CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME_PREFIX);
         return new CachingStatementPreparer(statementPreparer, cache);
     }
@@ -47,9 +43,7 @@ public final class CachingStatementPreparer implements StatementPreparer {
     private final StatementPreparer statementPreparer;
     private final Cache<CacheKey, PreparedStatement> cache;
 
-    private CachingStatementPreparer(
-            StatementPreparer statementPreparer,
-            Cache<CacheKey, PreparedStatement> cache) {
+    private CachingStatementPreparer(StatementPreparer statementPreparer, Cache<CacheKey, PreparedStatement> cache) {
         this.statementPreparer = statementPreparer;
         this.cache = cache;
     }

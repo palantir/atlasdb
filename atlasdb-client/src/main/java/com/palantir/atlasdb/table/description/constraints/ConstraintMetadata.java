@@ -15,19 +15,17 @@
  */
 package com.palantir.atlasdb.table.description.constraints;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public final class ConstraintMetadata {
     private final List<RowConstraintMetadata> rowConstraints;
     private final List<TableConstraint> tableConstraints;
     private final List<ForeignKeyConstraintMetadata> foreignKeyConstraints;
-
 
     public static Builder builder() {
         return new Builder();
@@ -37,8 +35,10 @@ public final class ConstraintMetadata {
         return new ConstraintMetadata(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
-    private ConstraintMetadata(List<RowConstraintMetadata> rowConstraints, List<TableConstraint> tableConstraints,
-                               List<ForeignKeyConstraintMetadata> foreignKeyConstraints) {
+    private ConstraintMetadata(
+            List<RowConstraintMetadata> rowConstraints,
+            List<TableConstraint> tableConstraints,
+            List<ForeignKeyConstraintMetadata> foreignKeyConstraints) {
         this.rowConstraints = ImmutableList.copyOf(rowConstraints);
         this.tableConstraints = ImmutableList.copyOf(tableConstraints);
         this.foreignKeyConstraints = ImmutableList.copyOf(foreignKeyConstraints);
@@ -87,12 +87,15 @@ public final class ConstraintMetadata {
         private final List<TableConstraint> tableConstraints = Lists.newArrayList();
         private final List<ForeignKeyConstraintMetadata> foreignKeyConstraints = Lists.newArrayList();
 
-        Builder() { /**/ }
+        Builder() {
+            /**/
+        }
 
         public Builder addRowConstraint(RowConstraintMetadata constraint) {
             rowConstraints.add(constraint);
             return this;
         }
+
         public Builder addRowConstraints(List<RowConstraintMetadata> constraints) {
             rowConstraints.addAll(constraints);
             return this;
@@ -102,6 +105,7 @@ public final class ConstraintMetadata {
             tableConstraints.add(constraint);
             return this;
         }
+
         public Builder addTableConstraints(List<TableConstraint> constraints) {
             tableConstraints.addAll(constraints);
             return this;
@@ -120,7 +124,5 @@ public final class ConstraintMetadata {
         public ConstraintMetadata build() {
             return new ConstraintMetadata(rowConstraints, tableConstraints, foreignKeyConstraints);
         }
-
     }
-
 }

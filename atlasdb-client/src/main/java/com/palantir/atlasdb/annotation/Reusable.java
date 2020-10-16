@@ -28,5 +28,4 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface Reusable {
-}
+public @interface Reusable {}

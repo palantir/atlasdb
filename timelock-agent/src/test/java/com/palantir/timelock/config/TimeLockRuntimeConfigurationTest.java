@@ -35,8 +35,8 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void throwOnNegativeLeaderPingResponseWait() {
         assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
-                .slowLockLogTriggerMillis(-1L)
-                .build()).isInstanceOf(IllegalStateException.class);
+                        .slowLockLogTriggerMillis(-1L)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
-
 }

@@ -19,15 +19,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.SortedMap;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,6 +28,13 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.ptobject.EncodingUtils.EncodingType;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.util.crypto.Sha256Hash;
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.SortedMap;
+import org.junit.Test;
 
 @SuppressWarnings("checkstyle:all")
 public class EncodingUtilsTest {
@@ -56,7 +54,7 @@ public class EncodingUtilsTest {
     @Test
     public void testFlipBits() {
         byte[] bytes = new byte[1000];
-        for(int i=0; i<100; i++) {
+        for (int i = 0; i < 100; i++) {
             rand.nextBytes(bytes);
             assertArrayEquals(bytes, EncodingUtils.flipAllBits(EncodingUtils.flipAllBits(bytes)));
         }
@@ -64,11 +62,14 @@ public class EncodingUtilsTest {
 
     @Test
     public void testVarString() throws Exception {
-        for(int i=1; i<100; i++) {
+        for (int i = 1; i < 100; i++) {
             byte[] bytes = new byte[1000];
             rand.nextBytes(bytes);
             String str = new String(bytes);
-            assertArrayEquals(str.getBytes(), EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str)).getBytes());
+            assertArrayEquals(
+                    str.getBytes(),
+                    EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str))
+                            .getBytes());
             assertEquals(EncodingUtils.sizeOfVarString(str), EncodingUtils.encodeVarString(str).length);
         }
     }
@@ -82,23 +83,23 @@ public class EncodingUtilsTest {
         assertEquals(1L, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(1)));
         assertEquals(2L, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(2)));
         assertEquals(Long.MAX_VALUE, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(Long.MAX_VALUE)));
-        for (int i = 0 ; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             long nextLong = rand.nextLong();
             assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
         }
 
-        for (int i = 0 ; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             long nextLong = rand.nextInt();
             assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
         }
 
-        for (int i = 0 ; i < 1000; i++) {
-            long nextLong = rand.nextInt(1<<20);
+        for (int i = 0; i < 1000; i++) {
+            long nextLong = rand.nextInt(1 << 20);
             assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
         }
 
-        for (int i = 0 ; i < 1000; i++) {
-            long nextLong = rand.nextInt(1<<10);
+        for (int i = 0; i < 1000; i++) {
+            long nextLong = rand.nextInt(1 << 10);
             assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
         }
     }
@@ -124,7 +125,7 @@ public class EncodingUtilsTest {
         }
 
         while (map.size() < 3000) {
-            long nextLong = rand.nextInt(1<<20);
+            long nextLong = rand.nextInt(1 << 20);
             if (nextLong >= 0) {
                 byte[] encode = EncodingUtils.encodeVarLong(nextLong);
                 map.put(encode, nextLong);
@@ -144,8 +145,8 @@ public class EncodingUtilsTest {
             if (l < last) {
                 String lString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(l));
                 String lastString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(last));
-                throw new IllegalArgumentException("num: " + l + " last: " + last
-                    + " l:" + lString + " last: " + lastString + " lastlen: " + lastString.length()/2);
+                throw new IllegalArgumentException("num: " + l + " last: " + last + " l:" + lString + " last: "
+                        + lastString + " lastlen: " + lastString.length() / 2);
             }
             last = l;
         }
@@ -153,30 +154,32 @@ public class EncodingUtilsTest {
 
     @Test
     public void testVarSigned() {
-        assertEquals(Long.MIN_VALUE, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MIN_VALUE)));
+        assertEquals(
+                Long.MIN_VALUE, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MIN_VALUE)));
         assertEquals(-2L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(-2)));
         assertEquals(-1L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(-1)));
         assertEquals(0L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(0)));
         assertEquals(1L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(1)));
         assertEquals(2L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(2)));
-        assertEquals(Long.MAX_VALUE, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MAX_VALUE)));
-        for (int i = 0 ; i < 1000; i++) {
+        assertEquals(
+                Long.MAX_VALUE, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MAX_VALUE)));
+        for (int i = 0; i < 1000; i++) {
             long nextLong = rand.nextLong();
             assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
         }
 
-        for (int i = 0 ; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             long nextLong = rand.nextInt();
             assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
         }
 
-        for (int i = 0 ; i < 1000; i++) {
-            long nextLong = rand.nextInt(1<<20);
+        for (int i = 0; i < 1000; i++) {
+            long nextLong = rand.nextInt(1 << 20);
             assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
         }
 
-        for (int i = 0 ; i < 1000; i++) {
-            long nextLong = rand.nextInt(1<<10);
+        for (int i = 0; i < 1000; i++) {
+            long nextLong = rand.nextInt(1 << 10);
             assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
         }
     }
@@ -215,7 +218,7 @@ public class EncodingUtilsTest {
         }
 
         while (map.size() < 3000) {
-            long nextLong = rand.nextInt(1<<20);
+            long nextLong = rand.nextInt(1 << 20);
             if (rand.nextBoolean()) {
                 nextLong *= -1;
             }
@@ -239,8 +242,8 @@ public class EncodingUtilsTest {
             if (l < last) {
                 String lString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(l));
                 String lastString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(last));
-                throw new IllegalArgumentException("num: " + l + " last: " + last
-                    + " num:" + lString + " last: " + lastString + " lastlen: " + lastString.length()/2);
+                throw new IllegalArgumentException("num: " + l + " last: " + last + " num:" + lString + " last: "
+                        + lastString + " lastlen: " + lastString.length() / 2);
             }
             last = l;
         }

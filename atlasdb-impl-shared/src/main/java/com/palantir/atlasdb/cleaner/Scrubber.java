@@ -15,27 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -75,6 +54,24 @@ import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+import javax.annotation.concurrent.GuardedBy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Scrubs individuals cells on-demand.
@@ -91,9 +88,11 @@ public class Scrubber {
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
     private static final int MAX_DELETES_IN_BATCH = 10_000;
 
-    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("scrubber", true /* daemon */));
-    @GuardedBy("this") private boolean scrubTaskLaunched = false;
+    private final ScheduledExecutorService service =
+            PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("scrubber", true /* daemon */));
+
+    @GuardedBy("this")
+    private boolean scrubTaskLaunched = false;
 
     private final KeyValueService keyValueService;
     private final ScrubberStore scrubberStore;
@@ -123,19 +122,20 @@ public class Scrubber {
         }
     };
 
-    public static Scrubber create(KeyValueService keyValueService,
-                                  ScrubberStore scrubberStore,
-                                  Supplier<Long> backgroundScrubFrequencyMillisSupplier,
-                                  Supplier<Boolean> isScrubEnabled,
-                                  Supplier<Long> unreadableTimestampSupplier,
-                                  Supplier<Long> immutableTimestampSupplier,
-                                  TransactionService transactionService,
-                                  boolean aggressiveScrub,
-                                  Supplier<Integer> batchSizeSupplier,
-                                  int threadCount,
-                                  int readThreadCount,
-                                  Collection<Follower> followers,
-                                  MetricsManager metricsManager) {
+    public static Scrubber create(
+            KeyValueService keyValueService,
+            ScrubberStore scrubberStore,
+            Supplier<Long> backgroundScrubFrequencyMillisSupplier,
+            Supplier<Boolean> isScrubEnabled,
+            Supplier<Long> unreadableTimestampSupplier,
+            Supplier<Long> immutableTimestampSupplier,
+            TransactionService transactionService,
+            boolean aggressiveScrub,
+            Supplier<Integer> batchSizeSupplier,
+            int threadCount,
+            int readThreadCount,
+            Collection<Follower> followers,
+            MetricsManager metricsManager) {
         Scrubber scrubber = new Scrubber(
                 keyValueService,
                 scrubberStore,
@@ -153,19 +153,20 @@ public class Scrubber {
         return scrubber;
     }
 
-    private Scrubber(KeyValueService keyValueService,
-                     ScrubberStore scrubberStore,
-                     Supplier<Long> backgroundScrubFrequencyMillisSupplier,
-                     Supplier<Boolean> isScrubEnabled,
-                     Supplier<Long> unreadableTimestampSupplier,
-                     Supplier<Long> immutableTimestampSupplier,
-                     TransactionService transactionService,
-                     final boolean aggressiveScrub,
-                     Supplier<Integer> batchSizeSupplier,
-                     int threadCount,
-                     int readThreadCount,
-                     Collection<Follower> followers,
-                     MetricsManager metricsManager) {
+    private Scrubber(
+            KeyValueService keyValueService,
+            ScrubberStore scrubberStore,
+            Supplier<Long> backgroundScrubFrequencyMillisSupplier,
+            Supplier<Boolean> isScrubEnabled,
+            Supplier<Long> unreadableTimestampSupplier,
+            Supplier<Long> immutableTimestampSupplier,
+            TransactionService transactionService,
+            final boolean aggressiveScrub,
+            Supplier<Integer> batchSizeSupplier,
+            int threadCount,
+            int readThreadCount,
+            Collection<Follower> followers,
+            MetricsManager metricsManager) {
         this.keyValueService = keyValueService;
         this.scrubberStore = scrubberStore;
         this.backgroundScrubFrequencyMillisSupplier = backgroundScrubFrequencyMillisSupplier;
@@ -213,8 +214,9 @@ public class Scrubber {
                     if (Thread.interrupted()) {
                         break;
                     }
-                    log.error("Encountered the following error during background scrub task,"
-                            + " but continuing anyway", t);
+                    log.error(
+                            "Encountered the following error during background scrub task," + " but continuing anyway",
+                            t);
                     numberOfAttempts++;
                     lazyWriteMetric(AtlasDbMetricNames.SCRUB_RETRIES, 1);
                     try {
@@ -242,10 +244,13 @@ public class Scrubber {
         // than it otherwise would have.
         Long immutableTimestamp = immutableTimestampSupplier.get();
         Long unreadableTimestamp = unreadableTimestampSupplier.get();
-        final long maxScrubTimestamp = aggressiveScrub ? immutableTimestamp :
-                Math.min(unreadableTimestamp, immutableTimestamp);
-        log.debug("Scrub task immutableTimestamp: {}, unreadableTimestamp: {}, maxScrubTimestamp: {}",
-                  immutableTimestamp, unreadableTimestamp, maxScrubTimestamp);
+        final long maxScrubTimestamp =
+                aggressiveScrub ? immutableTimestamp : Math.min(unreadableTimestamp, immutableTimestamp);
+        log.debug(
+                "Scrub task immutableTimestamp: {}, unreadableTimestamp: {}, maxScrubTimestamp: {}",
+                immutableTimestamp,
+                unreadableTimestamp,
+                maxScrubTimestamp);
         final int batchSize = (int) Math.ceil(batchSizeSupplier.get() * ((double) threadCount / readThreadCount));
 
         List<byte[]> rangeBoundaries = Lists.newArrayList();
@@ -263,8 +268,8 @@ public class Scrubber {
             final byte[] startRow = rangeBoundaries.get(i);
             final byte[] endRow = rangeBoundaries.get(i + 1);
             readerFutures.add(readerExec.submit(() -> {
-                BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue = scrubberStore
-                        .getBatchingVisitableScrubQueue(maxScrubTimestamp, startRow, endRow);
+                BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue =
+                        scrubberStore.getBatchingVisitableScrubQueue(maxScrubTimestamp, startRow, endRow);
                 scrubQueue.batchAccept(batchSize, batch -> {
                     for (SortedMap<Long, Multimap<TableReference, Cell>> cells : batch) {
                         // We may actually get more cells than the batch size. The batch size is used
@@ -273,8 +278,10 @@ public class Scrubber {
                         // on when we actually do deletes.
                         int numCellsRead = scrubSomeCells(cells, txManager, maxScrubTimestamp);
                         int totalRead = totalCellsRead.addAndGet(numCellsRead);
-                        log.debug("Scrub task processed {} cells in a batch, total {} processed so far.",
-                                  numCellsRead, totalRead);
+                        log.debug(
+                                "Scrub task processed {} cells in a batch, total {} processed so far.",
+                                numCellsRead,
+                                totalRead);
                         if (!isScrubEnabled.get()) {
                             log.debug("Stopping scrub for banned hours.");
                             break;
@@ -290,16 +297,19 @@ public class Scrubber {
             Futures.getUnchecked(readerFuture);
         }
 
-        log.debug("Scrub background task running at timestamp {} processed a total of {} cells",
-                  maxScrubTimestamp, totalCellsRead.get());
+        log.debug(
+                "Scrub background task running at timestamp {} processed a total of {} cells",
+                maxScrubTimestamp,
+                totalCellsRead.get());
 
         log.debug("Finished scrub task");
     }
 
-    /* package */ void scrubImmediately(final TransactionManager txManager,
-                                        final Multimap<TableReference, Cell> tableNameToCell,
-                                        final long scrubTimestamp,
-                                        final long commitTimestamp) {
+    /* package */ void scrubImmediately(
+            final TransactionManager txManager,
+            final Multimap<TableReference, Cell> tableNameToCell,
+            final long scrubTimestamp,
+            final long commitTimestamp) {
         log.debug("Scrubbing a total of {} cells immediately.", tableNameToCell.size());
 
         // Note that if the background scrub thread is also running at the same time, it will try to scrub
@@ -309,8 +319,10 @@ public class Scrubber {
         long nextImmutableTimestamp;
         while ((nextImmutableTimestamp = immutableTimestampSupplier.get()) < commitTimestamp) {
             try {
-                log.debug("Sleeping because immutable timestamp {} has not advanced to at least commit timestamp {}",
-                          nextImmutableTimestamp, commitTimestamp);
+                log.debug(
+                        "Sleeping because immutable timestamp {} has not advanced to at least commit timestamp {}",
+                        nextImmutableTimestamp,
+                        commitTimestamp);
                 Thread.sleep(AtlasDbConstants.SCRUBBER_RETRY_DELAY_MILLIS);
             } catch (InterruptedException e) {
                 log.error("Interrupted while waiting for immutableTimestamp to advance past commitTimestamp", e);
@@ -370,8 +382,8 @@ public class Scrubber {
         lazyWriteMetric(AtlasDbMetricNames.ENQUEUED_CELLS, cellToTableRefs.size());
     }
 
-    private long getCommitTimestampRollBackIfNecessary(long startTimestamp,
-                                                       Multimap<TableReference, Cell> tableNameToCell) {
+    private long getCommitTimestampRollBackIfNecessary(
+            long startTimestamp, Multimap<TableReference, Cell> tableNameToCell) {
         Long commitTimestamp = transactionService.get(startTimestamp);
         if (commitTimestamp == null) {
             // Roll back this transaction (note that rolling back arbitrary transactions
@@ -382,7 +394,9 @@ public class Scrubber {
                 String msg = "Could not roll back transaction with start timestamp " + startTimestamp + "; either"
                         + " it was already rolled back (by a different transaction), or it committed successfully"
                         + " before we could roll it back.";
-                log.error("This isn't a bug but it should be very infrequent. {}", msg,
+                log.error(
+                        "This isn't a bug but it should be very infrequent. {}",
+                        msg,
                         new TransactionFailedRetriableException(msg, e));
             }
             commitTimestamp = transactionService.get(startTimestamp);
@@ -440,7 +454,8 @@ public class Scrubber {
             // queuing cells to scrub but before successfully committing
             long commitTimestamp = getCommitTimestampRollBackIfNecessary(scrubTimestamp, tableNameToCell);
             if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                for (Entry<TableReference, Collection<Cell>> cells : tableNameToCell.asMap().entrySet()) {
+                for (Entry<TableReference, Collection<Cell>> cells :
+                        tableNameToCell.asMap().entrySet()) {
                     Multimap<Cell, Long> failedCells = failedWrites.get(cells.getKey());
                     if (failedCells == null) {
                         failedCells = ArrayListMultimap.create(cells.getValue().size(), 2);
@@ -458,7 +473,9 @@ public class Scrubber {
                         batchMultimap.put(e.getKey(), e.getValue());
                     }
                     scrubFutures.add(exec.submit(() -> {
-                        scrubCells(txManager, batchMultimap,
+                        scrubCells(
+                                txManager,
+                                batchMultimap,
                                 scrubTimestamp,
                                 aggressiveScrub ? TransactionType.AGGRESSIVE_HARD_DELETE : TransactionType.HARD_DELETE);
                         return null;
@@ -487,28 +504,37 @@ public class Scrubber {
             }
             long minTimestamp = Collections.min(scrubTimestampToTableNameToCell.keySet());
             long maxTimestamp = Collections.max(scrubTimestampToTableNameToCell.keySet());
-            log.debug("Finished scrubbing {} cells at {} timestamps ({}...{}) from tables {}",
-                      numCellsReadFromScrubTable, scrubTimestampToTableNameToCell.size(),
-                      minTimestamp, maxTimestamp, tables);
+            log.debug(
+                    "Finished scrubbing {} cells at {} timestamps ({}...{}) from tables {}",
+                    numCellsReadFromScrubTable,
+                    scrubTimestampToTableNameToCell.size(),
+                    minTimestamp,
+                    maxTimestamp,
+                    tables);
         }
 
         return numCellsReadFromScrubTable;
     }
 
-    private void scrubCells(TransactionManager txManager,
-                            Multimap<TableReference, Cell> tableNameToCells,
-                            long scrubTimestamp,
-                            Transaction.TransactionType transactionType) {
+    private void scrubCells(
+            TransactionManager txManager,
+            Multimap<TableReference, Cell> tableNameToCells,
+            long scrubTimestamp,
+            Transaction.TransactionType transactionType) {
         Map<TableReference, Multimap<Cell, Long>> allCellsToMarkScrubbed =
                 Maps.newHashMapWithExpectedSize(tableNameToCells.keySet().size());
-        for (Entry<TableReference, Collection<Cell>> entry : tableNameToCells.asMap().entrySet()) {
+        for (Entry<TableReference, Collection<Cell>> entry :
+                tableNameToCells.asMap().entrySet()) {
             TableReference tableRef = entry.getKey();
-            log.debug("Attempting to immediately scrub {} cells from table {}", entry.getValue().size(), tableRef);
+            log.debug(
+                    "Attempting to immediately scrub {} cells from table {}",
+                    entry.getValue().size(),
+                    tableRef);
             for (List<Cell> cells : Iterables.partition(entry.getValue(), batchSizeSupplier.get())) {
-                Multimap<Cell, Long> allTimestamps = keyValueService.getAllTimestamps(
-                        tableRef, ImmutableSet.copyOf(cells), scrubTimestamp);
-                Multimap<Cell, Long> timestampsToDelete = Multimaps.filterValues(
-                        allTimestamps, v -> !v.equals(Value.INVALID_VALUE_TIMESTAMP));
+                Multimap<Cell, Long> allTimestamps =
+                        keyValueService.getAllTimestamps(tableRef, ImmutableSet.copyOf(cells), scrubTimestamp);
+                Multimap<Cell, Long> timestampsToDelete =
+                        Multimaps.filterValues(allTimestamps, v -> !v.equals(Value.INVALID_VALUE_TIMESTAMP));
 
                 // If transactionType == TransactionType.AGGRESSIVE_HARD_DELETE this might
                 // force other transactions to abort or retry
@@ -520,16 +546,20 @@ public class Scrubber {
                 }
                 allCellsToMarkScrubbed.put(tableRef, cellsToMarkScrubbed);
             }
-            log.debug("Immediately scrubbed {} cells from table {}", entry.getValue().size(), tableRef);
+            log.debug(
+                    "Immediately scrubbed {} cells from table {}",
+                    entry.getValue().size(),
+                    tableRef);
         }
         scrubberStore.markCellsAsScrubbed(allCellsToMarkScrubbed, batchSizeSupplier.get());
         lazyWriteMetric(AtlasDbMetricNames.SCRUBBED_CELLS, allCellsToMarkScrubbed.size());
     }
 
-    private void deleteCellsAtTimestamps(TransactionManager txManager,
-                                         TableReference tableRef,
-                                         Multimap<Cell, Long> cellToTimestamp,
-                                         Transaction.TransactionType transactionType) {
+    private void deleteCellsAtTimestamps(
+            TransactionManager txManager,
+            TableReference tableRef,
+            Multimap<Cell, Long> cellToTimestamp,
+            Transaction.TransactionType transactionType) {
         if (!cellToTimestamp.isEmpty()) {
             for (Follower follower : followers) {
                 follower.run(txManager, tableRef, cellToTimestamp.keySet(), transactionType);

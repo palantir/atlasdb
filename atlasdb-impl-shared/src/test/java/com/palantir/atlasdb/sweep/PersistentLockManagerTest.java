@@ -31,14 +31,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -51,8 +43,13 @@ import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import net.jcip.annotations.GuardedBy;
+import org.junit.Before;
+import org.junit.Test;
 
 public class PersistentLockManagerTest {
     private static final PersistentLockId FIRST_LOCK_ID = PersistentLockId.fromString("2-4-6-0-1");
@@ -227,14 +224,12 @@ public class PersistentLockManagerTest {
                 .instanceId(UUID.randomUUID())
                 .reason("backup")
                 .build();
-        CheckAndSetException casException =
-                new CheckAndSetException(Cell.create(PtBytes.toBytes("unu"), PtBytes.toBytes("sed")),
-                        TableReference.createFromFullyQualifiedName("unu.sed"),
-                        PtBytes.toBytes("unused"),
-                        ImmutableList.of(usurper.value())
-                        );
-        when(mockPls.acquireBackupLock(anyString()))
-                .thenThrow(casException);
+        CheckAndSetException casException = new CheckAndSetException(
+                Cell.create(PtBytes.toBytes("unu"), PtBytes.toBytes("sed")),
+                TableReference.createFromFullyQualifiedName("unu.sed"),
+                PtBytes.toBytes("unused"),
+                ImmutableList.of(usurper.value()));
+        when(mockPls.acquireBackupLock(anyString())).thenThrow(casException);
 
         // We call the non-retrying version here, because we:
         //   (a) don't want the test to hang
@@ -287,20 +282,23 @@ public class PersistentLockManagerTest {
 
     @Test
     public void noOpPersistentLockDoesNotThrow() {
-        PersistentLockManager noOpManager = new PersistentLockManager(
-                metricsManager, new NoOpPersistentLockService(), 0L);
-        assertTrue("NoOpPersistentLockService should return true when acquiring lock",
+        PersistentLockManager noOpManager =
+                new PersistentLockManager(metricsManager, new NoOpPersistentLockService(), 0L);
+        assertTrue(
+                "NoOpPersistentLockService should return true when acquiring lock",
                 noOpManager.tryAcquirePersistentLock());
         noOpManager.releasePersistentLock();
     }
 
     @Test
     public void noOpPersistentLockCanLockTwice() {
-        PersistentLockManager noOpManager = new PersistentLockManager(
-                metricsManager, new NoOpPersistentLockService(), 0L);
-        assertTrue("NoOpPersistentLockService should return true when acquiring lock",
+        PersistentLockManager noOpManager =
+                new PersistentLockManager(metricsManager, new NoOpPersistentLockService(), 0L);
+        assertTrue(
+                "NoOpPersistentLockService should return true when acquiring lock",
                 noOpManager.tryAcquirePersistentLock());
-        assertTrue("NoOpPersistentLockService should return true when acquiring lock for the second time",
+        assertTrue(
+                "NoOpPersistentLockService should return true when acquiring lock for the second time",
                 noOpManager.tryAcquirePersistentLock());
     }
 
@@ -310,14 +308,11 @@ public class PersistentLockManagerTest {
                 .instanceId(FIRST_LOCK_ID.value())
                 .reason("Sweep")
                 .build();
-        CheckAndSetException casException =
-                new CheckAndSetException(Cell.create(PtBytes.toBytes("unu"), PtBytes.toBytes("sed")),
-                        TableReference.createFromFullyQualifiedName("unu.sed"),
-                        PtBytes.toBytes("unused"),
-                        ImmutableList.of(oldEntry.value())
-                );
-        when(mockPls.acquireBackupLock(anyString()))
-                .thenReturn(FIRST_LOCK_ID)
-                .thenThrow(casException);
+        CheckAndSetException casException = new CheckAndSetException(
+                Cell.create(PtBytes.toBytes("unu"), PtBytes.toBytes("sed")),
+                TableReference.createFromFullyQualifiedName("unu.sed"),
+                PtBytes.toBytes("unused"),
+                ImmutableList.of(oldEntry.value()));
+        when(mockPls.acquireBackupLock(anyString())).thenReturn(FIRST_LOCK_ID).thenThrow(casException);
     }
 }

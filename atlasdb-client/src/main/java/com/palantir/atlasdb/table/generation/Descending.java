@@ -34,5 +34,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 public @interface Descending {
-// marker annotation
+    // marker annotation
 }

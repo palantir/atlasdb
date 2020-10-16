@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
@@ -32,18 +26,25 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.HealthCheckPinger;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class LeadershipContextFactory implements
-        Factory<LeadershipContext>,
-        Dependencies.NetworkClientFactories,
-        Dependencies.LeaderPinger,
-        Dependencies.ClientAwareComponents,
-        Dependencies.HealthCheckPinger {
+public abstract class LeadershipContextFactory
+        implements Factory<LeadershipContext>,
+                Dependencies.NetworkClientFactories,
+                Dependencies.LeaderPinger,
+                Dependencies.ClientAwareComponents,
+                Dependencies.HealthCheckPinger {
 
     abstract PaxosResourcesFactory.TimelockPaxosInstallationContext install();
+
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
+
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
+
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
 
     public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
@@ -130,10 +131,10 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Immutable
-    abstract static class ClientAwareComponents implements
-            Dependencies.ClientAwareComponents,
-            Dependencies.LeaderElectionService,
-            Dependencies.LeadershipMetrics {
+    abstract static class ClientAwareComponents
+            implements Dependencies.ClientAwareComponents,
+                    Dependencies.LeaderElectionService,
+                    Dependencies.LeadershipMetrics {
 
         public abstract Client proxyClient();
 
@@ -166,6 +167,5 @@ public abstract class LeadershipContextFactory implements
         public PaxosLeadershipEventRecorder eventRecorder() {
             return leadershipMetrics().eventRecorder();
         }
-
     }
 }

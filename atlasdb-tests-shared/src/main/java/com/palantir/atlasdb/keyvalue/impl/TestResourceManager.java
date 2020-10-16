@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-
 import org.junit.rules.ExternalResource;
-
-import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class TestResourceManager extends ExternalResource implements KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> getKvsSupplier;

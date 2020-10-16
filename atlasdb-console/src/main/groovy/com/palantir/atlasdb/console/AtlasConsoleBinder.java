@@ -15,18 +15,15 @@
  */
 package com.palantir.atlasdb.console;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-
-import org.codehaus.groovy.runtime.MethodClosure;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.console.annotations.ConsoleBinding;
-
 import groovy.lang.Binding;
 import groovy.lang.Closure;
+import java.lang.reflect.Method;
+import java.util.Map;
+import org.codehaus.groovy.runtime.MethodClosure;
 
 public final class AtlasConsoleBinder {
 
@@ -61,7 +58,10 @@ public final class AtlasConsoleBinder {
         for (Method m : module.getClass().getMethods()) {
             ConsoleBinding b = m.getAnnotation(ConsoleBinding.class);
             if (b != null) {
-                Preconditions.checkArgument(!Strings.isNullOrEmpty(b.name()), "@ConsoleBinding name cannot be null or empty on %s.:", m.getName());
+                Preconditions.checkArgument(
+                        !Strings.isNullOrEmpty(b.name()),
+                        "@ConsoleBinding name cannot be null or empty on %s.:",
+                        m.getName());
                 bindings.put(b.name(), createClosure(module, m));
                 if (!Strings.isNullOrEmpty(b.help())) {
                     help.put(b.name(), b.help());
@@ -99,7 +99,8 @@ public final class AtlasConsoleBinder {
             System.out.println("\nTopics with help messages:\n"); // (authorized)
             System.out.println(help.keySet().toString()); // (authorized)
             System.out.println("\nCall help(\'topic\') to view information on a specific topic.\n"); // (authorized)
-            System.out.println("If you'd like to enable database mutations (not recommended), re-run console with the 'mutations_enabled' flag\n"); // (authorized)
+            System.out.println("If you'd like to enable database mutations (not recommended), re-run console with the"
+                    + " 'mutations_enabled' flag\n"); // (authorized)
             return null;
         }
 

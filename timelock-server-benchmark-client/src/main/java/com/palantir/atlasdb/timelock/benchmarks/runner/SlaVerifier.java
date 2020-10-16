@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.runner;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -25,7 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -75,15 +73,12 @@ public class SlaVerifier extends BenchmarkRunnerBase {
     public void writeTransactionStripedHighContentionBurst() {
         ExecutorService executor = Executors.newFixedThreadPool(8);
         List<Future<Map<String, Object>>> futures = IntStream.range(0, 8)
-                .mapToObj(i -> executor.submit(
-                        () -> client.transactionWriteContended(512, 1)))
+                .mapToObj(i -> executor.submit(() -> client.transactionWriteContended(512, 1)))
                 .collect(Collectors.toList());
 
-        futures.stream()
-                .map(this::getUnchecked)
-                .forEach(results -> {
-                    assertThat((Double) results.get("totalTime")).isLessThan(120_000);
-                });
+        futures.stream().map(this::getUnchecked).forEach(results -> {
+            assertThat((Double) results.get("totalTime")).isLessThan(120_000);
+        });
     }
 
     private Map<String, Object> getUnchecked(Future<Map<String, Object>> future) {
@@ -93,5 +88,4 @@ public class SlaVerifier extends BenchmarkRunnerBase {
             throw new RuntimeException(e);
         }
     }
-
 }

@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -33,6 +28,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public abstract class AbstractDbWriteTable implements DbWriteTable {
     protected final DdlConfig config;
@@ -57,7 +56,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
         for (Entry<Cell, byte[]> entry : data) {
             Cell cell = entry.getKey();
             byte[] val = entry.getValue();
-            args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, val });
+            args.add(new Object[] {cell.getRowName(), cell.getColumnName(), ts, val});
         }
         put(args);
     }
@@ -68,7 +67,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
         for (Entry<Cell, Value> entry : data) {
             Cell cell = entry.getKey();
             Value val = entry.getValue();
-            args.add(new Object[] { cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents() });
+            args.add(new Object[] {cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents()});
         }
         put(args);
     }
@@ -76,10 +75,12 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     private void put(List<Object[]> args) {
         try {
             String prefixedTableName = prefixedTableNames.get(tableRef, conns);
-            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + prefixedTableName + ") */"
-                    + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
-                    + " VALUES (?, ?, ?, ?) ",
-                    args);
+            conns.get()
+                    .insertManyUnregisteredQuery(
+                            "/* INSERT_ONE (" + prefixedTableName + ") */"
+                                    + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
+                                    + " VALUES (?, ?, ?, ?) ",
+                            args);
         } catch (PalantirSqlException e) {
             if (ExceptionCheck.isUniqueConstraintViolation(e)) {
                 throw new KeyAlreadyExistsException("primary key violation", e);
@@ -95,20 +96,23 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
         for (List<Cell> batch : Lists.partition(Ordering.natural().immutableSortedCopy(cells), 1000)) {
             List<Object[]> args = Lists.newArrayListWithCapacity(batch.size());
             for (Cell cell : batch) {
-                args.add(new Object[] {cell.getRowName(), cell.getColumnName(), ts, value,
-                        cell.getRowName(), cell.getColumnName(), ts});
+                args.add(new Object[] {
+                    cell.getRowName(), cell.getColumnName(), ts, value, cell.getRowName(), cell.getColumnName(), ts
+                });
             }
             while (true) {
                 try {
                     String prefixedTableName = prefixedTableNames.get(tableRef, conns);
-                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + prefixedTableName + ") */"
-                            + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
-                            + " SELECT ?, ?, ?, ? FROM DUAL"
-                            + " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName + " WHERE"
-                            + " row_name = ? AND"
-                            + " col_name = ? AND"
-                            + " ts = ?)",
-                            args);
+                    conns.get()
+                            .insertManyUnregisteredQuery(
+                                    "/* INSERT_WHERE_NOT_EXISTS (" + prefixedTableName + ") */"
+                                            + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
+                                            + " SELECT ?, ?, ?, ? FROM DUAL"
+                                            + " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName + " WHERE"
+                                            + " row_name = ? AND"
+                                            + " col_name = ? AND"
+                                            + " ts = ?)",
+                                    args);
                     break;
                 } catch (PalantirSqlException e) {
                     // we can't do atomic put if not exists, so retry if we get constraint violations
@@ -135,13 +139,15 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
         }
 
         String prefixedTableName = prefixedTableNames.get(tableRef, conns);
-        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
-                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
-                + " FROM " + prefixedTableName + " m "
-                + " WHERE m.row_name = ? "
-                + "  AND m.col_name = ? "
-                + "  AND m.ts = ?",
-                args);
+        conns.get()
+                .updateManyUnregisteredQuery(
+                        " /* DELETE_ONE (" + prefixedTableName + ") */ "
+                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
+                                + " FROM " + prefixedTableName + " m "
+                                + " WHERE m.row_name = ? "
+                                + "  AND m.col_name = ? "
+                                + "  AND m.ts = ?",
+                        args);
     }
 
     @Override
@@ -168,18 +174,21 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     @Override
     public void deleteAllTimestamps(Map<Cell, TimestampRangeDelete> deletes) {
         List<Object[]> args = Lists.newArrayListWithCapacity(deletes.size());
-        deletes.forEach((cell, ts) ->
-                args.add(new Object[] {cell.getRowName(), cell.getColumnName(),
-                                       ts.minTimestampToDelete(), ts.maxTimestampToDelete()}));
+        deletes.forEach((cell, ts) -> args.add(new Object[] {
+            cell.getRowName(), cell.getColumnName(),
+            ts.minTimestampToDelete(), ts.maxTimestampToDelete()
+        }));
 
         String prefixedTableName = prefixedTableNames.get(tableRef, conns);
-        conns.get().updateManyUnregisteredQuery(" /* DELETE_ALL_TS (" + prefixedTableName + ") */ "
-                        + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
-                        + " FROM " + prefixedTableName + " m "
-                        + " WHERE m.row_name = ? "
-                        + "  AND m.col_name = ? "
-                        + "  AND m.ts >= ? "
-                        + "  AND m.ts <= ?",
-                args);
+        conns.get()
+                .updateManyUnregisteredQuery(
+                        " /* DELETE_ALL_TS (" + prefixedTableName + ") */ "
+                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
+                                + " FROM " + prefixedTableName + " m "
+                                + " WHERE m.row_name = ? "
+                                + "  AND m.col_name = ? "
+                                + "  AND m.ts >= ? "
+                                + "  AND m.ts <= ?",
+                        args);
     }
 }

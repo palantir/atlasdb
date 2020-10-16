@@ -16,8 +16,6 @@
 
 package com.palantir.timelock.history;
 
-import java.util.Map;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -27,9 +25,9 @@ import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import java.util.Map;
 
-
-//TBD cache implementation
+// TBD cache implementation
 public final class LocalHistoryLoader {
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
 
@@ -41,8 +39,7 @@ public final class LocalHistoryLoader {
         return new LocalHistoryLoader(sqlitePaxosStateLogHistory);
     }
 
-    public PaxosHistoryOnSingleNode getLocalPaxosHistory(
-            Map<NamespaceAndUseCase, Long> lastVerifiedSequences) {
+    public PaxosHistoryOnSingleNode getLocalPaxosHistory(Map<NamespaceAndUseCase, Long> lastVerifiedSequences) {
         return ImmutablePaxosHistoryOnSingleNode.of(KeyedStream.stream(lastVerifiedSequences)
                 .map(this::loadLocalHistory)
                 .collectToMap());

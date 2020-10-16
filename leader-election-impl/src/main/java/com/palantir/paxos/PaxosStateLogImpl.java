@@ -15,6 +15,19 @@
  */
 package com.palantir.paxos;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.paxos.persistence.generated.PaxosPersistence;
+import com.palantir.util.crypto.Sha256Hash;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -29,25 +42,10 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.persist.Persistable;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
-import com.palantir.paxos.persistence.generated.PaxosPersistence;
-import com.palantir.util.crypto.Sha256Hash;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
@@ -79,7 +77,10 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         };
     }
 
-    private enum Extreme { GREATEST, LEAST }
+    private enum Extreme {
+        GREATEST,
+        LEAST
+    }
 
     final String path;
 
@@ -126,8 +127,9 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         // compute checksum hash
         byte[] bytes = round.persistToBytes();
         byte[] hash = Sha256Hash.computeHash(bytes).getBytes();
-        PaxosPersistence.PaxosHeader header = PaxosPersistence.PaxosHeader.newBuilder().setChecksum(
-                ByteString.copyFrom(hash)).build();
+        PaxosPersistence.PaxosHeader header = PaxosPersistence.PaxosHeader.newBuilder()
+                .setChecksum(ByteString.copyFrom(hash))
+                .build();
 
         FileOutputStream fileOut = null;
         try {
@@ -252,8 +254,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         lock.readLock().lock();
         try {
             InputStream fileIn = null;
-            PaxosPersistence.PaxosHeader.Builder headerBuilder =
-                    PaxosPersistence.PaxosHeader.newBuilder();
+            PaxosPersistence.PaxosHeader.Builder headerBuilder = PaxosPersistence.PaxosHeader.newBuilder();
             try {
                 fileIn = new FileInputStream(file);
                 headerBuilder.mergeDelimitedFrom(fileIn);
@@ -270,7 +271,8 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 // that should be treated in the same way as IOException.
             } catch (IOException e) {
                 // Note that the file name is a Paxos log entry - so it is the round number - and thus safe.
-                log.error("Problem reading paxos state, specifically when reading file {} (file-name {})",
+                log.error(
+                        "Problem reading paxos state, specifically when reading file {} (file-name {})",
                         UnsafeArg.of("full path", file.getAbsolutePath()),
                         SafeArg.of("file name", file.getName()));
                 throw Throwables.rewrap(e);
@@ -282,5 +284,4 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
         return null;
     }
-
 }

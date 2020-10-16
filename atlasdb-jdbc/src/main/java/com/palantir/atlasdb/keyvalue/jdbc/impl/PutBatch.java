@@ -16,16 +16,18 @@
 package com.palantir.atlasdb.keyvalue.jdbc.impl;
 
 import java.util.Collection;
-
 import javax.annotation.Nullable;
-
 import org.jooq.InsertValuesStep4;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.Row3;
 
 public interface PutBatch {
-    InsertValuesStep4<Record, byte[], byte[], Long, byte[]> addValuesForInsert(InsertValuesStep4<Record, byte[], byte[], Long, byte[]> query);
+    InsertValuesStep4<Record, byte[], byte[], Long, byte[]> addValuesForInsert(
+            InsertValuesStep4<Record, byte[], byte[], Long, byte[]> query);
+
     Collection<Row3<byte[], byte[], Long>> getRowsForSelect();
-    @Nullable PutBatch getNextBatch(Result<? extends Record> existingRecords);
+
+    @Nullable
+    PutBatch getNextBatch(Result<? extends Record> existingRecords);
 }

@@ -17,16 +17,6 @@ package com.palantir.atlasdb.table.description.render;
 
 import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedMap;
-import java.util.stream.Collectors;
-
-import javax.annotation.Generated;
-import javax.lang.model.element.Modifier;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -45,6 +35,14 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.stream.Collectors;
+import javax.annotation.Generated;
+import javax.lang.model.element.Modifier;
 
 public final class TableFactoryRenderer {
     private final String schemaName;
@@ -54,7 +52,8 @@ public final class TableFactoryRenderer {
     private final ClassName tableFactoryType;
     private final ClassName sharedTriggersType;
 
-    private TableFactoryRenderer(String schemaName,
+    private TableFactoryRenderer(
+            String schemaName,
             String packageName,
             String defaultNamespaceName,
             SortedMap<String, TableDefinition> definitions,
@@ -120,12 +119,12 @@ public final class TableFactoryRenderer {
         List<FieldSpec> results = new ArrayList<>();
 
         TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
-                ClassName.get(Function.class),
-                WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
+                ClassName.get(Function.class), WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
 
         results.add(getDefaultNamespaceField());
-        results.add(FieldSpec.builder(ParameterizedTypeName.get(
-                ClassName.get(List.class), functionOfTransactionAndTriggersType), "sharedTriggers")
+        results.add(FieldSpec.builder(
+                        ParameterizedTypeName.get(ClassName.get(List.class), functionOfTransactionAndTriggersType),
+                        "sharedTriggers")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                 .build());
         results.add(FieldSpec.builder(Namespace.class, "namespace")
@@ -147,14 +146,14 @@ public final class TableFactoryRenderer {
         List<MethodSpec> results = new ArrayList<>();
 
         TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
-                ClassName.get(Function.class),
-                WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
-        TypeName sharedTriggersListType = ParameterizedTypeName.get(
-                ClassName.get(List.class), functionOfTransactionAndTriggersType);
+                ClassName.get(Function.class), WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
+        TypeName sharedTriggersListType =
+                ParameterizedTypeName.get(ClassName.get(List.class), functionOfTransactionAndTriggersType);
 
         results.add(factoryBaseBuilder()
-                .addParameter(ParameterizedTypeName.get(
-                        ClassName.get(List.class), functionOfTransactionAndTriggersType), "sharedTriggers")
+                .addParameter(
+                        ParameterizedTypeName.get(ClassName.get(List.class), functionOfTransactionAndTriggersType),
+                        "sharedTriggers")
                 .addParameter(Namespace.class, "namespace")
                 .addStatement("return new $T($L, $L)", tableFactoryType, "sharedTriggers", "namespace")
                 .build());
@@ -166,14 +165,16 @@ public final class TableFactoryRenderer {
 
         results.add(factoryBaseBuilder()
                 .addParameter(Namespace.class, "namespace")
-                .addStatement("return of($T.<$T>of(), $L)",
+                .addStatement(
+                        "return of($T.<$T>of(), $L)",
                         ImmutableList.class,
                         functionOfTransactionAndTriggersType,
                         "namespace")
                 .build());
 
         results.add(factoryBaseBuilder()
-                .addStatement("return of($T.<$T>of(), $L)",
+                .addStatement(
+                        "return of($T.<$T>of(), $L)",
                         ImmutableList.class,
                         functionOfTransactionAndTriggersType,
                         "defaultNamespace")
@@ -192,13 +193,11 @@ public final class TableFactoryRenderer {
 
     private List<MethodSpec> getMethods() {
         List<MethodSpec> results = new ArrayList<>();
-        results.addAll(definitions.entrySet()
-                .stream()
+        results.addAll(definitions.entrySet().stream()
                 .map(entry -> getTableMethod(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList()));
 
-        results.addAll(definitions.entrySet()
-                .stream()
+        results.addAll(definitions.entrySet().stream()
                 .filter(entry -> entry.getValue().hasV2TableEnabled())
                 .map(entry -> getV2TableMethod(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList()));
@@ -225,14 +224,16 @@ public final class TableFactoryRenderer {
                     .addParameter(String.class, "name")
                     .addParameter(ArrayTypeName.of(triggerType), "triggers")
                     .varargs()
-                    .addStatement("return $T.of(t, namespace, name, $T.getAllTriggers(t, sharedTriggers, triggers))",
+                    .addStatement(
+                            "return $T.of(t, namespace, name, $T.getAllTriggers(t, sharedTriggers, triggers))",
                             tableType,
                             Triggers.class);
         } else {
             tableGetterMethodBuilder
                     .addParameter(ArrayTypeName.of(triggerType), "triggers")
                     .varargs()
-                    .addStatement("return $T.of(t, namespace, $T.getAllTriggers(t, sharedTriggers, triggers))",
+                    .addStatement(
+                            "return $T.of(t, namespace, $T.getAllTriggers(t, sharedTriggers, triggers))",
                             tableType,
                             Triggers.class);
         }
@@ -252,8 +253,8 @@ public final class TableFactoryRenderer {
     }
 
     private TypeSpec getSharedTriggers() {
-        TypeSpec.Builder sharedTriggersInterfaceBuilder = TypeSpec.interfaceBuilder("SharedTriggers")
-                .addModifiers(Modifier.PUBLIC);
+        TypeSpec.Builder sharedTriggersInterfaceBuilder =
+                TypeSpec.interfaceBuilder("SharedTriggers").addModifiers(Modifier.PUBLIC);
 
         for (String name : definitions.keySet()) {
             String tableName = getTableName(name);
@@ -287,14 +288,11 @@ public final class TableFactoryRenderer {
                     .addModifiers(Modifier.PUBLIC)
                     .addParameter(
                             ParameterizedTypeName.get(
-                                    ClassName.get(Multimap.class),
-                                    rowType,
-                                    WildcardTypeName.subtypeOf(columnType)
-                            ), "newRows")
+                                    ClassName.get(Multimap.class), rowType, WildcardTypeName.subtypeOf(columnType)),
+                            "newRows")
                     .addComment("do nothing")
                     .build();
-            nullSharedTriggersClassBuilder
-                    .addMethod(putMethod);
+            nullSharedTriggersClassBuilder.addMethod(putMethod);
         }
 
         return nullSharedTriggersClassBuilder.build();
@@ -315,8 +313,8 @@ public final class TableFactoryRenderer {
         if (defaultNamespaceName.isEmpty()) {
             namespaceFieldBuilder.initializer("$T.EMPTY_NAMESPACE", Namespace.class);
         } else {
-            namespaceFieldBuilder.initializer("$T.create($S, $T.UNCHECKED_NAME)",
-                    Namespace.class, defaultNamespaceName, Namespace.class);
+            namespaceFieldBuilder.initializer(
+                    "$T.create($S, $T.UNCHECKED_NAME)", Namespace.class, defaultNamespaceName, Namespace.class);
         }
         return namespaceFieldBuilder.build();
     }

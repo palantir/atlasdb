@@ -18,11 +18,10 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import org.junit.Test;
 
 public class ProtocolAwareExceptionMapperTest {
     private static final UserAgent USER_AGENT_1 = createBaseUserAgent("Bond", "0.0.7");
@@ -30,22 +29,22 @@ public class ProtocolAwareExceptionMapperTest {
 
     private static final UserAgent.Agent AGENT_1 = UserAgent.Agent.of("Shield", "24.7.0");
     private static final String HTTP_PROTOCOL_VERSION = "8.0";
-    private static final UserAgent.Agent HTTP_CLIENT_AGENT
-            = UserAgent.Agent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT, HTTP_PROTOCOL_VERSION);
-    private static final String FORMATTED_USER_AGENT_WITH_HTTP_CLIENT
-            = UserAgents.format(USER_AGENT_1.addAgent(HTTP_CLIENT_AGENT));
+    private static final UserAgent.Agent HTTP_CLIENT_AGENT =
+            UserAgent.Agent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT, HTTP_PROTOCOL_VERSION);
+    private static final String FORMATTED_USER_AGENT_WITH_HTTP_CLIENT =
+            UserAgents.format(USER_AGENT_1.addAgent(HTTP_CLIENT_AGENT));
 
     @Test
     public void detectsAtlasDbHttpClientAgent() {
         assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
-                ImmutableList.of(FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
+                        ImmutableList.of(FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
                 .contains(HTTP_PROTOCOL_VERSION);
     }
 
     @Test
     public void returnsEmptyIfNoRelevantAgentsFound() {
         assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
-                ImmutableList.of(UserAgents.format(USER_AGENT_1.addAgent(AGENT_1)))))
+                        ImmutableList.of(UserAgents.format(USER_AGENT_1.addAgent(AGENT_1)))))
                 .isEmpty();
     }
 
@@ -58,23 +57,21 @@ public class ProtocolAwareExceptionMapperTest {
     @Test
     public void returnsEmptyIfUserAgentStringCannotBeParsed() {
         assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
-                ImmutableList.of("I don't know what a user agent is!")))
+                        ImmutableList.of("I don't know what a user agent is!")))
                 .isEmpty();
     }
 
     @Test
     public void detectsAtlasDbHttpClientAgentInPresenceOfUnparseableHeaders() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
-                ImmutableList.of("Ich weiß nicht, was ein 'User-Agent' bedeutet",
-                        FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
+        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(ImmutableList.of(
+                        "Ich weiß nicht, was ein 'User-Agent' bedeutet", FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
                 .contains(HTTP_PROTOCOL_VERSION);
     }
 
     @Test
     public void detectsAtlasDbHttpClientAgentOnAnyPresentUserAgentHeader() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
-                ImmutableList.of(UserAgents.format(USER_AGENT_2.addAgent(AGENT_1)),
-                        FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
+        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(ImmutableList.of(
+                        UserAgents.format(USER_AGENT_2.addAgent(AGENT_1)), FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
                 .contains(HTTP_PROTOCOL_VERSION);
     }
 

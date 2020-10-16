@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import org.slf4j.Logger;
-
 import com.palantir.atlasdb.transaction.api.Transaction;
+import org.slf4j.Logger;
 
 public class Log4JTracingTransaction extends TracingTransaction {
     private final Logger logger;

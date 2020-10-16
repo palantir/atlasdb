@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.google.common.base.Suppliers;
@@ -34,6 +24,14 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 @Value.Enclosing
 public final class SweepOutcomeMetrics {
@@ -51,26 +49,14 @@ public final class SweepOutcomeMetrics {
     }
 
     public static SweepOutcomeMetrics registerLegacy(MetricsManager metricsManager) {
-        return new SweepOutcomeMetrics(
-                buildMetrics(
-                        metricsManager,
-                        LEGACY_OUTCOMES,
-                        ImmutableMap.of(),
-                        BackgroundSweeperImpl.class,
-                        Optional.empty()));
+        return new SweepOutcomeMetrics(buildMetrics(
+                metricsManager, LEGACY_OUTCOMES, ImmutableMap.of(), BackgroundSweeperImpl.class, Optional.empty()));
     }
 
     public static SweepOutcomeMetrics registerTargeted(
-            MetricsManager metricsManager,
-            Map<String, String> strategyTag,
-            MetricPublicationFilter filter) {
-        return new SweepOutcomeMetrics(
-                buildMetrics(
-                        metricsManager,
-                        TARGETED_OUTCOMES,
-                        strategyTag,
-                        TargetedSweepMetrics.class,
-                        Optional.of(filter)));
+            MetricsManager metricsManager, Map<String, String> strategyTag, MetricPublicationFilter filter) {
+        return new SweepOutcomeMetrics(buildMetrics(
+                metricsManager, TARGETED_OUTCOMES, strategyTag, TargetedSweepMetrics.class, Optional.of(filter)));
     }
 
     public void registerOccurrenceOf(SweepOutcome outcome) {
@@ -95,14 +81,10 @@ public final class SweepOutcomeMetrics {
                         .putAll(additionalTags)
                         .put(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())
                         .build();
-                filter.ifPresent(presentFilter -> manager.addMetricFilter(
-                        forClass,
-                        AtlasDbMetricNames.SWEEP_OUTCOME,
-                        tags,
-                        filter.get()));
-                manager.registerOrGet(forClass, AtlasDbMetricNames.SWEEP_OUTCOME,
-                        () -> getOutcomeCount(metrics, outcome),
-                        tags);
+                filter.ifPresent(presentFilter ->
+                        manager.addMetricFilter(forClass, AtlasDbMetricNames.SWEEP_OUTCOME, tags, filter.get()));
+                manager.registerOrGet(
+                        forClass, AtlasDbMetricNames.SWEEP_OUTCOME, () -> getOutcomeCount(metrics, outcome), tags);
             });
             return metrics;
         });

@@ -16,22 +16,8 @@
 
 package com.palantir.atlasdb;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.IntStream;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -51,6 +37,17 @@ import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class SinglePingableLeaderTest {
     private static final UUID LOCAL_UUID = UUID.randomUUID();
@@ -66,19 +63,20 @@ public class SinglePingableLeaderTest {
     private static final MappingBuilder PING_V2_MAPPING = WireMock.get(WireMock.urlEqualTo(PING_V2));
     private static final MappingBuilder UUID_MAPPING = WireMock.get(WireMock.urlEqualTo(UUID_PATH));
 
-    private static final SslConfiguration SSL_CONFIGURATION
-            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
 
     private int availablePort;
     private String serverUri;
 
     @Rule
-    public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockRule availableServer =
+            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Before
     public void setup() {
-        availableServer.stubFor(UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
-                ("\"" + REMOTE_UUID.toString() + "\"").getBytes())));
+        availableServer.stubFor(UUID_MAPPING.willReturn(
+                aResponse().withStatus(200).withBody(("\"" + REMOTE_UUID.toString() + "\"").getBytes())));
 
         availableServer.stubFor(PING_MAPPING.willReturn(WireMock.aResponse().withStatus(204)));
 
@@ -88,8 +86,8 @@ public class SinglePingableLeaderTest {
 
     @Test
     public void doesNotFallbackOnPingWhenPingV2Responds() {
-        availableServer.stubFor(PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(200)
-                .withBody("{\"isLeader\":false}")));
+        availableServer.stubFor(
+                PING_V2_MAPPING.willReturn(WireMock.aResponse().withStatus(200).withBody("{\"isLeader\":false}")));
         getDefaultLeaderPinger().pingLeaderWithUuid(REMOTE_UUID);
         assertPingV2RequestsMadeAreExactly(1);
         assertLegacyPingRequestsMade(0);
@@ -152,9 +150,7 @@ public class SinglePingableLeaderTest {
                 ServiceCreator.createTrustContext(Optional.of(SSL_CONFIGURATION)),
                 USER_AGENT);
         return new SingleLeaderPinger(
-                ImmutableMap.of(
-                        otherLeaders.get(0),
-                        new CheckedRejectionExecutorService(executorService)),
+                ImmutableMap.of(otherLeaders.get(0), new CheckedRejectionExecutorService(executorService)),
                 Duration.ofSeconds(5),
                 LOCAL_UUID,
                 true,

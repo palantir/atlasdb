@@ -21,5 +21,6 @@ package com.palantir.common.proxy;
  *
  */
 public enum CancelDelegate {
-    CANCEL, ALLOW_TO_FINISH;
+    CANCEL,
+    ALLOW_TO_FINISH;
 }

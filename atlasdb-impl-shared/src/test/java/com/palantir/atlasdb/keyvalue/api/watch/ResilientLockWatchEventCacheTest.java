@@ -24,31 +24,30 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class ResilientLockWatchEventCacheTest {
 
-    private final MetricsManager metricsManager = new MetricsManager(
-            new MetricRegistry(),
-            new DefaultTaggedMetricRegistry(),
-            unused -> false);
+    private final MetricsManager metricsManager =
+            new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), unused -> false);
 
     @Mock
     private LockWatchEventCache defaultCache;
+
     @Mock
     private LockWatchEventCache fallbackCache;
+
     private LockWatchEventCache proxyCache;
 
     @Before
@@ -66,7 +65,8 @@ public final class ResilientLockWatchEventCacheTest {
 
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).hasCause(runtimeException)
+        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+                .hasCause(runtimeException)
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
 
         assertThat(proxyCache.isEnabled()).isFalse();
@@ -80,7 +80,8 @@ public final class ResilientLockWatchEventCacheTest {
     public void failCausesFallbackCacheToBeUsed() {
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).hasCause(runtimeException)
+        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+                .hasCause(runtimeException)
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
 
         proxyCache.lastKnownVersion();

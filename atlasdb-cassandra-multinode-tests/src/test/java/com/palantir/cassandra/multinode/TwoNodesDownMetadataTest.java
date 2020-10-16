@@ -16,11 +16,10 @@
 
 package com.palantir.cassandra.multinode;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import org.junit.Test;
 
 public class TwoNodesDownMetadataTest extends AbstractDegradedClusterTest {
 
@@ -31,20 +30,20 @@ public class TwoNodesDownMetadataTest extends AbstractDegradedClusterTest {
 
     @Test
     public void getMetadataForTableThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().getMetadataForTable(TEST_TABLE));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().getMetadataForTable(TEST_TABLE));
     }
 
     @Test
     public void getMetadataForTablesThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().getMetadataForTables());
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().getMetadataForTables());
     }
 
     @Test
     public void putMetadataForTableThrowsAndDoesNotChangeCassandraSchema() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().putMetadataForTable(TEST_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().putMetadataForTable(TEST_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
     }
 
     @Test

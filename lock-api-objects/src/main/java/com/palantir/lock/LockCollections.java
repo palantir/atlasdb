@@ -15,13 +15,12 @@
  */
 package com.palantir.lock;
 
-import java.util.Comparator;
-import java.util.Map;
-import java.util.SortedMap;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.palantir.logsafe.Preconditions;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.SortedMap;
 
 public final class LockCollections {
 
@@ -34,9 +33,10 @@ public final class LockCollections {
     }
 
     public static <T extends Comparable<T>> SortedLockCollection<T> of(SortedMap<T, LockMode> locks) {
-        Preconditions.checkArgument(locks.comparator() == null
-                || locks.comparator() == Ordering.natural()
-                || locks.comparator() == Comparator.naturalOrder(),
+        Preconditions.checkArgument(
+                locks.comparator() == null
+                        || locks.comparator() == Ordering.natural()
+                        || locks.comparator() == Comparator.naturalOrder(),
                 "sorted lock collections must use naturally comparable keys");
         return new SortedLockCollection<T>(locks.entrySet());
     }

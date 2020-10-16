@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
-
-import com.google.common.collect.ImmutableList;
 
 @Value.Immutable
 interface LocalAndRemotes<T> {
@@ -36,20 +34,17 @@ interface LocalAndRemotes<T> {
     @Value.Derived
     @Value.Auxiliary
     default List<T> all() {
-        return ImmutableList.<T>builder()
-                .addAll(remotes())
-                .add(local())
-                .build();
+        return ImmutableList.<T>builder().addAll(remotes()).add(local()).build();
     }
 
     default <U> LocalAndRemotes<U> map(Function<T, U> mapper) {
         return ImmutableLocalAndRemotes.of(
-                mapper.apply(local()),
-                remotes().stream().map(mapper).collect(Collectors.toList()));
+                mapper.apply(local()), remotes().stream().map(mapper).collect(Collectors.toList()));
     }
 
     default LocalAndRemotes<T> enhanceRemotes(UnaryOperator<T> mapper) {
-        return ImmutableLocalAndRemotes.of(local(), remotes().stream().map(mapper).collect(Collectors.toList()));
+        return ImmutableLocalAndRemotes.of(
+                local(), remotes().stream().map(mapper).collect(Collectors.toList()));
     }
 
     static <T> LocalAndRemotes<T> of(T local, List<T> remotes) {

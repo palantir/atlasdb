@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,6 +37,10 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     private static final long serialVersionUID = 1L;
@@ -59,21 +58,34 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
                 .columns(node.get("is_dynamic").asBoolean() ? deserializeDynamicCol(node) : deserializeNamedCols(node));
 
         Optional.ofNullable(node.get("conflictHandler"))
-                .map(JsonNode::textValue).map(ConflictHandler::valueOf).ifPresent(builder::conflictHandler);
+                .map(JsonNode::textValue)
+                .map(ConflictHandler::valueOf)
+                .ifPresent(builder::conflictHandler);
         Optional.ofNullable(node.get("cachePriority"))
-                .map(JsonNode::textValue).map(CachePriority::valueOf).ifPresent(builder::cachePriority);
+                .map(JsonNode::textValue)
+                .map(CachePriority::valueOf)
+                .ifPresent(builder::cachePriority);
         Optional.ofNullable(node.get("rangeScanAllowed"))
-                .map(JsonNode::booleanValue).ifPresent(builder::rangeScanAllowed);
+                .map(JsonNode::booleanValue)
+                .ifPresent(builder::rangeScanAllowed);
         Optional.ofNullable(node.get("explicitCompressionBlockSizeKB"))
-                .map(JsonNode::numberValue).map(Number::intValue).ifPresent(builder::explicitCompressionBlockSizeKB);
+                .map(JsonNode::numberValue)
+                .map(Number::intValue)
+                .ifPresent(builder::explicitCompressionBlockSizeKB);
         Optional.ofNullable(node.get("negativeLookups"))
-                .map(JsonNode::booleanValue).ifPresent(builder::negativeLookups);
+                .map(JsonNode::booleanValue)
+                .ifPresent(builder::negativeLookups);
         Optional.ofNullable(node.get("sweepStrategy"))
-                .map(JsonNode::textValue).map(SweepStrategy::valueOf).ifPresent(builder::sweepStrategy);
+                .map(JsonNode::textValue)
+                .map(SweepStrategy::valueOf)
+                .ifPresent(builder::sweepStrategy);
         Optional.ofNullable(node.get("appendHeavyAndReadLight"))
-                .map(JsonNode::booleanValue).ifPresent(builder::appendHeavyAndReadLight);
+                .map(JsonNode::booleanValue)
+                .ifPresent(builder::appendHeavyAndReadLight);
         Optional.ofNullable(node.get("nameLogSafety"))
-                .map(JsonNode::textValue).map(LogSafety::valueOf).ifPresent(builder::nameLogSafety);
+                .map(JsonNode::textValue)
+                .map(LogSafety::valueOf)
+                .ifPresent(builder::nameLogSafety);
 
         return builder.build();
     }
@@ -119,8 +131,8 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
                 String className = node.get("type").asText();
                 try {
                     @SuppressWarnings("unchecked")
-                    Class<? extends Persister<?>> asSubclass = (Class<? extends Persister<?>>) Class.forName(
-                            className).asSubclass(Persister.class);
+                    Class<? extends Persister<?>> asSubclass = (Class<? extends Persister<?>>)
+                            Class.forName(className).asSubclass(Persister.class);
                     return ColumnValueDescription.forPersister(asSubclass);
                 } catch (Exception e) {
                     // Also wrong, but what else can you do?

@@ -26,8 +26,8 @@ import com.palantir.common.annotation.Idempotent;
 
 public abstract class AbstractTransaction implements Transaction {
     protected static final ImmutableSortedMap<byte[], RowResult<byte[]>> EMPTY_SORTED_ROWS =
-            ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(
-                    UnsignedBytes.lexicographicalComparator()).build();
+            ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(UnsignedBytes.lexicographicalComparator())
+                    .build();
 
     private TransactionType transactionType = TransactionType.DEFAULT;
 

@@ -20,20 +20,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-
 import org.immutables.value.Value;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 public class CallChainTest {
     private static final String TEST_STRING = "abc";
@@ -63,15 +61,16 @@ public class CallChainTest {
         Callback<String> chain = new Callback.CallChain<>(ImmutableList.of(first, second));
         chain.init(TEST_STRING);
 
-        assertThat(invocations).containsExactly(
-                ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
-                ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.CLEANUP),
-                ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
-                ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT),
-                ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.CLEANUP),
-                ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT),
-                ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.CLEANUP),
-                ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT));
+        assertThat(invocations)
+                .containsExactly(
+                        ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
+                        ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.CLEANUP),
+                        ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
+                        ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT),
+                        ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.CLEANUP),
+                        ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT),
+                        ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.CLEANUP),
+                        ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT));
     }
 
     @Test
@@ -90,9 +89,10 @@ public class CallChainTest {
         Callback<String> chain = new Callback.CallChain<>(ImmutableList.of(first, second));
         assertCleanupFailPropagated(chain);
 
-        assertThat(invocations).containsExactly(
-                ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
-                ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.CLEANUP));
+        assertThat(invocations)
+                .containsExactly(
+                        ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
+                        ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.CLEANUP));
     }
 
     @Test
@@ -103,21 +103,24 @@ public class CallChainTest {
         Callback<String> chain = new Callback.CallChain<>(ImmutableList.of(first, second));
         assertCleanupFailPropagated(chain);
 
-        assertThat(invocations).containsExactly(
-                ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
-                ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT),
-                ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.CLEANUP));
+        assertThat(invocations)
+                .containsExactly(
+                        ImmutableCallbackInvocation.of(first, TEST_STRING, InvocationType.INIT),
+                        ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.INIT),
+                        ImmutableCallbackInvocation.of(second, TEST_STRING, InvocationType.CLEANUP));
     }
 
     private void assertCleanupFailPropagated(Callback<String> chain) {
-        assertThatThrownBy(() -> chain.init(TEST_STRING)).isInstanceOf(RuntimeException.class)
+        assertThatThrownBy(() -> chain.init(TEST_STRING))
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("cleanup fail");
     }
 
     private static Supplier<Boolean> succeedingOnAttemptNumber(int number) {
         Preconditions.checkState(number >= 1, "Cannot set-up to first succeed on a non-positive attempt number!");
-        Iterator<Boolean> resultIterator =
-                Stream.concat(Collections.nCopies(number - 1, true).stream(), Stream.generate(() -> false)).iterator();
+        Iterator<Boolean> resultIterator = Stream.concat(
+                        Collections.nCopies(number - 1, true).stream(), Stream.generate(() -> false))
+                .iterator();
         return resultIterator::next;
     }
 

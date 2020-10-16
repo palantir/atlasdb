@@ -19,15 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -52,6 +43,13 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class AbstractSweepTest {
     protected static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
@@ -65,12 +63,11 @@ public abstract class AbstractSweepTest {
     static {
         for (int i = 0; i < 10; i++) {
             String zeroPaddedIndex = String.format("%05d", i);
-            BIG_LIST_OF_CELLS.add(
-                    Cell.create("row".getBytes(StandardCharsets.UTF_8),
-                            (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
-            BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.add(
-                    Cell.create(("row" + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8),
-                            (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
+            BIG_LIST_OF_CELLS.add(Cell.create(
+                    "row".getBytes(StandardCharsets.UTF_8), (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
+            BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.add(Cell.create(
+                    ("row" + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8),
+                    (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
         }
         SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
     }
@@ -473,7 +470,8 @@ public abstract class AbstractSweepTest {
 
     private Set<Long> getAllTs(String row, String column) {
         Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), column.getBytes(StandardCharsets.UTF_8));
-        return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
+        return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE)
+                .get(cell));
     }
 
     protected void putIntoDefaultColumn(final String row, final String val, final long ts) {
@@ -484,11 +482,8 @@ public abstract class AbstractSweepTest {
         put(TABLE_NAME, row, column, val, ts);
     }
 
-    protected void put(final TableReference tableRef,
-            final String row,
-            final String column,
-            final String val,
-            final long ts) {
+    protected void put(
+            final TableReference tableRef, final String row, final String column, final String val, final long ts) {
         Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), column.getBytes(StandardCharsets.UTF_8));
         put(tableRef, cell, val, ts);
     }
@@ -517,7 +512,8 @@ public abstract class AbstractSweepTest {
     }
 
     protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
-        kvs.createTable(tableReference,
+        kvs.createTable(
+                tableReference,
                 new TableDefinition() {
                     {
                         rowName();
@@ -527,7 +523,6 @@ public abstract class AbstractSweepTest {
                         conflictHandler(ConflictHandler.IGNORE_ALL);
                         sweepStrategy(sweepStrategy);
                     }
-                }.toTableMetadata().persistToBytes()
-        );
+                }.toTableMetadata().persistToBytes());
     }
 }

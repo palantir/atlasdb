@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-
 import javax.management.JMException;
 
 @SuppressWarnings("checkstyle")
@@ -28,9 +27,10 @@ import javax.management.JMException;
 // DO NOT CHANGE THIS CLASS!
 public class ThreadDumps {
     public static String programmaticThreadDump() {
-        String serverName = "Stack Trace"; //$NON-NLS-1$
+        String serverName = "Stack Trace"; // $NON-NLS-1$
         try {
-            return StackTraceUtils.processTrace(serverName, //$NON-NLS-1$
+            return StackTraceUtils.processTrace(
+                    serverName, //$NON-NLS-1$
                     StackTraceUtils.getStackTraceForConnection(ManagementFactory.getPlatformMBeanServer()),
                     false);
         } catch (JMException e) {
@@ -54,13 +54,13 @@ public class ThreadDumps {
             if (info.getLockName() != null) {
                 switch (info.getThreadState()) {
                     case BLOCKED:
-                        dump.append("\r\n\t-  blocked on " + info.getLockName()); //$NON-NLS-1$
+                        dump.append("\r\n\t-  blocked on " + info.getLockName()); // $NON-NLS-1$
                         break;
                     case WAITING:
-                        dump.append("\r\n\t-  waiting on " + info.getLockName()); //$NON-NLS-1$
+                        dump.append("\r\n\t-  waiting on " + info.getLockName()); // $NON-NLS-1$
                         break;
                     case TIMED_WAITING:
-                        dump.append("\r\n\t-  waiting on " + info.getLockName()); //$NON-NLS-1$
+                        dump.append("\r\n\t-  waiting on " + info.getLockName()); // $NON-NLS-1$
                         break;
                     default:
                         break;

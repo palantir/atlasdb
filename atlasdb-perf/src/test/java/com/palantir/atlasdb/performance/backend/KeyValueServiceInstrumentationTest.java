@@ -61,5 +61,4 @@ public class KeyValueServiceInstrumentationTest {
 
         KeyValueServiceInstrumentation.removeBackendType(mockKeyValueServiceInstrumentation);
     }
-
 }

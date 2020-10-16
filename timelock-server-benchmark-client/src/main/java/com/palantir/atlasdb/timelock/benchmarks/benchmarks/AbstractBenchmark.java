@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -23,13 +26,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLongArray;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 
 public abstract class AbstractBenchmark {
 
@@ -131,10 +129,10 @@ public abstract class AbstractBenchmark {
 
     protected abstract void performOneCall();
 
-    protected void setup() { }
+    protected void setup() {}
 
     // TODO(gmaretic): implement cleanup -- truncate tables, etc.
-    protected void cleanup() { }
+    protected void cleanup() {}
 
     protected Map<String, Object> getExtraParameters() {
         return ImmutableMap.of();
@@ -181,5 +179,4 @@ public abstract class AbstractBenchmark {
     public double getThroughput() {
         return (double) (numClients * requestsPerClient) / (totalTime / 1_000_000_000.0);
     }
-
 }

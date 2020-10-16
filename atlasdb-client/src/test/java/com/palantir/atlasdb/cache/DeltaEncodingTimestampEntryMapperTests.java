@@ -22,16 +22,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
+import com.palantir.atlasdb.table.description.ValueType;
+import okio.ByteString;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
-import com.palantir.atlasdb.table.description.ValueType;
-
-import okio.ByteString;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class DeltaEncodingTimestampEntryMapperTests {
@@ -47,12 +45,9 @@ public final class DeltaEncodingTimestampEntryMapperTests {
 
     @Test
     public void failsOnNulls() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> mapper.deserializeKey(null));
-        assertThatNullPointerException()
-                .isThrownBy(() -> mapper.deserializeValue(null, toByteString(4L)));
-        assertThatNullPointerException()
-                .isThrownBy(() -> mapper.deserializeValue(toByteString(2L), null));
+        assertThatNullPointerException().isThrownBy(() -> mapper.deserializeKey(null));
+        assertThatNullPointerException().isThrownBy(() -> mapper.deserializeValue(null, toByteString(4L)));
+        assertThatNullPointerException().isThrownBy(() -> mapper.deserializeValue(toByteString(2L), null));
     }
 
     @Test
@@ -66,8 +61,7 @@ public final class DeltaEncodingTimestampEntryMapperTests {
     public void valueDecodedWithDelta() {
         when(longEntryMapper.deserializeValue(toByteString(50023423423423567L), toByteString(4L)))
                 .thenReturn(4L);
-        when(longEntryMapper.deserializeKey(toByteString(50023423423423567L)))
-                .thenReturn(50023423423423567L);
+        when(longEntryMapper.deserializeKey(toByteString(50023423423423567L))).thenReturn(50023423423423567L);
 
         assertThat(mapper.deserializeValue(toByteString(50023423423423567L), toByteString(4L)))
                 .isEqualTo(50023423423423571L);

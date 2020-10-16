@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -32,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import java.util.Map;
+import java.util.Set;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(Maps.newConcurrentMap());
@@ -54,16 +53,15 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
-                                    ColumnSelection columnSelection, long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         tablesReadFrom.add(tableRef);
         return super.getRows(tableRef, rows, columnSelection, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         tablesReadFrom.add(tableRef);
         return super.getRange(tableRef, rangeRequest, timestamp);
     }

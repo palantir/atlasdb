@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -32,6 +23,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.Sweeper;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SweepQueueDeleter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueueDeleter.class);
@@ -40,8 +38,7 @@ public class SweepQueueDeleter {
     private final TargetedSweepFollower follower;
     private final TargetedSweepFilter filter;
 
-    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower,
-            TargetedSweepFilter filter) {
+    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower, TargetedSweepFilter filter) {
         this.kvs = kvs;
         this.follower = follower;
         this.filter = filter;
@@ -67,15 +64,17 @@ public class SweepQueueDeleter {
                                     .collect(Collectors.toMap(Function.identity(), entry.getValue()::get));
                             follower.run(entry.getKey(), maxTimestampByCellPartition.keySet());
                             if (sweeper.shouldAddSentinels()) {
-                                kvs.addGarbageCollectionSentinelValues(entry.getKey(),
-                                        maxTimestampByCellPartition.keySet());
+                                kvs.addGarbageCollectionSentinelValues(
+                                        entry.getKey(), maxTimestampByCellPartition.keySet());
                             }
                             kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
                         });
             } catch (Exception e) {
                 if (tableWasDropped(entry.getKey())) {
-                    log.debug("Dropping sweeper work for table {}, which has been dropped.",
-                            LoggingArgs.tableRef(entry.getKey()), e);
+                    log.debug(
+                            "Dropping sweeper work for table {}, which has been dropped.",
+                            LoggingArgs.tableRef(entry.getKey()),
+                            e);
                 } else {
                     throw e;
                 }
@@ -89,8 +88,8 @@ public class SweepQueueDeleter {
 
     private Map<TableReference, Map<Cell, TimestampRangeDelete>> writesPerTable(
             Collection<WriteInfo> writes, Sweeper sweeper) {
-        return writes.stream().collect(Collectors.groupingBy(
-                WriteInfo::tableRef,
-                Collectors.toMap(WriteInfo::cell, write -> write.toDelete(sweeper))));
+        return writes.stream()
+                .collect(Collectors.groupingBy(
+                        WriteInfo::tableRef, Collectors.toMap(WriteInfo::cell, write -> write.toDelete(sweeper))));
     }
 }

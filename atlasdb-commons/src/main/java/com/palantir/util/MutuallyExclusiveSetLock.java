@@ -15,16 +15,6 @@
  */
 package com.palantir.util;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -34,7 +24,15 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class accepts a collection of <code>Comparable</code> objects, creates locks
@@ -56,16 +54,17 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * @author carrino
  */
 public class MutuallyExclusiveSetLock<T> {
-    final private boolean fair;
-    final private Comparator<? super T> comparator;
-    final private Set<Thread> threadSet = Sets.newSetFromMap(Maps.<Thread, Boolean>newConcurrentMap());
-    final private LoadingCache<T, ReentrantLock> syncMap = CacheBuilder.newBuilder().weakValues().build(
-                new CacheLoader<T, ReentrantLock>() {
-                    @Override
-                    public ReentrantLock load(T key) {
-                        return new ReentrantLock(fair);
-                    }
-                });
+    private final boolean fair;
+    private final Comparator<? super T> comparator;
+    private final Set<Thread> threadSet = Sets.newSetFromMap(Maps.<Thread, Boolean>newConcurrentMap());
+    private final LoadingCache<T, ReentrantLock> syncMap = CacheBuilder.newBuilder()
+            .weakValues()
+            .build(new CacheLoader<T, ReentrantLock>() {
+                @Override
+                public ReentrantLock load(T key) {
+                    return new ReentrantLock(fair);
+                }
+            });
 
     /**
      * Constructs a new <code>MutuallyExclusiveSetLock</code>
@@ -132,8 +131,7 @@ public class MutuallyExclusiveSetLock<T> {
     public boolean isLocked(Iterable<T> items) {
         for (T t : items) {
             ReentrantLock lock = syncMap.getUnchecked(t);
-            if (!lock.isHeldByCurrentThread())
-                return false;
+            if (!lock.isHeldByCurrentThread()) return false;
         }
         return true;
     }
@@ -194,19 +192,19 @@ public class MutuallyExclusiveSetLock<T> {
         if (comparator == null) {
             for (T t : hashSet) {
                 if (!(t instanceof Comparable)) {
-                    throw new SafeIllegalArgumentException("you must either specify a comparator or pass in comparable objects");
+                    throw new SafeIllegalArgumentException(
+                            "you must either specify a comparator or pass in comparable objects");
                 }
             }
         }
 
-        //verify that the compareTo and equals are consistent in that we are always locking on all objects
+        // verify that the compareTo and equals are consistent in that we are always locking on all objects
         SortedSet<T> treeSet = new TreeSet<T>(comparator);
         treeSet.addAll(hashSet);
         if (treeSet.size() != hashSet.size()) {
-            throw new SafeIllegalArgumentException(
-                    "The number of elements using .equals and compareTo differ. "
-                            + "This means that compareTo and equals are not consistent "
-                            + "which will cause some objects to not be locked");
+            throw new SafeIllegalArgumentException("The number of elements using .equals and compareTo differ. "
+                    + "This means that compareTo and equals are not consistent "
+                    + "which will cause some objects to not be locked");
         }
         return hashSet;
     }
@@ -231,7 +229,8 @@ public class MutuallyExclusiveSetLock<T> {
         }
 
         if (lockState.thread != Thread.currentThread()) {
-            throw new SafeIllegalArgumentException("The thread that created this lockState is not the same as the one unlocking it");
+            throw new SafeIllegalArgumentException(
+                    "The thread that created this lockState is not the same as the one unlocking it");
         }
 
         threadSet.remove(Thread.currentThread());
@@ -258,6 +257,7 @@ public class MutuallyExclusiveSetLock<T> {
         final ImmutableSet<ReentrantLock> locks;
         final MutuallyExclusiveSetLock<K> setLock;
         final Thread thread;
+
         LockState(Collection<ReentrantLock> locks, MutuallyExclusiveSetLock<K> setLock) {
             this.locks = ImmutableSet.copyOf(locks);
             this.setLock = setLock;

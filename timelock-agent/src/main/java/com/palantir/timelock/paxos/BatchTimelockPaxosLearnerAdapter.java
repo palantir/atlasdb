@@ -16,12 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -34,6 +28,11 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
     private final PaxosUseCase paxosUseCase;
@@ -43,9 +42,7 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
     private AtomicLong lastKnownSequence = new AtomicLong(Long.MIN_VALUE);
 
     public BatchTimelockPaxosLearnerAdapter(
-            PaxosUseCase paxosUseCase,
-            Client client,
-            BatchPaxosLearnerRpcClient rpcClient) {
+            PaxosUseCase paxosUseCase, Client client, BatchPaxosLearnerRpcClient rpcClient) {
         this.paxosUseCase = paxosUseCase;
         this.client = client;
         this.rpcClient = rpcClient;
@@ -53,9 +50,7 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
 
     public static PaxosLearner singleLeader(BatchPaxosLearnerRpcClient rpcClient) {
         return new BatchTimelockPaxosLearnerAdapter(
-                PaxosUseCase.LEADER_FOR_ALL_CLIENTS,
-                PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT,
-                rpcClient);
+                PaxosUseCase.LEADER_FOR_ALL_CLIENTS, PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT, rpcClient);
     }
 
     @Override
@@ -66,7 +61,8 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
 
     @Override
     public Optional<PaxosValue> getLearnedValue(long seq) {
-        Set<PaxosValue> result = rpcClient.getLearnedValues(paxosUseCase, ImmutableSet.of(WithSeq.of(client, seq)))
+        Set<PaxosValue> result = rpcClient
+                .getLearnedValues(paxosUseCase, ImmutableSet.of(WithSeq.of(client, seq)))
                 .get(client);
         checkResult(result);
         if (result.isEmpty()) {
@@ -88,14 +84,16 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
 
     @Override
     public Collection<PaxosValue> getLearnedValuesSince(long seq) {
-        Set<PaxosValue> result = rpcClient.getLearnedValuesSince(paxosUseCase, ImmutableMap.of(client, seq))
+        Set<PaxosValue> result = rpcClient
+                .getLearnedValuesSince(paxosUseCase, ImmutableMap.of(client, seq))
                 .get(client);
         result.stream().map(PaxosValue::getRound).mapToLong(x -> x).max().ifPresent(this::updateLastKnownSequence);
         return result;
     }
 
     private <T> void checkResult(Set<T> result) {
-        Preconditions.checkState(result.size() <= 1,
+        Preconditions.checkState(
+                result.size() <= 1,
                 "Unexpected result {} in a call for client {}.",
                 SafeArg.of("result", result),
                 SafeArg.of("client", client));

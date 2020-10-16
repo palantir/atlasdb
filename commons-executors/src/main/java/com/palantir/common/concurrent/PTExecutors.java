@@ -15,6 +15,16 @@
  */
 package com.palantir.common.concurrent;
 
+import com.google.common.annotations.Beta;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.Runnables;
+import com.palantir.tracing.Tracers;
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,23 +47,10 @@ import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
 import javax.annotation.Nullable;
-
 import org.jboss.threads.ViewExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.Beta;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.base.Suppliers;
-import com.google.common.util.concurrent.Runnables;
-import com.palantir.tracing.Tracers;
-import com.palantir.tritium.metrics.MetricRegistries;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -150,13 +147,15 @@ public final class PTExecutors {
      */
     @Deprecated
     public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
-        return tryInstrument(newThreadPoolExecutor(
-                0,
-                Integer.MAX_VALUE,
-                threadTimeoutMillis,
-                TimeUnit.MILLISECONDS,
-                new SynchronousQueue<Runnable>(),
-                threadFactory), threadFactory);
+        return tryInstrument(
+                newThreadPoolExecutor(
+                        0,
+                        Integer.MAX_VALUE,
+                        threadTimeoutMillis,
+                        TimeUnit.MILLISECONDS,
+                        new SynchronousQueue<Runnable>(),
+                        threadFactory),
+                threadFactory);
     }
 
     /** Specialized cached executor which throws
@@ -169,14 +168,18 @@ public final class PTExecutors {
         Preconditions.checkNotNull(name, "Name is required");
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
-        return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, new AtlasRenamingExecutorService(ViewExecutor.builder(SHARED_EXECUTOR.get())
-                        .setMaxSize(Math.min(Short.MAX_VALUE, maxThreads))
-                        .setQueueLimit(0)
-                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                        .build(),
-                        AtlasUncaughtExceptionHandler.INSTANCE,
-                        AtlasRenamingExecutorService.threadNameSupplier(name))),
+        return MetricRegistries.instrument(
+                SharedTaggedMetricRegistries.getSingleton(),
+                PTExecutors.wrap(
+                        name,
+                        new AtlasRenamingExecutorService(
+                                ViewExecutor.builder(SHARED_EXECUTOR.get())
+                                        .setMaxSize(Math.min(Short.MAX_VALUE, maxThreads))
+                                        .setQueueLimit(0)
+                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
+                                        .build(),
+                                AtlasUncaughtExceptionHandler.INSTANCE,
+                                AtlasRenamingExecutorService.threadNameSupplier(name))),
                 name);
     }
 
@@ -227,9 +230,13 @@ public final class PTExecutors {
      */
     @Deprecated
     public static ThreadPoolExecutor newFixedThreadPool(int numThreads, ThreadFactory threadFactory) {
-        return newThreadPoolExecutor(numThreads, numThreads,
-                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<Runnable>(), threadFactory);
+        return newThreadPoolExecutor(
+                numThreads,
+                numThreads,
+                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<Runnable>(),
+                threadFactory);
     }
 
     /**
@@ -247,14 +254,18 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
     public static ExecutorService newFixedThreadPool(int numThreads, String name) {
-        return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, new AtlasRenamingExecutorService(ViewExecutor.builder(SHARED_EXECUTOR.get())
-                .setMaxSize(Math.min(numThreads, Short.MAX_VALUE))
-                .setQueueLimit(Integer.MAX_VALUE)
-                .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                .build(),
-                AtlasUncaughtExceptionHandler.INSTANCE,
-                AtlasRenamingExecutorService.threadNameSupplier(name))),
+        return MetricRegistries.instrument(
+                SharedTaggedMetricRegistries.getSingleton(),
+                PTExecutors.wrap(
+                        name,
+                        new AtlasRenamingExecutorService(
+                                ViewExecutor.builder(SHARED_EXECUTOR.get())
+                                        .setMaxSize(Math.min(numThreads, Short.MAX_VALUE))
+                                        .setQueueLimit(Integer.MAX_VALUE)
+                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
+                                        .build(),
+                                AtlasUncaughtExceptionHandler.INSTANCE,
+                                AtlasRenamingExecutorService.threadNameSupplier(name))),
                 name);
     }
 
@@ -280,8 +291,7 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
      * @throws NullPointerException if threadFactory is null
      */
-    public static ScheduledThreadPoolExecutor newScheduledThreadPool(int corePoolSize,
-            ThreadFactory threadFactory) {
+    public static ScheduledThreadPoolExecutor newScheduledThreadPool(int corePoolSize, ThreadFactory threadFactory) {
         return newScheduledThreadPoolExecutor(corePoolSize, threadFactory);
     }
 
@@ -311,9 +321,8 @@ public final class PTExecutors {
      * @return the newly created single-threaded Executor
      */
     public static ExecutorService newSingleThreadExecutor(boolean isDaemon) {
-        return Executors.unconfigurableExecutorService(isDaemon
-                ? newFixedThreadPool(1)
-                : newFixedThreadPool(1, newNamedThreadFactory(false)));
+        return Executors.unconfigurableExecutorService(
+                isDaemon ? newFixedThreadPool(1) : newFixedThreadPool(1, newNamedThreadFactory(false)));
     }
 
     /**
@@ -385,10 +394,14 @@ public final class PTExecutors {
      *         maximumPoolSize.
      * @throws NullPointerException if <tt>workQueue</tt> is null
      */
-    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
-            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
-        return newThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
-                newNamedThreadFactory(), defaultHandler);
+    public static ThreadPoolExecutor newThreadPoolExecutor(
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTime,
+            TimeUnit unit,
+            BlockingQueue<Runnable> workQueue) {
+        return newThreadPoolExecutor(
+                corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, newNamedThreadFactory(), defaultHandler);
     }
 
     /**
@@ -408,11 +421,15 @@ public final class PTExecutors {
      *         maximumPoolSize.
      * @throws NullPointerException if <tt>workQueue</tt> or <tt>threadFactory</tt> are null.
      */
-    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
-            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
+    public static ThreadPoolExecutor newThreadPoolExecutor(
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTime,
+            TimeUnit unit,
+            BlockingQueue<Runnable> workQueue,
             ThreadFactory threadFactory) {
-        return newThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
-                threadFactory, defaultHandler);
+        return newThreadPoolExecutor(
+                corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, defaultHandler);
     }
 
     /**
@@ -433,11 +450,15 @@ public final class PTExecutors {
      *         maximumPoolSize.
      * @throws NullPointerException if <tt>workQueue</tt> or <tt>handler</tt> are null.
      */
-    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
-            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
+    public static ThreadPoolExecutor newThreadPoolExecutor(
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTime,
+            TimeUnit unit,
+            BlockingQueue<Runnable> workQueue,
             RejectedExecutionHandler handler) {
-        return newThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
-                newNamedThreadFactory(), handler);
+        return newThreadPoolExecutor(
+                corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, newNamedThreadFactory(), handler);
     }
 
     /**
@@ -460,17 +481,29 @@ public final class PTExecutors {
      *         <tt>handler</tt> are null.
      */
     @SuppressWarnings("DangerousThreadPoolExecutorUsage")
-    public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
-            long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
-            ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+    public static ThreadPoolExecutor newThreadPoolExecutor(
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTime,
+            TimeUnit unit,
+            BlockingQueue<Runnable> workQueue,
+            ThreadFactory threadFactory,
+            RejectedExecutionHandler handler) {
         String executorName = getExecutorName(threadFactory);
-        ThreadPoolExecutor tpe = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, // (authorized)
-                unit, workQueue, threadFactory, handler) {
-            @Override
-            public void execute(Runnable command) {
-                super.execute(wrap(executorName, command));
-            }
-        };
+        ThreadPoolExecutor tpe =
+                new ThreadPoolExecutor(
+                        corePoolSize,
+                        maximumPoolSize,
+                        keepAliveTime, // (authorized)
+                        unit,
+                        workQueue,
+                        threadFactory,
+                        handler) {
+                    @Override
+                    public void execute(Runnable command) {
+                        super.execute(wrap(executorName, command));
+                    }
+                };
         // QA-49019 - always allow core pool threads to timeout.
         if (keepAliveTime > 0) {
             tpe.allowCoreThreadTimeOut(true);
@@ -485,8 +518,7 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
      */
     public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize) {
-        return newScheduledThreadPoolExecutor(corePoolSize, newNamedThreadFactory(true),
-                defaultHandler);
+        return newScheduledThreadPoolExecutor(corePoolSize, newNamedThreadFactory(true), defaultHandler);
     }
 
     /**
@@ -497,8 +529,8 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
      * @throws NullPointerException if threadFactory is null
      */
-    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
-            ThreadFactory threadFactory) {
+    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(
+            int corePoolSize, ThreadFactory threadFactory) {
         return newScheduledThreadPoolExecutor(corePoolSize, threadFactory, defaultHandler);
     }
 
@@ -511,8 +543,8 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
      * @throws NullPointerException if handler is null
      */
-    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
-            RejectedExecutionHandler handler) {
+    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(
+            int corePoolSize, RejectedExecutionHandler handler) {
         return newScheduledThreadPoolExecutor(corePoolSize, newNamedThreadFactory(true), handler);
     }
 
@@ -527,29 +559,29 @@ public final class PTExecutors {
      * @throws NullPointerException if threadFactory or handler is null
      */
     @SuppressWarnings("DangerousThreadPoolExecutorUsage")
-    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
-            ThreadFactory threadFactory, RejectedExecutionHandler handler) {
-        Preconditions.checkArgument(corePoolSize >= 0,
+    public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(
+            int corePoolSize, ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+        Preconditions.checkArgument(
+                corePoolSize >= 0,
                 "Cannot create a ScheduledThreadPoolExecutor with %s threads - thread count must not be negative!",
                 corePoolSize);
         int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
         String executorName = getExecutorName(threadFactory);
-        ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(positiveCorePoolSize, threadFactory,
-                handler) {
-            @Override
-            public void execute(Runnable command) {
-                super.execute(wrap(executorName, command));
-            }
-        };
+        ScheduledThreadPoolExecutor ret =
+                new ScheduledThreadPoolExecutor(positiveCorePoolSize, threadFactory, handler) {
+                    @Override
+                    public void execute(Runnable command) {
+                        super.execute(wrap(executorName, command));
+                    }
+                };
         ret.setKeepAliveTime(DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         return ret;
     }
 
     // Characters likely to be part of a pattern, not part of the executor name. For example, rather than
     // "mine-bitcoin-31" we want "mine-bitcoin"
-    private static final CharMatcher THREAD_NAME_TRIMMED_CHARS = CharMatcher.inRange('0', '9')
-            .or(CharMatcher.anyOf(".-_"))
-            .or(CharMatcher.whitespace());
+    private static final CharMatcher THREAD_NAME_TRIMMED_CHARS =
+            CharMatcher.inRange('0', '9').or(CharMatcher.anyOf(".-_")).or(CharMatcher.whitespace());
 
     @VisibleForTesting
     static String getExecutorName(ThreadFactory factory) {
@@ -574,11 +606,13 @@ public final class PTExecutors {
      */
     public static ExecutorService wrap(final String operationName, final ExecutorService executorService) {
         return new AbstractForwardingExecutorService() {
-            @Override protected ExecutorService delegate() {
+            @Override
+            protected ExecutorService delegate() {
                 return executorService;
             }
 
-            @Override protected Runnable wrap(Runnable runnable) {
+            @Override
+            protected Runnable wrap(Runnable runnable) {
                 return PTExecutors.wrap(operationName, runnable);
             }
         };
@@ -593,22 +627,25 @@ public final class PTExecutors {
      * ExecutorInheritableThreadLocal} variables are propagated through.
      */
     public static ScheduledExecutorService wrap(
-            final String operationName,
-            final ScheduledExecutorService scheduledExecutorService) {
+            final String operationName, final ScheduledExecutorService scheduledExecutorService) {
         return new InternalForwardingScheduledExecutorService() {
-            @Override protected ScheduledExecutorService delegate() {
+            @Override
+            protected ScheduledExecutorService delegate() {
                 return scheduledExecutorService;
             }
 
-            @Override protected Runnable wrap(Runnable runnable) {
+            @Override
+            protected Runnable wrap(Runnable runnable) {
                 return PTExecutors.wrap(operationName, runnable);
             }
 
-            @Override protected <T> Callable<T> wrap(Callable<T> callable) {
+            @Override
+            protected <T> Callable<T> wrap(Callable<T> callable) {
                 return PTExecutors.wrap(operationName, callable);
             }
 
-            @Override protected Runnable wrapRecurring(Runnable runnable) {
+            @Override
+            protected Runnable wrapRecurring(Runnable runnable) {
                 // Intentionally does not retain current thread state.
                 return Tracers.wrapWithNewTrace(operationName, runnable);
             }
@@ -668,8 +705,7 @@ public final class PTExecutors {
      * Wraps the given {@code Callable}s so that {@link ExecutorInheritableThreadLocal} variables
      * are propagated through.
      */
-    public static <T> Collection<Callable<T>> wrap(
-            Collection<? extends Callable<? extends T>> tasks) {
+    public static <T> Collection<Callable<T>> wrap(Collection<? extends Callable<? extends T>> tasks) {
         Collection<Callable<T>> wrapped = new ArrayList<Callable<T>>(tasks.size());
         for (Callable<? extends T> task : tasks) {
             wrapped.add(wrap(task));
@@ -697,13 +733,13 @@ public final class PTExecutors {
     }
 
     static String computeBaseThreadName(@Nullable Class<?> classToIgnore) {
-        String fileNameToIgnore = (classToIgnore == null) ? null
-                : classToIgnore.getSimpleName() + ".java";
+        String fileNameToIgnore = (classToIgnore == null) ? null : classToIgnore.getSimpleName() + ".java";
         StackTraceElement[] stackTrace = new Throwable().getStackTrace();
         if (stackTrace != null) {
             for (StackTraceElement stackTraceElement : stackTrace) {
                 String fileName = stackTraceElement.getFileName();
-                if ((fileName != null) && !fileName.equals(FILE_NAME_FOR_THIS_CLASS)
+                if ((fileName != null)
+                        && !fileName.equals(FILE_NAME_FOR_THIS_CLASS)
                         && !fileName.equals(fileNameToIgnore)) {
                     return fileName + ":" + stackTraceElement.getLineNumber();
                 }
@@ -728,6 +764,7 @@ public final class PTExecutors {
     public static ThreadFactory newThreadFactory(final String prefix, final int priority, final boolean isDaemon) {
         ThreadFactory threadFactory = new ThreadFactory() {
             private final AtomicInteger nextThreadId = new AtomicInteger();
+
             @Override
             public Thread newThread(Runnable runnable) {
                 Thread thread = new Thread(runnable, prefix + "-" + nextThreadId.getAndIncrement());

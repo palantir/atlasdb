@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
@@ -36,6 +23,17 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.performance.benchmarks.table.ModeratelyWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
+import java.util.Collections;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
 
 /**
  * Performance benchmarks for KVS get with dynamic columns.
@@ -53,8 +51,11 @@ public class TransactionGetDynamicBenchmarks {
     public Object getAllColumnsExplicitly(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getAllCells());
-            Preconditions.checkState(result.values().size() == table.getNumCols(),
-                    "Should be %s columns, but were: %s", table.getNumCols(), result.values().size());
+            Preconditions.checkState(
+                    result.values().size() == table.getNumCols(),
+                    "Should be %s columns, but were: %s",
+                    table.getNumCols(),
+                    result.values().size());
             return result;
         });
     }
@@ -65,12 +66,11 @@ public class TransactionGetDynamicBenchmarks {
     @Measurement(time = 65, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsImplicitly(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
-                    Collections.singleton(Tables.ROW_BYTES.array()),
-                    ColumnSelection.all());
+            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(
+                    table.getTableRef(), Collections.singleton(Tables.ROW_BYTES.array()), ColumnSelection.all());
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
-            Preconditions.checkState(count == table.getNumCols(),
-                    "Should be %s columns, but were: %s", table.getNumCols(), count);
+            Preconditions.checkState(
+                    count == table.getNumCols(), "Should be %s columns, but were: %s", table.getNumCols(), count);
             return result;
         });
     }
@@ -82,10 +82,13 @@ public class TransactionGetDynamicBenchmarks {
     public Object getFirstColumnExplicitly(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getFirstCellAsSet());
-            Preconditions.checkState(result.values().size() == 1,
-                    "Should be %s column, but were: %s", 1, result.values().size());
+            Preconditions.checkState(
+                    result.values().size() == 1,
+                    "Should be %s column, but were: %s",
+                    1,
+                    result.values().size());
             int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()));
-            Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
+            Preconditions.checkState(value == 0, "Value should be %s but is %s", 0, value);
             return result;
         });
     }
@@ -96,20 +99,20 @@ public class TransactionGetDynamicBenchmarks {
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitlyGetRows(ModeratelyWideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
+            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(
+                    table.getTableRef(),
                     Collections.singleton(Tables.ROW_BYTES.array()),
-                    ColumnSelection.create(
-                            table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
-                    ));
+                    ColumnSelection.create(table.getFirstCellAsSet().stream()
+                            .map(Cell::getColumnName)
+                            .collect(Collectors.toList())));
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
             Preconditions.checkState(count == 1, "Should be %s column, but were: %s", 1, count);
-            int value = Ints.fromByteArray(
-                    Iterables.getOnlyElement(
-                            Iterables.getOnlyElement(result.values()).getColumns().entrySet()
-                    ).getValue());
-            Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
+            int value = Ints.fromByteArray(Iterables.getOnlyElement(Iterables.getOnlyElement(result.values())
+                            .getColumns()
+                            .entrySet())
+                    .getValue());
+            Preconditions.checkState(value == 0, "Value should be %s but is %s", 0, value);
             return result;
         });
     }
-
 }

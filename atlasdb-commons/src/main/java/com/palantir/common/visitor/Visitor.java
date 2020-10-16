@@ -15,7 +15,6 @@
  */
 package com.palantir.common.visitor;
 
-
 /**
  * This redefines {@link #visit(Object)} to throw no checked exceptions.
  *

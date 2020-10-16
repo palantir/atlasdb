@@ -18,9 +18,8 @@ package com.palantir.lock.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
 
 public class LeadershipIdTest {
     private static final String SERIALIZED_LEADERSHIP_ID = "\"fc71247c-66a5-4f94-be24-3a2b00d29968\"";

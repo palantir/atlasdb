@@ -16,10 +16,14 @@
 
 package com.palantir.atlasdb.timelock.lock.v1;
 
+import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.ConjureLockV1Request;
+import com.palantir.lock.ConjureSimpleHeldLocksToken;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -27,12 +31,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.lock.ConjureLockRefreshToken;
-import com.palantir.lock.ConjureLockV1Request;
-import com.palantir.lock.ConjureSimpleHeldLocksToken;
-import com.palantir.lock.HeldLocksToken;
-import com.palantir.tokens.auth.AuthHeader;
 
 /*
  * This interface exists because the semantics of JAX-RS matching involve selecting a resource AND THEN a path.
@@ -63,4 +61,3 @@ public interface ConjureLockV1ShimService {
             @PathParam("namespace") String namespace,
             ConjureSimpleHeldLocksToken request);
 }
-

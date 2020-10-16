@@ -15,6 +15,10 @@
  */
 package com.palantir.common.concurrent;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -25,11 +29,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * A MultiplexingCompletionService is much like a {@link java.util.concurrent.ExecutorCompletionService}, but
@@ -53,8 +52,7 @@ public class MultiplexingCompletionService<K, V> {
         this.taskQueue = taskQueue;
     }
 
-    public static <K, V> MultiplexingCompletionService<K, V> create(
-            Map<? extends K, ExecutorService> executors) {
+    public static <K, V> MultiplexingCompletionService<K, V> create(Map<? extends K, ExecutorService> executors) {
         return new MultiplexingCompletionService<>(ImmutableMap.copyOf(executors), new LinkedBlockingQueue<>());
     }
 
@@ -78,7 +76,8 @@ public class MultiplexingCompletionService<K, V> {
     public Future<Map.Entry<K, V>> submit(K key, Callable<V> task) throws CheckedRejectedExecutionException {
         ExecutorService targetExecutor = executors.get(key);
         if (targetExecutor == null) {
-            throw new SafeIllegalStateException("The key provided to the multiplexing completion service doesn't exist!");
+            throw new SafeIllegalStateException(
+                    "The key provided to the multiplexing completion service doesn't exist!");
         }
         return submitAndPrepareForQueueing(targetExecutor, key, task);
     }
@@ -91,10 +90,8 @@ public class MultiplexingCompletionService<K, V> {
         return taskQueue.poll(timeout, unit);
     }
 
-    private Future<Map.Entry<K, V>> submitAndPrepareForQueueing(
-            ExecutorService delegate,
-            K key,
-            Callable<V> callable) throws CheckedRejectedExecutionException {
+    private Future<Map.Entry<K, V>> submitAndPrepareForQueueing(ExecutorService delegate, K key, Callable<V> callable)
+            throws CheckedRejectedExecutionException {
         FutureTask<Map.Entry<K, V>> futureTask = new FutureTask<>(() -> Maps.immutableEntry(key, callable.call()));
         try {
             delegate.submit(new QueueTask(futureTask), null);

@@ -25,8 +25,7 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy {
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return Cell.create(
-                TransactionConstants.getValueForTimestamp(startTimestamp),
-                TransactionConstants.COMMIT_TS_COLUMN);
+                TransactionConstants.getValueForTimestamp(startTimestamp), TransactionConstants.COMMIT_TS_COLUMN);
     }
 
     @Override

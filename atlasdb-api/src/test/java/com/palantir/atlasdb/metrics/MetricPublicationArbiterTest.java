@@ -18,18 +18,16 @@ package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class MetricPublicationArbiterTest {
     private static final MetricName METRIC_NAME_1 = MetricName.builder()
@@ -81,8 +79,8 @@ public class MetricPublicationArbiterTest {
 
     @Test
     public void exceptionTreatedAsNotFiltered() {
-        MetricPublicationArbiter arbiter = createArbiter(ImmutableMap.of(
-                METRIC_NAME_1, ImmutableSet.of(THROWING_FILTER)));
+        MetricPublicationArbiter arbiter =
+                createArbiter(ImmutableMap.of(METRIC_NAME_1, ImmutableSet.of(THROWING_FILTER)));
         assertThat(arbiter.test(METRIC_NAME_1)).isTrue();
     }
 

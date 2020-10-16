@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
@@ -38,6 +30,13 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class TableMigrator {
     private final TableReference srcTable;
@@ -53,15 +52,16 @@ public class TableMigrator {
     /**
      * See {@link TableMigratorBuilder}.
      */
-    TableMigrator(TableReference srcTable,
-                  int partitions,
-                  List<RowNamePartitioner> partitioners,
-                  int readBatchSize,
-                  ExecutorService executor,
-                  AbstractTaskCheckpointer checkpointer,
-                  TaskProgress progress,
-                  ColumnSelection columnSelection,
-                  RangeMigrator rangeMigrator) {
+    TableMigrator(
+            TableReference srcTable,
+            int partitions,
+            List<RowNamePartitioner> partitioners,
+            int readBatchSize,
+            ExecutorService executor,
+            AbstractTaskCheckpointer checkpointer,
+            TaskProgress progress,
+            ColumnSelection columnSelection,
+            RangeMigrator rangeMigrator) {
         this.srcTable = srcTable;
         this.partitions = setPartitions(partitions);
         this.partitioners = partitioners;
@@ -110,9 +110,7 @@ public class TableMigrator {
                     .retainColumns(columnSelection)
                     .build();
 
-            Callable<Void> task = createMigrationTask(
-                    range,
-                    rangeId);
+            Callable<Void> task = createMigrationTask(range, rangeId);
             Callable<Void> wrappedTask = PTExecutors.wrap("MigrationTask", task);
             Future<Void> future = executor.submit(wrappedTask);
             futures.add(future);
@@ -135,8 +133,7 @@ public class TableMigrator {
         }
     }
 
-    private Callable<Void> createMigrationTask(final RangeRequest range,
-                                               final long rangeId) {
+    private Callable<Void> createMigrationTask(final RangeRequest range, final long rangeId) {
         return () -> {
             migrateTableRange(range, rangeId);
             taskComplete();
@@ -170,14 +167,13 @@ public class TableMigrator {
             }
         }
 
-        List<byte[]> sortedBoundaries = Ordering.from(UnsignedBytes.lexicographicalComparator())
-                .sortedCopy(rangeBoundaries);
+        List<byte[]> sortedBoundaries =
+                Ordering.from(UnsignedBytes.lexicographicalComparator()).sortedCopy(rangeBoundaries);
         sortedBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
         return sortedBoundaries;
     }
 
-    private void migrateTableRange(RangeRequest range,
-                                   long rangeId) {
+    private void migrateTableRange(RangeRequest range, long rangeId) {
         rangeMigrator.migrateRange(range, rangeId);
     }
 }

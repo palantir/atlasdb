@@ -18,17 +18,16 @@ package com.palantir.atlasdb.timelock.auth.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mindrot.jbcrypt.BCrypt;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Password;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mindrot.jbcrypt.BCrypt;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CachingAuthenticatorTest {
@@ -51,8 +50,8 @@ public class CachingAuthenticatorTest {
                 CLIENT_1, bcrypted(PASSWORD_1),
                 CLIENT_2, bcrypted(PASSWORD_2)));
 
-        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).
-                contains(AuthenticatedClient.create(CLIENT_1));
+        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1))
+                .contains(AuthenticatedClient.create(CLIENT_1));
     }
 
     @Test

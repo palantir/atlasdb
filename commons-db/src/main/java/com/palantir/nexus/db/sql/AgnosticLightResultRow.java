@@ -15,12 +15,9 @@
  */
 package com.palantir.nexus.db.sql;
 
-
-import java.io.InputStream;
-
-import org.joda.time.DateTime;
-
 import com.palantir.exception.PalantirSqlException;
+import java.io.InputStream;
+import org.joda.time.DateTime;
 
 public interface AgnosticLightResultRow extends AgnosticResultRow {
 
@@ -29,5 +26,4 @@ public interface AgnosticLightResultRow extends AgnosticResultRow {
     DateTime getDateTime(String colname) throws PalantirSqlException;
 
     Object getArray(String colName) throws PalantirSqlException;
-
 }

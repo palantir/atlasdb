@@ -15,13 +15,11 @@
  */
 package com.palantir.util.paging;
 
-import java.io.Serializable;
-import java.util.Collections;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.io.Serializable;
+import java.util.Collections;
+import javax.annotation.concurrent.Immutable;
 
 /**
  *
@@ -95,20 +93,14 @@ public class SimpleResultsPage<T> implements BasicResultsPage<T>, Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
         SimpleResultsPage<?> other = (SimpleResultsPage<?>) obj;
         if (chunks == null) {
-            if (other.chunks != null)
-                return false;
-        } else if (!chunks.equals(other.chunks))
-            return false;
-        if (moreAvailable != other.moreAvailable)
-            return false;
+            if (other.chunks != null) return false;
+        } else if (!chunks.equals(other.chunks)) return false;
+        if (moreAvailable != other.moreAvailable) return false;
         return true;
     }
 

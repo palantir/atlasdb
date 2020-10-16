@@ -21,8 +21,10 @@ package com.palantir.util;
  *
  * @author dkramer
  */
-public interface NonDistributedCache<K, V> extends DistributedCacheMgrCache<K, V>{
+public interface NonDistributedCache<K, V> extends DistributedCacheMgrCache<K, V> {
     int size();
+
     void clear();
+
     boolean containsKey(K key);
 }

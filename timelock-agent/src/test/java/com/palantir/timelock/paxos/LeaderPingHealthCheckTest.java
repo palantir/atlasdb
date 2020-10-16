@@ -19,12 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -32,6 +26,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.junit.Test;
 
 public class LeaderPingHealthCheckTest {
 
@@ -152,10 +150,8 @@ public class LeaderPingHealthCheckTest {
 
     @Test
     public void canHandleIndividualClientsSeperately() {
-        List<HealthCheckPinger> leaders = getHealthCheckPingers(
-                ImmutableSet.of(CLIENT1),
-                ImmutableSet.of(CLIENT3),
-                ImmutableSet.of(CLIENT3));
+        List<HealthCheckPinger> leaders =
+                getHealthCheckPingers(ImmutableSet.of(CLIENT1), ImmutableSet.of(CLIENT3), ImmutableSet.of(CLIENT3));
 
         SetMultimap<TimeLockStatus, Client> expected = ImmutableSetMultimap.<TimeLockStatus, Client>builder()
                 .put(TimeLockStatus.ONE_LEADER, CLIENT1)
@@ -168,9 +164,7 @@ public class LeaderPingHealthCheckTest {
     }
 
     private static List<HealthCheckPinger> getHealthCheckPingers(
-            Set<Client> pingResultForLeader1,
-            Set<Client> pingResultForLeader2,
-            Set<Client> pingResultForLeader3) {
+            Set<Client> pingResultForLeader1, Set<Client> pingResultForLeader2, Set<Client> pingResultForLeader3) {
         HealthCheckPinger leader1 = getMockOfPingableLeaderWherePingReturns(pingResultForLeader1);
         HealthCheckPinger leader2 = getMockOfPingableLeaderWherePingReturns(pingResultForLeader2);
         HealthCheckPinger leader3 = getMockOfPingableLeaderWherePingReturns(pingResultForLeader3);

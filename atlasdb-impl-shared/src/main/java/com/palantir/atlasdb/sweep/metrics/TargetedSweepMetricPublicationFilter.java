@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongSupplier;
-
 import org.immutables.value.Value;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 
 /**
  * Indicates whether targeted sweep metrics should be published.
@@ -36,6 +34,7 @@ import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 public class TargetedSweepMetricPublicationFilter implements MetricPublicationFilter {
     @VisibleForTesting
     static final long MINIMUM_READS_WRITES_TO_BE_CONSIDERED_ACTIVE = 1_000;
+
     @VisibleForTesting
     static final Duration MINIMUM_STALE_DURATION = Duration.ofHours(4);
 
@@ -73,7 +72,9 @@ public class TargetedSweepMetricPublicationFilter implements MetricPublicationFi
     @Value.Immutable
     public interface DecisionMetrics {
         LongSupplier enqueuedWrites();
+
         LongSupplier entriesRead();
+
         LongSupplier millisSinceLastSweptTs();
     }
 }

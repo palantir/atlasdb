@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Iterator;
-import java.util.List;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +31,9 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
+import java.util.Iterator;
+import java.util.List;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class NameMetadataDescription {
@@ -47,8 +45,12 @@ public class NameMetadataDescription {
     private final int numberOfComponentsHashed;
 
     public NameMetadataDescription() {
-        this(ImmutableList.of(
-                new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), 0);
+        this(
+                ImmutableList.of(new NameComponentDescription.Builder()
+                        .componentName("name")
+                        .type(ValueType.BLOB)
+                        .build()),
+                0);
     }
 
     private NameMetadataDescription(List<NameComponentDescription> components, int numberOfComponentsHashed) {
@@ -67,14 +69,16 @@ public class NameMetadataDescription {
     }
 
     @Deprecated
-    public static NameMetadataDescription create(List<NameComponentDescription> components,
-            boolean hasFirstComponentHash) {
+    public static NameMetadataDescription create(
+            List<NameComponentDescription> components, boolean hasFirstComponentHash) {
 
         return NameMetadataDescription.create(components, hasFirstComponentHash ? 1 : 0);
     }
 
-    public static NameMetadataDescription create(List<NameComponentDescription> components, int numberOfComponentsHashed) {
-        com.palantir.logsafe.Preconditions.checkArgument(numberOfComponentsHashed <= components.size(),
+    public static NameMetadataDescription create(
+            List<NameComponentDescription> components, int numberOfComponentsHashed) {
+        com.palantir.logsafe.Preconditions.checkArgument(
+                numberOfComponentsHashed <= components.size(),
                 "Number of hashed components can't exceed total number of row components.");
         if (numberOfComponentsHashed == 0) {
             return new NameMetadataDescription(components, numberOfComponentsHashed);
@@ -94,12 +98,11 @@ public class NameMetadataDescription {
     }
 
     public static NameMetadataDescription create(String name, ValueType valueType, ValueByteOrder byteOrder) {
-        return create(ImmutableList.of(
-                new NameComponentDescription.Builder()
-                        .componentName(name)
-                        .type(valueType)
-                        .byteOrder(byteOrder)
-                        .build()));
+        return create(ImmutableList.of(new NameComponentDescription.Builder()
+                .componentName(name)
+                .type(valueType)
+                .byteOrder(byteOrder)
+                .build()));
     }
 
     public static NameMetadataDescription safe(String name, ValueType valueType) {
@@ -122,7 +125,8 @@ public class NameMetadataDescription {
         NameComponentDescription firstPart = rowParts.get(0);
         List<RowNamePartitioner> partitioners = Lists.newArrayList();
         if (firstPart.hasUniformPartitioner()) {
-            com.palantir.logsafe.Preconditions.checkArgument(UniformRowNamePartitioner.allowsUniformPartitioner(firstPart.getType()));
+            com.palantir.logsafe.Preconditions.checkArgument(
+                    UniformRowNamePartitioner.allowsUniformPartitioner(firstPart.getType()));
             partitioners.add(new UniformRowNamePartitioner(firstPart.getType()));
         }
         if (firstPart.getExplicitPartitioner() != null) {
@@ -143,8 +147,8 @@ public class NameMetadataDescription {
             }
             if (component.hasUniformPartitioner()) {
                 for (RowNamePartitioner rowNamePartitioner : partitioners) {
-                    nextPartitioners.addAll(rowNamePartitioner.compound(
-                            new UniformRowNamePartitioner(component.getType())));
+                    nextPartitioners.addAll(
+                            rowNamePartitioner.compound(new UniformRowNamePartitioner(component.getType())));
                 }
             }
             partitioners = nextPartitioners;
@@ -169,7 +173,11 @@ public class NameMetadataDescription {
                 parse = component.type.convertToJson(name, offset);
             }
             offset += parse.rhSide;
-            sb.append('"').append(component.componentName).append('"').append(": ").append(parse.lhSide);
+            sb.append('"')
+                    .append(component.componentName)
+                    .append('"')
+                    .append(": ")
+                    .append(parse.lhSide);
             if (it.hasNext()) {
                 sb.append(", ");
             }
@@ -186,7 +194,8 @@ public class NameMetadataDescription {
     public byte[] parseFromJson(String json, boolean allowPrefix) {
         try {
             JsonNode jsonNode = OBJECT_MAPPER.readTree(json);
-            Preconditions.checkState(jsonNode.isObject(),
+            Preconditions.checkState(
+                    jsonNode.isObject(),
                     "Only JSON objects can be deserialized into parsed byte arrays.  Passed json was: %s",
                     json);
             ObjectNode objectNode = (ObjectNode) jsonNode;
@@ -194,11 +203,13 @@ public class NameMetadataDescription {
             int numDefinedFields = countNumDefinedFields(objectNode);
             byte[][] bytes = new byte[numDefinedFields][];
 
-            Preconditions.checkArgument(numDefinedFields > 0,
+            Preconditions.checkArgument(
+                    numDefinedFields > 0,
                     "JSON object needs a field named: %s.  Passed json was: %s",
                     rowParts.get(0).getComponentName(),
                     json);
-            Preconditions.checkArgument(allowPrefix || numDefinedFields == rowParts.size(),
+            Preconditions.checkArgument(
+                    allowPrefix || numDefinedFields == rowParts.size(),
                     "JSON object has %s defined fields, but the number of row components is %s.  Passed json was: %s",
                     numDefinedFields,
                     rowParts.size(),
@@ -231,8 +242,8 @@ public class NameMetadataDescription {
         for (int i = numFields + 1; i < rowParts.size(); ++i) {
             String componentName = rowParts.get(i).getComponentName();
             if (objectNode.has(componentName)) {
-                throw new IllegalArgumentException("JSON object is missing field: "
-                        + rowParts.get(i - 1).getComponentName());
+                throw new IllegalArgumentException(
+                        "JSON object is missing field: " + rowParts.get(i - 1).getComponentName());
             }
         }
         return numFields;
@@ -270,8 +281,8 @@ public class NameMetadataDescription {
 
     @Override
     public String toString() {
-        return "NameMetadataDescription [rowParts=" + rowParts + ", numberOfComponentsHashed=" +
-                numberOfComponentsHashed + "]";
+        return "NameMetadataDescription [rowParts=" + rowParts + ", numberOfComponentsHashed="
+                + numberOfComponentsHashed + "]";
     }
 
     @Override

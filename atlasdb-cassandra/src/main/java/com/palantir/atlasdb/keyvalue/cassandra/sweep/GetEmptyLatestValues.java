@@ -15,17 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class GetEmptyLatestValues {
 
@@ -60,12 +59,9 @@ public class GetEmptyLatestValues {
     }
 
     private Set<Cell> getSingleBatch(List<CellWithTimestamps> batch) {
-        Set<Cell> cells = batch.stream()
-                .map(CellWithTimestamps::cell)
-                .collect(Collectors.toSet());
+        Set<Cell> cells = batch.stream().map(CellWithTimestamps::cell).collect(Collectors.toSet());
 
         Map<Cell, Value> valuesByCell = valuesLoader.getValues(table, cells, maxTimestampExclusive);
         return Maps.filterValues(valuesByCell, Value::isEmpty).keySet();
     }
-
 }

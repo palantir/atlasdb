@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.List;
-import java.util.SortedMap;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -36,6 +28,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
+import java.util.List;
+import java.util.SortedMap;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class KeyValueServiceScrubberStoreTest {
     private KeyValueService kvs;
@@ -64,8 +62,7 @@ public class KeyValueServiceScrubberStoreTest {
         long timestamp = 10;
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell, ref), timestamp, 1000);
         Assert.assertEquals(
-                ImmutableList.of(ImmutableSortedMap.of(timestamp, ImmutableMultimap.of(ref, cell))),
-                getScrubQueue());
+                ImmutableList.of(ImmutableSortedMap.of(timestamp, ImmutableMultimap.of(ref, cell))), getScrubQueue());
         scrubStore.markCellsAsScrubbed(ImmutableMap.of(ref, ImmutableMultimap.of(cell, timestamp)), 1000);
         Assert.assertEquals(ImmutableList.of(), getScrubQueue());
     }
@@ -86,12 +83,13 @@ public class KeyValueServiceScrubberStoreTest {
                         timestamp1, ImmutableMultimap.of(ref1, cell2),
                         timestamp2, ImmutableMultimap.of(ref2, cell3, ref1, cell1))),
                 getScrubQueue());
-        scrubStore.markCellsAsScrubbed(ImmutableMap.of(
-                ref2, ImmutableMultimap.of(cell3, timestamp2),
-                ref1, ImmutableMultimap.of(cell1, timestamp1, cell1, timestamp2)), 1000);
+        scrubStore.markCellsAsScrubbed(
+                ImmutableMap.of(
+                        ref2, ImmutableMultimap.of(cell3, timestamp2),
+                        ref1, ImmutableMultimap.of(cell1, timestamp1, cell1, timestamp2)),
+                1000);
         Assert.assertEquals(
-                ImmutableList.of(ImmutableSortedMap.of(
-                        timestamp1, ImmutableMultimap.of(ref1, cell2))),
+                ImmutableList.of(ImmutableSortedMap.of(timestamp1, ImmutableMultimap.of(ref1, cell2))),
                 getScrubQueue());
     }
 

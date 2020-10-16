@@ -23,11 +23,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
+import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.pooling.PoolingContainer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
@@ -40,20 +45,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
-import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.pooling.PoolingContainer;
-
 @RunWith(MockitoJUnitRunner.class)
 public class HostnamesByIpSupplierTest {
     @Mock
     CassandraClient client;
 
-    private final Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(
-            () -> new DummyClientPool(client));
+    private final Supplier<Map<String, String>> hostnamesByIpSupplier =
+            new HostnamesByIpSupplier(() -> new DummyClientPool(client));
 
     @Test
     public void keyspaceNotAccessibleDoesNotError() throws Exception {
@@ -75,10 +73,9 @@ public class HostnamesByIpSupplierTest {
     @Test
     public void unexpectedTableFormatDoesNotError() throws Exception {
         setupKeyspaceAndTable();
-        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
-                ImmutableList.of(
-                        createColumn("unknown_name", PtBytes.toBytes("unknown_value")),
-                        createColumn("another_unknown_name", PtBytes.toBytes("another_unknown_value")))));
+        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(ImmutableList.of(
+                createColumn("unknown_name", PtBytes.toBytes("unknown_value")),
+                createColumn("another_unknown_name", PtBytes.toBytes("another_unknown_value")))));
         when(client.execute_cql3_query(any(), any(), any())).thenReturn(cqlResult);
 
         assertThat(hostnamesByIpSupplier.get()).isEmpty();
@@ -105,11 +102,10 @@ public class HostnamesByIpSupplierTest {
     @Test
     public void unknownColumnsAreIgnored() throws Exception {
         setupKeyspaceAndTable();
-        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
-                ImmutableList.of(
-                        createColumn("ip", PtBytes.toBytes("10.0.0.0")),
-                        createColumn("hostname", PtBytes.toBytes("cassandra-1")),
-                        createColumn("unknown_column", PtBytes.toBytes("unknown_column_value")))));
+        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(ImmutableList.of(
+                createColumn("ip", PtBytes.toBytes("10.0.0.0")),
+                createColumn("hostname", PtBytes.toBytes("cassandra-1")),
+                createColumn("unknown_column", PtBytes.toBytes("unknown_column_value")))));
         when(client.execute_cql3_query(any(), any(), any())).thenReturn(cqlResult);
 
         Map<String, String> hostnamesByIp = hostnamesByIpSupplier.get();
@@ -118,8 +114,8 @@ public class HostnamesByIpSupplierTest {
 
     private void setupKeyspaceAndTable() throws TException {
         when(client.describe_keyspace("system_palantir"))
-                .thenReturn(new KsDef("system_palantir", "",
-                        ImmutableList.of(new CfDef("system_palantir", "hostnames_by_ip"))));
+                .thenReturn(new KsDef(
+                        "system_palantir", "", ImmutableList.of(new CfDef("system_palantir", "hostnames_by_ip"))));
     }
 
     private static CqlResult createMockCqlResult(List<List<Column>> rowsAndCols) {
@@ -160,7 +156,6 @@ public class HostnamesByIpSupplierTest {
         }
 
         @Override
-        public void shutdownPooling() {
-        }
+        public void shutdownPooling() {}
     }
 }

@@ -23,15 +23,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Map;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -44,6 +35,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Map;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class ReadTransactionShould {
 
@@ -69,27 +67,23 @@ public class ReadTransactionShould {
     public void setUp() {
         delegateTransaction = Mockito.mock(AbstractTransaction.class);
         SweepStrategyManager sweepStrategies = Mockito.mock(SweepStrategyManager.class);
-        when(sweepStrategies.get(DUMMY_CONSERVATIVE_TABLE))
-                .thenReturn(SweepStrategy.CONSERVATIVE);
-        when(sweepStrategies.get(DUMMY_THOROUGH_TABLE))
-                .thenReturn(SweepStrategy.THOROUGH);
+        when(sweepStrategies.get(DUMMY_CONSERVATIVE_TABLE)).thenReturn(SweepStrategy.CONSERVATIVE);
+        when(sweepStrategies.get(DUMMY_THOROUGH_TABLE)).thenReturn(SweepStrategy.THOROUGH);
         readTransaction = new ReadTransaction(delegateTransaction, sweepStrategies);
     }
 
     @Test
     public void notAllowPuts() {
-        checkThrowsAndNoInteraction(() -> readTransaction.put(
-                DUMMY_CONSERVATIVE_TABLE,
-                ImmutableMap.of(DUMMY_CELL, "value".getBytes())),
+        checkThrowsAndNoInteraction(
+                () -> readTransaction.put(DUMMY_CONSERVATIVE_TABLE, ImmutableMap.of(DUMMY_CELL, "value".getBytes())),
                 IllegalArgumentException.class,
                 "is a read only transaction");
     }
 
     @Test
     public void notAllowDeletes() {
-        checkThrowsAndNoInteraction(() -> readTransaction.delete(
-                DUMMY_CONSERVATIVE_TABLE,
-                ImmutableSet.of(DUMMY_CELL)),
+        checkThrowsAndNoInteraction(
+                () -> readTransaction.delete(DUMMY_CONSERVATIVE_TABLE, ImmutableSet.of(DUMMY_CELL)),
                 IllegalArgumentException.class,
                 "is a read only transaction");
     }
@@ -108,7 +102,8 @@ public class ReadTransactionShould {
         for (Method method : declaredMethods) {
             // Ignore methods that are either not simple gets or are overloaded
             if (simpleGets.containsKey(method.getName()) && hasExpectedParameterCount(method)) {
-                checkThrowsAndNoInteraction(() -> {
+                checkThrowsAndNoInteraction(
+                        () -> {
                             try {
                                 method.invoke(readTransaction, simpleGets.get(method.getName()));
                             } catch (InvocationTargetException e) {
@@ -125,34 +120,36 @@ public class ReadTransactionShould {
 
     @Test
     public void notAllowBatchColumnRangeGets() {
-        checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRange(
-                DUMMY_THOROUGH_TABLE,
-                ImmutableList.of(EMPTY_BYTES),
-                BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
+        checkThrowsAndNoInteraction(
+                () -> readTransaction.getRowsColumnRange(
+                        DUMMY_THOROUGH_TABLE,
+                        ImmutableList.of(EMPTY_BYTES),
+                        BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
                 SafeIllegalStateException.class,
                 "cannot be read");
-        checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRangeIterator(
-                DUMMY_THOROUGH_TABLE,
-                ImmutableList.of(EMPTY_BYTES),
-                BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
+        checkThrowsAndNoInteraction(
+                () -> readTransaction.getRowsColumnRangeIterator(
+                        DUMMY_THOROUGH_TABLE,
+                        ImmutableList.of(EMPTY_BYTES),
+                        BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
                 SafeIllegalStateException.class,
                 "cannot be read");
     }
 
     @Test
     public void notAllowColumnRangeGets() {
-        checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRange(
-                DUMMY_THOROUGH_TABLE,
-                ImmutableList.of(EMPTY_BYTES),
-                new ColumnRangeSelection(EMPTY_BYTES, EMPTY_BYTES),
-                1),
+        checkThrowsAndNoInteraction(
+                () -> readTransaction.getRowsColumnRange(
+                        DUMMY_THOROUGH_TABLE,
+                        ImmutableList.of(EMPTY_BYTES),
+                        new ColumnRangeSelection(EMPTY_BYTES, EMPTY_BYTES),
+                        1),
                 SafeIllegalStateException.class,
                 "cannot be read");
     }
 
-    private void checkThrowsAndNoInteraction(Runnable thrower,
-            Class<? extends Exception> exception,
-            String errorMessage) {
+    private void checkThrowsAndNoInteraction(
+            Runnable thrower, Class<? extends Exception> exception, String errorMessage) {
         try {
             thrower.run();
             Assert.fail();

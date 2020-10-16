@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -32,6 +25,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class GetCellTimestamps {
 
@@ -105,8 +104,8 @@ public class GetCellTimestamps {
             }
 
             // Note that both ends of this range are *inclusive*
-            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint, executor,
-                    executorThreads);
+            List<CellWithTimestamp> batch =
+                    cqlExecutor.getTimestamps(tableRef, rows, batchHint, executor, executorThreads);
             timestamps.addAll(batch);
             rangeStart = RangeRequests.nextLexicographicName(Iterables.getLast(rows));
         }
@@ -135,8 +134,9 @@ public class GetCellTimestamps {
     }
 
     private List<CellWithTimestamps> groupTimestampsByCell() {
-        Map<Cell, List<Long>> timestampsByCell = timestamps.stream().collect(
-                Collectors.groupingBy(CellWithTimestamp::cell,
+        Map<Cell, List<Long>> timestampsByCell = timestamps.stream()
+                .collect(Collectors.groupingBy(
+                        CellWithTimestamp::cell,
                         Collectors.mapping(CellWithTimestamp::timestamp, Collectors.toList())));
 
         return timestampsByCell.entrySet().stream()

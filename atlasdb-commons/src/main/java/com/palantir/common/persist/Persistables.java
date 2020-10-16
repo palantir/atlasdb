@@ -15,16 +15,15 @@
  */
 package com.palantir.common.persist;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.List;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable.Hydrator;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.List;
 
 public class Persistables {
     @SuppressWarnings("unchecked")
@@ -32,9 +31,7 @@ public class Persistables {
         try {
             Field field = clazz.getField(Persistable.HYDRATOR_NAME);
             int modifiers = field.getModifiers();
-            if (!Modifier.isPublic(modifiers)
-                    || !Modifier.isStatic(modifiers)
-                    || !Modifier.isFinal(modifiers)) {
+            if (!Modifier.isPublic(modifiers) || !Modifier.isStatic(modifiers) || !Modifier.isFinal(modifiers)) {
                 return null;
             }
             return (Hydrator<T>) field.get(null);

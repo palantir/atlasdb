@@ -47,7 +47,6 @@ public final class UpdateVisitors {
         public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Snapshot snapshot) {
             return fail("Unexpected snapshot");
         }
-
     }
 
     public static class AssertSnapshotVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Snapshot> {

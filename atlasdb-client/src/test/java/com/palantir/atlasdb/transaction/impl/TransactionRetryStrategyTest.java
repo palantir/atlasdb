@@ -20,18 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.IntPredicate;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.github.rholder.retry.BlockStrategy;
 import com.google.common.collect.ImmutableList;
@@ -39,13 +28,27 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.impl.TransactionRetryStrategy.Retryable;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntPredicate;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionRetryStrategyTest {
     private final TestBlockStrategy blockStrategy = new TestBlockStrategy();
-    @Mock private ThreadLocalRandom random;
-    @Mock private Retryable<String, Exception> task;
-    @Mock private IntPredicate shouldStopRetrying;
+
+    @Mock
+    private ThreadLocalRandom random;
+
+    @Mock
+    private Retryable<String, Exception> task;
+
+    @Mock
+    private IntPredicate shouldStopRetrying;
 
     private TransactionRetryStrategy legacy;
     private TransactionRetryStrategy exponential;
@@ -94,7 +97,8 @@ public class TransactionRetryStrategyTest {
     @Test
     public void stopsIfShouldStopRetrying() throws Exception {
         TransactionFailedRetriableException second = new TransactionFailedRetriableException("second");
-        when(task.run()).thenThrow(new TransactionFailedRetriableException("first"))
+        when(task.run())
+                .thenThrow(new TransactionFailedRetriableException("first"))
                 .thenThrow(second)
                 .thenReturn("success");
         assertThatExceptionOfType(TransactionFailedRetriableException.class)
@@ -129,8 +133,7 @@ public class TransactionRetryStrategyTest {
     public void doesNotBackOffIfLegacy() throws Exception {
         mockRetries(50);
         when(task.run()).thenThrow(new TransactionFailedRetriableException(""));
-        assertThatExceptionOfType(TransactionFailedRetriableException.class)
-                .isThrownBy(this::runLegacy);
+        assertThatExceptionOfType(TransactionFailedRetriableException.class).isThrownBy(this::runLegacy);
         assertThat(blockStrategy.totalBlockedTime).isZero();
     }
 
@@ -138,10 +141,11 @@ public class TransactionRetryStrategyTest {
     public void backsOffExponentially() throws Exception {
         mockRetries(11);
         when(task.run()).thenThrow(new TransactionFailedRetriableException(""));
-        List<Integer> rawBlockTimes = ImmutableList.of(
-                200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 60000, 60000);
+        List<Integer> rawBlockTimes =
+                ImmutableList.of(200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 60000, 60000);
         List<Integer> randomizedBlockTimes = Lists.transform(rawBlockTimes, x -> x - 1);
-        long expectedBlockDuration = randomizedBlockTimes.stream().mapToInt(x -> x).sum();
+        long expectedBlockDuration =
+                randomizedBlockTimes.stream().mapToInt(x -> x).sum();
         assertThatExceptionOfType(TransactionFailedRetriableException.class).isThrownBy(this::runExponential);
         assertThat(blockStrategy.totalBlockedTime).isEqualTo(expectedBlockDuration);
     }

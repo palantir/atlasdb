@@ -15,27 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ExecutorService;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.apache.commons.lang3.ArrayUtils;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -76,6 +55,24 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * In-memory (non-durable) key-value store implementation.
@@ -100,16 +97,18 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
-                                    ColumnSelection columnSelection, long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = Maps.newHashMap();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
         for (byte[] row : rows) {
             Cell rowBegin = Cells.createSmallestCellForRow(row);
             Cell rowEnd = Cells.createLargestCellForRow(row);
-            PeekingIterator<Entry<Key, byte[]>> entries = Iterators.peekingIterator(table.subMap(
-                    new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp)).entrySet().iterator());
+            PeekingIterator<Entry<Key, byte[]>> entries = Iterators.peekingIterator(
+                    table.subMap(new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp))
+                            .entrySet()
+                            .iterator());
             while (entries.hasNext()) {
                 Entry<Key, byte[]> entry = entries.peek();
                 Key key = entry.getKey();
@@ -124,8 +123,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
-    private void getLatestVersionOfCell(byte[] row, Key key, Iterator<Entry<Key, byte[]>> cellIter, long timestamp,
-                                        @Output Map<Cell, Value> result) {
+    private void getLatestVersionOfCell(
+            byte[] row,
+            Key key,
+            Iterator<Entry<Key, byte[]>> cellIter,
+            long timestamp,
+            @Output Map<Cell, Value> result) {
         Entry<Key, byte[]> lastEntry = null;
         while (cellIter.hasNext()) {
             Entry<Key, byte[]> curEntry = cellIter.next();
@@ -161,17 +164,13 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp) {
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp);
     }
 
     @Override
     public ClosableIterator<RowResult<Value>> getRange(
-            TableReference tableRef,
-            final RangeRequest range,
-            final long timestamp) {
+            TableReference tableRef, final RangeRequest range, final long timestamp) {
         boolean reversed = range.isReverse();
         return getRangeInternal(tableRef, range, entries -> {
             Entry<Key, byte[]> lastEntry = null;
@@ -196,9 +195,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-            TableReference tableRef,
-            final RangeRequest range,
-            final long timestamp) {
+            TableReference tableRef, final RangeRequest range, final long timestamp) {
         return getRangeInternal(tableRef, range, entries -> {
             Set<Long> timestamps = Sets.newTreeSet();
             while (entries.hasNext()) {
@@ -218,14 +215,13 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
-            CandidateCellForSweepingRequest request) {
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
         return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
     }
 
-    private <T> ClosableIterator<RowResult<T>> getRangeInternal(TableReference tableRef,
-                                                                final RangeRequest range,
-                                                                final ResultProducer<T> resultProducer) {
+    private <T> ClosableIterator<RowResult<T>> getRangeInternal(
+            TableReference tableRef, final RangeRequest range, final ResultProducer<T> resultProducer) {
         ConcurrentNavigableMap<Key, byte[]> tableMap = getTableMap(tableRef).entries;
         if (range.isReverse()) {
             tableMap = tableMap.descendingMap();
@@ -248,7 +244,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 tableMap = tableMap.headMap(new Key(endCell, Long.MAX_VALUE));
             }
         }
-        final PeekingIterator<Entry<Key, byte[]>> it = Iterators.peekingIterator(tableMap.entrySet().iterator());
+        final PeekingIterator<Entry<Key, byte[]>> it =
+                Iterators.peekingIterator(tableMap.entrySet().iterator());
         return ClosableIterators.wrap(new AbstractIterator<RowResult<T>>() {
             @Override
             protected RowResult<T> computeNext() {
@@ -256,8 +253,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     if (!it.hasNext()) {
                         return endOfData();
                     }
-                    ImmutableSortedMap.Builder<byte[], T> result = ImmutableSortedMap.orderedBy(
-                            UnsignedBytes.lexicographicalComparator());
+                    ImmutableSortedMap.Builder<byte[], T> result =
+                            ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
                     Key key = it.peek().getKey();
                     byte[] row = key.row;
                     Iterator<Entry<Key, byte[]>> cellIter = takeCell(it, key);
@@ -277,7 +274,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     }
                 }
             }
-
         });
     }
 
@@ -299,16 +295,16 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
-                                                                  Iterable<byte[]> rows,
-                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
-                                                                  long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
         Map<byte[], RowColumnRangeIterator> result = Maps.newHashMap();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
         ColumnRangeSelection columnRangeSelection = new ColumnRangeSelection(
-                batchColumnRangeSelection.getStartCol(),
-                batchColumnRangeSelection.getEndCol());
+                batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol());
         for (byte[] row : rows) {
             result.put(row, getColumnRangeForSingleRow(table, row, columnRangeSelection, timestamp));
         }
@@ -317,22 +313,23 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
+    public RowColumnRangeIterator getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int cellBatchHint,
+            long timestamp) {
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        Iterator<RowColumnRangeIterator> rowColumnRanges =
-                Iterators.transform(rows.iterator(),
-                        row -> getColumnRangeForSingleRow(table, row, columnRangeSelection, timestamp));
+        Iterator<RowColumnRangeIterator> rowColumnRanges = Iterators.transform(
+                rows.iterator(), row -> getColumnRangeForSingleRow(table, row, columnRangeSelection, timestamp));
         return new LocalRowColumnRangeIterator(Iterators.concat(rowColumnRanges));
     }
 
-    private RowColumnRangeIterator getColumnRangeForSingleRow(ConcurrentSkipListMap<Key, byte[]> table,
-                                                              byte[] row,
-                                                              ColumnRangeSelection columnRangeSelection,
-                                                              long timestamp) {
+    private RowColumnRangeIterator getColumnRangeForSingleRow(
+            ConcurrentSkipListMap<Key, byte[]> table,
+            byte[] row,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp) {
         Cell rowBegin;
         if (columnRangeSelection.getStartCol().length > 0) {
             rowBegin = Cell.create(row, columnRangeSelection.getStartCol());
@@ -346,8 +343,10 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         } else {
             rowEnd = Cells.createLargestCellForRow(row);
         }
-        PeekingIterator<Entry<Key, byte[]>> entries = Iterators.peekingIterator(table.subMap(
-                new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp)).entrySet().iterator());
+        PeekingIterator<Entry<Key, byte[]>> entries =
+                Iterators.peekingIterator(table.subMap(new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp))
+                        .entrySet()
+                        .iterator());
         Map<Cell, Value> rowResults = new LinkedHashMap<>();
         while (entries.hasNext()) {
             Entry<Key, byte[]> entry = entries.peek();
@@ -359,15 +358,17 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     private interface ResultProducer<T> {
-        @Nullable T apply(Iterator<Entry<Key, byte[]>> timestampValues);
+        @Nullable
+        T apply(Iterator<Entry<Key, byte[]>> timestampValues);
     }
 
     @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
-    private static <T> void collectValueForTimestamp(byte[] col,
-                                                     Iterator<Entry<Key, byte[]>> timestampValues,
-                                                     @Output ImmutableSortedMap.Builder<byte[], T> results,
-                                                     RangeRequest range,
-                                                     ResultProducer<T> resultProducer) {
+    private static <T> void collectValueForTimestamp(
+            byte[] col,
+            Iterator<Entry<Key, byte[]>> timestampValues,
+            @Output ImmutableSortedMap.Builder<byte[], T> results,
+            RangeRequest range,
+            ResultProducer<T> resultProducer) {
         T result = null;
         if (range.containsColumn(col)) {
             result = resultProducer.apply(timestampValues);
@@ -396,17 +397,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
-        putInternal(tableRef,
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        putInternal(
+                tableRef,
                 KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
                 true);
     }
 
     private void putInternal(
-            TableReference tableRef,
-            Collection<Map.Entry<Cell, Value>> values,
-            boolean doNotOverwriteWithSameValue) {
+            TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
         Table table = getTableMap(tableRef);
         List<Cell> knownSuccessfullyCommittedKeys = new ArrayList<>();
         for (Map.Entry<Cell, Value> entry : values) {
@@ -416,8 +415,10 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             Key key = getKey(table, entry.getKey(), timestamp);
             byte[] oldContents = putIfAbsent(table, key, contents);
             if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
-                throw new KeyAlreadyExistsException("We already have a value for this timestamp",
-                        ImmutableList.of(entry.getKey()), knownSuccessfullyCommittedKeys);
+                throw new KeyAlreadyExistsException(
+                        "We already have a value for this timestamp",
+                        ImmutableList.of(entry.getKey()),
+                        knownSuccessfullyCommittedKeys);
             }
             knownSuccessfullyCommittedKeys.add(entry.getKey());
         }
@@ -487,8 +488,9 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
         deletes.forEach((cell, delete) -> table.subMap(
-                new Key(cell, delete.minTimestampToDelete()), true,
-                new Key(cell, delete.maxTimestampToDelete()), true).clear());
+                        new Key(cell, delete.minTimestampToDelete()), true,
+                        new Key(cell, delete.maxTimestampToDelete()), true)
+                .clear());
     }
 
     @Override
@@ -496,7 +498,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         Multimap<Cell, Long> multimap = HashMultimap.create();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
         for (Cell key : cells) {
-            for (Key entry : table.subMap(new Key(key, Long.MIN_VALUE), new Key(key, ts)).keySet()) {
+            for (Key entry :
+                    table.subMap(new Key(key, Long.MIN_VALUE), new Key(key, ts)).keySet()) {
                 multimap.put(key, entry.ts);
             }
         }
@@ -595,8 +598,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     private static IllegalArgumentException tableMappingException(TableReference tableReference) {
         return new IllegalArgumentException(
-                new TableMappingNotFoundException(
-                        "Table " + tableReference.getQualifiedName() + " does not exist"));
+                new TableMappingNotFoundException("Table " + tableReference.getQualifiedName() + " does not exist"));
     }
 
     @Override
@@ -645,7 +647,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             }
             return Longs.compare(ts, other.ts);
         }
-
 
         @Override
         public int hashCode() {

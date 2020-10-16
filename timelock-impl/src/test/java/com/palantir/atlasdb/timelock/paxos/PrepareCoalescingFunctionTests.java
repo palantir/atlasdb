@@ -20,20 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PrepareCoalescingFunctionTests {
@@ -59,11 +57,10 @@ public class PrepareCoalescingFunctionTests {
 
         SetMultimap<Client, WithSeq<PaxosPromise>> remoteResponse =
                 ImmutableSetMultimap.<Client, WithSeq<PaxosPromise>>builder()
-                .put(CLIENT_1, promiseFor(client1seq1Id))
-                .put(CLIENT_1, promiseFor(client1seq2Id))
-                .put(CLIENT_2, promiseFor(client2seq1Id))
-                .build();
-
+                        .put(CLIENT_1, promiseFor(client1seq1Id))
+                        .put(CLIENT_1, promiseFor(client1seq2Id))
+                        .put(CLIENT_2, promiseFor(client2seq1Id))
+                        .build();
 
         when(remote.prepare(requests)).thenReturn(remoteResponse);
 
@@ -71,9 +68,15 @@ public class PrepareCoalescingFunctionTests {
         Map<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> result = function.apply(requests.entries());
 
         assertThat(result)
-                .containsEntry(entry(CLIENT_1, client1seq1Id), promiseFor(client1seq1Id).value())
-                .containsEntry(entry(CLIENT_1, client1seq2Id), promiseFor(client1seq2Id).value())
-                .containsEntry(entry(CLIENT_2, client2seq1Id), promiseFor(client2seq1Id).value());
+                .containsEntry(
+                        entry(CLIENT_1, client1seq1Id),
+                        promiseFor(client1seq1Id).value())
+                .containsEntry(
+                        entry(CLIENT_1, client1seq2Id),
+                        promiseFor(client1seq2Id).value())
+                .containsEntry(
+                        entry(CLIENT_2, client2seq1Id),
+                        promiseFor(client2seq1Id).value());
     }
 
     private static PaxosProposalId proposalId() {
@@ -83,5 +86,4 @@ public class PrepareCoalescingFunctionTests {
     private static WithSeq<PaxosPromise> promiseFor(WithSeq<PaxosProposalId> proposalIdWithSeq) {
         return proposalIdWithSeq.map(proposalId -> PaxosPromise.accept(proposalId, null, null));
     }
-
 }

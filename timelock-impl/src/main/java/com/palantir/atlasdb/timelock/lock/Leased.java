@@ -22,7 +22,7 @@ public class Leased<T> {
     private final T value;
     private final Lease lease;
 
-    private Leased (T value, Lease lease) {
+    private Leased(T value, Lease lease) {
         this.value = value;
         this.lease = lease;
     }

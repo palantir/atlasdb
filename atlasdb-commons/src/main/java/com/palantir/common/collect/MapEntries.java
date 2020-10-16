@@ -15,19 +15,19 @@
  */
 package com.palantir.common.collect;
 
-import java.util.Map;
-import java.util.Map.Entry;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Maps.EntryTransformer;
-
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class MapEntries {
-    private MapEntries() { /* */ }
+    private MapEntries() {
+        /* */
+    }
 
     public static <L, R> Function<Entry<L, R>, L> getKeyFunction() {
         return from -> from.getKey();
@@ -56,19 +56,19 @@ public class MapEntries {
         return builder.build();
     }
 
-    public static <L, F, T>  Function<Entry<L, F>, Entry<L, T>> applyValue(final Function<F, T> f) {
+    public static <L, F, T> Function<Entry<L, F>, Entry<L, T>> applyValue(final Function<F, T> f) {
         return from -> Maps.immutableEntry(from.getKey(), f.apply(from.getValue()));
     }
 
-    public static <F, T, R>  Function<Entry<F, R>, Entry<T, R>> applyKey(final Function<F, T> f) {
+    public static <F, T, R> Function<Entry<F, R>, Entry<T, R>> applyKey(final Function<F, T> f) {
         return from -> Maps.immutableEntry(f.apply(from.getKey()), from.getValue());
     }
 
-    public static <K, V>  Predicate<Map.Entry<K, V>> applyValue(final Predicate<V> f) {
+    public static <K, V> Predicate<Map.Entry<K, V>> applyValue(final Predicate<V> f) {
         return input -> f.apply(input.getValue());
     }
 
-    public static <K, V>  Predicate<Map.Entry<K, V>> applyKey(final Predicate<K> f) {
+    public static <K, V> Predicate<Map.Entry<K, V>> applyKey(final Predicate<K> f) {
         return input -> f.apply(input.getKey());
     }
 

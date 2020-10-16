@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 
 public class TargetedSweepMetadataTest {
-    private static final byte[] ALL_ZERO = new byte[] { 0, 0, 0, 0 };
+    private static final byte[] ALL_ZERO = new byte[] {0, 0, 0, 0};
     private static final byte EIGHT_ONES = (byte) 0xFF;
     private static final byte[] ALL_ONE = new byte[] {EIGHT_ONES, EIGHT_ONES, EIGHT_ONES, EIGHT_ONES};
 
@@ -41,12 +41,14 @@ public class TargetedSweepMetadataTest {
 
     @Test
     public void hydrateAllZero() {
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(ALL_ZERO)).isEqualTo(ALL_ZERO_METADATA);
+        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(ALL_ZERO))
+                .isEqualTo(ALL_ZERO_METADATA);
     }
 
     @Test
     public void hydrateAllOne() {
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(ALL_ONE)).isEqualTo(ALL_ONE_METADATA);
+        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(ALL_ONE))
+                .isEqualTo(ALL_ONE_METADATA);
     }
 
     @Test
@@ -87,15 +89,15 @@ public class TargetedSweepMetadataTest {
 
     @Test
     public void testIllegalShardSize() {
-        ImmutableTargetedSweepMetadata.Builder builder = ImmutableTargetedSweepMetadata.builder().from(
-                ALL_ZERO_METADATA);
+        ImmutableTargetedSweepMetadata.Builder builder =
+                ImmutableTargetedSweepMetadata.builder().from(ALL_ZERO_METADATA);
         assertThatThrownBy(() -> builder.shard(300).build()).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void testIllegalDedicatedRowNumber() {
-        ImmutableTargetedSweepMetadata.Builder builder = ImmutableTargetedSweepMetadata.builder().from(
-                ALL_ZERO_METADATA);
+        ImmutableTargetedSweepMetadata.Builder builder =
+                ImmutableTargetedSweepMetadata.builder().from(ALL_ZERO_METADATA);
         assertThatThrownBy(() -> builder.dedicatedRowNumber(-1).build()).isInstanceOf(IllegalArgumentException.class);
     }
 }

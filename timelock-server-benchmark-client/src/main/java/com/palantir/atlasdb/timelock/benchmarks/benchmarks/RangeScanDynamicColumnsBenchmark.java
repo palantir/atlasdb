@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -28,21 +25,21 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.List;
+import java.util.Map;
 
 public final class RangeScanDynamicColumnsBenchmark extends AbstractRangeScanBenchmark {
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient, int dataSize, int numRows) {
-        return new RangeScanDynamicColumnsBenchmark(txnManager, numClients, requestsPerClient, dataSize,
-                numRows).execute();
+    public static Map<String, Object> execute(
+            TransactionManager txnManager, int numClients, int requestsPerClient, int dataSize, int numRows) {
+        return new RangeScanDynamicColumnsBenchmark(txnManager, numClients, requestsPerClient, dataSize, numRows)
+                .execute();
     }
 
-    private RangeScanDynamicColumnsBenchmark(TransactionManager txnManager, int numClients,
-            int requestsPerClient,
-            int dataSize, int numRows) {
+    private RangeScanDynamicColumnsBenchmark(
+            TransactionManager txnManager, int numClients, int requestsPerClient, int dataSize, int numRows) {
         super(numClients, requestsPerClient, txnManager, dataSize, numRows);
     }
-
 
     @Override
     protected void writeValues(Transaction txn, Map<Long, byte[]> valuesByKey) {
@@ -61,15 +58,13 @@ public final class RangeScanDynamicColumnsBenchmark extends AbstractRangeScanBen
 
         List<byte[]> data = Lists.newArrayList();
         table.getRowsColumnRange(
-                ImmutableSet.of(KvDynamicColumnsRow.of(bucket)),
-                new ColumnRangeSelection(
-                        KvDynamicColumnsColumn.of(startInclusive).persistToBytes(),
-                        KvDynamicColumnsColumn.of(endExclusive).persistToBytes()),
-                batchSize)
+                        ImmutableSet.of(KvDynamicColumnsRow.of(bucket)),
+                        new ColumnRangeSelection(
+                                KvDynamicColumnsColumn.of(startInclusive).persistToBytes(),
+                                KvDynamicColumnsColumn.of(endExclusive).persistToBytes()),
+                        batchSize)
                 .forEachRemaining(entry -> data.add(entry.getValue().getValue()));
 
         return data;
     }
-
-
 }

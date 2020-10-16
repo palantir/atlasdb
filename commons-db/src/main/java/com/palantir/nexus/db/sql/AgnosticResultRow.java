@@ -15,7 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-
 import com.palantir.exception.PalantirSqlException;
 
 public interface AgnosticResultRow {
@@ -26,8 +25,9 @@ public interface AgnosticResultRow {
 
     public Object getObject(int col) throws PalantirSqlException;
 
-    @Deprecated //use colname instead
+    @Deprecated // use colname instead
     public byte[] getBlob(int col, int blobLength) throws PalantirSqlException;
+
     public byte[] getBlob(String colname) throws PalantirSqlException;
 
     public byte[] getBlob(String colname, int blobLength) throws PalantirSqlException;
@@ -92,7 +92,4 @@ public interface AgnosticResultRow {
      * @return the number of columns in this row.
      */
     public int size() throws PalantirSqlException;
-
-
-
 }

@@ -15,6 +15,8 @@
  */
 package com.palantir.common.base;
 
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -24,19 +26,17 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
-
 public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     @Override
-    default void close() { }
+    default void close() {}
 
     default <U> ClosableIterator<U> map(Function<T, U> mapper) {
         return ClosableIterators.wrap(Iterators.transform(this, mapper::apply));
     }
 
     default <U> ClosableIterator<U> flatMap(Function<T, Collection<U>> mapper) {
-        return ClosableIterators.wrap(stream().flatMap(obj -> mapper.apply(obj).stream()).iterator(), this);
+        return ClosableIterators.wrap(
+                stream().flatMap(obj -> mapper.apply(obj).stream()).iterator(), this);
     }
 
     default ClosableIterator<T> stopWhen(Predicate<T> shouldStop) {

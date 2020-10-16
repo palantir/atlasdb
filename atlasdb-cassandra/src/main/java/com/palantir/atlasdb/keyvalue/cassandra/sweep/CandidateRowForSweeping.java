@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedMap;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CandidateRowForSweeping {
@@ -37,14 +35,10 @@ public interface CandidateRowForSweeping {
     default RowResult<Set<Long>> toRowResult() {
         SortedMap<byte[], Set<Long>> timestampsByCell = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (CandidateCellForSweeping cell : cells()) {
-            timestampsByCell.put(
-                    cell.cell().getColumnName(),
-                    ImmutableSet.copyOf(cell.sortedTimestamps()));
+            timestampsByCell.put(cell.cell().getColumnName(), ImmutableSet.copyOf(cell.sortedTimestamps()));
         }
 
-        return RowResult.create(
-                rowName(),
-                timestampsByCell);
+        return RowResult.create(rowName(), timestampsByCell);
     }
 
     static CandidateRowForSweeping of(byte[] rowName, List<CandidateCellForSweeping> orderedCells) {
@@ -53,5 +47,4 @@ public interface CandidateRowForSweeping {
                 .rowName(rowName)
                 .build();
     }
-
 }

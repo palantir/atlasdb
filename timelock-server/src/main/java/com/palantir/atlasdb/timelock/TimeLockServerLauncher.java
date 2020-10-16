@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
-
-import org.eclipse.jetty.util.component.LifeCycle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -44,12 +32,20 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-
 import io.dropwizard.Application;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+import org.eclipse.jetty.util.component.LifeCycle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a way of launching an embedded TimeLock server using Dropwizard. Should only be used in tests.
@@ -58,8 +54,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
     private static final Logger log = LoggerFactory.getLogger(TimeLockServerLauncher.class);
 
-    private static final UserAgent USER_AGENT =
-            UserAgent.of(UserAgent.Agent.of("TimeLockServerLauncher", "0.0.0"));
+    private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of("TimeLockServerLauncher", "0.0.0"));
 
     public static void main(String[] args) throws Exception {
         new TimeLockServerLauncher().run(args);
@@ -70,8 +65,8 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
     @Override
     public void initialize(Bootstrap<CombinedTimeLockServerConfiguration> bootstrap) {
-        MetricRegistry metricRegistry = SharedMetricRegistries
-                .getOrCreate("AtlasDbTest" + UUID.randomUUID().toString());
+        MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(
+                "AtlasDbTest" + UUID.randomUUID().toString());
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
@@ -81,18 +76,19 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
     @Override
     public void run(CombinedTimeLockServerConfiguration configuration, Environment environment)
             throws JsonProcessingException {
-        environment.getObjectMapper()
-                .registerModule(new Jdk8Module())
-                .registerModule(new JavaTimeModule());
+        environment.getObjectMapper().registerModule(new Jdk8Module()).registerModule(new JavaTimeModule());
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
 
-        log.info("Paxos configuration\n{}", environment.getObjectMapper()
-                .writerWithDefaultPrettyPrinter()
-                .writeValueAsString(configuration.install().paxos()));
+        log.info(
+                "Paxos configuration\n{}",
+                environment
+                        .getObjectMapper()
+                        .writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(configuration.install().paxos()));
         TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),
@@ -106,24 +102,17 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
         environment.lifecycle().manage(new Managed() {
             @Override
-            public void start() {
-
-            }
+            public void start() {}
 
             @Override
-            public void stop() {
-            }
+            public void stop() {}
         });
         environment.lifecycle().addLifeCycleListener(new LifeCycle.Listener() {
             @Override
-            public void lifeCycleStarting(LifeCycle event) {
-
-            }
+            public void lifeCycleStarting(LifeCycle event) {}
 
             @Override
-            public void lifeCycleStarted(LifeCycle event) {
-
-            }
+            public void lifeCycleStarted(LifeCycle event) {}
 
             @Override
             public void lifeCycleFailure(LifeCycle event, Throwable cause) {
@@ -131,9 +120,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
             }
 
             @Override
-            public void lifeCycleStopping(LifeCycle event) {
-
-            }
+            public void lifeCycleStopping(LifeCycle event) {}
 
             @Override
             public void lifeCycleStopped(LifeCycle event) {

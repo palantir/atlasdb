@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue.id;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -36,10 +31,15 @@ import com.palantir.atlasdb.schema.generated.SweepIdToNameTable.SweepIdToNameCol
 import com.palantir.atlasdb.schema.generated.SweepIdToNameTable.SweepIdToNameRow;
 import com.palantir.atlasdb.schema.generated.SweepIdToNameTable.SweepIdToNameRowResult;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import java.util.Collections;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 class IdsToNames {
     private static final TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();
-    private static final TableReference ID_TO_NAME = tableFactory.getSweepIdToNameTable(null).getTableRef();
+    private static final TableReference ID_TO_NAME =
+            tableFactory.getSweepIdToNameTable(null).getTableRef();
     private static final byte[] rowAsBytes = SweepIdToNameRow.of("s").persistToBytes();
 
     private final KeyValueService kvs;
@@ -73,17 +73,22 @@ class IdsToNames {
 
     int getNextId() {
         RowColumnRangeIterator iterator = kvs.getRowsColumnRange(
-                ID_TO_NAME, Collections.singleton(rowAsBytes),
-                BatchColumnRangeSelection.create(null, null, 1),
-                Long.MAX_VALUE).getOrDefault(rowAsBytes, emptyIterator());
+                        ID_TO_NAME,
+                        Collections.singleton(rowAsBytes),
+                        BatchColumnRangeSelection.create(null, null, 1),
+                        Long.MAX_VALUE)
+                .getOrDefault(rowAsBytes, emptyIterator());
         if (!iterator.hasNext()) {
             return 1;
         }
         Map.Entry<Cell, Value> first = iterator.next();
-        RowResult<byte[]> rowResult = RowResult.of(first.getKey(), first.getValue().getContents());
+        RowResult<byte[]> rowResult =
+                RowResult.of(first.getKey(), first.getValue().getContents());
         SweepIdToNameRowResult deserializedRowResult = SweepIdToNameRowResult.of(rowResult);
-        return Ints.checkedCast(
-                Iterables.getOnlyElement(deserializedRowResult.getColumnValues()).getColumnName().getTableId()) + 1;
+        return Ints.checkedCast(Iterables.getOnlyElement(deserializedRowResult.getColumnValues())
+                        .getColumnName()
+                        .getTableId())
+                + 1;
     }
 
     private static RowColumnRangeIterator emptyIterator() {

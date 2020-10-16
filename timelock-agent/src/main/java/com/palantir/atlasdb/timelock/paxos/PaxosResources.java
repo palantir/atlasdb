@@ -16,26 +16,29 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class PaxosResources {
 
     public abstract Factory<ManagedTimestampService> timestampServiceFactory();
+
     abstract LocalPaxosComponents timestampPaxosComponents();
+
     abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
+
     public abstract LeadershipContextFactory leadershipContextFactory();
+
     abstract List<Object> adhocResources();
+
     public abstract TimeLockCorruptionComponents timeLockCorruptionComponents();
 
     @Value.Derived
@@ -65,7 +68,8 @@ public abstract class PaxosResources {
 
     @Value.Derived
     public LeadershipComponents leadershipComponents() {
-        return new LeadershipComponents(leadershipContextFactory(), leadershipContextFactory().healthCheckPingers());
+        return new LeadershipComponents(
+                leadershipContextFactory(), leadershipContextFactory().healthCheckPingers());
     }
 
     private static BatchPaxosResources batchResourcesFromComponents(LocalPaxosComponents components) {

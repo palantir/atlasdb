@@ -15,22 +15,21 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.util.MetricsManagers;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceSweepTaskRunnerIntegrationTest::createKeyValueService);
+    public static final CassandraResource CASSANDRA =
+            new CassandraResource(CassandraKeyValueServiceSweepTaskRunnerIntegrationTest::createKeyValueService);
 
     public CassandraKeyValueServiceSweepTaskRunnerIntegrationTest() {
         super(CASSANDRA, CASSANDRA);

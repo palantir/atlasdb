@@ -17,9 +17,8 @@ package com.palantir.atlasdb.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
+import org.junit.Test;
 
 public class InMemoryAtlasDbConfigTest {
     private static final InMemoryAtlasDbConfig CONFIG_1 = new InMemoryAtlasDbConfig();

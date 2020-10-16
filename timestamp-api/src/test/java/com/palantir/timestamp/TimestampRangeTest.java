@@ -60,6 +60,5 @@ public class TimestampRangeTest {
         assertThat(range.contains(4)).isFalse();
         assertThat(range.contains(16)).isFalse();
         assertThat(range.contains(237894)).isFalse();
-
     }
 }

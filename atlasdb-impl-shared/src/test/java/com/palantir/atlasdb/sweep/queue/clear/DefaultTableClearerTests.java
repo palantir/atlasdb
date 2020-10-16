@@ -21,12 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -37,6 +31,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultTableClearerTests {
@@ -44,8 +43,11 @@ public final class DefaultTableClearerTests {
     private static final Cell CELL = Cell.create(new byte[1], new byte[2]);
     private long immutableTimestamp = 0;
 
-    @Mock private KeyValueService kvs;
-    @Mock private ConservativeSweepWatermarkStore watermarkStore;
+    @Mock
+    private KeyValueService kvs;
+
+    @Mock
+    private ConservativeSweepWatermarkStore watermarkStore;
 
     private DefaultTableClearer clearer;
 
@@ -105,9 +107,8 @@ public final class DefaultTableClearerTests {
     }
 
     private void createTable(SweepStrategy sweepStrategy) {
-        TableMetadata metadata = TableMetadata.builder()
-                .sweepStrategy(sweepStrategy)
-                .build();
+        TableMetadata metadata =
+                TableMetadata.builder().sweepStrategy(sweepStrategy).build();
         when(kvs.getMetadataForTable(TABLE)).thenReturn(metadata.persistToBytes());
     }
 }

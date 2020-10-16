@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -49,6 +43,11 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public final class AtlasDeserializers {
 
@@ -56,28 +55,30 @@ public final class AtlasDeserializers {
         // cannot instantiate
     }
 
-    public static byte[] deserializeRowPrefix(NameMetadataDescription description,
-            JsonNode node) {
+    public static byte[] deserializeRowPrefix(NameMetadataDescription description, JsonNode node) {
         return deserializeRowish(description, node, false);
     }
 
-    public static byte[] deserializeRow(NameMetadataDescription description,
-            JsonNode node) {
+    public static byte[] deserializeRow(NameMetadataDescription description, JsonNode node) {
         return deserializeRowish(description, node, true);
     }
 
-    private static byte[] deserializeRowish(NameMetadataDescription description,
-            JsonNode node,
-            boolean mustBeFull) {
+    private static byte[] deserializeRowish(NameMetadataDescription description, JsonNode node, boolean mustBeFull) {
         if (node == null) {
             return new byte[0];
         }
         int size = node.size();
         List<NameComponentDescription> components = description.getRowParts();
-        Preconditions.checkArgument(size <= components.size(),
-                "Received %s values for a row with only %s components.", size, components.size());
-        Preconditions.checkArgument(!mustBeFull || size == components.size(),
-                "Received %s values for a row with %s components.", size, components.size());
+        Preconditions.checkArgument(
+                size <= components.size(),
+                "Received %s values for a row with only %s components.",
+                size,
+                components.size());
+        Preconditions.checkArgument(
+                !mustBeFull || size == components.size(),
+                "Received %s values for a row with %s components.",
+                size,
+                components.size());
         byte[][] bytes = new byte[size][];
         Iterator<JsonNode> rowValues = getComponentNodes(node, components);
         for (int i = 0; i < size; i++) {
@@ -98,13 +99,11 @@ public final class AtlasDeserializers {
         }
     }
 
-    public static Iterable<byte[]> deserializeRows(final NameMetadataDescription description,
-            JsonNode node) {
+    public static Iterable<byte[]> deserializeRows(final NameMetadataDescription description, JsonNode node) {
         return new JsonNodeIterable<>(node, subNode -> deserializeRow(description, subNode));
     }
 
-    private static NamedColumnDescription getNamedCol(ColumnMetadataDescription colDescription,
-            String longName) {
+    private static NamedColumnDescription getNamedCol(ColumnMetadataDescription colDescription, String longName) {
         for (NamedColumnDescription description : colDescription.getNamedColumns()) {
             if (longName.equals(description.getLongName())) {
                 return description;
@@ -113,8 +112,7 @@ public final class AtlasDeserializers {
         throw new IllegalArgumentException("Unknown column with long name " + longName);
     }
 
-    private static byte[] deserializeNamedCol(ColumnMetadataDescription colDescription,
-            JsonNode node) {
+    private static byte[] deserializeNamedCol(ColumnMetadataDescription colDescription, JsonNode node) {
         JsonNode nonArrayNode = node;
         if (nonArrayNode.isArray()) {
             nonArrayNode = node.get(0);
@@ -123,16 +121,14 @@ public final class AtlasDeserializers {
         return PtBytes.toCachedBytes(namedCol.getShortName());
     }
 
-    public static Iterable<byte[]> deserializeNamedCols(final ColumnMetadataDescription colDescription,
-            JsonNode node) {
+    public static Iterable<byte[]> deserializeNamedCols(final ColumnMetadataDescription colDescription, JsonNode node) {
         if (colDescription.hasDynamicColumns()) {
             return ImmutableList.of();
         }
         return new JsonNodeIterable<>(node, subNode -> deserializeNamedCol(colDescription, subNode));
     }
 
-    public static byte[] deserializeCol(ColumnMetadataDescription colDescription,
-            JsonNode node) {
+    public static byte[] deserializeCol(ColumnMetadataDescription colDescription, JsonNode node) {
         if (colDescription.hasDynamicColumns()) {
             return deserializeDynamicCol(colDescription.getDynamicColumn(), node);
         } else {
@@ -140,25 +136,21 @@ public final class AtlasDeserializers {
         }
     }
 
-    private static byte[] deserializeDynamicCol(DynamicColumnDescription colDescription,
-            JsonNode node) {
+    private static byte[] deserializeDynamicCol(DynamicColumnDescription colDescription, JsonNode node) {
         return deserializeRowish(colDescription.getColumnNameDesc(), node, true);
     }
 
-    private static Cell deserializeCell(TableMetadata metadata,
-            JsonNode node) {
+    private static Cell deserializeCell(TableMetadata metadata, JsonNode node) {
         byte[] row = deserializeRow(metadata.getRowMetadata(), node.get("row"));
         byte[] col = deserializeCol(metadata.getColumns(), node.get("col"));
         return Cell.create(row, col);
     }
 
-    public static Iterable<Cell> deserializeCells(final TableMetadata metadata,
-            JsonNode node) {
+    public static Iterable<Cell> deserializeCells(final TableMetadata metadata, JsonNode node) {
         return new JsonNodeIterable<>(node, subNode -> deserializeCell(metadata, subNode));
     }
 
-    private static Iterable<Entry<Cell, byte[]>> deserializeCellVal(TableMetadata metadata,
-            JsonNode node) {
+    private static Iterable<Entry<Cell, byte[]>> deserializeCellVal(TableMetadata metadata, JsonNode node) {
         byte[] row = deserializeRow(metadata.getRowMetadata(), node.get("row"));
         ColumnMetadataDescription colDescription = metadata.getColumns();
         if (colDescription.hasDynamicColumns()) {
@@ -184,10 +176,9 @@ public final class AtlasDeserializers {
         }
     }
 
-    public static Map<Cell, byte[]> deserializeCellVals(final TableMetadata metadata,
-            JsonNode node) {
-        Iterable<Iterable<Entry<Cell, byte[]>>> cellVals = new JsonNodeIterable<>(node,
-                subNode -> deserializeCellVal(metadata, subNode));
+    public static Map<Cell, byte[]> deserializeCellVals(final TableMetadata metadata, JsonNode node) {
+        Iterable<Iterable<Entry<Cell, byte[]>>> cellVals =
+                new JsonNodeIterable<>(node, subNode -> deserializeCellVal(metadata, subNode));
         ImmutableMap.Builder<Cell, byte[]> builder = ImmutableMap.builder();
         for (Iterable<Entry<Cell, byte[]>> entries : cellVals) {
             for (Entry<Cell, byte[]> entry : entries) {
@@ -197,8 +188,7 @@ public final class AtlasDeserializers {
         return builder.build();
     }
 
-    public static byte[] deserializeVal(ColumnValueDescription description,
-            JsonNode node) {
+    public static byte[] deserializeVal(ColumnValueDescription description, JsonNode node) {
         byte[] bytes;
         switch (description.getFormat()) {
             case PERSISTABLE:
@@ -218,7 +208,8 @@ public final class AtlasDeserializers {
                 bytes = description.getValueType().convertFromJson(node.toString());
                 break;
             default:
-                throw new EnumConstantNotPresentException(Format.class, description.getFormat().name());
+                throw new EnumConstantNotPresentException(
+                        Format.class, description.getFormat().name());
         }
         return CompressionUtils.compress(bytes, description.getCompression());
     }

@@ -15,20 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.openjdk.jmh.annotations.Level;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -43,6 +29,18 @@ import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
 /**
  * State class for creating a single Atlas table and adding N rows with row names [0...N).
@@ -178,9 +176,11 @@ public abstract class ConsecutiveNarrowTable {
     }
 
     public Set<Cell> getCellsRequest(int numberOfCellsToRequest) {
-        Preconditions.checkState(getNumRows() >= numberOfCellsToRequest,
+        Preconditions.checkState(
+                getNumRows() >= numberOfCellsToRequest,
                 "Unable to request %s rows from a table that only has %s rows.",
-                numberOfCellsToRequest, getNumRows());
+                numberOfCellsToRequest,
+                getNumRows());
         return getRandom()
                 .ints(0, getNumRows())
                 .distinct()
@@ -202,9 +202,10 @@ public abstract class ConsecutiveNarrowTable {
                     .batchHint(1 + sliceSize)
                     .startRowInclusive(Ints.toByteArray(startRow))
                     .endRowExclusive(Ints.toByteArray(endRow))
-                    .retainColumns(allColumns
-                            ? ColumnSelection.all()
-                            : ColumnSelection.create(ImmutableList.of(Tables.COLUMN_NAME_IN_BYTES.array())))
+                    .retainColumns(
+                            allColumns
+                                    ? ColumnSelection.all()
+                                    : ColumnSelection.create(ImmutableList.of(Tables.COLUMN_NAME_IN_BYTES.array())))
                     .build();
             requests.add(request);
             used.add(startRow);
@@ -213,13 +214,11 @@ public abstract class ConsecutiveNarrowTable {
     }
 
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
-        IntStream.range(0, numOverwrites + 1).forEach(
-                $ -> table.getTransactionManager().runTaskThrowOnConflict(
-                        txn -> {
-                            Map<Cell, byte[]> values =
-                                    Tables.generateContinuousBatch(table.getRandom(), 0, table.getNumRows());
-                            txn.put(table.getTableRef(), values);
-                            return null;
-                        }));
+        IntStream.range(0, numOverwrites + 1)
+                .forEach($ -> table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+                    Map<Cell, byte[]> values = Tables.generateContinuousBatch(table.getRandom(), 0, table.getNumRows());
+                    txn.put(table.getTableRef(), values);
+                    return null;
+                }));
     }
 }

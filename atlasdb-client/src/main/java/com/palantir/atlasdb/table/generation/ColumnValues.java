@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.table.generation;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -35,11 +27,18 @@ import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public final class ColumnValues {
 
-    private ColumnValues(){
-        //should not be instantiated
+    private ColumnValues() {
+        // should not be instantiated
     }
 
     public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map) {

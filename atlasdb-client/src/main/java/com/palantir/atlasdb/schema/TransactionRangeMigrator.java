@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -38,6 +32,10 @@ import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
+import java.util.Map;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionRangeMigrator implements RangeMigrator {
     private static final Logger log = LoggerFactory.getLogger(TransactionRangeMigrator.class);
@@ -50,13 +48,14 @@ public class TransactionRangeMigrator implements RangeMigrator {
     private final AbstractTaskCheckpointer checkpointer;
     private final Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransform;
 
-    TransactionRangeMigrator(TableReference srcTable,
-                             TableReference destTable,
-                             int readBatchSize,
-                             TransactionManager readTxManager,
-                             TransactionManager txManager,
-                             AbstractTaskCheckpointer checkpointer,
-                             Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransform) {
+    TransactionRangeMigrator(
+            TableReference srcTable,
+            TableReference destTable,
+            int readBatchSize,
+            TransactionManager readTxManager,
+            TransactionManager txManager,
+            AbstractTaskCheckpointer checkpointer,
+            Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransform) {
         this.srcTable = srcTable;
         this.destTable = destTable;
         this.readBatchSize = readBatchSize;
@@ -78,13 +77,13 @@ public class TransactionRangeMigrator implements RangeMigrator {
         for (int rangeId = 0; rangeId < numRangeBoundaries; rangeId++) {
             byte[] checkpoint = getCheckpoint(rangeId, tx);
             if (checkpoint != null) {
-                log.info("({}/{}) Migration from table {} to table {} will start/resume at {}",
+                log.info(
+                        "({}/{}) Migration from table {} to table {} will start/resume at {}",
                         rangeId,
                         numRangeBoundaries,
                         srcTable,
                         destTable,
-                        PtBytes.encodeHexString(checkpoint)
-                );
+                        PtBytes.encodeHexString(checkpoint));
                 return;
             }
         }
@@ -107,9 +106,8 @@ public class TransactionRangeMigrator implements RangeMigrator {
         return txManager.runTaskWithRetry(writeT -> copyOneTransactionFromReadTxManager(range, rangeId, writeT));
     }
 
-    private byte[] copyOneTransactionFromReadTxManager(final RangeRequest range,
-                                                       final long rangeId,
-                                                       final Transaction writeT) {
+    private byte[] copyOneTransactionFromReadTxManager(
+            final RangeRequest range, final long rangeId, final Transaction writeT) {
         if (readTxManager == txManager) {
             // don't wrap
             return copyOneTransactionInternal(range, rangeId, writeT, writeT);
@@ -119,10 +117,7 @@ public class TransactionRangeMigrator implements RangeMigrator {
         }
     }
 
-    private byte[] copyOneTransactionInternal(RangeRequest range,
-                                              long rangeId,
-                                              Transaction readT,
-                                              Transaction writeT) {
+    private byte[] copyOneTransactionInternal(RangeRequest range, long rangeId, Transaction readT, Transaction writeT) {
         final long maxBytes = TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES / 2;
         byte[] start = getCheckpoint(rangeId, writeT);
         if (start == null) {
@@ -155,28 +150,31 @@ public class TransactionRangeMigrator implements RangeMigrator {
         return RangeRequests.nextLexicographicName(lastRow);
     }
 
-    private byte[] internalCopyRange(BatchingVisitable<RowResult<byte[]>> bv,
-                                     final long maxBytes,
-                                     final Transaction txn) {
+    private byte[] internalCopyRange(
+            BatchingVisitable<RowResult<byte[]>> bv, final long maxBytes, final Transaction txn) {
         final Mutable<byte[]> lastRowName = Mutables.newMutable(null);
         final MutableLong bytesPut = new MutableLong(0L);
-        bv.batchAccept(readBatchSize, AbortingVisitors.batching(
-                // Replacing this with a lambda results in an unreported exception compile error
-                // even though no exception can be thrown :-(
-                new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-                    @Override
-                    public boolean visit(RowResult<byte[]> rr) throws RuntimeException {
-                        return TransactionRangeMigrator.this.internalCopyRow(rr, maxBytes, txn, bytesPut, lastRowName);
-                    }
-                }));
+        bv.batchAccept(
+                readBatchSize,
+                AbortingVisitors.batching(
+                        // Replacing this with a lambda results in an unreported exception compile error
+                        // even though no exception can be thrown :-(
+                        new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
+                            @Override
+                            public boolean visit(RowResult<byte[]> rr) throws RuntimeException {
+                                return TransactionRangeMigrator.this.internalCopyRow(
+                                        rr, maxBytes, txn, bytesPut, lastRowName);
+                            }
+                        }));
         return lastRowName.get();
     }
 
-    private boolean internalCopyRow(RowResult<byte[]> rr,
-                                    long maxBytes,
-                                    Transaction writeT,
-                                    @Output MutableLong bytesPut,
-                                    @Output Mutable<byte[]> lastRowName) {
+    private boolean internalCopyRow(
+            RowResult<byte[]> rr,
+            long maxBytes,
+            Transaction writeT,
+            @Output MutableLong bytesPut,
+            @Output Mutable<byte[]> lastRowName) {
         Map<Cell, byte[]> values = rowTransform.apply(rr);
         writeT.put(destTable, values);
 

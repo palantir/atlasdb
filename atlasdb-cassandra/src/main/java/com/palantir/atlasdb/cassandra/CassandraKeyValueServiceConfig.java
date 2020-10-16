@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -40,6 +31,13 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -155,8 +153,9 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     @Value.Lazy
     default String getKeyspaceOrThrow() {
-        return keyspace().orElseThrow(() -> new SafeIllegalStateException(
-                "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
+        return keyspace()
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
     }
 
     /**
@@ -350,14 +349,17 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
+        Preconditions.checkState(
+                !servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
                 "'servers' must have at least one defined host");
 
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
-        Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
+        Preconditions.checkArgument(
+                evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
 
-        Preconditions.checkArgument(localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
+        Preconditions.checkArgument(
+                localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
                 "'localHostWeighting' must be between 0 and 1 inclusive");
     }
 }

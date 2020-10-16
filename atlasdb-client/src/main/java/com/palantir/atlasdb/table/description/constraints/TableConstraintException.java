@@ -17,11 +17,13 @@ package com.palantir.atlasdb.table.description.constraints;
 
 import com.palantir.common.exception.PalantirRuntimeException;
 
-public class TableConstraintException extends PalantirRuntimeException{
+public class TableConstraintException extends PalantirRuntimeException {
 
     private static final long serialVersionUID = 1L;
 
-    public TableConstraintException() { /**/ }
+    public TableConstraintException() {
+        /**/
+    }
 
     public TableConstraintException(Throwable n) {
         super(n);

@@ -15,44 +15,41 @@
  */
 package com.palantir.atlasdb.table.api;
 
+import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
+import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
-import com.palantir.common.base.BatchingVisitable;
 
 /*
  * Each AtlasDbTable should implement this interface.
  */
 public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends ConstraintCheckable {
     List<COLUMN_VALUE> getRowColumns(ROW row);
-    List<COLUMN_VALUE> getRowColumns(ROW row,
-                                     ColumnSelection columnSelection);
+
+    List<COLUMN_VALUE> getRowColumns(ROW row, ColumnSelection columnSelection);
+
     Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows);
-    Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows,
-                                                ColumnSelection columnSelection);
+
+    Multimap<ROW, COLUMN_VALUE> getRowsMultimap(Iterable<ROW> rows, ColumnSelection columnSelection);
 
     /*
      * This returns visitables for each row. It should be used if you want to visit a number of the first
      * matched columns instead of all the columns per row.
      */
-    Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
-                                                                 BatchColumnRangeSelection columnRangeSelection);
-
+    Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(
+            Iterable<ROW> rows, BatchColumnRangeSelection columnRangeSelection);
 
     /*
      * This returns an iterator for each row. It should be used if you want to visit a number of the first
      * matched columns instead of all the columns per row.
      */
-    Map<ROW, Iterator<COLUMN_VALUE>> getRowsColumnRangeIterator(Iterable<ROW> rows,
-                                                                BatchColumnRangeSelection columnRangeSelection);
+    Map<ROW, Iterator<COLUMN_VALUE>> getRowsColumnRangeIterator(
+            Iterable<ROW> rows, BatchColumnRangeSelection columnRangeSelection);
 
     /*
      * This returns an iterator that visits the result columns row by row.
@@ -61,7 +58,6 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
      * @param columnRangeSelection column range selection for each row
      * @param batchHint batch size for reading from the database
      */
-    Iterator<Map.Entry<ROW, COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
-                                                              ColumnRangeSelection columnRangeSelection,
-                                                              int batchHint);
+    Iterator<Map.Entry<ROW, COLUMN_VALUE>> getRowsColumnRange(
+            Iterable<ROW> rows, ColumnRangeSelection columnRangeSelection, int batchHint);
 }

@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.concurrent.ExecutionException;
-
 import com.palantir.logsafe.Preconditions;
+import java.util.concurrent.ExecutionException;
 
 class AutobatcherExecutionExceptions {
 
-    private AutobatcherExecutionExceptions() { }
+    private AutobatcherExecutionExceptions() {}
 
     static RuntimeException handleAutobatcherExceptions(Exception e) {
         if (e instanceof ExecutionException) {

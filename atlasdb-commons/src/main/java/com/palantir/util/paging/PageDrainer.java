@@ -15,10 +15,9 @@
  */
 package com.palantir.util.paging;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.util.List;
 
 public class PageDrainer<T> {
     private final PageGetter<T> pageGetter;
@@ -43,4 +42,3 @@ public class PageDrainer<T> {
         return currentPage.size() >= pageGetter.getPageSize();
     }
 }
-

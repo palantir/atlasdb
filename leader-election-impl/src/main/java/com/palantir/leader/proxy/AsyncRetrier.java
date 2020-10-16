@@ -16,16 +16,15 @@
 
 package com.palantir.leader.proxy;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Class that uses ListenableFuture primitives to provide a simple delay-retry loop. Should be kept very simple.
@@ -67,7 +66,8 @@ final class AsyncRetrier<T> {
     offload the work onto a separate executor.
      */
     private ListenableFuture<T> execute(Supplier<ListenableFuture<T>> supplier, int retriesRemaining) {
-        return Futures.transformAsync(executeSupplier(supplier),
+        return Futures.transformAsync(
+                executeSupplier(supplier),
                 result -> {
                     int newRetriesRemaining = retriesRemaining - 1;
                     if (predicate.test(result) || newRetriesRemaining == 0) {
@@ -76,12 +76,12 @@ final class AsyncRetrier<T> {
                         // if we have to try again, this time don't consume the thread to do it
                         return Futures.transformAsync(
                                 schedulingExecutor.schedule(
-                                        () -> { }, delayBetweenAttempts.toMillis(), TimeUnit.MILLISECONDS),
+                                        () -> {}, delayBetweenAttempts.toMillis(), TimeUnit.MILLISECONDS),
                                 $ -> execute(supplier, newRetriesRemaining),
                                 executionExecutor);
                     }
-                }, MoreExecutors.directExecutor());
-
+                },
+                MoreExecutors.directExecutor());
     }
 
     private ListenableFuture<T> executeSupplier(Supplier<ListenableFuture<T>> supplier) {

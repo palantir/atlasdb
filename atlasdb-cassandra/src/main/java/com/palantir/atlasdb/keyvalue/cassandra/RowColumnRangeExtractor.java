@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-
 import com.codahale.metrics.Counter;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -33,6 +23,14 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
 class RowColumnRangeExtractor {
     static class RowColumnRangeResult {
@@ -77,13 +75,11 @@ class RowColumnRangeExtractor {
 
     RowColumnRangeExtractor(MetricsManager metricsManager) {
         notLatestVisibleValueCellFilterCounter = metricsManager.registerOrGetCounter(
-                RowColumnRangeExtractor.class,
-                AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+                RowColumnRangeExtractor.class, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
     }
 
-    public void extractResults(Iterable<byte[]> canonicalRows,
-                               Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
-                               long startTs) {
+    public void extractResults(
+            Iterable<byte[]> canonicalRows, Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey, long startTs) {
         // Make sure returned maps are keyed by the given rows
         Map<ByteBuffer, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, ByteBuffer::wrap);
         for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
@@ -92,7 +88,8 @@ class RowColumnRangeExtractor {
             List<ColumnOrSuperColumn> columns = colEntry.getValue();
 
             if (!columns.isEmpty()) {
-                rowsToLastCompositeColumns.put(row, columns.get(columns.size() - 1).getColumn());
+                rowsToLastCompositeColumns.put(
+                        row, columns.get(columns.size() - 1).getColumn());
             } else {
                 emptyRows.add(row);
             }

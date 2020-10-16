@@ -23,19 +23,6 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.IntStream;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -45,6 +32,17 @@ import com.palantir.atlasdb.sweep.TableToSweep;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.IntStream;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class NextTableToSweepProviderTest {
     private NextTableToSweepProvider provider;
@@ -222,7 +220,7 @@ public class NextTableToSweepProviderTest {
     }
 
     private void givenNoPrioritiesReturned() {
-        //Nothing to do
+        // Nothing to do
     }
 
     private void givenPriority(TableReference table, double priority) {
@@ -242,9 +240,8 @@ public class NextTableToSweepProviderTest {
     }
 
     private LockRequest requestContaining(String table) {
-        return argThat(
-                argument -> argument != null
-                        && argument.getLockDescriptors().stream()
+        return argThat(argument -> argument != null
+                && argument.getLockDescriptors().stream()
                         .anyMatch(descriptor -> descriptor.getLockIdAsString().contains(table)));
     }
 
@@ -277,7 +274,8 @@ public class NextTableToSweepProviderTest {
     }
 
     private void thenTableIsChosenAtLeastOnce(TableReference table) {
-        Assert.assertTrue("expected table " + table + " to be chosen at least once, but wasn't!",
+        Assert.assertTrue(
+                "expected table " + table + " to be chosen at least once, but wasn't!",
                 tablesToSweep.stream()
                         .filter(Optional::isPresent)
                         .map(Optional::get)

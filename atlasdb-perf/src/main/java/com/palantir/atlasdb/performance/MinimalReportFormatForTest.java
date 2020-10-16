@@ -18,7 +18,6 @@ package com.palantir.atlasdb.performance;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
-
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.IterationParams;
 import org.openjdk.jmh.results.BenchmarkResult;
@@ -31,23 +30,18 @@ public final class MinimalReportFormatForTest implements OutputFormat {
 
     private static final MinimalReportFormatForTest INSTANCE = new MinimalReportFormatForTest();
 
-    private MinimalReportFormatForTest() {
-    }
+    private MinimalReportFormatForTest() {}
 
     public static MinimalReportFormatForTest get() {
         return INSTANCE;
     }
 
     @Override
-    public void iteration(BenchmarkParams benchParams, IterationParams params, int iteration) {
-
-    }
+    public void iteration(BenchmarkParams benchParams, IterationParams params, int iteration) {}
 
     @Override
-    public void iterationResult(BenchmarkParams benchParams, IterationParams params, int iteration,
-            IterationResult data) {
-
-    }
+    public void iterationResult(
+            BenchmarkParams benchParams, IterationParams params, int iteration, IterationResult data) {}
 
     @Override
     public void startBenchmark(BenchmarkParams benchParams) {
@@ -62,47 +56,29 @@ public final class MinimalReportFormatForTest implements OutputFormat {
     }
 
     @Override
-    public void startRun() {
-
-    }
+    public void startRun() {}
 
     @Override
-    public void endRun(Collection<RunResult> result) {
-
-    }
+    public void endRun(Collection<RunResult> result) {}
 
     @Override
-    public void print(String str) {
-
-    }
+    public void print(String str) {}
 
     @Override
-    public void println(String str) {
-
-    }
+    public void println(String str) {}
 
     @Override
-    public void flush() {
-
-    }
+    public void flush() {}
 
     @Override
-    public void close() {
-
-    }
+    public void close() {}
 
     @Override
-    public void verbosePrintln(String str) {
-
-    }
+    public void verbosePrintln(String str) {}
 
     @Override
-    public void write(int num) {
-
-    }
+    public void write(int num) {}
 
     @Override
-    public void write(byte[] num) throws IOException {
-
-    }
+    public void write(byte[] num) throws IOException {}
 }

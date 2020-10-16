@@ -20,11 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import org.junit.Test;
 
 public class SweepBatchWithPartitionInfoTest {
     private final SweepBatch batch = mock(SweepBatch.class);
@@ -32,8 +30,8 @@ public class SweepBatchWithPartitionInfoTest {
     @Test
     public void sweepWithinSinglePartitionLeadsToNoPartitionsToClear() {
         when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.minTsForFinePartition(19) + 84L);
-        SweepBatchWithPartitionInfo batchWithPartitionInfo
-                = SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
+        SweepBatchWithPartitionInfo batchWithPartitionInfo =
+                SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
         assertThat(batchWithPartitionInfo.partitionsForPreviousLastSweptTs(SweepQueueUtils.minTsForFinePartition(19)))
                 .containsExactlyInAnyOrder();
     }
@@ -41,8 +39,8 @@ public class SweepBatchWithPartitionInfoTest {
     @Test
     public void currentlyActivePartitionIsNotCleared() {
         when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.minTsForFinePartition(19) + 84L);
-        SweepBatchWithPartitionInfo batchWithPartitionInfo
-                = SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(15L, 16L, 17L, 18L, 19L));
+        SweepBatchWithPartitionInfo batchWithPartitionInfo =
+                SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(15L, 16L, 17L, 18L, 19L));
         assertThat(batchWithPartitionInfo.partitionsForPreviousLastSweptTs(SweepQueueUtils.INITIAL_TIMESTAMP))
                 .containsExactlyInAnyOrder(15L, 16L, 17L, 18L);
     }
@@ -50,8 +48,8 @@ public class SweepBatchWithPartitionInfoTest {
     @Test
     public void partitionIsClearableIfWeHaveSweptTillItsEnd() {
         when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.maxTsForFinePartition(19));
-        SweepBatchWithPartitionInfo batchWithPartitionInfo
-                = SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
+        SweepBatchWithPartitionInfo batchWithPartitionInfo =
+                SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
         assertThat(batchWithPartitionInfo.partitionsForPreviousLastSweptTs(SweepQueueUtils.INITIAL_TIMESTAMP))
                 .containsExactlyInAnyOrder(19L);
     }
@@ -68,8 +66,8 @@ public class SweepBatchWithPartitionInfoTest {
     @Test
     public void cleansUpOldRowIfNeeded() {
         when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.maxTsForFinePartition(19));
-        SweepBatchWithPartitionInfo batchWithPartitionInfo
-                = SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
+        SweepBatchWithPartitionInfo batchWithPartitionInfo =
+                SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
         assertThat(batchWithPartitionInfo.partitionsForPreviousLastSweptTs(SweepQueueUtils.minTsForFinePartition(8L)))
                 .containsExactlyInAnyOrder(8L, 19L);
     }
@@ -77,8 +75,8 @@ public class SweepBatchWithPartitionInfoTest {
     @Test
     public void cleansUpOldRowEvenIfItHasReachedItsEnd() { // Needed for legacy compatibility
         when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.maxTsForFinePartition(19));
-        SweepBatchWithPartitionInfo batchWithPartitionInfo
-                = SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
+        SweepBatchWithPartitionInfo batchWithPartitionInfo =
+                SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(19L));
         assertThat(batchWithPartitionInfo.partitionsForPreviousLastSweptTs(SweepQueueUtils.maxTsForFinePartition(8L)))
                 .containsExactlyInAnyOrder(8L, 19L);
     }

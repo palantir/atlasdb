@@ -15,17 +15,15 @@
  */
 package com.palantir.util;
 
+import com.google.common.collect.Sets;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Sets;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class AssertUtils {
 
@@ -117,8 +115,8 @@ public class AssertUtils {
         assertAndLogWithException(defaultLog, cheapTest, msg, t);
     }
 
-    public static void assertAndLogWithException(Logger log, boolean cheapTest, String format, Throwable t,
-            Object... args) {
+    public static void assertAndLogWithException(
+            Logger log, boolean cheapTest, String format, Throwable t, Object... args) {
         if (!cheapTest) {
             Object[] newArgs = Arrays.copyOf(args, args.length + 2);
             newArgs[args.length] = SafeArg.of("format", format);
@@ -134,9 +132,7 @@ public class AssertUtils {
      * (com.palantir.util.AssertUtils)
      */
     @Deprecated
-    public static void assertAndLogWithException(boolean cheapTest, String format, Throwable t,
-            Object... args) {
+    public static void assertAndLogWithException(boolean cheapTest, String format, Throwable t, Object... args) {
         assertAndLogWithException(defaultLog, cheapTest, format, t, args);
     }
-
 }

@@ -15,8 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
+import org.junit.Test;
 
 public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
 
@@ -42,8 +41,8 @@ public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
 
     @Test
     public void getThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().get(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().get(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE)));
     }
 
     @Test
@@ -74,7 +73,7 @@ public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
 
     @Test
     public void getLatestTimestampsThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE)));
     }
 }

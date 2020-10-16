@@ -16,7 +16,8 @@
 package com.palantir.nexus.db.pool.config;
 
 public enum ConnectionProtocol {
-    TCP("tcp"), TCPS("tcps");
+    TCP("tcp"),
+    TCPS("tcps");
 
     private final String urlStr;
 

@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -47,6 +38,13 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
@@ -66,16 +64,16 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private volatile boolean isInitialized = false;
 
-    private TargetedSweeper(MetricsManager metricsManager,
+    private TargetedSweeper(
+            MetricsManager metricsManager,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
-        this.conservativeScheduler = new BackgroundSweepScheduler(install.conservativeThreads(),
-                SweeperStrategy.CONSERVATIVE);
-        this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(),
-                SweeperStrategy.THOROUGH);
+        this.conservativeScheduler =
+                new BackgroundSweepScheduler(install.conservativeThreads(), SweeperStrategy.CONSERVATIVE);
+        this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(), SweeperStrategy.THOROUGH);
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
     }
@@ -91,15 +89,16 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * @param followers follower used for sweeps, as defined by your schema.
      * @return returns an uninitialized targeted sweeper
      */
-    public static TargetedSweeper createUninitialized(MetricsManager metrics,
+    public static TargetedSweeper createUninitialized(
+            MetricsManager metrics,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers) {
         return new TargetedSweeper(metrics, runtime, install, followers);
     }
 
-    public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager,
-            Supplier<TargetedSweepRuntimeConfig> runtime) {
+    public static TargetedSweeper createUninitializedForTest(
+            MetricsManager metricsManager, Supplier<TargetedSweepRuntimeConfig> runtime) {
         TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
                 .conservativeThreads(0)
                 .thoroughThreads(0)
@@ -108,10 +107,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     }
 
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
-        Supplier<TargetedSweepRuntimeConfig> runtime = () ->
-                ImmutableTargetedSweepRuntimeConfig.builder()
-                        .shards(shards.get())
-                        .build();
+        Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
+                .shards(shards.get())
+                .build();
         return createUninitializedForTest(MetricsManagers.createForTests(), runtime);
     }
 
@@ -122,7 +120,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     }
 
     public void initializeWithoutRunning(TransactionManager txManager) {
-        initializeWithoutRunning(SpecialTimestampsSupplier.create(txManager),
+        initializeWithoutRunning(
+                SpecialTimestampsSupplier.create(txManager),
                 txManager.getTimelockService(),
                 txManager.getKeyValueService(),
                 txManager.getTransactionService(),
@@ -147,8 +146,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         if (isInitialized) {
             return;
         }
-        Preconditions.checkState(kvs.isInitialized(),
-                "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
+        Preconditions.checkState(
+                kvs.isInitialized(), "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, metricsConfiguration);
         queue = SweepQueue.create(
                 metrics,
@@ -230,14 +229,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         private BackgroundSweepScheduler(int numThreads, SweeperStrategy sweepStrategy) {
             this.numThreads = numThreads;
             this.sweepStrategy = sweepStrategy;
-            this.delay = new SweepDelay(runtime.get().pauseMillis(),
-                    millis -> metrics.updateSweepDelayMetric(sweepStrategy, millis));
+            this.delay = new SweepDelay(
+                    runtime.get().pauseMillis(), millis -> metrics.updateSweepDelayMetric(sweepStrategy, millis));
         }
 
         private void scheduleBackgroundThreads() {
             if (numThreads > 0 && scheduler == null) {
-                scheduler = ScalingSweepTaskScheduler.createStarted(delay, numThreads, this::runOneIteration,
-                        () -> runtime.get().enableAutoTuning());
+                scheduler = ScalingSweepTaskScheduler.createStarted(
+                        delay, numThreads, this::runOneIteration, () -> runtime.get()
+                                .enableAutoTuning());
             }
         }
 
@@ -250,8 +250,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             try {
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
                 return maybeLock
-                        .map(targetedSweeperLock -> SweepIterationResults
-                                .success(processShard(targetedSweeperLock.getShardAndStrategy())))
+                        .map(targetedSweeperLock ->
+                                SweepIterationResults.success(processShard(targetedSweeperLock.getShardAndStrategy())))
                         .orElseGet(SweepIterationResults::unableToAcquireShard);
             } catch (InsufficientConsistencyException e) {
                 metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
@@ -285,21 +285,33 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private void logException(Throwable th, Optional<TargetedSweeperLock> maybeLock) {
             if (maybeLock.isPresent()) {
-                log.warn("Targeted sweep for {} failed and will be retried later.",
-                        SafeArg.of("shardStrategy", maybeLock.get().getShardAndStrategy().toText()), th);
+                log.warn(
+                        "Targeted sweep for {} failed and will be retried later.",
+                        SafeArg.of(
+                                "shardStrategy",
+                                maybeLock.get().getShardAndStrategy().toText()),
+                        th);
             } else {
-                log.warn("Targeted sweep for sweep strategy {} failed and will be retried later.",
-                        SafeArg.of("sweepStrategy", sweepStrategy), th);
+                log.warn(
+                        "Targeted sweep for sweep strategy {} failed and will be retried later.",
+                        SafeArg.of("sweepStrategy", sweepStrategy),
+                        th);
             }
         }
 
         private void logUnlockException(Throwable th, Optional<TargetedSweeperLock> maybeLock) {
             if (maybeLock.isPresent()) {
-                log.info("Failed to unlock targeted sweep lock for {}.",
-                        SafeArg.of("shardStrategy", maybeLock.get().getShardAndStrategy().toText()), th);
+                log.info(
+                        "Failed to unlock targeted sweep lock for {}.",
+                        SafeArg.of(
+                                "shardStrategy",
+                                maybeLock.get().getShardAndStrategy().toText()),
+                        th);
             } else {
-                log.info("Failed to unlock targeted sweep lock for sweep strategy {}.",
-                        SafeArg.of("sweepStrategy", sweepStrategy), th);
+                log.info(
+                        "Failed to unlock targeted sweep lock for sweep strategy {}.",
+                        SafeArg.of("sweepStrategy", sweepStrategy),
+                        th);
             }
         }
 

@@ -15,11 +15,9 @@
  */
 package com.palantir.util.sql;
 
-
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.Longs;
 import com.palantir.util.jmx.AbstractOperationStats;
-
 
 /**
  * MXBean which tracks statistics for a particular SQL query.

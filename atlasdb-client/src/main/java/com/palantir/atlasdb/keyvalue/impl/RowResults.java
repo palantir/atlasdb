@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.SortedMap;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSortedMap;
@@ -33,9 +26,17 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.common.collect.IterableView;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.SortedMap;
 
 public class RowResults {
-    private RowResults() { /* */ }
+    private RowResults() {
+        /* */
+    }
 
     public static <T> IterableView<RowResult<T>> viewOfMap(Map<byte[], NavigableMap<byte[], T>> map) {
         return viewOfEntries(map.entrySet());
@@ -81,7 +82,8 @@ public class RowResults {
         Preconditions.checkArgument(Arrays.equals(base.getRowName(), overwrite.getRowName()));
         Builder<byte[], T> colBuilder = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
         colBuilder.putAll(overwrite.getColumns());
-        colBuilder.putAll(Maps.difference(base.getColumns(), overwrite.getColumns()).entriesOnlyOnLeft());
+        colBuilder.putAll(
+                Maps.difference(base.getColumns(), overwrite.getColumns()).entriesOnlyOnLeft());
         return RowResult.create(base.getRowName(), colBuilder.build());
     }
 
@@ -92,6 +94,5 @@ public class RowResults {
             size += Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().length;
         }
         return size;
-
     }
 }

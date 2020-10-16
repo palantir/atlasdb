@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.IntSupplier;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -36,6 +28,12 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
@@ -65,8 +63,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TransactionService transaction,
             TargetedSweepFollower follower,
             IntSupplier partitionBatchLimitSupplier) {
-        SweepQueueFactory factory = SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction,
-                partitionBatchLimitSupplier);
+        SweepQueueFactory factory = SweepQueueFactory.create(
+                metrics, kvs, timelock, shardsConfig, transaction, partitionBatchLimitSupplier);
         return new SweepQueue(factory, follower);
     }
 
@@ -94,8 +92,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      * @param refreshTimeMillis timeout for caching the number of shards
      * @return supplier calculating and persisting the number of shards to use
      */
-    public static Supplier<Integer> createProgressUpdatingSupplier(Supplier<Integer> runtimeConfig,
-            ShardProgress progress, long refreshTimeMillis) {
+    public static Supplier<Integer> createProgressUpdatingSupplier(
+            Supplier<Integer> runtimeConfig, ShardProgress progress, long refreshTimeMillis) {
         return Suppliers.memoizeWithExpiration(
                 () -> progress.updateNumberOfShards(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);
     }
@@ -122,10 +120,12 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             return 0L;
         }
 
-        log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept "
+        log.debug(
+                "Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept "
                         + "timestamp for this shard and strategy was {}.",
                 SafeArg.of("shardStrategy", shardStrategy.toText()),
-                SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
+                SafeArg.of("sweepTs", sweepTs),
+                SafeArg.of("lastSweptTs", lastSweptTs));
 
         SweepBatchWithPartitionInfo batchWithInfo = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
@@ -134,13 +134,15 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
 
         if (!sweepBatch.isEmpty()) {
-            log.debug("Put {} ranged tombstones and swept up to timestamp {} for {}.",
+            log.debug(
+                    "Put {} ranged tombstones and swept up to timestamp {} for {}.",
                     SafeArg.of("tombstones", sweepBatch.writes().size()),
                     SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
                     SafeArg.of("shardStrategy", shardStrategy.toText()));
         }
 
-        cleaner.clean(shardStrategy,
+        cleaner.clean(
+                shardStrategy,
                 batchWithInfo.partitionsForPreviousLastSweptTs(lastSweptTs),
                 sweepBatch.lastSweptTimestamp(),
                 sweepBatch.dedicatedRows());
@@ -201,10 +203,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 IntSupplier partitionBatchLimitSupplier) {
             // It is OK that the transaction service is different from the one used by the transaction manager,
             // as transaction services must not hold any local state in them that would affect correctness.
-            TransactionService transaction = TransactionServices.createRaw(
-                    kvs,
-                    new TimelockTimestampServiceAdapter(timelock),
-                    false);
+            TransactionService transaction =
+                    TransactionServices.createRaw(kvs, new TimelockTimestampServiceAdapter(timelock), false);
             return create(metrics, kvs, timelock, shardsConfig, transaction, partitionBatchLimitSupplier);
         }
 
@@ -217,8 +217,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 IntSupplier partitionBatchLimitSupplier) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
-            Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, shardProgress,
-                    SweepQueueUtils.REFRESH_TIME);
+            Supplier<Integer> shards =
+                    createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
             SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);

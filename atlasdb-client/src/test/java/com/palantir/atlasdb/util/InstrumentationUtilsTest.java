@@ -21,11 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.LongSupplier;
-
-import org.junit.Test;
-
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.function.LongSupplier;
+import org.junit.Test;
 
 public class InstrumentationUtilsTest {
     private static final RuntimeException EXCEPTION = new RuntimeException();
@@ -36,13 +34,9 @@ public class InstrumentationUtilsTest {
     public void failureMetricsForTaggedAndUntaggedElementsAreDistinct() {
         when(mockSupplier.getAsLong()).thenThrow(EXCEPTION);
         LongSupplier taggedSupplier = AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metricsManager.getTaggedRegistry(),
-                LongSupplier.class,
-                mockSupplier);
-        LongSupplier legacySupplier = AtlasDbMetrics.instrument(
-                metricsManager.getRegistry(),
-                LongSupplier.class,
-                mockSupplier);
+                metricsManager.getTaggedRegistry(), LongSupplier.class, mockSupplier);
+        LongSupplier legacySupplier =
+                AtlasDbMetrics.instrument(metricsManager.getRegistry(), LongSupplier.class, mockSupplier);
 
         assertThatThrownBy(taggedSupplier::getAsLong).isEqualTo(EXCEPTION);
         assertThatThrownBy(taggedSupplier::getAsLong).isEqualTo(EXCEPTION);
@@ -52,11 +46,15 @@ public class InstrumentationUtilsTest {
         assertThatThrownBy(legacySupplier::getAsLong).isEqualTo(EXCEPTION);
         assertThatThrownBy(legacySupplier::getAsLong).isEqualTo(EXCEPTION);
 
-        assertThat(metricsManager.getTaggedRegistry().meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME)
-                .getCount())
+        assertThat(metricsManager
+                        .getTaggedRegistry()
+                        .meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME)
+                        .getCount())
                 .isEqualTo(4);
-        assertThat(metricsManager.getRegistry().meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName())
-                .getCount())
+        assertThat(metricsManager
+                        .getRegistry()
+                        .meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName())
+                        .getCount())
                 .isEqualTo(3);
     }
 

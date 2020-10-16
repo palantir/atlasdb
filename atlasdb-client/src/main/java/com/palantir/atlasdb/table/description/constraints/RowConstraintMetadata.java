@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.description.constraints;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.util.Collections;
+import java.util.List;
 
 public class RowConstraintMetadata {
     private final Class<? extends RowConstraint> constraintClass;
@@ -36,12 +35,14 @@ public class RowConstraintMetadata {
     public static Builder builderGeneric(Class<? extends RowConstraint> clazz, String tableName) {
         return new Builder(clazz, true, tableName);
     }
-    private RowConstraintMetadata(Class<? extends RowConstraint> constraintClass,
-                                  List<String> rowVariables,
-                                  List<String> columnVariables,
-                                  List<String> allVariables,
-                                  boolean isGeneric,
-                                  String tableName) {
+
+    private RowConstraintMetadata(
+            Class<? extends RowConstraint> constraintClass,
+            List<String> rowVariables,
+            List<String> columnVariables,
+            List<String> allVariables,
+            boolean isGeneric,
+            String tableName) {
         this.constraintClass = constraintClass;
         this.rowVariables = ImmutableList.copyOf(rowVariables);
         this.columnVariables = ImmutableList.copyOf(columnVariables);
@@ -88,21 +89,21 @@ public class RowConstraintMetadata {
             this.tableName = tableName;
         }
 
-        public Builder addRowVariables(String ... variables) {
+        public Builder addRowVariables(String... variables) {
             Collections.addAll(rowVariables, variables);
             Collections.addAll(allVariables, variables);
             return this;
         }
 
-        public Builder addColumnVariables(String ... variables) {
+        public Builder addColumnVariables(String... variables) {
             Collections.addAll(columnVariables, variables);
             Collections.addAll(allVariables, variables);
             return this;
         }
 
         public RowConstraintMetadata build() {
-            return new RowConstraintMetadata(constraintClass, rowVariables, columnVariables,
-                    allVariables, isGeneric, tableName);
+            return new RowConstraintMetadata(
+                    constraintClass, rowVariables, columnVariables, allVariables, isGeneric, tableName);
         }
     }
 }

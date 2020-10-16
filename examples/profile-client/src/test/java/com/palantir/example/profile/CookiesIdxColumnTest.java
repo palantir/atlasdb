@@ -15,27 +15,25 @@
  */
 package com.palantir.example.profile;
 
+import com.palantir.example.profile.schema.generated.UserProfileTable.CookiesIdxTable.CookiesIdxColumn;
 import java.util.UUID;
-
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.palantir.example.profile.schema.generated.UserProfileTable.CookiesIdxTable.CookiesIdxColumn;
 
 public class CookiesIdxColumnTest {
     @Test
     public void testHashCode() {
         UUID uuid = new UUID(3, 4);
-        CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[]{1}, new byte[]{2, 4}, uuid);
-        CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[]{1}, new byte[]{2, 4}, uuid);
+        CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[] {1}, new byte[] {2, 4}, uuid);
+        CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[] {1}, new byte[] {2, 4}, uuid);
         Assert.assertEquals(column1.hashCode(), column2.hashCode());
     }
 
     @Test
     public void testHashCodeUnequal() {
         UUID uuid = new UUID(5, 6);
-        CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[]{1, 3}, new byte[]{2, 4}, uuid);
-        CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[]{1, 2}, new byte[]{2, 4}, uuid);
+        CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[] {1, 3}, new byte[] {2, 4}, uuid);
+        CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[] {1, 2}, new byte[] {2, 4}, uuid);
         Assert.assertNotEquals(column1.hashCode(), column2.hashCode());
     }
 }

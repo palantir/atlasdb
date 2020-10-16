@@ -21,19 +21,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.thrift.TException;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.Set;
+import org.apache.thrift.TException;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class CassandraKeyValueServicesSchemaConsensusTest {
     private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
@@ -57,13 +55,15 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @BeforeClass
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
-        when(config.servers()).thenReturn(
-                ImmutableDefaultConfig
-                        .builder().addAllThriftHosts(FIVE_SERVERS).build());
+        when(config.servers())
+                .thenReturn(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(FIVE_SERVERS)
+                        .build());
         when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
         when(waitingConfig.servers())
-                .thenReturn(ImmutableDefaultConfig
-                        .builder().addAllThriftHosts(FIVE_SERVERS).build());
+                .thenReturn(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(FIVE_SERVERS)
+                        .build());
     }
 
     @Test
@@ -119,20 +119,21 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
 
     @Test
     public void waitSucceedsForQuorumOnlyWithUnknownAndUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
         assertWaitForSchemaVersionsDoesNotThrow();
     }
 
     @Test
     public void waitWaitsForSchemaVersions() throws TException {
         CassandraClient waitingClient = mock(CassandraClient.class);
-        when(waitingClient.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(),
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, REST_OF_NODES, VERSION_UNREACHABLE, QUORUM_OF_NODES),
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, ALL_NODES));
+        when(waitingClient.describe_schema_versions())
+                .thenReturn(
+                        ImmutableMap.of(),
+                        ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES),
+                        ImmutableMap.of(VERSION_1, REST_OF_NODES, VERSION_UNREACHABLE, QUORUM_OF_NODES),
+                        ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
+                        ImmutableMap.of(VERSION_1, ALL_NODES));
 
         CassandraKeyValueServices.waitForSchemaVersions(
                 waitingConfig.schemaMutationTimeoutMillis(), waitingClient, TABLE);
@@ -140,8 +141,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     }
 
     private void assertWaitForSchemaVersionsThrows() {
-        assertThatThrownBy(
-                () -> CassandraKeyValueServices.waitForSchemaVersions(
+        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(
                         config.schemaMutationTimeoutMillis(), client, TABLE))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");

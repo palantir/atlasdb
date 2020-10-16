@@ -15,15 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 
-import java.util.Iterator;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import java.util.Iterator;
 
 public interface DbKvsGetRange {
-    Iterator<RowResult<Value>> getRange(TableReference tableRef,
-                                        RangeRequest rangeRequest,
-                                        long timestamp);
+    Iterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp);
 }

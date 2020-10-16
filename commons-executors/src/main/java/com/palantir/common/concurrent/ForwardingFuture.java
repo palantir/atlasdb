@@ -35,8 +35,7 @@ public abstract class ForwardingFuture<V> implements Future<V> {
     }
 
     @Override
-    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException,
-        TimeoutException {
+    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return delegate().get(timeout, unit);
     }
 

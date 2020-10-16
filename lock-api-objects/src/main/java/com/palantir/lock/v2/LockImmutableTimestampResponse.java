@@ -15,10 +15,9 @@
  */
 package com.palantir.lock.v2;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockImmutableTimestampResponse.class)
@@ -34,5 +33,4 @@ public interface LockImmutableTimestampResponse {
     static LockImmutableTimestampResponse of(long timestamp, LockToken lock) {
         return ImmutableLockImmutableTimestampResponse.of(timestamp, lock);
     }
-
 }

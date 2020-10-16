@@ -59,5 +59,4 @@ public class PersistentUpperLimit {
         store.storeUpperLimit(upperLimit);
         DebugLogger.didStoreNewUpperLimit(upperLimit);
     }
-
 }

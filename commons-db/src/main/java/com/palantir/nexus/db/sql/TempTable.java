@@ -19,5 +19,6 @@ import java.sql.Connection;
 
 public interface TempTable {
     public void initialize(Connection connection);
+
     public String getTableName();
 }

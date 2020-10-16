@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -41,6 +36,10 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * This checkpointer creates a temporary table for checkpointing.
@@ -51,9 +50,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     private final TableReference checkpointTable;
     private final KeyValueService kvs;
 
-    public GeneralTaskCheckpointer(TableReference checkpointTable,
-                                   KeyValueService kvs,
-                                   TransactionManager txManager) {
+    public GeneralTaskCheckpointer(TableReference checkpointTable, KeyValueService kvs, TransactionManager txManager) {
         super(txManager);
         this.checkpointTable = checkpointTable;
         this.kvs = kvs;
@@ -74,8 +71,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     }
 
     @Override
-    public void createCheckpoints(final String extraId,
-                                  final Map<Long, byte[]> startById) {
+    public void createCheckpoints(final String extraId, final Map<Long, byte[]> startById) {
         Schemas.createTable(getSchema(), kvs, checkpointTable);
 
         txManager.runTaskWithRetry((TransactionTask<Map<Long, byte[]>, RuntimeException>) t -> {
@@ -84,10 +80,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
                 rows.add(getRowName(extraId, rangeId));
             }
 
-            Map<byte[], RowResult<byte[]>> rr = t.getRows(
-                    checkpointTable,
-                    rows,
-                    ColumnSelection.all());
+            Map<byte[], RowResult<byte[]>> rr = t.getRows(checkpointTable, rows, ColumnSelection.all());
 
             if (rr.isEmpty()) {
                 Map<Cell, byte[]> values = Maps.newHashMap();
@@ -114,27 +107,26 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     }
 
     private byte[] getRowName(String extraId, long rangeId) {
-        List<EncodingType> types = ImmutableList.of(
-                new EncodingType(ValueType.VAR_STRING),
-                new EncodingType(ValueType.VAR_LONG));
-        List<Object> components = ImmutableList.<Object>of(
-                extraId,
-                rangeId);
+        List<EncodingType> types =
+                ImmutableList.of(new EncodingType(ValueType.VAR_STRING), new EncodingType(ValueType.VAR_LONG));
+        List<Object> components = ImmutableList.<Object>of(extraId, rangeId);
         return EncodingUtils.toBytes(types, components);
     }
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private Schema getSchema() {
         Schema schema = new Schema(checkpointTable.getNamespace());
-        schema.addTableDefinition(checkpointTable.getTablename(), new TableDefinition() {{
-            rowName();
+        schema.addTableDefinition(checkpointTable.getTablename(), new TableDefinition() {
+            {
+                rowName();
                 rowComponent("table_name", ValueType.VAR_STRING);
-                rowComponent("range_id",   ValueType.VAR_LONG);
-            columns();
+                rowComponent("range_id", ValueType.VAR_LONG);
+                columns();
                 column("start", SHORT_COLUMN_NAME, ValueType.BLOB);
-            rangeScanAllowed();
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                rangeScanAllowed();
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
         return schema;
     }
 }

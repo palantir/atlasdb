@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.monitoring;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BinaryOperator;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BinaryOperator;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
 
 public final class TrackerUtils {
     // We cache underlying calls, in case a hyper-aggressive metrics client repeatedly queries the values.
@@ -96,7 +94,8 @@ public final class TrackerUtils {
                     return previousValue.accumulateAndGet(supplier.get(), reducer);
                 } catch (Exception e) {
                     T existingValue = previousValue.get();
-                    logger.info("An exception occurred when trying to update the {} gauge for tracking purposes."
+                    logger.info(
+                            "An exception occurred when trying to update the {} gauge for tracking purposes."
                                     + " Returning the last known value of {}.",
                             SafeArg.of("gaugeName", shortName),
                             SafeArg.of("existingValue", existingValue),

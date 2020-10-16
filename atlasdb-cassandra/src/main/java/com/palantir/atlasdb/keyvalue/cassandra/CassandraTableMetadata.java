@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -38,6 +30,12 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CassandraTableMetadata {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableMetadata.class);
@@ -46,8 +44,11 @@ public class CassandraTableMetadata {
     private final CassandraClientPool clientPool;
     private final WrappingQueryRunner wrappingQueryRunner;
 
-    public CassandraTableMetadata(RangeLoader rangeLoader, CassandraTables cassandraTables,
-            CassandraClientPool clientPool, WrappingQueryRunner wrappingQueryRunner) {
+    public CassandraTableMetadata(
+            RangeLoader rangeLoader,
+            CassandraTables cassandraTables,
+            CassandraClientPool clientPool,
+            WrappingQueryRunner wrappingQueryRunner) {
         this.rangeLoader = rangeLoader;
         this.cassandraTables = cassandraTables;
         this.clientPool = clientPool;
@@ -58,8 +59,8 @@ public class CassandraTableMetadata {
         Map<TableReference, Value> tableToMetadataContents;
         Map<TableReference, byte[]> result = Maps.newHashMap();
 
-        Set<TableReference> allTableRefs = cassandraTables.getTableReferencesWithoutFiltering()
-                .collect(Collectors.toSet());
+        Set<TableReference> allTableRefs =
+                cassandraTables.getTableReferencesWithoutFiltering().collect(Collectors.toSet());
 
         // we don't even have a metadata table yet. Return empty map.
         if (!allTableRefs.contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
@@ -75,8 +76,8 @@ public class CassandraTableMetadata {
                     .map(RowResult::getCells)
                     .map(Iterables::getOnlyElement)
                     .collect(Collectors.toMap(
-                            entry -> CassandraKeyValueServices
-                                    .lowerCaseTableReferenceFromBytes(entry.getKey().getRowName()),
+                            entry -> CassandraKeyValueServices.lowerCaseTableReferenceFromBytes(
+                                    entry.getKey().getRowName()),
                             Map.Entry::getValue,
                             // take the lexicographically latest, which will be the new style entry, if it exists
                             (fst, snd) -> snd));
@@ -88,7 +89,8 @@ public class CassandraTableMetadata {
             }
             TableReference lowercaseTableRef = TableReference.createLowerCased(tableRef);
             if (tableToMetadataContents.containsKey(lowercaseTableRef)) {
-                result.put(tableRef, tableToMetadataContents.get(lowercaseTableRef).getContents());
+                result.put(
+                        tableRef, tableToMetadataContents.get(lowercaseTableRef).getContents());
             }
         }
 
@@ -107,24 +109,28 @@ public class CassandraTableMetadata {
                     .map(Cell::getRowName)
                     .map(CassandraKeyValueServices::tableReferenceFromBytes)
                     .filter(candidate -> nonNullMatchingIgnoreCase(candidate, tableRef))
-                    .collect(Collectors.toMap(CassandraKeyValueServices::getOldMetadataCell,
-                            ignore -> new TimestampRangeDelete.Builder()
+                    .collect(Collectors.toMap(
+                            CassandraKeyValueServices::getOldMetadataCell, ignore -> new TimestampRangeDelete.Builder()
                                     .timestamp(Long.MAX_VALUE)
                                     .endInclusive(false) // true won't work, since we are deleting at Long.MAX_VALUE.
                                     .deleteSentinels(true)
                                     .build()));
 
-            new CellRangeDeleter(clientPool, wrappingQueryRunner, CassandraKeyValueServiceImpl.DELETE_CONSISTENCY,
-                    no -> System.currentTimeMillis())
+            new CellRangeDeleter(
+                            clientPool,
+                            wrappingQueryRunner,
+                            CassandraKeyValueServiceImpl.DELETE_CONSISTENCY,
+                            no -> System.currentTimeMillis())
                     .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellsToDelete);
         } catch (AtlasDbDependencyException e) {
-            log.info("Failed to delete old table metadata for table {} because not all Cassandra nodes are up.",
-                    LoggingArgs.tableRef(tableRef), e);
+            log.info(
+                    "Failed to delete old table metadata for table {} because not all Cassandra nodes are up.",
+                    LoggingArgs.tableRef(tableRef),
+                    e);
         }
     }
 
-    Map<TableReference, byte[]> filterOutExistingTables(
-            final Map<TableReference, byte[]> tableNamesToTableMetadata) {
+    Map<TableReference, byte[]> filterOutExistingTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
         try {
             Set<TableReference> existingTablesLowerCased = cassandraTables.getExistingLowerCased().stream()
@@ -141,7 +147,8 @@ public class CassandraTableMetadata {
                 if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                     filteredTables.put(table, metadata);
                 } else {
-                    log.debug("Filtering out existing table ({}) that already existed (case insensitive).",
+                    log.debug(
+                            "Filtering out existing table ({}) that already existed (case insensitive).",
                             LoggingArgs.tableRef(table));
                 }
             }
@@ -162,17 +169,22 @@ public class CassandraTableMetadata {
             byte[] newMetadata = entry.getValue();
 
             if (metadataIsDifferent(existingTableMetadata.get(tableReference), newMetadata)) {
-                Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
-                        existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
+                Set<TableReference> matchingTables =
+                        Sets.filter(existingTableMetadata.keySet(), existingTableRef -> existingTableRef
+                                .getQualifiedName()
+                                .equalsIgnoreCase(tableReference.getQualifiedName()));
 
                 if (newTableOrUpdate(existingTableMetadata, newMetadata, matchingTables)) {
                     tableMetadataUpdates.put(tableReference, newMetadata);
                 } else {
-                    log.debug("Case-insensitive matched table already existed with same metadata,"
-                            + " skipping update to {}", LoggingArgs.tableRef(tableReference));
+                    log.debug(
+                            "Case-insensitive matched table already existed with same metadata,"
+                                    + " skipping update to {}",
+                            LoggingArgs.tableRef(tableReference));
                 }
             } else {
-                log.debug("Table already existed with same metadata, skipping update to {}",
+                log.debug(
+                        "Table already existed with same metadata, skipping update to {}",
                         LoggingArgs.tableRef(tableReference));
             }
         }
@@ -184,13 +196,15 @@ public class CassandraTableMetadata {
         return !Arrays.equals(existingMetadata, requestMetadata);
     }
 
-    private static boolean newTableOrUpdate(Map<TableReference, byte[]> existingMetadata, byte[] newMetadata,
-            Set<TableReference> matchingTables) {
+    private static boolean newTableOrUpdate(
+            Map<TableReference, byte[]> existingMetadata, byte[] newMetadata, Set<TableReference> matchingTables) {
         return matchingTables.isEmpty()
                 || metadataIsDifferent(existingMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata);
     }
 
     private static boolean nonNullMatchingIgnoreCase(TableReference t1, TableReference t2) {
-        return t1 != null && t2 != null && t1.getQualifiedName().equalsIgnoreCase(t2.getQualifiedName().toLowerCase());
+        return t1 != null
+                && t2 != null
+                && t1.getQualifiedName().equalsIgnoreCase(t2.getQualifiedName().toLowerCase());
     }
 }

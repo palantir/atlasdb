@@ -15,11 +15,9 @@
  */
 package com.palantir.nexus.db;
 
-import java.io.Serializable;
-
-import org.joda.time.format.ISODateTimeFormat;
-
 import com.google.common.base.MoreObjects;
+import java.io.Serializable;
+import org.joda.time.format.ISODateTimeFormat;
 
 /**
  * A RuntimeException that represents the creation location of a resource (e.g. JDBC Connection or
@@ -32,7 +30,7 @@ public class ResourceCreationLocation extends RuntimeException {
     private final ThreadInfo creatingThreadInfo;
 
     public ResourceCreationLocation() {
-        this("This is where the DB connection was created"); //$NON-NLS-1$
+        this("This is where the DB connection was created"); // $NON-NLS-1$
     }
 
     public ResourceCreationLocation(String message) {
@@ -87,7 +85,7 @@ public class ResourceCreationLocation extends RuntimeException {
         }
 
         @Override
-       public String toString() {
+        public String toString() {
             return MoreObjects.toStringHelper("thread")
                     .add("name", name)
                     .add("ID", id)
@@ -95,5 +93,4 @@ public class ResourceCreationLocation extends RuntimeException {
                     .toString();
         }
     }
-
 }

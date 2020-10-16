@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -32,6 +27,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class OracleQueryFactory extends AbstractDbQueryFactory {
     private final OracleDdlConfig config;
@@ -45,10 +44,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestRowQuery(byte[] row,
-                                       long ts,
-                                       ColumnSelection columns,
-                                       boolean includeValue) {
+    public FullQuery getLatestRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_LATEST_ONE_ROW_INNER (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
@@ -57,13 +53,14 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + " FROM " + tableName + " m "
                 + " WHERE m.row_name = ? "
                 + "   AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS ("
-                            + "SELECT "
-                            + "  /*+ NL_SJ */"
-                            + "  1"
-                            + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
-                            + " WHERE row_name = m.col_name)")
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : " AND EXISTS ("
+                                + "SELECT "
+                                + "  /*+ NL_SJ */"
+                                + "  1"
+                                + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
+                                + " WHERE row_name = m.col_name)")
                 + " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ONE_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
@@ -73,10 +70,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestRowsQuery(Iterable<byte[]> rows,
-                                        long ts,
-                                        ColumnSelection columns,
-                                        boolean includeValue) {
+    public FullQuery getLatestRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_SINGLE_BOUND_INNER (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
@@ -85,13 +79,14 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS ("
-                            + "SELECT"
-                            + "  /*+ NL_SJ */"
-                            + "  1"
-                            + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
-                            + " WHERE row_name = m.col_name) ")
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : " AND EXISTS ("
+                                + "SELECT"
+                                + "  /*+ NL_SJ */"
+                                + "  1"
+                                + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
+                                + " WHERE row_name = m.col_name) ")
                 + " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROWS_SINGLE_BOUND", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(rowsToOracleArray(rows), ts);
@@ -101,9 +96,8 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestRowsQuery(Collection<Map.Entry<byte[], Long>> rows,
-                                        ColumnSelection columns,
-                                        boolean includeValue) {
+    public FullQuery getLatestRowsQuery(
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_MANY_BOUNDS_INNER (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
@@ -112,13 +106,14 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < t.max_ts "
-                + (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS ("
-                            + "SELECT"
-                            + "  /*+ NL_SJ */"
-                            + "  1"
-                            + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
-                            + " WHERE row_name = m.col_name) ")
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : " AND EXISTS ("
+                                + "SELECT"
+                                + "  /*+ NL_SJ */"
+                                + "  1"
+                                + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
+                                + " WHERE row_name = m.col_name) ")
                 + " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROWS_MANY_BOUNDS", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArg(rowsAndTimestampsToOracleArray(rows));
@@ -128,10 +123,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getAllRowQuery(byte[] row,
-                                    long ts,
-                                    ColumnSelection columns,
-                                    boolean includeValue) {
+    public FullQuery getAllRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ONE_ROW (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ INDEX(m " + PrimaryKeyConstraintNames.get(tableName) + ") */ "
@@ -139,13 +131,14 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + " FROM " + tableName + " m "
                 + " WHERE m.row_name = ? "
                 + "   AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS ("
-                            + "SELECT"
-                            + "  /*+ NL_SJ */"
-                            + "  1"
-                            + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
-                            + " WHERE row_name = m.col_name) ");
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : " AND EXISTS ("
+                                + "SELECT"
+                                + "  /*+ NL_SJ */"
+                                + "  1"
+                                + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
+                                + " WHERE row_name = m.col_name) ");
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
         return columns.allColumnsSelected()
                 ? fullQuery
@@ -153,10 +146,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getAllRowsQuery(Iterable<byte[]> rows,
-                                     long ts,
-                                     ColumnSelection columns,
-                                     boolean includeValue) {
+    public FullQuery getAllRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ROWS_SINGLE_BOUND (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
@@ -165,13 +155,14 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS ("
-                            + "SELECT"
-                            + "  /*+ NL_SJ */"
-                            + "  1"
-                            + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
-                            + " WHERE row_name = m.col_name) ");
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : " AND EXISTS ("
+                                + "SELECT"
+                                + "  /*+ NL_SJ */"
+                                + "  1"
+                                + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
+                                + " WHERE row_name = m.col_name) ");
         FullQuery fullQuery = new FullQuery(query).withArgs(rowsToOracleArray(rows), ts);
         return columns.allColumnsSelected()
                 ? fullQuery
@@ -179,9 +170,8 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getAllRowsQuery(Collection<Map.Entry<byte[], Long>> rows,
-                                     ColumnSelection columns,
-                                     boolean includeValue) {
+    public FullQuery getAllRowsQuery(
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ROWS_MANY_BOUNDS (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
@@ -190,13 +180,14 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < t.max_ts "
-                + (columns.allColumnsSelected() ? "" :
-                    " AND EXISTS ("
-                            + "SELECT"
-                            + "  /*+ NL_SJ */"
-                            + "  1"
-                            + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
-                            + " WHERE row_name = m.col_name) ");
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : " AND EXISTS ("
+                                + "SELECT"
+                                + "  /*+ NL_SJ */"
+                                + "  1"
+                                + " FROM TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE))"
+                                + " WHERE row_name = m.col_name) ");
         FullQuery fullQuery = new FullQuery(query).withArg(rowsAndTimestampsToOracleArray(rows));
         return columns.allColumnsSelected()
                 ? fullQuery
@@ -332,9 +323,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     public FullQuery getRowsColumnRangeCountsQuery(
-            Iterable<byte[]> rows,
-            long ts,
-            ColumnRangeSelection columnRangeSelection) {
+            Iterable<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE_COUNT(" + tableName + ") */"
                 + " SELECT m.row_name, COUNT(m.col_name) AS column_count "
                 + "   FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -355,13 +344,11 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     protected FullQuery getRowsColumnRangeSubQuery(
-            byte[] row,
-            long ts,
-            BatchColumnRangeSelection columnRangeSelection) {
+            byte[] row, long ts, BatchColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ "
                 + "SELECT s.row_name, s.col_name, s.ts" + getValueSubselect("s", true)
                 + " FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts"
-                +         getValueSubselectForGroupBy("m")
+                + getValueSubselectForGroupBy("m")
                 + "   FROM " + tableName + " m"
                 + "  WHERE m.row_name = ?"
                 + "    AND m.ts < ? "
@@ -381,9 +368,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     protected FullQuery getRowsColumnRangeFullyLoadedRowsSubQuery(
-            List<byte[]> rows,
-            long ts,
-            ColumnRangeSelection columnRangeSelection) {
+            List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE_FULLY_LOADED_ROWS (" + tableName + ") */ "
                 + "SELECT * FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts"
                 + "   FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -427,42 +412,45 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
         return OracleQueryHelpers.getValueSubselectForGroupBy(hasOverflowValues, tableAlias);
     }
 
-
     private ArrayHandler rowsToOracleArray(Iterable<byte[]> rows) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(Iterables.size(rows));
         for (byte[] row : rows) {
-            oraRows.add(new Object[] { row, null, null });
+            oraRows.add(new Object[] {row, null, null});
         }
-        return config.jdbcHandler().createStructArray(
-                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
+        return config.jdbcHandler()
+                .createStructArray(
+                        structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private ArrayHandler cellsToOracleArray(Iterable<Cell> cells) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(Iterables.size(cells));
         for (Cell cell : cells) {
-            oraRows.add(new Object[] { cell.getRowName(), cell.getColumnName(), null });
+            oraRows.add(new Object[] {cell.getRowName(), cell.getColumnName(), null});
         }
-        return config.jdbcHandler().createStructArray(
-                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
+        return config.jdbcHandler()
+                .createStructArray(
+                        structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private ArrayHandler rowsAndTimestampsToOracleArray(Collection<Map.Entry<byte[], Long>> rows) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(rows.size());
         for (Entry<byte[], Long> entry : rows) {
-            oraRows.add(new Object[] { entry.getKey(), null, entry.getValue() });
+            oraRows.add(new Object[] {entry.getKey(), null, entry.getValue()});
         }
-        return config.jdbcHandler().createStructArray(
-                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
+        return config.jdbcHandler()
+                .createStructArray(
+                        structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private ArrayHandler cellsAndTimestampsToOracleArray(Collection<Map.Entry<Cell, Long>> cells) {
         List<Object[]> oraRows = Lists.newArrayListWithCapacity(cells.size());
         for (Entry<Cell, Long> entry : cells) {
             Cell cell = entry.getKey();
-            oraRows.add(new Object[] { cell.getRowName(), cell.getColumnName(), entry.getValue() });
+            oraRows.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
-        return config.jdbcHandler().createStructArray(
-                structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
+        return config.jdbcHandler()
+                .createStructArray(
+                        structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
     }
 
     private String structArrayPrefix() {

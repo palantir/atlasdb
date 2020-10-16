@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,10 +27,7 @@ import org.junit.runners.Parameterized;
 public class ContainerTest {
     @Parameterized.Parameters(name = "With container {0}")
     public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {
-                { new CassandraContainer() },
-                { new ThreeNodeCassandraCluster() }
-        });
+        return Arrays.asList(new Object[][] {{new CassandraContainer()}, {new ThreeNodeCassandraCluster()}});
     }
 
     private final Container container;
@@ -42,6 +38,7 @@ public class ContainerTest {
 
     @Test
     public void dockerComposeFileShouldExist() {
-        assertThat(ContainerTest.class.getResource(container.getDockerComposeFile())).isNotNull();
+        assertThat(ContainerTest.class.getResource(container.getDockerComposeFile()))
+                .isNotNull();
     }
 }

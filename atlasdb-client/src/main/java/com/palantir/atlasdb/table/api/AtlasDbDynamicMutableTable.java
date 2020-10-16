@@ -20,9 +20,10 @@ import com.google.common.collect.Multimap;
 /*
  * All dynamic atlasdb tables should implement this interface.
  */
-public interface AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
-            AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> {
+public interface AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>
+        extends AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> {
     void delete(Multimap<ROW, COLUMN> values);
+
     void delete(ROW row, COLUMN column);
 
     /**

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -37,6 +31,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlC
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.Preconditions;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 public class CassandraContainer extends Container {
     static final int CASSANDRA_CQL_PORT = 9042;
@@ -45,9 +44,9 @@ public class CassandraContainer extends Container {
     static final String PASSWORD = "cassandra";
     private static final String CONTAINER_NAME = "cassandra";
     private static final String THROWAWAY_CONTAINER_NAME = "cassandra2";
+
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
-            .builder()
+    static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig.builder()
             .quorumSize(1)
             .localServer("localhost")
             .leaders(ImmutableSet.of("localhost"))
@@ -99,9 +98,8 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        try (CassandraKeyValueService cassandraKeyValueService =
-                CassandraKeyValueServiceImpl.createForTesting(
-                        getConfigWithProxy(Containers.getSocksProxy(name).address()))) {
+        try (CassandraKeyValueService cassandraKeyValueService = CassandraKeyValueServiceImpl.createForTesting(
+                getConfigWithProxy(Containers.getSocksProxy(name).address()))) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
         } catch (Exception e) {
             return SuccessOrFailure.failure(e.getMessage());
@@ -110,8 +108,7 @@ public class CassandraContainer extends Container {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof CassandraContainer
-                && name.equals(((CassandraContainer) other).getServiceName());
+        return other instanceof CassandraContainer && name.equals(((CassandraContainer) other).getServiceName());
     }
 
     @Override
@@ -133,9 +130,8 @@ public class CassandraContainer extends Container {
                         .from(cqlCapableConfig)
                         .build())
                 .asyncKeyValueServiceFactory(
-                        new DefaultCassandraAsyncKeyValueServiceFactory(
-                                new DefaultCqlClientFactory(() ->
-                                        Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress)))))
+                        new DefaultCassandraAsyncKeyValueServiceFactory(new DefaultCqlClientFactory(
+                                () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress)))))
                 .build();
     }
 

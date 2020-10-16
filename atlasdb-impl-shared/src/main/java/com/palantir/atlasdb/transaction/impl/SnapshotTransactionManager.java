@@ -15,23 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.validation.constraints.NotNull;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -75,6 +58,20 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransactionManager.class);
@@ -154,8 +151,8 @@ import com.palantir.util.SafeShutdownRunner;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.conflictTracer = conflictTracer;
-        this.tableLevelMetricsController = new MemoizingTableLevelMetricsController(
-                ToplistDeltaFilteringTableLevelMetricsController.create(
+        this.tableLevelMetricsController =
+                new MemoizingTableLevelMetricsController(ToplistDeltaFilteringTableLevelMetricsController.create(
                         metricsManager, metricsFilterEvaluationContext));
     }
 
@@ -166,13 +163,11 @@ import com.palantir.util.SafeShutdownRunner;
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
-            C condition, ConditionAwareTransactionTask<T, C, E> task)
-            throws E, TransactionFailedRetriableException {
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         checkOpen();
         try {
-            OpenTransaction openTransaction =
-                    runTimed(() -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))),
-                            "setupTask");
+            OpenTransaction openTransaction = runTimed(
+                    () -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))), "setupTask");
             return openTransaction.finish(transaction -> task.execute(transaction, condition));
         } finally {
             condition.cleanup();
@@ -191,30 +186,26 @@ import com.palantir.util.SafeShutdownRunner;
         try {
             long immutableTs = responses.stream()
                     .mapToLong(response -> response.immutableTimestamp().getImmutableTimestamp())
-                    .max().getAsLong();
+                    .max()
+                    .getAsLong();
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
-            return Streams.zip(
-                    responses.stream(),
-                    conditions.stream(),
-                    (response, condition) -> {
-                        LockToken immutableTsLock = response.immutableTimestamp().getLock();
+            return Streams.zip(responses.stream(), conditions.stream(), (response, condition) -> {
+                        LockToken immutableTsLock =
+                                response.immutableTimestamp().getLock();
                         Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
                                 response.startTimestampAndPartition().timestamp());
 
-                        Transaction transaction = createTransaction(
-                                immutableTs,
-                                startTimestampSupplier,
-                                immutableTsLock,
-                                condition);
+                        Transaction transaction =
+                                createTransaction(immutableTs, startTimestampSupplier, immutableTsLock, condition);
                         return new OpenTransactionImpl(transaction, immutableTsLock);
-                    }).collect(Collectors.toList());
+                    })
+                    .collect(Collectors.toList());
         } catch (Throwable t) {
-            timelockService.tryUnlock(
-                    responses.stream()
-                            .map(response -> response.immutableTimestamp().getLock())
-                            .collect(Collectors.toSet()));
+            timelockService.tryUnlock(responses.stream()
+                    .map(response -> response.immutableTimestamp().getLock())
+                    .collect(Collectors.toSet()));
             responses.forEach(response -> lockWatchEventCache.removeTransactionStateFromCache(
                     response.startTimestampAndPartition().timestamp()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
@@ -262,10 +253,7 @@ import com.palantir.util.SafeShutdownRunner;
     private void scrubForAggressiveHardDelete(SnapshotTransaction tx) {
         if ((tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) && !tx.isAborted()) {
             // t.getCellsToScrubImmediately() checks that t has been committed
-            cleaner.scrubImmediately(this,
-                    tx.getCellsToScrubImmediately(),
-                    tx.getTimestamp(),
-                    tx.getCommitTimestamp());
+            cleaner.scrubImmediately(this, tx.getCellsToScrubImmediately(), tx.getTimestamp(), tx.getCommitTimestamp());
         }
     }
 
@@ -355,8 +343,8 @@ import com.palantir.util.SafeShutdownRunner;
                 conflictTracer,
                 tableLevelMetricsController);
         try {
-            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
-                    new ReadTransaction(transaction, sweepStrategyManager));
+            return runTaskThrowOnConflict(
+                    txn -> task.execute(txn, condition), new ReadTransaction(transaction, sweepStrategyManager));
         } finally {
             condition.cleanup();
         }
@@ -547,7 +535,7 @@ import com.palantir.util.SafeShutdownRunner;
         if (transaction instanceof ForwardingTransaction) {
             return extractSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
         }
-        throw new IllegalArgumentException("Can't use a transaction which is not SnapshotTransaction in "
-                + "SnapshotTransactionManager");
+        throw new IllegalArgumentException(
+                "Can't use a transaction which is not SnapshotTransaction in " + "SnapshotTransactionManager");
     }
 }

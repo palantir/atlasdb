@@ -15,12 +15,11 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Ensure that only a single method is ever called.  Throw {@link IllegalStateException} on all subsequent calls.
@@ -29,12 +28,12 @@ public class SingleCallProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate) {
-        return (T)Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-            new Class<?>[] {interfaceClass}, new SingleCallProxy(delegate));
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass}, new SingleCallProxy(delegate));
     }
 
-    final private Object delegate;
-    final private AtomicBoolean hasBeenCalled = new AtomicBoolean(false);
+    private final Object delegate;
+    private final AtomicBoolean hasBeenCalled = new AtomicBoolean(false);
 
     private SingleCallProxy(Object delegate) {
         this.delegate = delegate;

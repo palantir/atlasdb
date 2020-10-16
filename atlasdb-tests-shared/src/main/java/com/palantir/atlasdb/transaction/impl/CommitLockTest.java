@@ -18,16 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
-import java.util.Optional;
-
-import org.junit.Assume;
-import org.junit.ClassRule;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.runner.RunWith;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -55,13 +45,22 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.Assume;
+import org.junit.ClassRule;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
 public class CommitLockTest extends TransactionTestSetup {
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
-    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    private static final TransactionConfig TRANSACTION_CONFIG =
+            ImmutableTransactionConfig.builder().build();
     private static final String ROW = "row";
     private static final String COLUMN = "col_1";
     private static final String OTHER_COLUMN = "col_2";
@@ -115,7 +114,7 @@ public class CommitLockTest extends TransactionTestSetup {
 
         PreCommitCondition canAcquireCellLock = (ignored) -> {
             LockResponse response = acquireCellLock(ROW, COLUMN);
-            //current lock implementation allows you to get a cell lock on a row that is already locked
+            // current lock implementation allows you to get a cell lock on a row that is already locked
             assertTrue(response.wasSuccessful());
         };
 
@@ -157,10 +156,7 @@ public class CommitLockTest extends TransactionTestSetup {
 
     private Transaction startTransaction(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
-                TEST_TABLE,
-                conflictHandler,
-                TransactionConstants.TRANSACTION_TABLE,
-                ConflictHandler.IGNORE_ALL);
+                TEST_TABLE, conflictHandler, TransactionConstants.TRANSACTION_TABLE, ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,
@@ -195,17 +191,14 @@ public class CommitLockTest extends TransactionTestSetup {
     }
 
     private LockResponse acquireRowLock(String rowName) {
-        LockDescriptor rowLockDescriptor = AtlasRowLockDescriptor.of(
-                TEST_TABLE.getQualifiedName(),
-                PtBytes.toBytes(rowName));
+        LockDescriptor rowLockDescriptor =
+                AtlasRowLockDescriptor.of(TEST_TABLE.getQualifiedName(), PtBytes.toBytes(rowName));
         return lock(rowLockDescriptor);
     }
 
     private LockResponse acquireCellLock(String rowName, String colName) {
         LockDescriptor cellLockDescriptor = AtlasCellLockDescriptor.of(
-                TEST_TABLE.getQualifiedName(),
-                PtBytes.toBytes(rowName),
-                PtBytes.toBytes(colName));
+                TEST_TABLE.getQualifiedName(), PtBytes.toBytes(rowName), PtBytes.toBytes(colName));
         return lock(cellLockDescriptor);
     }
 

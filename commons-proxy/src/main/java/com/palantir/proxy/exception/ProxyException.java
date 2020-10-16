@@ -30,4 +30,3 @@ public class ProxyException extends Exception {
         super(message, cause);
     }
 }
-

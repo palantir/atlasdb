@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.io.File;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.OptionalType;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.io.File;
+import java.util.function.Supplier;
 
 public enum CompactSchema implements AtlasSchema {
     INSTANCE;
@@ -34,27 +33,27 @@ public enum CompactSchema implements AtlasSchema {
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {
-        Schema schema = new Schema("Compact",
-                CompactSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE,
-                OptionalType.JAVA8);
+        Schema schema = new Schema(
+                "Compact", CompactSchema.class.getPackage().getName() + ".generated", NAMESPACE, OptionalType.JAVA8);
 
         // This table tracks stats about tables that are relevant
         // in determining when and in which order they should be compacted.
-        schema.addTableDefinition("metadata", new TableDefinition() {{
-            javaTableName("CompactMetadata");
-            allSafeForLoggingByDefault();
+        schema.addTableDefinition("metadata", new TableDefinition() {
+            {
+                javaTableName("CompactMetadata");
+                allSafeForLoggingByDefault();
 
-            rowName();
+                rowName();
                 rowComponent("full_table_name", ValueType.STRING);
 
-            columns();
+                columns();
                 // The (wall clock) time of when this table was
                 // last compacted.
                 column("last_compact_time", "t", ValueType.VAR_LONG);
 
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
 
         schema.validate();
         return schema;

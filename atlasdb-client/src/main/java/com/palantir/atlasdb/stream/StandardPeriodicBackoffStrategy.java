@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrategy {
     private final Logger log = LoggerFactory.getLogger(StandardPeriodicBackoffStrategy.class);
@@ -30,8 +28,8 @@ public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrate
     private final BackoffMechanism backoff;
 
     @VisibleForTesting
-    StandardPeriodicBackoffStrategy(Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration,
-            BackoffMechanism backoff) {
+    StandardPeriodicBackoffStrategy(
+            Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration, BackoffMechanism backoff) {
         this.persistenceConfiguration = persistenceConfiguration;
         this.backoff = backoff;
     }
@@ -50,7 +48,8 @@ public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrate
         if (shouldBackoffBeforeWritingBlockNumber(blockNumber)) {
             try {
                 long writePauseDurationMillis = persistenceConfiguration.get().writePauseDurationMillis();
-                log.info("Invoking backoff for {} ms, because we are writing block {} of a stream",
+                log.info(
+                        "Invoking backoff for {} ms, because we are writing block {} of a stream",
                         SafeArg.of("blockNumber", blockNumber),
                         SafeArg.of("writePauseDurationMillis", writePauseDurationMillis));
                 backoff.backoff(writePauseDurationMillis);

@@ -15,20 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.palantir.common.base.Throwables;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
@@ -42,6 +28,18 @@ import com.palantir.nexus.streaming.PTInputStream;
 import com.palantir.sql.PreparedStatements;
 import com.palantir.sql.ResultSets;
 import com.palantir.util.streams.PTStreams;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.concurrent.ExecutorService;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Routines for issuing SQL statements to the database.
@@ -57,35 +55,39 @@ public abstract class SQL extends BasicSQL {
         super(selectStatementExecutor, executeStatementExecutor);
     }
 
-    static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); //$NON-NLS-1$
+    static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); // $NON-NLS-1$
 
     /** key for the sql query to list tables with a given column. */
-    static final String LIST_TABLES_WITH_COLUMN = "SQL_LIST_TABLES_WITH_COLUMN"; //$NON-NLS-1$
+    static final String LIST_TABLES_WITH_COLUMN = "SQL_LIST_TABLES_WITH_COLUMN"; // $NON-NLS-1$
+
     static {
-        SQLString.registerQuery(LIST_TABLES_WITH_COLUMN,
-                " /* ORACLE_COLUMN_QUERY */ " + //$NON-NLS-1$
-                " SELECT DISTINCT table_name FROM user_tab_columns " + //$NON-NLS-1$
-                "   WHERE (lower(table_name) LIKE lower('PT_%'))" + //$NON-NLS-1$
-                "   AND lower(column_name) = ?", //$NON-NLS-1$
+        SQLString.registerQuery(
+                LIST_TABLES_WITH_COLUMN,
+                " /* ORACLE_COLUMN_QUERY */ " //$NON-NLS-1$
+                        + " SELECT DISTINCT table_name FROM user_tab_columns " //$NON-NLS-1$
+                        + "   WHERE (lower(table_name) LIKE lower('PT_%'))" //$NON-NLS-1$
+                        + "   AND lower(column_name) = ?", //$NON-NLS-1$
                 DBType.ORACLE);
-        SQLString.registerQuery(LIST_TABLES_WITH_COLUMN,
-                " /* POSTGRES_COLUMN_QUERY */" + //$NON-NLS-1$
-                " SELECT tablename AS table_name FROM pg_tables " + //$NON-NLS-1$
-                "  WHERE tablename !~* 'pg_*' AND tablename LIKE 'pt\\_%' " +  //$NON-NLS-1$
-                " AND lower(?) IN " + //$NON-NLS-1$
-                " (SELECT lower(a.attname) AS field " + //$NON-NLS-1$
-                " FROM pg_class c, pg_attribute a, pg_type t " + //$NON-NLS-1$
-                " WHERE c.relname = tablename " + //$NON-NLS-1$
-                " AND a.attnum > 0 " + //$NON-NLS-1$
-                " AND a.attrelid = c.oid " + //$NON-NLS-1$
-                " AND a.atttypid = t.oid)" + //$NON-NLS-1$
-                "ORDER BY table_name", //$NON-NLS-1$
+        SQLString.registerQuery(
+                LIST_TABLES_WITH_COLUMN,
+                " /* POSTGRES_COLUMN_QUERY */" //$NON-NLS-1$
+                        + " SELECT tablename AS table_name FROM pg_tables " //$NON-NLS-1$
+                        + "  WHERE tablename !~* 'pg_*' AND tablename LIKE 'pt\\_%' " //$NON-NLS-1$
+                        + " AND lower(?) IN " //$NON-NLS-1$
+                        + " (SELECT lower(a.attname) AS field " //$NON-NLS-1$
+                        + " FROM pg_class c, pg_attribute a, pg_type t " //$NON-NLS-1$
+                        + " WHERE c.relname = tablename " //$NON-NLS-1$
+                        + " AND a.attnum > 0 " //$NON-NLS-1$
+                        + " AND a.attrelid = c.oid " //$NON-NLS-1$
+                        + " AND a.atttypid = t.oid)" //$NON-NLS-1$
+                        + "ORDER BY table_name", //$NON-NLS-1$
                 DBType.POSTGRESQL);
     }
 
     public static final int POSTGRES_BLOB_WRITE_LIMIT = 1000 * 1000 * 1000; // Postgres can store 1G
 
-    public static final int POSTGRES_BLOB_READ_LIMIT = 100 * 1000 * 1000; // Postgres doesn't like to read more than ~2^28 bytes at once, so limit to something smaller
+    public static final int POSTGRES_BLOB_READ_LIMIT = 100 * 1000
+            * 1000; // Postgres doesn't like to read more than ~2^28 bytes at once, so limit to something smaller
 
     @Override
     protected BlobHandler setObject(Connection c, PreparedStatement ps, int i, Object obj) {
@@ -107,16 +109,21 @@ public abstract class SQL extends BasicSQL {
     // JDBC driver.  We check for the limit and, if it's below, we read
     // the whole stream into a byte[] and set the object directly.
     private static final int ORACLE_BYTE_LOWER_LIMIT = 2000; // QA-70384
+
     private BlobHandler handlePtInputStream(Connection c, PreparedStatement ps, int i, PTInputStream is) {
         if (is.getLength() <= ORACLE_BYTE_LOWER_LIMIT) {
             try {
                 byte[] bytes = IOUtils.toByteArray(is, is.getLength());
-                Preconditions.checkArgument(bytes.length == is.getLength(),
+                Preconditions.checkArgument(
+                        bytes.length == is.getLength(),
                         "incorrect length - bytes: %s, input stream: %s", //$NON-NLS-1$
-                        bytes.length, is.getLength());
+                        bytes.length,
+                        is.getLength());
                 PreparedStatements.setBytes(ps, i, bytes);
             } catch (IOException e) {
-                throw Throwables.chain(PalantirSqlException.createForChaining(), Throwables.chain(new SQLException("Internal IOException"), e)); //$NON-NLS-1$
+                throw Throwables.chain(
+                        PalantirSqlException.createForChaining(),
+                        Throwables.chain(new SQLException("Internal IOException"), e)); // $NON-NLS-1$
             } finally {
                 IOUtils.closeQuietly(is);
             }
@@ -124,18 +131,21 @@ public abstract class SQL extends BasicSQL {
         } else if (is.getLength() <= Integer.MAX_VALUE) {
             if (DBType.getTypeFromConnection(c) == DBType.POSTGRESQL
                     && is.getLength() > SQL.POSTGRES_BLOB_WRITE_LIMIT) {
-                com.palantir.logsafe.Preconditions.checkArgument(false, "Postgres only supports blobs up to 1G"); //$NON-NLS-1$
+                com.palantir.logsafe.Preconditions.checkArgument(
+                        false, "Postgres only supports blobs up to 1G"); // $NON-NLS-1$
             }
-            PreparedStatements.setBinaryStream(ps, i, is, (int)is.getLength());
+            PreparedStatements.setBinaryStream(ps, i, is, (int) is.getLength());
             return null;
         } else {
             DBType dbType = DBType.getTypeFromConnection(c);
-            com.palantir.logsafe.Preconditions.checkArgument(dbType == DBType.ORACLE, "We only support blobs over 2GB on oracle (postgres only supports blobs up to 1G)"); //$NON-NLS-1$
+            com.palantir.logsafe.Preconditions.checkArgument(
+                    dbType == DBType.ORACLE,
+                    "We only support blobs over 2GB on oracle (postgres only supports blobs up to 1G)"); //$NON-NLS-1$
             BlobHandler blobHandler;
             try {
                 blobHandler = getJdbcHandler().createBlob(c);
-            } catch (SQLException e){
-                sqlExceptionlog.debug("Caught SQLException", e); //$NON-NLS-1$
+            } catch (SQLException e) {
+                sqlExceptionlog.debug("Caught SQLException", e); // $NON-NLS-1$
                 throw PalantirSqlException.create(e);
             }
             OutputStream os = null;
@@ -148,9 +158,12 @@ public abstract class SQL extends BasicSQL {
                 try {
                     blobHandler.freeTemporary();
                 } catch (Exception e1) {
-                    SqlLoggers.LOGGER.error("failed to free temp blob", e1); //$NON-NLS-1$
+                    SqlLoggers.LOGGER.error("failed to free temp blob", e1); // $NON-NLS-1$
                 } // dispose early if we aren't returning correctly
-                throw Throwables.chain(PalantirSqlException.createForChaining(), Throwables.chain(new SQLException("failed to transfer blob over 2GB to the DB"), e)); //$NON-NLS-1$
+                throw Throwables.chain(
+                        PalantirSqlException.createForChaining(),
+                        Throwables.chain(
+                                new SQLException("failed to transfer blob over 2GB to the DB"), e)); // $NON-NLS-1$
             } finally {
                 IOUtils.closeQuietly(os);
             }
@@ -158,10 +171,7 @@ public abstract class SQL extends BasicSQL {
         }
     }
 
-    private void setOracleStructArray(Connection c,
-                                      PreparedStatement ps,
-                                      int paramIndex,
-                                      ArrayHandler array) {
+    private void setOracleStructArray(Connection c, PreparedStatement ps, int paramIndex, ArrayHandler array) {
         com.palantir.logsafe.Preconditions.checkArgument(DBType.getTypeFromConnection(c) == DBType.ORACLE);
         try {
             PreparedStatements.setObject(ps, paramIndex, array.toOracleArray(c));
@@ -170,21 +180,13 @@ public abstract class SQL extends BasicSQL {
         }
     }
 
-    public AgnosticLightResultSet fromResultSet(PreparedStatement preparedStatement,
-                                                ResultSet resultSet,
-                                                DBType dbType,
-                                                String queryString) {
+    public AgnosticLightResultSet fromResultSet(
+            PreparedStatement preparedStatement, ResultSet resultSet, DBType dbType, String queryString) {
         FinalSQLString sqlString = SQLString.getUnregisteredQuery(queryString);
         String timingModule = "visitResultSet";
         ResultSetMetaData metaData = ResultSets.getMetaData(resultSet);
         SqlTimer sqlTimer = getSqlTimer();
         return new AgnosticLightResultSetImpl(
-                resultSet,
-                dbType,
-                metaData,
-                preparedStatement,
-                timingModule,
-                sqlString,
-                sqlTimer);
+                resultSet, dbType, metaData, preparedStatement, timingModule, sqlString, sqlTimer);
     }
 }

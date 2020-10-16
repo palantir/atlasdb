@@ -18,16 +18,14 @@ package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Objects;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Objects;
+import org.junit.Test;
 
 public class FilteredTaggedMetricSetTest {
     private static final MetricName METRIC_NAME_1 = MetricName.builder()
@@ -44,10 +42,10 @@ public class FilteredTaggedMetricSetTest {
     public void reportsAllMetricsIfNotPerformingFiltering() {
         Timer timer = taggedMetricRegistry.timer(METRIC_NAME_1);
 
-        FilteredTaggedMetricSet filteredTaggedMetricSet = new FilteredTaggedMetricSet(
-                taggedMetricRegistry, $ -> false, Refreshable.only(false));
-        assertThat(filteredTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(METRIC_NAME_1, timer));
+        FilteredTaggedMetricSet filteredTaggedMetricSet =
+                new FilteredTaggedMetricSet(taggedMetricRegistry, $ -> false, Refreshable.only(false));
+        assertThat(filteredTaggedMetricSet.getMetrics())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(METRIC_NAME_1, timer));
     }
 
     @Test
@@ -57,7 +55,7 @@ public class FilteredTaggedMetricSetTest {
 
         FilteredTaggedMetricSet filteredTaggedMetricSet = new FilteredTaggedMetricSet(
                 taggedMetricRegistry, name -> Objects.equals(name, METRIC_NAME_2), Refreshable.only(true));
-        assertThat(filteredTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(METRIC_NAME_2, timer));
+        assertThat(filteredTaggedMetricSet.getMetrics())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(METRIC_NAME_2, timer));
     }
 }

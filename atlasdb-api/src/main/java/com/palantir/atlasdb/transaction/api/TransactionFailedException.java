@@ -36,5 +36,4 @@ public abstract class TransactionFailedException extends RuntimeException {
     }
 
     public abstract boolean canTransactionBeRetried();
-
 }

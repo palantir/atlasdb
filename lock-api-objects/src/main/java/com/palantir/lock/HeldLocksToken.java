@@ -15,17 +15,6 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -36,6 +25,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.palantir.logsafe.Preconditions;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * A token representing a set of locks being held by a client and the
@@ -44,9 +42,9 @@ import com.palantir.logsafe.Preconditions;
  *
  * @author jtamer
  */
-@JsonDeserialize(builder =
-        HeldLocksToken.SerializationProxy.class)
-@Immutable public final class HeldLocksToken implements ExpiringToken, Serializable {
+@JsonDeserialize(builder = HeldLocksToken.SerializationProxy.class)
+@Immutable
+public final class HeldLocksToken implements ExpiringToken, Serializable {
     private static final long serialVersionUID = 0x99b3bb32bb98f83aL;
 
     private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
@@ -58,15 +56,24 @@ import com.palantir.logsafe.Preconditions;
     private final long expirationDateMs;
     private final SortedLockCollection<LockDescriptor> lockMap;
     private final SimpleTimeDuration lockTimeout;
-    @Nullable private final Long versionId;
+
+    @Nullable
+    private final Long versionId;
+
     private final String requestingThread;
 
     /**
      * This should only be created by the Lock Service.
      */
-    public HeldLocksToken(BigInteger tokenId, LockClient client, long creationDateMs,
-            long expirationDateMs, SortedLockCollection<LockDescriptor> lockMap,
-            TimeDuration lockTimeout, @Nullable Long versionId, String requestingThread) {
+    public HeldLocksToken(
+            BigInteger tokenId,
+            LockClient client,
+            long creationDateMs,
+            long expirationDateMs,
+            SortedLockCollection<LockDescriptor> lockMap,
+            TimeDuration lockTimeout,
+            @Nullable Long versionId,
+            String requestingThread) {
         this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.client = Preconditions.checkNotNull(client, "client should not be null");
         this.creationDateMs = creationDateMs;
@@ -146,11 +153,13 @@ import com.palantir.logsafe.Preconditions;
      * was specified.
      */
     @Override
-    @Nullable public Long getVersionId() {
+    @Nullable
+    public Long getVersionId() {
         return versionId;
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
@@ -160,11 +169,13 @@ import com.palantir.logsafe.Preconditions;
         return tokenId.equals(((HeldLocksToken) obj).tokenId);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return tokenId.hashCode();
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return toString(System.currentTimeMillis());
     }
 
@@ -173,8 +184,7 @@ import com.palantir.logsafe.Preconditions;
                 .add("tokenId", tokenId.toString(Character.MAX_RADIX))
                 .add("client", client)
                 .add("createdAt", SimpleTimeDuration.of(creationDateMs, TimeUnit.MILLISECONDS))
-                .add("expiresIn", SimpleTimeDuration.of(expirationDateMs - currentTimeMillis,
-                        TimeUnit.MILLISECONDS))
+                .add("expiresIn", SimpleTimeDuration.of(expirationDateMs - currentTimeMillis, TimeUnit.MILLISECONDS))
                 .add("lockCount", lockMap.size())
                 .add("firstLock", lockMap.entries().iterator().next())
                 .add("versionId", versionId)
@@ -186,12 +196,18 @@ import com.palantir.logsafe.Preconditions;
      * This should only be created by the lock service.  This call will not actually refresh the token.
      */
     public HeldLocksToken refresh(long newExpirationDateMs) {
-        return new HeldLocksToken(tokenId, client, creationDateMs, newExpirationDateMs, lockMap, lockTimeout,
-                versionId, requestingThread);
+        return new HeldLocksToken(
+                tokenId,
+                client,
+                creationDateMs,
+                newExpirationDateMs,
+                lockMap,
+                lockTimeout,
+                versionId,
+                requestingThread);
     }
 
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }
 
@@ -208,7 +224,10 @@ import com.palantir.logsafe.Preconditions;
         private final long expirationDateMs;
         private final SortedLockCollection<LockDescriptor> lockMap;
         private final SimpleTimeDuration lockTimeout;
-        @Nullable private final Long versionId;
+
+        @Nullable
+        private final Long versionId;
+
         private final String requestingThread;
 
         SerializationProxy(HeldLocksToken heldLocksToken) {
@@ -223,7 +242,8 @@ import com.palantir.logsafe.Preconditions;
         }
 
         @JsonCreator
-        SerializationProxy(@JsonProperty("tokenId") BigInteger tokenId,
+        SerializationProxy(
+                @JsonProperty("tokenId") BigInteger tokenId,
                 @JsonProperty("client") LockClient client,
                 @JsonProperty("creationDateMs") long creationDateMs,
                 @JsonProperty("expirationDateMs") long expirationDateMs,
@@ -252,8 +272,15 @@ import com.palantir.logsafe.Preconditions;
         }
 
         Object readResolve() {
-            return new HeldLocksToken(tokenId, client, creationDateMs, expirationDateMs, lockMap, lockTimeout,
-                    versionId, requestingThread);
+            return new HeldLocksToken(
+                    tokenId,
+                    client,
+                    creationDateMs,
+                    expirationDateMs,
+                    lockMap,
+                    lockTimeout,
+                    versionId,
+                    requestingThread);
         }
     }
 }

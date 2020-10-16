@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.google.common.base.Throwables;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.logsafe.SafeArg;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Throwables;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
-import com.palantir.logsafe.SafeArg;
 
 public class LockAcquirer implements AutoCloseable {
 
@@ -36,7 +34,8 @@ public class LockAcquirer implements AutoCloseable {
     private final LeaderClock leaderClock;
     private final LockWatchingService lockWatcher;
 
-    public LockAcquirer(LockLog lockLog,
+    public LockAcquirer(
+            LockLog lockLog,
             ScheduledExecutorService timeoutExecutor,
             LeaderClock leaderClock,
             LockWatchingService lockWatcher) {
@@ -53,8 +52,7 @@ public class LockAcquirer implements AutoCloseable {
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
-        return new Acquisition(requestId, locks, timeout, lock -> lock.waitUntilAvailable(requestId))
-                .execute();
+        return new Acquisition(requestId, locks, timeout, lock -> lock.waitUntilAvailable(requestId)).execute();
     }
 
     @Override

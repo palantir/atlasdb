@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.thrift.TException;
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -36,6 +24,15 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
+import java.util.Map;
+import javax.annotation.Nullable;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.thrift.TException;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CassandraTimestampBackupRunner {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBackupRunner.class);
@@ -73,20 +70,20 @@ public class CassandraTimestampBackupRunner {
 
             BoundReadability boundReadability = checkReadability(boundData);
             if (boundReadability == BoundReadability.BACKUP) {
-                log.info("[BACKUP] Didn't backup, because there is already a valid backup of {}.",
+                log.info(
+                        "[BACKUP] Didn't backup, because there is already a valid backup of {}.",
                         SafeArg.of("currentBackupBound", PtBytes.toLong(currentBackupBound)));
                 return PtBytes.toLong(currentBackupBound);
             }
 
-            byte[] backupValue = MoreObjects.firstNonNull(currentBound,
-                    PtBytes.toBytes(CassandraTimestampUtils.INITIAL_VALUE));
+            byte[] backupValue =
+                    MoreObjects.firstNonNull(currentBound, PtBytes.toBytes(CassandraTimestampUtils.INITIAL_VALUE));
 
-            Map<String, Pair<byte[], byte[]>> casMap =
-                    ImmutableMap.of(
-                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
-                            Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()),
-                            CassandraTimestampUtils.BACKUP_COLUMN_NAME,
-                            Pair.create(currentBackupBound, backupValue));
+            Map<String, Pair<byte[], byte[]>> casMap = ImmutableMap.of(
+                    CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
+                    Pair.create(currentBound, CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()),
+                    CassandraTimestampUtils.BACKUP_COLUMN_NAME,
+                    Pair.create(currentBackupBound, backupValue));
             executeAndVerifyCas(client, casMap);
             log.info("[BACKUP] Backed up the value {}", SafeArg.of("backupValue", PtBytes.toLong(backupValue)));
             return PtBytes.toLong(backupValue);
@@ -109,7 +106,8 @@ public class CassandraTimestampBackupRunner {
                 if (currentBound == null) {
                     log.info("[RESTORE] Didn't restore, because the current bound is empty (and thus readable).");
                 } else {
-                    log.info("[RESTORE] Didn't restore, because the current bound is readable with the value {}.",
+                    log.info(
+                            "[RESTORE] Didn't restore, because the current bound is readable with the value {}.",
                             SafeArg.of("currentBound", PtBytes.toLong(currentBound)));
                 }
                 return null;
@@ -121,7 +119,8 @@ public class CassandraTimestampBackupRunner {
                     CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                     Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY));
             executeAndVerifyCas(client, casMap);
-            log.info("[RESTORE] Restored the value {}",
+            log.info(
+                    "[RESTORE] Restored the value {}",
                     SafeArg.of("currentBackupBound", PtBytes.toLong(currentBackupBound)));
             return null;
         });
@@ -130,17 +129,19 @@ public class CassandraTimestampBackupRunner {
     private BoundReadability checkReadability(BoundData boundData) {
         BoundReadability boundReadability = getReadability(boundData);
 
-        Preconditions.checkState(boundReadability != BoundReadability.BOTH,
+        Preconditions.checkState(
+                boundReadability != BoundReadability.BOTH,
                 "We had both backup and active timestamp bounds readable! This is unexpected. Please contact support.");
-        Preconditions.checkState(boundReadability != BoundReadability.NEITHER,
+        Preconditions.checkState(
+                boundReadability != BoundReadability.NEITHER,
                 "We had an unreadable active timestamp bound with no backup! This is unexpected. Please contact "
                         + "support.");
         return boundReadability;
     }
 
     private BoundReadability getReadability(BoundData boundData) {
-        boolean boundReadable = boundData.bound() == null
-                || CassandraTimestampUtils.isValidTimestampData(boundData.bound());
+        boolean boundReadable =
+                boundData.bound() == null || CassandraTimestampUtils.isValidTimestampData(boundData.bound());
         boolean backupBoundReadable = CassandraTimestampUtils.isValidTimestampData(boundData.backupBound());
 
         if (boundReadable) {
@@ -178,9 +179,11 @@ public class CassandraTimestampBackupRunner {
 
     private CqlResult executeQueryUnchecked(CassandraClient client, CqlQuery query) {
         try {
-            return queryRunner().run(client,
-                    AtlasDbConstants.TIMESTAMP_TABLE,
-                    () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
+            return queryRunner()
+                    .run(
+                            client,
+                            AtlasDbConstants.TIMESTAMP_TABLE,
+                            () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
         } catch (TException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }

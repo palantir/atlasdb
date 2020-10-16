@@ -35,5 +35,4 @@ public class InMemoryTestRunner extends AbstractTestRunner {
     protected void cleanup(KeyValueServiceConfig kvsConfig) {
         // noop
     }
-
 }

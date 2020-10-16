@@ -20,7 +20,7 @@ import com.google.common.collect.Multimap;
 /*
  * All dynamic atlasdb tables should implement this interface.
  */
-public interface AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
-            AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
+public interface AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>
+        extends AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     Multimap<ROW, COLUMN_VALUE> get(Multimap<ROW, COLUMN> cells);
 }

@@ -15,19 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.concurrent.NotThreadSafe;
-
-import org.apache.cassandra.thrift.Mutation;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.concurrent.NotThreadSafe;
+import org.apache.cassandra.thrift.Mutation;
 
 @NotThreadSafe
 public class MutationMap {
@@ -47,9 +44,8 @@ public class MutationMap {
         ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
         Map<String, List<Mutation>> rowPuts = mutationMap.computeIfAbsent(rowName, row -> Maps.newHashMap());
 
-        List<Mutation> tableMutations = rowPuts.computeIfAbsent(
-                AbstractKeyValueService.internalTableName(tableRef),
-                k -> Lists.newArrayList());
+        List<Mutation> tableMutations =
+                rowPuts.computeIfAbsent(AbstractKeyValueService.internalTableName(tableRef), k -> Lists.newArrayList());
 
         tableMutations.add(mutation);
     }

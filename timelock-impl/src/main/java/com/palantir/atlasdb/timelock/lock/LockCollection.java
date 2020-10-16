@@ -15,24 +15,20 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.palantir.lock.LockDescriptor;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 
 public class LockCollection {
 
     private final LoadingCache<LockDescriptor, AsyncLock> locksById;
 
     public LockCollection() {
-        locksById = Caffeine.newBuilder()
-                .weakValues()
-                .build(ExclusiveLock::new);
+        locksById = Caffeine.newBuilder().weakValues().build(ExclusiveLock::new);
     }
 
     public OrderedLocks getAll(Set<LockDescriptor> descriptors) {
@@ -55,5 +51,4 @@ public class LockCollection {
     private AsyncLock getLock(LockDescriptor descriptor) {
         return locksById.get(descriptor);
     }
-
 }

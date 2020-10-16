@@ -21,7 +21,6 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.sql.SQLException;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +40,6 @@ public class ThrowablesTest {
             assertEquals(e.getMessage(), wrapped.getMessage());
             assertSame(e, wrapped.getCause());
         }
-
 
         try {
             throwSQLException();
@@ -64,7 +62,6 @@ public class ThrowablesTest {
         }
     }
 
-
     // only has a (string, throwable) constructor
     public void throwTwoArgConstructorException() throws TwoArgConstructorException {
         throw new TwoArgConstructorException("Told you so", new IOException("Contained"));
@@ -82,14 +79,16 @@ public class ThrowablesTest {
 
     static class TwoArgConstructorException extends Exception {
         private static final long serialVersionUID = 1L;
+
         public TwoArgConstructorException(String message, Throwable cause) {
             super(message, cause);
         }
     }
 
     static class NoUsefulConstructorException extends Exception {
-        static private boolean noUsefulConstructorCalled;
+        private static boolean noUsefulConstructorCalled;
         private static final long serialVersionUID = 1L;
+
         public NoUsefulConstructorException(@SuppressWarnings("unused") Void never) {
             if (noUsefulConstructorCalled) {
                 fail("This constructor should not be run multiple times");

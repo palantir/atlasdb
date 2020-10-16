@@ -27,18 +27,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -61,6 +49,16 @@ import com.palantir.atlasdb.tracing.TestSpanObserver;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.SpanType;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TracingKeyValueServiceTest {
@@ -105,9 +103,7 @@ public class TracingKeyValueServiceTest {
 
     @Test
     public void delegatesInitializationCheck() {
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
         assertFalse(kvs.isInitialized());
         assertTrue(kvs.isInitialized());
@@ -246,8 +242,8 @@ public class TracingKeyValueServiceTest {
     @Test
     public void getFirstBatchForRanges() throws Exception {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> expectedResult = ImmutableMap.of();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result = kvs.getFirstBatchForRanges(
-                TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
+                kvs.getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
 
         assertThat(result, equalTo(expectedResult));
         checkSpan("atlasdb-kvs.getFirstBatchForRanges({table}, 1 ranges, ts 1)");
@@ -297,7 +293,8 @@ public class TracingKeyValueServiceTest {
     public void getRows() throws Exception {
         ImmutableList<byte[]> rows = ImmutableList.of(ROW_NAME);
         Map<Cell, Value> expectedResult = ImmutableMap.of();
-        when(delegate.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP)).thenReturn(expectedResult);
+        when(delegate.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP))
+                .thenReturn(expectedResult);
 
         Map<Cell, Value> result = kvs.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
 
@@ -405,5 +402,4 @@ public class TracingKeyValueServiceTest {
         assertThat(observer.spans().get(0).type(), equalTo(SpanType.LOCAL));
         assertThat(observer.spans().get(0).getDurationNanoSeconds(), greaterThanOrEqualTo(0L));
     }
-
 }

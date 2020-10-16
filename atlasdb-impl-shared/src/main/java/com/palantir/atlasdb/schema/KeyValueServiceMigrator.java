@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -34,6 +26,12 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class KeyValueServiceMigrator {
     private final TableReference checkpointTable;
@@ -67,7 +65,8 @@ public class KeyValueServiceMigrator {
     private final KvsMigrationMessageProcessor messageProcessor;
     private final TaskProgress taskProgress;
 
-    public KeyValueServiceMigrator(Namespace checkpointNamespace,
+    public KeyValueServiceMigrator(
+            Namespace checkpointNamespace,
             TransactionManager fromTransactionManager,
             TransactionManager toTransactionManager,
             KeyValueService fromKvs,
@@ -118,16 +117,12 @@ public class KeyValueServiceMigrator {
             processMessage("retrieving metadata for table " + tableRef, KvsMigrationMessageLevel.INFO);
             byte[] metadata = fromKvs.getMetadataForTable(tableRef);
             Preconditions.checkArgument(
-                    metadata != null && metadata.length != 0,
-                    "no metadata found for table %s", tableRef);
+                    metadata != null && metadata.length != 0, "no metadata found for table %s", tableRef);
             metadataByTableName.put(tableRef, metadata);
         }
         processMessage("creating tables", KvsMigrationMessageLevel.INFO);
         toKvs.createTables(metadataByTableName);
         processMessage("setup complete", KvsMigrationMessageLevel.INFO);
-
-
-
     }
 
     public void migrate() {
@@ -152,8 +147,8 @@ public class KeyValueServiceMigrator {
     }
 
     private void internalMigrate() throws InterruptedException {
-        Set<TableReference> tables = KeyValueServiceMigratorUtils.getMigratableTableNames(fromKvs, unmigratableTables,
-                checkpointTable);
+        Set<TableReference> tables =
+                KeyValueServiceMigratorUtils.getMigratableTableNames(fromKvs, unmigratableTables, checkpointTable);
 
         GeneralTaskCheckpointer checkpointer =
                 new GeneralTaskCheckpointer(checkpointTable, toKvs, toTransactionManager);
@@ -178,25 +173,34 @@ public class KeyValueServiceMigrator {
         }
     }
 
-    private void migrateTables(Set<TableReference> tables,
-                               TransactionManager readTxManager,
-                               TransactionManager txManager,
-                               KeyValueService writeKvs,
-                               long migrationTimestamp,
-                               ExecutorService executor,
-                               GeneralTaskCheckpointer checkpointer) {
-        processMessage("Migrating tables at migrationTimestamp " + migrationTimestamp,
-                KvsMigrationMessageLevel.INFO);
+    private void migrateTables(
+            Set<TableReference> tables,
+            TransactionManager readTxManager,
+            TransactionManager txManager,
+            KeyValueService writeKvs,
+            long migrationTimestamp,
+            ExecutorService executor,
+            GeneralTaskCheckpointer checkpointer) {
+        processMessage("Migrating tables at migrationTimestamp " + migrationTimestamp, KvsMigrationMessageLevel.INFO);
         for (TableReference table : tables) {
-            KvsRangeMigrator rangeMigrator =
-                    new KvsRangeMigratorBuilder().srcTable(table).readBatchSize(getBatchSize(table)).readTxManager(
-                            readTxManager).txManager(txManager).writeKvs(writeKvs).migrationTimestamp(
-                            migrationTimestamp).checkpointer(checkpointer).build();
-            TableMigratorBuilder builder =
-                    new TableMigratorBuilder().srcTable(table).partitions(PARTITIONS).partitioners(
-                            getPartitioners(fromKvs, table)).readBatchSize(
-                            getBatchSize(table)).executor(executor).checkpointer(checkpointer).progress(
-                            taskProgress).rangeMigrator(rangeMigrator);
+            KvsRangeMigrator rangeMigrator = new KvsRangeMigratorBuilder()
+                    .srcTable(table)
+                    .readBatchSize(getBatchSize(table))
+                    .readTxManager(readTxManager)
+                    .txManager(txManager)
+                    .writeKvs(writeKvs)
+                    .migrationTimestamp(migrationTimestamp)
+                    .checkpointer(checkpointer)
+                    .build();
+            TableMigratorBuilder builder = new TableMigratorBuilder()
+                    .srcTable(table)
+                    .partitions(PARTITIONS)
+                    .partitioners(getPartitioners(fromKvs, table))
+                    .readBatchSize(getBatchSize(table))
+                    .executor(executor)
+                    .checkpointer(checkpointer)
+                    .progress(taskProgress)
+                    .rangeMigrator(rangeMigrator);
             TableMigrator migrator = builder.build();
             migrator.migrate();
         }

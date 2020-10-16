@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.Lists;
+import com.palantir.common.base.FunctionCheckedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -29,12 +31,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
-import com.palantir.common.base.FunctionCheckedException;
 
 public class ThreadPooledWrapperTest {
     private static final Waiter WAITER = new Waiter();
@@ -80,10 +78,12 @@ public class ThreadPooledWrapperTest {
         assertSingleClientCanExecuteMethods(new Semaphore(1), 1, 2);
     }
 
-    private void assertSingleClientCanExecuteMethods(Semaphore sharedThreadPool, int localThreadPoolSize, int numThreads)
+    private void assertSingleClientCanExecuteMethods(
+            Semaphore sharedThreadPool, int localThreadPoolSize, int numThreads)
             throws InterruptedException, ExecutionException {
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-        List<Future> futures = getFuturesForNewClient(numThreads, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
+        List<Future> futures =
+                getFuturesForNewClient(numThreads, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
 
         executorService.awaitTermination(1, TimeUnit.SECONDS);
 
@@ -118,8 +118,10 @@ public class ThreadPooledWrapperTest {
     private void assertTwoClientsCanExecuteMethods(Semaphore sharedThreadPool, int numThreads, int localThreadPoolSize)
             throws InterruptedException, ExecutionException {
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-        List<Future> futuresForClient1 = getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
-        List<Future> futuresForClient2 = getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 2L);
+        List<Future> futuresForClient1 =
+                getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
+        List<Future> futuresForClient2 =
+                getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 2L);
 
         executorService.awaitTermination(1, TimeUnit.SECONDS);
 
@@ -149,14 +151,21 @@ public class ThreadPooledWrapperTest {
         assertSuccessfulThreadsAreDone(Lists.newArrayList(future1, future2), 1);
     }
 
-    private Future getSingleFutureForNewClient(ExecutorService executorService, int localThreadPoolSize, Semaphore sharedThreadPool,
+    private Future getSingleFutureForNewClient(
+            ExecutorService executorService,
+            int localThreadPoolSize,
+            Semaphore sharedThreadPool,
             FunctionCheckedException<Waiter, ?, ?> function) {
         ThreadPooledWrapper<Waiter> client = new ThreadPooledWrapper<>(WAITER, localThreadPoolSize, sharedThreadPool);
         return executorService.submit(() -> client.applyWithPermit(function));
     }
 
-    private List<Future> getFuturesForNewClient(int numberOfFutures, ExecutorService executorService,
-            int localThreadPoolSize, Semaphore sharedThreadPool, FunctionCheckedException<Waiter, ?, ?> function) {
+    private List<Future> getFuturesForNewClient(
+            int numberOfFutures,
+            ExecutorService executorService,
+            int localThreadPoolSize,
+            Semaphore sharedThreadPool,
+            FunctionCheckedException<Waiter, ?, ?> function) {
         List<Future> futures = new ArrayList<>();
         ThreadPooledWrapper<Waiter> client = new ThreadPooledWrapper<>(WAITER, localThreadPoolSize, sharedThreadPool);
 
@@ -178,7 +187,8 @@ public class ThreadPooledWrapperTest {
                         future.get();
                         fail();
                     } catch (Exception e) {
-                        assertThat(e).isInstanceOf(ExecutionException.class)
+                        assertThat(e)
+                                .isInstanceOf(ExecutionException.class)
                                 .hasMessageContaining("TooManyRequestsException");
                         exceptions.getAndIncrement();
                     }

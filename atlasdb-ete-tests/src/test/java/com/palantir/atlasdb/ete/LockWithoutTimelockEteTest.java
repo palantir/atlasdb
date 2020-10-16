@@ -18,9 +18,8 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.lock.LockResource;
+import org.junit.Test;
 
 public class LockWithoutTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNodeWithExtendedTimeout(LockResource.class);

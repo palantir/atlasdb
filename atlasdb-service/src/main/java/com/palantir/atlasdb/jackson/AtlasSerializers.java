@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-import java.util.Set;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
@@ -33,6 +30,8 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.util.Pair;
+import java.io.IOException;
+import java.util.Set;
 
 public final class AtlasSerializers {
 
@@ -40,23 +39,20 @@ public final class AtlasSerializers {
         // cannot instantiate
     }
 
-    public static void serializeRow(JsonGenerator jgen,
-            NameMetadataDescription rowDescription,
-            byte[] row) throws IOException {
+    public static void serializeRow(JsonGenerator jgen, NameMetadataDescription rowDescription, byte[] row)
+            throws IOException {
         jgen.writeFieldName("row");
         serializeRowish(jgen, rowDescription, row);
     }
 
-    public static void serializeDynamicColumn(JsonGenerator jgen,
-            DynamicColumnDescription colDescription,
-            byte[] col) throws IOException {
+    public static void serializeDynamicColumn(JsonGenerator jgen, DynamicColumnDescription colDescription, byte[] col)
+            throws IOException {
         jgen.writeFieldName("col");
         serializeRowish(jgen, colDescription.getColumnNameDesc(), col);
     }
 
-    public static void serializeRowish(JsonGenerator jgen,
-            NameMetadataDescription rowDescription,
-            byte[] row) throws IOException {
+    public static void serializeRowish(JsonGenerator jgen, NameMetadataDescription rowDescription, byte[] row)
+            throws IOException {
         int offset = 0;
         byte[] flippedRow = null;
         jgen.writeStartObject();
@@ -77,16 +73,14 @@ public final class AtlasSerializers {
         jgen.writeEndObject();
     }
 
-    public static void serializeNamedCol(JsonGenerator jgen,
-            NamedColumnDescription description,
-            byte[] val) throws IOException {
+    public static void serializeNamedCol(JsonGenerator jgen, NamedColumnDescription description, byte[] val)
+            throws IOException {
         jgen.writeFieldName(description.getLongName());
         serializeVal(jgen, description.getValue(), val);
     }
 
-    public static void serializeCol(JsonGenerator jgen,
-            ColumnMetadataDescription colDescription,
-            byte[] col) throws IOException {
+    public static void serializeCol(JsonGenerator jgen, ColumnMetadataDescription colDescription, byte[] col)
+            throws IOException {
         if (colDescription.hasDynamicColumns()) {
             DynamicColumnDescription dynMetadata = colDescription.getDynamicColumn();
             NameMetadataDescription description = dynMetadata.getColumnNameDesc();
@@ -94,8 +88,9 @@ public final class AtlasSerializers {
         } else {
             Set<NamedColumnDescription> namedColumns = colDescription.getNamedColumns();
             for (NamedColumnDescription description : namedColumns) {
-                if (UnsignedBytes.lexicographicalComparator().compare(col,
-                        PtBytes.toCachedBytes(description.getShortName())) == 0) {
+                if (UnsignedBytes.lexicographicalComparator()
+                                .compare(col, PtBytes.toCachedBytes(description.getShortName()))
+                        == 0) {
                     jgen.writeString(description.getLongName());
                     return;
                 }
@@ -105,9 +100,8 @@ public final class AtlasSerializers {
         }
     }
 
-    public static void serializeVal(JsonGenerator jgen,
-            ColumnValueDescription description,
-            byte[] val) throws IOException {
+    public static void serializeVal(JsonGenerator jgen, ColumnValueDescription description, byte[] val)
+            throws IOException {
         switch (description.getFormat()) {
             case PERSISTABLE:
             case PERSISTER:
@@ -123,7 +117,8 @@ public final class AtlasSerializers {
                 jgen.writeRawValue(parsedValue);
                 break;
             default:
-                throw new EnumConstantNotPresentException(Format.class, description.getFormat().name());
+                throw new EnumConstantNotPresentException(
+                        Format.class, description.getFormat().name());
         }
     }
 }

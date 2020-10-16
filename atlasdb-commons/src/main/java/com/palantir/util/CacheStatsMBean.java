@@ -53,5 +53,4 @@ public interface CacheStatsMBean {
     public int getMaxCacheSize();
 
     public void setMaxCacheSize(int size);
-
 }

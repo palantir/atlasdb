@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableRangeMap;
@@ -33,6 +26,11 @@ import com.google.common.collect.TreeRangeSet;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 /**
  * A {@link TimestampPartitioningMap} keeps track of a mapping of timestamp ranges to values.
@@ -66,18 +64,14 @@ public abstract class TimestampPartitioningMap<T> {
     @Value.Lazy
     public RangeMap<Long, T> rangeMapView() {
         ImmutableRangeMap.Builder<Long, T> builder = new ImmutableRangeMap.Builder<>();
-        timestampMappings()
-                .forEach(rangeAndValue -> builder.put(rangeAndValue.longRange(), rangeAndValue.value()));
+        timestampMappings().forEach(rangeAndValue -> builder.put(rangeAndValue.longRange(), rangeAndValue.value()));
         return builder.build();
     }
 
     public static <T> TimestampPartitioningMap<T> of(RangeMap<Long, T> initialState) {
-        return ImmutableTimestampPartitioningMap.of(
-                initialState.asMapOfRanges()
-                        .entrySet()
-                        .stream()
-                        .map(entry -> RangeAndValue.of(entry.getKey(), entry.getValue()))
-                        .collect(Collectors.toSet()));
+        return ImmutableTimestampPartitioningMap.of(initialState.asMapOfRanges().entrySet().stream()
+                .map(entry -> RangeAndValue.of(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toSet()));
     }
 
     public T getValueForTimestamp(long timestamp) {
@@ -100,9 +94,7 @@ public abstract class TimestampPartitioningMap<T> {
      * @throws IllegalArgumentException if the lowerBoundForNewVersion parameter is not greater than all existing
      *         range boundaries.
      */
-    public TimestampPartitioningMap<T> copyInstallingNewValue(
-            long lowerBoundForNewVersion,
-            T newValue) {
+    public TimestampPartitioningMap<T> copyInstallingNewValue(long lowerBoundForNewVersion, T newValue) {
         RangeAndValue<T> latestEntry = getLatestEntry();
         validateProvidedTimestampBounds(lowerBoundForNewVersion, newValue, latestEntry);
 
@@ -112,11 +104,12 @@ public abstract class TimestampPartitioningMap<T> {
         return ImmutableTimestampPartitioningMap.of(builder.build());
     }
 
-    private static <T> void validateProvidedTimestampBounds(long lowerBoundForNewValue, T newValue,
-            RangeAndValue<T> latestEntry) {
+    private static <T> void validateProvidedTimestampBounds(
+            long lowerBoundForNewValue, T newValue, RangeAndValue<T> latestEntry) {
         if (lowerBoundForNewValue < latestEntry.longRange().lowerEndpoint()) {
-            throw new SafeIllegalArgumentException("Cannot install a new value at an earlier timestamp;"
-                    + " attempted to install version {} at {}, but the newest interval is at {}.",
+            throw new SafeIllegalArgumentException(
+                    "Cannot install a new value at an earlier timestamp;"
+                            + " attempted to install version {} at {}, but the newest interval is at {}.",
                     SafeArg.of("attemptedNewValue", newValue),
                     SafeArg.of("attemptedLowerBound", lowerBoundForNewValue),
                     SafeArg.of("existingInterval", latestEntry));
@@ -132,27 +125,23 @@ public abstract class TimestampPartitioningMap<T> {
         if (Objects.equals(latestRangeAndValue.value(), newValue)) {
             builder.put(latestRangeAndValue.longRange(), latestRangeAndValue.value());
         } else {
-            builder.put(Range.closedOpen(latestRangeAndValue.longRange().lowerEndpoint(), lowerBoundForNewVersion),
+            builder.put(
+                    Range.closedOpen(latestRangeAndValue.longRange().lowerEndpoint(), lowerBoundForNewVersion),
                     latestRangeAndValue.value());
             builder.put(Range.atLeast(lowerBoundForNewVersion), newValue);
         }
     }
 
     private void copyOldRangesFromPreviousMap(
-            RangeAndValue latestRangeAndValue,
-            @Output ImmutableRangeMap.Builder<Long, T> builder) {
-        timestampMappings()
-                .stream()
+            RangeAndValue latestRangeAndValue, @Output ImmutableRangeMap.Builder<Long, T> builder) {
+        timestampMappings().stream()
                 .filter(rangeAndValue -> !rangeAndValue.equals(latestRangeAndValue))
                 .forEach(rangeAndValue -> builder.put(rangeAndValue.longRange(), rangeAndValue.value()));
     }
 
     private RangeAndValue<T> getLatestEntry() {
-        return RangeAndValue.fromMapEntry(rangeMapView()
-                .asDescendingMapOfRanges()
-                .entrySet()
-                .iterator()
-                .next());
+        return RangeAndValue.fromMapEntry(
+                rangeMapView().asDescendingMapOfRanges().entrySet().iterator().next());
     }
 
     @Value.Check
@@ -161,17 +150,21 @@ public abstract class TimestampPartitioningMap<T> {
     }
 
     private static <T> void validateCoversPreciselyAllTimestamps(RangeMap<Long, T> timestampRangeMap) {
-        if (timestampRangeMap.asMapOfRanges().isEmpty() || !timestampRangeMap.span().equals(ALL_TIMESTAMPS)) {
-            throw new SafeIllegalArgumentException("Attempted to initialize a timestamp partitioning map"
-                    + " of {}; its span does not cover precisely all timestamps.",
+        if (timestampRangeMap.asMapOfRanges().isEmpty()
+                || !timestampRangeMap.span().equals(ALL_TIMESTAMPS)) {
+            throw new SafeIllegalArgumentException(
+                    "Attempted to initialize a timestamp partitioning map"
+                            + " of {}; its span does not cover precisely all timestamps.",
                     SafeArg.of("timestampToTransactionSchemaMap", timestampRangeMap));
         }
 
-        RangeSet<Long> rangesCovered = TreeRangeSet.create(timestampRangeMap.asMapOfRanges().keySet());
+        RangeSet<Long> rangesCovered =
+                TreeRangeSet.create(timestampRangeMap.asMapOfRanges().keySet());
         if (rangesCovered.asRanges().size() != 1) {
-            throw new SafeIllegalArgumentException("Attempted to initialize a timestamp partitioning map"
-                    + " of {}. While the span covers all timestamps, some are missing. The disconnected ranges"
-                    + " of the provided map were {}.",
+            throw new SafeIllegalArgumentException(
+                    "Attempted to initialize a timestamp partitioning map"
+                            + " of {}. While the span covers all timestamps, some are missing. The disconnected ranges"
+                            + " of the provided map were {}.",
                     SafeArg.of("timestampToTransactionSchemaMap", timestampRangeMap),
                     SafeArg.of("disconnectedRanges", rangesCovered));
         }
@@ -183,6 +176,7 @@ public abstract class TimestampPartitioningMap<T> {
     interface RangeAndValue<T> {
         @Value.Parameter
         Range<Long> longRange();
+
         @Value.Parameter
         T value();
 

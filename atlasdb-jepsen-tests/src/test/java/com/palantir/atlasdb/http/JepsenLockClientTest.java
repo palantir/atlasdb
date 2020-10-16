@@ -27,21 +27,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
-
-import com.google.common.collect.ImmutableSet;
 
 public class JepsenLockClientTest {
     private static final String LOCK_TOKEN = "foo";
 
     @SuppressWarnings("unchecked") // Answer concerning mock behaviour
-    private static final Answer<Object> REPLY_WITH_FIRST_TOKEN = invocation -> invocation.getArguments()[0];
+    private static final Answer<Object> REPLY_WITH_FIRST_TOKEN =
+            invocation -> invocation.getArguments()[0];
 
     @SuppressWarnings("unchecked") // Mock in a test
     private final JepsenLockClient<String> mockClient = mock(JepsenLockClient.class);
+
     private final StringLockClient client = new StringLockClient(mockClient);
 
     @Test

@@ -18,13 +18,12 @@ package com.palantir.atlasdb.jepsen.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
+import org.junit.Test;
 
 public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;
@@ -70,8 +69,7 @@ public class MonotonicCheckerTest {
         Event event3 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_0, "4");
         Event event4 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_1, "3");
 
-        CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
-                event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(MonotonicChecker::new, event1, event2, event3, event4);
     }
 
     @Test
@@ -79,16 +77,14 @@ public class MonotonicCheckerTest {
         Event event1 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_0, NOOP);
         Event event2 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_0, NOOP);
 
-        assertThatThrownBy(() -> runMonotonicChecker(event1, event2))
-                .isInstanceOf(NumberFormatException.class);
+        assertThatThrownBy(() -> runMonotonicChecker(event1, event2)).isInstanceOf(NumberFormatException.class);
     }
 
     @Test
     public void shouldParseLongValues() {
         Event event1 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_0, INT_MAX_PLUS_ONE);
 
-        CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
-                event1);
+        CheckerTestUtils.assertNoErrors(MonotonicChecker::new, event1);
     }
 
     private static CheckerResult runMonotonicChecker(Event... events) {

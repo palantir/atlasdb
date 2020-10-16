@@ -15,11 +15,6 @@
  */
 package com.palantir.paxos;
 
-import java.io.Serializable;
-import java.util.Arrays;
-
-import javax.annotation.Nullable;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
@@ -31,6 +26,9 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
+import java.io.Serializable;
+import java.util.Arrays;
+import javax.annotation.Nullable;
 
 @Immutable
 public class PaxosValue implements Persistable, Versionable, Serializable {
@@ -38,6 +36,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
 
     @Nullable
     final byte[] data;
+
     final String leaderUuid;
     final long seq;
 
@@ -50,9 +49,10 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
         }
     };
 
-    public PaxosValue(@JsonProperty("leaderUUID") String leaderUuid,
-                      @JsonProperty("round") long round,
-                      @JsonProperty("data") @Nullable byte[] data) {
+    public PaxosValue(
+            @JsonProperty("leaderUUID") String leaderUuid,
+            @JsonProperty("round") long round,
+            @JsonProperty("data") @Nullable byte[] data) {
         this.leaderUuid = Preconditions.checkNotNull(leaderUuid, "leaderUUID should never be null");
         this.seq = round;
         this.data = data;
@@ -117,8 +117,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
         final int prime = 31;
         int result = 1;
         result = prime * result + Arrays.hashCode(data);
-        result = prime * result
-                + ((leaderUuid == null) ? 0 : leaderUuid.hashCode());
+        result = prime * result + ((leaderUuid == null) ? 0 : leaderUuid.hashCode());
         result = prime * result + (int) (seq ^ (seq >>> 32));
         return result;
     }
@@ -159,5 +158,4 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
                 + ", seq=" + seq
                 + '}';
     }
-
 }

@@ -31,7 +31,9 @@ public class ThreadNamingCallable<T> implements Callable<T> {
     final Type type;
 
     public enum Type {
-        PREPEND, REPLACE, APPEND;
+        PREPEND,
+        REPLACE,
+        APPEND;
     }
 
     public static <T> Callable<T> wrapWithThreadName(Callable<T> delegate, String threadName) {
@@ -71,5 +73,4 @@ public class ThreadNamingCallable<T> implements Callable<T> {
                 throw new IllegalArgumentException("type not found: " + type);
         }
     }
-
 }

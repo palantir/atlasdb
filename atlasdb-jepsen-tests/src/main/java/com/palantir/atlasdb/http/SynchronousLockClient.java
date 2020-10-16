@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Sets;
@@ -32,6 +29,8 @@ import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.NamespaceAgnosticLockClientAdaptor;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
+import java.util.List;
+import java.util.Set;
 
 public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken> {
     private final LockService lockService;
@@ -43,8 +42,7 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
 
     public static JepsenLockClient<LockRefreshToken> create(MetricsManager metricsManager, List<String> hosts) {
         NamespaceAgnosticLockRpcClient namespaceAgnosticLockRpcClient = new NamespaceAgnosticLockClientAdaptor(
-                TimelockUtils.NAMESPACE,
-                TimelockUtils.createClient(metricsManager, hosts, LockRpcClient.class));
+                TimelockUtils.NAMESPACE, TimelockUtils.createClient(metricsManager, hosts, LockRpcClient.class));
         return new SynchronousLockClient(new RemoteLockServiceAdapter(namespaceAgnosticLockRpcClient));
     }
 

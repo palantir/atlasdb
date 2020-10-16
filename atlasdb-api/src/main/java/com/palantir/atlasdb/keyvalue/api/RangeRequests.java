@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public final class RangeRequests {
     private RangeRequests() {
@@ -147,7 +146,7 @@ public final class RangeRequests {
     }
 
     public static byte[] getFirstRowName() {
-        return new byte[] { 0 };
+        return new byte[] {0};
     }
 
     public static byte[] getLastRowName() {
@@ -161,7 +160,6 @@ public final class RangeRequests {
     public static boolean isFirstRowName(boolean reverse, @Nonnull byte[] name) {
         return reverse ? isLastRowName(name) : isFirstRowName(name);
     }
-
 
     public static boolean isFirstRowName(@Nonnull byte[] name) {
         return name.length == 1 && name[0] == 0;

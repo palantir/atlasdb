@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -28,13 +24,18 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import javax.annotation.Nullable;
 
 public class IndexMetadata {
     final String name;
     final String javaName;
     final ImmutableList<IndexComponent> rowComponents;
     final ImmutableList<IndexComponent> colComponents;
-    @Nullable final String columnNameToGetData;
+
+    @Nullable
+    final String columnNameToGetData;
+
     final CachePriority cachePriority;
     boolean rangeScanAllowed;
     int explicitCompressionBlockSizeKB;
@@ -47,7 +48,8 @@ public class IndexMetadata {
     private final int numberOfComponentsHashed;
     final TableMetadataPersistence.LogSafety nameLogSafety;
 
-    public static IndexMetadata createIndex(String name,
+    public static IndexMetadata createIndex(
+            String name,
             String javaName,
             Iterable<IndexComponent> rowComponents,
             CachePriority cachePriority,
@@ -82,7 +84,8 @@ public class IndexMetadata {
                 logSafety);
     }
 
-    public static IndexMetadata createDynamicIndex(String name,
+    public static IndexMetadata createDynamicIndex(
+            String name,
             String javaName,
             Iterable<IndexComponent> rowComponents,
             Iterable<IndexComponent> colComponents,
@@ -118,7 +121,8 @@ public class IndexMetadata {
                 logSafety);
     }
 
-    private IndexMetadata(String name,
+    private IndexMetadata(
+            String name,
             String javaName,
             Iterable<IndexComponent> rowComponents,
             Iterable<IndexComponent> colComponents,
@@ -152,9 +156,10 @@ public class IndexMetadata {
         this.nameLogSafety = logSafety;
     }
 
-    private static String getColNameToAccessFrom(Iterable<IndexComponent> rowComponents,
-                                                 Iterable<IndexComponent> colComponents,
-                                                 IndexCondition indexCondition) {
+    private static String getColNameToAccessFrom(
+            Iterable<IndexComponent> rowComponents,
+            Iterable<IndexComponent> colComponents,
+            IndexCondition indexCondition) {
 
         String colNameToAccessFrom = null;
         for (IndexComponent indexComponent : Iterables.concat(rowComponents, colComponents)) {
