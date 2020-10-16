@@ -362,10 +362,12 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
 
         assertThatThrownBy(() -> eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.empty()))
-                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Events do not enclose the required versions");
 
         assertThatThrownBy(() -> eventCache.getCommitUpdate(START_TS))
-                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("start or commit info not processed for start timestamp");
     }
 
     @Test
@@ -376,6 +378,15 @@ public class LockWatchEventCacheIntegrationTest {
         verifyStage();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
         verifyStage();
+    }
+
+    @Test
+    public void equalRangeDoesNotThrow() {
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS,
+                LockWatchStateUpdate.snapshot(LEADER, 10000L, ImmutableSet.of(DESCRIPTOR), ImmutableSet.of()));
+        assertThatCode(() ->
+                eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.of(LockWatchVersion.of(LEADER, 10000L))))
+                .doesNotThrowAnyException();
     }
 
     private void setupInitialState() {
