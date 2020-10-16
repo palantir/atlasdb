@@ -15,7 +15,7 @@ buildscript {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
         classpath 'com.netflix.nebula:gradle-info-plugin:7.1.4'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:17.2.1'
-        classpath 'com.palantir.baseline:gradle-baseline-java:1.8.2'
+        classpath 'com.palantir.baseline:gradle-baseline-java:3.43.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
@@ -36,8 +36,7 @@ plugins {
     id 'com.google.protobuf' version '0.8.10'
 }
 
-apply plugin: 'com.palantir.baseline-config'
-apply plugin: 'com.palantir.baseline-circleci'
+apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.git-version'
 
 apply from: 'gradle/versions.gradle'
