@@ -17,7 +17,7 @@ ext.libVersions =
     json_simple: '1.1.1',
     snappy: '1.1.1.7',
     dagger: '2.0.2',
-    immutables: '2.2.8',
+    immutables: '2.8.2',
     jackson: '2.9.5',
     snakeyaml: '1.12',
     cassandra_driver_core: '3.8.0',
