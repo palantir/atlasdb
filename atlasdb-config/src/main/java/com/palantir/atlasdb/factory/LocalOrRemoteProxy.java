@@ -62,7 +62,7 @@ final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
             try {
                 return method.invoke(delegate(), args);
             } catch (InvocationTargetException e) {
-                Throwable targetException = e.getTargetException();
+                Throwable targetException = e.getCause();
                 if (targetException instanceof NotCurrentLeaderException) {
                     Uninterruptibles.sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
                     continue;

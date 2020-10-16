@@ -87,7 +87,7 @@ public final class ResourceTypes {
                             try {
                                 return method.invoke(delegate, args);
                             } catch (InvocationTargetException e) {
-                                throw e.getTargetException();
+                                throw e.getCause();
                             }
                         }
                     };

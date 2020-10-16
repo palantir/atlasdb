@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -156,7 +156,7 @@ public class ReadTransactionShould {
         } catch (Exception e) {
             Assert.assertThat(e, is(instanceOf(exception)));
             Assert.assertThat(e.getMessage(), containsString(errorMessage));
-            verifyZeroInteractions(delegateTransaction);
+            verifyNoMoreInteractions(delegateTransaction);
         }
     }
 

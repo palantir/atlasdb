@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep.queue.clear;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -99,7 +99,7 @@ public final class DefaultTableClearerTests {
         createTable(SweepStrategy.THOROUGH);
         immutableTimestamp = 4;
         clearer.truncateTables(ImmutableSet.of(TABLE));
-        verifyZeroInteractions(watermarkStore);
+        verifyNoMoreInteractions(watermarkStore);
     }
 
     private static WriteInfo writeInfo(long timestamp) {

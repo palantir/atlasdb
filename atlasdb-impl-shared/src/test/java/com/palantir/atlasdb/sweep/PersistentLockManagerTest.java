@@ -28,7 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -145,7 +145,7 @@ public class PersistentLockManagerTest {
     public void releaseWithoutAcquireIsNoOp() {
         manager.releasePersistentLock();
 
-        verifyZeroInteractions(mockPls);
+        verifyNoMoreInteractions(mockPls);
     }
 
     @Test
@@ -262,7 +262,7 @@ public class PersistentLockManagerTest {
     public void shutdownWithoutAcquireIsNoOp() {
         manager.shutdown();
 
-        verifyZeroInteractions(mockPls);
+        verifyNoMoreInteractions(mockPls);
     }
 
     @Test(timeout = 10_000)

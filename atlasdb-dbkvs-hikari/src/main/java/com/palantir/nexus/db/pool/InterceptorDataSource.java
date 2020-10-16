@@ -45,7 +45,7 @@ public abstract class InterceptorDataSource {
                 try {
                     ret = method.invoke(delegate, args);
                 } catch (InvocationTargetException e) {
-                    throw e.getTargetException();
+                    throw e.getCause();
                 }
                 if (method.getName().equals("getConnection")) {
                     Connection conn = (Connection) ret;

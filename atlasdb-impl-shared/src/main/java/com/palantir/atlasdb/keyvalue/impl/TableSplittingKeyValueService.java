@@ -45,6 +45,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -377,8 +378,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return delegates.stream()
                 .map(kvs -> kvs.getClusterAvailabilityStatus())
-                .sorted()
-                .findFirst()
+                .min(Comparator.naturalOrder())
                 .orElse(ClusterAvailabilityStatus.ALL_AVAILABLE);
     }
 

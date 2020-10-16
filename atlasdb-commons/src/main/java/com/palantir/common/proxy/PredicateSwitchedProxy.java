@@ -50,10 +50,10 @@ public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
         try {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
-            if (e.getTargetException() instanceof NotInitializedException) {
+            if (e.getCause() instanceof NotInitializedException) {
                 log.warn("Resource is not initialized yet!");
             }
-            throw e.getTargetException();
+            throw e.getCause();
         }
     }
 }

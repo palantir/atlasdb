@@ -47,7 +47,7 @@ public final class InterceptorStatement<T extends Statement> extends AbstractInv
             try {
                 return method.invoke(delegate, args);
             } catch (InvocationTargetException e) {
-                throw e.getTargetException();
+                throw e.getCause();
             }
         } catch (SQLException e) {
             throw e;

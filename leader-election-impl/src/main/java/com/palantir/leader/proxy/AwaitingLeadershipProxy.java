@@ -263,18 +263,17 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private RuntimeException handleDelegateThrewException(
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
-        if (exception.getTargetException() instanceof ServiceNotAvailableException
-                || exception.getTargetException() instanceof NotCurrentLeaderException) {
+        if (exception.getCause() instanceof ServiceNotAvailableException
+                || exception.getCause() instanceof NotCurrentLeaderException) {
             markAsNotLeading(leadershipToken, exception.getCause());
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
-        if (exception.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
-            throw notCurrentLeaderException(
-                    "received an interrupt due to leader election.", exception.getTargetException());
+        if (exception.getCause() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
+            throw notCurrentLeaderException("received an interrupt due to leader election.", exception.getCause());
         }
-        Throwables.propagateIfPossible(exception.getTargetException(), Exception.class);
-        throw new RuntimeException(exception.getTargetException());
+        Throwables.propagateIfPossible(exception.getCause(), Exception.class);
+        throw new RuntimeException(exception.getCause());
     }
 
     @VisibleForTesting

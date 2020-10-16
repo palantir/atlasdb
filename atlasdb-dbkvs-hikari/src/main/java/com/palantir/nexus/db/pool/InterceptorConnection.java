@@ -51,7 +51,7 @@ public final class InterceptorConnection extends AbstractInvocationHandler imple
         try {
             ret = method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
-            throw e.getTargetException();
+            throw e.getCause();
         }
 
         Class<? extends Statement> wrapperClazz = INTERCEPT_METHODS.get(method.getName());
