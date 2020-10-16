@@ -83,7 +83,7 @@ interface ClientLogEvents {
 
     default void verifyReturnedEventsEnclosesTransactionVersions(Range<Long> versionRange, boolean offsetStartVersion) {
         // If we offset the start version, but the range is already [x..x], we throw when creating the range.
-        if (versionRange.lowerEndpoint() == versionRange.upperEndpoint() && offsetStartVersion) {
+        if (versionRange.lowerEndpoint().equals(versionRange.upperEndpoint()) && offsetStartVersion) {
             return;
         }
 
