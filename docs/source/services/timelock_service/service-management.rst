@@ -33,12 +33,11 @@ less than the fresh timestamp. This may be obtained through the fresh timestamp 
 
 .. code:: bash
 
-    curl -XPOST https://localhost:8421/timelock/api/tl/ts/old_namespace \
+    curl -iXPOST <protocol>://<host>:<port>/timelock/api/tl/ts/old_namespace \
       --data '{"numTimestamps": 1}' -H "Authorization: Bearer q" -H "Content-Type: application/json"
 
-A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you'll receive a
-``NotCurrentLeaderException`` and an HTTP 503. In this case, try the same request on other nodes until you find the
-leader.
+A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you'll receive
+either a HTTP 503 or 308. In this case, try the same request on other nodes until you find the leader.
 
 Note down the value of the timestamp returned. From here on out, we'll refer to this as ``TS``.
 
@@ -50,7 +49,7 @@ on TimeLock.
 
 .. code:: bash
 
-      curl -XPOST https://localhost:8421/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
+      curl -XPOST <protocol>://<host:<port>/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
 
 As before, this command needs to be run on the TimeLock leader.
 After performing the fast forward, it may be worth obtaining a fresh timestamp for the new namespace to confirm that
