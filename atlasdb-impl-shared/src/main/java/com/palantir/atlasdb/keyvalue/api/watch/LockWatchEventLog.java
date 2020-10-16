@@ -27,7 +27,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 final class LockWatchEventLog {
     private final ClientLockWatchSnapshot snapshot;

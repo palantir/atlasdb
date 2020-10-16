@@ -31,7 +31,6 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.logsafe.Preconditions;
 
 /**
  * This class should only be used through {@link ResilientLockWatchEventCache} as a proxy; failure to do so will result

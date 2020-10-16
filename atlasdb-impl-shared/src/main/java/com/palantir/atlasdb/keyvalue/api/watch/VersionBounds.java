@@ -22,7 +22,6 @@ import java.util.UUID;
 import org.immutables.value.Value;
 
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 interface VersionBounds {
