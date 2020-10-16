@@ -58,7 +58,11 @@ public final class ResilientLockWatchEventCacheTest {
 
     @Test
     public void testCanDelegateIsEnabled() {
+        when(defaultCache.isEnabled()).thenReturn(true);
+        when(fallbackCache.isEnabled()).thenReturn(false);
+
         assertThat(proxyCache.isEnabled()).isTrue();
+        verify(defaultCache).isEnabled();
 
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
@@ -66,6 +70,7 @@ public final class ResilientLockWatchEventCacheTest {
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
 
         assertThat(proxyCache.isEnabled()).isFalse();
+        verify(fallbackCache).isEnabled();
 
         verify(defaultCache).getCommitUpdate(0L);
         verifyNoMoreInteractions(defaultCache, fallbackCache);

@@ -57,6 +57,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
     public Optional<LockWatchVersion> lastKnownVersion() {
         return eventLog.getLatestKnownVersion();
     }

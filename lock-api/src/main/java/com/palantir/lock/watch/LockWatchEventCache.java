@@ -22,9 +22,7 @@ import java.util.Set;
 
 public interface LockWatchEventCache {
 
-    default boolean isEnabled() {
-        return true;
-    }
+    boolean isEnabled();
 
     /**
      * Returns the last known lock watch version for the cache.

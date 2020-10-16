@@ -34,15 +34,6 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ResilientLockWatchEventCache.class);
-    private static final Method IS_ENABLED;
-
-    static {
-        try {
-            IS_ENABLED = LockWatchEventCache.class.getMethod("isEnabled");
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Did someone rename this method?", e);
-        }
-    }
 
     static LockWatchEventCache newProxyInstance(
             LockWatchEventCache defaultCache,
@@ -72,11 +63,7 @@ final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
     protected synchronized Object handleInvocation(Object proxy, Method method, Object[] args)
             throws IllegalAccessException {
         try {
-            if (method.equals(IS_ENABLED)) {
-                return delegate != fallbackCache;
-            } else {
-                return method.invoke(delegate, args);
-            }
+            return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
             throw handleException(e);
         }
