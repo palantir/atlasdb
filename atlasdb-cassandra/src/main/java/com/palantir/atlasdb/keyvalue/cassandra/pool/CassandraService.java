@@ -109,20 +109,23 @@ public class CassandraService implements AutoCloseable {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
                     ImmutableRangeMap.builder();
 
+            Map<String, String> hostnamesByIp = getHostnamesByIp();
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
-            localHosts = refreshLocalHosts(tokenRanges);
+            localHosts = refreshLocalHosts(tokenRanges, hostnamesByIp);
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
-                InetSocketAddress onlyHost = getAddressForHost(onlyEndpoint);
+                InetSocketAddress onlyHost = getAddressForHost(hostnamesByIp.getOrDefault(onlyEndpoint, onlyEndpoint));
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
                 servers.add(onlyHost);
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
                     List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
-                            .map(this::getAddressForHostThrowUnchecked).collect(Collectors.toList());
+                            .map(host -> hostnamesByIp.getOrDefault(host, host))
+                            .map(this::getAddressForHostThrowUnchecked)
+                            .collect(Collectors.toList());
 
                     servers.addAll(hosts);
 
@@ -162,6 +165,10 @@ public class CassandraService implements AutoCloseable {
         return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(config));
     }
 
+    private Map<String, String> getHostnamesByIp() throws Exception {
+        return getRandomGoodHost().runWithPooledResource(CassandraUtils.getHostnameMappings());
+    }
+
     private String getSnitch() {
         try {
             return getRandomGoodHost().runWithPooledResource(
@@ -171,7 +178,7 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private Set<InetSocketAddress> refreshLocalHosts(List<TokenRange> tokenRanges) {
+    private Set<InetSocketAddress> refreshLocalHosts(List<TokenRange> tokenRanges, Map<String, String> hostnamesByIp) {
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
         if (!myLocation.isPresent()) {
@@ -183,6 +190,7 @@ public class CassandraService implements AutoCloseable {
                 .flatMap(Collection::stream)
                 .filter(details -> isHostLocal(details, myLocation.get()))
                 .map(EndpointDetails::getHost)
+                .map(host ->  hostnamesByIp.getOrDefault(host, host))
                 .map(this::getAddressForHostThrowUnchecked)
                 .collect(Collectors.toSet());
 
