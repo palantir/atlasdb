@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Read from palantir system table to try and use hostnames instead of
+    ips when creating connections to Cassandra
+  links:
+  - https://github.com/palantir/atlasdb/pull/5045
