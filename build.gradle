@@ -105,6 +105,45 @@ allprojects {
             it.substitute it.module('org.glassfish.web:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
         }
     }
+
+    plugins.withId('com.palantir.baseline-error-prone', {
+        tasks.withType(JavaCompile).configureEach {
+            options.errorprone.disableWarningsInGeneratedCode = true
+            options.errorprone.errorproneArgs.addAll([
+                '-XepDisableWarningsInGeneratedCode',
+                '-XepExcludedPaths:.*(generated).*',
+            ])
+
+            // temporarily relax constraints until we can fix all violations
+            Set<String> errorsToRelax = [
+                'CatchBlockLogException',
+                'CheckReturnValue',
+                'DangerousCompletableFutureUsage',
+                'DoNotMock',
+                'ExecutorSubmitRunnableFutureIgnored',
+                'ExtendsErrorOrThrowable',
+                'ImmutablesBuilderMissingInitialization',
+                'InputStreamSlowMultibyteRead',
+                'LogSafePreconditionsMessageFormat',
+                'PreconditionsConstantMessage',
+                'PreconditionsInvalidPlaceholder',
+                'PreferSafeLoggingPreconditions',
+                'ReadReturnValueIgnored',
+                'ReferenceEquality',
+                'ReturnValueIgnored',
+                'SafeLoggingExceptionMessageFormat',
+                'Slf4jLevelCheck',
+                'StreamOfEmpty',
+                'StrictUnusedVariable',
+                'ValidateConstantMessage',
+            ]
+            for (String checkName : errorsToRelax) {
+                options.errorprone.warn(checkName)
+            }
+
+            logger.info("Error-prone args: {}", options.errorprone.errorproneArgs)
+        }
+    })
 }
 
 subprojects {
