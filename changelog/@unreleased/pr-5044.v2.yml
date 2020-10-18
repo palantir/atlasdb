@@ -1,0 +1,34 @@
+type: improvement
+improvement:
+  description: |-
+    Upgrade gradle-baseline
+
+    **Goals (and why)**:
+    AtlasDB's gradle-baseline version is significantly out of date and is not being kept up-to-date by excavators. Similar to #5043 , this upgrades the gradle-baseline version used so that atlasdb is enforcing (most of) the checks baseline provides
+
+    **Implementation Description (bullets)**:
+
+    Steps below can be seen in individual commits on this PR
+
+    - Apply gradle-palantir-java-format plugin
+    - Bump gradle-baseline plugin version
+    - Update baseline configs
+    - Bump error-prone and immutables versions for compatibility with error-prone
+    - Apply automated gradle-baseline refactorings (`./gradlew compileJava compileTestJava -PrefasterApply -PerrorProneApply`)
+    - Reformat (`./gradlew format`)
+    - Temporarily relax some error-prone checks from error to warning (to be fixed iteratively in follow up PRs after merge)
+    - Workaround error-prone fatal error with lambda method reference check
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+    Local compilation
+
+    **Concerns (what feedback would you like?)**:
+    The reformat generated a ton of diffs, we may want to split that out separately, but I wanted to use the automated refactorings which also generate a bunch of diffs.
+
+    **Where should we start reviewing?**:
+    `build.gradle` has most of the changes and temporary exclusions.
+
+    **Priority (whenever / two weeks / yesterday)**:
+    Whenever
+  links:
+  - https://github.com/palantir/atlasdb/pull/5044
