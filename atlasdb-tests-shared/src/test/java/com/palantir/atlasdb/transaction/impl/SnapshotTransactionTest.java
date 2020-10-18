@@ -1375,7 +1375,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         timelockService.unlock(ImmutableSet.of(res.getLock()));
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
 
-        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> transaction.commit());
+        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(transaction::commit);
     }
 
     @Test
