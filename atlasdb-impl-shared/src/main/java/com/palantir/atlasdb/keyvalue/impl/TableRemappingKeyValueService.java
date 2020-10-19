@@ -47,7 +47,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -84,7 +83,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public void createTables(Map<TableReference, byte[]> tableReferencesToTableMetadata) {
         Map<TableReference, byte[]> tableNameToTableMetadata =
                 Maps.newHashMapWithExpectedSize(tableReferencesToTableMetadata.size());
-        for (Entry<TableReference, byte[]> tableEntry : tableReferencesToTableMetadata.entrySet()) {
+        for (Map.Entry<TableReference, byte[]> tableEntry : tableReferencesToTableMetadata.entrySet()) {
             tableNameToTableMetadata.put(tableMapper.addTable(tableEntry.getKey()), tableEntry.getValue());
         }
         delegate().createTables(tableNameToTableMetadata);
@@ -225,7 +224,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                 tableMapper.generateMapToFullTableNames(tableMetadata.keySet());
         Map<TableReference, byte[]> fullTableNameToBytes =
                 Maps.newHashMapWithExpectedSize(metadataNamesToFullTableNames.size());
-        for (Entry<TableReference, byte[]> entry : tableMetadata.entrySet()) {
+        for (Map.Entry<TableReference, byte[]> entry : tableMetadata.entrySet()) {
             fullTableNameToBytes.put(metadataNamesToFullTableNames.get(entry.getKey()), entry.getValue());
         }
         return fullTableNameToBytes;
@@ -337,7 +336,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public void putMetadataForTables(Map<TableReference, byte[]> tableReferencesToMetadata) {
         Map<TableReference, byte[]> tableNameToMetadata =
                 Maps.newHashMapWithExpectedSize(tableReferencesToMetadata.size());
-        for (Entry<TableReference, byte[]> tableEntry : tableReferencesToMetadata.entrySet()) {
+        for (Map.Entry<TableReference, byte[]> tableEntry : tableReferencesToMetadata.entrySet()) {
             try {
                 tableNameToMetadata.put(tableMapper.getMappedTableName(tableEntry.getKey()), tableEntry.getValue());
             } catch (TableMappingNotFoundException e) {

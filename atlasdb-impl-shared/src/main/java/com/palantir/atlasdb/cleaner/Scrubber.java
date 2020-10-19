@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -59,7 +58,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
@@ -331,10 +329,10 @@ public class Scrubber {
         }
 
         List<Future<Void>> scrubFutures = new ArrayList<>();
-        for (List<Entry<TableReference, Cell>> batch :
+        for (List<Map.Entry<TableReference, Cell>> batch :
                 Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
             final Multimap<TableReference, Cell> batchMultimap = HashMultimap.create();
-            for (Entry<TableReference, Cell> e : batch) {
+            for (Map.Entry<TableReference, Cell> e : batch) {
                 batchMultimap.put(e.getKey(), e.getValue());
             }
 
@@ -455,7 +453,7 @@ public class Scrubber {
             // queuing cells to scrub but before successfully committing
             long commitTimestamp = getCommitTimestampRollBackIfNecessary(scrubTimestamp, tableNameToCell);
             if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                for (Entry<TableReference, Collection<Cell>> cells :
+                for (Map.Entry<TableReference, Collection<Cell>> cells :
                         tableNameToCell.asMap().entrySet()) {
                     Multimap<Cell, Long> failedCells = failedWrites.get(cells.getKey());
                     if (failedCells == null) {
@@ -467,10 +465,10 @@ public class Scrubber {
                     }
                 }
             } else if (commitTimestamp < maxScrubTimestamp) {
-                for (final List<Entry<TableReference, Cell>> batch :
+                for (final List<Map.Entry<TableReference, Cell>> batch :
                         Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
                     final Multimap<TableReference, Cell> batchMultimap = HashMultimap.create();
-                    for (Entry<TableReference, Cell> e : batch) {
+                    for (Map.Entry<TableReference, Cell> e : batch) {
                         batchMultimap.put(e.getKey(), e.getValue());
                     }
                     scrubFutures.add(exec.submit(() -> {
@@ -524,7 +522,7 @@ public class Scrubber {
             Transaction.TransactionType transactionType) {
         Map<TableReference, Multimap<Cell, Long>> allCellsToMarkScrubbed =
                 Maps.newHashMapWithExpectedSize(tableNameToCells.keySet().size());
-        for (Entry<TableReference, Collection<Cell>> entry :
+        for (Map.Entry<TableReference, Collection<Cell>> entry :
                 tableNameToCells.asMap().entrySet()) {
             TableReference tableRef = entry.getKey();
             log.debug(
@@ -566,8 +564,9 @@ public class Scrubber {
                 follower.run(txManager, tableRef, cellToTimestamp.keySet(), transactionType);
             }
             keyValueService.addGarbageCollectionSentinelValues(tableRef, cellToTimestamp.keySet());
-            for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
-                Builder<Cell, Long> builder = ImmutableMultimap.builder();
+            for (List<Map.Entry<Cell, Long>> batch :
+                    Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
+                ImmutableMultimap.Builder<Cell, Long> builder = ImmutableMultimap.builder();
                 batch.stream().forEach(builder::put);
                 keyValueService.delete(tableRef, builder.build());
                 lazyWriteMetric(AtlasDbMetricNames.DELETED_CELLS, batch.size());

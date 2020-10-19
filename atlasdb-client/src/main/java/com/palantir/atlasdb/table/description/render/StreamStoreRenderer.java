@@ -70,7 +70,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -1117,7 +1116,7 @@ public class StreamStoreRenderer {
         Collection.class,
         Optional.class,
         Map.class,
-        Entry.class,
+        Map.Entry.class,
         Set.class,
         TimeUnit.class,
         BiConsumer.class,

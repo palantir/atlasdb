@@ -32,7 +32,6 @@ import com.palantir.common.collect.MapEntries;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -244,7 +243,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         long start = System.currentTimeMillis();
         super.multiPut(valuesByTable, timestamp);
         long finish = System.currentTimeMillis();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
             TableReference tableRef = entry.getKey();
             Map<Cell, byte[]> values = entry.getValue();
             TableStats s = getTableStats(tableRef);
@@ -271,7 +270,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
 
         // Only update stats after put was successful.
         s.totalPutCells.addAndGet(values.size());
-        for (Entry<Cell, Value> e : values.entries()) {
+        for (Map.Entry<Cell, Value> e : values.entries()) {
             incrementPutBytes(s, e.getKey(), e.getValue().getContents());
         }
     }
@@ -330,7 +329,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         writer.printf(
                 headerFmt, "table", "get_millis", "put_millis", "get_bytes", "put_bytes", "get_calls", "put_calls");
 
-        for (Entry<TableReference, TableStats> statsEntry : sortedStats.entrySet()) {
+        for (Map.Entry<TableReference, TableStats> statsEntry : sortedStats.entrySet()) {
             TableStats s = statsEntry.getValue();
             writer.printf(
                     rowFmt,

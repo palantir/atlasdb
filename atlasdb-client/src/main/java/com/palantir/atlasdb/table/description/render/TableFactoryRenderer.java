@@ -37,7 +37,6 @@ import com.squareup.javapoet.WildcardTypeName;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -74,7 +73,7 @@ public final class TableFactoryRenderer {
             Map<String, TableDefinition> definitions) {
 
         SortedMap<String, TableDefinition> sortedDefinitions = new TreeMap<>();
-        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : definitions.entrySet()) {
             sortedDefinitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
         }
         ClassName tableFactoryType = ClassName.get(packageName, schemaName + "TableFactory");
@@ -271,7 +270,7 @@ public final class TableFactoryRenderer {
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT, Modifier.STATIC)
                 .addSuperinterface(sharedTriggersInterfaceType);
 
-        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : definitions.entrySet()) {
             String name = entry.getKey();
             TableDefinition tableDefinition = entry.getValue();
             String tableName = getTableName(name);

@@ -38,7 +38,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -84,7 +83,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         if (tableRefToTableMetadata.size() == 1) {
-            Entry<TableReference, byte[]> element = Iterables.getOnlyElement(tableRefToTableMetadata.entrySet());
+            Map.Entry<TableReference, byte[]> element = Iterables.getOnlyElement(tableRefToTableMetadata.entrySet());
             createTable(element.getKey(), element.getValue());
             return;
         }
@@ -191,7 +190,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         if (valuesByTable.size() == 1) {
-            Entry<TableReference, ? extends Map<Cell, byte[]>> entry =
+            Map.Entry<TableReference, ? extends Map<Cell, byte[]>> entry =
                     Iterables.getOnlyElement(valuesByTable.entrySet());
             put(entry.getKey(), entry.getValue(), timestamp);
             return;
@@ -223,7 +222,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         if (tableRefToMetadata.size() == 1) {
-            Entry<TableReference, byte[]> entry = Iterables.getOnlyElement(tableRefToMetadata.entrySet());
+            Map.Entry<TableReference, byte[]> entry = Iterables.getOnlyElement(tableRefToMetadata.entrySet());
             putMetadataForTable(entry.getKey(), entry.getValue());
             return;
         }

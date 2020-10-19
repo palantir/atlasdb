@@ -100,7 +100,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -1940,7 +1939,7 @@ public class TableRenderer {
         AtlasDbNamedMutableTable.class,
         ColumnSelection.class,
         Joiner.class,
-        Entry.class,
+        Map.Entry.class,
         Iterator.class,
         Iterables.class,
         Stream.class,

@@ -43,7 +43,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -111,7 +110,7 @@ public final class CassandraKeyValueServices {
         } while (System.currentTimeMillis() < start + schemaMutationTimeMillis);
 
         StringBuilder schemaVersions = new StringBuilder();
-        for (Entry<String, List<String>> version : versions.entrySet()) {
+        for (Map.Entry<String, List<String>> version : versions.entrySet()) {
             addNodeInformation(
                     schemaVersions, String.format("%nAt schema version %s:", version.getKey()), version.getValue());
         }
@@ -409,7 +408,7 @@ public final class CassandraKeyValueServices {
 
     private static void extractTimestampResults(
             @Output Multimap<Cell, Long> ret, Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
-        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
+        for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
             for (ColumnOrSuperColumn col : result.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(col.column);

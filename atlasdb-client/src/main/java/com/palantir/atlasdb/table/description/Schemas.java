@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,7 +43,7 @@ public final class Schemas {
             KeyValueService kvs, Map<TableReference, IndexDefinition> fullIndexNameToDefinition) {
         Map<TableReference, byte[]> fullIndexNameToMetadata =
                 Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
-        for (Entry<TableReference, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
+        for (Map.Entry<TableReference, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
             fullIndexNameToMetadata.put(
                     indexEntry.getKey(),
                     indexEntry
@@ -67,7 +66,7 @@ public final class Schemas {
 
     public static void createTables(KeyValueService kvs, Map<TableReference, TableDefinition> tableRefToDefinition) {
         Map<TableReference, byte[]> tableRefToMetadata = Maps.newHashMapWithExpectedSize(tableRefToDefinition.size());
-        for (Entry<TableReference, TableDefinition> tableEntry : tableRefToDefinition.entrySet()) {
+        for (Map.Entry<TableReference, TableDefinition> tableEntry : tableRefToDefinition.entrySet()) {
             tableRefToMetadata.put(
                     tableEntry.getKey(), tableEntry.getValue().toTableMetadata().persistToBytes());
         }

@@ -47,7 +47,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -233,7 +232,7 @@ public class Schema {
      */
     public void validate() {
         // Try converting to metadata to see if any validation logic throws.
-        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             try {
                 entry.getValue().validate();
             } catch (Exception e) {
@@ -242,7 +241,7 @@ public class Schema {
             }
         }
 
-        for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
+        for (Map.Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
             IndexDefinition def = indexEntry.getValue();
             try {
                 def.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
@@ -253,7 +252,7 @@ public class Schema {
             }
         }
 
-        for (Entry<String, String> e : indexesByTable.entries()) {
+        for (Map.Entry<String, String> e : indexesByTable.entries()) {
             TableMetadata tableMetadata = tableDefinitions.get(e.getKey()).toTableMetadata();
 
             Collection<String> rowNames = Collections2.transform(
@@ -290,12 +289,12 @@ public class Schema {
 
     public Map<TableReference, TableDefinition> getTableDefinitions() {
         return tableDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Map.Entry::getValue));
     }
 
     public Map<TableReference, IndexDefinition> getIndexDefinitions() {
         return indexDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Map.Entry::getValue));
     }
 
     public Namespace getNamespace() {
@@ -313,7 +312,7 @@ public class Schema {
 
         TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
         TableRendererV2 tableRendererV2 = new TableRendererV2(packageName, namespace);
-        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
             ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(

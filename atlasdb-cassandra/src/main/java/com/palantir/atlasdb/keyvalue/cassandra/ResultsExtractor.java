@@ -32,7 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
@@ -48,7 +47,7 @@ public abstract class ResultsExtractor<T> {
     public final byte[] extractResults(
             Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey, long startTs, ColumnSelection selection) {
         byte[] maxRow = null;
-        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
+        for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
             maxRow = updatedMaxRow(maxRow, row);
 

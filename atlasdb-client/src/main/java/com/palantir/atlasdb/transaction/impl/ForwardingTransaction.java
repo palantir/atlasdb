@@ -33,7 +33,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -68,7 +67,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }

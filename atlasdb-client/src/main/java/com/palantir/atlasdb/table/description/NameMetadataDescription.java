@@ -25,7 +25,6 @@ import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.base.Throwables;
@@ -250,7 +249,8 @@ public class NameMetadataDescription {
     }
 
     public TableMetadataPersistence.NameMetadataDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.NameMetadataDescription.newBuilder();
+        TableMetadataPersistence.NameMetadataDescription.Builder builder =
+                TableMetadataPersistence.NameMetadataDescription.newBuilder();
         for (NameComponentDescription part : rowParts) {
             builder.addNameParts(part.persistToProto());
         }

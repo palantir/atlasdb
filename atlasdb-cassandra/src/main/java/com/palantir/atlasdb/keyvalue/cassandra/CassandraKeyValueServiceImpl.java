@@ -22,7 +22,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -116,7 +115,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -592,7 +590,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
         List<Callable<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
@@ -776,7 +774,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             SetMultimap<Long, Cell> cellsByTs =
                     Multimaps.invertFrom(Multimaps.forMap(timestampByCell), HashMultimap.create());
-            Builder<Cell, Value> builder = ImmutableMap.builder();
+            ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
                 cellLoader.loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
@@ -817,7 +815,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = new ArrayList<>(rowsByHost.size());
@@ -854,7 +852,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Map<byte[], Map<Cell, Value>> results = firstPage.getResults();
             Map<byte[], Column> rowsToLastCompositeColumns = firstPage.getRowsToLastCompositeColumns();
             Map<byte[], byte[]> incompleteRowsToNextColumns = new HashMap<>();
-            for (Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
+            for (Map.Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
                 byte[] row = e.getKey();
                 byte[] col =
                         CassandraKeyValueServices.decomposeName(e.getValue()).getLhSide();
@@ -873,7 +871,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rows.size());
             for (byte[] row : rowsToLastCompositeColumns.keySet()) {
-                Iterator<Entry<Cell, Value>> resultIterator;
+                Iterator<Map.Entry<Cell, Value>> resultIterator;
                 Map<Cell, Value> result = results.get(row);
                 if (result != null) {
                     resultIterator = result.entrySet().iterator();
@@ -944,7 +942,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private Iterator<Entry<Cell, Value>> getRowColumnRange(
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
             InetSocketAddress host,
             TableReference tableRef,
             byte[] row,
@@ -952,28 +950,29 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long startTs) {
         return ClosableIterators.wrap(
                 new AbstractPagingIterable<
-                        Entry<Cell, Value>, TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
+                        Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
                     @Override
-                    protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
+                    protected TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> getFirstPage()
+                            throws Exception {
                         return page(batchColumnRangeSelection.getStartCol());
                     }
 
                     @Override
-                    protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getNextPage(
-                            TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> previous) throws Exception {
+                    protected TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> getNextPage(
+                            TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> previous) throws Exception {
                         return page(previous.getTokenForNextPage());
                     }
 
-                    TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> page(final byte[] startCol)
+                    TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(final byte[] startCol)
                             throws Exception {
                         return clientPool.runWithRetryOnHost(
                                 host,
                                 new FunctionCheckedException<
                                         CassandraClient,
-                                        TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>,
+                                        TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>,
                                         Exception>() {
                                     @Override
-                                    public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(
+                                    public TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> apply(
                                             CassandraClient client) throws Exception {
                                         Range range = createColumnRange(
                                                 startCol, batchColumnRangeSelection.getEndCol(), startTs);
@@ -1850,7 +1849,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return values.entrySet().stream()
                 .collect(Collectors.groupingBy(
                         entry -> ByteString.of(entry.getKey().getRowName()),
-                        Collectors.toMap(Entry::getKey, Entry::getValue)));
+                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
     private static CASResult putUnlessExistsSinglePartition(
@@ -1866,7 +1865,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 WRITE_CONSISTENCY);
     }
 
-    private static Column prepareColumnForPutUnlessExists(Entry<Cell, byte[]> insertion) {
+    private static Column prepareColumnForPutUnlessExists(Map.Entry<Cell, byte[]> insertion) {
         return new Column(CassandraKeyValueServices.makeCompositeBuffer(
                         insertion.getKey().getColumnName(),
                         // Atlas timestamp

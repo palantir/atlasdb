@@ -42,7 +42,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
@@ -122,14 +121,14 @@ public final class Cells {
      * The Collection provided to this function has to be sorted and strictly increasing.
      */
     public static <T> Iterator<RowResult<T>> createRowView(final Collection<Map.Entry<Cell, T>> sortedIterator) {
-        final PeekingIterator<Entry<Cell, T>> it = Iterators.peekingIterator(sortedIterator.iterator());
+        final PeekingIterator<Map.Entry<Cell, T>> it = Iterators.peekingIterator(sortedIterator.iterator());
         Iterator<Map.Entry<byte[], NavigableMap<byte[], T>>> resultIt =
                 new AbstractIterator<Map.Entry<byte[], NavigableMap<byte[], T>>>() {
                     byte[] row = null;
                     NavigableMap<byte[], T> map = null;
 
                     @Override
-                    protected Entry<byte[], NavigableMap<byte[], T>> computeNext() {
+                    protected Map.Entry<byte[], NavigableMap<byte[], T>> computeNext() {
                         if (!it.hasNext()) {
                             return endOfData();
                         }
@@ -137,7 +136,7 @@ public final class Cells {
                         ImmutableSortedMap.Builder<byte[], T> mapBuilder =
                                 ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
                         while (it.hasNext()) {
-                            Entry<Cell, T> peek = it.peek();
+                            Map.Entry<Cell, T> peek = it.peek();
                             if (!Arrays.equals(peek.getKey().getRowName(), row)) {
                                 break;
                             }

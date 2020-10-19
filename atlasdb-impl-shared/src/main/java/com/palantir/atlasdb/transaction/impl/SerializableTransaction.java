@@ -81,7 +81,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -192,10 +191,10 @@ public class SerializableTransaction extends SnapshotTransaction {
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
-        return Maps.transformEntries(ret, (row, visitable) -> new BatchingVisitable<Entry<Cell, byte[]>>() {
+        return Maps.transformEntries(ret, (row, visitable) -> new BatchingVisitable<Map.Entry<Cell, byte[]>>() {
             @Override
             public <K extends Exception> boolean batchAccept(
-                    int batchSize, AbortingVisitor<? super List<Entry<Cell, byte[]>>, K> visitor) throws K {
+                    int batchSize, AbortingVisitor<? super List<Map.Entry<Cell, byte[]>>, K> visitor) throws K {
                 boolean hitEnd = visitable.batchAccept(batchSize, items -> {
                     if (items.size() < batchSize) {
                         reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
@@ -212,7 +211,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     @Override
-    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         if (isSerializableTable(tableRef)) {
             throw new UnsupportedOperationException("This method does not support serializable conflict handling");
@@ -223,10 +222,10 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], Iterator<Entry<Cell, byte[]>>> ret =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
-        return Maps.transformEntries(ret, (row, iterator) -> new Iterator<Entry<Cell, byte[]>>() {
-            Entry<Cell, byte[]> next = null;
+        return Maps.transformEntries(ret, (row, iterator) -> new Iterator<Map.Entry<Cell, byte[]>>() {
+            Map.Entry<Cell, byte[]> next = null;
 
             @Override
             public boolean hasNext() {
@@ -245,11 +244,11 @@ public class SerializableTransaction extends SnapshotTransaction {
             }
 
             @Override
-            public Entry<Cell, byte[]> next() {
+            public Map.Entry<Cell, byte[]> next() {
                 if (!hasNext()) {
                     throw new NoSuchElementException();
                 }
-                Entry<Cell, byte[]> result = next;
+                Map.Entry<Cell, byte[]> result = next;
                 next = null;
                 return result;
             }
@@ -414,7 +413,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void markRowColumnRangeRead(
-            TableReference table, byte[] row, BatchColumnRangeSelection range, List<Entry<Cell, byte[]>> result) {
+            TableReference table, byte[] row, BatchColumnRangeSelection range, List<Map.Entry<Cell, byte[]>> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -566,7 +565,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void verifyCells(Transaction readOnlyTransaction) {
-        for (Entry<TableReference, Set<Cell>> tableAndCellsEntry : cellsRead.entrySet()) {
+        for (Map.Entry<TableReference, Set<Cell>> tableAndCellsEntry : cellsRead.entrySet()) {
             TableReference table = tableAndCellsEntry.getKey();
             Set<Cell> cells = tableAndCellsEntry.getValue();
 
@@ -594,11 +593,12 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void verifyRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
-        for (Entry<TableReference, ConcurrentMap<RangeRequest, byte[]>> tableAndRange : rangeEndByTable.entrySet()) {
+        for (Map.Entry<TableReference, ConcurrentMap<RangeRequest, byte[]>> tableAndRange :
+                rangeEndByTable.entrySet()) {
             TableReference table = tableAndRange.getKey();
             Map<RangeRequest, byte[]> rangeEnds = tableAndRange.getValue();
 
-            for (Entry<RangeRequest, byte[]> rangeAndRangeEndEntry : rangeEnds.entrySet()) {
+            for (Map.Entry<RangeRequest, byte[]> rangeAndRangeEndEntry : rangeEnds.entrySet()) {
                 RangeRequest range = rangeAndRangeEndEntry.getKey();
                 byte[] rangeEnd = rangeAndRangeEndEntry.getValue();
 
@@ -645,18 +645,18 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void verifyColumnRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
-        for (Entry<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
+        for (Map.Entry<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
                 tableAndColumnRangeEnds : columnRangeEndsByTable.entrySet()) {
 
             Map<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds =
                     tableAndColumnRangeEnds.getValue();
 
             Multimap<BatchColumnRangeSelection, byte[]> rangesToRows = LinkedListMultimap.create();
-            for (Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
+            for (Map.Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
                 byte[] row = rowAndRangeEnds.getKey().array();
                 Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
-                for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
+                for (Map.Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
                     byte[] rangeEnd = e.getValue();
                     rangesToRows.put(nextLexicographicalRangeEnd(range, rangeEnd), row);
@@ -668,9 +668,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                 Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result =
                         readOnlyTransaction.getRowsColumnRange(table, rows, columnRange);
 
-                for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> cellValuesForRow : result.entrySet()) {
+                for (Map.Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> cellValuesForRow :
+                        result.entrySet()) {
                     byte[] row = cellValuesForRow.getKey();
-                    BatchingVisitableView<Entry<Cell, byte[]>> visitable =
+                    BatchingVisitableView<Map.Entry<Cell, byte[]>> visitable =
                             BatchingVisitableView.of(cellValuesForRow.getValue());
                     NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
                             getReadsInColumnRangeSkippingWrites(table, row, columnRange), ByteBuffer::wrap);
@@ -697,15 +698,15 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
-            Iterable<Entry<Cell, byte[]>> cells, TableReference table) {
+    private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
+            Iterable<Map.Entry<Cell, byte[]>> cells, TableReference table) {
         return filterWritesFromCells(cells, writesByTable.get(table));
     }
 
-    private static List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
-            Iterable<Entry<Cell, byte[]>> cells, @Nullable Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = new ArrayList<>();
-        for (Entry<Cell, byte[]> cell : cells) {
+    private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
+            Iterable<Map.Entry<Cell, byte[]>> cells, @Nullable Map<Cell, byte[]> writes) {
+        List<Map.Entry<Cell, ByteBuffer>> cellsWithoutWrites = new ArrayList<>();
+        for (Map.Entry<Cell, byte[]> cell : cells) {
             // NB: We filter our write set out here because our normal SI
             // checking handles this case to ensure the value hasn't changed.
             if (writes == null || !writes.containsKey(cell.getKey())) {
@@ -715,9 +716,9 @@ public class SerializableTransaction extends SnapshotTransaction {
         return cellsWithoutWrites;
     }
 
-    private static List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
+    private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromRows(
             Iterable<RowResult<byte[]>> rows, @Nullable Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = new ArrayList<>();
+        List<Map.Entry<Cell, ByteBuffer>> rowsWithoutWrites = new ArrayList<>();
         for (RowResult<byte[]> row : rows) {
             rowsWithoutWrites.addAll(filterWritesFromCells(row.getCells(), writes));
         }

@@ -41,7 +41,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -117,9 +116,9 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
                 values.put(Cell.create(cell.getRowName(), col), EMPTY_CONTENTS);
             }
         }
-        for (List<Entry<Cell, byte[]>> batch : Iterables.partition(values.entrySet(), batchSize)) {
+        for (List<Map.Entry<Cell, byte[]>> batch : Iterables.partition(values.entrySet(), batchSize)) {
             Map<Cell, byte[]> batchMap = new HashMap<>();
-            for (Entry<Cell, byte[]> e : batch) {
+            for (Map.Entry<Cell, byte[]> e : batch) {
                 batchMap.put(e.getKey(), e.getValue());
             }
             keyValueService.put(AtlasDbConstants.SCRUB_TABLE, batchMap, scrubTimestamp);
@@ -129,10 +128,10 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     @Override
     public void markCellsAsScrubbed(Map<TableReference, Multimap<Cell, Long>> cellToScrubTimestamp, int batchSize) {
         Multimap<Cell, Long> batch = ArrayListMultimap.create();
-        for (Entry<TableReference, Multimap<Cell, Long>> tableEntry : cellToScrubTimestamp.entrySet()) {
+        for (Map.Entry<TableReference, Multimap<Cell, Long>> tableEntry : cellToScrubTimestamp.entrySet()) {
             byte[] tableBytes =
                     EncodingUtils.encodeVarString(tableEntry.getKey().getQualifiedName());
-            for (Entry<Cell, Collection<Long>> cellEntry :
+            for (Map.Entry<Cell, Collection<Long>> cellEntry :
                     tableEntry.getValue().asMap().entrySet()) {
                 byte[] col = EncodingUtils.add(tableBytes, cellEntry.getKey().getColumnName());
                 Cell cell = Cell.create(cellEntry.getKey().getRowName(), col);
@@ -187,7 +186,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
         SortedMap<Long, Multimap<TableReference, Cell>> scrubTimestampToTableNameToCell = new TreeMap<>();
         for (RowResult<Value> rowResult : input) {
             byte[] row = rowResult.getRowName();
-            for (Entry<byte[], Value> entry : rowResult.getColumns().entrySet()) {
+            for (Map.Entry<byte[], Value> entry : rowResult.getColumns().entrySet()) {
                 byte[] fullCol = entry.getKey();
                 String table = EncodingUtils.decodeVarString(fullCol);
                 byte[] col = Arrays.copyOfRange(fullCol, EncodingUtils.sizeOfVarString(table), fullCol.length);

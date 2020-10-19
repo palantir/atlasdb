@@ -38,7 +38,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -84,7 +83,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
 
             if (rr.isEmpty()) {
                 Map<Cell, byte[]> values = new HashMap<>();
-                for (Entry<Long, byte[]> e : startById.entrySet()) {
+                for (Map.Entry<Long, byte[]> e : startById.entrySet()) {
                     Cell cell = getCell(extraId, e.getKey());
                     byte[] value = toDb(e.getValue(), true);
                     values.put(cell, value);

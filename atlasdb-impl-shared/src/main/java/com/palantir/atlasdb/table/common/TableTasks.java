@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
@@ -143,7 +142,7 @@ public final class TableTasks {
         boolean isEmpty = transaction.getRange(srcTable, request).batchAccept(range.getBatchSize(), batch -> {
             Map<Cell, byte[]> entries = Maps.newHashMapWithExpectedSize(batch.size());
             for (RowResult<byte[]> result : batch) {
-                for (Entry<Cell, byte[]> entry : result.getCells()) {
+                for (Map.Entry<Cell, byte[]> entry : result.getCells()) {
                     entries.put(entry.getKey(), entry.getValue());
                 }
             }

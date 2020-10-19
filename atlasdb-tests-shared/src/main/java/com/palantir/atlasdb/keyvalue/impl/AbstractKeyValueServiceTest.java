@@ -77,7 +77,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
@@ -191,15 +190,15 @@ public abstract class AbstractKeyValueServiceTest {
     private Map<Cell, Value> getValuesForRow(Map<byte[], RowColumnRangeIterator> values, byte[] row, int number) {
         Map<Cell, Value> results = new HashMap<>();
 
-        Iterator<Entry<Cell, Value>> it = values.entrySet().stream()
+        Iterator<Map.Entry<Cell, Value>> it = values.entrySet().stream()
                 .filter(entry -> Arrays.equals(row, entry.getKey()))
                 .findFirst()
-                .map(Entry::getValue)
+                .map(Map.Entry::getValue)
                 .map(value -> Iterators.limit(value, number))
                 .orElseGet(Collections::emptyIterator);
 
         while (it.hasNext()) {
-            Entry<Cell, Value> result = it.next();
+            Map.Entry<Cell, Value> result = it.next();
             results.put(result.getKey(), result.getValue());
         }
         return results;
@@ -1420,7 +1419,7 @@ public abstract class AbstractKeyValueServiceTest {
         assertFalse(rangeWithHistory.hasNext());
         rangeWithHistory.close();
         assertEquals(1, Iterables.size(row.getCells()));
-        Entry<Cell, Set<Long>> cell0 = row.getCells().iterator().next();
+        Map.Entry<Cell, Set<Long>> cell0 = row.getCells().iterator().next();
         assertEquals(2, cell0.getValue().size());
         assertTrue(cell0.getValue().contains(TEST_TIMESTAMP));
         assertTrue(cell0.getValue().contains(TEST_TIMESTAMP + 1));

@@ -50,7 +50,6 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
@@ -114,7 +113,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     private Map<KeyValueService, Map<TableReference, byte[]>> groupByDelegate(
             Map<TableReference, byte[]> tableRefsToTableMetadata) {
         Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata = new HashMap<>();
-        for (Entry<TableReference, byte[]> tableEntry : tableRefsToTableMetadata.entrySet()) {
+        for (Map.Entry<TableReference, byte[]> tableEntry : tableRefsToTableMetadata.entrySet()) {
             TableReference tableRef = tableEntry.getKey();
             byte[] tableMetadata = tableEntry.getValue();
 
@@ -168,7 +167,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
             }
         }
 
-        for (Entry<KeyValueService, Set<TableReference>> kvsEntry : tablesByKvs.entrySet()) {
+        for (Map.Entry<KeyValueService, Set<TableReference>> kvsEntry : tablesByKvs.entrySet()) {
             kvsEntry.getKey().dropTables(kvsEntry.getValue());
         }
     }
@@ -294,13 +293,13 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = new HashMap<>();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             KeyValueService delegate = getDelegate(e.getKey());
             Map<TableReference, Map<Cell, byte[]>> map =
                     mapByDelegate.computeIfAbsent(delegate, table -> new HashMap<>());
             map.put(e.getKey(), e.getValue());
         }
-        for (Entry<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {
+        for (Map.Entry<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {
             e.getKey().multiPut(e.getValue(), timestamp);
         }
     }

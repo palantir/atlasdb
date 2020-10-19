@@ -17,13 +17,12 @@ package com.palantir.atlasdb.spi;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import java.util.Optional;
 
 /**
  * Marker interface for various AtlasDb KeyValueService config objects.
  */
-@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "type", visible = false)
 public interface KeyValueServiceConfig {
     String type();
 

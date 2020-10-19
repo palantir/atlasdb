@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
@@ -88,7 +87,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
             } catch (ExecutionException e) {
                 throw new RuntimeException(e.getCause());
             }
-            for (Entry<Cell, byte[]> value : values.entrySet()) {
+            for (Map.Entry<Cell, byte[]> value : values.entrySet()) {
                 byte[] newValue = value.getValue();
                 byte[] oldValue = table.get(value.getKey());
                 if (oldValue != null && !Arrays.equals(oldValue, newValue)) {

@@ -32,7 +32,6 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 public final class ColumnValues {
@@ -43,7 +42,7 @@ public final class ColumnValues {
 
     public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map) {
         Map<Cell, byte[]> ret = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<T, Collection<V>> e : map.asMap().entrySet()) {
+        for (Map.Entry<T, Collection<V>> e : map.asMap().entrySet()) {
             byte[] rowName = e.getKey().persistToBytes();
             for (V val : e.getValue()) {
                 ret.put(Cell.create(rowName, val.persistColumnName()), val.persistValue());
@@ -52,7 +51,7 @@ public final class ColumnValues {
         return ret;
     }
 
-    public static <T extends Persistable> Entry<Cell, byte[]> toCellValue(T key, ColumnValue<?> value) {
+    public static <T extends Persistable> Map.Entry<Cell, byte[]> toCellValue(T key, ColumnValue<?> value) {
         Multimap<T, ? extends ColumnValue<?>> singletonMultimap =
                 Multimaps.forMap(Collections.singletonMap(key, value));
         Map<Cell, byte[]> cellValues = toCellValues(singletonMultimap);
@@ -61,7 +60,7 @@ public final class ColumnValues {
 
     public static <T extends Persistable, V extends Persistable> Set<Cell> toCells(Multimap<T, V> map) {
         Set<Cell> ret = Sets.newHashSetWithExpectedSize(map.size());
-        for (Entry<T, Collection<V>> e : map.asMap().entrySet()) {
+        for (Map.Entry<T, Collection<V>> e : map.asMap().entrySet()) {
             byte[] rowName = e.getKey().persistToBytes();
             for (Persistable val : e.getValue()) {
                 ret.add(Cell.create(rowName, val.persistToBytes()));

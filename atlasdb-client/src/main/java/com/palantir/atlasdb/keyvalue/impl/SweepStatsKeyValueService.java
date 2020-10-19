@@ -46,7 +46,6 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -136,7 +135,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         if (isEnabled.get()) {
             int newWrites = 0;
             long writesSize = 0;
-            for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
                 writesByTable.add(entry.getKey(), entry.getValue().size());
                 newWrites += entry.getValue().size();
                 writesSize += entry.getValue().entrySet().stream()

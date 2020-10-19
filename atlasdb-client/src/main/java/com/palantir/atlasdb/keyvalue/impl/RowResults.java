@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
@@ -29,7 +28,6 @@ import com.palantir.logsafe.Preconditions;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 
@@ -52,7 +50,7 @@ public class RowResults {
         return Iterators.transform(mapEntries, createRowResultFunction());
     }
 
-    private static <T> Function<Entry<byte[], NavigableMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
+    private static <T> Function<Map.Entry<byte[], NavigableMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
         return entry -> RowResult.create(entry.getKey(), entry.getValue());
     }
 
@@ -80,7 +78,8 @@ public class RowResults {
 
     public static <T> RowResult<T> merge(RowResult<T> base, RowResult<T> overwrite) {
         Preconditions.checkArgument(Arrays.equals(base.getRowName(), overwrite.getRowName()));
-        Builder<byte[], T> colBuilder = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
+        ImmutableSortedMap.Builder<byte[], T> colBuilder =
+                ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
         colBuilder.putAll(overwrite.getColumns());
         colBuilder.putAll(
                 Maps.difference(base.getColumns(), overwrite.getColumns()).entriesOnlyOnLeft());

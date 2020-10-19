@@ -18,7 +18,6 @@ package com.palantir.atlasdb.table.description;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder;
 import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +75,8 @@ public class ColumnMetadataDescription {
     }
 
     public TableMetadataPersistence.ColumnMetadataDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.ColumnMetadataDescription.newBuilder();
+        TableMetadataPersistence.ColumnMetadataDescription.Builder builder =
+                TableMetadataPersistence.ColumnMetadataDescription.newBuilder();
         if (namedColumns != null) {
             for (NamedColumnDescription col : namedColumns) {
                 builder.addNamedColumns(col.persistToProto());

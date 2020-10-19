@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Replacement for when you would normally use Map&lt;T, LockMode&gt;,
@@ -45,7 +44,7 @@ public class LockCollection<T> extends AbstractCollection<T> implements Serializ
         this.keys = (T[]) new Object[locks.size()];
         this.values = new BitSet(locks.size());
         int index = 0;
-        for (Entry<T, LockMode> entry : locks) {
+        for (Map.Entry<T, LockMode> entry : locks) {
             keys[index] = entry.getKey();
             if (entry.getValue() == LockMode.WRITE) {
                 values.set(index);
@@ -68,11 +67,11 @@ public class LockCollection<T> extends AbstractCollection<T> implements Serializ
     }
 
     public Iterable<Map.Entry<T, LockMode>> entries() {
-        return () -> new AbstractIterator<Entry<T, LockMode>>() {
+        return () -> new AbstractIterator<Map.Entry<T, LockMode>>() {
             private int index = 0;
 
             @Override
-            protected Entry<T, LockMode> computeNext() {
+            protected Map.Entry<T, LockMode> computeNext() {
                 if (index == keys.length) {
                     return endOfData();
                 }

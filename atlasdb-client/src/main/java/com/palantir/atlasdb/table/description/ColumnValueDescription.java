@@ -30,7 +30,6 @@ import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.common.base.Throwables;
@@ -377,7 +376,8 @@ public final class ColumnValueDescription {
     }
 
     public TableMetadataPersistence.ColumnValueDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.ColumnValueDescription.newBuilder();
+        TableMetadataPersistence.ColumnValueDescription.Builder builder =
+                TableMetadataPersistence.ColumnValueDescription.newBuilder();
         builder.setType(type.persistToProto());
         builder.setCompression(compression.persistToProto());
         if (className != null) {
