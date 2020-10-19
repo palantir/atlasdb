@@ -231,7 +231,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
 
-    private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
+    private static class UnstableKeyValueService implements AutoDelegate_KeyValueService {
 
         private final KeyValueService delegate;
         private final Random random;

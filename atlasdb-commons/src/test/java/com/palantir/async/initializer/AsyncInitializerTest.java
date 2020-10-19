@@ -62,7 +62,7 @@ public class AsyncInitializerTest {
         }
     }
 
-    private final class DeterministicSchedulerShutdownAware extends DeterministicScheduler {
+    private static final class DeterministicSchedulerShutdownAware extends DeterministicScheduler {
         volatile int numberOfTimesShutdownCalled = 0;
 
         @Override

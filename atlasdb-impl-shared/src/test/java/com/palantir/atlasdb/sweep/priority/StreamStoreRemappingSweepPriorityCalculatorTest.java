@@ -560,7 +560,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
                 .cellTsPairsExamined(10000);
     }
 
-    private class SweepPriorityHistory {
+    private static class SweepPriorityHistory {
         final TableReference tableRef;
         ImmutableSweepPriority oldPriority;
         ImmutableSweepPriority newPriority;

@@ -776,7 +776,7 @@ public class StreamTest extends AtlasDbTestCase {
         }
     }
 
-    private abstract class TwoConflictingTasks {
+    private abstract static class TwoConflictingTasks {
         public abstract void startFirstAndFail(Transaction tx, long streamId);
 
         public abstract void startSecondAndFinish(Transaction tx, long streamId);
