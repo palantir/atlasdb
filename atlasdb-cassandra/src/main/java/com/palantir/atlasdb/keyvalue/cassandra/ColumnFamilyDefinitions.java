@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class ColumnFamilyDefinitions {
-    private static final Logger log = LoggerFactory.getLogger(ColumnFamilyDefinitions.class); // did this on purpose
+    private static final Logger log = LoggerFactory.getLogger(ColumnFamilyDefinitions.class);
 
     private ColumnFamilyDefinitions() {
         // Utility class
