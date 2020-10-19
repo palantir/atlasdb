@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
@@ -82,6 +84,7 @@ public class CassandraService implements AutoCloseable {
 
     private volatile Set<InetSocketAddress> localHosts = ImmutableSet.of();
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
+    private final Supplier<Map<String, String>> hostnameByIpSupplier;
 
     private final Random random = new Random();
 
@@ -95,6 +98,9 @@ public class CassandraService implements AutoCloseable {
         this.myLocationSupplier = new HostLocationSupplier(this::getSnitch, config.overrideHostLocation());
         this.blacklist = blacklist;
         this.poolMetrics = poolMetrics;
+
+        Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(this::getRandomGoodHost);
+        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 2, TimeUnit.MINUTES);
     }
 
     @Override
@@ -122,7 +128,8 @@ public class CassandraService implements AutoCloseable {
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
                     List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
-                            .map(this::getAddressForHostThrowUnchecked).collect(Collectors.toList());
+                            .map(this::getAddressForHostThrowUnchecked)
+                            .collect(Collectors.toList());
 
                     servers.addAll(hosts);
 
@@ -216,10 +223,13 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
-        if (config.addressTranslation().containsKey(host)) {
-            return config.addressTranslation().get(host);
+    InetSocketAddress getAddressForHost(String inputHost) throws UnknownHostException {
+        if (config.addressTranslation().containsKey(inputHost)) {
+            return config.addressTranslation().get(inputHost);
         }
+
+        Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
+        String host = hostnamesByIp.getOrDefault(inputHost, inputHost);
 
         InetAddress resolvedHost = InetAddress.getByName(host);
         Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(),
