@@ -185,4 +185,13 @@ public class OracleConnectionConfigTest {
         }
     }
 
+    @Test
+    public void invalidProtocolTest() {
+        ObjectMapper mapper = new ObjectMapper();
+
+        assertThatThrownBy(() -> mapper.readValue("\"invalid\"", ConnectionProtocol.class))
+                .hasCauseInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("invalid does not correspond to a known ConnectionProtocol");
+    }
+
 }
