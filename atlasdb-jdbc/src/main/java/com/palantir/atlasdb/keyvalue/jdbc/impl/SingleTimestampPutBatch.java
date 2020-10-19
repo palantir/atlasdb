@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import javax.annotation.Nullable;
 import org.jooq.InsertValuesStep4;
 import org.jooq.Record;
@@ -41,14 +40,14 @@ public class SingleTimestampPutBatch implements PutBatch {
         this.timestamp = timestamp;
     }
 
-    public static SingleTimestampPutBatch create(List<Entry<Cell, byte[]>> data, long timestamp) {
+    public static SingleTimestampPutBatch create(List<Map.Entry<Cell, byte[]>> data, long timestamp) {
         return new SingleTimestampPutBatch(Maps2.fromEntries(data), timestamp);
     }
 
     @Override
     public InsertValuesStep4<Record, byte[], byte[], Long, byte[]> addValuesForInsert(
             InsertValuesStep4<Record, byte[], byte[], Long, byte[]> query) {
-        for (Entry<Cell, byte[]> entry : data.entrySet()) {
+        for (Map.Entry<Cell, byte[]> entry : data.entrySet()) {
             query = query.values(
                     entry.getKey().getRowName(), entry.getKey().getColumnName(), timestamp, entry.getValue());
         }
@@ -71,7 +70,7 @@ public class SingleTimestampPutBatch implements PutBatch {
                     record.getValue(JdbcConstants.A_VALUE));
         }
         Map<Cell, byte[]> nextBatch = new HashMap<>();
-        for (Entry<Cell, byte[]> entry : data.entrySet()) {
+        for (Map.Entry<Cell, byte[]> entry : data.entrySet()) {
             Cell cell = entry.getKey();
             byte[] newValue = entry.getValue();
             byte[] oldValue = existing.get(cell);

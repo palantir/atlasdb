@@ -17,11 +17,9 @@ package com.palantir.common.collect;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 public final class Maps2 {
@@ -30,8 +28,8 @@ public final class Maps2 {
     }
 
     public static <K, V> ImmutableMap<K, V> fromEntries(Iterable<? extends Map.Entry<K, V>> it) {
-        Builder<K, V> builder = ImmutableMap.builder();
-        for (Entry<K, V> e : it) {
+        ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
+        for (Map.Entry<K, V> e : it) {
             builder.put(e.getKey(), e.getValue());
         }
         return builder.build();

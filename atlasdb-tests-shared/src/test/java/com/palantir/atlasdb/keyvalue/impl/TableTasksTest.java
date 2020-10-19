@@ -47,7 +47,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.util.Collections;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -156,7 +156,7 @@ public class TableTasksTest {
                 (transaction, partialDiff) -> Iterators.size(partialDiff));
         long sourceOnlyCells = 0;
         long commonCells = 0;
-        for (Entry<Integer, Integer> cell : keys1.entries()) {
+        for (Map.Entry<Integer, Integer> cell : keys1.entries()) {
             if (keys2.containsEntry(cell.getKey(), cell.getValue())) {
                 commonCells++;
             } else {

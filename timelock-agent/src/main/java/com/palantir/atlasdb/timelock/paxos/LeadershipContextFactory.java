@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
@@ -33,7 +32,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class LeadershipContextFactory
-        implements Factory<LeadershipContext>,
+        implements NetworkClientFactories.Factory<LeadershipContext>,
                 Dependencies.NetworkClientFactories,
                 Dependencies.LeaderPinger,
                 Dependencies.ClientAwareComponents,

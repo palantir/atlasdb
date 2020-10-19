@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -234,10 +233,10 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     public synchronized Set<V> removeMatchingKeys(Predicate<K> predicate) {
         Set<V> removedValues = new HashSet<>();
 
-        Iterator<Entry<K, CacheEntry<V>>> entryIterator =
+        Iterator<Map.Entry<K, CacheEntry<V>>> entryIterator =
                 cacheEntries.entrySet().iterator();
         while (entryIterator.hasNext()) {
-            Entry<K, CacheEntry<V>> entry = entryIterator.next();
+            Map.Entry<K, CacheEntry<V>> entry = entryIterator.next();
             if (predicate.apply(entry.getKey())) {
                 entryIterator.remove();
                 removedValues.add(entry.getValue().getValue());

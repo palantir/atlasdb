@@ -111,7 +111,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -373,11 +372,11 @@ public final class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    public Function<Entry<Cell, byte[]>, Long> getByteSizingFunction() {
+    public Function<Map.Entry<Cell, byte[]>, Long> getByteSizingFunction() {
         return entry -> Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().length;
     }
 
-    public Function<Entry<Cell, Value>, Long> getValueSizingFunction() {
+    public Function<Map.Entry<Cell, Value>, Long> getValueSizingFunction() {
         return entry ->
                 Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
     }
@@ -389,19 +388,19 @@ public final class DbKvs extends AbstractKeyValueService {
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
             throws KeyAlreadyExistsException {
         List<Callable<Void>> callables = new ArrayList<>();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             final TableReference table = e.getKey();
             // We sort here because some key value stores are more efficient if you store adjacent keys together.
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
-            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
+            Iterable<List<Map.Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
                     sortedMap.entrySet(),
                     getMultiPutBatchCount(),
                     getMultiPutBatchSizeBytes(),
                     table,
                     entry -> entry == null ? 0 : entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
 
-            for (final List<Entry<Cell, byte[]>> p : partitions) {
+            for (final List<Map.Entry<Cell, byte[]>> p : partitions) {
                 callables.add(() -> {
                     String originalName = Thread.currentThread().getName();
                     Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
@@ -439,7 +438,7 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
-        Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
+        Iterable<List<Map.Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
                 values.entrySet(),
                 config.mutationBatchCount(),
                 config.mutationBatchSizeBytes(),
@@ -447,7 +446,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 getByteSizingFunction());
 
         runReadWrite(tableRef, (readTable, writeTable) -> {
-            for (List<Entry<Cell, byte[]>> batch : batches) {
+            for (List<Map.Entry<Cell, byte[]>> batch : batches) {
                 try {
                     writeTable.put(batch, timestamp);
                 } catch (KeyAlreadyExistsException e) {
@@ -466,18 +465,18 @@ public final class DbKvs extends AbstractKeyValueService {
             DbReadTable readTable,
             DbWriteTable writeTable,
             TableReference tableRef,
-            List<Entry<Cell, Value>> batch,
+            List<Map.Entry<Cell, Value>> batch,
             KeyAlreadyExistsException ex) {
         Map<Cell, Long> timestampByCell = new HashMap<>();
-        for (Entry<Cell, Value> entry : batch) {
+        for (Map.Entry<Cell, Value> entry : batch) {
             timestampByCell.put(entry.getKey(), entry.getValue().getTimestamp() + 1);
         }
 
         Map<Cell, Value> results = extractResults(readTable, tableRef, readTable.getLatestCells(timestampByCell, true));
 
-        ListIterator<Entry<Cell, Value>> iter = batch.listIterator();
+        ListIterator<Map.Entry<Cell, Value>> iter = batch.listIterator();
         while (iter.hasNext()) {
-            Entry<Cell, Value> entry = iter.next();
+            Map.Entry<Cell, Value> entry = iter.next();
             Cell key = entry.getKey();
             Value value = entry.getValue();
             if (results.containsKey(key)) {
@@ -496,10 +495,10 @@ public final class DbKvs extends AbstractKeyValueService {
             DbReadTable readTable,
             DbWriteTable writeTable,
             TableReference tableRef,
-            List<Entry<Cell, byte[]>> batch,
+            List<Map.Entry<Cell, byte[]>> batch,
             long timestamp,
             KeyAlreadyExistsException ex) {
-        List<Entry<Cell, Value>> batchValues = Lists.transform(
+        List<Map.Entry<Cell, Value>> batchValues = Lists.transform(
                 batch, input -> Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp)));
         putIfNotUpdate(readTable, writeTable, tableRef, batchValues, ex);
     }
@@ -507,7 +506,7 @@ public final class DbKvs extends AbstractKeyValueService {
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        Iterable<List<Entry<Cell, Value>>> batches = IterablePartitioner.partitionByCountAndBytes(
+        Iterable<List<Map.Entry<Cell, Value>>> batches = IterablePartitioner.partitionByCountAndBytes(
                 cellValues.entries(),
                 config.mutationBatchCount(),
                 config.mutationBatchSizeBytes(),
@@ -515,7 +514,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 getValueSizingFunction());
 
         runReadWrite(tableRef, (readTable, writeTable) -> {
-            for (List<Entry<Cell, Value>> batch : batches) {
+            for (List<Map.Entry<Cell, Value>> batch : batches) {
                 try {
                     writeTable.put(batch);
                 } catch (KeyAlreadyExistsException e) {
@@ -566,22 +565,22 @@ public final class DbKvs extends AbstractKeyValueService {
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         // QA-86494: We sort our deletes here because we have seen oracle deadlock errors here.
-        ImmutableList<Entry<Cell, Long>> sorted = ORDERING.immutableSortedCopy(keys.entries());
-        Iterable<List<Entry<Cell, Long>>> partitions = IterablePartitioner.partitionByCountAndBytes(
+        ImmutableList<Map.Entry<Cell, Long>> sorted = ORDERING.immutableSortedCopy(keys.entries());
+        Iterable<List<Map.Entry<Cell, Long>>> partitions = IterablePartitioner.partitionByCountAndBytes(
                 sorted,
                 10000,
                 getMultiPutBatchSizeBytes(),
                 tableRef,
                 entry -> Cells.getApproxSizeOfCell(entry.getKey()) + 8);
         runWriteForceAutocommit(tableRef, (Function<DbWriteTable, Void>) table -> {
-            for (List<Entry<Cell, Long>> partition : partitions) {
+            for (List<Map.Entry<Cell, Long>> partition : partitions) {
                 table.delete(partition);
             }
             return null;
         });
     }
 
-    private static final Ordering<Entry<Cell, Long>> ORDERING = Ordering.from((entry1, entry2) -> {
+    private static final Ordering<Map.Entry<Cell, Long>> ORDERING = Ordering.from((entry1, entry2) -> {
         int comparison = Ordering.natural().compare(entry1.getKey(), entry2.getKey());
         if (comparison == 0) {
             comparison = Ordering.natural().compare(entry1.getValue(), entry2.getValue());
@@ -774,7 +773,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 getFirstRowsColumnRangePage(tableRef, rowList, batchColumnRangeSelection, timestamp);
 
         Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rowList.size());
-        for (Entry<byte[], List<Map.Entry<Cell, Value>>> e : firstPage.entrySet()) {
+        for (Map.Entry<byte[], List<Map.Entry<Cell, Value>>> e : firstPage.entrySet()) {
             List<Map.Entry<Cell, Value>> results = e.getValue();
             if (results.isEmpty()) {
                 ret.put(e.getKey(), new LocalRowColumnRangeIterator(e.getValue().iterator()));
@@ -900,9 +899,10 @@ public final class DbKvs extends AbstractKeyValueService {
         List<byte[]> rowList = ImmutableList.of(row);
         return ClosableIterators.wrap(
                 new AbstractPagingIterable<
-                        Entry<Cell, Value>, TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
+                        Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
                     @Override
-                    protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
+                    protected TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> getFirstPage()
+                            throws Exception {
                         return page(batchColumnRangeSelection.getStartCol());
                     }
 
@@ -952,12 +952,12 @@ public final class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private Map<byte[], List<Entry<Cell, Value>>> extractRowColumnRangePage(
+    private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(
             TableReference tableRef, BatchColumnRangeSelection columnRangeSelection, long ts, List<byte[]> rows) {
         return extractRowColumnRangePage(tableRef, Maps.toMap(rows, Functions.constant(columnRangeSelection)), ts);
     }
 
-    private Map<byte[], List<Entry<Cell, Value>>> extractRowColumnRangePage(
+    private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(
             TableReference tableRef, Map<byte[], BatchColumnRangeSelection> columnRangeSelection, long ts) {
         return batchingQueryRunner.runTask(
                 columnRangeSelection,
@@ -969,7 +969,7 @@ public final class DbKvs extends AbstractKeyValueService {
                                 table, tableRef, () -> table.getRowsColumnRange(batch, ts), batch.keySet())));
     }
 
-    private Map<byte[], List<Entry<Cell, Value>>> extractRowColumnRangePage(
+    private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePage(
             TableReference tableRef, RowsColumnRangeBatchRequest rowsColumnRangeBatch, long ts) {
         return batchingQueryRunner.runTask(
                 rowsColumnRangeBatch,
@@ -1027,7 +1027,7 @@ public final class DbKvs extends AbstractKeyValueService {
         fillOverflowValues(table.getConnectionSupplier(), tableRef, overflowValues, values);
 
         Map<byte[], List<Map.Entry<Cell, Value>>> results = Maps.newHashMapWithExpectedSize(allRows.size());
-        for (Entry<Sha256Hash, List<Cell>> e : cellsByRow.entrySet()) {
+        for (Map.Entry<Sha256Hash, List<Cell>> e : cellsByRow.entrySet()) {
             List<Map.Entry<Cell, Value>> fullResults =
                     Lists.newArrayListWithExpectedSize(e.getValue().size());
             for (Cell c : e.getValue()) {
@@ -1044,10 +1044,10 @@ public final class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             Map<Cell, OverflowValue> overflowValues,
             @Output Map<Cell, Value> values) {
-        Iterator<Entry<Cell, OverflowValue>> overflowIterator =
+        Iterator<Map.Entry<Cell, OverflowValue>> overflowIterator =
                 overflowValues.entrySet().iterator();
         while (overflowIterator.hasNext()) {
-            Entry<Cell, OverflowValue> entry = overflowIterator.next();
+            Map.Entry<Cell, OverflowValue> entry = overflowIterator.next();
             Value value = values.get(entry.getKey());
             if (value != null && value.getTimestamp() > entry.getValue().ts()) {
                 overflowIterator.remove();
@@ -1055,7 +1055,7 @@ public final class DbKvs extends AbstractKeyValueService {
         }
         Map<Long, byte[]> resolvedOverflowValues = overflowValueLoader.loadOverflowValues(
                 conns, tableRef, Collections2.transform(overflowValues.values(), OverflowValue::id));
-        for (Entry<Cell, OverflowValue> entry : overflowValues.entrySet()) {
+        for (Map.Entry<Cell, OverflowValue> entry : overflowValues.entrySet()) {
             Cell cell = entry.getKey();
             OverflowValue ov = entry.getValue();
             byte[] val = resolvedOverflowValues.get(ov.id());

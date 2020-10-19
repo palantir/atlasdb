@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class OracleQueryFactory extends AbstractDbQueryFactory {
     private final OracleDdlConfig config;
@@ -434,7 +433,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
 
     private ArrayHandler rowsAndTimestampsToOracleArray(Collection<Map.Entry<byte[], Long>> rows) {
         List<Object[]> oraRows = new ArrayList<>(rows.size());
-        for (Entry<byte[], Long> entry : rows) {
+        for (Map.Entry<byte[], Long> entry : rows) {
             oraRows.add(new Object[] {entry.getKey(), null, entry.getValue()});
         }
         return config.jdbcHandler()
@@ -444,7 +443,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
 
     private ArrayHandler cellsAndTimestampsToOracleArray(Collection<Map.Entry<Cell, Long>> cells) {
         List<Object[]> oraRows = new ArrayList<>(cells.size());
-        for (Entry<Cell, Long> entry : cells) {
+        for (Map.Entry<Cell, Long> entry : cells) {
             Cell cell = entry.getKey();
             oraRows.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -44,11 +43,11 @@ public class LeadershipComponents {
     private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = new ConcurrentHashMap<>();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
-    private final Factory<LeadershipContext> leadershipContextFactory;
+    private final NetworkClientFactories.Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
 
     LeadershipComponents(
-            Factory<LeadershipContext> leadershipContextFactory,
+            NetworkClientFactories.Factory<LeadershipContext> leadershipContextFactory,
             LocalAndRemotes<HealthCheckPinger> healthCheckPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;

@@ -32,7 +32,6 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.cassandra.thrift.KsDef;
@@ -65,7 +64,7 @@ public class CassandraClientPoolIntegrationTest {
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
                 clientPool.getTokenMap().asMapOfRanges();
         assertThat(mapOfRanges).isNotEmpty();
-        for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges.entrySet()) {
+        for (Map.Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges.entrySet()) {
             Range<LightweightOppToken> tokenRange = entry.getKey();
             List<InetSocketAddress> hosts = entry.getValue();
 

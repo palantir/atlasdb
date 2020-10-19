@@ -47,7 +47,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public final class AtlasDeserializers {
 
@@ -150,7 +149,7 @@ public final class AtlasDeserializers {
         return new JsonNodeIterable<>(node, subNode -> deserializeCell(metadata, subNode));
     }
 
-    private static Iterable<Entry<Cell, byte[]>> deserializeCellVal(TableMetadata metadata, JsonNode node) {
+    private static Iterable<Map.Entry<Cell, byte[]>> deserializeCellVal(TableMetadata metadata, JsonNode node) {
         byte[] row = deserializeRow(metadata.getRowMetadata(), node.get("row"));
         ColumnMetadataDescription colDescription = metadata.getColumns();
         if (colDescription.hasDynamicColumns()) {
@@ -158,10 +157,10 @@ public final class AtlasDeserializers {
             byte[] val = deserializeVal(colDescription.getDynamicColumn().getValue(), node.get("val"));
             return ImmutableList.of(Maps.immutableEntry(Cell.create(row, col), val));
         } else {
-            Collection<Entry<Cell, byte[]>> results = new ArrayList<>(1);
-            Iterator<Entry<String, JsonNode>> fields = node.fields();
+            Collection<Map.Entry<Cell, byte[]>> results = new ArrayList<>(1);
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
             while (fields.hasNext()) {
-                Entry<String, JsonNode> entry = fields.next();
+                Map.Entry<String, JsonNode> entry = fields.next();
                 String longName = entry.getKey();
                 if (longName.equals("row")) {
                     continue;
@@ -177,11 +176,11 @@ public final class AtlasDeserializers {
     }
 
     public static Map<Cell, byte[]> deserializeCellVals(final TableMetadata metadata, JsonNode node) {
-        Iterable<Iterable<Entry<Cell, byte[]>>> cellVals =
+        Iterable<Iterable<Map.Entry<Cell, byte[]>>> cellVals =
                 new JsonNodeIterable<>(node, subNode -> deserializeCellVal(metadata, subNode));
         ImmutableMap.Builder<Cell, byte[]> builder = ImmutableMap.builder();
-        for (Iterable<Entry<Cell, byte[]>> entries : cellVals) {
-            for (Entry<Cell, byte[]> entry : entries) {
+        for (Iterable<Map.Entry<Cell, byte[]>> entries : cellVals) {
+            for (Map.Entry<Cell, byte[]> entry : entries) {
                 builder.put(entry);
             }
         }

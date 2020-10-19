@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public abstract class AbstractDbWriteTable implements DbWriteTable {
     protected final DdlConfig config;
@@ -54,7 +53,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     @Override
     public void put(Collection<Map.Entry<Cell, byte[]>> data, long ts) {
         List<Object[]> args = new ArrayList<>(data.size());
-        for (Entry<Cell, byte[]> entry : data) {
+        for (Map.Entry<Cell, byte[]> entry : data) {
             Cell cell = entry.getKey();
             byte[] val = entry.getValue();
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), ts, val});
@@ -65,7 +64,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     @Override
     public void put(Collection<Map.Entry<Cell, Value>> data) {
         List<Object[]> args = new ArrayList<>(data.size());
-        for (Entry<Cell, Value> entry : data) {
+        for (Map.Entry<Cell, Value> entry : data) {
             Cell cell = entry.getKey();
             Value val = entry.getValue();
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents()});
@@ -132,7 +131,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     }
 
     @Override
-    public void delete(List<Entry<Cell, Long>> entries) {
+    public void delete(List<Map.Entry<Cell, Long>> entries) {
         List<Object[]> args = new ArrayList<>(entries.size());
         for (Map.Entry<Cell, Long> entry : entries) {
             Cell cell = entry.getKey();

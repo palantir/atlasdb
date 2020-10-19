@@ -45,7 +45,6 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Map;
-import java.util.Map.Entry;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.Assert;
 import org.junit.Test;
@@ -155,8 +154,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                         1000, AbortingVisitors.batching(new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
                             @Override
                             public boolean visit(RowResult<byte[]> item) throws RuntimeException {
-                                Iterable<Entry<Cell, byte[]>> cells = item.getCells();
-                                Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
+                                Iterable<Map.Entry<Cell, byte[]>> cells = item.getCells();
+                                Map.Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
                                 Assert.assertEquals(theCell, entry.getKey());
                                 Assert.assertArrayEquals(theValue, entry.getValue());
                                 count.increment();
