@@ -17,16 +17,12 @@
 package com.palantir.lock.client;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -46,8 +42,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public class MetricReportingNamespacedConjureTimelockService implements NamespacedConjureTimelockService {
     private final NamespacedConjureTimelockService delegate;
     private final LeaderElectionMetrics metrics;
-    private final Set<UUID> seenLeaderIds = Sets.newConcurrentHashSet();
-    private volatile Optional<UUID> leaderId = Optional.empty();
+    private volatile UUID leaderId = null;
 
     public MetricReportingNamespacedConjureTimelockService(
             NamespacedConjureTimelockService delegate,
@@ -97,18 +92,25 @@ public class MetricReportingNamespacedConjureTimelockService implements Namespac
     }
 
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {
-        Optional<UUID> maybeCurrentLeader = leaderId;
-        if (!maybeCurrentLeader.isPresent()) {
-            return method.get();
-        }
-        UUID currentLeader = maybeCurrentLeader.get();
+        UUID currentLeader = leaderId;
         Stopwatch stopwatch = Stopwatch.createStarted();
         T response = method.get();
         Duration timeTaken = stopwatch.elapsed();
-        if (!leaderExtractor.apply(response).equals(currentLeader)) {
+        if (updateLeaderIfNew(leaderExtractor, currentLeader, response)) {
             logMetrics(timeTaken);
         }
         return response;
+    }
+
+    private <T> boolean updateLeaderIfNew(Function<T, UUID> leaderExtractor, UUID currentLeader, T response) {
+        UUID newLeader = leaderExtractor.apply(response);
+        boolean election = !newLeader.equals(currentLeader);
+
+        if (election) {
+            leaderId = newLeader;
+        }
+
+        return election && (currentLeader != null);
     }
 
     private void logMetrics(Duration timeTaken) {
