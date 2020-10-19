@@ -63,7 +63,7 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             });
         });
 
-        tablesToCells.forEach((table, numberOfCells) -> updateCellsWrittenForTable(table, numberOfCells));
+        tablesToCells.forEach(this::updateCellsWrittenForTable);
     }
 
     private void updateCellsWrittenForTable(String table, Long numberOfCells) {

@@ -54,7 +54,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         return executeInstrumented(
                 () -> dialogueDelegate.startTransactions(authHeader, namespace, request),
                 () -> conjureTimelockServiceBlockingMetrics.startTransactions().time(),
-                () -> conjureTimelockServiceBlockingMetrics.startTransactionErrors());
+                conjureTimelockServiceBlockingMetrics::startTransactionErrors);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         return executeInstrumented(
                 () -> dialogueDelegate.leaderTime(authHeader, namespace),
                 () -> conjureTimelockServiceBlockingMetrics.leaderTime().time(),
-                () -> conjureTimelockServiceBlockingMetrics.leaderTimeErrors());
+                conjureTimelockServiceBlockingMetrics::leaderTimeErrors);
     }
 
     @Override

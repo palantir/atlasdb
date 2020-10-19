@@ -131,7 +131,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private double getP99ForLeaderTime() {
-        return getP99(() -> conjureTimelockServiceBlockingMetrics.leaderTime());
+        return getP99(conjureTimelockServiceBlockingMetrics::leaderTime);
     }
 
     private EndpointStatistics getEndpointStatsForStartTxn() {
@@ -151,7 +151,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private double getP99ForStartTxn() {
-        return getP99(() -> conjureTimelockServiceBlockingMetrics.startTransactions());
+        return getP99(conjureTimelockServiceBlockingMetrics::startTransactions);
     }
 
     private double getP99(Supplier<Timer> timerSupplier) {

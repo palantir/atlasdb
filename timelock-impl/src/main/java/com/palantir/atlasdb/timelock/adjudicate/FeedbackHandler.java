@@ -98,7 +98,7 @@ public class FeedbackHandler {
                 .filterEntries((serviceName, serviceFeedback) ->
                         getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY)
                 .keys()
-                .map(serviceName -> Client.of(serviceName))
+                .map(Client::of)
                 .collect(Collectors.toList());
 
         log.info(

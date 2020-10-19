@@ -126,8 +126,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
-        return Futures.transform(
-                cellGetter.get(startTsMap), rawResults -> decodeTimestamps(rawResults), MoreExecutors.directExecutor());
+        return Futures.transform(cellGetter.get(startTsMap), this::decodeTimestamps, MoreExecutors.directExecutor());
     }
 
     private Long decodeTimestamp(long startTimestamp, Cell cell, Map<Cell, Value> rawResults) {

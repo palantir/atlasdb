@@ -120,7 +120,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public List<KsDef> describe_keyspaces() throws InvalidRequestException, TException {
-        return executeHandlingExceptions(() -> client.describe_keyspaces());
+        return executeHandlingExceptions(client::describe_keyspaces);
     }
 
     @Override
@@ -158,12 +158,12 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public TProtocol getOutputProtocol() {
-        return executeMethodWithoutException(() -> client.getOutputProtocol());
+        return executeMethodWithoutException(client::getOutputProtocol);
     }
 
     @Override
     public TProtocol getInputProtocol() {
-        return executeMethodWithoutException(() -> client.getInputProtocol());
+        return executeMethodWithoutException(client::getInputProtocol);
     }
 
     @Override
@@ -191,7 +191,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public String describe_partitioner() throws TException {
-        return executeHandlingExceptions(() -> client.describe_partitioner());
+        return executeHandlingExceptions(client::describe_partitioner);
     }
 
     @Override
@@ -206,7 +206,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public String describe_version() throws TException {
-        return executeHandlingExceptions(() -> client.describe_version());
+        return executeHandlingExceptions(client::describe_version);
     }
 
     @Override
@@ -230,12 +230,12 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public ByteBuffer trace_next_query() throws TException {
-        return executeHandlingExceptions(() -> client.trace_next_query());
+        return executeHandlingExceptions(client::trace_next_query);
     }
 
     @Override
     public Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException {
-        return executeHandlingExceptions(() -> client.describe_schema_versions());
+        return executeHandlingExceptions(client::describe_schema_versions);
     }
 
     @Override

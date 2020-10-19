@@ -378,7 +378,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return delegates.stream()
-                .map(kvs -> kvs.getClusterAvailabilityStatus())
+                .map(KeyValueService::getClusterAvailabilityStatus)
                 .min(Comparator.naturalOrder())
                 .orElse(ClusterAvailabilityStatus.ALL_AVAILABLE);
     }

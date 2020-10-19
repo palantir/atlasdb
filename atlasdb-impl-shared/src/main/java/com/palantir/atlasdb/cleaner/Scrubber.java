@@ -568,7 +568,7 @@ public class Scrubber {
             keyValueService.addGarbageCollectionSentinelValues(tableRef, cellToTimestamp.keySet());
             for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
                 Builder<Cell, Long> builder = ImmutableMultimap.builder();
-                batch.stream().forEach(e -> builder.put(e));
+                batch.stream().forEach(builder::put);
                 keyValueService.delete(tableRef, builder.build());
                 lazyWriteMetric(AtlasDbMetricNames.DELETED_CELLS, batch.size());
             }

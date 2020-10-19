@@ -93,7 +93,7 @@ public final class RowResult<T> implements Serializable {
     }
 
     public static <T> Function<RowResult<T>, byte[]> getRowNameFun() {
-        return input -> input.getRowName();
+        return RowResult::getRowName;
     }
 
     public T getOnlyColumnValue() {

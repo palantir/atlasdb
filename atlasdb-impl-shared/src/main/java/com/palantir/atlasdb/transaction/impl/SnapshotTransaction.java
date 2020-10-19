@@ -445,7 +445,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 postFilterIterator,
                 Ordering.from(UnsignedBytes.lexicographicalComparator())
                         .onResultOf(entry -> entry.getKey().getColumnName()),
-                from -> from.getLhSide());
+                com.palantir.util.Pair::getLhSide);
 
         return filterDeletedValues(mergedIterator, tableRef);
     }
@@ -471,7 +471,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     remoteIterator,
                     Ordering.from(UnsignedBytes.lexicographicalComparator())
                             .onResultOf(entry -> entry.getKey().getColumnName()),
-                    from -> from.getLhSide());
+                    com.palantir.util.Pair::getLhSide);
         }));
 
         return filterDeletedValues(merged, tableRef);
