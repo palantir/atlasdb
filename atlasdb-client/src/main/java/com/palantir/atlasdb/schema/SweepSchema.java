@@ -29,7 +29,7 @@ public enum SweepSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("sweep");
-    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(() -> generateSchema());
+    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(SweepSchema::generateSchema);
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {

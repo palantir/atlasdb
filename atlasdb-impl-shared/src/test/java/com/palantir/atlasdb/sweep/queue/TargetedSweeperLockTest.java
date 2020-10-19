@@ -53,7 +53,7 @@ public class TargetedSweeperLockTest {
 
     @Test
     public void unsuccessfulLock() throws InterruptedException {
-        when(mockLockService.lock(any())).thenReturn(() -> Optional.empty());
+        when(mockLockService.lock(any())).thenReturn(Optional::empty);
         Optional<TargetedSweeperLock> maybeLock =
                 TargetedSweeperLock.tryAcquire(2, SweeperStrategy.THOROUGH, mockLockService);
 

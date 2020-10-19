@@ -629,7 +629,7 @@ public abstract class BasicSQL {
                 ps -> {
                     PreparedStatements.setMaxRows(ps, 1);
 
-                    return runCancellably(ps, rs -> ResultSets.next(rs), sql, null);
+                    return runCancellably(ps, ResultSets::next, sql, null);
                 },
                 "selectExists"); //$NON-NLS-1$
     }

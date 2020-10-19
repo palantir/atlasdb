@@ -254,7 +254,7 @@ public class PaxosLogHistoryProviderTest {
         Map<Long, LearnedAndAcceptedValue> record =
                 localAndRemoteLearnerAndAcceptorRecords.get(0).record();
         List<PaxosValue> paxosValues = record.values().stream()
-                .map(v -> v.learnedValue())
+                .map(LearnedAndAcceptedValue::learnedValue)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());

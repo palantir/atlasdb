@@ -215,9 +215,7 @@ public class AwaitingLeadershipProxyTest {
         });
         waitForLeadershipToBeGained();
 
-        assertThatThrownBy(() -> proxy.call())
-                .isInstanceOf(InterruptedException.class)
-                .hasMessage(TEST_MESSAGE);
+        assertThatThrownBy(proxy::call).isInstanceOf(InterruptedException.class).hasMessage(TEST_MESSAGE);
     }
 
     @Test

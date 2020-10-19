@@ -30,11 +30,11 @@ public final class MapEntries {
     }
 
     public static <L, R> Function<Entry<L, R>, L> getKeyFunction() {
-        return from -> from.getKey();
+        return Entry::getKey;
     }
 
     public static <L, R> Function<Entry<L, R>, R> getValueFunction() {
-        return from -> from.getValue();
+        return Entry::getValue;
     }
 
     public static <K, V> Map<K, V> putAll(Map<K, V> map, Iterable<? extends Entry<? extends K, ? extends V>> it) {

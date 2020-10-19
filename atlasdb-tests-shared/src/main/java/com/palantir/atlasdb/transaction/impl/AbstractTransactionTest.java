@@ -801,7 +801,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] row = PtBytes.toBytes("row1");
         // Record expected results using byte ordering
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
-                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
+                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
             put(t, "row1", "col" + i, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
@@ -856,7 +856,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] row = PtBytes.toBytes("row1");
         // Record expected results using byte ordering
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
-                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
+                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
             put(t, "row1", "col" + i, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
@@ -941,7 +941,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] row = PtBytes.toBytes("row1");
         // Record expected results using byte ordering
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
-                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
+                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
             put(t, "row1", "col" + i, "v" + i);
             if (i % 2 == 0) {
@@ -981,7 +981,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] row = PtBytes.toBytes("row1");
         // Record expected results using byte ordering
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
-                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
+                Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
             put(t, "row1", "col" + i, "v" + i);
             if (i % 2 == 0) {

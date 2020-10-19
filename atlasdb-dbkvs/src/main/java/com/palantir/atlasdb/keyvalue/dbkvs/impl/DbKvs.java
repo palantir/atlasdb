@@ -1139,7 +1139,7 @@ public final class DbKvs extends AbstractKeyValueService {
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        return runMetadata(tableRef, table -> table.getMetadata());
+        return runMetadata(tableRef, DbMetadataTable::getMetadata);
     }
 
     @Override

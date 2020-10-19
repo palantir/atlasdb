@@ -43,7 +43,7 @@ public class Persistables {
     }
 
     public static Function<Persistable, byte[]> persistToBytesFunction() {
-        return input -> input.persistToBytes();
+        return Persistable::persistToBytes;
     }
 
     public static List<byte[]> persistAll(Iterable<? extends Persistable> persistables) {

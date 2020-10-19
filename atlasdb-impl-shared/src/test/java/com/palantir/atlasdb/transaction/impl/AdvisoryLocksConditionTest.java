@@ -180,7 +180,7 @@ public class AdvisoryLocksConditionTest {
                 AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(), LOCK_REQUEST_SUPPLIER);
         when(lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
                 .thenReturn(null);
-        assertThatThrownBy(() -> conditionSupplier.get())
+        assertThatThrownBy(conditionSupplier::get)
                 .isInstanceOf(LockAcquisitionException.class)
                 .hasMessageContaining("Failed to lock using the provided lock request");
     }

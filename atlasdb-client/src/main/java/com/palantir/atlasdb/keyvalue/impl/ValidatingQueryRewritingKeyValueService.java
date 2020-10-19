@@ -226,7 +226,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             putMetadataForTable(entry.getKey(), entry.getValue());
             return;
         }
-        tableRefToMetadata.forEach((key, value) -> sanityCheckTableMetadata(key, value));
+        tableRefToMetadata.forEach(ValidatingQueryRewritingKeyValueService::sanityCheckTableMetadata);
         delegate.putMetadataForTables(tableRefToMetadata);
     }
 

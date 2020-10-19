@@ -70,7 +70,7 @@ public final class ColumnValues {
     }
 
     public static <T> Function<ColumnValue<T>, T> getValuesFun() {
-        return input -> input.getValue();
+        return ColumnValue::getValue;
     }
 
     @SuppressWarnings("unchecked")

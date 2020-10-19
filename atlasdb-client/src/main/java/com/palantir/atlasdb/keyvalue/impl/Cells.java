@@ -173,7 +173,7 @@ public final class Cells {
     }
 
     public static Function<byte[], String> getNameFromBytesFunction() {
-        return input -> getNameFromBytes(input);
+        return Cells::getNameFromBytes;
     }
 
     public static String getNameFromBytes(byte[] name) {

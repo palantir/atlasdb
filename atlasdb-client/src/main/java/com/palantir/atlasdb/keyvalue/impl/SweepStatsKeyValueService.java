@@ -289,7 +289,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
         try {
             Set<TableReference> tableNames = Sets.difference(writes.elementSet(), clears);
             Collection<byte[]> rows = Collections2.transform(
-                    Collections2.transform(tableNames, t -> t.getQualifiedName()),
+                    Collections2.transform(tableNames, TableReference::getQualifiedName),
                     Functions.compose(Persistables.persistToBytesFunction(), SweepPriorityRow.fromFullTableNameFun()));
             Map<Cell, Value> oldWriteCounts = delegate()
                     .getRows(

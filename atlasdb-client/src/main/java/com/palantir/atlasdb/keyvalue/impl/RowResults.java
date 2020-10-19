@@ -61,7 +61,7 @@ public final class RowResults {
 
     public static <T> NavigableMap<byte[], RowResult<T>> viewOfSortedMap(
             NavigableMap<byte[], NavigableMap<byte[], T>> map) {
-        return Maps.transformEntries(map, (key, value) -> RowResult.create(key, value));
+        return Maps.transformEntries(map, RowResult::create);
     }
 
     public static <T> Predicate<RowResult<T>> createIsEmptyPredicate() {

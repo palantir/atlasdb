@@ -942,7 +942,7 @@ public final class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return run(ctx -> getAllTableNames(ctx));
+        return run(this::getAllTableNames);
     }
 
     private Set<TableReference> getAllTableNames(DSLContext ctx) {

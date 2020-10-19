@@ -256,7 +256,7 @@ public class Schema {
             TableMetadata tableMetadata = tableDefinitions.get(e.getKey()).toTableMetadata();
 
             Collection<String> rowNames = Collections2.transform(
-                    tableMetadata.getRowMetadata().getRowParts(), input -> input.getComponentName());
+                    tableMetadata.getRowMetadata().getRowParts(), NameComponentDescription::getComponentName);
 
             IndexMetadata indexMetadata = indexDefinitions.get(e.getValue()).toIndexMetadata(e.getValue());
             for (IndexComponent c :

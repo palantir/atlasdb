@@ -56,6 +56,6 @@ public class LockClientIndices {
     }
 
     Iterable<LockClient> fromIndices(Iterable<Integer> indices) {
-        return Iterables.transform(indices, index -> fromIndex(index));
+        return Iterables.transform(indices, this::fromIndex);
     }
 }
