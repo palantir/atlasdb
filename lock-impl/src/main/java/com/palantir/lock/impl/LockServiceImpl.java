@@ -827,7 +827,7 @@ public final class LockServiceImpl
     }
 
     private void logIfAbnormallyOld(ExpiringToken token, long now, Supplier<String> description) {
-        if (log.isInfoEnabled()) {
+        if (log.isWarnEnabled()) {
             long age = now - token.getCreationDateMs();
             if (age > maxNormalLockAge.toMillis()) {
                 if (isFromAtlasTransactionWithLockedImmutable(token)) {

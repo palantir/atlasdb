@@ -124,7 +124,6 @@ allprojects {
                 'ReferenceEquality',
                 'ReturnValueIgnored',
                 'SafeLoggingExceptionMessageFormat',
-                'Slf4jLevelCheck',
                 'StreamOfEmpty',
                 'StrictUnusedVariable',
                 'ValidateConstantMessage'
