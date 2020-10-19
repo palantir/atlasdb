@@ -158,7 +158,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         assertThat(columns.keySet())
                 .containsExactlyElementsOf(cols.stream().map(PtBytes::toBytes).collect(Collectors.toList()));
         Set<Long> timestamps = new HashSet<>();
-        columns.values().stream().forEach(set -> timestamps.addAll(set));
+        columns.values().forEach(set -> timestamps.addAll(set));
         assertThat(timestamps).containsExactlyInAnyOrder(values);
     }
 

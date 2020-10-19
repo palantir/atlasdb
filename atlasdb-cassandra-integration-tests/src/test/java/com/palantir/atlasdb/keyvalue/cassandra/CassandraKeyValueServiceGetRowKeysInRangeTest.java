@@ -126,9 +126,7 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     private List<Cell> createAndWriteCells(int numRows, int colsPerRow) {
         List<Cell> cells = createCells(numRows, colsPerRow);
 
-        cells.stream()
-                .forEach(cell ->
-                        kvs.put(GET_ROW_KEYS_TABLE, ImmutableMap.of(cell, cell.getColumnName()), getTimestamp()));
+        cells.forEach(cell -> kvs.put(GET_ROW_KEYS_TABLE, ImmutableMap.of(cell, cell.getColumnName()), getTimestamp()));
 
         return cells;
     }

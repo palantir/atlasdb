@@ -567,7 +567,7 @@ public class Scrubber {
             for (List<Map.Entry<Cell, Long>> batch :
                     Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
                 ImmutableMultimap.Builder<Cell, Long> builder = ImmutableMultimap.builder();
-                batch.stream().forEach(builder::put);
+                batch.forEach(builder::put);
                 keyValueService.delete(tableRef, builder.build());
                 lazyWriteMetric(AtlasDbMetricNames.DELETED_CELLS, batch.size());
             }
