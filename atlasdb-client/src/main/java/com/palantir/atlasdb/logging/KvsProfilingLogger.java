@@ -175,7 +175,7 @@ public class KvsProfilingLogger {
         return future;
     }
 
-    private static class Monitor<R> {
+    private static final class Monitor<R> {
         private final Stopwatch stopwatch;
         private final BiConsumer<LoggingFunction, Stopwatch> primaryLogger;
         private final BiConsumer<LoggingFunction, R> additionalLoggerWithAccessToResult;

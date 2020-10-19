@@ -259,7 +259,7 @@ public final class JMXUtils {
      * {@link RMISocketFactory} which binds server sockets to "localhost" so
      * that only connections from "localhost" are accepted.
      */
-    private static class LocalhostRMIServerSocketFactory extends RMISocketFactory {
+    private static final class LocalhostRMIServerSocketFactory extends RMISocketFactory {
         @Override
         public ServerSocket createServerSocket(final int port) throws IOException {
             return new ServerSocket(port, 0, InetAddress.getByName("localhost"));

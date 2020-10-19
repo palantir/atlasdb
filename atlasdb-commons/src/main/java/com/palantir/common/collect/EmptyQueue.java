@@ -25,7 +25,7 @@ import java.util.Iterator;
  *
  * @param <E>
  */
-public class EmptyQueue<E> extends AbstractQueue<E> {
+public final class EmptyQueue<E> extends AbstractQueue<E> {
     private static final EmptyQueue<?> INSTANCE = new EmptyQueue<Object>();
 
     @SuppressWarnings("unchecked")

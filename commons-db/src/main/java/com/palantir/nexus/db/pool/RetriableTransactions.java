@@ -67,7 +67,7 @@ public final class RetriableTransactions {
         UNKNOWN;
     }
 
-    public static class TransactionResult<T> {
+    public static final class TransactionResult<T> {
         private final TransactionStatus status;
         private final @Nullable T resultValue;
         private final Optional<Throwable> error;

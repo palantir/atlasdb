@@ -48,7 +48,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                 .build();
     }
 
-    private static class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor {
         private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
         private final Map<Integer, OkEvent> lastOkEvent = new HashMap<>();
         private final Set<Integer> refreshAllowed = new HashSet<>();

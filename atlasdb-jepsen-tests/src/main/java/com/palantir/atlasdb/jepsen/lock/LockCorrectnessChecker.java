@@ -79,7 +79,7 @@ public class LockCorrectnessChecker implements Checker {
                 .build();
     }
 
-    private static class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor {
         private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
         private final Map<Integer, OkEvent> lastHeldLock = new HashMap<>();
 

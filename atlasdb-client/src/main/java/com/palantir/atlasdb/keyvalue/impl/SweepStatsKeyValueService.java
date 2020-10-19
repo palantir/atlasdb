@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  * since the last time the table was completely swept. This is used when
  * deciding the order in which tables should be swept.
  */
-public class SweepStatsKeyValueService extends ForwardingKeyValueService {
+public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
     private static final int CLEAR_WEIGHT = 1 << 14; // 16384

@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CloseTracking {
+public final class CloseTracking {
     private static final Logger log = LoggerFactory.getLogger(CloseTracking.class);
 
     private CloseTracking() {

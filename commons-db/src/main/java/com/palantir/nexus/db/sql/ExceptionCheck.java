@@ -20,7 +20,7 @@ package com.palantir.nexus.db.sql;
  * @author dstipp
  *
  */
-public class ExceptionCheck {
+public final class ExceptionCheck {
     // TODO: we should probably try to figure out how to wire in DBType here?
 
     private ExceptionCheck() {

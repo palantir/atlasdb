@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Random;
 import javax.annotation.Nullable;
 
-public class IteratorUtils {
+public final class IteratorUtils {
 
     private static final Random rand = new Random();
 

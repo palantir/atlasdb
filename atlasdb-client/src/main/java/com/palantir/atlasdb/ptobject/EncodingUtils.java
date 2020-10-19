@@ -33,7 +33,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.ArrayUtils;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
-public class EncodingUtils {
+public final class EncodingUtils {
     private EncodingUtils() {
         // empty
     }

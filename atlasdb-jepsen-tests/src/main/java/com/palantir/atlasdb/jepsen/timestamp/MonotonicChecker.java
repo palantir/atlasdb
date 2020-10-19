@@ -38,7 +38,7 @@ public class MonotonicChecker implements Checker {
                 .build();
     }
 
-    private static class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
         private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 

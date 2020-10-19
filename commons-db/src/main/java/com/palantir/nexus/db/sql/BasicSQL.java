@@ -322,7 +322,7 @@ public abstract class BasicSQL {
         return BlobCleanupPreparedStatement.create(ps, toClean);
     }
 
-    private static class BlobCleanupPreparedStatement implements InvocationHandler {
+    private static final class BlobCleanupPreparedStatement implements InvocationHandler {
         final PreparedStatement ps;
         final Collection<BlobHandler> toCleanup;
 

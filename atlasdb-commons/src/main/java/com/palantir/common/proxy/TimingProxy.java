@@ -22,7 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-public class TimingProxy implements DelegatingInvocationHandler {
+public final class TimingProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, OperationTimer timer) {

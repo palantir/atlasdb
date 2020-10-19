@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class RowConstraintMetadata {
+public final class RowConstraintMetadata {
     private final Class<? extends RowConstraint> constraintClass;
     private final boolean isGeneric;
     private final String tableName;

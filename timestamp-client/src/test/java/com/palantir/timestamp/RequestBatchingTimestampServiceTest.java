@@ -117,7 +117,7 @@ public final class RequestBatchingTimestampServiceTest {
     @Value.Immutable
     interface TestBatchElement extends BatchElement<Integer, TimestampRange> {}
 
-    private static class MaxTimestampsToGiveTimestampService implements TimestampService {
+    private static final class MaxTimestampsToGiveTimestampService implements TimestampService {
         private final AtomicLong counter = new AtomicLong(0);
 
         @Override

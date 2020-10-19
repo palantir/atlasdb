@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
  * @param <K> key type
  * @param <V> return type of tasks that are to be submitted
  */
-public class MultiplexingCompletionService<K, V> {
+public final class MultiplexingCompletionService<K, V> {
     private final ImmutableMap<K, ExecutorService> executors;
     private final BlockingQueue<Future<Map.Entry<K, V>>> taskQueue;
 
@@ -101,7 +101,7 @@ public class MultiplexingCompletionService<K, V> {
         return futureTask;
     }
 
-    private class QueueTask extends FutureTask<Map.Entry<K, V>> {
+    private final class QueueTask extends FutureTask<Map.Entry<K, V>> {
         private final RunnableFuture<Map.Entry<K, V>> runnable;
 
         private QueueTask(RunnableFuture<Map.Entry<K, V>> runnable) {

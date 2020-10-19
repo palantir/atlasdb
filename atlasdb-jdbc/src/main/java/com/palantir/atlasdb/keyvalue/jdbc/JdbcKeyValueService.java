@@ -141,7 +141,7 @@ import org.jooq.conf.Settings;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
-public class JdbcKeyValueService implements KeyValueService {
+public final class JdbcKeyValueService implements KeyValueService {
     private final int rowBatchSize;
     private final int batchSizeForReads;
     private final int batchSizeForMutations;

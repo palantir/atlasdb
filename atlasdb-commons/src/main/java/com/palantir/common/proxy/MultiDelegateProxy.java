@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * are/aren't called, but you want to use a Fake to do the work.
  * <p>
  */
-public class MultiDelegateProxy<T> extends AbstractInvocationHandler {
+public final class MultiDelegateProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(MultiDelegateProxy.class);
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T mainDelegate, T... delegatesToCall) {

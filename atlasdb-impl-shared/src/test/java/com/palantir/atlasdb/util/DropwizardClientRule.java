@@ -58,14 +58,14 @@ public class DropwizardClientRule extends ExternalResource {
         testSupport.after();
     }
 
-    private static class DummyHealthCheck extends HealthCheck {
+    private static final class DummyHealthCheck extends HealthCheck {
         @Override
         protected HealthCheck.Result check() {
             return Result.healthy();
         }
     }
 
-    private class FakeApplication extends Application<Configuration> {
+    private final class FakeApplication extends Application<Configuration> {
 
         @Override
         public void initialize(Bootstrap<Configuration> bootstrap) {

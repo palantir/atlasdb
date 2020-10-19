@@ -1227,7 +1227,7 @@ public final class LockServiceImpl
         }
     }
 
-    private class LockReapRunner implements AutoCloseable {
+    private final class LockReapRunner implements AutoCloseable {
         private final Ownable<ExecutorService> executor;
         private final List<Future<?>> taskFutures;
 

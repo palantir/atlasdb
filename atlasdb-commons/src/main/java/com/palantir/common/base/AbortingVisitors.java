@@ -22,7 +22,7 @@ import com.palantir.common.visitor.VisitorCheckedException;
 import java.util.Collections;
 import java.util.List;
 
-public class AbortingVisitors {
+public final class AbortingVisitors {
 
     private AbortingVisitors() {
         /**/

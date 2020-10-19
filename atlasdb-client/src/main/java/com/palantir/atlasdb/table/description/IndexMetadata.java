@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 
-public class IndexMetadata {
+public final class IndexMetadata {
     final String name;
     final String javaName;
     final ImmutableList<IndexComponent> rowComponents;

@@ -19,7 +19,7 @@ import com.palantir.util.jmx.OperationTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoggingOperationTimer implements OperationTimer {
+public final class LoggingOperationTimer implements OperationTimer {
     private final Logger delegate;
 
     private LoggingOperationTimer(Logger l) {
@@ -42,7 +42,7 @@ public class LoggingOperationTimer implements OperationTimer {
         return new LoggingOperationTimer(LoggerFactory.getLogger(categoryName));
     }
 
-    private class TimeBegin implements TimingState {
+    private final class TimeBegin implements TimingState {
         private final long tBegin = System.currentTimeMillis();
         private final String msg;
 

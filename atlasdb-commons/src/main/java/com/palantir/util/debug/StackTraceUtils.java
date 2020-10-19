@@ -261,7 +261,7 @@ public final class StackTraceUtils {
         return score;
     }
 
-    private static class StackTraceComparator implements Comparator<String>, Serializable {
+    private static final class StackTraceComparator implements Comparator<String>, Serializable {
         private static final long serialVersionUID = 1L;
 
         // higher scores come earlier

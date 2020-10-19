@@ -24,7 +24,7 @@ import com.google.common.collect.Maps.EntryTransformer;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class MapEntries {
+public final class MapEntries {
     private MapEntries() {
         /* */
     }

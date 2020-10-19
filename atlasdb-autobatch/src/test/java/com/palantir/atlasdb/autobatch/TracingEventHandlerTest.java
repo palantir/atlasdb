@@ -50,7 +50,7 @@ public class TracingEventHandlerTest {
         eventFuture.get();
     }
 
-    private static class TestBatchElement implements BatchElement<Integer, Long> {
+    private static final class TestBatchElement implements BatchElement<Integer, Long> {
 
         private final DisruptorFuture<Long> future = new DisruptorFuture<>("test");
 

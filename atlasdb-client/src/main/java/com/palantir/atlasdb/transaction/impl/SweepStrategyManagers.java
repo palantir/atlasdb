@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class SweepStrategyManagers {
+public final class SweepStrategyManagers {
     private SweepStrategyManagers() {
         //
     }

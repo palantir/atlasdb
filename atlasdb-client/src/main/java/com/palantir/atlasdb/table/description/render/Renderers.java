@@ -25,7 +25,7 @@ import com.squareup.javapoet.MethodSpec;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Renderers {
+public final class Renderers {
     private Renderers() {
         // cannot instantiate
     }

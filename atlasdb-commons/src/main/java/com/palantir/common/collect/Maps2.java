@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class Maps2 {
+public final class Maps2 {
     private Maps2() {
         /* */
     }

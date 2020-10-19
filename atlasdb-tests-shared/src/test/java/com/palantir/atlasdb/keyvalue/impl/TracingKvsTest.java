@@ -84,7 +84,7 @@ public class TracingKvsTest extends AbstractKeyValueServiceTest {
         }
     }
 
-    private static class TestSpanObserver implements SpanObserver {
+    private static final class TestSpanObserver implements SpanObserver {
         private final List<Span> spans = new ArrayList<>();
 
         @Override

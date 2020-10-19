@@ -34,7 +34,7 @@ public final class AccumulatorStrategies {
         return (ListMultimapAccumulatorStrategy<K, V>) listMultimapAccumulatorStrategy;
     }
 
-    private static class MapAccumulatorStrategy<K, V>
+    private static final class MapAccumulatorStrategy<K, V>
             implements BatchingTaskRunner.ResultAccumulatorStrategy<Map<K, V>> {
         @Override
         public Map<K, V> createEmptyResult() {
@@ -49,7 +49,7 @@ public final class AccumulatorStrategies {
 
     private static final MapAccumulatorStrategy<?, ?> mapAccumulatorStrategy = new MapAccumulatorStrategy<>();
 
-    private static class ListMultimapAccumulatorStrategy<K, V>
+    private static final class ListMultimapAccumulatorStrategy<K, V>
             implements BatchingTaskRunner.ResultAccumulatorStrategy<Multimap<K, V>> {
         @Override
         public Multimap<K, V> createEmptyResult() {

@@ -124,7 +124,7 @@ public class CallChainTest {
         return resultIterator::next;
     }
 
-    private class ListUpdatingCallback extends Callback<String> {
+    private final class ListUpdatingCallback extends Callback<String> {
         private final Supplier<Boolean> shouldFailInit;
         private final Supplier<Boolean> shouldFailCleanup;
 

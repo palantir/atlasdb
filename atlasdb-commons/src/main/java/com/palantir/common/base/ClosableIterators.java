@@ -20,7 +20,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class ClosableIterators {
+public final class ClosableIterators {
     private ClosableIterators() {
         /* */
     }

@@ -376,7 +376,7 @@ public class SQLString extends BasicSQLString {
      * @author dcohen
      *
      */
-    public static class RegisteredSQLString {
+    public static final class RegisteredSQLString {
 
         private final BasicSQLString delegate;
 

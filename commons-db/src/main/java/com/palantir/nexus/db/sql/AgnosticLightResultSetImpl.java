@@ -136,7 +136,7 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
      * may cause an error! </strong>  In more detail: the first time hasNext() is called after each call to next(), it advances
      * the database cursor, causing any old AgnosticLightResultRow objects to now refer to the next row in the database.
      */
-    private class AgnosticIterator implements Iterator<AgnosticLightResultRow> {
+    private final class AgnosticIterator implements Iterator<AgnosticLightResultRow> {
         private int numRowsFetchedSinceLastChange = 0;
         private boolean hasReadRow = true; // $NON-NLS-1$  // Effectively "has already read row # -1"
         private boolean hasNext = false;

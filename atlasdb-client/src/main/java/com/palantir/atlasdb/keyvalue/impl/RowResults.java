@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 
-public class RowResults {
+public final class RowResults {
     private RowResults() {
         /* */
     }

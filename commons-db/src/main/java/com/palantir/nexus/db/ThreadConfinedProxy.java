@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  *  can lead to race conditions.  Wrapping a Connection in a ThreadConfinedProxy will enforce that we do not accidentally access the
  *  Connection from multiple threads, provided we never expose the Connection outside of the proxy.
  */
-public class ThreadConfinedProxy extends AbstractInvocationHandler implements DelegatingInvocationHandler {
+public final class ThreadConfinedProxy extends AbstractInvocationHandler implements DelegatingInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ThreadConfinedProxy.class);
 
     public enum Strictness {

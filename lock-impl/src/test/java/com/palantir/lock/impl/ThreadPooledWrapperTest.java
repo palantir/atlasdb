@@ -39,7 +39,7 @@ public class ThreadPooledWrapperTest {
 
     private static CountDownLatch countDownLatch;
 
-    private static class Waiter {
+    private static final class Waiter {
         int await() throws InterruptedException {
             countDownLatch.await();
             return 0;

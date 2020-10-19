@@ -39,7 +39,7 @@ public class NemesisResilienceChecker implements Checker {
                 .build();
     }
 
-    private static class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor {
         private final List<Event> unsurvivedEvents = new ArrayList<>();
         private final Set<Integer> processesPendingReads = new HashSet<>();
 

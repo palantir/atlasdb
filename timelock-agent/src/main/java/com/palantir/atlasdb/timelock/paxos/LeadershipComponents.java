@@ -101,7 +101,7 @@ public class LeadershipComponents {
         leaderElectionService.stepDown();
     }
 
-    private static class ShutdownAwareCloser {
+    private static final class ShutdownAwareCloser {
         private boolean isShutdown = false;
         private final Closer closer = Closer.create();
 

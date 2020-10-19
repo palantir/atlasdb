@@ -370,7 +370,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return new SoftCacheEntry<K, V>(key, value, referenceQueue);
     }
 
-    protected static class SoftCacheEntry<K, V> extends CacheEntry<V> {
+    protected static final class SoftCacheEntry<K, V> extends CacheEntry<V> {
         private SoftCacheEntry(K key, V value, ReferenceQueue<V> queue) {
             super(new KeyedSoftReference<K, V>(key, value, queue));
         }
@@ -380,7 +380,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return new WeakCacheEntry<K, V>(key, value, referenceQueue);
     }
 
-    protected static class WeakCacheEntry<K, V> extends CacheEntry<V> {
+    protected static final class WeakCacheEntry<K, V> extends CacheEntry<V> {
         private WeakCacheEntry(K key, V value, ReferenceQueue<V> queue) {
             super(new KeyedWeakReference<K, V>(key, value, queue));
         }
