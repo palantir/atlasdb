@@ -125,7 +125,7 @@ allprojects {
                 'SafeLoggingExceptionMessageFormat',
                 'StreamOfEmpty',
                 'ValidateConstantMessage'
-        options.errorprone.disable 'StrictUnusedVariable'
+        options.errorprone.disable 'StrictUnusedVariable', 'JdkObsolete'
     }
 }
 
