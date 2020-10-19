@@ -25,8 +25,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -44,7 +44,7 @@ public class KvsGetRangeBenchmarks {
         int startRow = Ints.fromByteArray(request.getStartInclusive());
         ClosableIterator<RowResult<Value>> result =
                 table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
-        ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
+        List<RowResult<Value>> list = Lists.newArrayList(result);
         result.close();
         Preconditions.checkState(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
         list.forEach(rowResult -> {

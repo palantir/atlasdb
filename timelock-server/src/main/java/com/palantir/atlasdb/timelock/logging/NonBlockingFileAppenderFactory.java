@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.logging;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.core.Appender;
-import ch.qos.logback.core.AsyncAppenderBase;
-import ch.qos.logback.core.spi.DeferredProcessingAware;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
 import io.dropwizard.logging.FileAppenderFactory;
@@ -32,24 +28,25 @@ import io.dropwizard.logging.layout.LayoutFactory;
  * TODO(nziebart): remove this when we switch to internal web framework
  */
 @JsonTypeName("non-blocking-file")
-public class NonBlockingFileAppenderFactory<E extends DeferredProcessingAware> extends FileAppenderFactory<E> {
+public class NonBlockingFileAppenderFactory<E extends ch.qos.logback.core.spi.DeferredProcessingAware>
+        extends FileAppenderFactory<E> {
 
     @Override
-    public Appender<E> build(
-            LoggerContext context,
+    public ch.qos.logback.core.Appender<E> build(
+            ch.qos.logback.classic.LoggerContext context,
             String applicationName,
             LayoutFactory<E> layoutFactory,
             LevelFilterFactory<E> levelFilterFactory,
             AsyncAppenderFactory<E> asyncAppenderFactory) {
-        Appender<E> appender =
+        ch.qos.logback.core.Appender<E> appender =
                 super.build(context, applicationName, layoutFactory, levelFilterFactory, asyncAppenderFactory);
 
         Preconditions.checkState(
-                appender instanceof AsyncAppenderBase,
+                appender instanceof ch.qos.logback.core.AsyncAppenderBase,
                 "The Dropwizard logging factory returned an unexpected appender of type " + appender.getClass()
                         + ". NonBlockingFileAppenderFactory requires an async appender to set the neverBlock "
                         + "property.");
-        ((AsyncAppenderBase) appender).setNeverBlock(true);
+        ((ch.qos.logback.core.AsyncAppenderBase) appender).setNeverBlock(true);
 
         return appender;
     }

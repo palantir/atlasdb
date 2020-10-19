@@ -285,7 +285,7 @@ public final class LockRequest implements Serializable {
          * Instructs the lock server to release these locks if a refresh request
          * has not been received for the period of time represented by the
          * <code>lockTimeout</code> parameter. The default value is controlled
-         * by {@link #LockRequest#getDefaultLockTimeout()}.
+         * by {@link LockRequest#getDefaultLockTimeout()}.
          * You may not call this method multiple times.
          */
         public Builder timeoutAfter(TimeDuration newLockTimeout) {

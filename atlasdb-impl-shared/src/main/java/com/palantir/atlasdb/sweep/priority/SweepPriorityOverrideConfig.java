@@ -49,7 +49,7 @@ public abstract class SweepPriorityOverrideConfig {
     }
 
     /**
-     * Derived from {@link SweepPriorityOverrideConfig::priorityTables}, but returns a list, which is useful for
+     * Derived from {@link SweepPriorityOverrideConfig#priorityTables()}, but returns a list, which is useful for
      * fast random selection of priority tables. There are no guarantees on the order of elements in this list,
      * though it is guaranteed that on the same {@link SweepPriorityOverrideConfig} object, the list elements are
      * in a consistent order.

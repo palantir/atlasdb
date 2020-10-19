@@ -1211,7 +1211,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param tableRef the name of the table to truncate.
      *
      * @throws AtlasDbDependencyException if not all Cassandra nodes are reachable.
-     * @throws (? extends RuntimeException) if the table does not exist.
+     * @throws RuntimeException if the table does not exist.
      */
     @Override
     public void truncateTable(final TableReference tableRef) {
@@ -1228,7 +1228,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param tablesToTruncate set od tables to truncate.
      *
      * @throws AtlasDbDependencyException if not all Cassandra nodes are reachable.
-     * @throws (? extends RuntimeException) if the table does not exist.
+     * @throws RuntimeException if the table does not exist.
      */
     @Override
     public void truncateTables(final Set<TableReference> tablesToTruncate) {

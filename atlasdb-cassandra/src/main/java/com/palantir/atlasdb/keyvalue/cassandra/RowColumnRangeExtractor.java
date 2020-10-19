@@ -32,6 +32,7 @@ import java.util.Set;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
+@SuppressWarnings("IllegalType") // explicitly need LinkedHashMap for insertion ordering contract
 class RowColumnRangeExtractor {
     static class RowColumnRangeResult {
         private final Map<byte[], LinkedHashMap<Cell, Value>> results;

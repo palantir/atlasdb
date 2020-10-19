@@ -98,8 +98,8 @@ public class RefreshCorrectnessChecker implements Checker {
                      * this checker we only look for intersecting intervals and all intervals are open from the right so
                      * including a does not affect the result.
                      *
-                     * Also verify that the whole interval was free. Unlock can be treated as refresh, as the correctness
-                     * of their mutual interaction is verified by IsolatedProcessCorrectnessChecker
+                     * Also verify that the whole interval was free. Unlock can be treated as refresh, as the
+                     * correctness of their mutual interaction is verified by IsolatedProcessCorrectnessChecker
                      */
                 case RequestType.REFRESH:
                 case RequestType.UNLOCK:

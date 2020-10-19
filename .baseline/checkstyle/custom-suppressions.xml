@@ -14,6 +14,20 @@
     <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="."/>
     <suppress files="[/\\].*[/\\]generated[/\\]" checks="."/>
 
+    <!-- ignore tests until they can be remediated -->
+    <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="." />
+
+    <!-- Skip some explicit checks until they can be remediated -->
+    <suppress files=".*" checks="AnnotationUseStyle"/>
+    <suppress files=".*" checks="AvoidStaticImport"/>
+    <suppress files=".*" checks="CyclomaticComplexity"/>
+    <suppress files=".*" checks="DesignForExtension"/>
+    <suppress files=".*" checks="RegexpSinglelineJava"/>
+    <suppress files=".*" checks="RedundantModifier"/>
+    <suppress files=".*" checks="SummaryJavadocCheck"/>
+    <suppress files=".*" checks="VisibilityModifier"/>
+    <suppress files=".*" id="BanGuavaCaches"/>
+
     <!-- Certain AtlasDB projects are ignored. -->
     <suppress files="atlasdb-client/*" checks="."/>
     <suppress files="atlasdb-commons/*" checks="."/>

@@ -139,13 +139,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                         } catch (IllegalArgumentException e) {
                             String msg =
                                     "Caught an IllegalArgumentException trying to convert the stored value to a long."
-                                        + " This can happen if you attempt to run AtlasDB without a timelock block"
-                                        + " after having previously migrated to the TimeLock server. Please adjust"
-                                        + " your configuration to allow AtlasDB to talk to TimeLock, shut down all"
-                                        + " service nodes, and then restart. Consult the documentation here:"
-                                        + " https://palantir.github.io/atlasdb/html/configuration/"
-                                        + "external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"
-                                        + " - contact AtlasDB support for additional guidance if necessary.";
+                                            + " This can happen if you attempt to run AtlasDB without a timelock block"
+                                            + " after having previously migrated to the TimeLock server. Please adjust"
+                                            + " your configuration to allow AtlasDB to talk to TimeLock, shut down all"
+                                            + " service nodes, and then restart. Consult the documentation here:"
+                                            + " https://palantir.github.io/atlasdb/html/configuration/"
+                                            + "external_timelock_service_configs/timelock_client_config.html"
+                                            + "#timelock-client-configuration"
+                                            + " - contact AtlasDB support for additional guidance if necessary.";
                             throw new IllegalStateException(msg, e);
                         }
                     }

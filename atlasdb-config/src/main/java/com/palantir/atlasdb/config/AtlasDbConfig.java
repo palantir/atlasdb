@@ -183,7 +183,7 @@ public abstract class AtlasDbConfig {
     /**
      * The number of milliseconds to wait between each batch of cells
      * processed by the background sweeper.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepPauseMillis} to make this value
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#pauseMillis()} to make this value
      * live-reloadable.
      */
     @Deprecated
@@ -203,7 +203,7 @@ public abstract class AtlasDbConfig {
 
     /**
      * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepReadLimit} to make this value
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#readLimit()} to make this value
      * live-reloadable.
      */
     @Deprecated
@@ -212,7 +212,7 @@ public abstract class AtlasDbConfig {
 
     /**
      * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepCandidateBatchHint} to make this value
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#candidateBatchHint()} to make this value
      * live-reloadable.
      */
     @Deprecated
@@ -221,7 +221,7 @@ public abstract class AtlasDbConfig {
 
     /**
      * The target number of (cell, timestamp) pairs to delete at once while sweeping.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepDeleteBatchHint} to make this value
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#deleteBatchHint()} to make this value
      * live-reloadable.
      */
     @Deprecated
@@ -229,18 +229,20 @@ public abstract class AtlasDbConfig {
     public abstract Integer getSweepDeleteBatchHint();
 
     /**
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepReadLimit()},
-     * {@link AtlasDbRuntimeConfig#sweep#getSweepCandidateBatchHint()} and
-     * {@link AtlasDbRuntimeConfig#sweep#getSweepDeleteBatchHint()}.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()}
+     * @{@link SweepConfig#readLimit()},
+     * @{@link SweepConfig#candidateBatchHint()}, and
+     * @{@link SweepConfig#deleteBatchHint()}.
      */
     @Deprecated
     @Nullable
     public abstract Integer getSweepBatchSize();
 
     /**
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#getSweepReadLimit()},
-     * {@link AtlasDbRuntimeConfig#sweep#getSweepCandidateBatchHint()} and
-     * {@link AtlasDbRuntimeConfig#sweep#getSweepDeleteBatchHint()}.
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()}
+     * @{@link SweepConfig#readLimit()},
+     * @{@link SweepConfig#candidateBatchHint()}, and
+     * @{@link SweepConfig#deleteBatchHint()}.
      */
     @Deprecated
     @Nullable
