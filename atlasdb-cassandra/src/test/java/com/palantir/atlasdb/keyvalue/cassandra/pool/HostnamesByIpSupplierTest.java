@@ -155,14 +155,14 @@ public class HostnamesByIpSupplierTest {
         }
 
         @Override
-        public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> f)
+        public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
                 throws K {
-            return f.apply(client);
+            return fn.apply(client);
         }
 
         @Override
-        public <V> V runWithPooledResource(Function<CassandraClient, V> f) {
-            return f.apply(client);
+        public <V> V runWithPooledResource(Function<CassandraClient, V> fn) {
+            return fn.apply(client);
         }
 
         @Override

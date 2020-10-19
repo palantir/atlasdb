@@ -223,13 +223,13 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
-        if (config.addressTranslation().containsKey(host)) {
-            return config.addressTranslation().get(host);
+    InetSocketAddress getAddressForHost(String inputHost) throws UnknownHostException {
+        if (config.addressTranslation().containsKey(inputHost)) {
+            return config.addressTranslation().get(inputHost);
         }
 
         Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
-        host = hostnamesByIp.getOrDefault(host, host);
+        String host = hostnamesByIp.getOrDefault(inputHost, inputHost);
 
         InetAddress resolvedHost = InetAddress.getByName(host);
         Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(),
