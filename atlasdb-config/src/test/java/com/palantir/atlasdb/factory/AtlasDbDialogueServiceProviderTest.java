@@ -144,7 +144,7 @@ public class AtlasDbDialogueServiceProviderTest {
 
         Instant start = Instant.now();
         ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
-        ex.submit(this::scheduleServerRecoveryAfterFiveSeconds);
+        ex.execute(this::scheduleServerRecoveryAfterFiveSeconds);
 
         assertThatCode(() -> makeTimestampsRequest(conjureTimelockService)).doesNotThrowAnyException();
         assertThat(Instant.now())

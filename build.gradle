@@ -112,7 +112,6 @@ allprojects {
                 'CheckReturnValue',
                 'DangerousCompletableFutureUsage',
                 'DoNotMock',
-                'ExecutorSubmitRunnableFutureIgnored',
                 'ExtendsErrorOrThrowable',
                 'ImmutablesBuilderMissingInitialization',
                 'InputStreamSlowMultibyteRead',
