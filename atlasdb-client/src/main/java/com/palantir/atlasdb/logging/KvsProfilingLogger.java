@@ -223,7 +223,7 @@ public class KvsProfilingLogger {
          */
         void log() {
             stopwatch.stop();
-            Consumer<LoggingFunction> logger = (loggingMethod) -> {
+            Consumer<LoggingFunction> logger = loggingMethod -> {
                 try (CloseableLoggingFunction wrappingLogger = new LogAccumulator(loggingMethod)) {
                     primaryLogger.accept(wrappingLogger, stopwatch);
                     if (result != null) {

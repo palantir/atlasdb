@@ -89,7 +89,7 @@ public class TodoClient {
     }
 
     public long addTodoWithIdAndReturnTimestamp(long id, Todo todo) {
-        return transactionManager.runTaskWithRetry((transaction) -> {
+        return transactionManager.runTaskWithRetry(transaction -> {
             Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(id), TodoSchema.todoTextColumn());
             Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(todo.text()));
 
@@ -105,7 +105,7 @@ public class TodoClient {
     }
 
     public List<Todo> getTodoList() {
-        ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry((transaction) -> {
+        ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry(transaction -> {
             BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable =
                     transaction.getRange(TodoSchema.todoTable(), RangeRequest.all());
             ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();

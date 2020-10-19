@@ -70,7 +70,7 @@ class CassandraTables {
     }
 
     private Set<String> getExistingLowerCased(String keyspace) throws TException {
-        return clientPool.runWithRetry((client) -> getExistingLowerCased(client, keyspace));
+        return clientPool.runWithRetry(client -> getExistingLowerCased(client, keyspace));
     }
 
     private Set<String> getExistingLowerCased(CassandraClient client, String keyspace) throws TException {

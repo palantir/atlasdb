@@ -76,7 +76,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldAcquireRowLockIfLocksAtRowLevel(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockRowsForConflicts());
 
-        PreCommitCondition rowLocksAcquired = (ignored) -> {
+        PreCommitCondition rowLocksAcquired = ignored -> {
             LockResponse response = acquireRowLock(ROW);
             assertFalse(response.wasSuccessful());
         };
@@ -88,7 +88,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldAcquireCellLockIfLocksAtCellLevel(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts());
 
-        PreCommitCondition cellLocksAcquired = (ignored) -> {
+        PreCommitCondition cellLocksAcquired = ignored -> {
             LockResponse response = acquireCellLock(ROW, COLUMN);
             assertFalse(response.wasSuccessful());
         };
@@ -100,7 +100,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldNotAcquireRowLockIfDoesNotLockAtRowLevel(ConflictHandler conflictHandler) {
         Assume.assumeFalse(conflictHandler.lockRowsForConflicts());
 
-        PreCommitCondition canAcquireRowLock = (ignored) -> {
+        PreCommitCondition canAcquireRowLock = ignored -> {
             LockResponse response = acquireRowLock(ROW);
             assertTrue(response.wasSuccessful());
         };
@@ -112,7 +112,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldNotAcquireCellLockIfDoesNotLockAtCellLevel(ConflictHandler conflictHandler) {
         Assume.assumeFalse(conflictHandler.lockCellsForConflicts());
 
-        PreCommitCondition canAcquireCellLock = (ignored) -> {
+        PreCommitCondition canAcquireCellLock = ignored -> {
             LockResponse response = acquireCellLock(ROW, COLUMN);
             // current lock implementation allows you to get a cell lock on a row that is already locked
             assertTrue(response.wasSuccessful());
@@ -125,7 +125,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldAcquireRowAndCellLockIfRequiresBoth(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts() && conflictHandler.lockRowsForConflicts());
 
-        PreCommitCondition cellAndRowLockAcquired = (ignored) -> {
+        PreCommitCondition cellAndRowLockAcquired = ignored -> {
             LockResponse cellLockResponse = acquireCellLock(ROW, COLUMN);
             LockResponse rowLockResponse = acquireRowLock(ROW);
 
@@ -140,7 +140,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void canAcquireLockOnMultipleCellsOnSameRow(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts());
 
-        PreCommitCondition canAcquireLockOnDifferentCell = (ignored) -> {
+        PreCommitCondition canAcquireLockOnDifferentCell = ignored -> {
             LockResponse response = acquireCellLock(ROW, OTHER_COLUMN);
             assertTrue(response.wasSuccessful());
         };

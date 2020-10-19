@@ -219,7 +219,7 @@ public final class LoggingArgs {
                 "range",
                 range,
                 range.getColumnNames().stream()
-                        .allMatch((columnName) ->
+                        .allMatch(columnName ->
                                 logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
     }
 

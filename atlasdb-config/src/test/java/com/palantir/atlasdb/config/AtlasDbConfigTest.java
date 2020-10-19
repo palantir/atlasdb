@@ -199,7 +199,7 @@ public class AtlasDbConfigTest {
                         .leader(LEADER_CONFIG)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies((exception) -> assertThat(exception.getMessage(), containsString("config needs to be set")));
+                .satisfies(exception -> assertThat(exception.getMessage(), containsString("config needs to be set")));
     }
 
     @Test
@@ -209,8 +209,7 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(
-                        (exception) -> assertThat(exception.getMessage(), containsString("config should be present")));
+                .satisfies(exception -> assertThat(exception.getMessage(), containsString("config should be present")));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -266,7 +265,7 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies((exception) ->
+                .satisfies(exception ->
                         assertThat(exception.getMessage(), containsString("TimeLock client should not be empty")));
     }
 
@@ -292,7 +291,7 @@ public class AtlasDbConfigTest {
                         .build())
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies(
-                        (exception) -> assertThat(exception.getMessage(), containsString("config should be the same")));
+                        exception -> assertThat(exception.getMessage(), containsString("config should be the same")));
     }
 
     @Test
@@ -304,7 +303,7 @@ public class AtlasDbConfigTest {
                         .build())
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies(
-                        (exception) -> assertThat(exception.getMessage(), containsString("config should be the same")));
+                        exception -> assertThat(exception.getMessage(), containsString("config should be the same")));
     }
 
     @Test
@@ -325,7 +324,7 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies((exception) ->
+                .satisfies(exception ->
                         assertThat(exception.getMessage(), containsString("avoid potential data corruption")));
     }
 
@@ -338,7 +337,7 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies((exception) ->
+                .satisfies(exception ->
                         assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
     }
 
@@ -351,7 +350,7 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies((exception) ->
+                .satisfies(exception ->
                         assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
     }
 
@@ -364,7 +363,7 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies((exception) ->
+                .satisfies(exception ->
                         assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
     }
 

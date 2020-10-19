@@ -221,7 +221,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 defaultGetRangesConcurrency,
                 transactionConfig);
         return runTaskThrowOnConflict(
-                (transaction) -> task.execute(transaction, condition),
+                transaction -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 }

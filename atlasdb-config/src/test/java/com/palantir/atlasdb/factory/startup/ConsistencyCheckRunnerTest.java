@@ -108,7 +108,7 @@ public class ConsistencyCheckRunnerTest {
 
     private static TransactionManagerConsistencyCheck getConsistencyCheckReturning(
             TransactionManagerConsistencyResult result) {
-        return (unused) -> result;
+        return unused -> result;
     }
 
     private void initializeRunnerWithChecks(TransactionManagerConsistencyCheck... checks) {

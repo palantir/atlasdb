@@ -64,7 +64,7 @@ public abstract class NodesDownTestSetup {
     }
 
     private static void degradeCassandraCluster(List<String> nodesToKill) {
-        nodesToKill.forEach((containerName) -> {
+        nodesToKill.forEach(containerName -> {
             try {
                 killCassandraContainer(containerName);
             } catch (IOException | InterruptedException e) {

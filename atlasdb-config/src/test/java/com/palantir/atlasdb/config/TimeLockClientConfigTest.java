@@ -78,7 +78,7 @@ public class TimeLockClientConfigTest {
                         .serversList(SERVERS_LIST)
                         .build())
                 .isInstanceOf(IllegalArgumentException.class)
-                .satisfies((exception) ->
+                .satisfies(exception ->
                         assertThat(exception.getMessage(), containsString("Timelock client string cannot be empty")));
     }
 

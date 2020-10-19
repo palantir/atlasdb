@@ -341,7 +341,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         sweepTimestamp.set(Long.MAX_VALUE);
         List<List<Cell>> sweptCells = new ArrayList<>();
 
-        doAnswer((invocationOnMock) -> {
+        doAnswer(invocationOnMock -> {
                     Object[] arguments = invocationOnMock.getArguments();
                     Collection<Cell> sentinelsToAdd = (Collection<Cell>) arguments[2];
                     sweptCells.add(new ArrayList(sentinelsToAdd));
