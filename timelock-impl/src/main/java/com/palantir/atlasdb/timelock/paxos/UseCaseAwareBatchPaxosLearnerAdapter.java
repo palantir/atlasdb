@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
+public final class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
 
     private final PaxosUseCase useCase;
     private final BatchPaxosLearnerRpcClient rpcClient;

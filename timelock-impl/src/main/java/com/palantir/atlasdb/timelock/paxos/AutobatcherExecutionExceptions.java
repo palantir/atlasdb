@@ -19,7 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import com.palantir.logsafe.Preconditions;
 import java.util.concurrent.ExecutionException;
 
-class AutobatcherExecutionExceptions {
+final class AutobatcherExecutionExceptions {
 
     private AutobatcherExecutionExceptions() {}
 

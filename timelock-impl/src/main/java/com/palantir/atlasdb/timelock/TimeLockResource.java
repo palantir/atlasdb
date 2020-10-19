@@ -27,7 +27,7 @@ import javax.ws.rs.PathParam;
  */
 @Path("/{namespace: (?!tl/)[a-zA-Z0-9_-]+}")
 @Deprecated
-public class TimeLockResource {
+public final class TimeLockResource {
     private final TimelockNamespaces namespaces;
 
     private TimeLockResource(TimelockNamespaces namespaces) {

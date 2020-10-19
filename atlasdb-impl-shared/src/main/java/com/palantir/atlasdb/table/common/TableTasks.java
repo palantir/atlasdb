@@ -508,7 +508,7 @@ public final class TableTasks {
         PartialCopyStats call(RangeRequest request, MutableRange range) throws InterruptedException;
     }
 
-    private static class PartialCopyStats {
+    private static final class PartialCopyStats {
         private long rowsCopied = 0;
         private long cellsCopied = 0;
     }

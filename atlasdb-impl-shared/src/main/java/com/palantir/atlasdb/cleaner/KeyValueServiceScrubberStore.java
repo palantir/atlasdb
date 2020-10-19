@@ -51,7 +51,7 @@ import java.util.TreeMap;
  *
  */
 public final class KeyValueServiceScrubberStore implements ScrubberStore {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_ScrubberStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_ScrubberStore {
         @Override
         public ScrubberStore delegate() {
             checkInitialized();

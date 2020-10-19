@@ -35,7 +35,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class TimeLockManagementResource implements UndertowTimeLockManagementService {
+public final class TimeLockManagementResource implements UndertowTimeLockManagementService {
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;

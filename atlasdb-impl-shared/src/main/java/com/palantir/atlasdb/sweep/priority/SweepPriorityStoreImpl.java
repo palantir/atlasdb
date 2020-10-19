@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.OptionalLong;
 
 public final class SweepPriorityStoreImpl implements SweepPriorityStore {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepPriorityStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepPriorityStore {
 
         @Override
         public SweepPriorityStoreImpl delegate() {

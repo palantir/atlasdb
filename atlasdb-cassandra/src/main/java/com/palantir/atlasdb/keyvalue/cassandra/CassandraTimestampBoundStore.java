@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
         @Override
         public TimestampBoundStore delegate() {
             checkInitialized();

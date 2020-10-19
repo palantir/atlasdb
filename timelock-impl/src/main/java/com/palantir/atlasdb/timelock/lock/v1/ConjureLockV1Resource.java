@@ -40,7 +40,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
+public final class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, LockService> lockServices;
 

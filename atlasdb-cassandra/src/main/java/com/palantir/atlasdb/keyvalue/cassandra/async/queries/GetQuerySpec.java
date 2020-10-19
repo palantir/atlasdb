@@ -121,7 +121,7 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         return Objects.hash(cqlQueryContext, getQueryParameters);
     }
 
-    private static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
+    private static final class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
 
         private volatile Value resultValue = null;
         private volatile boolean assigned = false;

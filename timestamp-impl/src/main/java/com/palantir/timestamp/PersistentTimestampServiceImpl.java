@@ -26,7 +26,8 @@ import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class PersistentTimestampServiceImpl implements PersistentTimestampService {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PersistentTimestampService {
+    private final class InitializingWrapper extends AsyncInitializer
+            implements AutoDelegate_PersistentTimestampService {
         @Override
         public PersistentTimestampService delegate() {
             checkInitialized();

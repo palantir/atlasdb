@@ -27,7 +27,7 @@ import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.function.Predicate;
 
-public class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
+public final class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
     private Predicate<Client> leadershipCheck;
     private FeedbackHandler feedbackHandler;
 

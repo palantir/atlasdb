@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
-public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
+public final class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
 
     private final DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponse> learn;
     private final DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>>
