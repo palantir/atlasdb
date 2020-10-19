@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.memory;
 
-import java.util.Map;
-
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
@@ -33,6 +31,7 @@ import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Map;
 
 @AutoService(DbTimeLockFactory.class)
 public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {

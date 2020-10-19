@@ -18,7 +18,6 @@ package com.palantir.lock.watch;
 
 import java.util.List;
 import java.util.Map;
-
 import org.immutables.value.Value;
 
 /**

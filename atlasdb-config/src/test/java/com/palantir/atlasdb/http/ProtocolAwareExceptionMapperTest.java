@@ -18,11 +18,10 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import org.junit.Test;
 
 public class ProtocolAwareExceptionMapperTest {
     private static final UserAgent USER_AGENT_1 = createBaseUserAgent("Bond", "0.0.7");

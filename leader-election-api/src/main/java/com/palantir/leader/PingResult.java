@@ -16,14 +16,12 @@
 
 package com.palantir.leader;
 
-import java.io.Serializable;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.Serializable;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable(intern = true)
 @JsonSerialize(as = ImmutablePingResult.class)

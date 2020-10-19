@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import java.util.Iterator;
+import java.util.Map;
 
 public class LocalRowColumnRangeIterator implements RowColumnRangeIterator {
     private final Iterator<Map.Entry<Cell, Value>> it;

@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -22,10 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class SweepableCellFilter {
     private final CommitTsCache commitTsCache;

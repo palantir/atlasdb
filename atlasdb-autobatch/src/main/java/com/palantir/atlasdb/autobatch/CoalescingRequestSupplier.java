@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import com.palantir.logsafe.Preconditions;
 
 public final class CoalescingRequestSupplier<T> implements CoalescingRequestFunction<Autobatchers.SupplierKey, T> {
 

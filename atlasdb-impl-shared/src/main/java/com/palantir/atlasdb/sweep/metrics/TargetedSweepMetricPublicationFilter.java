@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongSupplier;
-
 import org.immutables.value.Value;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 
 /**
  * Indicates whether targeted sweep metrics should be published.

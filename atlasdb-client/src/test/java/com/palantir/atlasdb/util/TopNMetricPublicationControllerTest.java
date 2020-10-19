@@ -19,17 +19,15 @@ package com.palantir.atlasdb.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.codahale.metrics.Gauge;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
-
-import com.codahale.metrics.Gauge;
-import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 
 public class TopNMetricPublicationControllerTest {
     @Test

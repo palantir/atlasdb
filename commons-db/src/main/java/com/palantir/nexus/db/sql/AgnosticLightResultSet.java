@@ -15,10 +15,9 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.palantir.common.visitor.Visitor;
 import java.io.Closeable;
 import java.util.Iterator;
-
-import com.palantir.common.visitor.Visitor;
 
 /**
  * This result set only loads one row at a time, and thus provides a

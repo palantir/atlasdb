@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import java.util.Map;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 
 @State(Scope.Benchmark)
 public class KvsGetRowsBenchmarks {

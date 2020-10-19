@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.LongSummaryStatistics;
-import java.util.Map;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import java.util.LongSummaryStatistics;
+import java.util.Map;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
 interface TimestampMapping {

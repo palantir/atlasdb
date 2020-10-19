@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
@@ -29,6 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This controller makes decisions based on deltas (in an attempt to be able to detect load spikes) measured over the

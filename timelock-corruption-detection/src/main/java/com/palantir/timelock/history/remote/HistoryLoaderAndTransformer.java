@@ -16,10 +16,6 @@
 
 package com.palantir.timelock.history.remote;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -29,6 +25,9 @@ import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class HistoryLoaderAndTransformer {
     private HistoryLoaderAndTransformer() {

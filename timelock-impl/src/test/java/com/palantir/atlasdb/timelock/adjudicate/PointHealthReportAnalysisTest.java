@@ -18,9 +18,8 @@ package com.palantir.atlasdb.timelock.adjudicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.timelock.feedback.EndpointStatistics;
+import org.junit.Test;
 
 public class PointHealthReportAnalysisTest {
     private static final String CLIENT_1 = "Client1";

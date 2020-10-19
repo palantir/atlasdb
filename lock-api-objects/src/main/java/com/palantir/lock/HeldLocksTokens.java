@@ -15,9 +15,8 @@
  */
 package com.palantir.lock;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
+import javax.annotation.Nullable;
 
 public final class HeldLocksTokens {
     private HeldLocksTokens() {/**/}

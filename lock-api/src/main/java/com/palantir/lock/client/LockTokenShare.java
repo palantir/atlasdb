@@ -16,14 +16,13 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import com.palantir.lock.v2.LockToken;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 final class LockTokenShare implements LockToken {
     private final UUID requestId;

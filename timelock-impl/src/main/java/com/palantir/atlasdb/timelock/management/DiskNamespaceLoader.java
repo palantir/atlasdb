@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,11 +28,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.paxos.Client;
 
 public final class DiskNamespaceLoader implements PersistentNamespaceLoader {
     private static final Logger log = LoggerFactory.getLogger(DiskNamespaceLoader.class);

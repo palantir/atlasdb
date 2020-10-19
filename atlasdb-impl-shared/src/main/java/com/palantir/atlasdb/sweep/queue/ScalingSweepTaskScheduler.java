@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import java.io.Closeable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
-
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 
 public class ScalingSweepTaskScheduler implements Closeable {
     static final long INITIAL_DELAY = 1_000L;

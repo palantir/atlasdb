@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 

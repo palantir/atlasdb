@@ -15,14 +15,13 @@
  */
 package com.palantir.lock;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.Map;
+import java.util.Set;
 
 public abstract class SimplifyingLockService implements AutoDelegate_LockService, CloseableLockService {
 

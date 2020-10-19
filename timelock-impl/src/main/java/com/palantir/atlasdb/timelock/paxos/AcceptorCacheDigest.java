@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.paxos.Client;
+import java.util.Map;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableAcceptorCacheDigest.class)

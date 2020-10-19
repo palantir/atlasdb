@@ -16,9 +16,8 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Set;
-
 import com.palantir.paxos.Client;
+import java.util.Set;
 
 public interface NamespaceTracker {
     Set<Client> trackedNamespaces();

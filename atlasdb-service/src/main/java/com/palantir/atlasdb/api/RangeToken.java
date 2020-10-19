@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.api;
 
-import javax.annotation.Nullable;
-
 import com.palantir.logsafe.Preconditions;
+import javax.annotation.Nullable;
 
 /*
  * <pre>

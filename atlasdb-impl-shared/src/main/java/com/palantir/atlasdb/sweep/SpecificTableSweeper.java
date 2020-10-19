@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -41,6 +36,9 @@ import com.palantir.common.time.Clock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SpecificTableSweeper {
     private static final Logger log = LoggerFactory.getLogger(SpecificTableSweeper.class);

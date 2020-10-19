@@ -18,9 +18,11 @@ package com.palantir.atlasdb.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
+import com.palantir.atlasdb.util.MetricsManagers;
 import java.io.File;
 import java.io.IOException;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -28,10 +30,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
-import com.palantir.atlasdb.util.MetricsManagers;
 
 public final class RocksDbOffHeapTimestampCacheIntegrationTests {
     @ClassRule

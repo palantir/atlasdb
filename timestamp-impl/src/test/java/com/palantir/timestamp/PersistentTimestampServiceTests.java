@@ -19,12 +19,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
+import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
-import com.palantir.common.remoting.ServiceNotAvailableException;
 
 // Test PersistentTimestampServiceImpl by fully instantiating it with an InMemoryTimestampBoundStore.
 // See also PersistentTimestampServiceMockingTest that mocks AvailableTimestamps instead.

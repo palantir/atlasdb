@@ -17,12 +17,6 @@
 package com.palantir.atlasdb.cassandra;
 
 
-import java.net.InetSocketAddress;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -31,6 +25,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.net.InetSocketAddress;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public final class CassandraServersConfigs {
     private CassandraServersConfigs() {

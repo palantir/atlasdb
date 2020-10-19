@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-import java.util.Map.Entry;
-
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -51,6 +44,11 @@ import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TableMigratorTest extends AtlasDbTestCase {
     @Test

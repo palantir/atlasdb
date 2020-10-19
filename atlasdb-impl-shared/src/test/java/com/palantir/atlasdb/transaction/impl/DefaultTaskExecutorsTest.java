@@ -18,13 +18,11 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 public class DefaultTaskExecutorsTest {
     @Test

@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import com.google.common.collect.Sets;
 import java.time.Duration;
 import java.util.Set;
-
 import org.apache.commons.lang3.math.Fraction;
-
-import com.google.common.collect.Sets;
 
 public final class Constants {
     private Constants() {

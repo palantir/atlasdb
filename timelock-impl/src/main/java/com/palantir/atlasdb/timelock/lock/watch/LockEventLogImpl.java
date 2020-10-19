@@ -16,24 +16,23 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.google.common.collect.RangeSet;
+import com.palantir.atlasdb.timelock.lock.AsyncLock;
+import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.UnlockEvent;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.timelock.lock.AsyncLock;
-import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.UnlockEvent;
 
 public class LockEventLogImpl implements LockEventLog {
     private final UUID logId;

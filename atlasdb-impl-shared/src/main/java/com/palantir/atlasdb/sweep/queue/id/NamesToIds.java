@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue.id;
 
-import java.util.Collections;
-import java.util.Optional;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.schema.generated.SweepNameToIdTable.SweepNameToIdNam
 import com.palantir.atlasdb.schema.generated.SweepNameToIdTable.SweepNameToIdRow;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collections;
+import java.util.Optional;
 
 class NamesToIds {
     private static final TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();

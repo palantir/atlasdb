@@ -15,10 +15,9 @@
  */
 package com.palantir.exception;
 
+import com.palantir.common.exception.PalantirRuntimeException;
 import java.sql.SQLException;
 import java.util.Optional;
-
-import com.palantir.common.exception.PalantirRuntimeException;
 
 /**
  * SQLExceptions are checked. However, generally speaking, we just want to propagate them.
@@ -85,4 +84,3 @@ public class PalantirSqlException extends PalantirRuntimeException {
         return new PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION.YES, msg);
     }
 }
-

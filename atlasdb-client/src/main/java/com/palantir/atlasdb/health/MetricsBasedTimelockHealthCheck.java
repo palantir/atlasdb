@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.health;
 
-import java.util.Map;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.Map;
 
 public class MetricsBasedTimelockHealthCheck implements TimelockHealthCheck{
     private final MetricsManager metricsManager;

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.util.function.Function;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceEndpoi
 import com.palantir.atlasdb.timelock.lock.watch.UndertowConjureLockWatchingService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.function.Function;
 
 public final class ConjureLockWatchingResource implements UndertowConjureLockWatchingService {
     private final ConjureResourceExceptionHandler exceptionHandler;

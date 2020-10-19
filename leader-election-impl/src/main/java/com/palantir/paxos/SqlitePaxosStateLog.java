@@ -16,12 +16,11 @@
 
 package com.palantir.paxos;
 
+import com.palantir.common.persist.Persistable;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
-
 import javax.sql.DataSource;
-
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SingleValue;
@@ -31,8 +30,6 @@ import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlBatch;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
-
-import com.palantir.common.persist.Persistable;
 
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {

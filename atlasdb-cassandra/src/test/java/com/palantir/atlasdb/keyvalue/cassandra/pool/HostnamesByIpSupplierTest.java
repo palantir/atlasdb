@@ -23,11 +23,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
+import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.pooling.PoolingContainer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
@@ -39,13 +44,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
-import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.pooling.PoolingContainer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HostnamesByIpSupplierTest {

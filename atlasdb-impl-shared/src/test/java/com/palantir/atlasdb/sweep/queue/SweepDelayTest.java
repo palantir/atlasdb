@@ -24,7 +24,6 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Test;
 
 public class SweepDelayTest {

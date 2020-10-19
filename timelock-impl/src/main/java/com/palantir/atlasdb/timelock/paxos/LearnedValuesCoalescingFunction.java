@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
@@ -27,6 +23,9 @@ import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 final class LearnedValuesCoalescingFunction implements
         CoalescingRequestFunction<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> {

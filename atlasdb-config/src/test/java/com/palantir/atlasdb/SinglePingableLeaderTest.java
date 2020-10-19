@@ -16,22 +16,8 @@
 
 package com.palantir.atlasdb;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.IntStream;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -51,6 +37,17 @@ import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class SinglePingableLeaderTest {
     private static final UUID LOCAL_UUID = UUID.randomUUID();

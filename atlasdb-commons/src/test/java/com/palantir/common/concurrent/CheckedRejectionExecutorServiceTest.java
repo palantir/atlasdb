@@ -25,13 +25,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.util.concurrent.Futures;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Futures;
 
 public class CheckedRejectionExecutorServiceTest {
     private static final Runnable DO_NOTHING = () -> {};

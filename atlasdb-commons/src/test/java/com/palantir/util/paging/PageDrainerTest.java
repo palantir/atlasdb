@@ -16,16 +16,13 @@
 package com.palantir.util.paging;
 
 import static java.lang.Math.min;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import java.util.List;
+import org.junit.Test;
 
 public class PageDrainerTest {
     private static final int PAGE_SIZE = 10;

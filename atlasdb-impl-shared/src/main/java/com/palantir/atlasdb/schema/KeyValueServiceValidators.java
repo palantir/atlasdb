@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class KeyValueServiceValidators {
     private KeyValueServiceValidators() {

@@ -16,19 +16,16 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import static com.palantir.conjure.java.api.testing.Assertions.assertThatServiceExceptionThrownBy;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.conjure.java.api.testing.Assertions.assertThatServiceExceptionThrownBy;
-
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.palantir.logsafe.SafeArg;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BatchPaxosAcceptorResourceTests {

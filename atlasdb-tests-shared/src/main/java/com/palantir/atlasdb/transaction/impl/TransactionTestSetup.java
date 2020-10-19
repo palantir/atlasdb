@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
-
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.rules.TemporaryFolder;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -64,6 +52,16 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.rules.TemporaryFolder;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
 public abstract class TransactionTestSetup {
     @ClassRule

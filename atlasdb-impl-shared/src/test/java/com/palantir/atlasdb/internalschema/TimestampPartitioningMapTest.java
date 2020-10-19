@@ -19,10 +19,9 @@ package com.palantir.atlasdb.internalschema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
+import org.junit.Test;
 
 public class TimestampPartitioningMapTest {
     private static final TimestampPartitioningMap<Integer> DEFAULT_INITIAL_MAPPING

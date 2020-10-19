@@ -18,15 +18,13 @@ package com.palantir.atlasdb.autobatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import java.util.Map;
+import org.junit.Test;
 
 public class BatchSizeRecorderTest {
     private static final String SAFE_IDENTIFIER = "identifier";

@@ -18,17 +18,15 @@ package com.palantir.atlasdb.timelock.auth.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.lock.TimelockNamespace;
+import java.io.File;
+import java.io.IOException;
+import org.junit.Test;
 
 public class PrivilegesConfigurationTest {
     private static final String ADMIN_PRIVILEGES_CONFIG = "admin-privileges-config";

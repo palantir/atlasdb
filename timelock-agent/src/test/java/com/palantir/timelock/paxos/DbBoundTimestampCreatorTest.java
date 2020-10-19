@@ -18,12 +18,11 @@ package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.paxos.Client;
+import org.junit.Test;
 
 public class DbBoundTimestampCreatorTest {
     private static final Client CLIENT_1 = Client.of("tom");

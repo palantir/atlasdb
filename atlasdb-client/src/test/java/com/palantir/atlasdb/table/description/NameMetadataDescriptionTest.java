@@ -19,8 +19,6 @@ package com.palantir.atlasdb.table.description;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +28,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.exception.PalantirRuntimeException;
+import org.junit.Test;
 
 public class NameMetadataDescriptionTest {
     private static final NameMetadataDescription SIMPLE_NAME_METADATA_DESCRIPTION = NameMetadataDescription.safe(
@@ -74,7 +73,7 @@ public class NameMetadataDescriptionTest {
     public void duplicateFieldsAreTolerated() {
         String invalidJson = "{\"string\": \"tom\", \"string\": \"robert\"}";
         byte[] result = SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(invalidJson, false);
-        
+
         // Which value is selected is an implementation detail - we should not guarantee this.
         assertThat(result).satisfiesAnyOf(
                 (bytes) -> assertThat(bytes).containsExactly(PtBytes.toBytes("tom")),

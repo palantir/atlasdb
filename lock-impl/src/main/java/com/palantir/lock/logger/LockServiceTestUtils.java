@@ -15,12 +15,6 @@
  */
 package com.palantir.lock.logger;
 
-import java.io.File;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.palantir.lock.HeldLocksToken;
@@ -30,6 +24,11 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
+import java.io.File;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
 
 public class LockServiceTestUtils {
     public static final String TEST_LOG_STATE_DIR = "log-state";

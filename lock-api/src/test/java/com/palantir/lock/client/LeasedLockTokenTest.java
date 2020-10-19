@@ -19,16 +19,14 @@ package com.palantir.lock.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Duration;
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
+import java.time.Duration;
+import java.util.UUID;
+import org.junit.Test;
 
 public class LeasedLockTokenTest {
     private static final ConjureLockToken LOCK_TOKEN = ConjureLockToken.of(UUID.randomUUID());

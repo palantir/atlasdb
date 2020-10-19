@@ -22,13 +22,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.palantir.logsafe.SafeArg;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
-
-import com.palantir.logsafe.SafeArg;
 
 public class PostgresVersionCheckTest {
 

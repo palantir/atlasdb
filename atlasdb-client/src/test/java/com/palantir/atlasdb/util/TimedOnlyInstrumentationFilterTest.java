@@ -18,13 +18,12 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.metrics.Timed;
 import org.assertj.core.api.AbstractBooleanAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.palantir.atlasdb.metrics.Timed;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class TimedOnlyInstrumentationFilterTest {

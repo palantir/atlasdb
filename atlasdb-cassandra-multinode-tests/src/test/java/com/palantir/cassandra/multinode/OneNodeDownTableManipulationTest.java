@@ -17,13 +17,12 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import org.junit.Test;
 
 public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTest {
     private static final TableReference TABLE_TO_DROP = TableReference.createWithEmptyNamespace("table_to_drop");

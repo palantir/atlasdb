@@ -16,19 +16,6 @@
 
 package com.palantir.timelock.history.sqlite;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-
-import javax.sql.DataSource;
-
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
-import org.jdbi.v3.sqlobject.customizer.Bind;
-import org.jdbi.v3.sqlobject.customizer.BindPojo;
-import org.jdbi.v3.sqlobject.statement.SqlQuery;
-
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosRound;
@@ -42,6 +29,16 @@ import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.ImmutableLearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.LearnerUseCase;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import javax.sql.DataSource;
+import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
+import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.customizer.BindPojo;
+import org.jdbi.v3.sqlobject.statement.SqlQuery;
 
 public final class SqlitePaxosStateLogHistory {
     private final Jdbi jdbi;

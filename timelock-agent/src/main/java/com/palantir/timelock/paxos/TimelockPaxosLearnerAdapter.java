@@ -16,12 +16,11 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Collection;
-import java.util.Optional;
-
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
+import java.util.Collection;
+import java.util.Optional;
 
 public final class TimelockPaxosLearnerAdapter implements PaxosLearner {
     private final PaxosUseCase paxosUseCase;

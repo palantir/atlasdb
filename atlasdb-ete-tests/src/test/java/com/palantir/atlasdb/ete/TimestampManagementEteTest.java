@@ -21,9 +21,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
+import org.junit.Test;
 
 public class TimestampManagementEteTest {
 

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -45,6 +39,10 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.collect.Maps2;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
+import java.util.Map;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KvsRangeMigrator implements RangeMigrator {
     private static final Logger log = LoggerFactory.getLogger(KvsRangeMigrator.class);

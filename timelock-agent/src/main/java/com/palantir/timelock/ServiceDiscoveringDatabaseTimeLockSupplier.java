@@ -16,9 +16,6 @@
 
 package com.palantir.timelock;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
@@ -34,6 +31,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * See {@link com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier}. This differs in that it encodes

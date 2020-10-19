@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.cleaner.api;
 
-import java.io.Closeable;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.io.Closeable;
 
 /**
  * A {@link Cleaner} is good for two things: it scrubs and it punches. Scrubbing is an on-demand

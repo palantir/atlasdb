@@ -15,16 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @ClassRule

@@ -16,18 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Bytes;
+import com.palantir.lock.LockDescriptor;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import org.immutables.value.Value;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Bytes;
-import com.palantir.lock.LockDescriptor;
-
 import okio.ByteString;
+import org.immutables.value.Value;
 
 public final class AtlasLockDescriptorUtils {
     private AtlasLockDescriptorUtils() {

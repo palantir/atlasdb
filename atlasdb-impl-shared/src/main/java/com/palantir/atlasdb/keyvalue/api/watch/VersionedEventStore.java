@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Collection;
-import java.util.NavigableMap;
-import java.util.Optional;
-import java.util.TreeMap;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collection;
+import java.util.NavigableMap;
+import java.util.Optional;
+import java.util.TreeMap;
 
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;

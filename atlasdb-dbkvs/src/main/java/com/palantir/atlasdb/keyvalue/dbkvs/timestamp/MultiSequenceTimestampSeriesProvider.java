@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Set;
-
-import org.apache.commons.dbutils.QueryRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -33,6 +25,12 @@ import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.pool.ConnectionManager;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Set;
+import org.apache.commons.dbutils.QueryRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reads all of the series from a timestamp table written to by timestamp bound stores using the

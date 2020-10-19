@@ -17,12 +17,11 @@ package com.palantir.atlasdb.cli.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cli.runner.StandardStreamUtilities;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 public class OutputPrinterTest {
     private static final OutputPrinter print = new OutputPrinter(LoggerFactory.getLogger(OutputPrinter.class));

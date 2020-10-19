@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.util.Optional;
-
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
@@ -33,6 +31,7 @@ import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
 
 @AutoService(DbTimeLockFactory.class)
 public class RelationalDbTimeLockFactory implements DbTimeLockFactory {

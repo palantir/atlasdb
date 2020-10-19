@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.assertj.core.api.Assertions;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import org.assertj.core.api.Assertions;
+import org.junit.Test;
 
 @SuppressWarnings("ThrowableInstanceNeverThrown")
 public class RetryLimitReachedExceptionTest {

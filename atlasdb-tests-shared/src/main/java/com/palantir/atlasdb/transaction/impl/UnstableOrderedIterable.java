@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
 
 public final class UnstableOrderedIterable<T> implements Iterable<T> {
     private final Iterator<List<T>> orderingIterator;

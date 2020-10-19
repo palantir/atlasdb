@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Iterator;
-import java.util.List;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +31,9 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
+import java.util.Iterator;
+import java.util.List;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class NameMetadataDescription {

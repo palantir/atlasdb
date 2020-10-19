@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 
 public class TracingPrefsConfig implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(TracingPrefsConfig.class);

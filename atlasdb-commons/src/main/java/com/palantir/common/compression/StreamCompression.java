@@ -16,14 +16,12 @@
 
 package com.palantir.common.compression;
 
+import com.google.common.io.Closeables;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
-
-import com.google.common.io.Closeables;
-
 import net.jpountz.lz4.LZ4BlockInputStream;
 
 public enum StreamCompression {

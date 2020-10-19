@@ -19,10 +19,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
+import org.junit.Test;
 
 public class LockDescriptorTest {
 

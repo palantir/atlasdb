@@ -16,20 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-
-import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-
-import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeoutException;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
@@ -51,6 +41,13 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class DbTimestampStoreInvalidatorCreationTest {
     private final MetricsManager metrics = MetricsManagers.createForTests();

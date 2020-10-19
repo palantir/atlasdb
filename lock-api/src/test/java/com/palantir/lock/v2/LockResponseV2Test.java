@@ -19,14 +19,12 @@ package com.palantir.lock.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Duration;
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.common.time.NanoTime;
+import java.time.Duration;
+import java.util.UUID;
+import org.junit.Test;
 
 public class LockResponseV2Test {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());

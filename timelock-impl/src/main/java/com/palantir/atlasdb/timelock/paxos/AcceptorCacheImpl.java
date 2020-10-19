@@ -16,6 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.collect.Maps;
+import com.google.common.collect.TreeMultimap;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Comparator;
@@ -26,16 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.collect.Maps;
-import com.google.common.collect.TreeMultimap;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.paxos.Client;
 
 public class AcceptorCacheImpl implements AcceptorCache {
 

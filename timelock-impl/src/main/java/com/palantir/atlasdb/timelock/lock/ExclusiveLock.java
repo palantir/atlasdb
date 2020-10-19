@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.UUID;
-
-import javax.annotation.concurrent.GuardedBy;
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.UUID;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.NotThreadSafe;
 
 public class ExclusiveLock implements AsyncLock {
 

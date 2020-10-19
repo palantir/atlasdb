@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -29,6 +24,10 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.paxos.Client;
+import java.io.Closeable;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 public final class AutobatchingLeadershipObserverFactory implements Closeable {
 

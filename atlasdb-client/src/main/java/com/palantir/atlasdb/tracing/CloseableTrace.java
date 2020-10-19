@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.tracing;
 
-import javax.annotation.Nullable;
-
-import org.slf4j.helpers.MessageFormatter;
-
 import com.google.common.collect.ObjectArrays;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.OpenSpan;
 import com.palantir.tracing.api.SpanType;
+import javax.annotation.Nullable;
+import org.slf4j.helpers.MessageFormatter;
 
 public final class CloseableTrace implements AutoCloseable {
 

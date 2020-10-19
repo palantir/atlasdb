@@ -16,25 +16,22 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-
 import static com.palantir.paxos.LeaderPingResults.pingReturnedFalse;
 import static com.palantir.paxos.LeaderPingResults.pingReturnedTrue;
-
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingPingableLeaderFactory.PingRequest;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PingCoalescingFunctionTests {

@@ -19,11 +19,9 @@ package com.palantir.atlasdb.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.table.description.ValueType;
-
 import okio.ByteString;
+import org.junit.Test;
 
 public final class LongEntryMapperTests {
     private LongEntryMapper mapper = new LongEntryMapper();

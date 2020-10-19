@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 class SweepBatchAccumulator {
     private final List<WriteInfo> accumulatedWrites = Lists.newArrayList();

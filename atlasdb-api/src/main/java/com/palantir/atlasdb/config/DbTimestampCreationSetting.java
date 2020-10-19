@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-
-import org.derive4j.Data;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
+import java.util.Optional;
+import org.derive4j.Data;
 
 @Data
 public abstract class DbTimestampCreationSetting {

@@ -23,15 +23,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -46,6 +37,13 @@ import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.SqlitePaxosPersistenceConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class PaxosRemoteClientsTest {
     @Rule

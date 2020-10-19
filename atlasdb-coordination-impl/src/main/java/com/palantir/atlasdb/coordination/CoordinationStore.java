@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.coordination;
 
-import java.util.Optional;
-import java.util.function.Function;
-
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.

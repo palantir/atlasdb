@@ -23,6 +23,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,16 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings("unchecked") // AssertJ assertions
 public class CellLoadingBatcherTest {

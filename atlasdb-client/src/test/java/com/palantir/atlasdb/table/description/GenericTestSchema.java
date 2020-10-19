@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.File;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import java.io.File;
 
 public class GenericTestSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new GenericTestSchema();

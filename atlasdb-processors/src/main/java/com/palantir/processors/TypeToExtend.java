@@ -15,12 +15,12 @@
  */
 package com.palantir.processors;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -29,8 +29,6 @@ import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.TypeMirror;
-
-import com.google.common.collect.Sets;
 
 final class TypeToExtend {
     private final TypeElement typeToExtend;
@@ -54,9 +52,9 @@ final class TypeToExtend {
                 .collect(Collectors.toMap(ExecutableElement::toString, Function.identity(),
                         // In the case of methods with same signature, just pick any of them,
                         // since they're both the same.
-                        (methodSignature1, methodSignature2) -> methodSignature1));
+                        (methodSignature1, _methodSignature2) -> methodSignature1));
 
-        methods = Sets.newHashSet(methodSignatureToMethod.values());
+        methods = new HashSet<>(methodSignatureToMethod.values());
     }
 
     private static List<ExecutableElement> extractMethods(TypeElement typeToExtractMethodsFrom) {

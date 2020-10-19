@@ -17,17 +17,15 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import java.util.List;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LegacySweepMetricsTest {
     private static final long EXAMINED = 15L;

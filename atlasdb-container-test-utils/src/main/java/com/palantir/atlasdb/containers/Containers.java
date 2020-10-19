@@ -15,24 +15,6 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.Proxy;
-import java.net.ProxySelector;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.commons.io.IOUtils;
-import org.awaitility.Awaitility;
-import org.awaitility.Duration;
-import org.junit.rules.ExternalResource;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
@@ -47,6 +29,22 @@ import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.commons.io.IOUtils;
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
+import org.junit.rules.ExternalResource;
 
 @SuppressWarnings("ShutdownHook")
 public class Containers extends ExternalResource {
