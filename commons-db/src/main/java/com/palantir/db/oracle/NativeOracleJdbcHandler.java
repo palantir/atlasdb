@@ -39,6 +39,7 @@ public class NativeOracleJdbcHandler implements JdbcHandler {
         return new ArrayHandler() {
             private ARRAY array = null;
 
+            @Override
             public ARRAY toOracleArray(Connection connection) throws SQLException {
                 OracleConnection oracleConnection = getOracleConnection(connection);
                 StructDescriptor sd = StructDescriptor.createDescriptor(structType, oracleConnection);

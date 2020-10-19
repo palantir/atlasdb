@@ -48,6 +48,7 @@ public final class TransactionConflictDetectionManagerTest {
     @Before
     public void before() {
         conflictDetectionManager = new TransactionConflictDetectionManager(new ConflictDetectionManager(delegate) {
+            @Override
             @Nullable
             public ConflictHandler get(TableReference tableReference) {
                 try {

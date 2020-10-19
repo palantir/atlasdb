@@ -26,6 +26,7 @@ public interface TimestampStorage extends AutoCloseable {
 
     PersistentNamespaceContext persistentNamespaceContext();
 
+    @Override
     default void close() {
         timestampCreator().close();
     }

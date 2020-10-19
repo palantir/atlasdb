@@ -23,5 +23,6 @@ import java.util.function.Supplier;
 public interface TimestampCreator extends AutoCloseable {
     Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig);
 
+    @Override
     void close();
 }

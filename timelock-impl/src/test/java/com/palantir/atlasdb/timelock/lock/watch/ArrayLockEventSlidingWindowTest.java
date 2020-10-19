@@ -107,9 +107,11 @@ public class ArrayLockEventSlidingWindowTest {
 
     @Value.Immutable
     abstract static class FakeLockWatchEvent implements LockWatchEvent {
+        @Override
         @Value.Parameter
         public abstract long sequence();
 
+        @Override
         @Value.Parameter
         public abstract int size();
 
