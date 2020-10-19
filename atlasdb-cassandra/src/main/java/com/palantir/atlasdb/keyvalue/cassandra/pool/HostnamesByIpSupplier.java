@@ -70,7 +70,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
                 logger.debug("Did not find keyspace with hostnames by ip, moving on without them");
                 return ImmutableMap.of();
             }
-            if (systemPalantir.getCf_defs().stream().noneMatch(cfDef -> cfDef.name.equals(HOSTNAMES_BY_IP_TABLE))) {
+            if (isCfNotPresent(systemPalantir, HOSTNAMES_BY_IP_TABLE)) {
                 logger.debug("Did not find table with hostnames by ip, moving on without them");
                 return ImmutableMap.of();
             }
@@ -87,6 +87,10 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
                             row -> getNamedColumnValue(row, IP_COLUMN),
                             row -> getNamedColumnValue(row, HOSTNAME_COLUMN)));
         };
+    }
+
+    private boolean isCfNotPresent(KsDef ksDef, String cfName) {
+        return ksDef.getCf_defs().stream().noneMatch(cfDef -> cfDef.name.equals(cfName));
     }
 
     private static String getNamedColumnValue(CqlRow row, String columnName) {
