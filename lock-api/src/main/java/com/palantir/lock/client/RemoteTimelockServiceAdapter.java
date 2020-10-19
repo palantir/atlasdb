@@ -37,13 +37,13 @@ import com.palantir.timestamp.TimestampRange;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final NamespacedTimelockRpcClient rpcClient;
-    private final NamespacedConjureTimelockService conjureTimelockService;
+    private final NamespacedConjureTimelockServiceImpl conjureTimelockService;
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
     private final CommitTimestampGetter commitTimestampGetter;
 
     private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
-            NamespacedConjureTimelockService conjureTimelockService,
+            NamespacedConjureTimelockServiceImpl conjureTimelockService,
             LockWatchEventCache lockWatchEventCache) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
@@ -54,7 +54,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
-            NamespacedConjureTimelockService conjureClient,
+            NamespacedConjureTimelockServiceImpl conjureClient,
             LockWatchEventCache lockWatchEventCache) {
         return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
     }
@@ -66,7 +66,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             LockWatchEventCache lockWatchEventCache) {
         return create(
                 new NamespacedTimelockRpcClient(rpcClient, timelockNamespace),
-                new NamespacedConjureTimelockService(conjureClient, timelockNamespace),
+                new NamespacedConjureTimelockServiceImpl(conjureClient, timelockNamespace),
                 lockWatchEventCache);
     }
 

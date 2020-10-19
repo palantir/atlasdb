@@ -46,14 +46,14 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
-    private final NamespacedConjureTimelockService delegate;
+    private final NamespacedConjureTimelockServiceImpl delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
     private final BlockEnforcingLockService lockService;
 
     @VisibleForTesting
     LockLeaseService(
-            NamespacedConjureTimelockService delegate,
+            NamespacedConjureTimelockServiceImpl delegate,
             UUID clientId) {
         this.delegate = delegate;
         this.clientId = clientId;
@@ -61,7 +61,7 @@ class LockLeaseService {
         this.lockService = BlockEnforcingLockService.create(delegate);
     }
 
-    static LockLeaseService create(NamespacedConjureTimelockService conjureTimelock) {
+    static LockLeaseService create(NamespacedConjureTimelockServiceImpl conjureTimelock) {
         return new LockLeaseService(conjureTimelock, UUID.randomUUID());
     }
 
