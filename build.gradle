@@ -106,17 +106,9 @@ allprojects {
         }
     }
 
-    plugins.withId('com.palantir.baseline-error-prone', {
-        tasks.withType(JavaCompile).configureEach {
-            options.errorprone.disableWarningsInGeneratedCode = true
-            options.errorprone.errorproneArgs.addAll([
-                '-XepDisableWarningsInGeneratedCode',
-                '-XepExcludedPaths:.*(generated).*',
-            ])
-
-            // temporarily relax constraints until we can fix all violations
-            Set<String> errorsToRelax = [
-                'CatchBlockLogException',
+    tasks.withType(JavaCompile) {
+        // temporarily relax constraints until we can fix all violations
+        options.errorprone.warn 'CatchBlockLogException',
                 'CheckReturnValue',
                 'DangerousCompletableFutureUsage',
                 'DoNotMock',
@@ -135,14 +127,8 @@ allprojects {
                 'Slf4jLevelCheck',
                 'StreamOfEmpty',
                 'StrictUnusedVariable',
-                'ValidateConstantMessage',
-            ]
-            for (String checkName : errorsToRelax) {
-                options.errorprone.warn(checkName)
-            }
-
-        }
-    })
+                'ValidateConstantMessage'
+    }
 }
 
 subprojects {
