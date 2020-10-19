@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.codahale.metrics.Histogram;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.FluentFuture;
@@ -37,6 +36,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -58,7 +58,7 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
     private final Duration leaderPingResponseWait;
     private final UUID nodeUuid;
 
-    private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = Maps.newConcurrentMap();
+    private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = new ConcurrentHashMap<>();
     private final AtomicReference<LastSuccessfulResult> lastSuccessfulResult = new AtomicReference<>();
     private final Histogram histogram;
 

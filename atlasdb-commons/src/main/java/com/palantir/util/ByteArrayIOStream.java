@@ -118,7 +118,7 @@ public class ByteArrayIOStream extends OutputStream {
         outputPos += len;
     }
 
-    private class Input extends InputStream {
+    private final class Input extends InputStream {
         private int pos = 0;
         private int mark = 0;
         private final int size;

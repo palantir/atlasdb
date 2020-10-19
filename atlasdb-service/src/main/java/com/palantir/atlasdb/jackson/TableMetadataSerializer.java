@@ -22,7 +22,6 @@ import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.EnumValueDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
-import com.google.protobuf.Descriptors.FieldDescriptor.Type;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Format;
@@ -129,11 +128,11 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
         jgen.writeObjectField("name", field.getName());
         jgen.writeObjectField("label", field.toProto().getLabel());
         jgen.writeObjectField("type_name", field.getType());
-        if (field.getType() == Type.MESSAGE) {
+        if (field.getType() == FieldDescriptor.Type.MESSAGE) {
             jgen.writeObjectFieldStart("type");
             serialize(jgen, field.getMessageType());
             jgen.writeEndObject();
-        } else if (field.getType() == Type.ENUM) {
+        } else if (field.getType() == FieldDescriptor.Type.ENUM) {
             jgen.writeObjectFieldStart("type");
             serialize(jgen, field.getEnumType());
             jgen.writeEndObject();

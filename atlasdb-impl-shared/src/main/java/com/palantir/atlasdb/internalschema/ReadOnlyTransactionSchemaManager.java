@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ReadOnlyTransactionSchemaManager {
-    private static final Logger log = LoggerFactory.getLogger(TransactionSchemaManager.class);
+    private static final Logger log = LoggerFactory.getLogger(ReadOnlyTransactionSchemaManager.class);
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
 

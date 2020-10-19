@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 public class ThreadConfinedProxyTest {
 
-    Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
+    static Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
 
     String testString = "test";
 
@@ -264,7 +264,7 @@ public class ThreadConfinedProxyTest {
         int doStuff(Behavior b) throws SQLException;
     }
 
-    private class ThingThatThrows implements IThingThatThrows {
+    private static final class ThingThatThrows implements IThingThatThrows {
         @Override
         public int doStuff(Behavior b) throws SQLException {
             switch (b) {

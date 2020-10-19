@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.TableToSweep;
@@ -33,6 +32,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,7 +53,7 @@ public class NextTableToSweepProviderTest {
     private Set<String> priorityTables;
     private Set<String> blacklistTables;
 
-    private List<Optional<TableToSweep>> tablesToSweep = Lists.newArrayList();
+    private List<Optional<TableToSweep>> tablesToSweep = new ArrayList<>();
 
     @Before
     public void setup() throws InterruptedException {

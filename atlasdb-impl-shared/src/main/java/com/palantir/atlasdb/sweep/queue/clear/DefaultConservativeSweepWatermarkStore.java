@@ -89,7 +89,9 @@ public final class DefaultConservativeSweepWatermarkStore implements Conservativ
 
     @Override
     public Map<TableReference, Long> getWatermarks(Set<TableReference> tableReferences) {
-        Set<Cell> cells = tableReferences.stream().map(table -> cell(table)).collect(Collectors.toSet());
+        Set<Cell> cells = tableReferences.stream()
+                .map(DefaultConservativeSweepWatermarkStore::cell)
+                .collect(Collectors.toSet());
         Map<Cell, Value> fetched = kvs.get(CLEARS, Maps.asMap(cells, ignored -> Long.MAX_VALUE));
         return KeyedStream.stream(fetched)
                 .map((cell, value) -> RowResult.of(cell, value.getContents()))

@@ -48,7 +48,9 @@ public class ProfilingTimelockServiceTest {
     private static final Duration TWO_CENTURIES =
             ChronoUnit.CENTURIES.getDuration().multipliedBy(2);
 
+    @SuppressWarnings("PreferStaticLoggers")
     private final Logger logger = mock(Logger.class);
+
     private final TimelockService delegate = mock(TimelockService.class);
 
     private long clock = 0;

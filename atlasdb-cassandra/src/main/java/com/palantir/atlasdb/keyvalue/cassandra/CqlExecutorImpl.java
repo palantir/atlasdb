@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
@@ -35,6 +33,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -57,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private final QueryExecutor queryExecutor;
-    private Logger log = LoggerFactory.getLogger(CqlExecutor.class);
+    private static final Logger log = LoggerFactory.getLogger(CqlExecutorImpl.class);
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
@@ -91,7 +90,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, rowsAscending.get(0), Compression.NONE);
         int queryId = preparedResult.getItemId();
 
-        List<CellWithTimestamp> result = Lists.newArrayList();
+        List<CellWithTimestamp> result = new ArrayList<>();
 
         List<Future<CqlResult>> futures = new ArrayList<>(rowsAscending.size());
         for (int i = 0; i < rowsAscending.size(); i++) {
@@ -248,7 +247,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         QueryExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
             this.clientPool = clientPool;
             this.consistency = consistency;
-            this.hostsPerPreparedQuery = Maps.newHashMap();
+            this.hostsPerPreparedQuery = new HashMap<>();
         }
 
         @Override

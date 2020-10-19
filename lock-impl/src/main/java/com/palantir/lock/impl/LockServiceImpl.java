@@ -33,11 +33,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -78,11 +75,14 @@ import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -216,7 +216,7 @@ public final class LockServiceImpl
     private final Set<Thread> indefinitelyBlockingThreads = ConcurrentHashMap.newKeySet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
-            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), TreeMultiset::create));
+            Multimaps.newMultimap(new HashMap<LockClient, Collection<Long>>(), TreeMultiset::create));
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
@@ -351,7 +351,7 @@ public final class LockServiceImpl
                     UnsafeArg.of("lockRequest", request),
                     SafeArg.of("requestingThread", request.getCreatingThreadName()));
         }
-        Map<ClientAwareReadWriteLock, LockMode> locks = Maps.newLinkedHashMap();
+        Map<ClientAwareReadWriteLock, LockMode> locks = new LinkedHashMap<>();
         if (isShutDown.get()) {
             throw new ServiceNotAvailableException("This lock server is shut down.");
         }
@@ -361,7 +361,7 @@ public final class LockServiceImpl
                 indefinitelyBlockingThreads.add(Thread.currentThread());
             }
             outstandingLockRequestMultimap.put(client, request);
-            Map<LockDescriptor, LockClient> failedLocks = Maps.newHashMap();
+            Map<LockDescriptor, LockClient> failedLocks = new HashMap<>();
             @Nullable
             Long deadline = (request.getBlockingDuration() == null)
                     ? null
@@ -413,8 +413,8 @@ public final class LockServiceImpl
                 return new LockResponse(null, failedLocks);
             }
 
-            Builder<LockDescriptor, LockMode> lockDescriptorMap = ImmutableSortedMap.naturalOrder();
-            for (Entry<ClientAwareReadWriteLock, LockMode> entry : locks.entrySet()) {
+            ImmutableSortedMap.Builder<LockDescriptor, LockMode> lockDescriptorMap = ImmutableSortedMap.naturalOrder();
+            for (Map.Entry<ClientAwareReadWriteLock, LockMode> entry : locks.entrySet()) {
                 lockDescriptorMap.put(entry.getKey().getDescriptor(), entry.getValue());
             }
             if (request.getVersionId() != null) {
@@ -446,7 +446,7 @@ public final class LockServiceImpl
             outstandingLockRequestMultimap.remove(client, request);
             indefinitelyBlockingThreads.remove(Thread.currentThread());
             try {
-                for (Entry<ClientAwareReadWriteLock, LockMode> entry : locks.entrySet()) {
+                for (Map.Entry<ClientAwareReadWriteLock, LockMode> entry : locks.entrySet()) {
                     entry.getKey().get(client, entry.getValue()).unlock();
                 }
             } catch (Throwable e) { // (authorized)
@@ -470,11 +470,11 @@ public final class LockServiceImpl
     private void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
         final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
 
-        List<String> lockDescriptions = Lists.newArrayList();
-        Iterator<Entry<LockDescriptor, LockClient>> entries =
+        List<String> lockDescriptions = new ArrayList<>();
+        Iterator<Map.Entry<LockDescriptor, LockClient>> entries =
                 failedLocks.entrySet().iterator();
         for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG && entries.hasNext(); i++) {
-            Entry<LockDescriptor, LockClient> entry = entries.next();
+            Map.Entry<LockDescriptor, LockClient> entry = entries.next();
             lockDescriptions.add(String.format(
                     "Lock: %s, Holder: %s",
                     entry.getKey().toString(), entry.getValue().toString()));
@@ -503,7 +503,7 @@ public final class LockServiceImpl
         String previousThreadName = null;
         try {
             previousThreadName = updateThreadName(request);
-            for (Entry<LockDescriptor, LockMode> entry :
+            for (Map.Entry<LockDescriptor, LockMode> entry :
                     request.getLockDescriptors().entries()) {
                 if (blockingMode == BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE
                         && !descriptorToLockMap.asMap().containsKey(entry.getKey())) {
@@ -676,7 +676,7 @@ public final class LockServiceImpl
         } else {
             lockClientMultimap.remove(client, token);
         }
-        for (Entry<? extends ClientAwareReadWriteLock, LockMode> entry : heldLocks.locks.entries()) {
+        for (Map.Entry<? extends ClientAwareReadWriteLock, LockMode> entry : heldLocks.locks.entries()) {
             entry.getKey().get(client, entry.getValue()).unlock();
         }
         if (heldLocks.realToken.getVersionId() != null) {
@@ -731,7 +731,7 @@ public final class LockServiceImpl
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
-        List<HeldLocksToken> fakeTokens = Lists.newArrayList();
+        List<HeldLocksToken> fakeTokens = new ArrayList<>();
         LockDescriptor fakeLockDesc = StringLockDescriptor.of("refreshLockRefreshTokens");
         SortedLockCollection<LockDescriptor> fakeLockSet =
                 LockCollections.of(ImmutableSortedMap.of(fakeLockDesc, LockMode.READ));
@@ -825,7 +825,7 @@ public final class LockServiceImpl
     }
 
     private void logIfAbnormallyOld(ExpiringToken token, long now, Supplier<String> description) {
-        if (log.isInfoEnabled()) {
+        if (log.isWarnEnabled()) {
             long age = now - token.getCreationDateMs();
             if (age > maxNormalLockAge.toMillis()) {
                 if (isFromAtlasTransactionWithLockedImmutable(token)) {
@@ -971,9 +971,9 @@ public final class LockServiceImpl
             LockCollection<? extends ClientAwareReadWriteLock> locks, LockClient oldClient, LockClient newClient) {
         com.palantir.logsafe.Preconditions.checkArgument(
                 (oldClient == INTERNAL_LOCK_GRANT_CLIENT) != (newClient == INTERNAL_LOCK_GRANT_CLIENT));
-        Collection<KnownClientLock> locksToRollback = Lists.newLinkedList();
+        Collection<KnownClientLock> locksToRollback = new LinkedList<>();
         try {
-            for (Entry<? extends ClientAwareReadWriteLock, LockMode> entry : locks.entries()) {
+            for (Map.Entry<? extends ClientAwareReadWriteLock, LockMode> entry : locks.entries()) {
                 ClientAwareReadWriteLock lock = entry.getKey();
                 LockMode mode = entry.getValue();
                 lock.get(oldClient, mode).changeOwner(newClient);
@@ -1225,7 +1225,7 @@ public final class LockServiceImpl
         }
     }
 
-    private class LockReapRunner implements AutoCloseable {
+    private final class LockReapRunner implements AutoCloseable {
         private final Ownable<ExecutorService> executor;
         private final List<Future<?>> taskFutures;
 

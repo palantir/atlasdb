@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -53,7 +54,7 @@ public class AsyncTimeLockUnlockerTest {
     @Before
     public void setUp() {
         tokenList = createLockTokenList(ONE_THOUSAND);
-        unlockedTokens = Lists.newArrayList();
+        unlockedTokens = new ArrayList<>();
     }
 
     @Test(timeout = 2_000)

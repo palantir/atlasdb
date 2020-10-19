@@ -40,7 +40,7 @@ public enum DBType {
         return hasGIS;
     }
 
-    private DBType(String driver, String testQuery, boolean hasGIS) {
+    DBType(String driver, String testQuery, boolean hasGIS) {
         this.driver = driver;
         this.testQuery = testQuery;
         this.hasGIS = hasGIS;
@@ -71,10 +71,18 @@ public enum DBType {
 
     public static DBType getTypeFromConnection(Connection c) throws PalantirSqlException {
         String url = Connections.getUrl(c);
-        if (url.startsWith("jdbc:oracle:thin")) return ORACLE;
-        if (url.startsWith("jdbc:pgsql")) return POSTGRESQL;
-        if (url.startsWith("jdbc:postgresql")) return POSTGRESQL;
-        if (url.startsWith("jdbc:h2:mem:")) return H2_MEMORY;
+        if (url.startsWith("jdbc:oracle:thin")) {
+            return ORACLE;
+        }
+        if (url.startsWith("jdbc:pgsql")) {
+            return POSTGRESQL;
+        }
+        if (url.startsWith("jdbc:postgresql")) {
+            return POSTGRESQL;
+        }
+        if (url.startsWith("jdbc:h2:mem:")) {
+            return H2_MEMORY;
+        }
         throw new SafeRuntimeException("Unable to parse JDBC URL");
     }
 }

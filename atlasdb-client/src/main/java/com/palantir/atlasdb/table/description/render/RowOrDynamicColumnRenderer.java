@@ -23,12 +23,12 @@ import static java.lang.Math.max;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -209,7 +209,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
         line("@Override");
         line("public byte[] persistToBytes() {");
         {
-            List<String> vars = Lists.newArrayList();
+            List<String> vars = new ArrayList<>();
             for (NameComponentDescription comp : desc.getRowParts()) {
                 String var = varName(comp) + "Bytes";
                 vars.add(var);
@@ -230,7 +230,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
             line("public ", Name, " hydrateFromBytes(byte[] __input) {");
             {
                 line("int __index = 0;");
-                List<String> vars = Lists.newArrayList();
+                List<String> vars = new ArrayList<>();
                 for (NameComponentDescription comp : desc.getRowParts()) {
                     String var = varName(comp);
                     vars.add(var);
@@ -286,7 +286,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private List<String> renderComponentBytes(List<NameComponentDescription> components) {
-        List<String> vars = Lists.newArrayList();
+        List<String> vars = new ArrayList<>();
         if (desc.numberOfComponentsHashed() > 0) {
             renderComputeFirstNComponentHash(desc.numberOfComponentsHashed());
             String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
@@ -315,7 +315,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
         renderParameterList(components);
         lineEnd(" {");
         {
-            List<String> vars = Lists.newArrayList();
+            List<String> vars = new ArrayList<>();
             if (desc.numberOfComponentsHashed() > 0) {
                 renderComputeFirstNComponentHash(desc.numberOfComponentsHashed());
                 String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
@@ -342,7 +342,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
 
     private void renderComputeFirstNComponentHash(int numberOfComponentsHashed) {
         List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, numberOfComponentsHashed);
-        List<String> vars = Lists.newArrayList();
+        List<String> vars = new ArrayList<>();
         for (NameComponentDescription comp : components) {
             vars.add(varName(comp));
         }
@@ -360,7 +360,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
         renderParameterList(components);
         lineEnd(" {");
         {
-            List<String> vars = Lists.newArrayList();
+            List<String> vars = new ArrayList<>();
             for (NameComponentDescription comp : components) {
                 String var = varName(comp) + "Bytes";
                 vars.add(var);

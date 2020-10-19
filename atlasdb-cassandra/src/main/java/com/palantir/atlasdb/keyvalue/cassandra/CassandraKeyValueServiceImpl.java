@@ -22,7 +22,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -107,13 +106,15 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -545,7 +546,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             dcs = clientPool.runWithRetry(client -> CassandraVerifier.sanityCheckDatacenters(client, config));
             KsDef ksDef = clientPool.runWithRetry(client -> client.describe_keyspace(config.getKeyspaceOrThrow()));
-            strategyOptions = Maps.newHashMap(ksDef.getStrategy_options());
+            strategyOptions = new HashMap<>(ksDef.getStrategy_options());
 
             if (dcs.size() == 1) {
                 String dc = dcs.iterator().next();
@@ -589,10 +590,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
-        List<Callable<Map<Cell, Value>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
+        List<Callable<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
@@ -612,7 +613,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final InetSocketAddress host, final TableReference tableRef, final List<byte[]> rows, final long startTs) {
         try {
             int rowCount = 0;
-            final Map<Cell, Value> result = Maps.newHashMap();
+            final Map<Cell, Value> result = new HashMap<>();
             int fetchBatchCount = config.fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
@@ -719,7 +720,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static List<ByteBuffer> wrap(List<byte[]> arrays) {
-        List<ByteBuffer> byteBuffers = Lists.newArrayListWithCapacity(arrays.size());
+        List<ByteBuffer> byteBuffers = new ArrayList<>(arrays.size());
         for (byte[] r : arrays) {
             byteBuffers.add(ByteBuffer.wrap(r));
         }
@@ -773,7 +774,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             SetMultimap<Long, Cell> cellsByTs =
                     Multimaps.invertFrom(Multimaps.forMap(timestampByCell), HashMultimap.create());
-            Builder<Cell, Value> builder = ImmutableMap.builder();
+            ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
                 cellLoader.loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
@@ -814,10 +815,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
-        List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
+        List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = new ArrayList<>(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
@@ -850,8 +851,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Map<byte[], Map<Cell, Value>> results = firstPage.getResults();
             Map<byte[], Column> rowsToLastCompositeColumns = firstPage.getRowsToLastCompositeColumns();
-            Map<byte[], byte[]> incompleteRowsToNextColumns = Maps.newHashMap();
-            for (Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
+            Map<byte[], byte[]> incompleteRowsToNextColumns = new HashMap<>();
+            for (Map.Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
                 byte[] row = e.getKey();
                 byte[] col =
                         CassandraKeyValueServices.decomposeName(e.getValue()).getLhSide();
@@ -870,7 +871,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rows.size());
             for (byte[] row : rowsToLastCompositeColumns.keySet()) {
-                Iterator<Entry<Cell, Value>> resultIterator;
+                Iterator<Map.Entry<Cell, Value>> resultIterator;
                 Map<Cell, Value> result = results.get(row);
                 if (result != null) {
                     resultIterator = result.entrySet().iterator();
@@ -941,7 +942,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private Iterator<Entry<Cell, Value>> getRowColumnRange(
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
             InetSocketAddress host,
             TableReference tableRef,
             byte[] row,
@@ -949,28 +950,29 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long startTs) {
         return ClosableIterators.wrap(
                 new AbstractPagingIterable<
-                        Entry<Cell, Value>, TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
+                        Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
                     @Override
-                    protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
+                    protected TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> getFirstPage()
+                            throws Exception {
                         return page(batchColumnRangeSelection.getStartCol());
                     }
 
                     @Override
-                    protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getNextPage(
-                            TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> previous) throws Exception {
+                    protected TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> getNextPage(
+                            TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> previous) throws Exception {
                         return page(previous.getTokenForNextPage());
                     }
 
-                    TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> page(final byte[] startCol)
+                    TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(final byte[] startCol)
                             throws Exception {
                         return clientPool.runWithRetryOnHost(
                                 host,
                                 new FunctionCheckedException<
                                         CassandraClient,
-                                        TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>,
+                                        TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>,
                                         Exception>() {
                                     @Override
-                                    public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(
+                                    public TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> apply(
                                             CassandraClient client) throws Exception {
                                         Range range = createColumnRange(
                                                 startCol, batchColumnRangeSelection.getEndCol(), startTs);
@@ -1122,7 +1124,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
-        List<TableCellAndValue> flattened = Lists.newArrayList();
+        List<TableCellAndValue> flattened = new ArrayList<>();
         for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> tableAndValues : valuesByTable.entrySet()) {
             for (Map.Entry<Cell, byte[]> entry : tableAndValues.getValue().entrySet()) {
                 flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
@@ -1131,7 +1133,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost =
                 HostPartitioner.partitionByHost(clientPool, flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
 
-        List<Callable<Void>> callables = Lists.newArrayList();
+        List<Callable<Void>> callables = new ArrayList<>();
         for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
             callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
         }
@@ -1146,7 +1148,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 getMultiPutBatchSizeBytes(),
                 extractTableNames(values).toString(),
                 TableCellAndValue.SIZING_FUNCTION);
-        List<Callable<Void>> tasks = Lists.newArrayList();
+        List<Callable<Void>> tasks = new ArrayList<>();
         for (final List<TableCellAndValue> batch : partitioned) {
             final Set<TableReference> tableRefs = extractTableNames(batch);
             tasks.add(AnnotatedCallable.wrapWithThreadName(
@@ -1158,7 +1160,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static Set<TableReference> extractTableNames(Iterable<TableCellAndValue> tableCellAndValues) {
-        Set<TableReference> tableRefs = Sets.newHashSet();
+        Set<TableReference> tableRefs = new HashSet<>();
         for (TableCellAndValue tableCellAndValue : tableCellAndValues) {
             tableRefs.add(tableCellAndValue.tableRef);
         }
@@ -1589,8 +1591,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 tableRefToOldCell.values().stream()
                         .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
 
-        final Map<Cell, byte[]> updatedMetadata = Maps.newHashMap();
-        final Set<CfDef> updatedCfs = Sets.newHashSet();
+        final Map<Cell, byte[]> updatedMetadata = new HashMap<>();
+        final Set<CfDef> updatedCfs = new HashSet<>();
 
         tableRefToNewCell.forEach((tableRef, newCell) -> {
             if (existingMetadataAtNewName.containsKey(newCell)) {
@@ -1847,7 +1849,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return values.entrySet().stream()
                 .collect(Collectors.groupingBy(
                         entry -> ByteString.of(entry.getKey().getRowName()),
-                        Collectors.toMap(Entry::getKey, Entry::getValue)));
+                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
     private static CASResult putUnlessExistsSinglePartition(
@@ -1863,7 +1865,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 WRITE_CONSISTENCY);
     }
 
-    private static Column prepareColumnForPutUnlessExists(Entry<Cell, byte[]> insertion) {
+    private static Column prepareColumnForPutUnlessExists(Map.Entry<Cell, byte[]> insertion) {
         return new Column(CassandraKeyValueServices.makeCompositeBuffer(
                         insertion.getKey().getColumnName(),
                         // Atlas timestamp

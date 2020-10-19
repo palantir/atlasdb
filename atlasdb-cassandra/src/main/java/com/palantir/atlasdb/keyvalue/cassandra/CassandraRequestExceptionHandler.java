@@ -260,7 +260,7 @@ class CassandraRequestExceptionHandler {
         boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts);
     }
 
-    private static class LegacyExceptionHandler implements RequestExceptionHandlerStrategy {
+    private static final class LegacyExceptionHandler implements RequestExceptionHandlerStrategy {
         private static final RequestExceptionHandlerStrategy INSTANCE = new LegacyExceptionHandler();
 
         private static final long BACKOFF_DURATION = Duration.ofSeconds(1).toMillis();
@@ -309,7 +309,7 @@ class CassandraRequestExceptionHandler {
         }
     }
 
-    private static class NoBackoffForTesting extends Conservative {
+    private static final class NoBackoffForTesting extends Conservative {
         private static final RequestExceptionHandlerStrategy INSTANCE = new NoBackoffForTesting();
 
         @Override

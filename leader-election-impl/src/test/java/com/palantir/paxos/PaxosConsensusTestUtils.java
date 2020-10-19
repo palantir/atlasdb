@@ -17,7 +17,6 @@ package com.palantir.paxos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
@@ -31,6 +30,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,10 +50,10 @@ public final class PaxosConsensusTestUtils {
     private static final String ACCEPTOR_DIR_PREFIX = LOG_DIR + "acceptor/";
 
     public static PaxosTestState setup(int numLeaders, int quorumSize) {
-        List<LeaderElectionService> leaders = Lists.newArrayList();
-        List<PaxosAcceptor> acceptors = Lists.newArrayList();
-        List<PaxosLearner> learners = Lists.newArrayList();
-        List<AtomicBoolean> failureToggles = Lists.newArrayList();
+        List<LeaderElectionService> leaders = new ArrayList<>();
+        List<PaxosAcceptor> acceptors = new ArrayList<>();
+        List<PaxosLearner> learners = new ArrayList<>();
+        List<AtomicBoolean> failureToggles = new ArrayList<>();
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
         DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(getSqlitePath());

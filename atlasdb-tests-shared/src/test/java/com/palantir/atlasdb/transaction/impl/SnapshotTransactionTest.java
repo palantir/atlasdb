@@ -231,7 +231,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
 
-    private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
+    private static class UnstableKeyValueService implements AutoDelegate_KeyValueService {
 
         private final KeyValueService delegate;
         private final Random random;
@@ -610,11 +610,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
         initTransaction.commit();
 
-        List<Transaction> allTransactions = Lists.newArrayList();
-        List<List<BigInteger>> writtenValues = Lists.newArrayList();
+        List<Transaction> allTransactions = new ArrayList<>();
+        List<List<BigInteger>> writtenValues = new ArrayList<>();
         for (int i = 0; i < numTransactions; i++) {
             allTransactions.add(txManager.createNewTransaction());
-            List<BigInteger> initialValues = Lists.newArrayList();
+            List<BigInteger> initialValues = new ArrayList<>();
             for (int j = 0; j < numColumns; j++) {
                 initialValues.add(BigInteger.valueOf(j));
             }
@@ -1579,8 +1579,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
      * {@link AtlasDbTestCase#setUp()}.
      */
     private static SnapshotTransaction unwrapSnapshotTransaction(Transaction transaction) {
-        if (transaction instanceof ForwardingTransaction)
+        if (transaction instanceof ForwardingTransaction) {
             return unwrapSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
+        }
         return (SnapshotTransaction) transaction;
     }
 

@@ -180,7 +180,7 @@ public final class LockWatchReferences {
         }
     }
 
-    private static class LockDescriptorRangeVisitor implements Visitor<Range<LockDescriptor>> {
+    private static final class LockDescriptorRangeVisitor implements Visitor<Range<LockDescriptor>> {
         @Override
         public Range<LockDescriptor> visit(EntireTable reference) {
             return AtlasLockDescriptorRanges.fullTable(reference.qualifiedTableRef());

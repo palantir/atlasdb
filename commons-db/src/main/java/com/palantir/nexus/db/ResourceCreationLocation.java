@@ -54,7 +54,7 @@ public class ResourceCreationLocation extends RuntimeException {
     /**
      * Used to avoid strong references to {@link Thread}
      */
-    public static class ThreadInfo implements Serializable {
+    public static final class ThreadInfo implements Serializable {
         private static final long serialVersionUID = 1L;
 
         private final String name;

@@ -78,8 +78,8 @@ public class NameMetadataDescriptionTest {
         // Which value is selected is an implementation detail - we should not guarantee this.
         assertThat(result)
                 .satisfiesAnyOf(
-                        (bytes) -> assertThat(bytes).containsExactly(PtBytes.toBytes("tom")),
-                        (bytes) -> assertThat(bytes).containsExactly(PtBytes.toBytes("robert")));
+                        bytes -> assertThat(bytes).containsExactly(PtBytes.toBytes("tom")),
+                        bytes -> assertThat(bytes).containsExactly(PtBytes.toBytes("robert")));
     }
 
     @Test

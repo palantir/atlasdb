@@ -25,7 +25,7 @@ import java.util.function.Function;
 public enum Sweeper {
     CONSERVATIVE(
             provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()), false, true),
-    THOROUGH(provider -> provider.getImmutableTimestamp(), true, false);
+    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false);
 
     private final Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier;
     private final boolean shouldSweepLastCommitted;

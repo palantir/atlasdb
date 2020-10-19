@@ -54,7 +54,9 @@ public class CacheStats implements CacheStatsMBean {
     public float getCacheHitPercentage() {
         long hit = hits.get();
         long miss = misses.get();
-        if (hit + miss == 0) return 100.f;
+        if (hit + miss == 0) {
+            return 100.f;
+        }
         return 100.0f * hit / (hit + miss);
     }
 

@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -31,7 +31,7 @@ public class MutationMap {
     private final Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap;
 
     public MutationMap() {
-        this.mutationMap = Maps.newHashMap();
+        this.mutationMap = new HashMap<>();
     }
 
     /**
@@ -42,10 +42,10 @@ public class MutationMap {
      */
     public void addMutationForCell(Cell cell, TableReference tableRef, Mutation mutation) {
         ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
-        Map<String, List<Mutation>> rowPuts = mutationMap.computeIfAbsent(rowName, row -> Maps.newHashMap());
+        Map<String, List<Mutation>> rowPuts = mutationMap.computeIfAbsent(rowName, row -> new HashMap<>());
 
         List<Mutation> tableMutations =
-                rowPuts.computeIfAbsent(AbstractKeyValueService.internalTableName(tableRef), k -> Lists.newArrayList());
+                rowPuts.computeIfAbsent(AbstractKeyValueService.internalTableName(tableRef), k -> new ArrayList<>());
 
         tableMutations.add(mutation);
     }

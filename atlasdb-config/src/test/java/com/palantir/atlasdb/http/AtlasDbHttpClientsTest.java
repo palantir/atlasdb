@@ -263,7 +263,7 @@ public class AtlasDbHttpClientsTest {
         return String.format("https://%s:%s", LOCALHOST, port);
     }
 
-    private static class RetryOtherFirstResponseTransformer extends ResponseTransformer {
+    private static final class RetryOtherFirstResponseTransformer extends ResponseTransformer {
 
         private final List<String> urls = new LinkedList<>();
 

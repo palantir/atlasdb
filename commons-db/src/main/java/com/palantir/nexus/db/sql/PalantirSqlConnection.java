@@ -32,7 +32,7 @@ public interface PalantirSqlConnection extends SqlConnection {
 
     int insertOneCountRows(String key, Object... vs) throws PalantirSqlException;
 
-    int insertOneCountRows(final RegisteredSQLString sql, final Object... vs) throws PalantirSqlException;
+    int insertOneCountRows(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
 
     /**
      * Returns the long value of the first field selected given a query.

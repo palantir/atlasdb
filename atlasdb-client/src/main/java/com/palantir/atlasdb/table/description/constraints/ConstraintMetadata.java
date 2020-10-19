@@ -16,9 +16,8 @@
 package com.palantir.atlasdb.table.description.constraints;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -61,7 +60,7 @@ public final class ConstraintMetadata {
     }
 
     public Set<String> getAllRowVariableNames() {
-        Set<String> names = Sets.newHashSet();
+        Set<String> names = new HashSet<>();
         for (RowConstraintMetadata constraint : rowConstraints) {
             names.addAll(constraint.getRowVariables());
         }
@@ -72,7 +71,7 @@ public final class ConstraintMetadata {
     }
 
     public Set<String> getAllColumnVariableNames() {
-        Set<String> names = Sets.newHashSet();
+        Set<String> names = new HashSet<>();
         for (RowConstraintMetadata constraint : rowConstraints) {
             names.addAll(constraint.getColumnVariables());
         }
@@ -83,9 +82,9 @@ public final class ConstraintMetadata {
     }
 
     public static final class Builder {
-        private final List<RowConstraintMetadata> rowConstraints = Lists.newArrayList();
-        private final List<TableConstraint> tableConstraints = Lists.newArrayList();
-        private final List<ForeignKeyConstraintMetadata> foreignKeyConstraints = Lists.newArrayList();
+        private final List<RowConstraintMetadata> rowConstraints = new ArrayList<>();
+        private final List<TableConstraint> tableConstraints = new ArrayList<>();
+        private final List<ForeignKeyConstraintMetadata> foreignKeyConstraints = new ArrayList<>();
 
         Builder() {
             /**/

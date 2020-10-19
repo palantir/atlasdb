@@ -16,12 +16,12 @@
 package com.palantir.common.persist;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable.Hydrator;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -43,15 +43,15 @@ public class Persistables {
     }
 
     public static Function<Persistable, byte[]> persistToBytesFunction() {
-        return input -> input.persistToBytes();
+        return Persistable::persistToBytes;
     }
 
     public static List<byte[]> persistAll(Iterable<? extends Persistable> persistables) {
         List<byte[]> output;
         if (persistables instanceof Collection) {
-            output = Lists.newArrayListWithCapacity(((Collection<? extends Persistable>) persistables).size());
+            output = new ArrayList<>(((Collection<? extends Persistable>) persistables).size());
         } else {
-            output = Lists.newArrayList();
+            output = new ArrayList<>();
         }
         return persistAll(persistables, output);
     }

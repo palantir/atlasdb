@@ -42,10 +42,10 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
@@ -142,7 +142,7 @@ public final class TableTasks {
         boolean isEmpty = transaction.getRange(srcTable, request).batchAccept(range.getBatchSize(), batch -> {
             Map<Cell, byte[]> entries = Maps.newHashMapWithExpectedSize(batch.size());
             for (RowResult<byte[]> result : batch) {
-                for (Entry<Cell, byte[]> entry : result.getCells()) {
+                for (Map.Entry<Cell, byte[]> entry : result.getCells()) {
                     entries.put(entry.getKey(), entry.getValue());
                 }
             }
@@ -435,7 +435,7 @@ public final class TableTasks {
 
         byte step = (byte) (256 / threadCount);
         byte curr = step;
-        Collection<MutableRange> ranges = Lists.newArrayListWithCapacity(threadCount);
+        Collection<MutableRange> ranges = new ArrayList<>(threadCount);
         ranges.add(new MutableRange(new byte[0], new byte[] {step}, batchSize));
         for (int i = 1; i < threadCount - 1; i++) {
             byte next = (byte) (curr + step);
@@ -507,7 +507,7 @@ public final class TableTasks {
         PartialCopyStats call(RangeRequest request, MutableRange range) throws InterruptedException;
     }
 
-    private static class PartialCopyStats {
+    private static final class PartialCopyStats {
         private long rowsCopied = 0;
         private long cellsCopied = 0;
     }

@@ -138,7 +138,7 @@ public class PTExecutorsTest {
         String executorName = UUID.randomUUID().toString();
         TaggedMetricRegistry metrics = SharedTaggedMetricRegistries.getSingleton();
         withExecutor(() -> PTExecutors.newCachedThreadPool(executorName), executor -> {
-            executor.submit(Runnables.doNothing());
+            executor.execute(Runnables.doNothing());
         });
         Meter submitted = findMetric(
                 metrics,

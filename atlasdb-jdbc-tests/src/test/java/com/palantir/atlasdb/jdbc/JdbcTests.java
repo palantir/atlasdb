@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
 import java.io.File;
 import java.util.Properties;
 
-public class JdbcTests {
+public final class JdbcTests {
 
     private JdbcTests() {
         // cannot instantiate

@@ -19,7 +19,6 @@ import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -38,8 +37,8 @@ import com.squareup.javapoet.WildcardTypeName;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import javax.annotation.Generated;
 import javax.lang.model.element.Modifier;
@@ -73,8 +72,8 @@ public final class TableFactoryRenderer {
             Namespace defaultNamespace,
             Map<String, TableDefinition> definitions) {
 
-        SortedMap<String, TableDefinition> sortedDefinitions = Maps.newTreeMap();
-        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+        SortedMap<String, TableDefinition> sortedDefinitions = new TreeMap<>();
+        for (Map.Entry<String, TableDefinition> entry : definitions.entrySet()) {
             sortedDefinitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
         }
         ClassName tableFactoryType = ClassName.get(packageName, schemaName + "TableFactory");
@@ -271,7 +270,7 @@ public final class TableFactoryRenderer {
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT, Modifier.STATIC)
                 .addSuperinterface(sharedTriggersInterfaceType);
 
-        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : definitions.entrySet()) {
             String name = entry.getKey();
             TableDefinition tableDefinition = entry.getValue();
             String tableName = getTableName(name);

@@ -60,7 +60,9 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
 
     @Override
     public AtlasBytesToken getToken(ByteBuffer key) {
-        if (key.remaining() == 0) return MINIMUM;
+        if (key.remaining() == 0) {
+            return MINIMUM;
+        }
         return new AtlasBytesToken(key);
     }
 
@@ -167,15 +169,33 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     }
 
     private static int computeRawVarint64Size(final long value) {
-        if ((value & (0xffffffffffffffffL << 7)) == 0) return 1;
-        if ((value & (0xffffffffffffffffL << 14)) == 0) return 2;
-        if ((value & (0xffffffffffffffffL << 21)) == 0) return 3;
-        if ((value & (0xffffffffffffffffL << 28)) == 0) return 4;
-        if ((value & (0xffffffffffffffffL << 35)) == 0) return 5;
-        if ((value & (0xffffffffffffffffL << 42)) == 0) return 6;
-        if ((value & (0xffffffffffffffffL << 49)) == 0) return 7;
-        if ((value & (0xffffffffffffffffL << 56)) == 0) return 8;
-        if ((value & (0xffffffffffffffffL << 63)) == 0) return 9;
+        if ((value & (0xffffffffffffffffL << 7)) == 0) {
+            return 1;
+        }
+        if ((value & (0xffffffffffffffffL << 14)) == 0) {
+            return 2;
+        }
+        if ((value & (0xffffffffffffffffL << 21)) == 0) {
+            return 3;
+        }
+        if ((value & (0xffffffffffffffffL << 28)) == 0) {
+            return 4;
+        }
+        if ((value & (0xffffffffffffffffL << 35)) == 0) {
+            return 5;
+        }
+        if ((value & (0xffffffffffffffffL << 42)) == 0) {
+            return 6;
+        }
+        if ((value & (0xffffffffffffffffL << 49)) == 0) {
+            return 7;
+        }
+        if ((value & (0xffffffffffffffffL << 56)) == 0) {
+            return 8;
+        }
+        if ((value & (0xffffffffffffffffL << 63)) == 0) {
+            return 9;
+        }
         return 10;
     }
 
@@ -200,7 +220,9 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
         @Override
         public void validate(String token) throws ConfigurationException {
             try {
-                if (token.length() % 2 == 1) token = "0" + token;
+                if (token.length() % 2 == 1) {
+                    token = "0" + token;
+                }
                 Hex.hexToBytes(token);
             } catch (NumberFormatException e) {
                 throw new ConfigurationException("Token " + token + " contains non-hex digits");
@@ -209,7 +231,9 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
 
         @Override
         public Token fromString(String string) {
-            if (string.length() % 2 == 1) string = "0" + string;
+            if (string.length() % 2 == 1) {
+                string = "0" + string;
+            }
             return new AtlasBytesToken(Hex.hexToBytes(string));
         }
     };

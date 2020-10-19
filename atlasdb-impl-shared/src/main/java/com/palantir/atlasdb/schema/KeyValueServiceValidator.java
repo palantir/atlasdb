@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.schema;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -32,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +95,7 @@ public class KeyValueServiceValidator {
 
     private void validateTables(Set<TableReference> tables) {
         ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
-        List<Future<Void>> futures = Lists.newArrayList();
+        List<Future<Void>> futures = new ArrayList<>();
         for (final TableReference table : tables) {
             Future<Void> future = executor.submit(() -> {
                 try {

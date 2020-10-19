@@ -18,8 +18,6 @@ package com.palantir.atlasdb.schema;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -36,9 +34,10 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -75,7 +74,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
         Schemas.createTable(getSchema(), kvs, checkpointTable);
 
         txManager.runTaskWithRetry((TransactionTask<Map<Long, byte[]>, RuntimeException>) t -> {
-            Set<byte[]> rows = Sets.newHashSet();
+            Set<byte[]> rows = new HashSet<>();
             for (long rangeId : startById.keySet()) {
                 rows.add(getRowName(extraId, rangeId));
             }
@@ -83,8 +82,8 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
             Map<byte[], RowResult<byte[]>> rr = t.getRows(checkpointTable, rows, ColumnSelection.all());
 
             if (rr.isEmpty()) {
-                Map<Cell, byte[]> values = Maps.newHashMap();
-                for (Entry<Long, byte[]> e : startById.entrySet()) {
+                Map<Cell, byte[]> values = new HashMap<>();
+                for (Map.Entry<Long, byte[]> e : startById.entrySet()) {
                     Cell cell = getCell(extraId, e.getKey());
                     byte[] value = toDb(e.getValue(), true);
                     values.put(cell, value);

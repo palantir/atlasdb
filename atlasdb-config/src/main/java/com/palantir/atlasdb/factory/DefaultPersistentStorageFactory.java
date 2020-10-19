@@ -40,6 +40,7 @@ public final class DefaultPersistentStorageFactory implements PersistentStorageF
      * @param config of the requested RocksDB persistent storage
      * @return RockDB implementation of {@link PersistentStore}
      */
+    @Override
     public PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
         Path magicPath = PersistentStoragePathSanitizer.sanitizeStoragePath(config.storagePath());
         File databaseFolder = new File(

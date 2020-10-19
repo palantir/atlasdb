@@ -93,14 +93,26 @@ public class SimpleResultsPage<T> implements BasicResultsPage<T>, Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
         SimpleResultsPage<?> other = (SimpleResultsPage<?>) obj;
         if (chunks == null) {
-            if (other.chunks != null) return false;
-        } else if (!chunks.equals(other.chunks)) return false;
-        if (moreAvailable != other.moreAvailable) return false;
+            if (other.chunks != null) {
+                return false;
+            }
+        } else if (!chunks.equals(other.chunks)) {
+            return false;
+        }
+        if (moreAvailable != other.moreAvailable) {
+            return false;
+        }
         return true;
     }
 

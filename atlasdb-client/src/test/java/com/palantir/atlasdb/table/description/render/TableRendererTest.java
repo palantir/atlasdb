@@ -17,6 +17,8 @@ package com.palantir.atlasdb.table.description.render;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persister.JsonNodePersister;
@@ -31,7 +33,8 @@ import org.junit.Test;
 public class TableRendererTest {
 
     private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("TestTable");
-    private static SortedSet<IndexMetadata> NO_INDICES = new TreeSet<>();
+    private static SortedSet<IndexMetadata> NO_INDICES =
+            new TreeSet<>(Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));
 
     @Test
     public void testCanRenderGuavaOptionals() {

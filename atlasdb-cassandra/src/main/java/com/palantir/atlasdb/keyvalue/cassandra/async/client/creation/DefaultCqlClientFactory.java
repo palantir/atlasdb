@@ -60,6 +60,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
         this(Cluster::builder);
     }
 
+    @Override
     public Optional<CqlClient> constructClient(
             TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         return config.servers().accept(new CassandraServersConfigs.Visitor<Optional<CqlClient>>() {

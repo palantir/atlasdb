@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import com.google.common.collect.Sets;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.lang3.math.Fraction;
 
@@ -49,5 +49,5 @@ public final class Constants {
 
     public static final int MIN_UNHEALTHY_SERVICES = 2;
 
-    public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = Sets.newHashSet();
+    public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = new HashSet<>();
 }

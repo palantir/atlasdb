@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.schema;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.io.BaseEncoding;
@@ -39,6 +38,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.collect.Maps2;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
@@ -152,7 +152,7 @@ public class KvsRangeMigrator implements RangeMigrator {
 
         BatchingVisitable<RowResult<byte[]>> bv = readT.getRange(srcTable, rangeToUse);
 
-        Map<Cell, byte[]> writeMap = Maps.newHashMap();
+        Map<Cell, byte[]> writeMap = new HashMap<>();
         byte[] lastRow = internalCopyRange(bv, maxBytes, writeMap);
         if (log.isTraceEnabled() && (lastRow != null)) {
             log.trace("Copying {} bytes for range {} on table {}", lastRow.length, rangeId, srcTable);

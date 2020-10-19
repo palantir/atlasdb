@@ -24,7 +24,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockRequest.Builder;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
@@ -58,7 +57,7 @@ public class LockRefreshingLockServiceTest {
 
     @Test
     public void testSimpleRefresh() throws InterruptedException {
-        Builder builder = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE));
+        LockRequest.Builder builder = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE));
         builder.timeoutAfter(SimpleTimeDuration.of(5, TimeUnit.SECONDS));
         LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, builder.build());
         Thread.sleep(10000);

@@ -40,7 +40,7 @@ public final class BatchingStrategies {
         return (MapBatchingStrategy<K, V>) mapBatchingStrategy;
     }
 
-    private static class IterableBatchingStrategy<T> implements BatchingTaskRunner.BatchingStrategy<Iterable<T>> {
+    private static final class IterableBatchingStrategy<T> implements BatchingTaskRunner.BatchingStrategy<Iterable<T>> {
         @Override
         public Iterable<List<T>> partitionIntoBatches(Iterable<T> collection, int batchSizeHint) {
             return Iterables.partition(collection, batchSizeHint);
@@ -49,7 +49,7 @@ public final class BatchingStrategies {
 
     private static final IterableBatchingStrategy<?> iterableBatchingStrategy = new IterableBatchingStrategy<>();
 
-    private static class ListBatchingStrategy<T> implements BatchingTaskRunner.BatchingStrategy<List<T>> {
+    private static final class ListBatchingStrategy<T> implements BatchingTaskRunner.BatchingStrategy<List<T>> {
         @Override
         public Iterable<List<T>> partitionIntoBatches(List<T> collection, int batchSizeHint) {
             return Lists.partition(collection, batchSizeHint);
@@ -58,7 +58,7 @@ public final class BatchingStrategies {
 
     private static final ListBatchingStrategy<?> listBatchingStrategy = new ListBatchingStrategy<>();
 
-    private static class MapBatchingStrategy<K, V> implements BatchingTaskRunner.BatchingStrategy<Map<K, V>> {
+    private static final class MapBatchingStrategy<K, V> implements BatchingTaskRunner.BatchingStrategy<Map<K, V>> {
         @Override
         public Iterable<? extends Map<K, V>> partitionIntoBatches(Map<K, V> collection, int batchSizeHint) {
             return Iterables.transform(Iterables.partition(collection.entrySet(), batchSizeHint), Maps2::fromEntries);

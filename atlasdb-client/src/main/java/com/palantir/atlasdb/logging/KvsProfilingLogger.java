@@ -17,11 +17,11 @@ package com.palantir.atlasdb.logging;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -61,8 +61,8 @@ public class KvsProfilingLogger {
     static class LogAccumulator implements CloseableLoggingFunction {
         private static final String DELIMITER = "\n";
 
-        private final List<String> formatElements = Lists.newArrayList();
-        private final List<Object> argList = Lists.newArrayList();
+        private final List<String> formatElements = new ArrayList<>();
+        private final List<Object> argList = new ArrayList<>();
         private final LoggingFunction sink;
 
         private boolean isClosed = false;
@@ -108,7 +108,7 @@ public class KvsProfilingLogger {
 
     public static <T, E extends Exception> T maybeLog(
             CallableCheckedException<T, E> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger) throws E {
-        return maybeLog(action, primaryLogger, ((loggingFunction, result) -> {}));
+        return maybeLog(action, primaryLogger, (loggingFunction, result) -> {});
     }
 
     /**
@@ -175,7 +175,7 @@ public class KvsProfilingLogger {
         return future;
     }
 
-    private static class Monitor<R> {
+    private static final class Monitor<R> {
         private final Stopwatch stopwatch;
         private final BiConsumer<LoggingFunction, Stopwatch> primaryLogger;
         private final BiConsumer<LoggingFunction, R> additionalLoggerWithAccessToResult;
@@ -223,7 +223,7 @@ public class KvsProfilingLogger {
          */
         void log() {
             stopwatch.stop();
-            Consumer<LoggingFunction> logger = (loggingMethod) -> {
+            Consumer<LoggingFunction> logger = loggingMethod -> {
                 try (CloseableLoggingFunction wrappingLogger = new LogAccumulator(loggingMethod)) {
                     primaryLogger.accept(wrappingLogger, stopwatch);
                     if (result != null) {

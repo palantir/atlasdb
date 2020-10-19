@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public class LockRefresher implements AutoCloseable {
 
-    private final Logger log = LoggerFactory.getLogger(LockRefresher.class);
+    private static final Logger log = LoggerFactory.getLogger(LockRefresher.class);
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;

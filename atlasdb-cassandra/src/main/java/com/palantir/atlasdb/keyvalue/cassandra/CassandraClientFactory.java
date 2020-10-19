@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -30,6 +29,7 @@ import com.palantir.logsafe.UnsafeArg;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.HashMap;
 import java.util.Map;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -168,7 +168,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private static void login(Client client, CassandraCredentialsConfig config) throws TException {
-        Map<String, String> credsMap = Maps.newHashMap();
+        Map<String, String> credsMap = new HashMap<>();
         credsMap.put("username", config.username());
         credsMap.put("password", config.password());
         client.login(new AuthenticationRequest(credsMap));

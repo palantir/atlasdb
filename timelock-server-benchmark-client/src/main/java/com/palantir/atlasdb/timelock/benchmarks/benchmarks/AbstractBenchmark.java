@@ -17,8 +17,8 @@ package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -141,7 +141,7 @@ public abstract class AbstractBenchmark {
     private Map<String, Object> getStatistics() {
         sortTimes();
 
-        Map<String, Object> result = Maps.newHashMap();
+        Map<String, Object> result = new HashMap<>();
         result.put("numClients", numClients);
         result.put("requestsPerClient", requestsPerClient);
         result.put("average", getAverageTimeInMillis());

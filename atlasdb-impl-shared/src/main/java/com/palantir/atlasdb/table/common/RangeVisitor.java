@@ -17,7 +17,6 @@ package com.palantir.atlasdb.table.common;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -30,6 +29,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -168,7 +168,7 @@ public class RangeVisitor {
         BigInteger endNum = new BigInteger(1, expandedEndRow);
         BigInteger step = endNum.subtract(startNum).divide(BigInteger.valueOf(threadCount));
         BigInteger curr = startNum.add(step);
-        Collection<MutableRange> ranges = Lists.newArrayListWithCapacity(threadCount);
+        Collection<MutableRange> ranges = new ArrayList<>(threadCount);
         ranges.add(new MutableRange(startRow, toBytes(curr, length), batchSize));
         for (int i = 1; i < threadCount - 1; i++) {
             BigInteger next = curr.add(step);

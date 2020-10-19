@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -64,7 +65,7 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
     protected static final class ConsistentVisitor<T, K extends Exception> implements AbortingVisitor<List<T>, K> {
         final int batchSize;
         final AbortingVisitor<? super List<T>, K> v;
-        List<T> buffer = Lists.newArrayList();
+        List<T> buffer = new ArrayList<>();
         boolean visitorAlwaysReturnedTrue = true;
 
         private ConsistentVisitor(int batchSize, AbortingVisitor<? super List<T>, K> av) {
@@ -118,9 +119,9 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
             }
             List<T> lastBatch = batches.get(batches.size() - 1);
             if (lastBatch.size() == batchSize) {
-                buffer = Lists.newArrayList();
+                buffer = new ArrayList<>();
             } else {
-                buffer = Lists.newArrayList(lastBatch);
+                buffer = new ArrayList<>(lastBatch);
             }
             return true;
         }

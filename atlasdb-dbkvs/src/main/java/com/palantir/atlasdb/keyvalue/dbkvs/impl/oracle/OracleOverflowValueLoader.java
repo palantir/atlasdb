@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -32,6 +31,7 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -78,7 +78,7 @@ public class OracleOverflowValueLoader implements OverflowValueLoader {
 
     private List<FullQuery> getOverflowQueries(
             ConnectionSupplier conns, TableReference tableRef, Collection<Long> overflowIds) {
-        List<Object[]> oraRows = Lists.newArrayListWithCapacity(overflowIds.size());
+        List<Object[]> oraRows = new ArrayList<>(overflowIds.size());
         for (Long overflowId : overflowIds) {
             oraRows.add(new Object[] {null, null, overflowId});
         }

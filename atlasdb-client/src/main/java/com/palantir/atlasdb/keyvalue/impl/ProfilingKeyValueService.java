@@ -47,7 +47,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -146,7 +145,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     private static BiConsumer<LoggingFunction, Map<Cell, Value>> logCellResultSize(long overhead) {
         return (logger, result) -> {
             long sizeInBytes = 0;
-            for (Entry<Cell, Value> entry : result.entrySet()) {
+            for (Map.Entry<Cell, Value> entry : result.entrySet()) {
                 sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey())
                         + entry.getValue().getContents().length
                         + overhead;
@@ -483,7 +482,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     private static <T> long byteSize(Map<Cell, T> values) {
         long sizeInBytes = 0;
-        for (Entry<Cell, T> valueEntry : values.entrySet()) {
+        for (Map.Entry<Cell, T> valueEntry : values.entrySet()) {
             sizeInBytes += Cells.getApproxSizeOfCell(valueEntry.getKey());
             T value = valueEntry.getValue();
             if (value instanceof byte[]) {

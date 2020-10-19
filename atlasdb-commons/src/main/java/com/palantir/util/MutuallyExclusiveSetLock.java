@@ -19,11 +19,10 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -32,6 +31,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -56,7 +56,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MutuallyExclusiveSetLock<T> {
     private final boolean fair;
     private final Comparator<? super T> comparator;
-    private final Set<Thread> threadSet = Sets.newSetFromMap(Maps.<Thread, Boolean>newConcurrentMap());
+    private final Set<Thread> threadSet = Sets.newSetFromMap(new ConcurrentHashMap<Thread, Boolean>());
     private final LoadingCache<T, ReentrantLock> syncMap = CacheBuilder.newBuilder()
             .weakValues()
             .build(new CacheLoader<T, ReentrantLock>() {
@@ -131,7 +131,9 @@ public class MutuallyExclusiveSetLock<T> {
     public boolean isLocked(Iterable<T> items) {
         for (T t : items) {
             ReentrantLock lock = syncMap.getUnchecked(t);
-            if (!lock.isHeldByCurrentThread()) return false;
+            if (!lock.isHeldByCurrentThread()) {
+                return false;
+            }
         }
         return true;
     }
@@ -161,7 +163,7 @@ public class MutuallyExclusiveSetLock<T> {
     public LockState<T> lockOnObjectsInterruptibly(Iterable<T> lockObjects) throws InterruptedException {
         ImmutableSet<T> hashSet = validateLockInput(lockObjects);
 
-        List<ReentrantLock> toUnlock = Lists.newArrayList();
+        List<ReentrantLock> toUnlock = new ArrayList<>();
         try {
             final SortedMap<T, ReentrantLock> sortedLocks = getSortedLocks(hashSet);
             for (ReentrantLock lock : sortedLocks.values()) {

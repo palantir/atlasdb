@@ -24,7 +24,7 @@ public final class AtlasDbMetricNames {
         // Utility
     }
 
-    public final class CellFilterMetrics {
+    public static final class CellFilterMetrics {
         private CellFilterMetrics() {
             // Utility
         }

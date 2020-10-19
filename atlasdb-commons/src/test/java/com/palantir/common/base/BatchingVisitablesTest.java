@@ -38,6 +38,7 @@ import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.junit.Test;
@@ -154,7 +155,7 @@ public class BatchingVisitablesTest {
     @Test
     public void testBatchHints() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
-        Function<List<Long>, List<String>> trans = (input) -> {
+        Function<List<Long>, List<String>> trans = input -> {
             assertEquals("batched item had wrong size", 2, input.size());
             return Lists.transform(input, Functions.toStringFunction());
         };
@@ -416,7 +417,7 @@ public class BatchingVisitablesTest {
         List<Long> longList = Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L);
         BatchingVisitable<Long> visitable = ListVisitor.create(longList);
         BatchingVisitableView<Long> view =
-                BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), (input) -> input.longValue() < 5L);
+                BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), input -> input.longValue() < 5L);
         assertEquals("visitWhile visited the wrong number of elements", 5L, view.size());
         assertEquals(
                 "visitWhile visited the wrong element first",
@@ -429,7 +430,7 @@ public class BatchingVisitablesTest {
                 view.immutableCopy().containsAll(ImmutableSet.of(0L, 1L, 2L, 3L, 4L)));
 
         visitable = ListVisitor.create(Lists.reverse(longList));
-        view = BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), (input) -> input.longValue() >= 5L);
+        view = BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), input -> input.longValue() >= 5L);
         assertEquals("visitWhile visited the wrong number of elements", 5L, view.size());
         assertEquals(
                 "visitWhile visited the wrong element first",
@@ -444,13 +445,13 @@ public class BatchingVisitablesTest {
 
     @Test
     public void testFlatten() {
-        List<String> firstChars = Lists.newArrayList();
+        List<String> firstChars = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             firstChars.add("" + (char) ('a' + i));
         }
         BatchingVisitable<String> outerVisitable = BatchingVisitableFromIterable.create(firstChars);
-        BatchingVisitableView<BatchingVisitable<String>> bv = BatchingVisitables.transform(outerVisitable, (prefix) -> {
-            List<String> innerChars = Lists.newArrayList();
+        BatchingVisitableView<BatchingVisitable<String>> bv = BatchingVisitables.transform(outerVisitable, prefix -> {
+            List<String> innerChars = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
                 innerChars.add(prefix + (char) ('0' + i));
             }

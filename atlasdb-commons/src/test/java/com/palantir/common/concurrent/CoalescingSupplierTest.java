@@ -127,7 +127,7 @@ public class CoalescingSupplierTest {
         RuntimeException expected = new RuntimeException("foo");
         when(delegate.get()).thenThrow(expected);
 
-        assertThatThrownBy(() -> supplier.get()).hasMessage(expected.getMessage());
+        assertThatThrownBy(supplier::get).hasMessage(expected.getMessage());
     }
 
     @Test

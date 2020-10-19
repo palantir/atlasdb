@@ -35,7 +35,7 @@ import com.palantir.logsafe.Preconditions;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import java.io.PrintWriter;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 
@@ -105,7 +105,7 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
         while (iter.hasNext()) {
             RowResult<Value> rowResult = iter.next();
             byte[] row = rowResult.getRowName();
-            for (Entry<byte[], Value> entry : rowResult.getColumns().entrySet()) {
+            for (Map.Entry<byte[], Value> entry : rowResult.getColumns().entrySet()) {
                 byte[] col = entry.getKey();
                 Value value = entry.getValue();
                 long timestamp = value.getTimestamp();

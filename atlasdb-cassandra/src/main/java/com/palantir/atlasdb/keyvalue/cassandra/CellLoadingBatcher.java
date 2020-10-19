@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +65,8 @@ final class CellLoadingBatcher {
 
         ListMultimap<byte[], Cell> cellsByColumn = indexCellsByColumnName(cellsToPartition);
 
-        List<List<Cell>> batches = Lists.newArrayList();
-        List<Cell> cellsForCrossColumnBatching = Lists.newArrayList();
+        List<List<Cell>> batches = new ArrayList<>();
+        List<Cell> cellsForCrossColumnBatching = new ArrayList<>();
         for (Map.Entry<byte[], List<Cell>> cellColumnPair :
                 Multimaps.asMap(cellsByColumn).entrySet()) {
             if (shouldExplicitlyAllocateBatchToColumn(config, cellColumnPair.getValue())) {

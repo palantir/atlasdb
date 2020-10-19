@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -29,6 +28,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 import java.io.Closeable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -50,7 +50,7 @@ public final class DisruptorAutobatcher<T, R>
        By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple
        instances of the same autobatcher function.
     */
-    private static final ConcurrentMap<String, ThreadFactory> threadFactories = Maps.newConcurrentMap();
+    private static final ConcurrentMap<String, ThreadFactory> threadFactories = new ConcurrentHashMap<>();
 
     private static ThreadFactory threadFactory(String safeLoggablePurpose) {
         return threadFactories.computeIfAbsent(safeLoggablePurpose, DisruptorAutobatcher::createThreadFactory);

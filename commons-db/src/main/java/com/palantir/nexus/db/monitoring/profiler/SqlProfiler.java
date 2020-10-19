@@ -36,7 +36,7 @@ public interface SqlProfiler {
 
     void removeSqlProfilerListener(SqlProfilerListener sqlProfilerListener);
 
-    public interface SqlProfilerListener {
+    interface SqlProfilerListener {
         void traceEvent(String key, long durationNs);
     }
 }

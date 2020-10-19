@@ -38,7 +38,7 @@ import java.nio.charset.StandardCharsets;
  * @author jweel
  */
 public final class KeyValueServicePuncherStore implements PuncherStore {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PuncherStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PuncherStore {
         @Override
         public PuncherStore delegate() {
             checkInitialized();

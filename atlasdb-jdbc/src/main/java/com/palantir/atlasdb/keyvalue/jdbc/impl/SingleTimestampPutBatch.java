@@ -21,9 +21,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.common.collect.Maps2;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import javax.annotation.Nullable;
 import org.jooq.InsertValuesStep4;
 import org.jooq.Record;
@@ -40,14 +40,14 @@ public class SingleTimestampPutBatch implements PutBatch {
         this.timestamp = timestamp;
     }
 
-    public static SingleTimestampPutBatch create(List<Entry<Cell, byte[]>> data, long timestamp) {
+    public static SingleTimestampPutBatch create(List<Map.Entry<Cell, byte[]>> data, long timestamp) {
         return new SingleTimestampPutBatch(Maps2.fromEntries(data), timestamp);
     }
 
     @Override
     public InsertValuesStep4<Record, byte[], byte[], Long, byte[]> addValuesForInsert(
             InsertValuesStep4<Record, byte[], byte[], Long, byte[]> query) {
-        for (Entry<Cell, byte[]> entry : data.entrySet()) {
+        for (Map.Entry<Cell, byte[]> entry : data.entrySet()) {
             query = query.values(
                     entry.getKey().getRowName(), entry.getKey().getColumnName(), timestamp, entry.getValue());
         }
@@ -69,8 +69,8 @@ public class SingleTimestampPutBatch implements PutBatch {
                     Cell.create(record.getValue(JdbcConstants.A_ROW_NAME), record.getValue(JdbcConstants.A_COL_NAME)),
                     record.getValue(JdbcConstants.A_VALUE));
         }
-        Map<Cell, byte[]> nextBatch = Maps.newHashMap();
-        for (Entry<Cell, byte[]> entry : data.entrySet()) {
+        Map<Cell, byte[]> nextBatch = new HashMap<>();
+        for (Map.Entry<Cell, byte[]> entry : data.entrySet()) {
             Cell cell = entry.getKey();
             byte[] newValue = entry.getValue();
             byte[] oldValue = existing.get(cell);

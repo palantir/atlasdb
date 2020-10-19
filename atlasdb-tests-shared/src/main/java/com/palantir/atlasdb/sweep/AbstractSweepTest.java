@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -44,6 +43,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,9 +56,9 @@ public abstract class AbstractSweepTest {
     protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(FULL_TABLE_NAME);
     protected static final String COL = "c";
 
-    protected static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList();
-    protected static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList();
-    protected static final List<Cell> BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS = Lists.newArrayList();
+    protected static final List<Cell> SMALL_LIST_OF_CELLS = new ArrayList<>();
+    protected static final List<Cell> BIG_LIST_OF_CELLS = new ArrayList<>();
+    protected static final List<Cell> BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS = new ArrayList<>();
 
     static {
         for (int i = 0; i < 10; i++) {

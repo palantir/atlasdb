@@ -18,13 +18,13 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -39,7 +39,7 @@ public class AcceptorCacheImpl implements AcceptorCache {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Cache<AcceptorCacheKey, TimestampedAcceptorCacheKey> cacheKeyToTimestamp;
-    private final Map<Client, WithSeq<Long>> clientToTimeAndSeq = Maps.newHashMap();
+    private final Map<Client, WithSeq<Long>> clientToTimeAndSeq = new HashMap<>();
     private final TreeMultimap<Long, WithSeq<Client>> clientsByLatestTimestamp = TreeMultimap.create(
             Comparator.naturalOrder(),
             Comparator.comparing(clientWithSeq -> clientWithSeq.value().value(), Comparator.naturalOrder()));

@@ -29,7 +29,7 @@ public enum CompactSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("compact");
-    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(() -> generateSchema());
+    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(CompactSchema::generateSchema);
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {

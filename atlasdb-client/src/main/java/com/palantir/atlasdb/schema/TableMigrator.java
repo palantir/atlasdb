@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.schema;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -30,6 +27,9 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -91,7 +91,7 @@ public class TableMigrator {
 
         progress.beginTask("Migrating table " + srcTable + "...", totalTasks);
 
-        Map<Long, byte[]> boundaryById = Maps.newHashMap();
+        Map<Long, byte[]> boundaryById = new HashMap<>();
         for (long rangeId = 0; rangeId < rangeBoundaries.size() - 1; rangeId++) {
             boundaryById.put(rangeId, rangeBoundaries.get((int) rangeId));
         }
@@ -100,7 +100,7 @@ public class TableMigrator {
         // Look up the checkpoints and log start point (or done)
         rangeMigrator.logStatus(rangeBoundaries.size());
 
-        List<Future<Void>> futures = Lists.newArrayList();
+        List<Future<Void>> futures = new ArrayList<>();
         for (long rangeId = 0; rangeId < rangeBoundaries.size() - 1; rangeId++) {
             byte[] end = rangeBoundaries.get((int) rangeId + 1);
             // the range's start will be set within the transaction
@@ -152,7 +152,7 @@ public class TableMigrator {
      * If a table doesn't support partitioning, we'll make fake partitions and hope it helps.
      */
     private List<byte[]> getRangeBoundaries() {
-        Set<byte[]> rangeBoundaries = Sets.newHashSet();
+        Set<byte[]> rangeBoundaries = new HashSet<>();
         // Must use PtBytes.EMPTY_BYTE_ARRAY to avoid duplicate when adding from UniformRowNamePartitioner
         rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
 

@@ -27,6 +27,7 @@ import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,7 +80,7 @@ public class FeedbackHandler {
 
     private Map<String, ServiceFeedback> organizeFeedbackReportsByService(
             List<ConjureTimeLockClientFeedback> trackedFeedbackReports) {
-        Map<String, ServiceFeedback> serviceWiseOrganizedFeedback = Maps.newHashMap();
+        Map<String, ServiceFeedback> serviceWiseOrganizedFeedback = new HashMap<>();
 
         for (ConjureTimeLockClientFeedback feedback : trackedFeedbackReports) {
             ServiceFeedback feedbackForService = serviceWiseOrganizedFeedback.computeIfAbsent(
@@ -97,7 +98,7 @@ public class FeedbackHandler {
                 .filterEntries((serviceName, serviceFeedback) ->
                         getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY)
                 .keys()
-                .map(serviceName -> Client.of(serviceName))
+                .map(Client::of)
                 .collect(Collectors.toList());
 
         log.info(

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -210,7 +209,7 @@ public final class PaxosResourcesFactory {
                 .addAllCloseables(singleLeaderClientFactories.closeables())
                 .build();
 
-        Factory<PaxosProposer> proposerFactory = client -> {
+        NetworkClientFactories.Factory<PaxosProposer> proposerFactory = client -> {
             PaxosAcceptorNetworkClient acceptorNetworkClient =
                     combinedNetworkClientFactories.acceptor().create(client);
             PaxosLearnerNetworkClient learnerNetworkClient =
@@ -222,7 +221,7 @@ public final class PaxosResourcesFactory {
             return timelockMetrics.instrument(PaxosProposer.class, paxosProposer, client);
         };
 
-        Factory<ManagedTimestampService> timestampFactory = client -> {
+        NetworkClientFactories.Factory<ManagedTimestampService> timestampFactory = client -> {
             // TODO (jkong): live reload ping
             TimestampBoundStore boundStore = timelockMetrics.instrument(
                     TimestampBoundStore.class,

@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -133,7 +133,7 @@ public class DistributingModulusGeneratorTest {
 
     @Test
     public void selectionOnFreshGeneratorsDoesNotHotSpot() {
-        Map<Integer, Integer> frequencyMap = Maps.newHashMap();
+        Map<Integer, Integer> frequencyMap = new HashMap<>();
         for (int trial = 0; trial < 20; trial++) {
             setupGeneratorWithModulus(16);
             int residue = Iterables.getOnlyElement(requestResidues(1));

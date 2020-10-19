@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -133,6 +132,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -212,13 +213,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
-            Maps.newConcurrentMap();
+            new ConcurrentHashMap<>();
     protected final TransactionConflictDetectionManager conflictDetectionManager;
     private final AtomicLong byteCount = new AtomicLong();
 
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
 
-    private final ConcurrentMap<TableReference, ConstraintCheckable> constraintsByTableName = Maps.newConcurrentMap();
+    private final ConcurrentMap<TableReference, ConstraintCheckable> constraintsByTableName = new ConcurrentHashMap<>();
 
     private final AtomicReference<State> state = new AtomicReference<>(State.UNCOMMITTED);
     private final AtomicLong numWriters = new AtomicLong();
@@ -352,7 +353,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults =
-                Maps.newHashMap(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
+                new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             for (byte[] row : rows) {
@@ -444,7 +445,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 postFilterIterator,
                 Ordering.from(UnsignedBytes.lexicographicalComparator())
                         .onResultOf(entry -> entry.getKey().getColumnName()),
-                from -> from.getLhSide());
+                com.palantir.util.Pair::getLhSide);
 
         return filterDeletedValues(mergedIterator, tableRef);
     }
@@ -470,7 +471,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     remoteIterator,
                     Ordering.from(UnsignedBytes.lexicographicalComparator())
                             .onResultOf(entry -> entry.getKey().getColumnName()),
-                    from -> from.getLhSide());
+                    com.palantir.util.Pair::getLhSide);
         }));
 
         return filterDeletedValues(merged, tableRef);
@@ -596,7 +597,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
 
         Map<Cell, Value> rawResults =
-                Maps.newHashMap(keyValueService.getRows(tableRef, rows, ColumnSelection.all(), getStartTimestamp()));
+                new HashMap<>(keyValueService.getRows(tableRef, rows, ColumnSelection.all(), getStartTimestamp()));
 
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
@@ -670,7 +671,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
 
-        Map<Cell, byte[]> result = Maps.newHashMap();
+        Map<Cell, byte[]> result = new HashMap<>();
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             for (Cell cell : cells) {
@@ -771,7 +772,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(tableRef, firstPages.values());
 
-                    List<BatchingVisitable<RowResult<byte[]>>> ret = Lists.newArrayListWithCapacity(input.size());
+                    List<BatchingVisitable<RowResult<byte[]>>> ret = new ArrayList<>(input.size());
                     for (RangeRequest rangeRequest : input) {
                         TokenBackedBasicResultsPage<RowResult<Value>, byte[]> prePostFilter =
                                 firstPages.get(rangeRequest);
@@ -1122,7 +1123,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private SortedMap<Cell, byte[]> postFilterPages(
             TableReference tableRef, Iterable<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> rangeRows) {
-        List<RowResult<Value>> results = Lists.newArrayList();
+        List<RowResult<Value>> results = new ArrayList<>();
         for (TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page : rangeRows) {
             results.addAll(page.getResults());
         }
@@ -1381,7 +1382,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
-        Map<Cell, Value> remainingResults = Maps.newHashMap(rawResults);
+        Map<Cell, Value> remainingResults = new HashMap<>(rawResults);
         remainingResults.keySet().removeAll(keysAddedToResults);
         return remainingResults;
     }
@@ -1551,7 +1552,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void checkConstraints() {
-        List<String> violations = Lists.newArrayList();
+        List<String> violations = new ArrayList<>();
         for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
             SortedMap<Cell, byte[]> sortedMap = writesByTable.get(entry.getKey());
             if (sortedMap != null) {
@@ -1729,7 +1730,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @return set of locks that could not be refreshed
      */
     private Set<LockToken> refreshCommitAndImmutableTsLocks(@Nullable LockToken commitLocksToken) {
-        Set<LockToken> toRefresh = Sets.newHashSet();
+        Set<LockToken> toRefresh = new HashSet<>();
         if (commitLocksToken != null) {
             toRefresh.add(commitLocksToken);
         }
@@ -1765,8 +1766,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (writes.isEmpty() || !conflictHandler.checkWriteWriteConflicts()) {
             return;
         }
-        Set<CellConflict> spanningWrites = Sets.newHashSet();
-        Set<CellConflict> dominatingWrites = Sets.newHashSet();
+        Set<CellConflict> spanningWrites = new HashSet<>();
+        Set<CellConflict> dominatingWrites = new HashSet<>();
         Map<Cell, Long> keysToLoad = Maps.asMap(writes.keySet(), Functions.constant(Long.MAX_VALUE));
         while (!keysToLoad.isEmpty()) {
             keysToLoad = detectWriteAlreadyCommittedInternal(
@@ -1799,8 +1800,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Set<CellConflict> spanningWrites,
             Set<CellConflict> dominatingWrites,
             LockToken commitLocksToken) {
-        Map<Cell, CellConflict> cellToConflict = Maps.newHashMap();
-        Map<Cell, Long> cellToTs = Maps.newHashMap();
+        Map<Cell, CellConflict> cellToConflict = new HashMap<>();
+        Map<Cell, Long> cellToTs = new HashMap<>();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
             cellToConflict.put(c.getCell(), c);
             cellToTs.put(c.getCell(), c.getTheirStart() + 1);
@@ -1809,7 +1810,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
         Map<Cell, Value> conflictingValues = keyValueService.get(table, cellToTs);
 
-        Set<Cell> conflictingCells = Sets.newHashSet();
+        Set<Cell> conflictingCells = new HashSet<>();
         for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
             Cell cell = cellEntry.getKey();
             if (!writes.containsKey(cell)) {
@@ -1922,7 +1923,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Map<Cell, Long> keysToDelete,
             Map<Long, Long> commitTimestamps,
             TransactionService transactionService) {
-        for (long startTs : Sets.newHashSet(keysToDelete.values())) {
+        for (long startTs : new HashSet<>(keysToDelete.values())) {
             if (commitTimestamps.get(startTs) == null) {
                 log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
                 if (!rollbackOtherTransaction(startTs, transactionService)) {
@@ -2025,7 +2026,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {
-        Set<LockDescriptor> result = Sets.newHashSet();
+        Set<LockDescriptor> result = new HashSet<>();
         for (TableReference tableRef : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
@@ -2057,7 +2058,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * it back.
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
-        Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
+        Set<LockDescriptor> lockDescriptors = new HashSet<>();
         for (long start : startTimestamps) {
             if (start < immutableTimestamp) {
                 // We don't need to block in this case because this transaction is already complete
@@ -2111,7 +2112,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     ///////////////////////////////////////////////////////////////////////////
 
     private Set<Long> getStartTimestampsForValues(Iterable<Value> values) {
-        Set<Long> results = Sets.newHashSet();
+        Set<Long> results = new HashSet<>();
         for (Value v : values) {
             results.add(v.getTimestamp());
         }
@@ -2137,8 +2138,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(startTimestamps)) {
             return Futures.immediateFuture(ImmutableMap.of());
         }
-        Map<Long, Long> startToCommitTimestamps = Maps.newHashMap();
-        Set<Long> gets = Sets.newHashSet();
+        Map<Long, Long> startToCommitTimestamps = new HashMap<>();
+        Set<Long> gets = new HashSet<>();
         for (Long startTs : startTimestamps) {
             Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
             if (cached != null) {

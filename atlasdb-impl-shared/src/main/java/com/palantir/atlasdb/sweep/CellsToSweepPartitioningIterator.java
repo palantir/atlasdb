@@ -16,9 +16,9 @@
 package com.palantir.atlasdb.sweep;
 
 import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -61,7 +61,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
         if (limitReached) {
             return endOfData();
         } else {
-            List<CellToSweep> batch = Lists.newArrayList();
+            List<CellToSweep> batch = new ArrayList<>();
             int cellTsPairsToDelete = 0;
             long numCellTsPairsExamined = 0;
             Cell lastCellExamined = null;

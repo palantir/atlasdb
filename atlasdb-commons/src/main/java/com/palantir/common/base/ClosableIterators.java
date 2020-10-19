@@ -20,7 +20,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class ClosableIterators {
+public final class ClosableIterators {
     private ClosableIterators() {
         /* */
     }
@@ -55,7 +55,7 @@ public class ClosableIterators {
             wrap(ImmutableSet.of().iterator());
 
     @SuppressWarnings("unchecked")
-    public static final <T> ClosableIterator<T> emptyImmutableClosableIterator() {
+    public static <T> ClosableIterator<T> emptyImmutableClosableIterator() {
         return (ClosableIterator<T>) EMPTY_IMMUTABLE_CLOSABLE_ITERATOR;
     }
 

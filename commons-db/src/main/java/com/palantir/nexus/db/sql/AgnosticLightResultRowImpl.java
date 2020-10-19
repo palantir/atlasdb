@@ -192,7 +192,9 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     @Deprecated // use the get by colname variant instead
     protected String getString(int col) throws PalantirSqlException {
         Object obj = ResultSets.getString(results, col);
-        if (obj == null) return ""; // $NON-NLS-1$
+        if (obj == null) {
+            return "";
+        } // $NON-NLS-1$
         return String.valueOf(obj);
     }
 

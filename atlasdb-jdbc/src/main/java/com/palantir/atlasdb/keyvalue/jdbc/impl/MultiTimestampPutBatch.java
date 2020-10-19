@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import javax.annotation.Nullable;
 import org.jooq.InsertValuesStep4;
 import org.jooq.Record;
@@ -40,13 +39,13 @@ public class MultiTimestampPutBatch implements PutBatch {
         this.data = data;
     }
 
-    public MultiTimestampPutBatch(List<Entry<Cell, Value>> values) {
+    public MultiTimestampPutBatch(List<Map.Entry<Cell, Value>> values) {
         this.data = listToMultiMap(values);
     }
 
-    private Multimap<Cell, Value> listToMultiMap(List<Entry<Cell, Value>> values) {
+    private Multimap<Cell, Value> listToMultiMap(List<Map.Entry<Cell, Value>> values) {
         Multimap<Cell, Value> map = ArrayListMultimap.create();
-        for (Entry<Cell, Value> val : values) {
+        for (Map.Entry<Cell, Value> val : values) {
             map.put(val.getKey(), val.getValue());
         }
         return map;
@@ -55,7 +54,7 @@ public class MultiTimestampPutBatch implements PutBatch {
     @Override
     public InsertValuesStep4<Record, byte[], byte[], Long, byte[]> addValuesForInsert(
             InsertValuesStep4<Record, byte[], byte[], Long, byte[]> query) {
-        for (Entry<Cell, Value> entry : data.entries()) {
+        for (Map.Entry<Cell, Value> entry : data.entries()) {
             query = query.values(
                     entry.getKey().getRowName(),
                     entry.getKey().getColumnName(),
@@ -88,7 +87,7 @@ public class MultiTimestampPutBatch implements PutBatch {
                     record.getValue(JdbcConstants.A_VALUE));
         }
         Multimap<Cell, Value> nextBatch = ArrayListMultimap.create();
-        for (Entry<Cell, Value> entry : data.entries()) {
+        for (Map.Entry<Cell, Value> entry : data.entries()) {
             Cell cell = entry.getKey();
             Value newValue = entry.getValue();
             byte[] oldValue =

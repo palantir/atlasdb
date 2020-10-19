@@ -59,7 +59,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -106,15 +105,17 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import javax.sql.DataSource;
 import org.jooq.BatchBindStep;
 import org.jooq.Condition;
@@ -139,7 +140,7 @@ import org.jooq.conf.Settings;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
-public class JdbcKeyValueService implements KeyValueService {
+public final class JdbcKeyValueService implements KeyValueService {
     private final int rowBatchSize;
     private final int batchSizeForReads;
     private final int batchSizeForMutations;
@@ -212,7 +213,7 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
-        HashMap<Cell, Value> ret = Maps.newHashMap();
+        HashMap<Cell, Value> ret = new HashMap<>();
         for (List<byte[]> part : Iterables.partition(rows, rowBatchSize)) {
             ret.putAll(getRowsPartition(tableRef, part, columnSelection, timestamp));
         }
@@ -278,7 +279,8 @@ public class JdbcKeyValueService implements KeyValueService {
         }
 
         Map<Cell, Value> toReturn = new HashMap<>();
-        for (List<Entry<Cell, Long>> partition : Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
+        for (List<Map.Entry<Cell, Long>> partition :
+                Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
             toReturn.putAll(run(ctx -> {
                 Select<? extends Record> query =
                         getLatestTimestampQueryManyTimestamps(ctx, tableRef, toRows(partition));
@@ -302,7 +304,8 @@ public class JdbcKeyValueService implements KeyValueService {
         }
 
         Map<Cell, Long> toReturn = new HashMap<>();
-        for (List<Entry<Cell, Long>> partition : Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
+        for (List<Map.Entry<Cell, Long>> partition :
+                Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
             toReturn.putAll(run(ctx -> {
                 Select<? extends Record> query =
                         getLatestTimestampQueryManyTimestamps(ctx, tableRef, toRows(partition));
@@ -332,7 +335,7 @@ public class JdbcKeyValueService implements KeyValueService {
             toReturn.putAll(run(ctx -> {
                 Result<? extends Record> records = ctx.select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP)
                         .from(atlasTable(tableRef).as(ATLAS_TABLE))
-                        .join(values(ctx, toRows(Sets.newHashSet(partition)), TEMP_TABLE_1, ROW_NAME, COL_NAME))
+                        .join(values(ctx, toRows(new HashSet<>(partition)), TEMP_TABLE_1, ROW_NAME, COL_NAME))
                         .on(A_ROW_NAME.eq(T1_ROW_NAME).and(A_COL_NAME.eq(T1_COL_NAME)))
                         .where(A_TIMESTAMP.lessThan(timestamp))
                         .fetch();
@@ -360,17 +363,17 @@ public class JdbcKeyValueService implements KeyValueService {
     private static RowN[] toRows(Map<Cell, Long> timestampByCell) {
         RowN[] rows = new RowN[timestampByCell.size()];
         int i = 0;
-        for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
+        for (Map.Entry<Cell, Long> entry : timestampByCell.entrySet()) {
             rows[i++] = row(
                     new Object[] {entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()});
         }
         return rows;
     }
 
-    private static RowN[] toRows(List<Entry<Cell, Long>> cellTimestampPairs) {
+    private static RowN[] toRows(List<Map.Entry<Cell, Long>> cellTimestampPairs) {
         RowN[] rows = new RowN[cellTimestampPairs.size()];
         int i = 0;
-        for (Entry<Cell, Long> entry : cellTimestampPairs) {
+        for (Map.Entry<Cell, Long> entry : cellTimestampPairs) {
             rows[i++] = row(
                     new Object[] {entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()});
         }
@@ -460,7 +463,7 @@ public class JdbcKeyValueService implements KeyValueService {
             return;
         }
 
-        for (List<Entry<Cell, byte[]>> partition : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
+        for (List<Map.Entry<Cell, byte[]>> partition : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
             run((Function<DSLContext, Void>) ctx -> {
                 putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partition, timestamp), true);
                 return null;
@@ -472,11 +475,11 @@ public class JdbcKeyValueService implements KeyValueService {
     public void multiPut(final Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
             throws KeyAlreadyExistsException {
         run((Function<DSLContext, Void>) ctx -> {
-            for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
                 TableReference tableRef = entry.getKey();
                 Map<Cell, byte[]> values = entry.getValue();
                 if (!values.isEmpty()) {
-                    for (List<Entry<Cell, byte[]>> partition :
+                    for (List<Map.Entry<Cell, byte[]>> partition :
                             Iterables.partition(values.entrySet(), batchSizeForMutations)) {
                         putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partition, timestamp), true);
                     }
@@ -493,7 +496,7 @@ public class JdbcKeyValueService implements KeyValueService {
             return;
         }
 
-        for (List<Entry<Cell, Value>> partValues : Iterables.partition(values.entries(), batchSizeForMutations)) {
+        for (List<Map.Entry<Cell, Value>> partValues : Iterables.partition(values.entries(), batchSizeForMutations)) {
             run((Function<DSLContext, Void>) ctx -> {
                 putBatch(ctx, tableRef, new MultiTimestampPutBatch(partValues), true);
                 return null;
@@ -507,7 +510,7 @@ public class JdbcKeyValueService implements KeyValueService {
         if (values.isEmpty()) {
             return;
         }
-        for (List<Entry<Cell, byte[]>> partValues : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
+        for (List<Map.Entry<Cell, byte[]>> partValues : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
             run((Function<DSLContext, Void>) ctx -> {
                 putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partValues, 0L), false);
                 return null;
@@ -564,7 +567,7 @@ public class JdbcKeyValueService implements KeyValueService {
     TableLike<?> values(DSLContext ctx, RowN[] rows, String tableName, String... fieldNames) {
         switch (sqlDialect.family()) {
             case H2:
-                List<SelectField<?>> fields = Lists.newArrayListWithCapacity(fieldNames.length);
+                List<SelectField<?>> fields = new ArrayList<>(fieldNames.length);
                 for (int i = 1; i <= fieldNames.length; i++) {
                     fields.add(DSL.field("C" + i).as(fieldNames[i - 1]));
                 }
@@ -623,10 +626,10 @@ public class JdbcKeyValueService implements KeyValueService {
         if (keys.isEmpty()) {
             return;
         }
-        for (List<Entry<Cell, Long>> partition : Iterables.partition(keys.entries(), batchSizeForMutations)) {
+        for (List<Map.Entry<Cell, Long>> partition : Iterables.partition(keys.entries(), batchSizeForMutations)) {
             run((Function<DSLContext, Void>) ctx -> {
-                Collection<Row3<byte[], byte[], Long>> rows = Lists.newArrayListWithCapacity(partition.size());
-                for (Entry<Cell, Long> entry : partition) {
+                Collection<Row3<byte[], byte[], Long>> rows = new ArrayList<>(partition.size());
+                for (Map.Entry<Cell, Long> entry : partition) {
                     rows.add(row(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()));
                 }
                 ctx.deleteFrom(atlasTable(tableRef).as(ATLAS_TABLE))
@@ -645,7 +648,7 @@ public class JdbcKeyValueService implements KeyValueService {
                 RowResult<Set<Long>> rowResult = iterator.next();
 
                 Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
-                for (Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
+                for (Map.Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
                     cellsToDelete.putAll(entry.getKey(), entry.getValue());
                 }
 
@@ -681,8 +684,8 @@ public class JdbcKeyValueService implements KeyValueService {
 
         // Sort this to ensure we delete in timestamp ascending order
         SetMultimap<Cell, Long> inSortedOrder = timestampsByCellExcludingSentinels.entries().stream()
-                .sorted(Comparator.comparing(Entry::getValue))
-                .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
+                .sorted(Comparator.comparing(Map.Entry::getValue))
+                .collect(ImmutableSetMultimap.toImmutableSetMultimap(Map.Entry::getKey, Map.Entry::getValue));
 
         delete(tableRef, inSortedOrder);
     }
@@ -786,8 +789,8 @@ public class JdbcKeyValueService implements KeyValueService {
             if (rangeRequest.isReverse()) {
                 valuesByRow = valuesByRow.descendingMap();
             }
-            List<RowResult<Value>> finalResults = Lists.newArrayListWithCapacity(valuesByRow.size());
-            for (Entry<byte[], SortedMap<byte[], Value>> entry : valuesByRow.entrySet()) {
+            List<RowResult<Value>> finalResults = new ArrayList<>(valuesByRow.size());
+            for (Map.Entry<byte[], SortedMap<byte[], Value>> entry : valuesByRow.entrySet()) {
                 finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
             }
             byte[] nextRow = null;
@@ -802,11 +805,11 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     private static NavigableMap<byte[], SortedMap<byte[], Value>> breakUpValuesByRow(Result<? extends Record> records) {
-        NavigableMap<byte[], SortedMap<byte[], Value>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], SortedMap<byte[], Value>> ret = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         for (Record record : records) {
             byte[] row = record.getValue(A_ROW_NAME);
             SortedMap<byte[], Value> colMap =
-                    ret.computeIfAbsent(row, rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
+                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
             colMap.put(
                     record.getValue(A_COL_NAME), Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
         }
@@ -833,8 +836,8 @@ public class JdbcKeyValueService implements KeyValueService {
             if (rangeRequest.isReverse()) {
                 timestampsByRow = timestampsByRow.descendingMap();
             }
-            List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(timestampsByRow.size());
-            for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : timestampsByRow.entrySet()) {
+            List<RowResult<Set<Long>>> finalResults = new ArrayList<>(timestampsByRow.size());
+            for (Map.Entry<byte[], SortedMap<byte[], Set<Long>>> entry : timestampsByRow.entrySet()) {
                 finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
             }
             byte[] nextRow = null;
@@ -851,13 +854,13 @@ public class JdbcKeyValueService implements KeyValueService {
     private static NavigableMap<byte[], SortedMap<byte[], Set<Long>>> breakUpTimestampsByRow(
             Result<? extends Record> records) {
         NavigableMap<byte[], SortedMap<byte[], Set<Long>>> ret =
-                Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+                new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         for (Record record : records) {
             byte[] row = record.getValue(A_ROW_NAME);
             byte[] col = record.getValue(A_COL_NAME);
             SortedMap<byte[], Set<Long>> colMap =
-                    ret.computeIfAbsent(row, rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
-            Set<Long> tsSet = colMap.computeIfAbsent(col, ts -> Sets.newHashSet());
+                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
+            Set<Long> tsSet = colMap.computeIfAbsent(col, ts -> new HashSet<>());
             tsSet.add(record.getValue(A_TIMESTAMP));
         }
         return ret;
@@ -940,7 +943,7 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return run(ctx -> getAllTableNames(ctx));
+        return run(this::getAllTableNames);
     }
 
     private Set<TableReference> getAllTableNames(DSLContext ctx) {
@@ -991,7 +994,7 @@ public class JdbcKeyValueService implements KeyValueService {
             Query query =
                     ctx.update(METADATA_TABLE).set(METADATA, (byte[]) null).where(TABLE_NAME.eq((String) null));
             BatchBindStep batch = ctx.batch(query);
-            for (Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
+            for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
                 batch = batch.bind(entry.getValue(), entry.getKey().getQualifiedName());
             }
             batch.execute();

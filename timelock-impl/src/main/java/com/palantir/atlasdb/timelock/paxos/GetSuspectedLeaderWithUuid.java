@@ -22,7 +22,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -37,6 +36,7 @@ import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponsesWithRemote;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,7 +64,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
     private final UUID localUuid;
     private final Duration leaderPingResponseWait;
 
-    private final Map<UUID, LeaderPingerContext<BatchPingableLeader>> cache = Maps.newHashMap();
+    private final Map<UUID, LeaderPingerContext<BatchPingableLeader>> cache = new HashMap<>();
 
     GetSuspectedLeaderWithUuid(
             Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors,

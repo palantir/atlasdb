@@ -118,8 +118,7 @@ public class CachedComposedSupplierTest {
     @Test
     public void recomputesIfSupplierHasNotUpdatedForTooLong() throws InterruptedException {
         AtomicLong clockCounter = new AtomicLong();
-        testSupplier =
-                new CachedComposedSupplier<>(this::countingFunction, this::constantNumber, 5, () -> clockCounter.get());
+        testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::constantNumber, 5, clockCounter::get);
         for (int i = 0; i < 25; i++) {
             clockCounter.incrementAndGet();
             testSupplier.get();

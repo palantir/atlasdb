@@ -16,8 +16,6 @@
 package com.palantir.lock.impl;
 
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.LockClient;
@@ -38,9 +36,11 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -185,7 +185,7 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LockToken> unlocked = Sets.newHashSet();
+        Set<LockToken> unlocked = new HashSet<>();
         for (LockToken tokenV2 : tokens) {
             LockRefreshToken legacyToken = LockTokenConverter.toLegacyToken(tokenV2);
             if (lockService.unlock(legacyToken)) {
@@ -220,7 +220,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     private SortedMap<LockDescriptor, LockMode> buildLockMap(Set<LockDescriptor> lockDescriptors, LockMode lockMode) {
-        SortedMap<LockDescriptor, LockMode> locks = Maps.newTreeMap();
+        SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
         for (LockDescriptor descriptor : lockDescriptors) {
             locks.put(descriptor, lockMode);
         }

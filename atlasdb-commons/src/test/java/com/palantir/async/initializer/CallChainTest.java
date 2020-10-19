@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -36,7 +36,7 @@ import org.mockito.Mockito;
 public class CallChainTest {
     private static final String TEST_STRING = "abc";
 
-    private final List<CallbackInvocation> invocations = Lists.newArrayList();
+    private final List<CallbackInvocation> invocations = new ArrayList<>();
 
     @Test
     @SuppressWarnings("unchecked") // Mocks are guaranteed to be of a suitable type
@@ -124,7 +124,7 @@ public class CallChainTest {
         return resultIterator::next;
     }
 
-    private class ListUpdatingCallback extends Callback<String> {
+    private final class ListUpdatingCallback extends Callback<String> {
         private final Supplier<Boolean> shouldFailInit;
         private final Supplier<Boolean> shouldFailCleanup;
 

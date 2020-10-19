@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class QosCassandraClient implements AutoDelegate_CassandraClient {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
+    private static final Logger log = LoggerFactory.getLogger(QosCassandraClient.class);
 
     private final CassandraClient client;
     private final QosMetrics metrics;

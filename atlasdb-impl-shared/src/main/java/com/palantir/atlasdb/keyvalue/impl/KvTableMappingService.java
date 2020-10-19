@@ -24,7 +24,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -49,6 +48,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -206,7 +207,7 @@ public class KvTableMappingService implements TableMappingService {
     @Override
     public <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> toMap)
             throws TableMappingNotFoundException {
-        Map<TableReference, T> newMap = Maps.newHashMap();
+        Map<TableReference, T> newMap = new HashMap<>();
         for (Map.Entry<TableReference, T> e : toMap.entrySet()) {
             newMap.put(getMappedTableName(e.getKey()), e.getValue());
         }
@@ -216,7 +217,7 @@ public class KvTableMappingService implements TableMappingService {
     @Override
     public Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableRefs) {
         Map<TableReference, TableReference> shortToFullTableName = Maps.newHashMapWithExpectedSize(tableRefs.size());
-        Set<TableReference> tablesToReload = Sets.newHashSet();
+        Set<TableReference> tablesToReload = new HashSet<>();
         Map<TableReference, TableReference> reverseTableMapSnapshot =
                 ImmutableMap.copyOf(tableMap.get().inverse());
 

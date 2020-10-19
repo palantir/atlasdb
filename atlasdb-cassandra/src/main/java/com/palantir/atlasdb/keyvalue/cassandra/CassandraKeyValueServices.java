@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -44,9 +43,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -56,7 +55,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CassandraKeyValueServices {
-    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServices.class);
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
@@ -111,7 +110,7 @@ public final class CassandraKeyValueServices {
         } while (System.currentTimeMillis() < start + schemaMutationTimeMillis);
 
         StringBuilder schemaVersions = new StringBuilder();
-        for (Entry<String, List<String>> version : versions.entrySet()) {
+        for (Map.Entry<String, List<String>> version : versions.entrySet()) {
             addNodeInformation(
                     schemaVersions, String.format("%nAt schema version %s:", version.getKey()), version.getValue());
         }
@@ -375,7 +374,7 @@ public final class CassandraKeyValueServices {
     }
 
     static class StartTsResultsCollector implements ThreadSafeResultVisitor {
-        private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
+        private final Map<Cell, Value> collectedResults = new ConcurrentHashMap<>();
         private final ValueExtractor extractor;
         private final long startTs;
 
@@ -409,7 +408,7 @@ public final class CassandraKeyValueServices {
 
     private static void extractTimestampResults(
             @Output Multimap<Cell, Long> ret, Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
-        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
+        for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
             for (ColumnOrSuperColumn col : result.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(col.column);

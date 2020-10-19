@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.paxos.PaxosAcceptor;
@@ -33,6 +32,7 @@ import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
@@ -87,7 +87,7 @@ public class PaxosRemotingUtilsTest {
     }
 
     private static void verifyQuorumSize(int nodes, int expected) {
-        List<PaxosAcceptor> acceptorList = Lists.newArrayList();
+        List<PaxosAcceptor> acceptorList = new ArrayList<>();
         for (int i = 0; i < nodes; i++) {
             acceptorList.add(null);
         }

@@ -19,7 +19,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,8 +26,8 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.AssertUtils;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
@@ -48,7 +47,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
             .build(new CacheLoader<TableReference, Map<Cell, byte[]>>() {
                 @Override
                 public Map<Cell, byte[]> load(TableReference input) {
-                    return Collections.synchronizedMap(Maps.newHashMap());
+                    return Collections.synchronizedMap(new HashMap<>());
                 }
             });
 
@@ -72,7 +71,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
     public void delete(TableReference tableRef, Set<Cell> keys) {
         // Map deletes into writes of zero-length byte arrays (this is in
         // accordance with the semantics of our transaction API).
-        Map<Cell, byte[]> values = Maps.newHashMap();
+        Map<Cell, byte[]> values = new HashMap<>();
         for (Cell c : keys) {
             values.put(c, new byte[0]);
         }
@@ -88,7 +87,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
             } catch (ExecutionException e) {
                 throw new RuntimeException(e.getCause());
             }
-            for (Entry<Cell, byte[]> value : values.entrySet()) {
+            for (Map.Entry<Cell, byte[]> value : values.entrySet()) {
                 byte[] newValue = value.getValue();
                 byte[] oldValue = table.get(value.getKey());
                 if (oldValue != null && !Arrays.equals(oldValue, newValue)) {

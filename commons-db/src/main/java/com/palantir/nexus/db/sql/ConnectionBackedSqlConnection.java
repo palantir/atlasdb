@@ -19,8 +19,8 @@ import com.palantir.exception.PalantirSqlException;
 import java.sql.Connection;
 
 public interface ConnectionBackedSqlConnection extends PalantirSqlConnection {
-    public void close() throws PalantirSqlException;
+    void close() throws PalantirSqlException;
 
     @Override
-    public Connection getUnderlyingConnection();
+    Connection getUnderlyingConnection();
 }

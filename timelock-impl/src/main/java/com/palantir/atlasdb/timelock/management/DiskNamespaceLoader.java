@@ -50,7 +50,7 @@ public final class DiskNamespaceLoader implements PersistentNamespaceLoader {
     private static Stream<String> getNamespacesFromUseCaseResolvedDirectory(Path logDirectory) {
         if (Files.notExists(logDirectory)) {
             log.info("No namespace directory exists at path: {}", SafeArg.of("dirName", logDirectory));
-            return Stream.of();
+            return Stream.empty();
         }
         File[] directories = logDirectory.toFile().listFiles(File::isDirectory);
         if (directories == null) {

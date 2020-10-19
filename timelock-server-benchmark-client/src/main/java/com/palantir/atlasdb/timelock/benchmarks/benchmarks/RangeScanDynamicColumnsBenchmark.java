@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable;
@@ -25,6 +24,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +56,7 @@ public final class RangeScanDynamicColumnsBenchmark extends AbstractRangeScanBen
     protected List<byte[]> getRange(Transaction txn, long startInclusive, long endExclusive) {
         KvDynamicColumnsTable table = BenchmarksTableFactory.of().getKvDynamicColumnsTable(txn);
 
-        List<byte[]> data = Lists.newArrayList();
+        List<byte[]> data = new ArrayList<>();
         table.getRowsColumnRange(
                         ImmutableSet.of(KvDynamicColumnsRow.of(bucket)),
                         new ColumnRangeSelection(

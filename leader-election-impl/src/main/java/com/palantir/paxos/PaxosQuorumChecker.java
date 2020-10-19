@@ -17,8 +17,6 @@ package com.palantir.paxos;
 
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
@@ -27,7 +25,9 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -86,7 +86,7 @@ public final class PaxosQuorumChecker {
                     Duration remoteRequestTimeout,
                     boolean cancelRemainingCalls) {
         Preconditions.checkState(
-                executors.keySet().equals(Sets.newHashSet(remotes)), "Each remote should have an executor.");
+                executors.keySet().equals(new HashSet<>(remotes)), "Each remote should have an executor.");
         return collectResponses(
                 remotes,
                 request,
@@ -199,7 +199,7 @@ public final class PaxosQuorumChecker {
         PaxosResponseAccumulator<SERVICE, RESPONSE> receivedResponses =
                 PaxosResponseAccumulator.newResponse(remotes.size(), quorumSize, shouldSkipNextRequest);
         // kick off all the requests
-        List<Future<Map.Entry<SERVICE, RESPONSE>>> allFutures = Lists.newArrayList();
+        List<Future<Map.Entry<SERVICE, RESPONSE>>> allFutures = new ArrayList<>();
         for (SERVICE remote : remotes) {
             try {
                 allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
@@ -215,7 +215,7 @@ public final class PaxosQuorumChecker {
             }
         }
 
-        List<Throwable> encounteredErrors = Lists.newArrayList();
+        List<Throwable> encounteredErrors = new ArrayList<>();
         boolean interrupted = false;
         try {
             long deadline = System.nanoTime() + remoteRequestTimeout.toNanos();

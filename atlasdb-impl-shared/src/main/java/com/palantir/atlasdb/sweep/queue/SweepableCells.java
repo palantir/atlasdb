@@ -62,7 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SweepableCells extends SweepQueueTable {
-    private final Logger log = LoggerFactory.getLogger(SweepableCells.class);
+    private static final Logger log = LoggerFactory.getLogger(SweepableCells.class);
     private final CommitTsCache commitTsCache;
     private final WriteReferencePersister writeReferencePersister;
 
@@ -215,7 +215,7 @@ public class SweepableCells extends SweepQueueTable {
         return writeBatch;
     }
 
-    private static class WriteBatch {
+    private static final class WriteBatch {
         private final Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         private final List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
 

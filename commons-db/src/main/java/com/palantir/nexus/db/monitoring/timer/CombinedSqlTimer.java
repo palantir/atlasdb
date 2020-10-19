@@ -15,7 +15,7 @@
  */
 package com.palantir.nexus.db.monitoring.timer;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 
 final class CombinedSqlTimer implements SqlTimer {
@@ -26,8 +26,8 @@ final class CombinedSqlTimer implements SqlTimer {
     }
 
     @Override
-    public final Handle start(String module, String sqlKey, String rawSql) {
-        final List<Handle> handles = Lists.newArrayListWithCapacity(sqlTimers.size());
+    public Handle start(String module, String sqlKey, String rawSql) {
+        final List<Handle> handles = new ArrayList<>(sqlTimers.size());
         for (SqlTimer sqlTimer : sqlTimers) {
             handles.add(sqlTimer.start(module, sqlKey, rawSql));
         }

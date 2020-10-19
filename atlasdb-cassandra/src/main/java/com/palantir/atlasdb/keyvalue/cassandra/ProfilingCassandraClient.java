@@ -246,7 +246,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
                         () -> client.execute_cql3_query(cqlQuery, compression, consistency),
-                (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
+                cqlQuery::logSlowResult,
                 (logger, cqlResult) -> {
                     if (cqlResult.getRows() == null) {
                         // different from an empty list

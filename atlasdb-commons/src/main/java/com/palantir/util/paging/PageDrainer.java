@@ -16,7 +16,7 @@
 package com.palantir.util.paging;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PageDrainer<T> {
@@ -27,7 +27,7 @@ public class PageDrainer<T> {
     }
 
     public List<T> drainAllPages() {
-        List<T> pages = Lists.newArrayList();
+        List<T> pages = new ArrayList<>();
         List<T> currentPage = pageGetter.getFirstPage();
         pages.addAll(currentPage);
         while (hasNextPage(currentPage)) {

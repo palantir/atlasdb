@@ -25,8 +25,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -46,9 +44,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -76,9 +74,9 @@ public class Schema {
     private boolean ignoreTableNameLengthChecks = false;
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
-    private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
-    private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
-    private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
+    private final Map<String, TableDefinition> tableDefinitions = new HashMap<>();
+    private final Map<String, IndexDefinition> indexDefinitions = new HashMap<>();
+    private final List<StreamStoreRenderer> streamStoreRenderers = new ArrayList<>();
 
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
@@ -131,7 +129,7 @@ public class Schema {
     }
 
     public Map<TableReference, TableMetadata> getAllTablesAndIndexMetadata() {
-        Map<TableReference, TableMetadata> ret = Maps.newHashMap();
+        Map<TableReference, TableMetadata> ret = new HashMap<>();
         for (Map.Entry<String, TableDefinition> e : tableDefinitions.entrySet()) {
             ret.put(TableReference.create(namespace, e.getKey()), e.getValue().toTableMetadata());
         }
@@ -234,7 +232,7 @@ public class Schema {
      */
     public void validate() {
         // Try converting to metadata to see if any validation logic throws.
-        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             try {
                 entry.getValue().validate();
             } catch (Exception e) {
@@ -243,7 +241,7 @@ public class Schema {
             }
         }
 
-        for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
+        for (Map.Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
             IndexDefinition def = indexEntry.getValue();
             try {
                 def.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
@@ -254,11 +252,11 @@ public class Schema {
             }
         }
 
-        for (Entry<String, String> e : indexesByTable.entries()) {
+        for (Map.Entry<String, String> e : indexesByTable.entries()) {
             TableMetadata tableMetadata = tableDefinitions.get(e.getKey()).toTableMetadata();
 
             Collection<String> rowNames = Collections2.transform(
-                    tableMetadata.getRowMetadata().getRowParts(), input -> input.getComponentName());
+                    tableMetadata.getRowMetadata().getRowParts(), NameComponentDescription::getComponentName);
 
             IndexMetadata indexMetadata = indexDefinitions.get(e.getValue()).toIndexMetadata(e.getValue());
             for (IndexComponent c :
@@ -291,12 +289,12 @@ public class Schema {
 
     public Map<TableReference, TableDefinition> getTableDefinitions() {
         return tableDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Map.Entry::getValue));
     }
 
     public Map<TableReference, IndexDefinition> getIndexDefinitions() {
         return indexDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Map.Entry::getValue));
     }
 
     public Namespace getNamespace() {
@@ -314,7 +312,7 @@ public class Schema {
 
         TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
         TableRendererV2 tableRendererV2 = new TableRendererV2(packageName, namespace);
-        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
             ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -31,11 +30,12 @@ import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.HashMap;
 import java.util.Map;
 
 @AutoService(DbTimeLockFactory.class)
 public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
-    private final Map<TimestampSeries, ManagedTimestampService> services = Maps.newHashMap();
+    private final Map<TimestampSeries, ManagedTimestampService> services = new HashMap<>();
 
     @Override
     public String getType() {

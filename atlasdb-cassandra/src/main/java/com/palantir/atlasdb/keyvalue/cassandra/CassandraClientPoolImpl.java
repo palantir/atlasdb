@@ -20,7 +20,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
@@ -39,6 +38,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -101,7 +102,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolImpl.class);
 
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;
@@ -306,8 +307,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
-        Set<InetSocketAddress> serversToRemove = Sets.newHashSet();
-        Set<InetSocketAddress> serversToAdd = Sets.newHashSet();
+        Set<InetSocketAddress> serversToRemove = new HashSet<>();
+        Set<InetSocketAddress> serversToAdd = new HashSet<>();
 
         Set<InetSocketAddress> cachedServers = getCachedServers();
         serversToAdd.addAll(Sets.difference(desiredServers, cachedServers));
@@ -353,8 +354,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             throw new RuntimeException(e);
         }
 
-        Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = Maps.newHashMap();
-        Map<InetSocketAddress, Exception> aliveButInvalidPartitionerHosts = Maps.newHashMap();
+        Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = new HashMap<>();
+        Map<InetSocketAddress, Exception> aliveButInvalidPartitionerHosts = new HashMap<>();
         boolean thisHostResponded = false;
         boolean atLeastOneHostResponded = false;
         for (InetSocketAddress host : getCachedServers()) {

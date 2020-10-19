@@ -18,7 +18,7 @@ package com.palantir.nexus.db.sql;
 import java.sql.Connection;
 
 public interface TempTable {
-    public void initialize(Connection connection);
+    void initialize(Connection connection);
 
-    public String getTableName();
+    String getTableName();
 }

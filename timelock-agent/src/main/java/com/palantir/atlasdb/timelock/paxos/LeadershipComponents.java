@@ -17,9 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -31,6 +29,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
@@ -41,14 +40,14 @@ public class LeadershipComponents {
 
     private static final Logger log = LoggerFactory.getLogger(LeadershipComponents.class);
 
-    private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = Maps.newConcurrentMap();
+    private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = new ConcurrentHashMap<>();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
-    private final Factory<LeadershipContext> leadershipContextFactory;
+    private final NetworkClientFactories.Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
 
     LeadershipComponents(
-            Factory<LeadershipContext> leadershipContextFactory,
+            NetworkClientFactories.Factory<LeadershipContext> leadershipContextFactory,
             LocalAndRemotes<HealthCheckPinger> healthCheckPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
@@ -101,7 +100,7 @@ public class LeadershipComponents {
         leaderElectionService.stepDown();
     }
 
-    private static class ShutdownAwareCloser {
+    private static final class ShutdownAwareCloser {
         private boolean isShutdown = false;
         private final Closer closer = Closer.create();
 

@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public final class SweepProgressStoreImpl implements SweepProgressStore {
 
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepProgressStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepProgressStore {
         @Override
         public SweepProgressStoreImpl delegate() {
             checkInitialized();

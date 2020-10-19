@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Ensure that only a single method is ever called.  Throw {@link IllegalStateException} on all subsequent calls.
  */
-public class SingleCallProxy implements DelegatingInvocationHandler {
+public final class SingleCallProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate) {

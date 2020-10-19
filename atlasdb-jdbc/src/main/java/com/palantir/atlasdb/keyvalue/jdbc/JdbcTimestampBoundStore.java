@@ -30,7 +30,7 @@ import org.jooq.Table;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
-public class JdbcTimestampBoundStore implements TimestampBoundStore {
+public final class JdbcTimestampBoundStore implements TimestampBoundStore {
     private final JdbcKeyValueService kvs;
     private long latestTimestamp;
 

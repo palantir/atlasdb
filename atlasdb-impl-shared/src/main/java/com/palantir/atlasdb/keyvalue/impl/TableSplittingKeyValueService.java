@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -46,10 +45,11 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
@@ -112,8 +112,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     private Map<KeyValueService, Map<TableReference, byte[]>> groupByDelegate(
             Map<TableReference, byte[]> tableRefsToTableMetadata) {
-        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata = Maps.newHashMap();
-        for (Entry<TableReference, byte[]> tableEntry : tableRefsToTableMetadata.entrySet()) {
+        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata = new HashMap<>();
+        for (Map.Entry<TableReference, byte[]> tableEntry : tableRefsToTableMetadata.entrySet()) {
             TableReference tableRef = tableEntry.getKey();
             byte[] tableMetadata = tableEntry.getValue();
 
@@ -121,7 +121,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
             if (splitTableNamesToTableMetadata.containsKey(delegate)) {
                 splitTableNamesToTableMetadata.get(delegate).put(tableRef, tableMetadata);
             } else {
-                Map<TableReference, byte[]> mapTableToMaxValue = Maps.newHashMap();
+                Map<TableReference, byte[]> mapTableToMaxValue = new HashMap<>();
                 mapTableToMaxValue.put(tableRef, tableMetadata);
                 splitTableNamesToTableMetadata.put(delegate, mapTableToMaxValue);
             }
@@ -156,7 +156,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
-        Map<KeyValueService, Set<TableReference>> tablesByKvs = Maps.newHashMap();
+        Map<KeyValueService, Set<TableReference>> tablesByKvs = new HashMap<>();
         for (TableReference tableRef : tableRefs) {
             KeyValueService delegate = getDelegate(tableRef);
             if (tablesByKvs.containsKey(delegate)) {
@@ -167,7 +167,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
             }
         }
 
-        for (Entry<KeyValueService, Set<TableReference>> kvsEntry : tablesByKvs.entrySet()) {
+        for (Map.Entry<KeyValueService, Set<TableReference>> kvsEntry : tablesByKvs.entrySet()) {
             kvsEntry.getKey().dropTables(kvsEntry.getValue());
         }
     }
@@ -179,7 +179,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        Set<TableReference> ret = Sets.newHashSet();
+        Set<TableReference> ret = new HashSet<>();
         for (KeyValueService delegate : delegates) {
             Set<TableReference> tableRefs = delegate.getAllTableNames();
             for (TableReference tableRef : tableRefs) {
@@ -240,7 +240,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> crossDelegateTableMetadata = Maps.newHashMap();
+        Map<TableReference, byte[]> crossDelegateTableMetadata = new HashMap<>();
         for (KeyValueService delegate : getDelegates()) {
             crossDelegateTableMetadata.putAll(delegate.getMetadataForTables());
         }
@@ -292,14 +292,14 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = Maps.newHashMap();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+        Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = new HashMap<>();
+        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             KeyValueService delegate = getDelegate(e.getKey());
             Map<TableReference, Map<Cell, byte[]>> map =
-                    mapByDelegate.computeIfAbsent(delegate, table -> Maps.newHashMap());
+                    mapByDelegate.computeIfAbsent(delegate, table -> new HashMap<>());
             map.put(e.getKey(), e.getValue());
         }
-        for (Entry<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {
+        for (Map.Entry<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {
             e.getKey().multiPut(e.getValue(), timestamp);
         }
     }
@@ -377,7 +377,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return delegates.stream()
-                .map(kvs -> kvs.getClusterAvailabilityStatus())
+                .map(KeyValueService::getClusterAvailabilityStatus)
                 .min(Comparator.naturalOrder())
                 .orElse(ClusterAvailabilityStatus.ALL_AVAILABLE);
     }

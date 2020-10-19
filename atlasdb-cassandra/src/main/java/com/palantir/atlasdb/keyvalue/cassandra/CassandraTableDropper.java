@@ -16,11 +16,11 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.KsDef;
@@ -50,7 +50,7 @@ class CassandraTableDropper {
         try {
             clientPool.runWithRetry(client -> {
                 KsDef ks = client.describe_keyspace(config.getKeyspaceOrThrow());
-                Set<TableReference> existingTables = Sets.newHashSet();
+                Set<TableReference> existingTables = new HashSet<>();
 
                 existingTables.addAll(ks.getCf_defs().stream()
                         .map(CassandraKeyValueServices::tableReferenceFromCfDef)

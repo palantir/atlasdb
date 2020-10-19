@@ -17,7 +17,6 @@ package com.palantir.atlasdb.schema;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -26,6 +25,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,7 +112,7 @@ public class KeyValueServiceMigrator {
         processMessage("dropping tables: " + tablesToDrop, KvsMigrationMessageLevel.INFO);
         toKvs.dropTables(tablesToDrop);
 
-        Map<TableReference, byte[]> metadataByTableName = Maps.newHashMap();
+        Map<TableReference, byte[]> metadataByTableName = new HashMap<>();
         for (TableReference tableRef : KeyValueServiceMigratorUtils.getCreatableTables(fromKvs, unmigratableTables)) {
             processMessage("retrieving metadata for table " + tableRef, KvsMigrationMessageLevel.INFO);
             byte[] metadata = fromKvs.getMetadataForTable(tableRef);

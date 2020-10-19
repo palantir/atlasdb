@@ -48,13 +48,23 @@ public class BasicSQLString {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
         final BasicSQLString other = (BasicSQLString) obj;
         if (sql == null) {
-            if (other.sql != null) return false;
-        } else if (!sql.equals(other.sql)) return false;
+            if (other.sql != null) {
+                return false;
+            }
+        } else if (!sql.equals(other.sql)) {
+            return false;
+        }
         return true;
     }
 

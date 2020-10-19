@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
+public final class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
 
     private final PaxosUseCase useCase;
     private final BatchPaxosLearnerRpcClient rpcClient;
@@ -34,14 +34,17 @@ public class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
         this.rpcClient = rpcClient;
     }
 
+    @Override
     public void learn(SetMultimap<Client, PaxosValue> paxosValuesByClient) {
         rpcClient.learn(useCase, paxosValuesByClient);
     }
 
+    @Override
     public SetMultimap<Client, PaxosValue> getLearnedValues(Set<WithSeq<Client>> clientAndSeqs) {
         return rpcClient.getLearnedValues(useCase, clientAndSeqs);
     }
 
+    @Override
     public SetMultimap<Client, PaxosValue> getLearnedValuesSince(Map<Client, Long> seqLowerBoundsByClient) {
         return rpcClient.getLearnedValuesSince(useCase, seqLowerBoundsByClient);
     }

@@ -17,10 +17,9 @@ package com.palantir.atlasdb.table.description;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.concurrent.Immutable;
@@ -57,7 +56,7 @@ public class ColumnMetadataDescription {
         if (dynamicColumn != null) {
             return ImmutableList.of(dynamicColumn.getValue());
         }
-        List<ColumnValueDescription> ret = Lists.newArrayList();
+        List<ColumnValueDescription> ret = new ArrayList<>();
         for (NamedColumnDescription col : namedColumns) {
             ret.add(col.value);
         }
@@ -76,7 +75,8 @@ public class ColumnMetadataDescription {
     }
 
     public TableMetadataPersistence.ColumnMetadataDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.ColumnMetadataDescription.newBuilder();
+        TableMetadataPersistence.ColumnMetadataDescription.Builder builder =
+                TableMetadataPersistence.ColumnMetadataDescription.newBuilder();
         if (namedColumns != null) {
             for (NamedColumnDescription col : namedColumns) {
                 builder.addNamedColumns(col.persistToProto());
@@ -92,7 +92,7 @@ public class ColumnMetadataDescription {
             Preconditions.checkArgument(msg.getNamedColumnsCount() == 0);
             return new ColumnMetadataDescription(DynamicColumnDescription.hydrateFromProto(msg.getDynamicColumn()));
         } else {
-            List<NamedColumnDescription> list = Lists.newArrayList();
+            List<NamedColumnDescription> list = new ArrayList<>();
             for (TableMetadataPersistence.NamedColumnDescription col : msg.getNamedColumnsList()) {
                 list.add(NamedColumnDescription.hydrateFromProto(col));
             }

@@ -25,7 +25,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -50,6 +49,7 @@ import com.palantir.paxos.SqliteConnections;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -82,8 +82,8 @@ public class PaxosTimestampBoundStoreTest {
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
-    private final List<PaxosLearner> learners = Lists.newArrayList();
-    private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
+    private final List<PaxosLearner> learners = new ArrayList<>();
+    private final List<AtomicBoolean> failureToggles = new ArrayList<>();
     private final Closer closer = Closer.create();
 
     @Parameterized.Parameters
@@ -103,9 +103,9 @@ public class PaxosTimestampBoundStoreTest {
 
     @Before
     public void setUp() {
-        List<PaxosAcceptor> acceptors = Lists.newArrayList();
-        List<BatchPaxosAcceptor> batchPaxosAcceptors = Lists.newArrayList();
-        List<BatchPaxosLearner> batchPaxosLearners = Lists.newArrayList();
+        List<PaxosAcceptor> acceptors = new ArrayList<>();
+        List<BatchPaxosAcceptor> batchPaxosAcceptors = new ArrayList<>();
+        List<BatchPaxosLearner> batchPaxosLearners = new ArrayList<>();
 
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();

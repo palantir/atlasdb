@@ -312,7 +312,7 @@ public class SerializableTransactionManagerTest {
         executorService.tick(1000, TimeUnit.MILLISECONDS);
     }
 
-    private static class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
+    private static final class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
         private volatile boolean successfullyInvoked = false;
         private volatile boolean block = true;
 
@@ -339,7 +339,7 @@ public class SerializableTransactionManagerTest {
         }
     }
 
-    private static class DeterministicSchedulerWithShutdownFlag extends DeterministicScheduler {
+    private static final class DeterministicSchedulerWithShutdownFlag extends DeterministicScheduler {
         private boolean hasShutdown = false;
 
         @Override

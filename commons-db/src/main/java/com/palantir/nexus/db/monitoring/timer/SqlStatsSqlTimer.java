@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class SqlStatsSqlTimer implements SqlTimer {
-    private final Logger logger = SqlLoggers.LOGGER;
+    private static final Logger logger = SqlLoggers.LOGGER;
     private final OperationTimer timer = LoggingOperationTimer.create(logger);
 
     @Override

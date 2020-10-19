@@ -28,7 +28,7 @@ import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import java.io.IOException;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -62,7 +62,7 @@ public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
         ColumnMetadataDescription columns = metadata.getColumns();
         if (columns.hasDynamicColumns()) {
             jgen.writeArrayFieldStart("cols");
-            for (Entry<byte[], byte[]> colVal : result.getColumns().entrySet()) {
+            for (Map.Entry<byte[], byte[]> colVal : result.getColumns().entrySet()) {
                 jgen.writeStartObject();
                 byte[] col = colVal.getKey();
                 byte[] val = colVal.getValue();

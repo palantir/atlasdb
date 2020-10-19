@@ -31,12 +31,12 @@ import javax.annotation.Nonnull;
  */
 public interface OperationTimer {
     @Nonnull
-    public TimingState begin(String operationName);
+    TimingState begin(String operationName);
 
-    public interface TimingState {
-        public void end();
+    interface TimingState {
+        void end();
 
-        public static final TimingState NULL = () -> {
+        TimingState NULL = () -> {
             // empty
         };
     }

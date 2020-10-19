@@ -44,7 +44,7 @@ import javax.annotation.concurrent.GuardedBy;
  */
 public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
 
-    private static enum State {
+    private enum State {
         WAITING_TO_RUN,
         RUNNING,
         COMPLETED
@@ -71,7 +71,9 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
                 public void run() {
                     lock.lock();
                     try {
-                        if (state != State.WAITING_TO_RUN) return;
+                        if (state != State.WAITING_TO_RUN) {
+                            return;
+                        }
                         state = State.RUNNING;
                     } finally {
                         lock.unlock();

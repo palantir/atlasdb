@@ -19,6 +19,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.palantir.lock.LockDescriptor;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class LockCollection {
     }
 
     private static List<LockDescriptor> sort(Set<LockDescriptor> descriptors) {
-        List<LockDescriptor> orderedDescriptors = Lists.newArrayList(descriptors);
+        List<LockDescriptor> orderedDescriptors = new ArrayList<>(descriptors);
         orderedDescriptors.sort(Comparator.naturalOrder());
         return orderedDescriptors;
     }

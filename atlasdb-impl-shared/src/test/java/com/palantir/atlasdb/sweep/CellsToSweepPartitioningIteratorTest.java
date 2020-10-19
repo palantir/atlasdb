@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -121,7 +120,7 @@ public class CellsToSweepPartitioningIteratorTest {
 
     private static BatchOfCellsToSweep batchWithThreeTssPerCell(
             int firstCell, int numCells, int numCellsExaminedInBatch) {
-        List<CellToSweep> cells = Lists.newArrayList();
+        List<CellToSweep> cells = new ArrayList<>();
         for (int i = 0; i < numCells; ++i) {
             cells.add(cellWithThreeTimestamps(firstCell + i, 0));
         }

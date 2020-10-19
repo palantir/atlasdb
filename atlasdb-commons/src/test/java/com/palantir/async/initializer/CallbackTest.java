@@ -118,7 +118,7 @@ public class CallbackTest {
         }
     }
 
-    private static class SlowCallback extends Callback<AtomicBoolean> {
+    private static final class SlowCallback extends Callback<AtomicBoolean> {
         @Override
         public void init(AtomicBoolean started) {
             try {

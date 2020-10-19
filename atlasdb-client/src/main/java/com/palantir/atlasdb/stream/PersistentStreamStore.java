@@ -53,7 +53,7 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
      */
     void unmarkStreamAsUsed(Transaction tx, long streamId, byte[] reference);
 
-    void unmarkStreamsAsUsed(Transaction tx, final Map<Long, byte[]> streamIdsToReference);
+    void unmarkStreamsAsUsed(Transaction tx, Map<Long, byte[]> streamIdsToReference);
 
     /**
      * This method will store a stream, but it will not have any references.  This means that if cleanup

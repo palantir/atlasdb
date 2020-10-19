@@ -120,14 +120,13 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps, AsyncCellGetter cellGetter) {
-        Map<Cell, Long> startTsMap = Maps.newHashMap();
+        Map<Cell, Long> startTsMap = new HashMap<>();
         for (Long startTimestamp : startTimestamps) {
             Cell cell = getTransactionCell(startTimestamp);
             startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
-        return Futures.transform(
-                cellGetter.get(startTsMap), rawResults -> decodeTimestamps(rawResults), MoreExecutors.directExecutor());
+        return Futures.transform(cellGetter.get(startTsMap), this::decodeTimestamps, MoreExecutors.directExecutor());
     }
 
     private Long decodeTimestamp(long startTimestamp, Cell cell, Map<Cell, Value> rawResults) {

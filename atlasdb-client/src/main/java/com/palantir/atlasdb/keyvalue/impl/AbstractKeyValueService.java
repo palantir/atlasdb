@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
@@ -39,7 +38,9 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -122,7 +123,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      */
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> keys) {
-        return Maps.newHashMap(Maps.transformValues(get(tableRef, keys), Value.GET_TIMESTAMP));
+        return new HashMap<>(Maps.transformValues(get(tableRef, keys), Value.GET_TIMESTAMP));
     }
 
     @Override
@@ -176,7 +177,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void truncateTables(final Set<TableReference> tableRefs) {
-        List<Future<Void>> futures = Lists.newArrayList();
+        List<Future<Void>> futures = new ArrayList<>();
         for (final TableReference tableRef : tableRefs) {
             futures.add(executor.submit(() -> {
                 truncateTable(tableRef);

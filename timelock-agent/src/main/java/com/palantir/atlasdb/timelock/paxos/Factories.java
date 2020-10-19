@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosConstants;
@@ -31,7 +30,7 @@ import org.immutables.value.Value;
 
 public interface Factories {
     interface LeaderPingerFactoryContainer {
-        Factory<LeaderPinger> get();
+        NetworkClientFactories.Factory<LeaderPinger> get();
 
         List<Closeable> closeables();
 
@@ -63,7 +62,7 @@ public interface Factories {
         }
 
         @Override
-        public Factory<LeaderPinger> get() {
+        public NetworkClientFactories.Factory<LeaderPinger> get() {
             return pingableLeaderFactory()::leaderPingerFor;
         }
 
@@ -90,7 +89,7 @@ public interface Factories {
         }
 
         @Override
-        public Factory<LeaderPinger> get() {
+        public NetworkClientFactories.Factory<LeaderPinger> get() {
             return _client -> pinger();
         }
 

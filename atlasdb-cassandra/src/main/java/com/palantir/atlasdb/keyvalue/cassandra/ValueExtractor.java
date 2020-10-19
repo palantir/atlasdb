@@ -16,11 +16,11 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.codahale.metrics.Counter;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.HashMap;
 import java.util.Map;
 
 class ValueExtractor extends ResultsExtractor<Value> {
@@ -34,7 +34,7 @@ class ValueExtractor extends ResultsExtractor<Value> {
     }
 
     static ValueExtractor create(MetricsManager metricsManager) {
-        return new ValueExtractor(metricsManager, Maps.newHashMap());
+        return new ValueExtractor(metricsManager, new HashMap<>());
     }
 
     @Override

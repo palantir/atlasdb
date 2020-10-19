@@ -149,7 +149,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 new SimpleTableLevelMetricsController(metricsManager)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
-                return Maps.transformValues(map, input -> input.clone());
+                return Maps.transformValues(map, byte[]::clone);
             }
         };
     }

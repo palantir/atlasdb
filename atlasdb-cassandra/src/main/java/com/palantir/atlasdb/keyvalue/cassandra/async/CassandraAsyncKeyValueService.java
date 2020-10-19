@@ -52,6 +52,7 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
         this.futuresCombiner = futuresCombiner;
     }
 
+    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableReference, Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             log.trace(

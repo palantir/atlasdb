@@ -166,9 +166,13 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
             return ((BigDecimal) columns.get(col)).intValue();
         } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
             Object o = columns.get(col);
-            if (o instanceof Integer) return ((Integer) o).intValue();
-            else if (o instanceof Long) return ((Long) o).intValue();
-            else if (o instanceof BigDecimal) return ((BigDecimal) o).intValue();
+            if (o instanceof Integer) {
+                return ((Integer) o).intValue();
+            } else if (o instanceof Long) {
+                return ((Long) o).intValue();
+            } else if (o instanceof BigDecimal) {
+                return ((BigDecimal) o).intValue();
+            }
             String msg = "unknown return type for expected integer column"; // $NON-NLS-1$
             assert false : msg;
             throw PalantirSqlException.create(msg);
@@ -180,7 +184,9 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
     @Override
     @Deprecated // use the get by colname variant instead
     protected double getDouble(int col) throws PalantirSqlException {
-        if (columns.get(col) == null) return 0;
+        if (columns.get(col) == null) {
+            return 0;
+        }
 
         if (dbType == DBType.ORACLE) {
             return ((BigDecimal) columns.get(col)).doubleValue();
@@ -225,7 +231,9 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
     @Deprecated // use the get by colname variant instead
     protected String getString(int col) {
         Object obj = columns.get(col);
-        if (obj == null) return ""; // $NON-NLS-1$
+        if (obj == null) {
+            return "";
+        } // $NON-NLS-1$
         return String.valueOf(obj);
     }
 
@@ -234,7 +242,9 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
         StringBuilder sb = new StringBuilder("{"); // $NON-NLS-1$
         boolean first = true;
         for (Object column : columns) {
-            if (!first) sb.append(", "); // $NON-NLS-1$
+            if (!first) {
+                sb.append(", ");
+            } // $NON-NLS-1$
             first = false;
             sb.append(column);
         }

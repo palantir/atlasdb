@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import com.palantir.lock.v2.Lease;
 
-public class Leased<T> {
+public final class Leased<T> {
     private final T value;
     private final Lease lease;
 

@@ -103,7 +103,7 @@ public class TestFastForwardTimestampCommand {
         };
     }
 
-    private static class FakeLockAndTimestampModule extends LockAndTimestampModule {
+    private static final class FakeLockAndTimestampModule extends LockAndTimestampModule {
         private static InMemoryTimestampService timestampService = new InMemoryTimestampService();
 
         @Override

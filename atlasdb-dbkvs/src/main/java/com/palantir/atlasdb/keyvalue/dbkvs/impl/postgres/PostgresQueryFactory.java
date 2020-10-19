@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -26,9 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 
 public class PostgresQueryFactory extends AbstractDbQueryFactory {
     private final String tableName;
@@ -73,7 +73,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     public FullQuery getLatestRowsQuery(
-            Collection<Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_INNER (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts "
                 + "   FROM " + prefixedTableName() + " m,"
@@ -119,7 +119,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     public FullQuery getAllRowsQuery(
-            Collection<Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ROWS (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ")
                 + "   FROM " + prefixedTableName() + " m,"
@@ -162,7 +162,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestCellsQuery(Collection<Entry<Cell, Long>> cells, boolean includeValue) {
+    public FullQuery getLatestCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_LATEST_CELLS_INNER (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts "
                 + "   FROM " + prefixedTableName() + " m,"
@@ -199,7 +199,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getAllCellsQuery(Collection<Entry<Cell, Long>> cells, boolean includeValue) {
+    public FullQuery getAllCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_ALL_CELLS (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ")
                 + "   FROM " + prefixedTableName() + " m,"
@@ -212,8 +212,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     public FullQuery getRangeQuery(RangeRequest range, long ts, int maxRows) {
-        List<String> bounds = Lists.newArrayListWithCapacity(2);
-        List<Object> args = Lists.newArrayListWithCapacity(2);
+        List<String> bounds = new ArrayList<>(2);
+        List<Object> args = new ArrayList<>(2);
         byte[] start = range.getStartInclusive();
         byte[] end = range.getEndExclusive();
         if (start.length > 0) {
@@ -261,8 +261,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
                 + "   AND wrap.ts = i.ts ";
     }
 
-    private FullQuery addRowTsArgs(FullQuery fullQuery, Iterable<Entry<byte[], Long>> rows) {
-        for (Entry<byte[], Long> entry : rows) {
+    private FullQuery addRowTsArgs(FullQuery fullQuery, Iterable<Map.Entry<byte[], Long>> rows) {
+        for (Map.Entry<byte[], Long> entry : rows) {
             fullQuery.withArgs(entry.getKey(), entry.getValue());
         }
         return fullQuery;
@@ -275,8 +275,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
         return fullQuery;
     }
 
-    private FullQuery addCellTsArgs(FullQuery fullQuery, Collection<Entry<Cell, Long>> cells) {
-        for (Entry<Cell, Long> entry : cells) {
+    private FullQuery addCellTsArgs(FullQuery fullQuery, Collection<Map.Entry<Cell, Long>> cells) {
+        for (Map.Entry<Cell, Long> entry : cells) {
             Cell cell = entry.getKey();
             fullQuery.withArgs(cell.getRowName(), cell.getColumnName(), entry.getValue());
         }

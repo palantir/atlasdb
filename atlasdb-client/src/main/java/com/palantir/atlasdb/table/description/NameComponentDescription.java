@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.logsafe.Preconditions;
+import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -197,7 +197,7 @@ public final class NameComponentDescription {
     }
 
     public NameComponentDescription withPartitioners(RowNamePartitioner... partitioners) {
-        Set<String> explicit = Sets.newHashSet();
+        Set<String> explicit = new HashSet<>();
         boolean hasUniform = false;
         for (RowNamePartitioner p : partitioners) {
             hasUniform |= p instanceof UniformRowNamePartitioner;

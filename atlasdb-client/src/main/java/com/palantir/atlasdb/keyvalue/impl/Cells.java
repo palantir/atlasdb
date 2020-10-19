@@ -39,12 +39,13 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,7 @@ public final class Cells {
     }
 
     public static Set<Cell> cellsWithConstantColumn(Iterable<byte[]> rows, byte[] col) {
-        return cellsWithConstantColumn(Sets.<Cell>newHashSet(), rows, col);
+        return cellsWithConstantColumn(new HashSet<Cell>(), rows, col);
     }
 
     public static Set<Cell> cellsWithConstantColumn(Collection<byte[]> rows, byte[] col) {
@@ -102,11 +103,11 @@ public final class Cells {
 
     public static <T> NavigableMap<byte[], NavigableMap<byte[], T>> breakCellsUpByRow(
             Iterable<Map.Entry<Cell, T>> map) {
-        NavigableMap<byte[], NavigableMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], NavigableMap<byte[], T>> ret = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
             NavigableMap<byte[], T> sortedMap =
-                    ret.computeIfAbsent(row, rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
+                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
             sortedMap.put(e.getKey().getColumnName(), e.getValue());
         }
         return ret;
@@ -120,14 +121,14 @@ public final class Cells {
      * The Collection provided to this function has to be sorted and strictly increasing.
      */
     public static <T> Iterator<RowResult<T>> createRowView(final Collection<Map.Entry<Cell, T>> sortedIterator) {
-        final PeekingIterator<Entry<Cell, T>> it = Iterators.peekingIterator(sortedIterator.iterator());
+        final PeekingIterator<Map.Entry<Cell, T>> it = Iterators.peekingIterator(sortedIterator.iterator());
         Iterator<Map.Entry<byte[], NavigableMap<byte[], T>>> resultIt =
                 new AbstractIterator<Map.Entry<byte[], NavigableMap<byte[], T>>>() {
                     byte[] row = null;
                     NavigableMap<byte[], T> map = null;
 
                     @Override
-                    protected Entry<byte[], NavigableMap<byte[], T>> computeNext() {
+                    protected Map.Entry<byte[], NavigableMap<byte[], T>> computeNext() {
                         if (!it.hasNext()) {
                             return endOfData();
                         }
@@ -135,7 +136,7 @@ public final class Cells {
                         ImmutableSortedMap.Builder<byte[], T> mapBuilder =
                                 ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
                         while (it.hasNext()) {
-                            Entry<Cell, T> peek = it.peek();
+                            Map.Entry<Cell, T> peek = it.peek();
                             if (!Arrays.equals(peek.getKey().getRowName(), row)) {
                                 break;
                             }
@@ -172,7 +173,7 @@ public final class Cells {
     }
 
     public static Function<byte[], String> getNameFromBytesFunction() {
-        return input -> getNameFromBytes(input);
+        return Cells::getNameFromBytes;
     }
 
     public static String getNameFromBytes(byte[] name) {

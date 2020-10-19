@@ -33,7 +33,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
@@ -49,12 +48,14 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -66,7 +67,7 @@ import org.slf4j.LoggerFactory;
 
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
     private static final Interner<RangeMap<LightweightOppToken, List<InetSocketAddress>>> tokensInterner =
             Interners.newWeakInterner();
 
@@ -76,7 +77,7 @@ public class CassandraService implements AutoCloseable {
     private final CassandraClientPoolMetrics poolMetrics;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
 
     private List<InetSocketAddress> cassandraHosts;
 
@@ -105,7 +106,7 @@ public class CassandraService implements AutoCloseable {
     public void close() {}
 
     public Set<InetSocketAddress> refreshTokenRangesAndGetServers() {
-        Set<InetSocketAddress> servers = Sets.newHashSet();
+        Set<InetSocketAddress> servers = new HashSet<>();
 
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =

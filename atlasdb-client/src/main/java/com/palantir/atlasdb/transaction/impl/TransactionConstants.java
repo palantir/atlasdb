@@ -24,7 +24,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import java.util.Set;
 
-public class TransactionConstants {
+public final class TransactionConstants {
     private TransactionConstants() {
         /* */
     }

@@ -261,7 +261,7 @@ public final class StackTraceUtils {
         return score;
     }
 
-    private static class StackTraceComparator implements Comparator<String>, Serializable {
+    private static final class StackTraceComparator implements Comparator<String>, Serializable {
         private static final long serialVersionUID = 1L;
 
         // higher scores come earlier
@@ -353,7 +353,9 @@ public final class StackTraceUtils {
      * @param count
      */
     public static String pluralizeWord(String s, int count) {
-        if (count == 1) return s;
+        if (count == 1) {
+            return s;
+        }
 
         return pluralize(s);
     }

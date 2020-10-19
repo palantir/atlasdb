@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,6 +28,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -130,7 +130,7 @@ public class PerformanceResults {
             return convertToList(values);
         }
 
-        final List<Double> list = Lists.newArrayList();
+        final List<Double> list = new ArrayList<>();
         int current = 0;
 
         for (double d : values.keys()) {
@@ -143,7 +143,7 @@ public class PerformanceResults {
     }
 
     private static List<Double> convertToList(TreeMultiset<Double> values) {
-        final List<Double> list = Lists.newArrayList();
+        final List<Double> list = new ArrayList<>();
         for (double d : values.keys()) {
             for (int i = 0; i < values.count(d); ++i) {
                 list.add(d);

@@ -61,11 +61,11 @@ public class CommitTsCacheTest {
     public void loadShouldPutRollbackIfCommitTsIsNull() throws Exception {
         AtomicLong answerCount = new AtomicLong();
 
-        doAnswer((invocation) -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
+        doAnswer(invocation -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
                 .when(mockTransactionService)
                 .get(VALID_START_TIMESTAMP);
 
-        doAnswer((invocation) -> {
+        doAnswer(invocation -> {
                     answerCount.set(1);
                     return null;
                 })
@@ -81,11 +81,11 @@ public class CommitTsCacheTest {
     public void loadShouldContinueIfKeyAlreadyExistsIsThrown() throws Exception {
         AtomicLong answerCount = new AtomicLong();
 
-        doAnswer((invocation) -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
+        doAnswer(invocation -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
                 .when(mockTransactionService)
                 .get(VALID_START_TIMESTAMP);
 
-        doAnswer((invocation) -> {
+        doAnswer(invocation -> {
                     answerCount.set(1);
                     throw new KeyAlreadyExistsException("Already exists");
                 })
@@ -99,7 +99,7 @@ public class CommitTsCacheTest {
 
     @Test
     public void loadShouldThrowIfANullIsToBeReturned() throws Exception {
-        doAnswer((invocation) -> NO_TIMESTAMP).when(mockTransactionService).get(VALID_START_TIMESTAMP);
+        doAnswer(invocation -> NO_TIMESTAMP).when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
     }
@@ -109,7 +109,7 @@ public class CommitTsCacheTest {
     public void warmingCacheShouldNotPlaceUndueLoadOnTransactionService() throws Exception {
         long valuesToInsert = 1_000_000;
 
-        doAnswer((invocation) -> {
+        doAnswer(invocation -> {
                     Collection<Long> timestamps = (Collection<Long>) invocation.getArguments()[0];
                     if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
                         fail("Requested more timestamps in a batch than is reasonable!");

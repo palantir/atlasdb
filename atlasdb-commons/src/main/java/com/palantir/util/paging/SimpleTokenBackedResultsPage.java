@@ -74,13 +74,23 @@ public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T>
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!super.equals(obj)) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!super.equals(obj)) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
         SimpleTokenBackedResultsPage<?, ?> other = (SimpleTokenBackedResultsPage<?, ?>) obj;
         if (tokenForNextPage == null) {
-            if (other.tokenForNextPage != null) return false;
-        } else if (!tokenForNextPage.equals(other.tokenForNextPage)) return false;
+            if (other.tokenForNextPage != null) {
+                return false;
+            }
+        } else if (!tokenForNextPage.equals(other.tokenForNextPage)) {
+            return false;
+        }
         return true;
     }
 

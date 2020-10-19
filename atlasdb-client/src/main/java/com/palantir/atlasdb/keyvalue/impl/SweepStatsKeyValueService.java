@@ -46,7 +46,6 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -64,7 +63,7 @@ import org.slf4j.LoggerFactory;
  * since the last time the table was completely swept. This is used when
  * deciding the order in which tables should be swept.
  */
-public class SweepStatsKeyValueService extends ForwardingKeyValueService {
+public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
     private static final int CLEAR_WEIGHT = 1 << 14; // 16384
@@ -136,7 +135,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         if (isEnabled.get()) {
             int newWrites = 0;
             long writesSize = 0;
-            for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
                 writesByTable.add(entry.getKey(), entry.getValue().size());
                 newWrites += entry.getValue().size();
                 writesSize += entry.getValue().entrySet().stream()
@@ -290,7 +289,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         try {
             Set<TableReference> tableNames = Sets.difference(writes.elementSet(), clears);
             Collection<byte[]> rows = Collections2.transform(
-                    Collections2.transform(tableNames, t -> t.getQualifiedName()),
+                    Collections2.transform(tableNames, TableReference::getQualifiedName),
                     Functions.compose(Persistables.persistToBytesFunction(), SweepPriorityRow.fromFullTableNameFun()));
             Map<Cell, Value> oldWriteCounts = delegate()
                     .getRows(

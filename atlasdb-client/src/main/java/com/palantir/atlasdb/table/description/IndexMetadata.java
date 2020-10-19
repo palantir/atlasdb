@@ -17,17 +17,17 @@ package com.palantir.atlasdb.table.description;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 
-public class IndexMetadata {
+public final class IndexMetadata {
     final String name;
     final String javaName;
     final ImmutableList<IndexComponent> rowComponents;
@@ -189,7 +189,7 @@ public class IndexMetadata {
     }
 
     public TableMetadata getTableMetadata() {
-        List<NameComponentDescription> rowDescList = Lists.newArrayList();
+        List<NameComponentDescription> rowDescList = new ArrayList<>();
         for (IndexComponent indexComp : rowComponents) {
             rowDescList.add(indexComp.rowKeyDesc);
         }
@@ -199,14 +199,14 @@ public class IndexMetadata {
             if (colComponents.isEmpty()) {
                 column = getAdditiveIndexColumn();
             } else {
-                List<NameComponentDescription> colDescList = Lists.newArrayList();
+                List<NameComponentDescription> colDescList = new ArrayList<>();
                 for (IndexComponent indexComp : colComponents) {
                     colDescList.add(indexComp.rowKeyDesc);
                 }
                 column = getDynamicAdditiveIndexColumn(colDescList);
             }
         } else if (indexType.equals(IndexType.CELL_REFERENCING)) {
-            List<NameComponentDescription> colDescList = Lists.newArrayList();
+            List<NameComponentDescription> colDescList = new ArrayList<>();
             for (IndexComponent indexComp : colComponents) {
                 colDescList.add(indexComp.rowKeyDesc);
             }

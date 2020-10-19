@@ -45,7 +45,7 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                 .build();
     }
 
-    private static class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor {
         private static final String DUMMY_VALUE = "-1";
         private static final int DUMMY_PROCESS = -1;
 

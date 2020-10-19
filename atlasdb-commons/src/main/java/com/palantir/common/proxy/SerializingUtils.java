@@ -24,7 +24,7 @@ import java.io.ObjectOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SerializingUtils {
+public final class SerializingUtils {
     protected static final Logger log = LoggerFactory.getLogger(SerializingUtils.class);
 
     private SerializingUtils() {

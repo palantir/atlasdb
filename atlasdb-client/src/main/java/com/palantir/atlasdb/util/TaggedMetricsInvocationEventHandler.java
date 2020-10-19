@@ -18,7 +18,6 @@ package com.palantir.atlasdb.util;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,6 +32,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -60,12 +60,12 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
     @Nullable
     private final Function<Method, Timer> onSuccessTimerMappingFunctionUntagged;
 
-    private final ConcurrentMap<Method, Timer> untaggedTimerCache = Maps.newConcurrentMap();
+    private final ConcurrentMap<Method, Timer> untaggedTimerCache = new ConcurrentHashMap<>();
 
     @Nullable
     private final Function<MethodWithExtraTags, Timer> onSuccessTimerMappingFunctionExtraTags;
 
-    private final ConcurrentMap<MethodWithExtraTags, Timer> extraTagsTimerCache = Maps.newConcurrentMap();
+    private final ConcurrentMap<MethodWithExtraTags, Timer> extraTagsTimerCache = new ConcurrentHashMap<>();
 
     public TaggedMetricsInvocationEventHandler(TaggedMetricRegistry taggedMetricRegistry, String serviceName) {
         super(InstrumentationUtils.getEnabledSupplier(serviceName));

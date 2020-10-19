@@ -33,6 +33,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -112,7 +113,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         // the *only* place in which we should create a map entry with a *new* map is when we're populating a new cache
         // everything else should be built on the previous entries or fail and reach this part.
         ConcurrentMap<Client, PaxosLong> newEntriesToCache =
-                cacheKeysToCaches.get(digest.newCacheKey(), $ -> Maps.newConcurrentMap());
+                cacheKeysToCaches.get(digest.newCacheKey(), $ -> new ConcurrentHashMap<>());
         processDigest(newEntriesToCache, digest);
         return getResponseMap(newEntriesToCache, requestedClients);
     }

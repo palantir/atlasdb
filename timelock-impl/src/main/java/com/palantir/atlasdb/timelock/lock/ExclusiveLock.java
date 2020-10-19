@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
@@ -106,10 +105,10 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     @NotThreadSafe
-    private static class LockRequestQueue {
+    private static final class LockRequestQueue {
 
         @SuppressWarnings("checkstyle:illegaltype")
-        private final LinkedHashMap<UUID, LockRequest> queue = Maps.newLinkedHashMap();
+        private final LinkedHashMap<UUID, LockRequest> queue = new LinkedHashMap<>();
 
         public void enqueue(LockRequest request) {
             LockRequest existingRequest = queue.put(request.requestId, request);
