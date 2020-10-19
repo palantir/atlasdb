@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
+import org.awaitility.Durations;
 import org.junit.rules.ExternalResource;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -181,8 +181,8 @@ public class Containers extends ExternalResource {
     private static void waitForContainersToStart() {
         for (Container container : Sets.difference(containersToStart, containersStarted)) {
             Awaitility.await()
-                    .atMost(Duration.FIVE_MINUTES)
-                    .pollInterval(Duration.ONE_SECOND)
+                    .atMost(Durations.FIVE_MINUTES)
+                    .pollInterval(Durations.ONE_SECOND)
                     .until(() -> container.isReady(dockerComposeRule).succeeded());
         }
     }

@@ -23,7 +23,7 @@ import java.util.concurrent.Callable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
+import org.awaitility.Durations;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -154,8 +154,8 @@ public class TimeLockMigrationEteTest {
     private static void waitUntil(Callable<Boolean> condition) {
         Awaitility.await()
                 .ignoreExceptions()
-                .atMost(Duration.TWO_MINUTES)
-                .pollInterval(Duration.TWO_SECONDS)
+                .atMost(Durations.TWO_MINUTES)
+                .pollInterval(Durations.TWO_SECONDS)
                 .until(condition);
     }
 

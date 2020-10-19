@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.function.Supplier;
 
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
+import org.awaitility.Durations;
 
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -108,7 +108,7 @@ public final class SweepTestUtils {
         // do not truncate the targeted sweep table identifier tables
         Schemas.truncateTablesAndIndexes(TargetedSweepSchema.schemaWithoutTableIdentifierTables(), kvs);
         Awaitility.await()
-                .timeout(Duration.FIVE_MINUTES)
+                .timeout(Durations.FIVE_MINUTES)
                 .until(() -> {
                     kvs.getAllTableNames().stream()
                             .filter(ref -> !TargetedSweepSchema.INSTANCE.getLatestSchema().getAllTables().contains(ref))

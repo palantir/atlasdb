@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
+import org.awaitility.Durations;
 import org.junit.Test;
 
 public class AwaitedLocksCollectionTest {
@@ -103,7 +103,7 @@ public class AwaitedLocksCollectionTest {
 
     private void assertRequestsWereRemoved(UUID... requests) {
         Awaitility.await()
-                .atMost(Duration.ONE_SECOND)
+                .atMost(Durations.ONE_SECOND)
                 .pollInterval(5, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> {
                     for (UUID requestId : Arrays.asList(requests)) {
