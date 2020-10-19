@@ -62,7 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SweepableCells extends SweepQueueTable {
-    private final Logger log = LoggerFactory.getLogger(SweepableCells.class);
+    private static final Logger log = LoggerFactory.getLogger(SweepableCells.class);
     private final CommitTsCache commitTsCache;
     private final WriteReferencePersister writeReferencePersister;
 

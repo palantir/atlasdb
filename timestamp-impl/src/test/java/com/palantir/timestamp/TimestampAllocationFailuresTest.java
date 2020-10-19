@@ -37,7 +37,7 @@ public class TimestampAllocationFailuresTest {
     private static final MultipleRunningTimestampServiceError MULTIPLE_RUNNING_SERVICES_FAILURE =
             new MultipleRunningTimestampServiceError("error");
 
-    private final Logger log = mock(Logger.class);
+    private static final Logger log = mock(Logger.class);
     private final TimestampAllocationFailures allocationFailures = new TimestampAllocationFailures(log);
 
     @Rule

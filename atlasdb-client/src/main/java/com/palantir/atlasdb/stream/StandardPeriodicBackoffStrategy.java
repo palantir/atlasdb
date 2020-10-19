@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrategy {
-    private final Logger log = LoggerFactory.getLogger(StandardPeriodicBackoffStrategy.class);
+    private static final Logger log = LoggerFactory.getLogger(StandardPeriodicBackoffStrategy.class);
 
     private final Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration;
     private final BackoffMechanism backoff;

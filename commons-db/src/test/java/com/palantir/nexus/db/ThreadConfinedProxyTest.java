@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 public class ThreadConfinedProxyTest {
 
-    Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
+    static Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
 
     String testString = "test";
 
