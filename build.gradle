@@ -155,8 +155,6 @@ configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
     apply from: "$rootDir/gradle/publish-jars.gradle"
 }
 
-apply from: 'gradle/idea.gradle'
-
 // Setup copyright notice as a block comment, and no newline after it
 project.afterEvaluate {
     def ideaRootModel = project.rootProject.extensions.findByType(IdeaModel)
