@@ -108,7 +108,7 @@ public class KvsProfilingLogger {
 
     public static <T, E extends Exception> T maybeLog(
             CallableCheckedException<T, E> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger) throws E {
-        return maybeLog(action, primaryLogger, ((loggingFunction, result) -> {}));
+        return maybeLog(action, primaryLogger, (loggingFunction, result) -> {});
     }
 
     /**

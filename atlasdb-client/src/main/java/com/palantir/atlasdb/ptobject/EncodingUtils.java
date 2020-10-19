@@ -139,7 +139,7 @@ public class EncodingUtils {
         }
         int size = bitsBeforeZero + 1;
 
-        int index = (size) / 8;
+        int index = size / 8;
         int mask = size % 8;
         long ret = 0;
         while (index < size) {
@@ -193,7 +193,7 @@ public class EncodingUtils {
             }
         }
         int size = bitsBeforeZero;
-        int index = (size) / 8;
+        int index = size / 8;
         int mask = size % 8;
         long ret = 0;
         while (index < size) {

@@ -158,10 +158,10 @@ final class ColumnFamilyDefinitions {
                     clusterSide.bloom_filter_fp_chance);
             return false;
         }
-        if (!(clientSide
+        if (!clientSide
                 .compression_options
                 .get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)
-                .equals(clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
+                .equals(clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY))) {
             logMismatch(
                     "compression chunk length",
                     tableName,
