@@ -51,10 +51,12 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
         refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5, TimeUnit.SECONDS);
     }
 
+    @Override
     CommitUpdate getCommitUpdate(long startTs) {
         return lockWatchEventCache.getCommitUpdate(startTs);
     }
 
+    @Override
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return lockWatchEventCache.getUpdateForTransactions(startTimestamps, version);
