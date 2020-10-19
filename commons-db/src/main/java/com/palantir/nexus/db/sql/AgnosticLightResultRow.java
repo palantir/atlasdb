@@ -21,7 +21,7 @@ import org.joda.time.DateTime;
 
 public interface AgnosticLightResultRow extends AgnosticResultRow {
 
-    InputStream getBinaryInputStream(final String colname) throws PalantirSqlException;
+    InputStream getBinaryInputStream(String colname) throws PalantirSqlException;
 
     DateTime getDateTime(String colname) throws PalantirSqlException;
 

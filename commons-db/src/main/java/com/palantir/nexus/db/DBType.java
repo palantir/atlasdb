@@ -40,7 +40,7 @@ public enum DBType {
         return hasGIS;
     }
 
-    private DBType(String driver, String testQuery, boolean hasGIS) {
+    DBType(String driver, String testQuery, boolean hasGIS) {
         this.driver = driver;
         this.testQuery = testQuery;
         this.hasGIS = hasGIS;

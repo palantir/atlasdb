@@ -39,5 +39,5 @@ public interface ConnectionSupplier extends Supplier<Connection>, Closeable {
      * @throws PalantirSqlException if an error occurs while closing
      */
     @Override
-    public void close() throws PalantirSqlException;
+    void close() throws PalantirSqlException;
 }

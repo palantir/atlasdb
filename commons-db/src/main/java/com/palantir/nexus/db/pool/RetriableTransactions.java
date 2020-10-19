@@ -61,7 +61,7 @@ public final class RetriableTransactions {
         }
     }
 
-    public static enum TransactionStatus {
+    public enum TransactionStatus {
         SUCCESSFUL,
         FAILED,
         UNKNOWN;

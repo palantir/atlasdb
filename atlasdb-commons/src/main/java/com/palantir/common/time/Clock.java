@@ -25,7 +25,7 @@ public interface Clock {
      *         perfectly accurate and never adjusted! Clock geekery aside, this should just return
      *         System.currentTimeMillis().
      */
-    public long getTimeMillis();
+    long getTimeMillis();
 
     default Instant instant() {
         return Instant.ofEpochMilli(getTimeMillis());

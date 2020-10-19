@@ -40,7 +40,7 @@ public interface SqlConnection {
 
     boolean selectExists(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 
-    boolean selectExists(final RegisteredSQLString sql, Object... vs)
+    boolean selectExists(RegisteredSQLString sql, Object... vs)
             throws PalantirSqlException, PalantirInterruptedException;
 
     int selectIntegerUnregisteredQuery(String sql, Object... vs)
@@ -51,8 +51,7 @@ public interface SqlConnection {
 
     int selectInteger(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 
-    int selectInteger(final RegisteredSQLString sql, Object... vs)
-            throws PalantirSqlException, PalantirInterruptedException;
+    int selectInteger(RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 
     AgnosticLightResultSet selectLightResultSetUnregisteredQuery(String sql, Object... vs)
             throws PalantirSqlException, PalantirInterruptedException;
@@ -79,7 +78,7 @@ public interface SqlConnection {
 
     boolean update(String key, Object... vs) throws PalantirSqlException;
 
-    boolean update(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
+    boolean update(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
 
     int updateCountRows(String key, Object... vs) throws PalantirSqlException;
 

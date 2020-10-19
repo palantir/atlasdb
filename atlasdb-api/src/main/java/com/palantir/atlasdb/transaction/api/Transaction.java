@@ -187,7 +187,7 @@ public interface Transaction {
      */
     @Idempotent
     <T> Stream<T> getRanges(
-            final TableReference tableRef,
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
@@ -198,7 +198,7 @@ public interface Transaction {
      */
     @Idempotent
     <T> Stream<T> getRanges(
-            final TableReference tableRef,
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
 
@@ -215,7 +215,7 @@ public interface Transaction {
      */
     @Idempotent
     Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
-            final TableReference tableRef, Iterable<RangeRequest> rangeRequests);
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then

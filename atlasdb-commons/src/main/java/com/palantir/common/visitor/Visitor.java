@@ -23,5 +23,5 @@ package com.palantir.common.visitor;
  */
 public interface Visitor<T> extends VisitorCheckedException<T, RuntimeException> {
     @Override
-    public void visit(T obj);
+    void visit(T obj);
 }

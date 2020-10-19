@@ -256,5 +256,5 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     protected abstract void touchMetadataWhileMarkingUsedForConflicts(Transaction tx, Iterable<Long> ids)
             throws StreamCleanedException;
 
-    protected abstract void markStreamsAsUsedInternal(Transaction tx, final Map<Long, byte[]> streamIdsToReference);
+    protected abstract void markStreamsAsUsedInternal(Transaction tx, Map<Long, byte[]> streamIdsToReference);
 }

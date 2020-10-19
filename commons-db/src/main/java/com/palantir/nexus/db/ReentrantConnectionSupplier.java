@@ -48,5 +48,5 @@ public interface ReentrantConnectionSupplier extends ConnectionSupplier, Closeab
      * @throws PalantirSqlException if an error occurs while closing
      */
     @Override
-    public void close() throws PalantirSqlException;
+    void close() throws PalantirSqlException;
 }

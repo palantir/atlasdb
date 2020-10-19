@@ -45,7 +45,7 @@ public class BasicSQLUtils {
      *
      * @return count of comma-delimited fields.
      */
-    public static final int countFields(String fieldList) {
+    public static int countFields(String fieldList) {
         return fieldList.split("\\s*,\\s*").length; // $NON-NLS-1$
     }
 

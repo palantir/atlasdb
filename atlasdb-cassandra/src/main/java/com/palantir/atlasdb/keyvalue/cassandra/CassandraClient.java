@@ -108,7 +108,7 @@ public interface CassandraClient extends Closeable {
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
     @Timed
-    public CASResult put_unless_exists(
+    CASResult put_unless_exists(
             TableReference tableReference,
             ByteBuffer key,
             List<Column> updates,

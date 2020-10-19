@@ -16,5 +16,5 @@
 package com.palantir.atlasdb.table.description.constraints.tuples;
 
 public interface Tuple {
-    public int getSize();
+    int getSize();
 }

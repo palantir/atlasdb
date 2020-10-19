@@ -503,12 +503,12 @@ public abstract class BasicSQL {
         }
     }
 
-    static interface PreparedStatementVisitor<T> {
-        public T visit(PreparedStatement ps) throws PalantirSqlException;
+    interface PreparedStatementVisitor<T> {
+        T visit(PreparedStatement ps) throws PalantirSqlException;
     }
 
-    static interface ResultSetVisitor<T> {
-        public T visit(ResultSet rs) throws PalantirSqlException;
+    interface ResultSetVisitor<T> {
+        T visit(ResultSet rs) throws PalantirSqlException;
     }
 
     protected <T> T wrapPreparedStatement(

@@ -33,7 +33,7 @@ public interface GenericStreamStore<ID> {
      * Implemented in the generated StreamStore implementation.
      * Use this to look up stream IDs, given a hash of the corresponding InputStream's content.
      */
-    Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction tx, final Set<Sha256Hash> hashes);
+    Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction tx, Set<Sha256Hash> hashes);
 
     /**
      * @deprecated use #loadSingleStream instead.
