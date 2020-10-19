@@ -141,7 +141,6 @@ allprojects {
                 options.errorprone.warn(checkName)
             }
 
-            logger.info("Error-prone args: {}", options.errorprone.errorproneArgs)
         }
     })
 }
