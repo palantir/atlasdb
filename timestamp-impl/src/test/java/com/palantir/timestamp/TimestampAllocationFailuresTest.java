@@ -39,6 +39,7 @@ public class TimestampAllocationFailuresTest {
 
     @SuppressWarnings("PreferStaticLoggers") // required for mockito
     private final Logger log = mock(Logger.class);
+
     private final TimestampAllocationFailures allocationFailures = new TimestampAllocationFailures(log);
 
     @Rule
