@@ -20,8 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
@@ -29,11 +27,13 @@ import com.palantir.atlasdb.ptobject.EncodingUtils.EncodingType;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.util.crypto.Sha256Hash;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import org.junit.Test;
 
 @SuppressWarnings("checkstyle:all")
@@ -106,7 +106,7 @@ public class EncodingUtilsTest {
 
     @Test
     public void testVarOrder() {
-        SortedMap<byte[], Long> map = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        SortedMap<byte[], Long> map = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
 
         while (map.size() < 1000) {
             long nextLong = rand.nextLong();
@@ -203,7 +203,7 @@ public class EncodingUtilsTest {
 
     @Test
     public void testVarSignedOrder() {
-        SortedMap<byte[], Long> map = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        SortedMap<byte[], Long> map = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
 
         while (map.size() < 1000) {
             long nextLong = rand.nextLong();
@@ -271,8 +271,8 @@ public class EncodingUtilsTest {
                     rand.nextLong(),
                     new BigInteger(100, random).toString(32));
 
-            List<EncodingType> types = Lists.newArrayList();
-            List<Object> components = Lists.newArrayList();
+            List<EncodingType> types = new ArrayList<>();
+            List<Object> components = new ArrayList<>();
             for (int i = 0; i < 50; i++) {
                 int index = rand.nextInt(valueTypes.size());
                 ValueType type = valueTypes.get(index);

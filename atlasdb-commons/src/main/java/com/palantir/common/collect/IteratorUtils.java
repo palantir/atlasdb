@@ -20,7 +20,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.palantir.common.base.Throwables;
@@ -28,6 +27,7 @@ import com.palantir.common.base.Visitors;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -56,7 +56,7 @@ public class IteratorUtils {
 
     public static <T> Collection<T> chooseRandomElements(Iterator<? extends T> it, final int k) {
         Preconditions.checkArgument(k >= 0);
-        List<T> ret = Lists.newArrayList();
+        List<T> ret = new ArrayList<>();
 
         int i = 0; // i is the element number
         while (it.hasNext()) {

@@ -610,11 +610,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
         initTransaction.commit();
 
-        List<Transaction> allTransactions = Lists.newArrayList();
-        List<List<BigInteger>> writtenValues = Lists.newArrayList();
+        List<Transaction> allTransactions = new ArrayList<>();
+        List<List<BigInteger>> writtenValues = new ArrayList<>();
         for (int i = 0; i < numTransactions; i++) {
             allTransactions.add(txManager.createNewTransaction());
-            List<BigInteger> initialValues = Lists.newArrayList();
+            List<BigInteger> initialValues = new ArrayList<>();
             for (int j = 0; j < numColumns; j++) {
                 initialValues.add(BigInteger.valueOf(j));
             }

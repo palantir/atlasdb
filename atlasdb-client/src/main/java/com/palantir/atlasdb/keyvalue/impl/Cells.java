@@ -39,12 +39,14 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +88,7 @@ public final class Cells {
     }
 
     public static Set<Cell> cellsWithConstantColumn(Iterable<byte[]> rows, byte[] col) {
-        return cellsWithConstantColumn(Sets.<Cell>newHashSet(), rows, col);
+        return cellsWithConstantColumn(new HashSet<Cell>(), rows, col);
     }
 
     public static Set<Cell> cellsWithConstantColumn(Collection<byte[]> rows, byte[] col) {
@@ -102,11 +104,11 @@ public final class Cells {
 
     public static <T> NavigableMap<byte[], NavigableMap<byte[], T>> breakCellsUpByRow(
             Iterable<Map.Entry<Cell, T>> map) {
-        NavigableMap<byte[], NavigableMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], NavigableMap<byte[], T>> ret = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
             NavigableMap<byte[], T> sortedMap =
-                    ret.computeIfAbsent(row, rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
+                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
             sortedMap.put(e.getKey().getColumnName(), e.getValue());
         }
         return ret;

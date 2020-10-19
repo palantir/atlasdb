@@ -24,7 +24,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -37,6 +36,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -272,7 +272,7 @@ public final class RangeRequest implements Serializable {
     public static final class Builder {
         private byte[] startInclusive = PtBytes.EMPTY_BYTE_ARRAY;
         private byte[] endExclusive = PtBytes.EMPTY_BYTE_ARRAY;
-        private Set<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        private Set<byte[]> columns = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
         private Integer batchHint = null;
         private final boolean reverse;
 

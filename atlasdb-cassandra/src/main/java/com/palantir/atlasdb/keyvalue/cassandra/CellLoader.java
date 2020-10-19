@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -105,7 +106,7 @@ final class CellLoader {
                     SafeArg.of("totalPartitions", totalPartitions));
         }
 
-        List<Callable<Void>> tasks = Lists.newArrayList();
+        List<Callable<Void>> tasks = new ArrayList<>();
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace(
@@ -142,7 +143,7 @@ final class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        List<Callable<Void>> tasks = Lists.newArrayList();
+        List<Callable<Void>> tasks = new ArrayList<>();
         for (final List<Cell> partition : batcher.partitionIntoBatches(cells, host, tableRef)) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
                     host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
@@ -184,7 +185,7 @@ final class CellLoader {
 
     private static List<KeyPredicate> translatePartitionToKeyPredicates(
             List<Cell> partition, long startTs, boolean loadAllTs) {
-        Map<byte[], SlicePredicate> canonicalPredicates = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        Map<byte[], SlicePredicate> canonicalPredicates = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         List<KeyPredicate> keyPredicates = new ArrayList<>(partition.size());
 
         for (Cell cell : partition) {

@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbTestCase;
@@ -75,6 +74,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
@@ -474,7 +474,7 @@ public class StreamTest extends AtlasDbTestCase {
             StreamTestTableFactory tableFactory, Transaction tx, Long streamId) {
         StreamTestStreamMetadataTable table = tableFactory.getStreamTestStreamMetadataTable(tx);
 
-        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> smRows = Sets.newHashSet();
+        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> smRows = new HashSet<>();
         smRows.add(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(streamId));
 
         Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamPersistence.StreamMetadata> metadatas =
@@ -486,7 +486,7 @@ public class StreamTest extends AtlasDbTestCase {
             StreamTestTableFactory tableFactory, Transaction tx, Long streamId) {
         TestHashComponentsStreamMetadataTable table = tableFactory.getTestHashComponentsStreamMetadataTable(tx);
 
-        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> smRows = Sets.newHashSet();
+        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> smRows = new HashSet<>();
         smRows.add(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(streamId));
 
         Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamPersistence.StreamMetadata>
@@ -532,7 +532,7 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     private void deleteStreamValues(StreamTestTableFactory tableFactory, Transaction tx, Long streamId, int numBlocks) {
-        Set<StreamTestStreamValueTable.StreamTestStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        Set<StreamTestStreamValueTable.StreamTestStreamValueRow> streamValueToDelete = new HashSet<>();
         for (long i = 0; i < numBlocks; i++) {
             streamValueToDelete.add(StreamTestStreamValueTable.StreamTestStreamValueRow.of(streamId, i));
         }
@@ -542,7 +542,7 @@ public class StreamTest extends AtlasDbTestCase {
 
     private void deleteStreamValuesHashedComponentsStream(
             StreamTestTableFactory tableFactory, Transaction tx, Long streamId, int numBlocks) {
-        Set<TestHashComponentsStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        Set<TestHashComponentsStreamValueRow> streamValueToDelete = new HashSet<>();
         for (long i = 0; i < numBlocks; i++) {
             streamValueToDelete.add(TestHashComponentsStreamValueRow.of(streamId, i));
         }

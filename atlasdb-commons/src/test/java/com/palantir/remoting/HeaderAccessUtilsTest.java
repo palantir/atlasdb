@@ -21,9 +21,9 @@ import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.common.remoting.HeaderAccessUtils;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.Test;
 
@@ -67,7 +67,7 @@ public class HeaderAccessUtilsTest {
 
     @Test
     public void caseInsensitiveContainsEntryShortcircuits() {
-        Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
+        Map<String, Collection<String>> testMap = new LinkedHashMap<>();
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
@@ -89,7 +89,7 @@ public class HeaderAccessUtilsTest {
 
     @Test
     public void caseInsensitiveGetShortcircuits() {
-        Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
+        Map<String, Collection<String>> testMap = new LinkedHashMap<>();
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));

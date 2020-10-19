@@ -29,7 +29,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -340,7 +339,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
             int candidateBatchSize,
             int deleteBatchSize) {
         sweepTimestamp.set(Long.MAX_VALUE);
-        List<List<Cell>> sweptCells = Lists.newArrayList();
+        List<List<Cell>> sweptCells = new ArrayList<>();
 
         doAnswer((invocationOnMock) -> {
                     Object[] arguments = invocationOnMock.getArguments();

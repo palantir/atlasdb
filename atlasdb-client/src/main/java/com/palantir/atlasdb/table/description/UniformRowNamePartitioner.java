@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.table.description;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UniformRowNamePartitioner implements RowNamePartitioner {
@@ -83,7 +83,7 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
             shift--;
         }
         long increment = Long.MIN_VALUE >>> shift;
-        List<byte[]> ret = Lists.newArrayList();
+        List<byte[]> ret = new ArrayList<>();
         for (int i = 0; i < numberRanges; i++) {
             long val = increment * i;
             if (isVarLong()) {

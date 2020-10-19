@@ -15,12 +15,12 @@
  */
 package com.palantir.nexus.db.sql;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.sql.ResultSets;
 import java.sql.ResultSetMetaData;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +59,7 @@ public class AgnosticResultSetImpl implements AgnosticResultSet {
 
     @Override
     public List<AgnosticResultRow> rows() {
-        List<AgnosticResultRow> allRows = Lists.newArrayListWithCapacity(size());
+        List<AgnosticResultRow> allRows = new ArrayList<>(size());
         for (List<Object> list : results) {
             allRows.add(new AgnosticResultRowImpl(list, dbType, columnMap));
         }

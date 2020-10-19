@@ -16,7 +16,6 @@
 package com.palantir.example.profile.schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.persister.JsonNodePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -31,6 +30,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.example.profile.protos.generated.ProfilePersistence;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
@@ -112,7 +112,7 @@ public class ProfileSchema implements AtlasSchema {
 
     public static Iterable<String> getCookies(JsonNode node) {
         JsonNode cookies = node.get("cookies");
-        List<String> ret = Lists.newArrayList();
+        List<String> ret = new ArrayList<>();
         for (JsonNode cookie : cookies) {
             ret.add(cookie.asText());
         }

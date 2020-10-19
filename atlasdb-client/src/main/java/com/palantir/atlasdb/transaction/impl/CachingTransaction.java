@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -38,6 +37,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -84,7 +84,7 @@ public class CachingTransaction extends ForwardingTransaction {
             cacheLoadedRows(tableRef, loaded.values());
             return loaded;
         } else {
-            Set<byte[]> toLoad = Sets.newHashSet();
+            Set<byte[]> toLoad = new HashSet<>();
             ImmutableSortedMap.Builder<byte[], RowResult<byte[]>> inCache =
                     ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
             for (byte[] row : rows) {
@@ -139,7 +139,7 @@ public class CachingTransaction extends ForwardingTransaction {
             return Futures.immediateFuture(ImmutableMap.of());
         }
 
-        Set<Cell> toLoad = Sets.newHashSet();
+        Set<Cell> toLoad = new HashSet<>();
         Map<Cell, byte[]> cacheHit = Maps.newHashMapWithExpectedSize(cells.size());
         for (Cell cell : cells) {
             byte[] val = getCachedCellIfPresent(tableRef, cell);

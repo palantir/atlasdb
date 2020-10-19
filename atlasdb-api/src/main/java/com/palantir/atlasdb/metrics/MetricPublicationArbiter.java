@@ -18,12 +18,12 @@ package com.palantir.atlasdb.metrics;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
     }
 
     public static MetricPublicationArbiter create() {
-        return new MetricPublicationArbiter(Maps.newConcurrentMap());
+        return new MetricPublicationArbiter(new ConcurrentHashMap<>());
     }
 
     @Override

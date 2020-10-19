@@ -22,10 +22,8 @@ import static org.junit.Assert.assertTrue;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
@@ -45,6 +43,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,7 +66,7 @@ public class LockServiceStateLoggerTest {
     private static final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
             Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
 
-    private static final Map<LockDescriptor, ClientAwareReadWriteLock> syncStateMap = Maps.newHashMap();
+    private static final Map<LockDescriptor, ClientAwareReadWriteLock> syncStateMap = new HashMap<>();
 
     private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("logger-lock");
     private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("logger-AAA");
@@ -273,7 +273,7 @@ public class LockServiceStateLoggerTest {
     }
 
     private Set<LockDescriptor> getAllDescriptors() {
-        Set<LockDescriptor> allDescriptors = Sets.newHashSet();
+        Set<LockDescriptor> allDescriptors = new HashSet<>();
 
         allDescriptors.addAll(getOutstandingDescriptors());
         allDescriptors.addAll(getHeldDescriptors());

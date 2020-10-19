@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.table.description;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,7 +41,7 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
     }
 
     private List<byte[]> getPartitionsInternal() {
-        List<byte[]> ret = Lists.newArrayList();
+        List<byte[]> ret = new ArrayList<>();
         for (String value : values) {
             ret.add(valueType.convertFromString(value));
         }
@@ -51,7 +51,7 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
     @Override
     public List<RowNamePartitioner> compound(RowNamePartitioner next) {
         List<byte[]> tokens = getPartitionsInternal();
-        List<RowNamePartitioner> ret = Lists.newArrayList();
+        List<RowNamePartitioner> ret = new ArrayList<>();
         for (byte[] bs : tokens) {
             ret.add(new CompoundRowNamePartitioner(bs, next));
         }
@@ -69,7 +69,7 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
 
         @Override
         public List<byte[]> getPartitions(int numberRanges) {
-            List<byte[]> ret = Lists.newArrayList();
+            List<byte[]> ret = new ArrayList<>();
             for (byte[] bs : nextPartition.getPartitions(numberRanges)) {
                 ret.add(Bytes.concat(prefix, bs));
             }
@@ -84,7 +84,7 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
         @Override
         public List<RowNamePartitioner> compound(RowNamePartitioner next2) {
             List<RowNamePartitioner> compound = nextPartition.compound(next2);
-            List<RowNamePartitioner> ret = Lists.newArrayList();
+            List<RowNamePartitioner> ret = new ArrayList<>();
             for (RowNamePartitioner p : compound) {
                 ret.add(new CompoundRowNamePartitioner(prefix, p));
             }

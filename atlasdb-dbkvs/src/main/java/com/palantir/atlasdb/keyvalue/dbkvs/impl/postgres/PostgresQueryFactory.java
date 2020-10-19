@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -26,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -212,8 +212,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     public FullQuery getRangeQuery(RangeRequest range, long ts, int maxRows) {
-        List<String> bounds = Lists.newArrayListWithCapacity(2);
-        List<Object> args = Lists.newArrayListWithCapacity(2);
+        List<String> bounds = new ArrayList<>(2);
+        List<Object> args = new ArrayList<>(2);
         byte[] start = range.getStartInclusive();
         byte[] end = range.getEndExclusive();
         if (start.length > 0) {

@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.table.description.constraints;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -120,9 +120,9 @@ public final class ForeignKeyConstraintMetadata {
         private final String otherTableName;
         private final Class<? extends ForeignKeyConstraint> constraintClass;
 
-        private final List<String> rowVariables = Lists.newArrayList();
-        private final List<String> columnVariables = Lists.newArrayList();
-        private final List<String> allVariables = Lists.newArrayList();
+        private final List<String> rowVariables = new ArrayList<>();
+        private final List<String> columnVariables = new ArrayList<>();
+        private final List<String> allVariables = new ArrayList<>();
 
         public Builder(
                 boolean isThisGeneric,

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -30,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.LongUnaryOperator;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
@@ -74,7 +74,7 @@ class CellDeleter {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
                     // atomically so we have to potentially do many deletes if there are many timestamps for the
                     // same key.
-                    Map<Integer, MutationMap> mutationMaps = Maps.newTreeMap();
+                    Map<Integer, MutationMap> mutationMaps = new TreeMap<>();
 
                     for (Map.Entry<Cell, Collection<Long>> cellVersions : cellVersionsMap.entrySet()) {
                         int mapIndex = 0;

@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -36,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Test;
@@ -138,7 +138,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
     }
 
     private static <T> void assertNumberOfUniqueRows(List<RowResult<T>> rowResults, int expectedRows) {
-        Set<byte[]> uniqueRows = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        Set<byte[]> uniqueRows = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
         for (RowResult<T> rr : rowResults) {
             uniqueRows.add(rr.getRowName());
         }

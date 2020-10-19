@@ -19,8 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -37,7 +35,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -135,7 +135,7 @@ public class LockServiceStateLogger {
 
     private Map<String, Object> generateOutstandingLocksYaml(
             Map<LockClient, Set<LockRequest>> outstandingLockRequestsMap) {
-        Map<String, SimpleLockRequestsWithSameDescriptor> outstandingRequestMap = Maps.newHashMap();
+        Map<String, SimpleLockRequestsWithSameDescriptor> outstandingRequestMap = new HashMap<>();
 
         outstandingLockRequestsMap.forEach((client, requestSet) -> {
             if (requestSet != null) {
@@ -161,14 +161,14 @@ public class LockServiceStateLogger {
     private List<SimpleLockRequestsWithSameDescriptor> sortOutstandingRequests(
             Collection<SimpleLockRequestsWithSameDescriptor> outstandingRequestsByDescriptor) {
 
-        List<SimpleLockRequestsWithSameDescriptor> sortedEntries = Lists.newArrayList(outstandingRequestsByDescriptor);
+        List<SimpleLockRequestsWithSameDescriptor> sortedEntries = new ArrayList<>(outstandingRequestsByDescriptor);
         sortedEntries.sort((o1, o2) -> Integer.compare(o2.getLockRequestsCount(), o1.getLockRequestsCount()));
         return sortedEntries;
     }
 
     private Map<String, Object> generateHeldLocks(
             ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
-        Map<String, Object> mappedLocksToToken = Maps.newHashMap();
+        Map<String, Object> mappedLocksToToken = new HashMap<>();
         heldLocksTokenMap
                 .values()
                 .forEach(locks -> mappedLocksToToken.putAll(getDescriptorToTokenMap(locks.getRealToken())));
@@ -200,7 +200,7 @@ public class LockServiceStateLogger {
     }
 
     private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken realToken) {
-        Map<String, Object> lockToLockInfo = Maps.newHashMap();
+        Map<String, Object> lockToLockInfo = new HashMap<>();
 
         realToken
                 .getLocks()

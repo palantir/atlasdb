@@ -15,14 +15,14 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.hamcrest.Description;
@@ -97,7 +97,7 @@ public class SchemasTest {
                                 with(tableMapContainsEntry(tableName2, getSimpleTableDefinitionAsBytes(tableName2))));
             }
         });
-        Map<TableReference, TableDefinition> tables = Maps.newHashMap();
+        Map<TableReference, TableDefinition> tables = new HashMap<>();
         tables.put(tableName1, getSimpleTableDefinition(tableName1));
         tables.put(tableName2, getSimpleTableDefinition(tableName2));
         Schemas.createTables(kvs, tables);
@@ -105,7 +105,7 @@ public class SchemasTest {
 
     @Test
     public void testDeleteTablesForSweepSchema() {
-        Set<TableReference> allTableNames = Sets.newHashSet();
+        Set<TableReference> allTableNames = new HashSet<>();
         allTableNames.add(TableReference.createFromFullyQualifiedName("sweep.priority"));
 
         mockery.checking(new Expectations() {

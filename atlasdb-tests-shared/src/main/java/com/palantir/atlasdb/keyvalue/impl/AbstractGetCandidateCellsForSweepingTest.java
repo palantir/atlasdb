@@ -21,8 +21,6 @@ import static org.junit.Assert.assertEquals;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -34,6 +32,8 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.ClosableIterator;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -203,7 +203,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     private void doTestLargerTable(boolean checkIfLatestValueIsEmpty) {
         TestDataBuilder builder = new TestDataBuilder();
-        List<Cell> expectedCells = Lists.newArrayList();
+        List<Cell> expectedCells = new ArrayList<>();
         for (int rowNum = 1; rowNum <= 50; ++rowNum) {
             for (int colNum = 1; colNum <= rowNum; ++colNum) {
                 expectedCells.add(cell(rowNum, colNum));
@@ -257,14 +257,14 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     }
 
     public class TestDataBuilder {
-        private Map<Long, Map<Cell, byte[]>> cellsByTimestamp = Maps.newHashMap();
+        private Map<Long, Map<Cell, byte[]>> cellsByTimestamp = new HashMap<>();
 
         public TestDataBuilder put(int row, int col, long ts) {
             return put(row, col, ts, new byte[] {1, 2, 3});
         }
 
         public TestDataBuilder put(int row, int col, long ts, byte[] value) {
-            cellsByTimestamp.computeIfAbsent(ts, key -> Maps.newHashMap()).put(cell(row, col), value);
+            cellsByTimestamp.computeIfAbsent(ts, key -> new HashMap<>()).put(cell(row, col), value);
             return this;
         }
 

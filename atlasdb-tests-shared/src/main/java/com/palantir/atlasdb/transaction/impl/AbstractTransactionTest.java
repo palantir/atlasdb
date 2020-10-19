@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
@@ -86,6 +85,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1209,7 +1209,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         delete(t, "row2", "col1");
         put(t, "row2", "col2", "v8");
 
-        final Map<Cell, byte[]> vals = Maps.newHashMap();
+        final Map<Cell, byte[]> vals = new HashMap<>();
         visitable.batchAccept(100, AbortingVisitors.batching((RowVisitor) item -> {
             MapEntries.putAll(vals, item.getCells());
             if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
@@ -1251,7 +1251,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 t.getRange(TEST_TABLE, RangeRequest.builder().build());
 
         FutureTask<Void> futureTask = new FutureTask<Void>(() -> {
-            final Map<Cell, byte[]> vals = Maps.newHashMap();
+            final Map<Cell, byte[]> vals = new HashMap<>();
             try {
                 visitable.batchAccept(1, AbortingVisitors.batching((RowVisitor) item -> {
                     try {
@@ -1656,13 +1656,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> result =
                 t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row0, row1), ALL_COLUMNS);
 
-        Map<Cell, byte[]> directLookupResults = Maps.newHashMap();
+        Map<Cell, byte[]> directLookupResults = new HashMap<>();
         result.get(row0).forEachRemaining(entry -> directLookupResults.put(entry.getKey(), entry.getValue()));
         assertThat(directLookupResults).hasSize(1);
         assertThat(Arrays.equals(directLookupResults.get(Cell.create(row0, col0)), value(0)))
                 .isTrue();
 
-        Map<Cell, byte[]> indirectLookupResults = Maps.newHashMap();
+        Map<Cell, byte[]> indirectLookupResults = new HashMap<>();
         result.get(row1.clone()).forEachRemaining(entry -> indirectLookupResults.put(entry.getKey(), entry.getValue()));
         assertThat(indirectLookupResults).hasSize(1);
         assertThat(Arrays.equals(indirectLookupResults.get(Cell.create(row1.clone(), col0)), value(1)))
@@ -1681,7 +1681,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         assertThat(result.keySet()).containsExactly(row0);
 
-        Map<Cell, byte[]> results = Maps.newHashMap();
+        Map<Cell, byte[]> results = new HashMap<>();
         result.get(row0).forEachRemaining(entry -> results.put(entry.getKey(), entry.getValue()));
         assertThat(results).hasSize(0);
     }

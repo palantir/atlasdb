@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -27,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.slf4j.Logger;
@@ -97,7 +97,7 @@ public final class IterablePartitioner {
                 if (!pi.hasNext()) {
                     throw new NoSuchElementException();
                 }
-                List<T> entries = Lists.newArrayListWithCapacity(Math.min(maximumCountPerPartition, remainingEntries));
+                List<T> entries = new ArrayList<>(Math.min(maximumCountPerPartition, remainingEntries));
                 long runningSize = 0;
 
                 // limit on: maximum count, pending data, maximum size, but allow at least one even if it's too huge

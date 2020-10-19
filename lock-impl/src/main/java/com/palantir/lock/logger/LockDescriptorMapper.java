@@ -15,9 +15,9 @@
  */
 package com.palantir.lock.logger;
 
-import com.google.common.collect.Maps;
 import com.palantir.lock.LockDescriptor;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -31,7 +31,7 @@ class LockDescriptorMapper {
 
     private static final String LOCK_PREFIX = "Lock-";
 
-    private Map<LockDescriptor, String> mapper = Maps.newConcurrentMap();
+    private Map<LockDescriptor, String> mapper = new ConcurrentHashMap<>();
     private AtomicInteger lockCounter = new AtomicInteger();
 
     String getDescriptorMapping(LockDescriptor descriptor) {

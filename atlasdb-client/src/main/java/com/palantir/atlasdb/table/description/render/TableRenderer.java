@@ -91,6 +91,7 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -630,9 +631,9 @@ public class TableRenderer {
         }
 
         private void renderIndexPut(IndexMetadata index) {
-            List<String> rowArgumentNames = Lists.newArrayList();
-            List<String> colArgumentNames = Lists.newArrayList();
-            List<TypeAndName> iterableArgNames = Lists.newArrayList();
+            List<String> rowArgumentNames = new ArrayList<>();
+            List<String> colArgumentNames = new ArrayList<>();
+            List<TypeAndName> iterableArgNames = new ArrayList<>();
             boolean hasCol = index.getColumnNameToAccessData() != null;
             String indexName = Renderers.getIndexTableName(index);
             String columnClass = null;
@@ -979,9 +980,9 @@ public class TableRenderer {
             String indexName = Renderers.getIndexTableName(index);
             line("private void delete", indexName, "(Multimap<", Row, ", ", ColumnValue, "> result) {");
             {
-                List<String> rowArgumentNames = Lists.newArrayList();
-                List<String> colArgumentNames = Lists.newArrayList();
-                List<TypeAndName> iterableArgNames = Lists.newArrayList();
+                List<String> rowArgumentNames = new ArrayList<>();
+                List<String> colArgumentNames = new ArrayList<>();
+                List<TypeAndName> iterableArgNames = new ArrayList<>();
 
                 boolean hasCol = index.getColumnNameToAccessData() != null;
                 String columnClass = hasCol ? Renderers.CamelCase(index.getColumnNameToAccessData()) : null;
@@ -1080,7 +1081,7 @@ public class TableRenderer {
         }
 
         private void renderNamedDeleteColumn(NamedColumnDescription col) {
-            Collection<IndexMetadata> columnIndices = Lists.newArrayList();
+            Collection<IndexMetadata> columnIndices = new ArrayList<>();
             for (IndexMetadata index : cellReferencingIndices) {
                 if (col.getLongName().equals(index.getColumnNameToAccessData())) {
                     columnIndices.add(index);
@@ -1116,9 +1117,9 @@ public class TableRenderer {
             String NamedColumn = Renderers.CamelCase(col.getLongName());
             line("private void delete", indexName, "Raw(Map<Cell, byte[]> results) {");
             {
-                List<String> rowArgumentNames = Lists.newArrayList();
-                List<String> colArgumentNames = Lists.newArrayList();
-                List<TypeAndName> iterableArgNames = Lists.newArrayList();
+                List<String> rowArgumentNames = new ArrayList<>();
+                List<String> colArgumentNames = new ArrayList<>();
+                List<TypeAndName> iterableArgNames = new ArrayList<>();
                 line("Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());");
                 line("for (Entry<Cell, byte[]> result : results.entrySet()) {");
                 {
@@ -1868,7 +1869,7 @@ public class TableRenderer {
     }
 
     private static List<Class<?>> getImports(OptionalType optionalType) {
-        List<Class<?>> classes = Lists.newArrayList();
+        List<Class<?>> classes = new ArrayList<>();
         classes.addAll(Arrays.asList(IMPORTS_WITHOUT_OPTIONAL));
         switch (optionalType) {
             case GUAVA:

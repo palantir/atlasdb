@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
 import com.palantir.logsafe.Preconditions;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -66,7 +66,7 @@ public class KvsPutBenchmarks {
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomMultiPut(EmptyTables tables) {
-        Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
+        Map<TableReference, Map<Cell, byte[]>> multiPutMap = new HashMap<>();
         multiPutMap.put(tables.getFirstTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
         multiPutMap.put(tables.getSecondTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
         tables.getKvs().multiPut(multiPutMap, DUMMY_TIMESTAMP);

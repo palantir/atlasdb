@@ -18,13 +18,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.SafeArg;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.cassandra.thrift.CfDef;
@@ -105,7 +105,7 @@ final class ColumnFamilyDefinitions {
         CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
         cf.setCompaction_strategy(CassandraConstants.LEVELED_COMPACTION_STRATEGY);
-        cf.setCompression_options(Maps.<String, String>newHashMap());
+        cf.setCompression_options(new HashMap<String, String>());
         cf.setGc_grace_seconds(CassandraConstants.DEFAULT_GC_GRACE_SECONDS);
 
         // explicitly set fields to default values

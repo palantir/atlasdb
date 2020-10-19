@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -46,6 +45,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -183,7 +183,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     }
 
     void putManyCells(TableReference tableRef, long startTs, long commitTs) {
-        Map<Cell, byte[]> cells = Maps.newHashMap();
+        Map<Cell, byte[]> cells = new HashMap<>();
         for (int i = 0; i < 50; ++i) {
             cells.put(
                     Cell.create(Ints.toByteArray(i), "c".getBytes()),

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -31,10 +30,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
-    private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(Maps.newConcurrentMap());
-    private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(Maps.newConcurrentMap());
+    private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(new ConcurrentHashMap<>());
     private final KeyValueService delegate;
 
     public TrackingKeyValueService(KeyValueService delegate) {

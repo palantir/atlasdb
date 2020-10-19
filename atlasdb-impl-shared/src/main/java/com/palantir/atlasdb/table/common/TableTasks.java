@@ -42,6 +42,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -435,7 +436,7 @@ public final class TableTasks {
 
         byte step = (byte) (256 / threadCount);
         byte curr = step;
-        Collection<MutableRange> ranges = Lists.newArrayListWithCapacity(threadCount);
+        Collection<MutableRange> ranges = new ArrayList<>(threadCount);
         ranges.add(new MutableRange(new byte[0], new byte[] {step}, batchSize));
         for (int i = 1; i < threadCount - 1; i++) {
             byte next = (byte) (curr + step);

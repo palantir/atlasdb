@@ -16,14 +16,14 @@
 package com.palantir.atlasdb.jepsen;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -40,8 +40,8 @@ public class NemesisResilienceChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
-        private final List<Event> unsurvivedEvents = Lists.newArrayList();
-        private final Set<Integer> processesPendingReads = Sets.newHashSet();
+        private final List<Event> unsurvivedEvents = new ArrayList<>();
+        private final Set<Integer> processesPendingReads = new HashSet<>();
 
         private Event startEvent;
         private boolean awaitingInvokeOkCycle;

@@ -46,7 +46,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -447,7 +446,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void sweepProgressesAndSkipsEmptyFinePartitions() {
         setSweepTimestamp(minTsForFinePartition(2 * (2 * readBatchSize) + 2));
-        List<Integer> permittedPartitions = Lists.newArrayList();
+        List<Integer> permittedPartitions = new ArrayList<>();
         for (int index = 0; index <= 2 * readBatchSize; index++) {
             int partitionToUse = 2 * index;
             long timestampToUse = minTsForFinePartition(partitionToUse) + LOW_TS;
@@ -500,7 +499,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void sweepProgressesAcrossCoarsePartitions() {
         setSweepTimestamp(Long.MAX_VALUE);
-        List<Integer> permittedPartitions = Lists.newArrayList();
+        List<Integer> permittedPartitions = new ArrayList<>();
         permittedPartitions.add(0);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
 

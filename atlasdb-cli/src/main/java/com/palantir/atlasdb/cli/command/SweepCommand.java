@@ -38,6 +38,7 @@ import com.palantir.logsafe.UnsafeArg;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -138,7 +139,7 @@ public class SweepCommand extends SingleBackendCommand {
             return 1;
         }
 
-        Map<TableReference, byte[]> tableToStartRow = Maps.newHashMap();
+        Map<TableReference, byte[]> tableToStartRow = new HashMap<>();
 
         if (table != null) {
             TableReference tableToSweep = TableReference.createUnsafe(table);

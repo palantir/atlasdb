@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.codahale.metrics.Counter;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -25,6 +24,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,10 +69,10 @@ class RowColumnRangeExtractor {
         }
     }
 
-    private final Map<byte[], LinkedHashMap<Cell, Value>> collector = Maps.newHashMap();
-    private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
-    private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
-    private final Set<byte[]> emptyRows = Sets.newHashSet();
+    private final Map<byte[], LinkedHashMap<Cell, Value>> collector = new HashMap<>();
+    private final Map<byte[], Column> rowsToLastCompositeColumns = new HashMap<>();
+    private final Map<byte[], Integer> rowsToRawColumnCount = new HashMap<>();
+    private final Set<byte[]> emptyRows = new HashSet<>();
     private final Counter notLatestVisibleValueCellFilterCounter;
 
     RowColumnRangeExtractor(MetricsManager metricsManager) {

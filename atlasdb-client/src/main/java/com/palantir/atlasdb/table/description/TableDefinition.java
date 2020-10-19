@@ -18,8 +18,6 @@ package com.palantir.atlasdb.table.description;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
@@ -33,6 +31,8 @@ import com.palantir.atlasdb.table.description.constraints.TableConstraint;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -247,7 +247,7 @@ public class TableDefinition extends AbstractDefinition {
 
     public ExplicitRowNamePartitioner explicit(long... componentValues) {
         checkStateForPartitioner();
-        Set<String> set = Sets.newHashSet();
+        Set<String> set = new HashSet<>();
         for (long l : componentValues) {
             set.add(Long.toString(l));
         }
@@ -385,13 +385,13 @@ public class TableDefinition extends AbstractDefinition {
     private String genericTableName = null;
     private String javaTableName = null;
     private int numberOfComponentsHashed = 0;
-    private List<NameComponentDescription> rowNameComponents = Lists.newArrayList();
-    private List<NamedColumnDescription> fixedColumns = Lists.newArrayList();
-    private List<NameComponentDescription> dynamicColumnNameComponents = Lists.newArrayList();
+    private List<NameComponentDescription> rowNameComponents = new ArrayList<>();
+    private List<NamedColumnDescription> fixedColumns = new ArrayList<>();
+    private List<NameComponentDescription> dynamicColumnNameComponents = new ArrayList<>();
     private ColumnValueDescription dynamicColumnValue = null;
     private ConstraintMetadata.Builder constraintBuilder = ConstraintMetadata.builder();
-    private Set<String> fixedColumnShortNames = Sets.newHashSet();
-    private Set<String> fixedColumnLongNames = Sets.newHashSet();
+    private Set<String> fixedColumnShortNames = new HashSet<>();
+    private Set<String> fixedColumnLongNames = new HashSet<>();
     private boolean noColumns = false;
     private LogSafety tableNameSafety = LogSafety.UNSAFE;
     private LogSafety defaultNamedComponentLogSafety = LogSafety.UNSAFE;

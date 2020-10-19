@@ -59,7 +59,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -106,15 +105,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import javax.sql.DataSource;
 import org.jooq.BatchBindStep;
 import org.jooq.Condition;
@@ -212,7 +214,7 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
-        HashMap<Cell, Value> ret = Maps.newHashMap();
+        HashMap<Cell, Value> ret = new HashMap<>();
         for (List<byte[]> part : Iterables.partition(rows, rowBatchSize)) {
             ret.putAll(getRowsPartition(tableRef, part, columnSelection, timestamp));
         }
@@ -332,7 +334,7 @@ public class JdbcKeyValueService implements KeyValueService {
             toReturn.putAll(run(ctx -> {
                 Result<? extends Record> records = ctx.select(A_ROW_NAME, A_COL_NAME, A_TIMESTAMP)
                         .from(atlasTable(tableRef).as(ATLAS_TABLE))
-                        .join(values(ctx, toRows(Sets.newHashSet(partition)), TEMP_TABLE_1, ROW_NAME, COL_NAME))
+                        .join(values(ctx, toRows(new HashSet<>(partition)), TEMP_TABLE_1, ROW_NAME, COL_NAME))
                         .on(A_ROW_NAME.eq(T1_ROW_NAME).and(A_COL_NAME.eq(T1_COL_NAME)))
                         .where(A_TIMESTAMP.lessThan(timestamp))
                         .fetch();
@@ -564,7 +566,7 @@ public class JdbcKeyValueService implements KeyValueService {
     TableLike<?> values(DSLContext ctx, RowN[] rows, String tableName, String... fieldNames) {
         switch (sqlDialect.family()) {
             case H2:
-                List<SelectField<?>> fields = Lists.newArrayListWithCapacity(fieldNames.length);
+                List<SelectField<?>> fields = new ArrayList<>(fieldNames.length);
                 for (int i = 1; i <= fieldNames.length; i++) {
                     fields.add(DSL.field("C" + i).as(fieldNames[i - 1]));
                 }
@@ -625,7 +627,7 @@ public class JdbcKeyValueService implements KeyValueService {
         }
         for (List<Entry<Cell, Long>> partition : Iterables.partition(keys.entries(), batchSizeForMutations)) {
             run((Function<DSLContext, Void>) ctx -> {
-                Collection<Row3<byte[], byte[], Long>> rows = Lists.newArrayListWithCapacity(partition.size());
+                Collection<Row3<byte[], byte[], Long>> rows = new ArrayList<>(partition.size());
                 for (Entry<Cell, Long> entry : partition) {
                     rows.add(row(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()));
                 }
@@ -786,7 +788,7 @@ public class JdbcKeyValueService implements KeyValueService {
             if (rangeRequest.isReverse()) {
                 valuesByRow = valuesByRow.descendingMap();
             }
-            List<RowResult<Value>> finalResults = Lists.newArrayListWithCapacity(valuesByRow.size());
+            List<RowResult<Value>> finalResults = new ArrayList<>(valuesByRow.size());
             for (Entry<byte[], SortedMap<byte[], Value>> entry : valuesByRow.entrySet()) {
                 finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
             }
@@ -802,11 +804,11 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     private static NavigableMap<byte[], SortedMap<byte[], Value>> breakUpValuesByRow(Result<? extends Record> records) {
-        NavigableMap<byte[], SortedMap<byte[], Value>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], SortedMap<byte[], Value>> ret = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         for (Record record : records) {
             byte[] row = record.getValue(A_ROW_NAME);
             SortedMap<byte[], Value> colMap =
-                    ret.computeIfAbsent(row, rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
+                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
             colMap.put(
                     record.getValue(A_COL_NAME), Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
         }
@@ -833,7 +835,7 @@ public class JdbcKeyValueService implements KeyValueService {
             if (rangeRequest.isReverse()) {
                 timestampsByRow = timestampsByRow.descendingMap();
             }
-            List<RowResult<Set<Long>>> finalResults = Lists.newArrayListWithCapacity(timestampsByRow.size());
+            List<RowResult<Set<Long>>> finalResults = new ArrayList<>(timestampsByRow.size());
             for (Entry<byte[], SortedMap<byte[], Set<Long>>> entry : timestampsByRow.entrySet()) {
                 finalResults.add(RowResult.create(entry.getKey(), entry.getValue()));
             }
@@ -851,13 +853,13 @@ public class JdbcKeyValueService implements KeyValueService {
     private static NavigableMap<byte[], SortedMap<byte[], Set<Long>>> breakUpTimestampsByRow(
             Result<? extends Record> records) {
         NavigableMap<byte[], SortedMap<byte[], Set<Long>>> ret =
-                Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+                new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         for (Record record : records) {
             byte[] row = record.getValue(A_ROW_NAME);
             byte[] col = record.getValue(A_COL_NAME);
             SortedMap<byte[], Set<Long>> colMap =
-                    ret.computeIfAbsent(row, rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
-            Set<Long> tsSet = colMap.computeIfAbsent(col, ts -> Sets.newHashSet());
+                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
+            Set<Long> tsSet = colMap.computeIfAbsent(col, ts -> new HashSet<>());
             tsSet.add(record.getValue(A_TIMESTAMP));
         }
         return ret;

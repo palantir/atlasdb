@@ -39,6 +39,7 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +85,8 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     @Override
     public void put(Collection<Map.Entry<Cell, byte[]>> data, long ts) {
-        List<Object[]> args = Lists.newArrayListWithCapacity(data.size());
-        List<Object[]> overflowArgs = Lists.newArrayList();
+        List<Object[]> args = new ArrayList<>(data.size());
+        List<Object[]> overflowArgs = new ArrayList<>();
         for (Entry<Cell, byte[]> entry : data) {
             Cell cell = entry.getKey();
             byte[] val = entry.getValue();
@@ -103,8 +104,8 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     @Override
     public void put(Collection<Map.Entry<Cell, Value>> data) {
-        List<Object[]> args = Lists.newArrayListWithCapacity(data.size());
-        List<Object[]> overflowArgs = Lists.newArrayList();
+        List<Object[]> args = new ArrayList<>(data.size());
+        List<Object[]> overflowArgs = new ArrayList<>();
         for (Entry<Cell, Value> entry : data) {
             Cell cell = entry.getKey();
             Value val = entry.getValue();
@@ -160,7 +161,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         byte[] value = new byte[0];
         long ts = Value.INVALID_VALUE_TIMESTAMP;
         for (List<Cell> batch : Lists.partition(Ordering.natural().immutableSortedCopy(cells), 1000)) {
-            List<Object[]> args = Lists.newArrayListWithCapacity(batch.size());
+            List<Object[]> args = new ArrayList<>(batch.size());
             for (Cell cell : batch) {
                 args.add(new Object[] {
                     cell.getRowName(),
@@ -213,7 +214,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     @Override
     public void delete(List<Entry<Cell, Long>> entries) {
-        List<Object[]> args = Lists.newArrayListWithCapacity(entries.size());
+        List<Object[]> args = new ArrayList<>(entries.size());
         for (Map.Entry<Cell, Long> entry : entries) {
             Cell cell = entry.getKey();
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
@@ -300,7 +301,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     @Override
     public void deleteAllTimestamps(Map<Cell, TimestampRangeDelete> deletes) {
-        List<Object[]> args = Lists.newArrayListWithCapacity(deletes.size());
+        List<Object[]> args = new ArrayList<>(deletes.size());
         deletes.forEach((cell, ts) -> args.add(new Object[] {
             cell.getRowName(), cell.getColumnName(),
             ts.minTimestampToDelete(), ts.maxTimestampToDelete()

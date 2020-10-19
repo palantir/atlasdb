@@ -17,7 +17,6 @@ package com.palantir.nexus.db.sql;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.concurrent.ThreadNamingCallable;
@@ -298,7 +297,7 @@ public abstract class BasicSQL {
             throws PalantirSqlException {
         PreparedStatement ps;
         ps = Connections.prepareStatement(c, sql);
-        List<BlobHandler> toClean = Lists.newArrayList();
+        List<BlobHandler> toClean = new ArrayList<>();
         if (vs != null) {
             try {
                 for (int i = 0; i < vs.length; i++) {
@@ -782,7 +781,7 @@ public abstract class BasicSQL {
                             Map<String, Integer> columnMap = ResultSets.buildInMemoryColumnMap(meta, dbType);
                             while (ResultSets.next(rs)) {
 
-                                List<Object> row = Lists.newArrayListWithCapacity(columnCount);
+                                List<Object> row = new ArrayList<>(columnCount);
 
                                 for (int i = 0; i < columnCount; i++) {
                                     row.add(ResultSets.getObject(rs, i + 1));
@@ -830,7 +829,7 @@ public abstract class BasicSQL {
         BasicSQLUtils.runUninterruptably(
                 executeStatementExecutor,
                 (Callable<Void>) () -> {
-                    List<BlobHandler> cleanups = Lists.newArrayList();
+                    List<BlobHandler> cleanups = new ArrayList<>();
                     PreparedStatement ps = null;
                     SqlTimer.Handle timerKey = getSqlTimer()
                             .start(
@@ -908,7 +907,7 @@ public abstract class BasicSQL {
                                     "insertMany(" + vs.length + ")",
                                     sql.getKey(),
                                     sql.getQuery()); // $NON-NLS-1$ //$NON-NLS-2$
-                    List<BlobHandler> cleanups = Lists.newArrayList();
+                    List<BlobHandler> cleanups = new ArrayList<>();
                     try {
                         ps = c.prepareStatement(sql.getQuery());
                         for (int i = 0; i < vs.length; i++) {

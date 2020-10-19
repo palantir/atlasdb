@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -34,6 +33,7 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.concurrent.ThreadSafe;
@@ -115,7 +115,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         }
     }
 
-    private final ConcurrentMap<TableReference, TableStats> statsByTableName = Maps.newConcurrentMap();
+    private final ConcurrentMap<TableReference, TableStats> statsByTableName = new ConcurrentHashMap<>();
 
     private final KeyValueService delegate;
 

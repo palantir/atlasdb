@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Bytes;
 import com.google.protobuf.DynamicMessage;
@@ -43,6 +42,7 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -158,7 +158,7 @@ public final class AtlasDeserializers {
             byte[] val = deserializeVal(colDescription.getDynamicColumn().getValue(), node.get("val"));
             return ImmutableList.of(Maps.immutableEntry(Cell.create(row, col), val));
         } else {
-            Collection<Entry<Cell, byte[]>> results = Lists.newArrayListWithCapacity(1);
+            Collection<Entry<Cell, byte[]>> results = new ArrayList<>(1);
             Iterator<Entry<String, JsonNode>> fields = node.fields();
             while (fields.hasNext()) {
                 Entry<String, JsonNode> entry = fields.next();

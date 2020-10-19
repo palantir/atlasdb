@@ -105,6 +105,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -320,8 +321,8 @@ public final class DbKvs extends AbstractKeyValueService {
     @SuppressWarnings("deprecation")
     private Map<Cell, Value> extractResults(
             DbReadTable table, TableReference tableRef, ClosableIterator<AgnosticLightResultRow> rows) {
-        Map<Cell, Value> results = Maps.newHashMap();
-        Map<Cell, OverflowValue> overflowResults = Maps.newHashMap();
+        Map<Cell, Value> results = new HashMap<>();
+        Map<Cell, OverflowValue> overflowResults = new HashMap<>();
         try (ClosableIterator<AgnosticLightResultRow> iter = rows) {
             boolean hasOverflow = table.hasOverflowValues();
             while (iter.hasNext()) {
@@ -358,7 +359,7 @@ public final class DbKvs extends AbstractKeyValueService {
 
     private static Map<Cell, Long> doGetLatestTimestamps(DbReadTable table, Map<Cell, Long> timestampByCell) {
         try (ClosableIterator<AgnosticLightResultRow> iter = table.getLatestCells(timestampByCell, false)) {
-            Map<Cell, Long> results = Maps.newHashMap();
+            Map<Cell, Long> results = new HashMap<>();
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
@@ -387,7 +388,7 @@ public final class DbKvs extends AbstractKeyValueService {
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
             throws KeyAlreadyExistsException {
-        List<Callable<Void>> callables = Lists.newArrayList();
+        List<Callable<Void>> callables = new ArrayList<>();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             final TableReference table = e.getKey();
             // We sort here because some key value stores are more efficient if you store adjacent keys together.
@@ -467,7 +468,7 @@ public final class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             List<Entry<Cell, Value>> batch,
             KeyAlreadyExistsException ex) {
-        Map<Cell, Long> timestampByCell = Maps.newHashMap();
+        Map<Cell, Long> timestampByCell = new HashMap<>();
         for (Entry<Cell, Value> entry : batch) {
             timestampByCell.put(entry.getKey(), entry.getValue().getTimestamp() + 1);
         }
@@ -714,7 +715,7 @@ public final class DbKvs extends AbstractKeyValueService {
 
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getTimestampsPageInternal(
             DbReadTable table, RangeRequest range, long timestamp, long batchSize, Token token) {
-        Set<byte[]> rows = Sets.newHashSet();
+        Set<byte[]> rows = new HashSet<>();
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
 
         try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
@@ -989,16 +990,16 @@ public final class DbKvs extends AbstractKeyValueService {
             Supplier<ClosableIterator<AgnosticLightResultRow>> rowLoader,
             Collection<byte[]> allRows) {
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(allRows.size());
-        Map<Sha256Hash, List<Cell>> cellsByRow = Maps.newHashMap();
+        Map<Sha256Hash, List<Cell>> cellsByRow = new HashMap<>();
         for (byte[] row : allRows) {
             Sha256Hash rowHash = Sha256Hash.computeHash(row);
             hashesToBytes.put(rowHash, row);
-            cellsByRow.put(rowHash, Lists.newArrayList());
+            cellsByRow.put(rowHash, new ArrayList<>());
         }
 
         boolean hasOverflow = table.hasOverflowValues();
-        Map<Cell, Value> values = Maps.newHashMap();
-        Map<Cell, OverflowValue> overflowValues = Maps.newHashMap();
+        Map<Cell, Value> values = new HashMap<>();
+        Map<Cell, OverflowValue> overflowValues = new HashMap<>();
 
         try (ClosableIterator<AgnosticLightResultRow> iter = rowLoader.get()) {
             while (iter.hasNext()) {

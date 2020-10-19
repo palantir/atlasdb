@@ -17,8 +17,6 @@ package com.palantir.atlasdb.performance.benchmarks.table;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -30,6 +28,7 @@ import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -190,8 +189,8 @@ public abstract class ConsecutiveNarrowTable {
     }
 
     public Iterable<RangeRequest> getRangeRequests(int numRequests, int sliceSize, boolean allColumns) {
-        List<RangeRequest> requests = Lists.newArrayList();
-        Set<Integer> used = Sets.newHashSet();
+        List<RangeRequest> requests = new ArrayList<>();
+        Set<Integer> used = new HashSet<>();
         for (int i = 0; i < numRequests; i++) {
             int startRow;
             do {

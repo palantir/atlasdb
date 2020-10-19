@@ -26,6 +26,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -103,7 +104,7 @@ public class PreStartHandlingTransactionService implements TransactionService {
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
         List<Long> validTimestamps = classifiedTimestamps.get(true);
-        Map<Long, Long> result = Maps.newHashMap();
+        Map<Long, Long> result = new HashMap<>();
         result.putAll(Maps.asMap(
                 ImmutableSet.copyOf(classifiedTimestamps.get(false)), unused -> AtlasDbConstants.STARTING_TS - 1));
 

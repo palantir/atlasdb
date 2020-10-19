@@ -19,13 +19,13 @@ package com.palantir.lock.impl;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -47,7 +47,7 @@ public class LockServiceStateDebugger {
 
     public Multimap<LockClient, LockRequestProgress> getSuspectedLockProgress() {
         Multimap<LockClient, LockRequestProgress> result =
-                Multimaps.newListMultimap(Maps.newHashMap(), Lists::newArrayList);
+                Multimaps.newListMultimap(new HashMap<>(), Lists::newArrayList);
         for (Map.Entry<LockClient, Set<LockRequest>> entry : outstandingLockRequests.entrySet()) {
             for (LockRequest lockRequest : entry.getValue()) {
                 result.put(entry.getKey(), getSuspectedLockProgress(entry.getKey(), lockRequest));

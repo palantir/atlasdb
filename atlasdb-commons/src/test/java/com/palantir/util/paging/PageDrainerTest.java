@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 
@@ -53,7 +53,7 @@ public class PageDrainerTest {
         }
 
         private List<Integer> getIntegers(int start) {
-            List<Integer> page = Lists.newArrayList();
+            List<Integer> page = new ArrayList<>();
             for (Integer i = start; i <= min(i + pageSize, limit); i++) {
                 page.add(i);
             }

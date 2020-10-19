@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -25,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -41,7 +41,7 @@ public class GetCellTimestamps {
     private final int batchHint;
     private CassandraKeyValueServiceConfig config;
 
-    private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
+    private final Collection<CellWithTimestamp> timestamps = new ArrayList<>();
 
     public GetCellTimestamps(
             CqlExecutor cqlExecutor,

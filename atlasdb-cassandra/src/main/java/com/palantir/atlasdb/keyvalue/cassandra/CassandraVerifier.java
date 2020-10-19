@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
@@ -31,6 +30,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.net.InetSocketAddress;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -70,7 +70,7 @@ public final class CassandraVerifier {
         createSimpleRfTestKeyspaceIfNotExists(client);
 
         Multimap<String, String> datacenterToRack = HashMultimap.create();
-        Set<String> hosts = Sets.newHashSet();
+        Set<String> hosts = new HashSet<>();
         for (TokenRange tokenRange : client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
             for (EndpointDetails details : tokenRange.getEndpoint_details()) {
                 datacenterToRack.put(details.datacenter, details.rack);

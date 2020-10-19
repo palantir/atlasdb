@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Maps;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -44,6 +43,7 @@ import com.palantir.timestamp.TimestampService;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -229,7 +229,7 @@ public class LegacyTimelockServiceTest {
     }
 
     private SortedMap<LockDescriptor, LockMode> buildLockMap(LockMode mode) {
-        SortedMap<LockDescriptor, LockMode> lockMap = Maps.newTreeMap();
+        SortedMap<LockDescriptor, LockMode> lockMap = new TreeMap<>();
         lockMap.put(LOCK_A, mode);
         lockMap.put(LOCK_B, mode);
 

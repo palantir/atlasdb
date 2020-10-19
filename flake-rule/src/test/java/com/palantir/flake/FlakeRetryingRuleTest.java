@@ -17,9 +17,9 @@ package com.palantir.flake;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.Maps;
 import com.palantir.flake.fail.ExpectedFailure;
 import com.palantir.flake.fail.ExpectedFailureRule;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Rule;
@@ -28,7 +28,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 
 public class FlakeRetryingRuleTest {
-    private static final Map<String, AtomicLong> counters = Maps.newHashMap();
+    private static final Map<String, AtomicLong> counters = new HashMap<>();
 
     private final FlakeRetryingRule retryingRule = new FlakeRetryingRule();
     private final ExpectedFailureRule expectedFailureRule = new ExpectedFailureRule();

@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.common.collect.Maps2;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -69,7 +70,7 @@ public class SingleTimestampPutBatch implements PutBatch {
                     Cell.create(record.getValue(JdbcConstants.A_ROW_NAME), record.getValue(JdbcConstants.A_COL_NAME)),
                     record.getValue(JdbcConstants.A_VALUE));
         }
-        Map<Cell, byte[]> nextBatch = Maps.newHashMap();
+        Map<Cell, byte[]> nextBatch = new HashMap<>();
         for (Entry<Cell, byte[]> entry : data.entrySet()) {
             Cell cell = entry.getKey();
             byte[] newValue = entry.getValue();

@@ -23,6 +23,7 @@ import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +36,7 @@ final class HostPartitioner {
             CassandraClientPool clientPool, Iterable<Map.Entry<Cell, V>> cells) {
         Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
                 partitionByHost(clientPool, cells, entry -> entry.getKey().getRowName());
-        Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
+        Map<InetSocketAddress, Map<Cell, V>> cellsByHost = new HashMap<>();
         for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost =
                     Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());

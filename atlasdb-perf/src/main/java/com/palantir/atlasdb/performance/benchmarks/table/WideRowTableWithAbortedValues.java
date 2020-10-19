@@ -17,12 +17,12 @@ package com.palantir.atlasdb.performance.benchmarks.table;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.util.crypto.Sha256Hash;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,8 +100,8 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
                 getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
 
         services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = Maps.newHashMap();
-            allCellsAtMaxTimestamp = Maps.newHashMap();
+            Map<Cell, byte[]> values = new HashMap<>();
+            allCellsAtMaxTimestamp = new HashMap<>();
             for (Cell cell : Iterables.concat(committedCells, committedWithNewerUncommitted)) {
                 allCellsAtMaxTimestamp.put(cell, Long.MAX_VALUE);
                 values.put(cell, DUMMY_VALUE);
@@ -120,7 +120,7 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
                 getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
         List<Cell> uncommitted = getCells(getNumColsUncommitted(), CellType.UNCOMMITTED);
 
-        Map<Cell, byte[]> values = Maps.newHashMap();
+        Map<Cell, byte[]> values = new HashMap<>();
         for (Cell cell : Iterables.concat(committedWithNewerUncommitted, uncommitted)) {
             values.put(cell, DUMMY_VALUE);
         }

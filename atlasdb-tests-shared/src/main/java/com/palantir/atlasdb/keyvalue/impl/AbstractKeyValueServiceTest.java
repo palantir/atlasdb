@@ -189,7 +189,7 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     private Map<Cell, Value> getValuesForRow(Map<byte[], RowColumnRangeIterator> values, byte[] row, int number) {
-        Map<Cell, Value> results = Maps.newHashMap();
+        Map<Cell, Value> results = new HashMap<>();
 
         Iterator<Entry<Cell, Value>> it = values.entrySet().stream()
                 .filter(entry -> Arrays.equals(row, entry.getKey()))
@@ -1368,7 +1368,7 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     private void checkThatTableIsNowOnly(byte[]... rows) {
-        List<byte[]> keys = Lists.newArrayList();
+        List<byte[]> keys = new ArrayList<>();
         keyValueService
                 .getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.MAX_TS)
                 .forEachRemaining(row -> keys.add(row.getRowName()));

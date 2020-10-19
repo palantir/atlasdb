@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -32,6 +31,7 @@ import com.palantir.logsafe.Preconditions;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     final KeyValueService delegate;
@@ -51,8 +51,8 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
 
         if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-            SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = Maps.newTreeMap();
-            SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = Maps.newTreeMap();
+            SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = new TreeMap<>();
+            SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = new TreeMap<>();
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
                 LockDescriptor descriptor = AtlasRowLockDescriptor.of(
                         tableRef.getQualifiedName(), e.getKey().getRowName());

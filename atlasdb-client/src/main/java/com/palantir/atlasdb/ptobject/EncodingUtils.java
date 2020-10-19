@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.ptobject;
 
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.CodedOutputStream;
@@ -27,6 +26,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -420,7 +420,7 @@ public class EncodingUtils {
     }
 
     public static List<Object> fromBytes(byte[] b, List<EncodingType> types) {
-        List<Object> result = Lists.newArrayList();
+        List<Object> result = new ArrayList<>();
         int index = 0;
         boolean lastDesc = false;
 

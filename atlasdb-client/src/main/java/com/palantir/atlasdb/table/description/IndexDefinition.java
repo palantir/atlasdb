@@ -17,14 +17,14 @@ package com.palantir.atlasdb.table.description;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -261,7 +261,7 @@ public class IndexDefinition extends AbstractDefinition {
 
     public ExplicitRowNamePartitioner explicit(long... componentValues) {
         com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        Set<String> set = Sets.newHashSet();
+        Set<String> set = new HashSet<>();
         for (long l : componentValues) {
             set.add(Long.toString(l));
         }
@@ -428,8 +428,8 @@ public class IndexDefinition extends AbstractDefinition {
     private int numberOfComponentsHashed = 0;
     private String sourceTableName = null;
     private String javaIndexTableName = null;
-    private List<IndexComponent> rowComponents = Lists.newArrayList();
-    private List<IndexComponent> colComponents = Lists.newArrayList();
+    private List<IndexComponent> rowComponents = new ArrayList<>();
+    private List<IndexComponent> colComponents = new ArrayList<>();
     private IndexCondition indexCondition = null;
     private final IndexType indexType;
     private TableMetadataPersistence.LogSafety tableNameSafety = TableMetadataPersistence.LogSafety.UNSAFE;

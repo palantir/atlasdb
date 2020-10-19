@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 public class AwaitedLocksCollection {
 
     @VisibleForTesting
-    final ConcurrentMap<UUID, AsyncResult<Void>> requestsById = Maps.newConcurrentMap();
+    final ConcurrentMap<UUID, AsyncResult<Void>> requestsById = new ConcurrentHashMap<>();
 
     public AsyncResult<Void> getExistingOrAwait(UUID requestId, Supplier<AsyncResult<Void>> lockAwaiter) {
         AsyncResult<Void> result = requestsById.computeIfAbsent(requestId, ignored -> lockAwaiter.get());

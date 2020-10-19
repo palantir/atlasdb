@@ -49,12 +49,14 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -76,7 +78,7 @@ public class CassandraService implements AutoCloseable {
     private final CassandraClientPoolMetrics poolMetrics;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
 
     private List<InetSocketAddress> cassandraHosts;
 
@@ -105,7 +107,7 @@ public class CassandraService implements AutoCloseable {
     public void close() {}
 
     public Set<InetSocketAddress> refreshTokenRangesAndGetServers() {
-        Set<InetSocketAddress> servers = Sets.newHashSet();
+        Set<InetSocketAddress> servers = new HashSet<>();
 
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =

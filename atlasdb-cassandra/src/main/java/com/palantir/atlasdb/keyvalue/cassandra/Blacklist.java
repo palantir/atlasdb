@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.logsafe.SafeArg;
@@ -28,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ public class Blacklist {
     @VisibleForTesting
     Blacklist(CassandraKeyValueServiceConfig config, Clock clock) {
         this.config = config;
-        this.blacklist = Maps.newConcurrentMap();
+        this.blacklist = new ConcurrentHashMap<>();
         this.clock = clock;
     }
 

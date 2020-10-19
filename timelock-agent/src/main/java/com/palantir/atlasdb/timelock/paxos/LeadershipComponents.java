@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
@@ -31,6 +30,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
@@ -41,7 +41,7 @@ public class LeadershipComponents {
 
     private static final Logger log = LoggerFactory.getLogger(LeadershipComponents.class);
 
-    private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = Maps.newConcurrentMap();
+    private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = new ConcurrentHashMap<>();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
     private final Factory<LeadershipContext> leadershipContextFactory;

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.cas;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -26,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.logsafe.Arg;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
@@ -45,7 +45,7 @@ public class CheckAndSetQueriesTest {
         query.logSlowResult((format, args) -> objects.set(args), Stopwatch.createStarted());
 
         Object[] loggedObjects = objects.get();
-        Map<String, Boolean> argumentSafety = Maps.newHashMap();
+        Map<String, Boolean> argumentSafety = new HashMap<>();
         Arrays.stream(loggedObjects).forEach(object -> {
             Arg<?> arg = (Arg) object;
             argumentSafety.put(arg.getName(), arg.isSafeForLogging());
@@ -70,7 +70,7 @@ public class CheckAndSetQueriesTest {
         query.logSlowResult((format, args) -> objects.set(args), Stopwatch.createStarted());
 
         Object[] loggedObjects = objects.get();
-        Map<String, Boolean> argumentSafety = Maps.newHashMap();
+        Map<String, Boolean> argumentSafety = new HashMap<>();
         Arrays.stream(loggedObjects).forEach(object -> {
             Arg<?> arg = (Arg) object;
             argumentSafety.put(arg.getName(), arg.isSafeForLogging());

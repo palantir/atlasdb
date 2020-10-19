@@ -44,6 +44,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -398,7 +399,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public void truncateTables(Set<TableReference> tableRefs) {
-        Set<TableReference> tablesToTruncate = Sets.newHashSet();
+        Set<TableReference> tablesToTruncate = new HashSet<>();
         for (TableReference tableRef : tableRefs) {
             try {
                 tablesToTruncate.add(tableMapper.getMappedTableName(tableRef));

@@ -21,10 +21,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
@@ -58,6 +56,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,6 +65,8 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -82,8 +83,8 @@ import org.apache.commons.lang3.ArrayUtils;
 @ThreadSafe
 public class InMemoryKeyValueService extends AbstractKeyValueService {
 
-    private final ConcurrentMap<TableReference, Table> tables = Maps.newConcurrentMap();
-    private final ConcurrentMap<TableReference, byte[]> tableMetadata = Maps.newConcurrentMap();
+    private final ConcurrentMap<TableReference, Table> tables = new ConcurrentHashMap<>();
+    private final ConcurrentMap<TableReference, byte[]> tableMetadata = new ConcurrentHashMap<>();
     private final boolean createTablesAutomatically;
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
@@ -99,7 +100,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
-        Map<Cell, Value> result = Maps.newHashMap();
+        Map<Cell, Value> result = new HashMap<>();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
         for (byte[] row : rows) {
@@ -147,7 +148,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        Map<Cell, Value> result = Maps.newHashMap();
+        Map<Cell, Value> result = new HashMap<>();
         for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
             Cell cell = e.getKey();
             Entry<Key, byte[]> lastEntry = table.lowerEntry(new Key(cell, e.getValue()));
@@ -197,7 +198,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, final RangeRequest range, final long timestamp) {
         return getRangeInternal(tableRef, range, entries -> {
-            Set<Long> timestamps = Sets.newTreeSet();
+            Set<Long> timestamps = new TreeSet<>();
             while (entries.hasNext()) {
                 Entry<Key, byte[]> entry = entries.next();
                 Key key = entry.getKey();
@@ -300,7 +301,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        Map<byte[], RowColumnRangeIterator> result = Maps.newHashMap();
+        Map<byte[], RowColumnRangeIterator> result = new HashMap<>();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
         ColumnRangeSelection columnRangeSelection = new ColumnRangeSelection(

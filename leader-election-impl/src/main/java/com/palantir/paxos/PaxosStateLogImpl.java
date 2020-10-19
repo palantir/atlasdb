@@ -17,8 +17,6 @@ package com.palantir.paxos;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -34,12 +32,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.io.FileUtils;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final Map<Long, Long> seqToVersionMap = Maps.newConcurrentMap();
+    private final Map<Long, Long> seqToVersionMap = new ConcurrentHashMap<>();
 
     private static final String TMP_FILE_SUFFIX = ".tmp";
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
@@ -240,7 +240,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         if (files == null) {
             return null;
         }
-        return Lists.newArrayList(Collections2.filter(Arrays.asList(files), nameIsALongPredicate()));
+        return new ArrayList<>(Collections2.filter(Arrays.asList(files), nameIsALongPredicate()));
     }
 
     /**

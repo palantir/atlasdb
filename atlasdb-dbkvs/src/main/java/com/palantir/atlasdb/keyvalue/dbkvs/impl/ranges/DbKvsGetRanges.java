@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
@@ -55,6 +54,8 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.timer.LoggingOperationTimer;
 import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -89,7 +90,7 @@ public class DbKvsGetRanges {
 
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results = Maps.newHashMap();
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results = new HashMap<>();
         for (List<RangeRequest> batch : Iterables.partition(rangeRequests, 500)) {
             results.putAll(getFirstPages(tableRef, batch, timestamp));
         }
@@ -98,8 +99,8 @@ public class DbKvsGetRanges {
 
     private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstPages(
             TableReference tableRef, List<RangeRequest> requests, long timestamp) {
-        List<String> subQueries = Lists.newArrayList();
-        List<Object> argsList = Lists.newArrayList();
+        List<String> subQueries = new ArrayList<>();
+        List<Object> argsList = new ArrayList<>();
         for (int i = 0; i < requests.size(); i++) {
             RangeRequest request = requests.get(i);
             Pair<String, List<Object>> queryAndArgs = getRangeQueryAndArgs(
@@ -159,7 +160,7 @@ public class DbKvsGetRanges {
     private Pair<String, List<Object>> getRangeQueryAndArgs(
             TableReference tableRef, byte[] startRow, byte[] endRow, boolean reverse, int numRowsToGet, int queryNum) {
         String extraWhere;
-        List<Object> args = Lists.newArrayList();
+        List<Object> args = new ArrayList<>();
         args.add(queryNum);
         if (reverse) {
             extraWhere = " t.row_name <= ? ";
@@ -211,7 +212,7 @@ public class DbKvsGetRanges {
             List<RangeRequest> requests,
             SortedSetMultimap<Integer, byte[]> rowsForBatches,
             NavigableMap<byte[], NavigableMap<byte[], Value>> cellsByRow) {
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newHashMap();
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = new HashMap<>();
         for (int i = 0; i < requests.size(); i++) {
             RangeRequest request = requests.get(i);
             if (ret.containsKey(request)) {

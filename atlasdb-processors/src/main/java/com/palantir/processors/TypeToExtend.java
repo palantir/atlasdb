@@ -15,7 +15,7 @@
  */
 package com.palantir.processors;
 
-import com.google.common.collect.Sets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,7 +53,7 @@ final class TypeToExtend {
                         // since they're both the same.
                         (methodSignature1, methodSignature2) -> methodSignature1));
 
-        methods = Sets.newHashSet(methodSignatureToMethod.values());
+        methods = new HashSet<>(methodSignatureToMethod.values());
     }
 
     private static List<ExecutableElement> extractMethods(TypeElement typeToExtractMethodsFrom) {

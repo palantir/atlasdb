@@ -16,12 +16,12 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -74,7 +74,7 @@ public class UpdateExecutor {
                 + " AND ts = ?";
         try (AgnosticLightResultSet results = connection.selectLightResultSetUnregisteredQuery(
                 sqlString, cell.getRowName(), cell.getColumnName(), ts)) {
-            List<byte[]> actualValues = Lists.newArrayList();
+            List<byte[]> actualValues = new ArrayList<>();
             results.forEach(row -> actualValues.add(row.getBytes(DbKvs.VAL)));
             return actualValues;
         }

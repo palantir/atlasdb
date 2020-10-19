@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -24,6 +23,7 @@ import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessagePr
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.HashSet;
 import java.util.Set;
 
 public final class KeyValueServiceMigratorUtils {
@@ -58,7 +58,7 @@ public final class KeyValueServiceMigratorUtils {
      * cause us to drop them in the source KVS.
      */
     public static Set<TableReference> getCreatableTables(KeyValueService kvs, Set<TableReference> skipTables) {
-        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
+        Set<TableReference> tableNames = new HashSet<>(kvs.getAllTableNames());
         tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
         tableNames.removeAll(skipTables);
         return tableNames;

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
@@ -34,6 +33,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +63,7 @@ public class GetCandidateCellsForSweepingShim {
 
             Iterator<List<RowResult<Set<Long>>>> tsBatches = Iterators.partition(tsResults.get(), range.getBatchHint());
             Iterator<List<CandidateCellForSweeping>> candidates = Iterators.transform(tsBatches, tsBatch -> {
-                List<CandidateCellForSweeping> candidateBatch = Lists.newArrayList();
+                List<CandidateCellForSweeping> candidateBatch = new ArrayList<>();
                 for (RowResult<Set<Long>> rr : tsBatch) {
                     for (Map.Entry<byte[], Set<Long>> e : rr.getColumns().entrySet()) {
                         byte[] colName = e.getKey();

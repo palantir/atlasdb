@@ -18,8 +18,6 @@ package com.palantir.lock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
@@ -28,8 +26,10 @@ import com.palantir.lock.logger.LockServiceTestUtils;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
@@ -766,7 +766,7 @@ public abstract class LockServiceTest {
     /** Tests grabbing many locks with each request */
     @Test
     public void testNumerousLocksPerClient() throws InterruptedException {
-        SortedMap<LockDescriptor, LockMode> lockMap = Maps.newTreeMap();
+        SortedMap<LockDescriptor, LockMode> lockMap = new TreeMap<>();
         int numLocks = 10000;
 
         for (int i = 0; i < numLocks; ++i) {
@@ -785,7 +785,7 @@ public abstract class LockServiceTest {
         Assert.assertEquals(
                 LockCollections.of(ImmutableSortedMap.copyOf(lockMap)), readWriteToken.getLockDescriptors());
 
-        lockMap = Maps.newTreeMap();
+        lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.READ);
         }
@@ -798,7 +798,7 @@ public abstract class LockServiceTest {
 
         server.unlock(token);
         server.unlock(readWriteToken);
-        lockMap = Maps.newTreeMap();
+        lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             if (i % 2 == 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.READ);
@@ -808,7 +808,7 @@ public abstract class LockServiceTest {
         server.lockWithFullLockResponse(client, requestAllLocks);
 
         LockClient client2 = LockClient.of("another client");
-        lockMap = Maps.newTreeMap();
+        lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.WRITE);
         }
@@ -820,7 +820,7 @@ public abstract class LockServiceTest {
         token = server.lockWithFullLockResponse(client2, requestAllLocks).getToken();
         Assert.assertNotNull(token);
         Assert.assertEquals(client2, token.getClient());
-        lockMap = Maps.newTreeMap();
+        lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             if (i % 2 != 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.WRITE);
@@ -829,7 +829,7 @@ public abstract class LockServiceTest {
         Assert.assertEquals(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)), token.getLockDescriptors());
         server.unlock(token);
 
-        lockMap = Maps.newTreeMap();
+        lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             if (i % 2 == 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.WRITE);
@@ -842,7 +842,7 @@ public abstract class LockServiceTest {
         token = server.lockWithFullLockResponse(client2, requestAllLocks).getToken();
         Assert.assertNotNull(token);
         Assert.assertEquals(client2, token.getClient());
-        lockMap = Maps.newTreeMap();
+        lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             if (i % 2 != 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.READ);
@@ -870,7 +870,7 @@ public abstract class LockServiceTest {
             partition[i - 1] = numThreads * i / partitions;
         }
 
-        List<Future<?>> futures = Lists.newArrayList();
+        List<Future<?>> futures = new ArrayList<>();
         final Mutable<Integer> numSuccess = Mutables.newMutable(0);
         final Mutable<Integer> numFailure = Mutables.newMutable(0);
         for (int i = 0; i < numThreads; ++i) {

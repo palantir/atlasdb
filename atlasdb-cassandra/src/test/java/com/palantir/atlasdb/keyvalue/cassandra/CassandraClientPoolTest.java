@@ -29,7 +29,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
@@ -41,6 +40,7 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -135,7 +135,7 @@ public class CassandraClientPoolTest {
         // TODO(ssouza): make 4 =
         // 1 + CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST
         int numHosts = 4;
-        List<InetSocketAddress> hostList = Lists.newArrayList();
+        List<InetSocketAddress> hostList = new ArrayList<>();
         for (int i = 0; i < numHosts; i++) {
             hostList.add(new InetSocketAddress(i));
         }

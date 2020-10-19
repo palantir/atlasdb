@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -31,6 +30,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import javax.annotation.concurrent.Immutable;
@@ -83,7 +83,7 @@ public class NameMetadataDescription {
         if (numberOfComponentsHashed == 0) {
             return new NameMetadataDescription(components, numberOfComponentsHashed);
         } else {
-            List<NameComponentDescription> withHashRowComponent = Lists.newArrayListWithCapacity(components.size() + 1);
+            List<NameComponentDescription> withHashRowComponent = new ArrayList<>(components.size() + 1);
             withHashRowComponent.add(new NameComponentDescription.Builder()
                     .componentName(HASH_ROW_COMPONENT_NAME)
                     .type(ValueType.FIXED_LONG)
@@ -123,7 +123,7 @@ public class NameMetadataDescription {
 
     public List<RowNamePartitioner> getPartitionersForRow() {
         NameComponentDescription firstPart = rowParts.get(0);
-        List<RowNamePartitioner> partitioners = Lists.newArrayList();
+        List<RowNamePartitioner> partitioners = new ArrayList<>();
         if (firstPart.hasUniformPartitioner()) {
             com.palantir.logsafe.Preconditions.checkArgument(
                     UniformRowNamePartitioner.allowsUniformPartitioner(firstPart.getType()));
@@ -139,7 +139,7 @@ public class NameMetadataDescription {
             if (!component.hasUniformPartitioner() && component.getExplicitPartitioner() == null) {
                 return partitioners;
             }
-            List<RowNamePartitioner> nextPartitioners = Lists.newArrayList();
+            List<RowNamePartitioner> nextPartitioners = new ArrayList<>();
             if (component.getExplicitPartitioner() != null) {
                 for (RowNamePartitioner rowNamePartitioner : partitioners) {
                     nextPartitioners.addAll(rowNamePartitioner.compound(component.getExplicitPartitioner()));
@@ -260,7 +260,7 @@ public class NameMetadataDescription {
     }
 
     public static NameMetadataDescription hydrateFromProto(TableMetadataPersistence.NameMetadataDescription message) {
-        List<NameComponentDescription> list = Lists.newArrayList();
+        List<NameComponentDescription> list = new ArrayList<>();
         for (TableMetadataPersistence.NameComponentDescription part : message.getNamePartsList()) {
             list.add(NameComponentDescription.hydrateFromProto(part));
         }

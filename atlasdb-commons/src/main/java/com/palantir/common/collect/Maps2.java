@@ -19,6 +19,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Maps;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -49,7 +50,7 @@ public class Maps2 {
     }
 
     public static <K, V> Map<K, V> createConstantValueMap(Iterable<K> keys, V v) {
-        Map<K, V> ret = Maps.newHashMap();
+        Map<K, V> ret = new HashMap<>();
         for (K k : keys) {
             ret.put(k, v);
         }

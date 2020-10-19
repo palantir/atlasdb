@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.ComparingTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -54,6 +53,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -188,7 +188,7 @@ public abstract class TransactionTestSetup {
     protected void put(Transaction txn, TableReference tableRef, String rowName, String columnName, String value) {
         Cell cell = createCell(rowName, columnName);
         byte[] valueBytes = value == null ? null : PtBytes.toBytes(value);
-        Map<Cell, byte[]> map = Maps.newHashMap();
+        Map<Cell, byte[]> map = new HashMap<>();
         map.put(cell, valueBytes);
         txn.put(tableRef, map);
     }

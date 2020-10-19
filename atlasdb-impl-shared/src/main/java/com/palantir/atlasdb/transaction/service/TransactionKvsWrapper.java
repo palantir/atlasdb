@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -53,8 +52,8 @@ public class TransactionKvsWrapper {
     }
 
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        Map<Long, Long> result = Maps.newHashMap();
-        Map<Cell, Long> startTsMap = Maps.newHashMap();
+        Map<Long, Long> result = new HashMap<>();
+        Map<Cell, Long> startTsMap = new HashMap<>();
         for (Long startTimestamp : startTimestamps) {
             Cell cell = getTransactionCell(startTimestamp);
             startTsMap.put(cell, MAX_TIMESTAMP);

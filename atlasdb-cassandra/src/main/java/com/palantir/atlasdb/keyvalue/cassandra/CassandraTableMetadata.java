@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -31,6 +30,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -57,7 +57,7 @@ public class CassandraTableMetadata {
 
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, Value> tableToMetadataContents;
-        Map<TableReference, byte[]> result = Maps.newHashMap();
+        Map<TableReference, byte[]> result = new HashMap<>();
 
         Set<TableReference> allTableRefs =
                 cassandraTables.getTableReferencesWithoutFiltering().collect(Collectors.toSet());
@@ -131,7 +131,7 @@ public class CassandraTableMetadata {
     }
 
     Map<TableReference, byte[]> filterOutExistingTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
+        Map<TableReference, byte[]> filteredTables = new HashMap<>();
         try {
             Set<TableReference> existingTablesLowerCased = cassandraTables.getExistingLowerCased().stream()
                     .map(TableReference::fromInternalTableName)
@@ -162,7 +162,7 @@ public class CassandraTableMetadata {
     Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> existingTableMetadata = getMetadataForTables();
-        Map<TableReference, byte[]> tableMetadataUpdates = Maps.newHashMap();
+        Map<TableReference, byte[]> tableMetadataUpdates = new HashMap<>();
 
         for (Map.Entry<TableReference, byte[]> entry : tableNamesToTableMetadata.entrySet()) {
             TableReference tableReference = entry.getKey();

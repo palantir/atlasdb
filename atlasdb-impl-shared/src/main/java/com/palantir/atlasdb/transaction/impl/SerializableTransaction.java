@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -76,7 +75,9 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +88,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -114,12 +116,13 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private static final int BATCH_SIZE = 1000;
 
-    final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable = Maps.newConcurrentMap();
+    final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = new ConcurrentHashMap<>();
+    final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable =
+            new ConcurrentHashMap<>();
     final ConcurrentMap<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
-            columnRangeEndsByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
+            columnRangeEndsByTable = new ConcurrentHashMap<>();
+    final ConcurrentMap<TableReference, Set<Cell>> cellsRead = new ConcurrentHashMap<>();
+    final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = new ConcurrentHashMap<>();
 
     public SerializableTransaction(
             MetricsManager metricsManager,
@@ -335,7 +338,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     private void setRangeEnd(TableReference table, RangeRequest range, byte[] maxRow) {
         Preconditions.checkNotNull(maxRow, "maxRow cannot be null");
         ConcurrentMap<RangeRequest, byte[]> rangeEnds =
-                rangeEndByTable.computeIfAbsent(table, unused -> Maps.newConcurrentMap());
+                rangeEndByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
 
         if (maxRow.length == 0) {
             rangeEnds.put(range, maxRow);
@@ -483,7 +486,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
             ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
             Multimap<ColumnSelection, byte[]> rowsReadByColumns = Multimaps.newSortedSetMultimap(
-                    Maps.newHashMap(), () -> Sets.newTreeSet(UnsignedBytes.lexicographicalComparator()));
+                    new HashMap<>(), () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator()));
             for (RowRead r : rows) {
                 rowsReadByColumns.putAll(r.cols, r.rows);
             }
@@ -701,7 +704,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private static List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
             Iterable<Entry<Cell, byte[]>> cells, @Nullable Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = Lists.newArrayList();
+        List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = new ArrayList<>();
         for (Entry<Cell, byte[]> cell : cells) {
             // NB: We filter our write set out here because our normal SI
             // checking handles this case to ensure the value hasn't changed.
@@ -714,7 +717,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private static List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
             Iterable<RowResult<byte[]>> rows, @Nullable Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = Lists.newArrayList();
+        List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = new ArrayList<>();
         for (RowResult<byte[]> row : rows) {
             rowsWithoutWrites.addAll(filterWritesFromCells(row.getCells(), writes));
         }

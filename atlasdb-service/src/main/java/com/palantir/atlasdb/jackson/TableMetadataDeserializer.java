@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -38,6 +37,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -91,7 +91,7 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     }
 
     private NameMetadataDescription deserializeRowish(JsonNode node) {
-        List<NameComponentDescription> rowComponents = Lists.newArrayList();
+        List<NameComponentDescription> rowComponents = new ArrayList<>();
         for (JsonNode rowNode : node.get("row")) {
             String name = rowNode.get("name").asText();
             ValueType type = ValueType.valueOf(rowNode.get("type").asText());
@@ -114,7 +114,7 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     }
 
     private ColumnMetadataDescription deserializeNamedCols(JsonNode node) {
-        Collection<NamedColumnDescription> cols = Lists.newArrayList();
+        Collection<NamedColumnDescription> cols = new ArrayList<>();
         for (JsonNode colNode : node.get("columns")) {
             String name = colNode.get("name").asText();
             String longName = colNode.get("long_name").asText();

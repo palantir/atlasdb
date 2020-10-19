@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -27,6 +26,7 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.openjdk.jmh.annotations.Setup;
@@ -95,9 +95,9 @@ public abstract class WideRowTable {
 
     protected void storeData() {
         services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = Maps.newHashMap();
-            allCellsAtMaxTimestamp = Maps.newHashMap();
-            firstCellAtMaxTimestamp = Maps.newHashMap();
+            Map<Cell, byte[]> values = new HashMap<>();
+            allCellsAtMaxTimestamp = new HashMap<>();
+            firstCellAtMaxTimestamp = new HashMap<>();
             firstCellAtMaxTimestamp.put(cell(0), Long.MAX_VALUE);
             for (int i = 0; i < getNumCols(); i++) {
                 Cell curCell = cell(i);

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -47,6 +46,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -375,7 +375,7 @@ public final class CassandraKeyValueServices {
     }
 
     static class StartTsResultsCollector implements ThreadSafeResultVisitor {
-        private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
+        private final Map<Cell, Value> collectedResults = new ConcurrentHashMap<>();
         private final ValueExtractor extractor;
         private final long startTs;
 

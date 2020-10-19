@@ -21,7 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
@@ -177,6 +176,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -341,7 +341,7 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public TransactionManager serializable() {
-        List<AutoCloseable> closeables = Lists.newArrayList();
+        List<AutoCloseable> closeables = new ArrayList<>();
 
         try {
             return serializableInternal(closeables);

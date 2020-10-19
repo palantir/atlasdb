@@ -17,13 +17,13 @@ package com.palantir.util;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -232,7 +232,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     }
 
     public synchronized Set<V> removeMatchingKeys(Predicate<K> predicate) {
-        Set<V> removedValues = Sets.newHashSet();
+        Set<V> removedValues = new HashSet<>();
 
         Iterator<Entry<K, CacheEntry<V>>> entryIterator =
                 cacheEntries.entrySet().iterator();

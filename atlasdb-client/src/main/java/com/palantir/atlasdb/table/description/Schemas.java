@@ -18,10 +18,10 @@ package com.palantir.atlasdb.table.description;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -122,7 +122,7 @@ public final class Schemas {
 
     private static Set<TableReference> getExistingTablesAlsoPresentInSchema(Schema schema, KeyValueService kvs) {
         Set<TableReference> allTables = kvs.getAllTableNames();
-        Set<TableReference> schemaFullTableNames = Sets.newHashSet();
+        Set<TableReference> schemaFullTableNames = new HashSet<>();
 
         schemaFullTableNames.addAll(schema.getIndexDefinitions().keySet());
         schemaFullTableNames.addAll(schema.getTableDefinitions().keySet());

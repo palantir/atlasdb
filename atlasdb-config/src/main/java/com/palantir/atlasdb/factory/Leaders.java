@@ -18,7 +18,6 @@ package com.palantir.atlasdb.factory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -56,6 +55,8 @@ import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
 import java.net.URI;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -89,7 +90,7 @@ public final class Leaders {
 
     public static LocalPaxosServices createInstrumentedLocalServices(
             MetricsManager metricsManager, LeaderConfig config, UserAgent userAgent) {
-        Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
+        Set<String> remoteLeaderUris = new HashSet<>(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
         RemotePaxosServerSpec remotePaxosServerSpec = ImmutableRemotePaxosServerSpec.builder()
@@ -200,7 +201,7 @@ public final class Leaders {
 
     private static <T> Map<T, ExecutorService> createExecutorsForService(
             MetricsManager metricsManager, List<T> services, String useCase) {
-        Map<T, ExecutorService> executors = Maps.newHashMap();
+        Map<T, ExecutorService> executors = new HashMap<>();
         for (int index = 0; index < services.size(); index++) {
             String indexedUseCase = String.format("%s-%d", useCase, index);
             executors.put(services.get(index), createExecutor(metricsManager, indexedUseCase, services.size()));

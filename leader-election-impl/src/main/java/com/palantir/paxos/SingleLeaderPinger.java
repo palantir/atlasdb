@@ -17,7 +17,6 @@
 package com.palantir.paxos;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
@@ -36,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -49,7 +49,8 @@ import org.slf4j.LoggerFactory;
 public class SingleLeaderPinger implements LeaderPinger {
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
 
-    private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
+    private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache =
+            new ConcurrentHashMap<>();
     private final Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;

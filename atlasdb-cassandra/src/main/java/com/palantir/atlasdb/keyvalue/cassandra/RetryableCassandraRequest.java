@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -23,13 +22,14 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
     private final InetSocketAddress preferredHost;
     private final FunctionCheckedException<CassandraClient, V, K> fn;
 
     private boolean shouldGiveUpOnPreferredHost = false;
-    private Map<InetSocketAddress, Integer> triedHosts = Maps.newConcurrentMap();
+    private Map<InetSocketAddress, Integer> triedHosts = new ConcurrentHashMap<>();
     private List<Exception> encounteredExceptions = new ArrayList<>();
 
     public RetryableCassandraRequest(

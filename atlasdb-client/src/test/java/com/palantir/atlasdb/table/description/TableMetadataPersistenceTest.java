@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.ArrayList;
 import java.util.Collection;
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,7 +40,7 @@ public class TableMetadataPersistenceTest {
 
     @Parameters
     public static Collection<Object[]> testCases() {
-        Collection<Object[]> params = Lists.newArrayList();
+        Collection<Object[]> params = new ArrayList<>();
 
         params.add(new Object[] {getRangeScanWithoutCompression(), UNSET_BLOCK_SIZE});
         params.add(new Object[] {getDefaultExplicit(), AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB});

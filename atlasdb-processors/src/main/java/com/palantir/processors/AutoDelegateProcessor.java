@@ -18,7 +18,6 @@ package com.palantir.processors;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
-import com.google.common.collect.Sets;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -178,7 +177,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     private List<TypeElement> fetchSuperinterfaces(TypeElement baseInterface) {
         List<TypeMirror> interfacesQueue = new ArrayList<>(baseInterface.getInterfaces());
-        Set<TypeMirror> interfacesSet = Sets.newHashSet(interfacesQueue);
+        Set<TypeMirror> interfacesSet = new HashSet<>(interfacesQueue);
         List<TypeElement> superinterfaceElements = new ArrayList<>();
 
         for (int i = 0; i < interfacesQueue.size(); i++) {

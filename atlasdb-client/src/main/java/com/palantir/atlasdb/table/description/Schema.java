@@ -25,8 +25,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -46,6 +44,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -76,9 +75,9 @@ public class Schema {
     private boolean ignoreTableNameLengthChecks = false;
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
-    private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
-    private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
-    private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
+    private final Map<String, TableDefinition> tableDefinitions = new HashMap<>();
+    private final Map<String, IndexDefinition> indexDefinitions = new HashMap<>();
+    private final List<StreamStoreRenderer> streamStoreRenderers = new ArrayList<>();
 
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
@@ -131,7 +130,7 @@ public class Schema {
     }
 
     public Map<TableReference, TableMetadata> getAllTablesAndIndexMetadata() {
-        Map<TableReference, TableMetadata> ret = Maps.newHashMap();
+        Map<TableReference, TableMetadata> ret = new HashMap<>();
         for (Map.Entry<String, TableDefinition> e : tableDefinitions.entrySet()) {
             ret.put(TableReference.create(namespace, e.getKey()), e.getValue().toTableMetadata());
         }

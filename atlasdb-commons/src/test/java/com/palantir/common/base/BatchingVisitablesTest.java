@@ -38,6 +38,7 @@ import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.junit.Test;
@@ -444,13 +445,13 @@ public class BatchingVisitablesTest {
 
     @Test
     public void testFlatten() {
-        List<String> firstChars = Lists.newArrayList();
+        List<String> firstChars = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             firstChars.add("" + (char) ('a' + i));
         }
         BatchingVisitable<String> outerVisitable = BatchingVisitableFromIterable.create(firstChars);
         BatchingVisitableView<BatchingVisitable<String>> bv = BatchingVisitables.transform(outerVisitable, (prefix) -> {
-            List<String> innerChars = Lists.newArrayList();
+            List<String> innerChars = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
                 innerChars.add(prefix + (char) ('0' + i));
             }

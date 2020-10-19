@@ -22,12 +22,10 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -54,8 +52,11 @@ import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -253,7 +254,7 @@ public class Scrubber {
                 maxScrubTimestamp);
         final int batchSize = (int) Math.ceil(batchSizeSupplier.get() * ((double) threadCount / readThreadCount));
 
-        List<byte[]> rangeBoundaries = Lists.newArrayList();
+        List<byte[]> rangeBoundaries = new ArrayList<>();
         rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
         if (readThreadCount > 1) {
             // This will actually partition into the closest higher power of 2 number of ranges.
@@ -262,7 +263,7 @@ public class Scrubber {
         }
         rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
 
-        List<Future<Void>> readerFutures = Lists.newArrayList();
+        List<Future<Void>> readerFutures = new ArrayList<>();
         final AtomicInteger totalCellsRead = new AtomicInteger(0);
         for (int i = 0; i < rangeBoundaries.size() - 1; i++) {
             final byte[] startRow = rangeBoundaries.get(i);
@@ -329,7 +330,7 @@ public class Scrubber {
             }
         }
 
-        List<Future<Void>> scrubFutures = Lists.newArrayList();
+        List<Future<Void>> scrubFutures = new ArrayList<>();
         for (List<Entry<TableReference, Cell>> batch :
                 Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
             final Multimap<TableReference, Cell> batchMultimap = HashMultimap.create();
@@ -426,7 +427,7 @@ public class Scrubber {
 
         if (log.isDebugEnabled()) {
             int numCells = 0;
-            Set<TableReference> tables = Sets.newHashSet();
+            Set<TableReference> tables = new HashSet<>();
             for (Multimap<TableReference, Cell> v : scrubTimestampToTableNameToCell.values()) {
                 tables.addAll(v.keySet());
                 numCells += v.size();
@@ -439,8 +440,8 @@ public class Scrubber {
         }
 
         int numCellsReadFromScrubTable = 0;
-        List<Future<Void>> scrubFutures = Lists.newArrayList();
-        Map<TableReference, Multimap<Cell, Long>> failedWrites = Maps.newHashMap();
+        List<Future<Void>> scrubFutures = new ArrayList<>();
+        Map<TableReference, Multimap<Cell, Long>> failedWrites = new HashMap<>();
 
         for (Map.Entry<Long, Multimap<TableReference, Cell>> entry : scrubTimestampToTableNameToCell.entrySet()) {
             final long scrubTimestamp = entry.getKey();
@@ -498,7 +499,7 @@ public class Scrubber {
         log.trace("Finished scrubbing cells: {}", scrubTimestampToTableNameToCell);
 
         if (log.isDebugEnabled()) {
-            Set<TableReference> tables = Sets.newHashSet();
+            Set<TableReference> tables = new HashSet<>();
             for (Multimap<TableReference, Cell> v : scrubTimestampToTableNameToCell.values()) {
                 tables.addAll(v.keySet());
             }

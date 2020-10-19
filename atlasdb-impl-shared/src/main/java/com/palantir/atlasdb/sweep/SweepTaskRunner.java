@@ -19,7 +19,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -41,6 +40,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -243,7 +243,7 @@ public class SweepTaskRunner {
         int numberOfSweptCells = 0;
 
         Multimap<Cell, Long> currentBatch = ArrayListMultimap.create();
-        List<Cell> currentBatchSentinels = Lists.newArrayList();
+        List<Cell> currentBatchSentinels = new ArrayList<>();
 
         for (CellToSweep cell : batch) {
             if (cell.needsSentinel()) {

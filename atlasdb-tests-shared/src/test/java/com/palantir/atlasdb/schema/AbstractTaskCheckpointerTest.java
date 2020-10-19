@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.schema;
 
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -110,7 +110,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
     private Map<Long, byte[]> createRandomCheckpoints() {
         byte[] bytes = new byte[64];
         Random random = new Random();
-        Map<Long, byte[]> ret = Maps.newHashMap();
+        Map<Long, byte[]> ret = new HashMap<>();
         for (int i = 0; i < 4; i++) {
             random.nextBytes(bytes);
             ret.put((long) i, bytes.clone());

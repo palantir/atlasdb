@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -24,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -102,7 +102,7 @@ public class GetCandidateRowsForSweeping {
                 .collect(Collectors.groupingBy(
                         cell -> ByteBuffer.wrap(cell.cell().getRowName()), LinkedHashMap::new, Collectors.toList()));
 
-        List<CandidateRowForSweeping> candidates = Lists.newArrayList();
+        List<CandidateRowForSweeping> candidates = new ArrayList<>();
         cellsByRow.forEach((row, cells) -> {
             candidates.add(CandidateRowForSweeping.of(
                     row.array(),

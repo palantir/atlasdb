@@ -47,10 +47,12 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -124,7 +126,7 @@ public class KeyValueServices {
                     Iterable<RangeRequest> rangeRequests,
                     final long timestamp,
                     int maxConcurrentRequests) {
-        final Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newConcurrentMap();
+        final Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = new ConcurrentHashMap<>();
         BlockingWorkerPool pool = new BlockingWorkerPool(executor, maxConcurrentRequests);
         try {
             for (final RangeRequest request : rangeRequests) {
@@ -141,7 +143,7 @@ public class KeyValueServices {
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
             getFirstBatchForRangesUsingGetRange(
                     KeyValueService kv, TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newHashMap();
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = new HashMap<>();
         for (final RangeRequest request : rangeRequests) {
             getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret);
         }
@@ -164,8 +166,8 @@ public class KeyValueServices {
         log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. "
                 + "Production environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
-        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
-        Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
+        Map<Sha256Hash, byte[]> hashesToBytes = new HashMap<>();
+        Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = new HashMap<>();
 
         for (byte[] row : rows) {
             Sha256Hash rowHash = Sha256Hash.computeHash(row);
@@ -179,7 +181,7 @@ public class KeyValueServices {
             rowsToColumns.get(rowHash).put(e.getKey().getColumnName(), e.getValue());
         }
 
-        Map<byte[], RowColumnRangeIterator> results = Maps.newHashMap();
+        Map<byte[], RowColumnRangeIterator> results = new HashMap<>();
         for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
             SortedMap<byte[], Value> map = row.getValue().build();
             Set<Map.Entry<byte[], Value>> subMap;

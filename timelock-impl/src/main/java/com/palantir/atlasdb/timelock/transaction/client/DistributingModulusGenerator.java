@@ -17,10 +17,10 @@
 package com.palantir.atlasdb.timelock.transaction.client;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Comparator;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -41,7 +41,7 @@ public class DistributingModulusGenerator {
         com.palantir.logsafe.Preconditions.checkArgument(modulus > 0, "Modulus must be positive");
         this.referenceCounts = IntStream.range(0, modulus)
                 .mapToObj(value -> ImmutableReferenceCountedResidue.of(0, value))
-                .collect(Collectors.toCollection(() -> Sets.newTreeSet(ReferenceCountedResidue.RESIDUE_COMPARATOR)));
+                .collect(Collectors.toCollection(() -> new TreeSet<>(ReferenceCountedResidue.RESIDUE_COMPARATOR)));
     }
 
     public synchronized int getAndMarkResidue() {

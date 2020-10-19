@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.impl.TableMetadataCache;
@@ -29,6 +28,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 
 public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> {
@@ -44,7 +44,7 @@ public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> 
     public TableRowResult deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
-        Collection<RowResult<byte[]>> rowResults = Lists.newArrayList();
+        Collection<RowResult<byte[]>> rowResults = new ArrayList<>();
         TableMetadata metadata = metadataCache.getMetadata(tableName);
         for (JsonNode rowResult : node.get("data")) {
             byte[] row = AtlasDeserializers.deserializeRow(metadata.getRowMetadata(), rowResult.get("row"));
