@@ -77,7 +77,7 @@ public class LockStoreImpl implements LockStore {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(LockStore.class);
+    private static final Logger log = LoggerFactory.getLogger(LockStoreImpl.class);
     private static final String BACKUP_LOCK_NAME = "BackupLock";
     private final InitializingWrapper wrapper = new InitializingWrapper();
 

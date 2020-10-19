@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private final QueryExecutor queryExecutor;
-    private Logger log = LoggerFactory.getLogger(CqlExecutor.class);
+    private Logger log = LoggerFactory.getLogger(CqlExecutorImpl.class);
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);

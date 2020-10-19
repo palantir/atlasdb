@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Blacklist {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Logger log = LoggerFactory.getLogger(Blacklist.class);
 
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;

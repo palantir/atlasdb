@@ -56,7 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CassandraKeyValueServices {
-    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServices.class); // did this on purpose
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;

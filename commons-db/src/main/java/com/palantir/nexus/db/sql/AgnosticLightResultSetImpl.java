@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
-    private static final Logger log = LoggerFactory.getLogger(AgnosticLightResultSet.class);
+    private static final Logger log = LoggerFactory.getLogger(AgnosticLightResultSetImpl.class);
     private static final Logger sqlExceptionlog =
             LoggerFactory.getLogger("sqlException." + AgnosticLightResultSetImpl.class.getName());
 

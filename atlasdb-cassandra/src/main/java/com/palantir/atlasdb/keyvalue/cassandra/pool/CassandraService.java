@@ -33,7 +33,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
@@ -68,7 +67,7 @@ import org.slf4j.LoggerFactory;
 
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
     private static final Interner<RangeMap<LightweightOppToken, List<InetSocketAddress>>> tokensInterner =
             Interners.newWeakInterner();
 

@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler
         implements InvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(InterceptorStatement.class);
 
     private final T delegate;
 

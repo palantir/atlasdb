@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class AdjustableSweepBatchConfigSource {
-    private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(AdjustableSweepBatchConfigSource.class);
 
     private final Supplier<SweepBatchConfig> rawSweepBatchConfig;
 

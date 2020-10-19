@@ -102,7 +102,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolImpl.class);
 
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;

@@ -22,7 +22,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -33,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class IterablePartitioner {
-    private static final Logger defaultLogger = LoggerFactory.getLogger(KeyValueService.class);
+    private static final Logger defaultLogger = LoggerFactory.getLogger(IterablePartitioner.class);
 
     private static final String ENTRY_TOO_BIG_MESSAGE = "Encountered an entry of approximate size {} bytes,"
             + " larger than maximum size of {} defined per entire batch,"
