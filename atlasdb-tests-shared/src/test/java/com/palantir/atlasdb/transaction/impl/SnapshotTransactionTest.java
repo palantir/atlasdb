@@ -1579,8 +1579,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
      * {@link AtlasDbTestCase#setUp()}.
      */
     private static SnapshotTransaction unwrapSnapshotTransaction(Transaction transaction) {
-        if (transaction instanceof ForwardingTransaction)
+        if (transaction instanceof ForwardingTransaction) {
             return unwrapSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
+        }
         return (SnapshotTransaction) transaction;
     }
 

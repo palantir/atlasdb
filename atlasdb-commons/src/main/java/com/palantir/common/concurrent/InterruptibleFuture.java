@@ -71,7 +71,9 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
                 public void run() {
                     lock.lock();
                     try {
-                        if (state != State.WAITING_TO_RUN) return;
+                        if (state != State.WAITING_TO_RUN) {
+                            return;
+                        }
                         state = State.RUNNING;
                     } finally {
                         lock.unlock();

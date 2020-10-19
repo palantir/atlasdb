@@ -131,7 +131,9 @@ public class MutuallyExclusiveSetLock<T> {
     public boolean isLocked(Iterable<T> items) {
         for (T t : items) {
             ReentrantLock lock = syncMap.getUnchecked(t);
-            if (!lock.isHeldByCurrentThread()) return false;
+            if (!lock.isHeldByCurrentThread()) {
+                return false;
+            }
         }
         return true;
     }

@@ -42,7 +42,9 @@ public class AssertUtils {
 
     public static <T> boolean nonNullItems(Collection<T> c) {
         for (T t : c) {
-            if (t == null) return false;
+            if (t == null) {
+                return false;
+            }
         }
 
         return true;

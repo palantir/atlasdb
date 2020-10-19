@@ -120,16 +120,30 @@ public final class Pair<V, W> implements Serializable {
      */
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
         Pair<?, ?> other = (Pair<?, ?>) obj;
         if (lhSide == null) {
-            if (other.lhSide != null) return false;
-        } else if (!lhSide.equals(other.lhSide)) return false;
+            if (other.lhSide != null) {
+                return false;
+            }
+        } else if (!lhSide.equals(other.lhSide)) {
+            return false;
+        }
         if (rhSide == null) {
-            if (other.rhSide != null) return false;
-        } else if (!rhSide.equals(other.rhSide)) return false;
+            if (other.rhSide != null) {
+                return false;
+            }
+        } else if (!rhSide.equals(other.rhSide)) {
+            return false;
+        }
         return true;
     }
 
