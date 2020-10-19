@@ -103,7 +103,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
             Supplier<T> supplier, Supplier<Timer.Context> timerSupplier, Supplier<Meter> meterSupplier) {
         try (Timer.Context timer = timerSupplier.get()) {
             try {
-                Thread.sleep(700);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 // no op
             }
