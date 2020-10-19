@@ -32,3 +32,5 @@ services embedded within one's clients) provides several benefits:
   exists.
 - AtlasDB client services running in HA mode may potentially become stateless, possibly simplifying deployability,
   availability and backup stories. Previously, these services would keep track of Paxos information on the local disk.
+- Upgrades to the timestamp and lock services are generally independent of user versions/upgrades, allowing for easier
+  administration in general.

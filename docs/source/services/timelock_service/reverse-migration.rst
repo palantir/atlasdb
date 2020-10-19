@@ -5,7 +5,7 @@ Reverse Migration
 
 .. warning::
 
-   Many Atlas clients switched to using TimeLock by default many versions after it was reasonable to use Atlas with TimeLock.
+   Many Atlas clients switched to using TimeLock by default many versions after it was first reasonable to use Atlas with TimeLock.
    If you are on this page because you were directed to it by an error stating "This can happen if you attempt to run AtlasDB without a timelock block after having previously migrated to the TimeLock server", then please :ref:`configure your service<timelock-client-configuration>` to use TimeLock rather than attempting a reverse migration.
 
 .. danger::
@@ -44,10 +44,10 @@ of timestamps across TimeLock and the key-value service backed services is monot
 This can be obtained using ``curl`` as follows. Note that if you obtain an HTTP 503 error, this is because you curled a
 node that was not the leader; please try the other nodes.
 
-.. code-block:: none
+   .. code:: bash
 
-   $ curl -XPOST https://<timelock-host>:8421/timelock/api/client/timestamp/fresh-timestamp
-   123456789
+      curl -XPOST <protocol>://<host>:<port>/timelock/api/tl/ts/<namespace> \
+        --data '{"numTimestamps": 1}' -H "Authorization: Bearer q" -H "Content-Type: application/json"
 
 Note down the value returned from this call; we'll refer to it as ``TS`` from here on.
 
