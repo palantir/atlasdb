@@ -53,13 +53,20 @@ from here on out, we'll refer to it as ``TS``.
 Step 3: Fast-Forwarding the Timelock Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. tip::
+
+   Throughout this document, ``curl`` commands that make requests to TimeLock may receive a 308 indicating the location
+   of the leader, or a 503 indicating that a node is not the leader (and doesn't know this). Commands should be re-run
+   until they succeed on the leader.
+
 The Timelock Server exposes an administrative interface, which features a ``fast-forward`` endpoint. Note that this is
 not typically exposed to AtlasDB clients. One can use it to advance the timestamp on the Timelock Server to ``TS``, as
-follows (where ``test`` is the namespace you want your client to use).
+follows:
 
    .. code:: bash
 
-      curl -XPOST localhost:8080/test/timestamp-management/fast-forward?currentTimestamp=TS
+      curl -iXPOST <protocol>://<host>:<port>/timelock/api/<namespace>/timestamp-management/fast-forward?currentTimestamp=TS \
+        -H "Authorization: Bearer q"
 
 .. danger::
 
@@ -79,7 +86,8 @@ To verify that this step was completed correctly, you may curl the Timelock Serv
 
    .. code:: bash
 
-      curl -XPOST localhost:8080/test/timestamp/fresh-timestamp
+      curl -iXPOST <protocol>://<host>:<port>/timelock/api/tl/ts/<namespace> \
+        --data '{"numTimestamps": 1}' -H "Authorization: Bearer q" -H "Content-Type: application/json"
 
 The value returned should be (assuming no one else is using the Timelock Server) 1 higher than ``TS``.
 

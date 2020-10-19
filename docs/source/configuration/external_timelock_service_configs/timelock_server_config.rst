@@ -27,8 +27,12 @@ path variable. There are no guarantees of relationships between timestamps reque
 
    .. code:: bash
 
-      curl -XPOST localhost:8080/tom/timestamp/fresh-timestamp
-      curl -XPOST localhost:8080/jerry/timestamp/fresh-timestamp # no guarantees of any relationship between the values
+      curl -XPOST https://localhost:8421/timelock/api/tl/ts/tom \
+        --data '{"numTimestamps": 1}' -H "Authorization: Bearer q" -H "Content-Type: application/json"
+
+      # No guarantee of any relationship between the values
+      curl -XPOST https://localhost:8421/timelock/api/tl/ts/jerry \
+        --data '{"numTimestamps": 1}' -H "Authorization: Bearer q" -H "Content-Type: application/json"
 
 This is done for performance reasons: consider that if we maintained a global timestamp across all clients, then
 requests from each of these clients would need to all be synchronized.
