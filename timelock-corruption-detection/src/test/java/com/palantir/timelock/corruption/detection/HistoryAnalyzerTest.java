@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.history;
+package com.palantir.timelock.corruption.detection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,9 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
-import com.palantir.timelock.corruption.detection.HistoryAnalyzer;
+import com.palantir.timelock.history.LocalHistoryLoader;
+import com.palantir.timelock.history.PaxosLogHistoryProvider;
+import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
@@ -79,8 +82,21 @@ public class HistoryAnalyzerTest {
         remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1 , 10));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        boolean isHealthy = HistoryAnalyzer.runCorruptionCheckOnHistory(Iterables.getOnlyElement(historyForAll));
-        assertThat(isHealthy).isEqualTo(true);
+        assertThat(HistoryAnalyzer.runCorruptionCheckOnHistory(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(true);
+    }
+
+    @Test
+    public void detectCorruptionIfDifferentValuesAreLearnedInSameRound() {
+        PaxosSerializationTestUtils.writePaxosValue(localStateLogComponents.learnerLog(), 1,
+                PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 1));
+        remoteStateLogComponents.stream().forEach(server ->
+                PaxosSerializationTestUtils.writePaxosValue(server.learnerLog(), 1,
+                        PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
+
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
+        assertThat(HistoryAnalyzer.verifyLearnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(false);
     }
 
     @Test
@@ -88,8 +104,27 @@ public class HistoryAnalyzerTest {
         writeLogsOnServer(localStateLogComponents, 1 , 10);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        boolean isHealthy = HistoryAnalyzer.runCorruptionCheckOnHistory(Iterables.getOnlyElement(historyForAll));
-        assertThat(isHealthy).isEqualTo(false);
+        assertThat(HistoryAnalyzer.verifyLearnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(true);
+        assertThat(HistoryAnalyzer.verifyLearnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(false);
+    }
+
+    @Test
+    public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
+        writeLogsOnServer(localStateLogComponents, 1 , 5);
+        remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1 , 5));
+
+        PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(localStateLogComponents.acceptorLog(), 5,
+                Optional.of(PaxosSerializationTestUtils.createPaxosValueForRoundAndData(5, 105)));
+
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
+        assertThat(HistoryAnalyzer.verifyLearnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(true);
+        assertThat(HistoryAnalyzer.verifyLearnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(true);
+        assertThat(HistoryAnalyzer.verifyLearnedValueIsGreatestAcceptedValue(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(false);
     }
 
     //utils
