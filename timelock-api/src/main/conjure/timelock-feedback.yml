@@ -12,13 +12,12 @@ types:
           namespace:
             type: optional<string>
             docs: The namespace the client uses to make timestamp/lock requests
-          leaderElectionStatistics: optional<DurationStatistics>
       EndpointStatistics:
         fields:
           p99: double
           oneMin: double
           errorRate: optional<double>
-      DurationStatistics:
+      LeaderElectionStatistics:
         fields:
           p99: double
           p95: double
@@ -38,3 +37,11 @@ services:
           feedback: ConjureTimeLockClientFeedback
         docs: |
           The endpoint receives feedback reports from clients which are required for TimeLock Adjudication.
+      reportLeaderMetrics:
+        http: POST /reportLeaderMetrics
+        args:
+          statistics: LeaderElectionStatistics
+        docs: |
+          This endpoint recieves stats about Timelock leader election durations from all clients, then aggregates them
+          on the server side.
+

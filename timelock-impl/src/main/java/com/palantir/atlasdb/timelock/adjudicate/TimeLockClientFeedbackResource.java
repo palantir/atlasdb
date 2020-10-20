@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.function.Predicate;
+
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
@@ -24,8 +26,8 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.UndertowTimeLockClientF
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.function.Predicate;
 
 public final class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
     private Predicate<Client> leadershipCheck;
@@ -59,6 +61,11 @@ public final class TimeLockClientFeedbackResource implements UndertowTimeLockCli
         return Futures.immediateVoidFuture();
     }
 
+    @Override
+    public ListenableFuture<Void> reportLeaderMetrics(AuthHeader authHeader, LeaderElectionStatistics statistics) {
+        return null; // todo
+    }
+
     public Client getClient(ConjureTimeLockClientFeedback feedbackReport) {
         return Client.of(feedbackReport.getNamespace().orElseGet(feedbackReport::getServiceName));
     }
@@ -73,6 +80,11 @@ public final class TimeLockClientFeedbackResource implements UndertowTimeLockCli
         @Override
         public void reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
             delegate.reportFeedback(authHeader, feedbackReport);
+        }
+
+        @Override
+        public void reportLeaderMetrics(AuthHeader authHeader, LeaderElectionStatistics statistics) {
+            delegate.reportLeaderMetrics(authHeader, statistics);
         }
     }
 }

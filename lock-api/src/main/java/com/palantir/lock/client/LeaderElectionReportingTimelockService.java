@@ -16,6 +16,15 @@
 
 package com.palantir.lock.client;
 
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.Snapshot;
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
@@ -35,16 +44,9 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.timelock.feedback.DurationStatistics;
+import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.time.Duration;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LeaderElectionReportingTimelockService implements NamespacedConjureTimelockService {
     private static final Logger log = LoggerFactory.getLogger(LeaderElectionReportingTimelockService.class);
@@ -107,14 +109,16 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 .logId());
     }
 
-    public DurationStatistics statistics() {
+    public LeaderElectionStatistics statistics() {
         Snapshot metricsSnapshot = metrics.observedDuration().getSnapshot();
-        return DurationStatistics.builder()
+        LeaderElectionStatistics meh = LeaderElectionStatistics.builder()
                 .p99(metricsSnapshot.get99thPercentile())
                 .p95(metricsSnapshot.get95thPercentile())
                 .mean(metricsSnapshot.getMean())
                 .count(SafeLong.of(metrics.observedDuration().getCount()))
                 .build();
+        resetTimer();
+        return meh;
     }
 
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {
