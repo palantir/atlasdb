@@ -59,13 +59,11 @@ public final class HistoryAnalyzer {
                 .stream()
                 .allMatch(seq -> {
                     Optional<PaxosValue> optionalLearnedValue = getLearnedValue(records, seq);
-
                     if(!optionalLearnedValue.isPresent()) {
                         return true;
                     }
 
                     PaxosValue learnedValue = optionalLearnedValue.get();
-
                     List<PaxosValue> acceptedValues = getAcceptedValues(records, seq, learnedValue);
                     return acceptedValues.size() >= quorum;
                 });
@@ -79,7 +77,6 @@ public final class HistoryAnalyzer {
                 .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq));
     }
 
-    // utils
     private static boolean learnedValueIsGreatestAcceptedValue(
             List<ConsolidatedLearnerAndAcceptorRecord> records, Long seq) {
 
@@ -108,8 +105,7 @@ public final class HistoryAnalyzer {
 
     private static Set<PaxosValue> getLearnedValuesForRound(List<ConsolidatedLearnerAndAcceptorRecord> recordList,
             Long seq) {
-        return recordList
-                .stream()
+        return recordList.stream()
                 .map(consolidatedLearnerAndAcceptorRecord ->
                         consolidatedLearnerAndAcceptorRecord.get(seq).learnedValue())
                 .filter(Optional::isPresent)
@@ -123,14 +119,13 @@ public final class HistoryAnalyzer {
 
     private static List<PaxosValue> getAcceptedValues(List<ConsolidatedLearnerAndAcceptorRecord> records, Long seq,
             PaxosValue learnedValue) {
-        return records
-                .stream()
+        return records.stream()
                 .map(record -> record.get(seq).acceptedValue())
-                .filter(Optional::isPresent)
-                .map(acceptorData -> acceptorData.get().getLastAcceptedValue())
-                .filter(Optional::isPresent)
+                .map(paxosAcceptorData ->
+                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElse(Optional.empty()))
+                .filter(optionalPaxosValue ->
+                        optionalPaxosValue.isPresent() && optionalPaxosValue.get().equals(learnedValue))
                 .map(Optional::get)
-                .filter(value -> value.equals(learnedValue))
                 .collect(Collectors.toList());
     }
 
@@ -138,12 +133,10 @@ public final class HistoryAnalyzer {
             List<ConsolidatedLearnerAndAcceptorRecord> records, long seq) {
         return records.stream()
                 .map(record -> record.get(seq).acceptedValue())
-                .filter(Optional::isPresent)
+                .map(paxosAcceptorData ->
+                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElse(Optional.empty()))
+                .filter(paxosValue -> paxosValue.map(PaxosValue::getData).orElse(null) != null)
                 .map(Optional::get)
-                .map(PaxosAcceptorData::getLastAcceptedValue)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .filter(paxosValue -> paxosValue.getData() != null)
                 .max(Comparator.comparingLong(paxosValue ->  PtBytes.toLong(paxosValue.getData())));
     }
 }
