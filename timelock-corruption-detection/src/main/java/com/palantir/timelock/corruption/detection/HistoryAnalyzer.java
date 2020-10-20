@@ -79,23 +79,17 @@ public final class HistoryAnalyzer {
 
     private static boolean learnedValueIsGreatestAcceptedValue(
             List<ConsolidatedLearnerAndAcceptorRecord> records, Long seq) {
-
-        Optional<PaxosValue> optionalLearnedValue = getLearnedValue(records, seq);
-        if(!optionalLearnedValue.isPresent()) {
+        byte[] learnedValueData = getPaxosValueData(getLearnedValue(records, seq));
+        if (learnedValueData == null) {
             return true;
         }
 
-        PaxosValue learnedValue = optionalLearnedValue.get();
-        if (learnedValue.getData() == null) {
-            return true;
-        }
-
-        Optional<PaxosValue> greatestAcceptedValue = getGreatestAcceptedValueAtSequence(records, seq);
-        if (!greatestAcceptedValue.isPresent()) {
+        byte[] greatestAcceptedValueData = getPaxosValueData(getGreatestAcceptedValueAtSequence(records, seq));
+        if (greatestAcceptedValueData == null) {
             // should not reach here
             return false;
         }
-        return PtBytes.toLong(greatestAcceptedValue.get().getData()) <= PtBytes.toLong(learnedValue.getData());
+        return PtBytes.toLong(greatestAcceptedValueData) <= PtBytes.toLong(learnedValueData);
     }
 
     private static Optional<PaxosValue> getLearnedValue(List<ConsolidatedLearnerAndAcceptorRecord> recordList, Long seq) {
@@ -122,7 +116,7 @@ public final class HistoryAnalyzer {
         return records.stream()
                 .map(record -> record.get(seq).acceptedValue())
                 .map(paxosAcceptorData ->
-                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElse(Optional.empty()))
+                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElseGet(Optional::empty))
                 .filter(optionalPaxosValue ->
                         optionalPaxosValue.isPresent() && optionalPaxosValue.get().equals(learnedValue))
                 .map(Optional::get)
@@ -134,9 +128,14 @@ public final class HistoryAnalyzer {
         return records.stream()
                 .map(record -> record.get(seq).acceptedValue())
                 .map(paxosAcceptorData ->
-                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElse(Optional.empty()))
-                .filter(paxosValue -> paxosValue.map(PaxosValue::getData).orElse(null) != null)
+                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElseGet(Optional::empty))
+                .filter(paxosValue -> getPaxosValueData(paxosValue) != null)
                 .map(Optional::get)
                 .max(Comparator.comparingLong(paxosValue ->  PtBytes.toLong(paxosValue.getData())));
+    }
+
+
+    private static byte[] getPaxosValueData(Optional<PaxosValue> learnedValue) {
+        return learnedValue.map(PaxosValue::getData).orElse(null);
     }
 }
