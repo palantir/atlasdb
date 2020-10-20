@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import javax.annotation.concurrent.Immutable;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class NamedColumnDescription {
@@ -32,10 +30,8 @@ public class NamedColumnDescription {
         this(shortName, longName, value, LogSafety.UNSAFE);
     }
 
-    public NamedColumnDescription(String shortName,
-                                  String longName,
-                                  ColumnValueDescription value,
-                                  LogSafety logSafety) {
+    public NamedColumnDescription(
+            String shortName, String longName, ColumnValueDescription value, LogSafety logSafety) {
         this.shortName = shortName;
         this.longName = longName;
         this.value = value;
@@ -59,7 +55,8 @@ public class NamedColumnDescription {
     }
 
     public TableMetadataPersistence.NamedColumnDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.NamedColumnDescription.newBuilder();
+        TableMetadataPersistence.NamedColumnDescription.Builder builder =
+                TableMetadataPersistence.NamedColumnDescription.newBuilder();
         builder.setShortName(shortName);
         builder.setLongName(longName);
         builder.setValue(value.persistToProto());
@@ -77,8 +74,8 @@ public class NamedColumnDescription {
 
     @Override
     public String toString() {
-        return "NamedColumnDescription [shortName=" + shortName + ", longName=" + longName
-                + ", value=" + value + ", logSafety=" + logSafety + "]";
+        return "NamedColumnDescription [shortName=" + shortName + ", longName=" + longName + ", value=" + value
+                + ", logSafety=" + logSafety + "]";
     }
 
     @Override

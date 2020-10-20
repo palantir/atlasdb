@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
@@ -36,6 +23,17 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.ModeratelyWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
+import java.io.UnsupportedEncodingException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
 
 /**
  * Performance benchmarks for KVS get with dynamic columns.
@@ -52,8 +50,11 @@ public class KvsGetDynamicBenchmarks {
     @Measurement(time = 180, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(ModeratelyWideRowTable table) {
         Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getAllCellsAtMaxTimestamp());
-        Preconditions.checkState(result.size() == table.getNumCols(),
-                "Should be %s columns, but were: %s", table.getNumCols(), result.size());
+        Preconditions.checkState(
+                result.size() == table.getNumCols(),
+                "Should be %s columns, but were: %s",
+                table.getNumCols(),
+                result.size());
         return result;
     }
 
@@ -62,13 +63,17 @@ public class KvsGetDynamicBenchmarks {
     @Warmup(time = 6, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 60, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsImplicitly(ModeratelyWideRowTable table) throws UnsupportedEncodingException {
-        Map<Cell, Value> result = table.getKvs().getRows(
-                table.getTableRef(),
-                Collections.singleton(Tables.ROW_BYTES.array()),
-                ColumnSelection.all(),
-                Long.MAX_VALUE);
-        Preconditions.checkState(result.size() == table.getNumCols(),
-                "Should be %s columns, but were: %s", table.getNumCols(), result.size());
+        Map<Cell, Value> result = table.getKvs()
+                .getRows(
+                        table.getTableRef(),
+                        Collections.singleton(Tables.ROW_BYTES.array()),
+                        ColumnSelection.all(),
+                        Long.MAX_VALUE);
+        Preconditions.checkState(
+                result.size() == table.getNumCols(),
+                "Should be %s columns, but were: %s",
+                table.getNumCols(),
+                result.size());
         return result;
     }
 
@@ -80,7 +85,7 @@ public class KvsGetDynamicBenchmarks {
         Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getFirstCellAtMaxTimestampAsMap());
         Preconditions.checkState(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
-        Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
+        Preconditions.checkState(value == 0, "Value should be %s but is %s", 0, value);
         return result;
     }
 
@@ -90,15 +95,16 @@ public class KvsGetDynamicBenchmarks {
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitlyGetRows(ModeratelyWideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs()
-                .getRows(table.getTableRef(), Collections.singleton(Tables.ROW_BYTES.array()),
-                        ColumnSelection.create(
-                                table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
-                        ),
+                .getRows(
+                        table.getTableRef(),
+                        Collections.singleton(Tables.ROW_BYTES.array()),
+                        ColumnSelection.create(table.getFirstCellAsSet().stream()
+                                .map(Cell::getColumnName)
+                                .collect(Collectors.toList())),
                         Long.MAX_VALUE);
         Preconditions.checkState(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
-        Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
+        Preconditions.checkState(value == 0, "Value should be %s but is %s", 0, value);
         return result;
     }
-
 }

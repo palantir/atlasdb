@@ -16,14 +16,13 @@
 
 package com.palantir.timelock.corruption.detection;
 
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 
 public final class LocalCorruptionDetector implements CorruptionDetector {
     private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
@@ -36,11 +35,10 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     private volatile CorruptionStatus localCorruptionState = CorruptionStatus.HEALTHY;
 
     public static LocalCorruptionDetector create(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
-        LocalCorruptionDetector localCorruptionDetector
-                = new LocalCorruptionDetector(corruptionNotifiers);
+        LocalCorruptionDetector localCorruptionDetector = new LocalCorruptionDetector(corruptionNotifiers);
 
-//        TODO(snanda) - uncomment when TL corruption detection goes live
-//        timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
+        //        TODO(snanda) - uncomment when TL corruption detection goes live
+        //        timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
@@ -49,11 +47,12 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private void scheduleWithFixedDelay() {
-        executor.scheduleWithFixedDelay(() -> {
-            if (detectedSignsOfCorruption()) {
-                killTimeLock();
-            }
-        },
+        executor.scheduleWithFixedDelay(
+                () -> {
+                    if (detectedSignsOfCorruption()) {
+                        killTimeLock();
+                    }
+                },
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);

@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.table.common;
 
-import java.util.Arrays;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
 
 public class MutableRange {
     private byte[] startRow;
@@ -36,7 +35,10 @@ public class MutableRange {
     }
 
     public RangeRequest getRangeRequest() {
-        return RangeRequest.builder().startRowInclusive(startRow).endRowExclusive(endRow).build();
+        return RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .endRowExclusive(endRow)
+                .build();
     }
 
     public int getBatchSize() {
@@ -49,8 +51,7 @@ public class MutableRange {
 
     @Override
     public String toString() {
-        return "MutableRange [startRow=" + Arrays.toString(startRow) + ", endRow="
-                + Arrays.toString(endRow) + ", batchSize=" + batchSize + "]";
+        return "MutableRange [startRow=" + Arrays.toString(startRow) + ", endRow=" + Arrays.toString(endRow)
+                + ", batchSize=" + batchSize + "]";
     }
-
 }

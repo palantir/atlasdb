@@ -20,34 +20,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.LongStream;
-
 import org.junit.Test;
 
 public class TimestampRangesTest {
     private static final long SEVENTY_THREE = 73L;
     private static final long EIGHTY_TWO = 82L;
 
-    private static final TimestampRange SEVENTY_THREE_TO_EIGHTY_TWO
-            = TimestampRange.createInclusiveRange(SEVENTY_THREE, EIGHTY_TWO);
+    private static final TimestampRange SEVENTY_THREE_TO_EIGHTY_TWO =
+            TimestampRange.createInclusiveRange(SEVENTY_THREE, EIGHTY_TWO);
 
     @Test
     public void canGetTimestampFromRangeIfItIsTheLowerBound() {
-        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))
-                .containsExactly(SEVENTY_THREE);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10)).containsExactly(SEVENTY_THREE);
     }
 
     @Test
     public void canGetTimestampFromRangeIfItIsTheUpperBound() {
-        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10))
-                .containsExactly(EIGHTY_TWO);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10)).containsExactly(EIGHTY_TWO);
     }
 
     @Test
     public void canGetTimestampsFromRangeInTheMiddle() {
-        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10))
-                .containsExactly(77L);
-        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10))
-                .containsExactly(78L);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10)).containsExactly(77L);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10)).containsExactly(78L);
     }
 
     @Test

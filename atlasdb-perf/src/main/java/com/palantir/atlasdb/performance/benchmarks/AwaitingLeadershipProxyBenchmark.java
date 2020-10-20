@@ -16,12 +16,19 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -34,15 +41,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
-import com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-
 @Measurement(iterations = 10, time = 2)
 @Warmup(iterations = 6, time = 1)
 @Fork(value = 1)
@@ -50,11 +48,8 @@ import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class AwaitingLeadershipProxyBenchmark {
-    private final LeaderAwareService service =
-            AwaitingLeadershipProxy.newProxyInstance(
-                    LeaderAwareService.class,
-                    () -> LeaderAwareImpl.INSTANCE,
-                    FakeLeaderElectionService.INSTANCE);
+    private final LeaderAwareService service = AwaitingLeadershipProxy.newProxyInstance(
+            LeaderAwareService.class, () -> LeaderAwareImpl.INSTANCE, FakeLeaderElectionService.INSTANCE);
     private static final int ASYNC_ITERATIONS = 1000;
 
     @Benchmark
@@ -75,9 +70,9 @@ public class AwaitingLeadershipProxyBenchmark {
         return Futures.getUnchecked(composition);
     }
 
-
     public interface LeaderAwareService {
         int somethingBlocking();
+
         ListenableFuture<?> somethingAsync();
     }
 
@@ -98,8 +93,8 @@ public class AwaitingLeadershipProxyBenchmark {
     private enum FakeLeaderElectionService implements LeaderElectionService {
         INSTANCE;
 
-        private static final ListeningScheduledExecutorService executor = MoreExecutors.listeningDecorator(
-                PTExecutors.newScheduledThreadPool(4));
+        private static final ListeningScheduledExecutorService executor =
+                MoreExecutors.listeningDecorator(PTExecutors.newScheduledThreadPool(4));
         private static final LeadershipToken token = new LeadershipToken() {
             @Override
             public boolean sameAs(LeadershipToken other) {

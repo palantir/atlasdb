@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -33,6 +24,13 @@ import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
 /**
  * State class for creating a single Atlas table with one wide row.
@@ -59,14 +57,12 @@ public class WideRowsTable {
         return Tables.TABLE_REF;
     }
 
-    @Setup public void setup(AtlasDbServicesConnector conn) {
+    @Setup
+    public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         services = conn.connect();
         tableRef = Benchmarks.createTableWithDynamicColumns(
-                services.getKeyValueService(),
-                getTableRef(),
-                Tables.ROW_COMPONENT,
-                Tables.COLUMN_COMPONENT);
+                services.getKeyValueService(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_COMPONENT);
         storeData();
     }
 
@@ -100,5 +96,4 @@ public class WideRowsTable {
     public static byte[] getColumn(int colIndex) {
         return ("col_" + colIndex).getBytes(StandardCharsets.UTF_8);
     }
-
 }

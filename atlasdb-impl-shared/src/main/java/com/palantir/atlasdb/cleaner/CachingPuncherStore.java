@@ -31,14 +31,14 @@ public final class CachingPuncherStore implements PuncherStore {
     private static final int CACHE_SIZE = 64000;
 
     public static CachingPuncherStore create(final PuncherStore puncherStore, long granularityMillis) {
-        LoadingCache<Long, Long> timeMillisToTimestamp =
-                CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).build(
-                        new CacheLoader<Long, Long>() {
-                            @Override
-                            public Long load(Long timeMillis) throws Exception {
-                                return puncherStore.get(timeMillis);
-                            }
-                        });
+        LoadingCache<Long, Long> timeMillisToTimestamp = CacheBuilder.newBuilder()
+                .maximumSize(CACHE_SIZE)
+                .build(new CacheLoader<Long, Long>() {
+                    @Override
+                    public Long load(Long timeMillis) throws Exception {
+                        return puncherStore.get(timeMillis);
+                    }
+                });
         return new CachingPuncherStore(puncherStore, timeMillisToTimestamp, granularityMillis);
     }
 
@@ -46,9 +46,8 @@ public final class CachingPuncherStore implements PuncherStore {
     private final LoadingCache<Long, Long> timeMillisToTimeStamp;
     private final long granularityMillis;
 
-    private CachingPuncherStore(PuncherStore puncherStore,
-                               LoadingCache<Long, Long> timeMillisToTimestamp,
-                               long granularityMillis) {
+    private CachingPuncherStore(
+            PuncherStore puncherStore, LoadingCache<Long, Long> timeMillisToTimestamp, long granularityMillis) {
         this.puncherStore = puncherStore;
         this.timeMillisToTimeStamp = timeMillisToTimestamp;
         this.granularityMillis = granularityMillis;

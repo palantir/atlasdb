@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -63,7 +62,7 @@ public class AsyncInitializerTest {
         }
     }
 
-    private class DeterministicSchedulerShutdownAware extends DeterministicScheduler {
+    private static final class DeterministicSchedulerShutdownAware extends DeterministicScheduler {
         volatile int numberOfTimesShutdownCalled = 0;
 
         @Override
@@ -192,10 +191,11 @@ public class AsyncInitializerTest {
         verify(cleanupTask, times(1)).run();
     }
 
-    private void fiveTicksAndAssertNumberOfShutdownsAndAttempts(AlwaysFailingInitializer initializer,
-            int shutdowns, int attempts) {
+    private void fiveTicksAndAssertNumberOfShutdownsAndAttempts(
+            AlwaysFailingInitializer initializer, int shutdowns, int attempts) {
         tickSchedulerFiveTimes(initializer);
-        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(shutdowns);
+        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled)
+                .isEqualTo(shutdowns);
         assertThat(initializer.initializationAttempts).isEqualTo(attempts);
     }
 

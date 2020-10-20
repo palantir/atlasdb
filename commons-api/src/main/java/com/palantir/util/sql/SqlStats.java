@@ -15,15 +15,14 @@
  */
 package com.palantir.util.sql;
 
+import com.palantir.util.JMXUtils;
+import com.palantir.util.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.palantir.util.JMXUtils;
-import com.palantir.util.Pair;
 
 /**
  * MXBean which tracks statistics for all SQL queries made by the server.
@@ -52,8 +51,7 @@ public final class SqlStats implements SqlStatsMBean {
     private final AtomicLong clearTempTableByDeleteCount = new AtomicLong(0);
     private final AtomicLong clearTempTableByTruncateCount = new AtomicLong(0);
 
-
-    private static final String OBJECT_NAME_STRING = "com.palantir.util.sql:type=DatabaseCalls"; //$NON-NLS-1$
+    private static final String OBJECT_NAME_STRING = "com.palantir.util.sql:type=DatabaseCalls"; // $NON-NLS-1$
 
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Don't wish to break the API
     public void registerWithJMX() {
@@ -86,9 +84,7 @@ public final class SqlStats implements SqlStatsMBean {
      *        the query.
      */
     @SuppressWarnings("ParameterAssignment") // I don't want to copy the query key for perf reasons
-    public synchronized void updateStats(String sqlName,
-                                         String rawSql,
-                                         long timeInNs) {
+    public synchronized void updateStats(String sqlName, String rawSql, long timeInNs) {
         if (!collectCallStatsEnabled) {
             return;
         }
@@ -145,14 +141,16 @@ public final class SqlStats implements SqlStatsMBean {
     }
 
     private String getNameForUnregisteredQuery(String rawSql) {
-        String name = namesByUnregisteredSql.computeIfAbsent(rawSql,
-                k -> String.format("UNREGISTERED_QUERY_%03d", //$NON-NLS-1$
+        String name = namesByUnregisteredSql.computeIfAbsent(
+                rawSql,
+                k -> String.format(
+                        "UNREGISTERED_QUERY_%03d", //$NON-NLS-1$
                         namesByUnregisteredSql.size() + 1));
         return name;
     }
 
     private String getStatsBeanName(SqlCallStats bean) {
-        return OBJECT_NAME_STRING + ",name=" + bean.getQueryName(); //$NON-NLS-1$
+        return OBJECT_NAME_STRING + ",name=" + bean.getQueryName(); // $NON-NLS-1$
     }
 
     @Override
@@ -173,4 +171,3 @@ public final class SqlStats implements SqlStatsMBean {
         clearTempTableByTruncateCount.incrementAndGet();
     }
 }
-

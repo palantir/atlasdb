@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 final class TimeLockPaxosExecutors {
     /**
@@ -49,14 +48,14 @@ final class TimeLockPaxosExecutors {
     static <T> Map<T, CheckedRejectionExecutorService> createBoundedExecutors(
             int poolSize, LocalAndRemotes<T> localAndRemotes, String useCase) {
         int numRemotes = localAndRemotes.remotes().size();
-        ImmutableMap.Builder<T, CheckedRejectionExecutorService> remoteExecutors
-                = ImmutableMap.builderWithExpectedSize(numRemotes);
+        ImmutableMap.Builder<T, CheckedRejectionExecutorService> remoteExecutors =
+                ImmutableMap.builderWithExpectedSize(numRemotes);
         for (int index = 0; index < numRemotes; index++) {
             T remote = localAndRemotes.remotes().get(index);
             remoteExecutors.put(remote, createBoundedExecutor(poolSize, useCase, index));
         }
-        remoteExecutors.put(localAndRemotes.local(), new CheckedRejectionExecutorService(
-                MoreExecutors.newDirectExecutorService()));
+        remoteExecutors.put(
+                localAndRemotes.local(), new CheckedRejectionExecutorService(MoreExecutors.newDirectExecutorService()));
         return remoteExecutors.build();
     }
 
@@ -71,8 +70,8 @@ final class TimeLockPaxosExecutors {
      */
     static CheckedRejectionExecutorService createBoundedExecutor(int poolSize, String useCase, int index) {
         // metricRegistry is ignored because TExecutors.newCachedThreadPoolWithMaxThreads provides instrumentation.
-        ExecutorService underlying = PTExecutors.newCachedThreadPoolWithMaxThreads(
-                poolSize, "timelock-executors-" + useCase + "-" + index);
+        ExecutorService underlying =
+                PTExecutors.newCachedThreadPoolWithMaxThreads(poolSize, "timelock-executors-" + useCase + "-" + index);
         return new CheckedRejectionExecutorService(underlying);
     }
 }

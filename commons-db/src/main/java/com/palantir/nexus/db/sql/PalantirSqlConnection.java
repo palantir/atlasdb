@@ -21,12 +21,18 @@ import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
 
 public interface PalantirSqlConnection extends SqlConnection {
     int executeUnregisteredQueryCountRows(String sql, Object... vs) throws PalantirSqlException;
+
     int executeCountRows(String key, Object... vs) throws PalantirSqlException;
+
     int executeCountRows(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
+
     int updateCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
+
     int insertOneCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
+
     int insertOneCountRows(String key, Object... vs) throws PalantirSqlException;
-    int insertOneCountRows(final RegisteredSQLString sql, final Object... vs) throws PalantirSqlException;
+
+    int insertOneCountRows(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
 
     /**
      * Returns the long value of the first field selected given a query.
@@ -36,8 +42,10 @@ public interface PalantirSqlConnection extends SqlConnection {
      *
      * @deprecated Use selectLongWithDefaultUnregisteredQuery to control behavior when no or NULL results are found.
      */
-    @Override @Deprecated
-    long selectLongUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
+    @Override
+    @Deprecated
+    long selectLongUnregisteredQuery(String sql, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException;
 
     /**
      * Returns the long value of the first field selected given a query.  If
@@ -64,7 +72,8 @@ public interface PalantirSqlConnection extends SqlConnection {
      * If the value of the first field is null, then defaultVal will be returned. This means
      * that if defaultVal is non-null, then this method won't return null.
      */
-    Long selectLongWithDefaultUnregisteredQuery(String sql, Long defaultVal, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
+    Long selectLongWithDefaultUnregisteredQuery(String sql, Long defaultVal, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException;
 
     /**
      * Returns the long value of the first field selected given a query If
@@ -73,7 +82,8 @@ public interface PalantirSqlConnection extends SqlConnection {
      * If the value of the first field is null, then defaultVal will be returned. This means
      * that if defaultVal is non-null, then this method won't return null.
      */
-    Long selectLongWithDefault(String key, Long defaultVal, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
+    Long selectLongWithDefault(String key, Long defaultVal, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException;
 
     /**
      * Returns the long value of the first field selected given a query If
@@ -82,7 +92,8 @@ public interface PalantirSqlConnection extends SqlConnection {
      * If the value of the first field is null, then defaultVal will be returned. This means
      * that if defaultVal is non-null, then this method won't return null.
      */
-    Long selectLongWithDefault(RegisteredSQLString sql, Long defaultVal, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
+    Long selectLongWithDefault(RegisteredSQLString sql, Long defaultVal, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException;
 
     void initializeTempTable(TempTable tempTable) throws PalantirSqlException;
 

@@ -19,20 +19,18 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosValue;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.google.common.collect.ImmutableSet;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.PaxosValue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BatchPingableLeaderResourceTests {
@@ -44,6 +42,7 @@ public class BatchPingableLeaderResourceTests {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private LocalPaxosComponents components;
+
     private BatchPingableLeaderResource resource;
 
     @Before
@@ -53,21 +52,17 @@ public class BatchPingableLeaderResourceTests {
 
     @Test
     public void pingReturnsTrueForLeaders() {
-        when(components.learner(CLIENT_1).getGreatestLearnedValue())
-                .thenReturn(paxosValue(LEADER_UUID));
-        when(components.learner(CLIENT_2).getGreatestLearnedValue())
-                .thenReturn(paxosValue(LEADER_UUID));
+        when(components.learner(CLIENT_1).getGreatestLearnedValue()).thenReturn(paxosValue(LEADER_UUID));
+        when(components.learner(CLIENT_2).getGreatestLearnedValue()).thenReturn(paxosValue(LEADER_UUID));
 
-        assertThat(resource.ping(ImmutableSet.of(CLIENT_1, CLIENT_2)))
-                .containsOnly(CLIENT_1, CLIENT_2);
+        assertThat(resource.ping(ImmutableSet.of(CLIENT_1, CLIENT_2))).containsOnly(CLIENT_1, CLIENT_2);
     }
 
     @Test
     public void pingFiltersOutNonLeaders() {
         Client clientLedByAnotherServer = Client.of("client-led-by-another-server");
 
-        when(components.learner(CLIENT_1).getGreatestLearnedValue())
-                .thenReturn(paxosValue(LEADER_UUID));
+        when(components.learner(CLIENT_1).getGreatestLearnedValue()).thenReturn(paxosValue(LEADER_UUID));
         when(components.learner(clientLedByAnotherServer).getGreatestLearnedValue())
                 .thenReturn(paxosValue(UUID.randomUUID()));
 
@@ -79,8 +74,7 @@ public class BatchPingableLeaderResourceTests {
     public void filtersOutClientsWhereNothingHasBeenLearnt() {
         Client clientWhereNothingHasBeenLearnt = Client.of("client-where-nothing-has-been-learnt");
 
-        when(components.learner(CLIENT_1).getGreatestLearnedValue())
-                .thenReturn(paxosValue(LEADER_UUID));
+        when(components.learner(CLIENT_1).getGreatestLearnedValue()).thenReturn(paxosValue(LEADER_UUID));
         when(components.learner(clientWhereNothingHasBeenLearnt).getGreatestLearnedValue())
                 .thenReturn(Optional.empty());
 

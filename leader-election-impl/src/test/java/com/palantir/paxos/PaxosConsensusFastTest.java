@@ -23,6 +23,11 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.google.common.util.concurrent.Futures;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.proxy.DelegatingInvocationHandler;
+import com.palantir.leader.LeaderElectionService.LeadershipToken;
+import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -32,18 +37,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Futures;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.proxy.DelegatingInvocationHandler;
-import com.palantir.leader.LeaderElectionService.LeadershipToken;
-import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
 public class PaxosConsensusFastTest {
     private PaxosTestState state;
@@ -97,12 +95,16 @@ public class PaxosConsensusFastTest {
     public void loseQuorum() {
         LeadershipToken token = state.gainLeadership(0);
         knockOutQuorumNotIncludingZero();
-        assertNotSame("leader cannot maintain leadership without quorum",
-                state.leader(0).isStillLeading(token), StillLeadingStatus.LEADING);
+        assertNotSame(
+                "leader cannot maintain leadership without quorum",
+                state.leader(0).isStillLeading(token),
+                StillLeadingStatus.LEADING);
         state.comeUp(1);
         state.gainLeadership(0);
-        assertNotSame("leader can confirm leadership with quorum",
-                state.leader(0).isStillLeading(token), StillLeadingStatus.NOT_LEADING);
+        assertNotSame(
+                "leader can confirm leadership with quorum",
+                state.leader(0).isStillLeading(token),
+                StillLeadingStatus.NOT_LEADING);
     }
 
     @Test
@@ -194,8 +196,7 @@ public class PaxosConsensusFastTest {
     @Test
     public void loseLeadershipAfterSteppingDown() {
         LeadershipToken token = state.gainLeadership(0);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
         assertThat(state.leader(0).stepDown()).isTrue();
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
                 .isEqualTo(StillLeadingStatus.NOT_LEADING);
@@ -204,88 +205,75 @@ public class PaxosConsensusFastTest {
     @Test
     public void gainLeadershipAfterHostileTakeover() {
         LeadershipToken token1 = state.gainLeadership(0);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1))).isEqualTo(StillLeadingStatus.LEADING);
 
         Awaitility.waitAtMost(5, TimeUnit.SECONDS).until(() -> state.leader(1).hostileTakeover());
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
                 .isEqualTo(StillLeadingStatus.NOT_LEADING);
-        assertThat(state.leader(1).getCurrentTokenIfLeading())
-                .isNotEmpty();
+        assertThat(state.leader(1).getCurrentTokenIfLeading()).isNotEmpty();
     }
 
     @Test
     public void otherNodeCanBecomeLeaderAfterSteppingDown() {
         LeadershipToken token = state.gainLeadership(0);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
         assertThat(state.leader(0).stepDown()).isTrue();
 
         LeadershipToken token2 = state.gainLeadership(1);
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
                 .isEqualTo(StillLeadingStatus.NOT_LEADING);
-        assertThat(Futures.getUnchecked(state.leader(1).isStillLeading(token2)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(1).isStillLeading(token2))).isEqualTo(StillLeadingStatus.LEADING);
     }
 
     @Test
     public void leadershipIfRegainedImmediatelyIsOnDifferentToken() {
         LeadershipToken token1 = state.gainLeadership(0);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1))).isEqualTo(StillLeadingStatus.LEADING);
         assertThat(state.leader(0).stepDown()).isTrue();
 
         LeadershipToken token2 = state.gainLeadership(0);
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
                 .isEqualTo(StillLeadingStatus.NOT_LEADING);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token2)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token2))).isEqualTo(StillLeadingStatus.LEADING);
         assertThat(state.leader(0).stepDown()).isTrue();
     }
 
     @Test
     public void nonLeaderStepDownDoesNotAffectLeader() {
         LeadershipToken token = state.gainLeadership(0);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
         assertThat(state.leader(1).stepDown()).isFalse();
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
     }
 
     @Test
     public void failToStepDownIfNoQuorum() {
         LeadershipToken token = state.gainLeadership(0);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
 
         knockOutQuorumNotIncludingZero();
         assertThat(state.leader(0).stepDown()).isFalse();
 
         restoreAllNodes();
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
     }
 
     @Test
     public void failToTakeOverIfNoQuorum() {
         LeadershipToken token = state.gainLeadership(1);
-        assertThat(Futures.getUnchecked(state.leader(1).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(1).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
 
         knockOutQuorumNotIncludingZero();
         assertThat(state.leader(0).hostileTakeover()).isFalse();
 
         restoreAllNodes();
-        assertThat(state.leader(0).getCurrentTokenIfLeading())
-                .isEmpty();
+        assertThat(state.leader(0).getCurrentTokenIfLeading()).isEmpty();
     }
 
     @Test
     public void markNotEligibleForLeadership() throws InterruptedException {
         LeadershipToken token = state.gainLeadership(0);
-        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token))).isEqualTo(StillLeadingStatus.LEADING);
 
         state.leader(0).markNotEligibleForLeadership();
         assertThat(state.leader(0).stepDown()).isTrue();
@@ -303,8 +291,7 @@ public class PaxosConsensusFastTest {
         LeadershipToken token2 = state.gainLeadership(1);
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token)))
                 .isEqualTo(StillLeadingStatus.NOT_LEADING);
-        assertThat(Futures.getUnchecked(state.leader(1).isStillLeading(token2)))
-                .isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(Futures.getUnchecked(state.leader(1).isStillLeading(token2))).isEqualTo(StillLeadingStatus.LEADING);
 
         assertThatExceptionOfType(ExecutionException.class)
                 .isThrownBy(future::get)
@@ -327,4 +314,3 @@ public class PaxosConsensusFastTest {
         }
     }
 }
-

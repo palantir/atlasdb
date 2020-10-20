@@ -15,19 +15,17 @@
  */
 package com.palantir.common.proxy;
 
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.logsafe.Preconditions;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.logsafe.Preconditions;
 
 /**
  * This class will delegate functionality and return the value (or throw the exception) of
@@ -40,8 +38,8 @@ import com.palantir.logsafe.Preconditions;
  * are/aren't called, but you want to use a Fake to do the work.
  * <p>
  */
-public class MultiDelegateProxy<T> extends AbstractInvocationHandler {
-    static private final Logger log = LoggerFactory.getLogger(MultiDelegateProxy.class);
+public final class MultiDelegateProxy<T> extends AbstractInvocationHandler {
+    private static final Logger log = LoggerFactory.getLogger(MultiDelegateProxy.class);
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T mainDelegate, T... delegatesToCall) {
         return newProxyInstance(interfaceClass, mainDelegate, Arrays.asList(delegatesToCall));
@@ -50,10 +48,10 @@ public class MultiDelegateProxy<T> extends AbstractInvocationHandler {
     /**
      * This will copy off all the objects in delegatesToCall.
      */
-    public static <T> T newProxyInstance(Class<T> interfaceClass, T mainDelegate,
-            Iterable<? extends T> delegatesToCall) {
-        return newProxyInstance(interfaceClass, mainDelegate,
-            Suppliers.ofInstance(ImmutableList.copyOf(delegatesToCall)));
+    public static <T> T newProxyInstance(
+            Class<T> interfaceClass, T mainDelegate, Iterable<? extends T> delegatesToCall) {
+        return newProxyInstance(
+                interfaceClass, mainDelegate, Suppliers.ofInstance(ImmutableList.copyOf(delegatesToCall)));
     }
 
     /**
@@ -61,10 +59,12 @@ public class MultiDelegateProxy<T> extends AbstractInvocationHandler {
      * and iterated over.
      */
     @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(Class<T> interfaceClass, T mainDelegate,
-            Supplier<? extends Iterable<? extends T>> dynamicDelegatesToCall) {
-        return (T)Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-            new Class<?>[] {interfaceClass}, new MultiDelegateProxy<T>(mainDelegate, dynamicDelegatesToCall));
+    public static <T> T newProxyInstance(
+            Class<T> interfaceClass, T mainDelegate, Supplier<? extends Iterable<? extends T>> dynamicDelegatesToCall) {
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(),
+                new Class<?>[] {interfaceClass},
+                new MultiDelegateProxy<T>(mainDelegate, dynamicDelegatesToCall));
     }
 
     final T delegate;
@@ -93,5 +93,4 @@ public class MultiDelegateProxy<T> extends AbstractInvocationHandler {
             throw e.getCause();
         }
     }
-
 }

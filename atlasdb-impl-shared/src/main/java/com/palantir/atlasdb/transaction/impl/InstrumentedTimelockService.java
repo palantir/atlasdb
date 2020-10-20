@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -32,6 +28,9 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 
 public final class InstrumentedTimelockService implements TimelockService {
     private static final MetricName SUCCESSFUL_REQUEST_METRIC_NAME = MetricName.builder()
@@ -104,8 +103,7 @@ public final class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
-    public Set<LockToken> refreshLockLeases(
-            Set<LockToken> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return executeWithRecord(() -> timelockService.refreshLockLeases(tokens));
     }
 

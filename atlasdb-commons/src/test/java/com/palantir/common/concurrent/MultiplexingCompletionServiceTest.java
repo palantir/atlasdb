@@ -18,21 +18,18 @@ package com.palantir.common.concurrent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 
 public class MultiplexingCompletionServiceTest {
     private static final String KEY_1 = "key_1";
@@ -81,8 +78,8 @@ public class MultiplexingCompletionServiceTest {
     @Test
     public void propagatesFailingComputationResults()
             throws ExecutionException, InterruptedException, CheckedRejectedExecutionException {
-        MultiplexingCompletionService<String, Integer> service = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, executor1, KEY_2, executor2));
+        MultiplexingCompletionService<String, Integer> service =
+                MultiplexingCompletionService.create(ImmutableMap.of(KEY_1, executor1, KEY_2, executor2));
         service.submit(KEY_1, () -> 5);
         service.submit(KEY_2, () -> {
             throw new IllegalArgumentException("bad");
@@ -99,8 +96,8 @@ public class MultiplexingCompletionServiceTest {
 
     @Test
     public void throwsIfKeyDoesNotExist() {
-        MultiplexingCompletionService<String, Integer> oneKeyService = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, executor1));
+        MultiplexingCompletionService<String, Integer> oneKeyService =
+                MultiplexingCompletionService.create(ImmutableMap.of(KEY_1, executor1));
         assertThatThrownBy(() -> oneKeyService.submit(KEY_2, () -> 7)).isInstanceOf(IllegalStateException.class);
     }
 
@@ -128,8 +125,8 @@ public class MultiplexingCompletionServiceTest {
 
     @Test
     public void rejectsExecutionsIfUnderlyingExecutorRejects() throws CheckedRejectedExecutionException {
-        MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, createBoundedExecutor(1)));
+        MultiplexingCompletionService<String, Integer> boundedService =
+                MultiplexingCompletionService.create(ImmutableMap.of(KEY_1, createBoundedExecutor(1)));
 
         Callable<Integer> sleepForFiveSeconds = getSleepCallable(5_000);
 
@@ -164,8 +161,8 @@ public class MultiplexingCompletionServiceTest {
     public void valuesMayBeRetrievedFromFuturesReturned()
             throws ExecutionException, InterruptedException, CheckedRejectedExecutionException {
         DeterministicScheduler scheduler = new DeterministicScheduler();
-        MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, scheduler));
+        MultiplexingCompletionService<String, Integer> boundedService =
+                MultiplexingCompletionService.create(ImmutableMap.of(KEY_1, scheduler));
         Future<Map.Entry<String, Integer>> returnedFuture = boundedService.submit(KEY_1, () -> 1234567);
 
         scheduler.runUntilIdle();
@@ -176,13 +173,12 @@ public class MultiplexingCompletionServiceTest {
 
     private static Callable<Integer> getSleepCallable(int durationMillis) {
         return () -> {
-                Thread.sleep(durationMillis);
-                return durationMillis;
-            };
+            Thread.sleep(durationMillis);
+            return durationMillis;
+        };
     }
 
     private static ThreadPoolExecutor createBoundedExecutor(int poolSize) {
-        return PTExecutors.newThreadPoolExecutor(
-                poolSize, poolSize, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>(1));
+        return PTExecutors.newThreadPoolExecutor(poolSize, poolSize, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>(1));
     }
 }

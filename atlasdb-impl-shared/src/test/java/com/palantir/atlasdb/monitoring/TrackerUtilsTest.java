@@ -22,14 +22,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.Clock;
+import com.codahale.metrics.Gauge;
 import java.util.function.Supplier;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.Clock;
-import com.codahale.metrics.Gauge;
 
 @SuppressWarnings("unchecked") // Mocks of known types
 public class TrackerUtilsTest {
@@ -38,10 +36,10 @@ public class TrackerUtilsTest {
 
     private final Supplier<Long> testSupplier = mock(Supplier.class);
     private final Clock clock = mock(Clock.class);
-    private final Gauge<Long> cachingExceptionHandlingGauge = TrackerUtils.createCachingExceptionHandlingGauge(
-            log, clock, SHORT_NAME, testSupplier);
-    private final Gauge<Long> cachingMonotonicIncreasingGauge = TrackerUtils.createCachingMonotonicIncreasingGauge(
-            log, clock, SHORT_NAME, testSupplier);
+    private final Gauge<Long> cachingExceptionHandlingGauge =
+            TrackerUtils.createCachingExceptionHandlingGauge(log, clock, SHORT_NAME, testSupplier);
+    private final Gauge<Long> cachingMonotonicIncreasingGauge =
+            TrackerUtils.createCachingMonotonicIncreasingGauge(log, clock, SHORT_NAME, testSupplier);
 
     @Test
     public void cachingExceptionHandlingGaugeReturnsPreviousValueIfExceptionsAreThrown() {

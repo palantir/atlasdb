@@ -16,15 +16,6 @@
 
 package com.palantir.paxos;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.BaseEncoding;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
@@ -32,6 +23,13 @@ import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClient {
 
@@ -71,10 +69,11 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
                 localLearner,
                 remoteLearners,
                 quorumSize,
-                KeyedStream.stream(executors).map(CheckedRejectionExecutorService::new).collectToMap(),
+                KeyedStream.stream(executors)
+                        .map(CheckedRejectionExecutorService::new)
+                        .collectToMap(),
                 cancelRemainingCalls);
     }
-
 
     @Override
     public void learn(long seq, PaxosValue value) {
@@ -85,14 +84,16 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
                     try {
                         learner.learn(seq, value);
                     } catch (Throwable e) {
-                        log.warn("Failed to teach learner the value {} at sequence {}, after attempting execution.",
+                        log.warn(
+                                "Failed to teach learner the value {} at sequence {}, after attempting execution.",
                                 UnsafeArg.of("value", base16EncodePaxosValue(value)),
                                 SafeArg.of("sequence", seq),
                                 e);
                     }
                 });
             } catch (CheckedRejectedExecutionException e) {
-                log.warn("Failed to teach learner the value {} at sequence {}, because we could not execute the task.",
+                log.warn(
+                        "Failed to teach learner the value {} at sequence {}, because we could not execute the task.",
                         UnsafeArg.of("value", base16EncodePaxosValue(value)),
                         SafeArg.of("sequence", seq),
                         e);
@@ -105,26 +106,27 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
 
     @Override
     public <T extends PaxosResponse> PaxosResponses<T> getLearnedValue(
-            long seq,
-            Function<Optional<PaxosValue>, T> mapper) {
+            long seq, Function<Optional<PaxosValue>, T> mapper) {
         return PaxosQuorumChecker.collectQuorumResponses(
-                allLearners,
-                learner -> mapper.apply(learner.getLearnedValue(seq)),
-                quorumSize,
-                executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                cancelRemainingCalls).withoutRemotes();
+                        allLearners,
+                        learner -> mapper.apply(learner.getLearnedValue(seq)),
+                        quorumSize,
+                        executors,
+                        PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                        cancelRemainingCalls)
+                .withoutRemotes();
     }
 
     @Override
     public PaxosResponses<PaxosUpdate> getLearnedValuesSince(long seq) {
         return PaxosQuorumChecker.collectQuorumResponses(
-                allLearners,
-                learner -> new PaxosUpdate(ImmutableList.copyOf(learner.getLearnedValuesSince(seq))),
-                quorumSize,
-                executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                cancelRemainingCalls).withoutRemotes();
+                        allLearners,
+                        learner -> new PaxosUpdate(ImmutableList.copyOf(learner.getLearnedValuesSince(seq))),
+                        quorumSize,
+                        executors,
+                        PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                        cancelRemainingCalls)
+                .withoutRemotes();
     }
 
     private static String base16EncodePaxosValue(PaxosValue value) {

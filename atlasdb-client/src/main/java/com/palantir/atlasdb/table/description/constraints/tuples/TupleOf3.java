@@ -15,18 +15,19 @@
  */
 package com.palantir.atlasdb.table.description.constraints.tuples;
 
-
-public class TupleOf3<A,B,C> implements Tuple{
+public class TupleOf3<A, B, C> implements Tuple {
     private final A one;
     private final B two;
     private final C three;
-    public static <A,B,C> TupleOf3<A,B,C> of(A a, B b, C c) {
-        return new TupleOf3<A,B,C>(a,b,c);
+
+    public static <A, B, C> TupleOf3<A, B, C> of(A a, B b, C c) {
+        return new TupleOf3<A, B, C>(a, b, c);
     }
+
     public TupleOf3(A a, B b, C c) {
-        this.one=a;
-        this.two=b;
-        this.three=c;
+        this.one = a;
+        this.two = b;
+        this.three = c;
     }
 
     public A field1() {

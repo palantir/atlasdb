@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -185,7 +184,7 @@ public class InterruptibleFutureTest {
         @Override
         protected Integer call() throws Exception {
             started.countDown();
-            Thread.sleep(10 * 1000);  // 10 seconds
+            Thread.sleep(10 * 1000); // 10 seconds
             return 1;
         }
     }

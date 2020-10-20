@@ -18,7 +18,6 @@ package com.palantir.lock.watch;
 
 import java.util.List;
 import java.util.Map;
-
 import org.immutables.value.Value;
 
 /**
@@ -28,6 +27,8 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface TransactionsLockWatchUpdate {
     List<LockWatchEvent> events();
+
     Map<Long, LockWatchVersion> startTsToSequence();
+
     boolean clearCache();
 }

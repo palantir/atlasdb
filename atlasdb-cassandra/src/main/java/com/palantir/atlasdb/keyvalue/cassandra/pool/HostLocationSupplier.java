@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
@@ -33,8 +31,8 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
 
     private static final Logger log = LoggerFactory.getLogger(HostLocationSupplier.class);
 
-
-    public HostLocationSupplier(Supplier<String> snitchSupplier,
+    public HostLocationSupplier(
+            Supplier<String> snitchSupplier,
             Supplier<HostLocation> ec2Supplier,
             Optional<HostLocation> overrideLocation) {
         this.snitchSupplier = Suppliers.memoize(snitchSupplier::get);
@@ -42,8 +40,7 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
         this.overrideLocation = overrideLocation;
     }
 
-    public HostLocationSupplier(Supplier<String> snitchSupplier,
-            Optional<HostLocation> overrideLocation) {
+    public HostLocationSupplier(Supplier<String> snitchSupplier, Optional<HostLocation> overrideLocation) {
         this(snitchSupplier, new Ec2HostLocationSupplier(), overrideLocation);
     }
 

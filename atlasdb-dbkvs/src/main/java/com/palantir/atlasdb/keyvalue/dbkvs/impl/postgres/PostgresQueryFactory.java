@@ -15,13 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map.Entry;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -30,6 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public class PostgresQueryFactory extends AbstractDbQueryFactory {
     private final String tableName;
@@ -41,17 +40,15 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestRowQuery(byte[] row,
-                                       long ts,
-                                       ColumnSelection columns,
-                                       boolean includeValue) {
+    public FullQuery getLatestRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_LATEST_ROW_INNER (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts "
                 + "   FROM " + prefixedTableName() + " m "
                 + "  WHERE m.row_name = ? "
                 + "    AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
                 + " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
@@ -59,17 +56,15 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestRowsQuery(Iterable<byte[]> rows,
-                                        long ts,
-                                        ColumnSelection columns,
-                                        boolean includeValue) {
+    public FullQuery getLatestRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_INNER (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts "
                 + "   FROM " + prefixedTableName() + " m "
                 + "  WHERE m.row_name IN " + numParams(Iterables.size(rows))
                 + "    AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
                 + " GROUP BY m.row_name, m.col_name ";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(rows).withArg(ts);
@@ -77,17 +72,17 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestRowsQuery(Collection<Entry<byte[], Long>> rows,
-                                        ColumnSelection columns,
-                                        boolean includeValue) {
+    public FullQuery getLatestRowsQuery(
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_INNER (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts "
                 + "   FROM " + prefixedTableName() + " m,"
                 + "     (VALUES " + groupOfNumParams(2, rows.size()) + ") t(row_name, ts) "
                 + "  WHERE m.row_name = t.row_name "
                 + "    AND m.ts < t.ts "
-                + (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())))
                 + " GROUP BY m.row_name, m.col_name ";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = addRowTsArgs(new FullQuery(query), rows);
@@ -95,49 +90,45 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getAllRowQuery(byte[] row,
-                                    long ts,
-                                    ColumnSelection columns,
-                                    boolean includeValue) {
+    public FullQuery getAllRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ROW (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ")
                 + "   FROM " + prefixedTableName() + " m "
                 + "  WHERE m.row_name = ? "
                 + "    AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())));
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())));
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArgs(columns.getSelectedColumns());
     }
 
     @Override
-    public FullQuery getAllRowsQuery(Iterable<byte[]> rows,
-                                     long ts,
-                                     ColumnSelection columns,
-                                     boolean includeValue) {
+    public FullQuery getAllRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ROWS (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ")
                 + "   FROM " + prefixedTableName() + " m "
                 + "  WHERE m.row_name IN " + numParams(Iterables.size(rows))
                 + "    AND m.ts < ? "
-                + (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())));
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())));
         FullQuery fullQuery = new FullQuery(query).withArgs(rows).withArg(ts);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArgs(columns.getSelectedColumns());
     }
 
     @Override
-    public FullQuery getAllRowsQuery(Collection<Entry<byte[], Long>> rows,
-                                     ColumnSelection columns,
-                                     boolean includeValue) {
+    public FullQuery getAllRowsQuery(
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ROWS (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ")
                 + "   FROM " + prefixedTableName() + " m,"
                 + "     (VALUES " + groupOfNumParams(2, rows.size()) + ") t(row_name, ts) "
                 + "  WHERE m.row_name = t.row_name "
                 + "    AND m.ts < t.ts "
-                + (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())));
+                + (columns.allColumnsSelected()
+                        ? ""
+                        : "    AND m.col_name IN " + numParams(Iterables.size(columns.getSelectedColumns())));
         FullQuery fullQuery = addRowTsArgs(new FullQuery(query), rows);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArgs(columns.getSelectedColumns());
     }
@@ -171,7 +162,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getLatestCellsQuery(Collection<Entry<Cell, Long>> cells, boolean includeValue) {
+    public FullQuery getLatestCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_LATEST_CELLS_INNER (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts "
                 + "   FROM " + prefixedTableName() + " m,"
@@ -208,7 +199,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getAllCellsQuery(Collection<Entry<Cell, Long>> cells, boolean includeValue) {
+    public FullQuery getAllCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_ALL_CELLS (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, m.ts" + (includeValue ? ", m.val " : " ")
                 + "   FROM " + prefixedTableName() + " m,"
@@ -221,8 +212,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     public FullQuery getRangeQuery(RangeRequest range, long ts, int maxRows) {
-        List<String> bounds = Lists.newArrayListWithCapacity(2);
-        List<Object> args = Lists.newArrayListWithCapacity(2);
+        List<String> bounds = new ArrayList<>(2);
+        List<Object> args = new ArrayList<>(2);
         byte[] start = range.getStartInclusive();
         byte[] end = range.getEndExclusive();
         if (start.length > 0) {
@@ -270,8 +261,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
                 + "   AND wrap.ts = i.ts ";
     }
 
-    private FullQuery addRowTsArgs(FullQuery fullQuery, Iterable<Entry<byte[], Long>> rows) {
-        for (Entry<byte[], Long> entry : rows) {
+    private FullQuery addRowTsArgs(FullQuery fullQuery, Iterable<Map.Entry<byte[], Long>> rows) {
+        for (Map.Entry<byte[], Long> entry : rows) {
             fullQuery.withArgs(entry.getKey(), entry.getValue());
         }
         return fullQuery;
@@ -284,8 +275,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
         return fullQuery;
     }
 
-    private FullQuery addCellTsArgs(FullQuery fullQuery, Collection<Entry<Cell, Long>> cells) {
-        for (Entry<Cell, Long> entry : cells) {
+    private FullQuery addCellTsArgs(FullQuery fullQuery, Collection<Map.Entry<Cell, Long>> cells) {
+        for (Map.Entry<Cell, Long> entry : cells) {
             Cell cell = entry.getKey();
             fullQuery.withArgs(cell.getRowName(), cell.getColumnName(), entry.getValue());
         }
@@ -298,9 +289,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     public FullQuery getRowsColumnRangeCountsQuery(
-            Iterable<byte[]> rows,
-            long ts,
-            ColumnRangeSelection columnRangeSelection) {
+            Iterable<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE_COUNT(" + tableName + ") */"
                 + " SELECT m.row_name, COUNT(m.col_name) AS column_count "
                 + "   FROM " + prefixedTableName() + " m "
@@ -321,9 +310,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     protected FullQuery getRowsColumnRangeSubQuery(
-            byte[] row,
-            long ts,
-            BatchColumnRangeSelection columnRangeSelection) {
+            byte[] row, long ts, BatchColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts"
                 + "   FROM " + prefixedTableName() + " m "
@@ -347,9 +334,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     @Override
     protected FullQuery getRowsColumnRangeFullyLoadedRowsSubQuery(
-            List<byte[]> rows,
-            long ts,
-            ColumnRangeSelection columnRangeSelection) {
+            List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE_FULLY_LOADED_ROW (" + tableName + ") */ "
                 + " SELECT m.row_name, m.col_name, max(m.ts) as ts"
                 + "   FROM " + prefixedTableName() + " m "

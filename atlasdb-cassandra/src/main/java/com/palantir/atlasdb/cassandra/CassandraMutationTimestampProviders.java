@@ -53,8 +53,7 @@ public final class CassandraMutationTimestampProviders {
         };
     }
 
-    public static CassandraMutationTimestampProvider singleLongSupplierBacked(
-            LongSupplier longSupplier) {
+    public static CassandraMutationTimestampProvider singleLongSupplierBacked(LongSupplier longSupplier) {
         return new CassandraMutationTimestampProvider() {
             @Override
             public long getSweepSentinelWriteTimestamp() {

@@ -19,5 +19,4 @@ package com.palantir.timestamp;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
-public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
-}
+public interface ManagedTimestampService extends TimestampService, TimestampManagementService {}

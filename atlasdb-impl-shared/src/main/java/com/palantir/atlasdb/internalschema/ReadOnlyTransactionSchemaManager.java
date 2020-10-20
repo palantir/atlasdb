@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ReadOnlyTransactionSchemaManager {
-    private static final Logger log = LoggerFactory.getLogger(TransactionSchemaManager.class);
+    private static final Logger log = LoggerFactory.getLogger(ReadOnlyTransactionSchemaManager.class);
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
 
@@ -38,8 +36,9 @@ public class ReadOnlyTransactionSchemaManager {
 
     public Integer getTransactionsSchemaVersion(long timestamp) {
         if (timestamp < AtlasDbConstants.STARTING_TS) {
-            throw new SafeIllegalStateException("Query attempted for timestamp {} which was never given out by the"
-                    + " timestamp service, as timestamps start at {}",
+            throw new SafeIllegalStateException(
+                    "Query attempted for timestamp {} which was never given out by the"
+                            + " timestamp service, as timestamps start at {}",
                     SafeArg.of("queriedTimestamp", timestamp),
                     SafeArg.of("startOfTime", AtlasDbConstants.STARTING_TS));
         }

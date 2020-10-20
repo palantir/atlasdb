@@ -20,7 +20,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
 public final class RangeHelpers {
-    private RangeHelpers() { }
+    private RangeHelpers() {}
 
     public static int getMaxRowsPerPage(RangeRequest rangeRequest) {
         if (rangeRequest.getBatchHint() != null) {
@@ -33,5 +33,4 @@ public final class RangeHelpers {
     public static <T> ImmutableSortedMap.Builder<byte[], T> newColumnMap() {
         return ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
     }
-
 }

@@ -15,13 +15,13 @@
  */
 package com.palantir.common.base;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * This abstract class will implement the required methods in {@link BatchingVisitable}
@@ -30,18 +30,20 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  */
 public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<T> {
     @Override
-    final public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v) throws K {
+    public final <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v)
+            throws K {
         Preconditions.checkArgument(batchSize > 0);
         if (v instanceof ConsistentVisitor) {
             @SuppressWarnings("unchecked")
             AbortingVisitor<List<T>, K> v2 = (AbortingVisitor<List<T>, K>) v;
             ConsistentVisitor<T, K> consistentVisitor = (ConsistentVisitor<T, K>) v2;
-            Preconditions.checkState(consistentVisitor.visitorAlwaysReturnedTrue,
-                    "passed a visitor that has already said stop");
+            Preconditions.checkState(
+                    consistentVisitor.visitorAlwaysReturnedTrue, "passed a visitor that has already said stop");
             batchAcceptSizeHint(batchSize, consistentVisitor);
             return consistentVisitor.visitorAlwaysReturnedTrue;
         }
-        AbstractBatchingVisitable.ConsistentVisitor<T, K> consistentVisitor = AbstractBatchingVisitable.ConsistentVisitor.create(batchSize, v);
+        AbstractBatchingVisitable.ConsistentVisitor<T, K> consistentVisitor =
+                AbstractBatchingVisitable.ConsistentVisitor.create(batchSize, v);
         batchAcceptSizeHint(batchSize, consistentVisitor);
         if (consistentVisitor.visitorAlwaysReturnedTrue && !consistentVisitor.buffer.isEmpty()) {
             Preconditions.checkState(consistentVisitor.buffer.size() < batchSize);
@@ -57,13 +59,13 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
      * and pass them to the visitor.  Batch size consistency is already taken care of by the
      * {@link ConsistentVisitor}.
      */
-    protected abstract <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
-                                                                         ConsistentVisitor<T, K> v) throws K;
+    protected abstract <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, ConsistentVisitor<T, K> v)
+            throws K;
 
-    protected final static class ConsistentVisitor<T, K extends Exception> implements AbortingVisitor<List<T>, K> {
+    protected static final class ConsistentVisitor<T, K extends Exception> implements AbortingVisitor<List<T>, K> {
         final int batchSize;
         final AbortingVisitor<? super List<T>, K> v;
-        List<T> buffer = Lists.newArrayList();
+        List<T> buffer = new ArrayList<>();
         boolean visitorAlwaysReturnedTrue = true;
 
         private ConsistentVisitor(int batchSize, AbortingVisitor<? super List<T>, K> av) {
@@ -72,8 +74,8 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
             this.v = Preconditions.checkNotNull(av);
         }
 
-        static <T, K extends Exception> ConsistentVisitor<T, K> create(int batchSize,
-                AbortingVisitor<? super List<T>, K> v) {
+        static <T, K extends Exception> ConsistentVisitor<T, K> create(
+                int batchSize, AbortingVisitor<? super List<T>, K> v) {
             return new ConsistentVisitor<T, K>(batchSize, v);
         }
 
@@ -115,11 +117,11 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
                     return false;
                 }
             }
-            List<T> lastBatch = batches.get(batches.size()-1);
+            List<T> lastBatch = batches.get(batches.size() - 1);
             if (lastBatch.size() == batchSize) {
-                buffer = Lists.newArrayList();
+                buffer = new ArrayList<>();
             } else {
-                buffer = Lists.newArrayList(lastBatch);
+                buffer = new ArrayList<>(lastBatch);
             }
             return true;
         }

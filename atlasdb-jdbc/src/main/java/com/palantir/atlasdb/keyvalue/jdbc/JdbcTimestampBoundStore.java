@@ -18,6 +18,10 @@ package com.palantir.atlasdb.keyvalue.jdbc;
 import static org.jooq.impl.SQLDataType.BIGINT;
 import static org.jooq.impl.SQLDataType.INTEGER;
 
+import com.google.common.base.Function;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.TimestampBoundStore;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -26,12 +30,7 @@ import org.jooq.Table;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
-import com.google.common.base.Function;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.timestamp.MultipleRunningTimestampServiceError;
-import com.palantir.timestamp.TimestampBoundStore;
-
-public class JdbcTimestampBoundStore implements TimestampBoundStore {
+public final class JdbcTimestampBoundStore implements TimestampBoundStore {
     private final JdbcKeyValueService kvs;
     private long latestTimestamp;
 
@@ -53,22 +52,24 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
                     .column(LATEST_TIMESTAMP, BIGINT.nullable(false))
                     .getSQL();
             int endIndex = partialSql.lastIndexOf(')');
-            String fullSql = partialSql.substring(0, endIndex) + "," +
-                    " CONSTRAINT " + kvs.primaryKey(TIMESTAMP_TABLE) +
-                    " PRIMARY KEY (" + DUMMY_COLUMN.getName() + ")" +
-                    partialSql.substring(endIndex);
+            String fullSql = partialSql.substring(0, endIndex) + "," + " CONSTRAINT "
+                    + kvs.primaryKey(TIMESTAMP_TABLE) + " PRIMARY KEY ("
+                    + DUMMY_COLUMN.getName() + ")" + partialSql.substring(endIndex);
             try {
                 ctx.execute(fullSql);
             } catch (DataAccessException e) {
                 kvs.handleTableCreationException(e);
             }
             ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
-                .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
-                        .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, 10000L)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
-                        .whereNotExists(ctx.selectOne()
-                                .from(store.TABLE)
-                                .where(DUMMY_COLUMN.eq(0))))
-                .execute();
+                    .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
+                            .from(kvs.values(
+                                    ctx,
+                                    new RowN[] {(RowN) DSL.row(0, 10000L)},
+                                    "t",
+                                    DUMMY_COLUMN.getName(),
+                                    LATEST_TIMESTAMP.getName()))
+                            .whereNotExists(ctx.selectOne().from(store.TABLE).where(DUMMY_COLUMN.eq(0))))
+                    .execute();
             return null;
         });
         return store;
@@ -83,14 +84,15 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
     public synchronized void storeUpperLimit(final long limit) throws MultipleRunningTimestampServiceError {
         kvs.runInTransaction((Function<DSLContext, Void>) ctx -> {
             int rowsUpdated = ctx.update(TABLE)
-                .set(LATEST_TIMESTAMP, limit)
-                .where(DUMMY_COLUMN.eq(0).and(LATEST_TIMESTAMP.eq(latestTimestamp)))
-                .execute();
+                    .set(LATEST_TIMESTAMP, limit)
+                    .where(DUMMY_COLUMN.eq(0).and(LATEST_TIMESTAMP.eq(latestTimestamp)))
+                    .execute();
             if (rowsUpdated != 1) {
                 long actualLatestTimestamp = getLatestTimestamp(ctx);
-                throw new MultipleRunningTimestampServiceError("Timestamp limit changed underneath " +
-                        "us (limit in memory: " + latestTimestamp + ", limit in db: " + actualLatestTimestamp +
-                        "). This may indicate that another timestamp service is running against this db!");
+                throw new MultipleRunningTimestampServiceError(
+                        "Timestamp limit changed underneath " + "us (limit in memory: "
+                                + latestTimestamp + ", limit in db: " + actualLatestTimestamp
+                                + "). This may indicate that another timestamp service is running against this db!");
             }
             latestTimestamp = limit;
             return null;

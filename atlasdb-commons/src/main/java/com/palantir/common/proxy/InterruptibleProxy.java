@@ -15,6 +15,10 @@
  */
 package com.palantir.common.proxy;
 
+import com.google.common.base.Suppliers;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.PalantirInterruptedException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -22,11 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
-
-import com.google.common.base.Suppliers;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.exception.PalantirInterruptedException;
 
 /**
  * Proxy that calls the requested method in another thread waits on a Future.
@@ -36,18 +35,20 @@ import com.palantir.exception.PalantirInterruptedException;
  *
  */
 public final class InterruptibleProxy implements DelegatingInvocationHandler {
-    private static final Supplier<ExecutorService> defaultExecutor = Suppliers.memoize(() ->
-            PTExecutors.newCachedThreadPool("Interruptible Proxy"));
+    private static final Supplier<ExecutorService> defaultExecutor =
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool("Interruptible Proxy"));
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, CancelDelegate cancel) {
         return newProxyInstance(interfaceClass, delegate, cancel, defaultExecutor.get());
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate,
-            CancelDelegate cancel, ExecutorService executor) {
-        return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-                new Class<?>[] {interfaceClass}, new InterruptibleProxy(delegate, cancel, executor));
+    public static <T> T newProxyInstance(
+            Class<T> interfaceClass, T delegate, CancelDelegate cancel, ExecutorService executor) {
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(),
+                new Class<?>[] {interfaceClass},
+                new InterruptibleProxy(delegate, cancel, executor));
     }
 
     private final Object delegate;
@@ -87,4 +88,3 @@ public final class InterruptibleProxy implements DelegatingInvocationHandler {
         return delegate;
     }
 }
-

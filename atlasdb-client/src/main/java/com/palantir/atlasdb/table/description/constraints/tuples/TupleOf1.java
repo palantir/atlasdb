@@ -15,14 +15,15 @@
  */
 package com.palantir.atlasdb.table.description.constraints.tuples;
 
-
 public class TupleOf1<A> implements Tuple {
     private final A one;
+
     public static <A> TupleOf1<A> of(A a) {
         return new TupleOf1<A>(a);
     }
+
     public TupleOf1(A one) {
-        this.one=one;
+        this.one = one;
     }
 
     public A field1() {
@@ -33,5 +34,4 @@ public class TupleOf1<A> implements Tuple {
     public int getSize() {
         return 1;
     }
-
 }

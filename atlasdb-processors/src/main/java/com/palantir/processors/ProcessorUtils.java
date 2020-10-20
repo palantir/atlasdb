@@ -15,17 +15,15 @@
  */
 package com.palantir.processors;
 
+import com.squareup.javapoet.ParameterSpec;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
-
-import com.squareup.javapoet.ParameterSpec;
 
 final class ProcessorUtils {
     private ProcessorUtils() {}
@@ -41,9 +39,6 @@ final class ProcessorUtils {
     }
 
     static List<ParameterSpec> extractParameters(ExecutableElement constructor) {
-        return constructor.getParameters()
-                .stream()
-                .map(ParameterSpec::get)
-                .collect(Collectors.toList());
+        return constructor.getParameters().stream().map(ParameterSpec::get).collect(Collectors.toList());
     }
 }

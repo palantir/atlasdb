@@ -15,20 +15,19 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.util.crypto.Sha256Hash;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.util.crypto.Sha256Hash;
 
 /**
  * State class for creating a single Atlas table with one wide row.
@@ -66,7 +65,8 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
      */
     public abstract int getNumUncommittedValuesPerCell();
 
-    @Override public int getNumCols() {
+    @Override
+    public int getNumCols() {
         return getNumColsCommitted() + getNumColsCommittedAndNewerUncommitted() + getNumColsUncommitted();
     }
 
@@ -74,13 +74,16 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
         return getNumColsCommitted() + getNumColsCommittedAndNewerUncommitted();
     }
 
-    @Override public abstract boolean isPersistent();
+    @Override
+    public abstract boolean isPersistent();
 
-    @Override public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
+    @Override
+    public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
         throw new UnsupportedOperationException("not implemented");
     }
 
-    @Override public Set<Cell> getFirstCellAsSet() {
+    @Override
+    public Set<Cell> getFirstCellAsSet() {
         throw new UnsupportedOperationException("not implemented");
     }
 
@@ -93,12 +96,12 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
 
     private void writeCommittedValues() {
         List<Cell> committedCells = getCells(getNumColsCommitted(), CellType.COMMITTED);
-        List<Cell> committedWithNewerUncommitted
-                = getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
+        List<Cell> committedWithNewerUncommitted =
+                getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
 
         services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = Maps.newHashMap();
-            allCellsAtMaxTimestamp = Maps.newHashMap();
+            Map<Cell, byte[]> values = new HashMap<>();
+            allCellsAtMaxTimestamp = new HashMap<>();
             for (Cell cell : Iterables.concat(committedCells, committedWithNewerUncommitted)) {
                 allCellsAtMaxTimestamp.put(cell, Long.MAX_VALUE);
                 values.put(cell, DUMMY_VALUE);
@@ -109,23 +112,22 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
     }
 
     private void writeUncommittedValues() {
-        IntStream.range(0, getNumUncommittedValuesPerCell())
-                .forEach(unused -> writeOneVersionOfUncommittedValues());
+        IntStream.range(0, getNumUncommittedValuesPerCell()).forEach(unused -> writeOneVersionOfUncommittedValues());
     }
 
     private void writeOneVersionOfUncommittedValues() {
-        List<Cell> committedWithNewerUncommitted
-                = getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
+        List<Cell> committedWithNewerUncommitted =
+                getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
         List<Cell> uncommitted = getCells(getNumColsUncommitted(), CellType.UNCOMMITTED);
 
-
-        Map<Cell, byte[]> values = Maps.newHashMap();
+        Map<Cell, byte[]> values = new HashMap<>();
         for (Cell cell : Iterables.concat(committedWithNewerUncommitted, uncommitted)) {
             values.put(cell, DUMMY_VALUE);
         }
 
         // Simulate getting a timestamp, writing the values, but not putting into the tx table
-        long freshTimestamp = services.getTransactionManager().getTimestampService().getFreshTimestamp();
+        long freshTimestamp =
+                services.getTransactionManager().getTimestampService().getFreshTimestamp();
         services.getKeyValueService().multiPut(ImmutableMap.of(tableRef, values), freshTimestamp);
     }
 

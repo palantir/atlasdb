@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Optional;
-import java.util.Set;
-
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import java.util.Optional;
+import java.util.Set;
 
 public final class NoOpLockWatchManager extends LockWatchManager {
     public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
@@ -44,8 +43,8 @@ public final class NoOpLockWatchManager extends LockWatchManager {
     }
 
     @Override
-    TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<LockWatchVersion> version) {
+    TransactionsLockWatchUpdate getUpdateForTransactions(
+            Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return NoOpLockWatchEventCache.INSTANCE.getUpdateForTransactions(startTimestamps, version);
     }
 }

@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.cassandra.thrift.TokenRange;
-
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
 
 public final class CassandraLogHelper {
     private CassandraLogHelper() {
@@ -42,15 +40,15 @@ public final class CassandraLogHelper {
 
     static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
-                .map(entry -> String.format("host %s has range %s",
-                        entry.getKey().toString(),
-                        host(entry.getValue())))
+                .map(entry ->
+                        String.format("host %s has range %s", entry.getKey().toString(), host(entry.getValue())))
                 .collect(Collectors.toList());
     }
 
     public static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
-                .map(rangeListToHostEntry -> String.format("range from %s to %s is on host %s",
+                .map(rangeListToHostEntry -> String.format(
+                        "range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
                         getUpperEndpoint(rangeListToHostEntry.getKey()),
                         CassandraLogHelper.collectionOfHosts(rangeListToHostEntry.getValue())))

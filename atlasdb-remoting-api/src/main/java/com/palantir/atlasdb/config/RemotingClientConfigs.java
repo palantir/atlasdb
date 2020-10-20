@@ -21,5 +21,6 @@ public final class RemotingClientConfigs {
         // Constants
     }
 
-    public static final RemotingClientConfig DEFAULT = ImmutableRemotingClientConfig.builder().build();
+    public static final RemotingClientConfig DEFAULT =
+            ImmutableRemotingClientConfig.builder().build();
 }

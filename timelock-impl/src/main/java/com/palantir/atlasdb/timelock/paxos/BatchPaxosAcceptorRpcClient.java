@@ -16,9 +16,16 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.SetMultimap;
+import com.palantir.conjure.java.api.errors.ErrorType;
+import com.palantir.paxos.BooleanPaxosResponse;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosPromise;
+import com.palantir.paxos.PaxosProposal;
+import com.palantir.paxos.PaxosProposalId;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -28,15 +35,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
-
-import com.google.common.collect.SetMultimap;
-import com.palantir.conjure.java.api.errors.ErrorType;
-import com.palantir.paxos.BooleanPaxosResponse;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosPromise;
-import com.palantir.paxos.PaxosProposal;
-import com.palantir.paxos.PaxosProposalId;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/{useCase}"
@@ -64,7 +62,6 @@ public interface BatchPaxosAcceptorRpcClient {
     SetMultimap<Client, WithSeq<PaxosPromise>> prepare(
             @PathParam("useCase") PaxosUseCase paxosUseCase,
             SetMultimap<Client, WithSeq<PaxosProposalId>> promiseWithSeqRequestsByClient);
-
 
     /**
      * Batch counterpart to {@link PaxosAcceptor#accept}. For a given {@link Client} on paxos instance {@code seq}, the
@@ -140,5 +137,4 @@ public interface BatchPaxosAcceptorRpcClient {
     Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(
             @PathParam("useCase") PaxosUseCase paxosUseCase,
             @QueryParam(HttpHeaders.IF_MATCH) AcceptorCacheKey cacheKey);
-
 }

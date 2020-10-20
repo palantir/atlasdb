@@ -16,14 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.net.SocketTimeoutException;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -37,6 +29,13 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.net.SocketTimeoutException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Ensures that clients actually attempt to acquire the lock for the full duration they claim they will block for,
@@ -51,13 +50,14 @@ final class BlockEnforcingLockService {
      * the request thus avoiding {@link java.util.concurrent.CancellationException} and
      * 2. this ensures locks are not given out to phantom client.
      */
-    static final Duration MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT = Duration.ofSeconds(65).minusMillis(100);
+    static final Duration MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT =
+            Duration.ofSeconds(65).minusMillis(100);
 
     private final NamespacedConjureTimelockService namespacedConjureTimelockService;
     private final RemoteTimeoutRetryer timeoutRetryer;
 
-    private BlockEnforcingLockService(NamespacedConjureTimelockService namespacedConjureTimelockService,
-            RemoteTimeoutRetryer timeoutRetryer) {
+    private BlockEnforcingLockService(
+            NamespacedConjureTimelockService namespacedConjureTimelockService, RemoteTimeoutRetryer timeoutRetryer) {
         this.namespacedConjureTimelockService = namespacedConjureTimelockService;
         this.timeoutRetryer = timeoutRetryer;
     }
@@ -88,15 +88,14 @@ final class BlockEnforcingLockService {
     private static ConjureLockRequest clampLockRequestToDeadline(ConjureLockRequest request, Duration remainingTime) {
         return ConjureLockRequest.builder()
                 .from(request)
-                .acquireTimeoutMs(Math.min(Ints.checkedCast(remainingTime.toMillis()),
+                .acquireTimeoutMs(Math.min(
+                        Ints.checkedCast(remainingTime.toMillis()),
                         Ints.checkedCast(MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT.toMillis())))
                 .build();
     }
 
     private LockResponse performSingleLockRequest(ConjureLockRequest request) {
-        return namespacedConjureTimelockService
-                .lock(request)
-                .accept(ToLeasedLockResponse.INSTANCE);
+        return namespacedConjureTimelockService.lock(request).accept(ToLeasedLockResponse.INSTANCE);
     }
 
     private WaitForLocksResponse performSingleWaitForLocksRequest(ConjureLockRequest request) {
@@ -163,9 +162,10 @@ final class BlockEnforcingLockService {
                 }
             }
 
-            Preconditions.checkNotNull(currentResponse, "We attempted to return because a blocking duration was"
-                    + " reached. However, we had never tried applying the query. This indicates a bug in user requests"
-                    + " or AtlasDB code.");
+            Preconditions.checkNotNull(
+                    currentResponse,
+                    "We attempted to return because a blocking duration was reached. However, we had never tried"
+                            + " applying the query. This indicates a bug in user requests or AtlasDB code.");
             return currentResponse;
         }
 

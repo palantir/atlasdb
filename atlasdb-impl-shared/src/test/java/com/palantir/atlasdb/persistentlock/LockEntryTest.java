@@ -18,13 +18,6 @@ package com.palantir.atlasdb.persistentlock;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
@@ -38,6 +31,11 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+import java.util.UUID;
+import org.junit.Test;
 
 public class LockEntryTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -55,8 +53,8 @@ public class LockEntryTest {
             .reason(REASON)
             .build();
     private static final String JSON_LOCK_SERIALIZATION = "{\"lockName\":\"row\","
-                    + "\"instanceId\":\"00000001-0001-0002-0003-000000000005\","
-                    + "\"reason\":\"test\"}";
+            + "\"instanceId\":\"00000001-0001-0002-0003-000000000005\","
+            + "\"reason\":\"test\"}";
     private static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("lockEntryTestTable");
 
     @Test
@@ -81,9 +79,9 @@ public class LockEntryTest {
         byte[] expectedValue = asUtf8Bytes(serialisedLockEntry);
         byte[] value = LOCK_ENTRY.value();
 
-        String msg = String.format("Expected: %s%nActual: %s",
-                new String(expectedValue, StandardCharsets.UTF_8),
-                new String(value, StandardCharsets.UTF_8));
+        String msg = String.format(
+                "Expected: %s%nActual: %s",
+                new String(expectedValue, StandardCharsets.UTF_8), new String(value, StandardCharsets.UTF_8));
         assertArrayEquals(msg, expectedValue, value);
     }
 
@@ -93,9 +91,8 @@ public class LockEntryTest {
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, LOCK_ENTRY.cell(), LOCK_ENTRY.value()));
 
-        Iterator<RowResult<Value>> range = kvs.getRange(TEST_TABLE,
-                RangeRequest.all(),
-                AtlasDbConstants.TRANSACTION_TS + 1);
+        Iterator<RowResult<Value>> range =
+                kvs.getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.TRANSACTION_TS + 1);
         RowResult<Value> onlyEntry = Iterables.getOnlyElement(ImmutableSet.copyOf(range));
 
         LockEntry lockEntry = LockEntry.fromRowResult(onlyEntry);

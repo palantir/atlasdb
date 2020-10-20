@@ -24,14 +24,14 @@ public class CombinedLocksCondition implements AdvisoryLocksCondition {
     private final ExternalLocksCondition externalLocksCondition;
     private final TransactionLocksCondition transactionLocksCondition;
 
-    public CombinedLocksCondition(LockService lockService, Iterable<HeldLocksToken> externalLockTokens,
-            HeldLocksToken transactionLockToken) {
+    public CombinedLocksCondition(
+            LockService lockService, Iterable<HeldLocksToken> externalLockTokens, HeldLocksToken transactionLockToken) {
         this.externalLocksCondition = new ExternalLocksCondition(lockService, ImmutableSet.copyOf(externalLockTokens));
         this.transactionLocksCondition = new TransactionLocksCondition(lockService, transactionLockToken);
     }
 
-    public CombinedLocksCondition(ExternalLocksCondition externalLocksCondition,
-            TransactionLocksCondition transactionLocksCondition) {
+    public CombinedLocksCondition(
+            ExternalLocksCondition externalLocksCondition, TransactionLocksCondition transactionLocksCondition) {
         this.externalLocksCondition = externalLocksCondition;
         this.transactionLocksCondition = transactionLocksCondition;
     }

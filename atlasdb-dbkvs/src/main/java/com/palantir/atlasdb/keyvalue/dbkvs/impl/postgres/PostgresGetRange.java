@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
@@ -47,6 +40,12 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /* 1) On Postgres, there seems to be no efficient way to page at atlas row boundaries.
  *    The approach with 'DENSE_RANK() <= x' that works exceptionally well on Oracle,
@@ -125,18 +124,17 @@ public class PostgresGetRange implements DbKvsGetRange {
     private final SqlConnectionSupplier connectionPool;
     private final TableMetadataCache tableMetadataCache;
 
-    public PostgresGetRange(PostgresPrefixedTableNames prefixedTableNames,
-                            SqlConnectionSupplier connectionPool,
-                            TableMetadataCache tableMetadataCache) {
+    public PostgresGetRange(
+            PostgresPrefixedTableNames prefixedTableNames,
+            SqlConnectionSupplier connectionPool,
+            TableMetadataCache tableMetadataCache) {
         this.prefixedTableNames = prefixedTableNames;
         this.connectionPool = connectionPool;
         this.tableMetadataCache = tableMetadataCache;
     }
 
     @Override
-    public Iterator<RowResult<Value>> getRange(TableReference tableRef,
-                                               RangeRequest rangeRequest,
-                                               long timestamp) {
+    public Iterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         int maxRowsPerPage = RangeHelpers.getMaxRowsPerPage(rangeRequest);
         int maxCellsPerPage = DbKvsGetRanges.getMaxCellsPerPage(
                 tableRef, rangeRequest, maxRowsPerPage, connectionPool, tableMetadataCache);
@@ -169,8 +167,16 @@ public class PostgresGetRange implements DbKvsGetRange {
         private final String tableName;
         private final String prefixedTableName;
 
-        PageIterator(byte[] currentRowName, byte[] endExclusive, Set<byte[]> columnSelection, boolean reverse,
-                     long ts, int maxRowsPerPage, int maxCellsPerPage, String tableName, String prefixedTableName) {
+        PageIterator(
+                byte[] currentRowName,
+                byte[] endExclusive,
+                Set<byte[]> columnSelection,
+                boolean reverse,
+                long ts,
+                int maxRowsPerPage,
+                int maxCellsPerPage,
+                String tableName,
+                String prefixedTableName) {
             this.currentRowName = currentRowName;
             this.endExclusive = endExclusive;
             this.columnSelection = columnSelection;
@@ -197,8 +203,8 @@ public class PostgresGetRange implements DbKvsGetRange {
                         numSqlRows += 1;
                         AgnosticLightResultRow sqlRow = iter.next();
                         byte[] rowName = sqlRow.getBytes("row_name");
-                        colName = Preconditions.checkNotNull(sqlRow.getBytes("col_name"),
-                                "received a null col_name from the database");
+                        colName = Preconditions.checkNotNull(
+                                sqlRow.getBytes("col_name"), "received a null col_name from the database");
                         if (!Arrays.equals(currentRowName, rowName)) {
                             flushCurrentRow(results);
                             currentRowName = rowName;
@@ -217,8 +223,7 @@ public class PostgresGetRange implements DbKvsGetRange {
             }
         }
 
-        private void computeNextStartPosition(byte[] lastColName,
-                                              @Output List<RowResult<Value>> results) {
+        private void computeNextStartPosition(byte[] lastColName, @Output List<RowResult<Value>> results) {
             firstRowStartColumnInclusive = RangeRequests.getNextStartRowUnlessTerminal(reverse, lastColName);
             // We need to handle the edge case where the column was lexicographically last
             if (firstRowStartColumnInclusive == null) {
@@ -247,18 +252,24 @@ public class PostgresGetRange implements DbKvsGetRange {
 
         private ClosableIterator<AgnosticLightResultRow> selectNextPage(ConnectionSupplier conns) {
             FullQuery query = getRangeQuery();
-            AgnosticLightResultSet rs = conns.get().selectLightResultSetUnregisteredQueryWithFetchSize(
-                    query.getQuery(), maxCellsPerPage, query.getArgs());
+            AgnosticLightResultSet rs = conns.get()
+                    .selectLightResultSetUnregisteredQueryWithFetchSize(
+                            query.getQuery(), maxCellsPerPage, query.getArgs());
             return ClosableIterators.wrap(rs.iterator(), rs);
         }
 
         private FullQuery getRangeQuery() {
             String direction = reverse ? "DESC" : "ASC";
             FullQuery.Builder queryBuilder = FullQuery.builder()
-                    .append("/* GET_RANGE(").append(tableName).append(") */")
+                    .append("/* GET_RANGE(")
+                    .append(tableName)
+                    .append(") */")
                     .append("SELECT wrap.row_name, wrap.col_name, wrap.ts, wrap.val")
-                    .append("  FROM ").append(prefixedTableName).append(" wrap, (")
-                    .append("    SELECT row_name, col_name, MAX(ts) AS ts FROM ").append(prefixedTableName)
+                    .append("  FROM ")
+                    .append(prefixedTableName)
+                    .append(" wrap, (")
+                    .append("    SELECT row_name, col_name, MAX(ts) AS ts FROM ")
+                    .append(prefixedTableName)
                     .append("    WHERE ts < ? ", ts);
             RangePredicateHelper.create(reverse, DBType.POSTGRESQL, queryBuilder)
                     .startCellInclusive(currentRowName, firstRowStartColumnInclusive)
@@ -266,15 +277,21 @@ public class PostgresGetRange implements DbKvsGetRange {
                     .columnSelection(columnSelection);
             queryBuilder
                     .append("    GROUP BY row_name, col_name")
-                    .append("    ORDER BY row_name ").append(direction).append(", col_name ").append(direction)
-                    .append("    LIMIT ").append(maxCellsPerPage)
+                    .append("    ORDER BY row_name ")
+                    .append(direction)
+                    .append(", col_name ")
+                    .append(direction)
+                    .append("    LIMIT ")
+                    .append(maxCellsPerPage)
                     .append("  ) i")
                     .append("  WHERE wrap.row_name = i.row_name")
                     .append("    AND wrap.col_name = i.col_name")
                     .append("    AND wrap.ts = i.ts")
-                    .append("  ORDER BY row_name ").append(direction).append(", col_name ").append(direction);
+                    .append("  ORDER BY row_name ")
+                    .append(direction)
+                    .append(", col_name ")
+                    .append(direction);
             return queryBuilder.build();
         }
     }
-
 }

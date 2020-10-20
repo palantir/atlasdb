@@ -21,14 +21,15 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface CreateTimestampTableQueries {
     String postgresQuery();
+
     String oracleQuery();
 
     static CreateTimestampTableQueries getCreateTableQueriesForLegacyStore(String prefixedTimestampTableName) {
         return ImmutableCreateTimestampTableQueries.builder()
-                .postgresQuery(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
-                        prefixedTimestampTableName))
-                .oracleQuery(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
-                        prefixedTimestampTableName))
+                .postgresQuery(String.format(
+                        "CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )", prefixedTimestampTableName))
+                .oracleQuery(String.format(
+                        "CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )", prefixedTimestampTableName))
                 .build();
     }
 }

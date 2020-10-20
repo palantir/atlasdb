@@ -39,8 +39,7 @@ public final class PTStreams {
     /**
      * Copy an input stream to an output stream using the buffer.
      */
-    public static long copy(InputStream input, OutputStream output, byte[] buffer)
-            throws IOException {
+    public static long copy(InputStream input, OutputStream output, byte[] buffer) throws IOException {
         long count = 0;
         int bytesRead = 0;
         while (-1 != (bytesRead = input.read(buffer))) {

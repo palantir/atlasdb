@@ -15,15 +15,13 @@
  */
 package com.palantir.async.initializer;
 
-import java.util.List;
-import java.util.stream.IntStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.stream.IntStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A Callback is a potentially retryable operation on a resource R. The intended use is to specify a task to be run on
@@ -103,7 +101,7 @@ public abstract class Callback<R> {
      * Factory method for a callback that does nothing.
      */
     public static <R> Callback<R> noOp() {
-        return LambdaCallback.of(ignored -> { });
+        return LambdaCallback.of(ignored -> {});
     }
 
     /**
@@ -140,23 +138,25 @@ public abstract class Callback<R> {
 
         @Override
         public void init(T resource) {
-            IntStream.range(0, callbacks.size())
-                    .forEach(index -> {
-                        log.info("Now beginning to run callback {} of {} in a call chain",
-                                SafeArg.of("index", index + 1),
-                                SafeArg.of("totalCallbacks", callbacks.size()));
-                        try {
-                            callbacks.get(index).runWithRetry(resource);
-                            log.info("Successfully ran callback {} of {} in a call chain",
-                                    SafeArg.of("index", index + 1),
-                                    SafeArg.of("totalCallbacks", callbacks.size()));
-                        } catch (RuntimeException e) {
-                            log.info("Failed to run callback {} of {} in a call chain",
-                                    SafeArg.of("index", index + 1),
-                                    SafeArg.of("totalCallbacks", callbacks.size()),
-                                    e);
-                            throw e;
-                        }
+            IntStream.range(0, callbacks.size()).forEach(index -> {
+                log.info(
+                        "Now beginning to run callback {} of {} in a call chain",
+                        SafeArg.of("index", index + 1),
+                        SafeArg.of("totalCallbacks", callbacks.size()));
+                try {
+                    callbacks.get(index).runWithRetry(resource);
+                    log.info(
+                            "Successfully ran callback {} of {} in a call chain",
+                            SafeArg.of("index", index + 1),
+                            SafeArg.of("totalCallbacks", callbacks.size()));
+                } catch (RuntimeException e) {
+                    log.info(
+                            "Failed to run callback {} of {} in a call chain",
+                            SafeArg.of("index", index + 1),
+                            SafeArg.of("totalCallbacks", callbacks.size()),
+                            e);
+                    throw e;
+                }
             });
         }
 

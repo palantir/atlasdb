@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Streams;
 import java.net.SocketTimeoutException;
 import java.time.Clock;
 import java.time.Duration;
@@ -35,12 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.immutables.value.Value;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-
-import com.google.common.collect.Streams;
 
 @SuppressWarnings("unchecked") // Mocks with generic types
 public class BlockEnforcingLockServiceTest {
@@ -48,8 +46,8 @@ public class BlockEnforcingLockServiceTest {
     private static final Exception RUNTIME_EXCEPTION = new RuntimeException();
 
     private final Clock clock = mock(Clock.class);
-    private final BlockEnforcingLockService.RemoteTimeoutRetryer retryer
-            = new BlockEnforcingLockService.RemoteTimeoutRetryer(clock);
+    private final BlockEnforcingLockService.RemoteTimeoutRetryer retryer =
+            new BlockEnforcingLockService.RemoteTimeoutRetryer(clock);
     private final Function<Duration, Outcome> query = mock(Function.class);
 
     @Test
@@ -98,11 +96,12 @@ public class BlockEnforcingLockServiceTest {
 
         ArgumentCaptor<Duration> captor = ArgumentCaptor.forClass(Duration.class);
         verify(query, times(4)).apply(captor.capture());
-        assertThat(captor.getAllValues()).containsExactly(
-                Duration.ofMillis(10),
-                Duration.ofMillis(10 - 5),
-                Duration.ofMillis(10 - 7),
-                Duration.ofMillis(10 - 9));
+        assertThat(captor.getAllValues())
+                .containsExactly(
+                        Duration.ofMillis(10),
+                        Duration.ofMillis(10 - 5),
+                        Duration.ofMillis(10 - 7),
+                        Duration.ofMillis(10 - 9));
         verifyNoMoreInteractions(query);
     }
 
@@ -162,8 +161,7 @@ public class BlockEnforcingLockServiceTest {
     @Test
     public void propagatesRuntimeExceptionImmediately() {
         whenMakingRequestsReceive(
-                OutcomeAndInstant.nonRecoverableExceptionAfter(6),
-                OutcomeAndInstant.nonRecoverableExceptionAfter(11));
+                OutcomeAndInstant.nonRecoverableExceptionAfter(6), OutcomeAndInstant.nonRecoverableExceptionAfter(11));
 
         assertThatThrownBy(this::retryForTenMillisUntilTrue).isEqualTo(RUNTIME_EXCEPTION);
 
@@ -174,8 +172,7 @@ public class BlockEnforcingLockServiceTest {
     @Test
     public void propagatesRuntimeExceptionEvenIfDurationExpired() {
         whenMakingRequestsReceive(
-                OutcomeAndInstant.explicitTimeoutAfter(6),
-                OutcomeAndInstant.nonRecoverableExceptionAfter(25));
+                OutcomeAndInstant.explicitTimeoutAfter(6), OutcomeAndInstant.nonRecoverableExceptionAfter(25));
 
         assertThatThrownBy(this::retryForTenMillisUntilTrue).isEqualTo(RUNTIME_EXCEPTION);
 
@@ -210,16 +207,17 @@ public class BlockEnforcingLockServiceTest {
         List<OutcomeAndInstant> outcomesAndInstants = Arrays.stream(results).collect(Collectors.toList());
         AtomicInteger positionalIndex = new AtomicInteger(0);
 
-        List<Instant> clockInstants
-                = Streams.concat(Stream.of(Instant.EPOCH), outcomesAndInstants.stream().map(OutcomeAndInstant::instant))
+        List<Instant> clockInstants = Streams.concat(
+                        Stream.of(Instant.EPOCH), outcomesAndInstants.stream().map(OutcomeAndInstant::instant))
                 .collect(Collectors.toList());
 
         when(clock.instant())
                 .thenAnswer(invocation -> clockInstants.get(Math.min(clockInstants.size() - 1, positionalIndex.get())));
         when(query.apply(any())).thenAnswer(invocation -> {
             try {
-                Outcome outcome = outcomesAndInstants.get(
-                        Math.min(outcomesAndInstants.size() - 1, positionalIndex.get())).outcome();
+                Outcome outcome = outcomesAndInstants
+                        .get(Math.min(outcomesAndInstants.size() - 1, positionalIndex.get()))
+                        .outcome();
                 switch (outcome) {
                     case SUCCESS:
                     case EXPLICIT_TIMEOUT:
@@ -248,6 +246,7 @@ public class BlockEnforcingLockServiceTest {
     interface OutcomeAndInstant {
         @Value.Parameter
         Outcome outcome();
+
         @Value.Parameter
         Instant instant();
 

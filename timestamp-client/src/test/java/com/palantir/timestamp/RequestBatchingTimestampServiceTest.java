@@ -17,7 +17,6 @@
 package com.palantir.timestamp;
 
 import static java.util.stream.Collectors.toList;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
@@ -27,10 +26,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Before;
@@ -39,16 +41,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.autobatch.BatchElement;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-
 @RunWith(MockitoJUnitRunner.class)
 public final class RequestBatchingTimestampServiceTest {
     private static final int MAX_TIMESTAMPS = 10_000;
 
-    @Spy private final TimestampService unbatchedDelegate = new MaxTimestampsToGiveTimestampService();
+    @Spy
+    private final TimestampService unbatchedDelegate = new MaxTimestampsToGiveTimestampService();
 
     private CloseableTimestampService timestamp;
 
@@ -67,9 +65,7 @@ public final class RequestBatchingTimestampServiceTest {
         TimestampService delegate = mock(TimestampService.class);
         RequestBatchingTimestampService service = RequestBatchingTimestampService.create(delegate);
 
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
         assertFalse(service.isInitialized());
         assertTrue(service.isInitialized());
@@ -121,7 +117,8 @@ public final class RequestBatchingTimestampServiceTest {
     @Value.Immutable
     interface TestBatchElement extends BatchElement<Integer, TimestampRange> {}
 
-    private static class MaxTimestampsToGiveTimestampService implements TimestampService {
+    @SuppressWarnings({"ClassCanBeStatic", "FinalClass"})
+    private class MaxTimestampsToGiveTimestampService implements TimestampService {
         private final AtomicLong counter = new AtomicLong(0);
 
         @Override

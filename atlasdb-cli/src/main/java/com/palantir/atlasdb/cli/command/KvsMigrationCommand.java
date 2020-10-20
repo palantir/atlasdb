@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.Callable;
-
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
@@ -33,68 +27,81 @@ import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Callable;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(KvsMigrationCommand.class));
     private static final int TRANSACTION_READ_TIMEOUT_MILLIS_OVERRIDE = 8 * 60 * 60 * 1000;
 
-    @Option(name = {"-fc", "--fromConfig"},
+    @Option(
+            name = {"-fc", "--fromConfig"},
             title = "CONFIG PATH",
             description = "path to yaml configuration file for the KVS you're migrating from",
             required = true)
     private File fromConfigFile;
 
-    @Option(name = {"-mc", "--migrateConfig"},
+    @Option(
+            name = {"-mc", "--migrateConfig"},
             title = "CONFIG PATH",
             description = "path to yaml configuration file for the KVS you're migrating to",
             required = false)
     private File toConfigFile;
 
-    @Option(name = {"--config-root"},
+    @Option(
+            name = {"--config-root"},
             title = "INSTALL CONFIG ROOT",
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
-    @Option(name = {"-t", "--threads"},
+    @Option(
+            name = {"-t", "--threads"},
             title = "THREADS",
             description = "number of threads to use for migration",
             required = false,
             arity = 1)
     private int threads = 16;
 
-    @Option(name = {"-b", "--batchSize"},
+    @Option(
+            name = {"-b", "--batchSize"},
             title = "BATCH SIZE",
             description = "batch size of rows to read",
             required = false,
             arity = 1)
     private int batchSize = 100;
 
-    @Option(name = {"-s", "--setup"},
+    @Option(
+            name = {"-s", "--setup"},
             description = "Setup migration by dropping and creating tables.")
     private boolean setup = false;
 
-    @Option(name = {"-m", "--migrate"},
+    @Option(
+            name = {"-m", "--migrate"},
             description = "Start or continue migration.")
     private boolean migrate = false;
 
-    @Option(name = {"-v", "--validate"},
+    @Option(
+            name = {"-v", "--validate"},
             description = "Validate migration.")
     private boolean validate = false;
 
-    @Option(name = {"--offline"},
+    @Option(
+            name = {"--offline"},
             title = "OFFLINE",
             type = OptionType.GLOBAL,
             description = "run this cli offline")
     private boolean offline = false;
 
     // TODO(bgrabham): Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
-    @Option(name = {"--inline-config"},
+    @Option(
+            name = {"--inline-config"},
             title = "INLINE INSTALL CONFIG",
             type = OptionType.GLOBAL,
             description = "inline configuration file for atlasdb")
@@ -129,7 +136,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
             migrator.cleanup();
         }
         if (validate) {
-            KeyValueServiceValidator validator = new KeyValueServiceValidator(fromServices.getTransactionManager(),
+            KeyValueServiceValidator validator = new KeyValueServiceValidator(
+                    fromServices.getTransactionManager(),
                     toServices.getTransactionManager(),
                     fromServices.getKeyValueService(),
                     threads,
@@ -152,8 +160,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
     }
 
     public AtlasDbServices connectFromServices() throws IOException {
-        AtlasDbConfig fromConfig = overrideTransactionTimeoutMillis(
-                AtlasDbConfigs.load(fromConfigFile, configRoot, AtlasDbConfig.class));
+        AtlasDbConfig fromConfig =
+                overrideTransactionTimeoutMillis(AtlasDbConfigs.load(fromConfigFile, configRoot, AtlasDbConfig.class));
         ServicesConfigModule scm = ServicesConfigModule.create(
                 makeOfflineIfNecessary(fromConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
@@ -164,13 +172,14 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 toConfigFile != null
                         ? AtlasDbConfigs.load(toConfigFile, configRoot, AtlasDbConfig.class)
                         : AtlasDbConfigs.loadFromString(inlineConfig, null, AtlasDbConfig.class));
-        ServicesConfigModule scm = ServicesConfigModule.create(
-                makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withSweepDisabled());
+        ServicesConfigModule scm =
+                ServicesConfigModule.create(makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     private AtlasDbConfig overrideTransactionTimeoutMillis(AtlasDbConfig config) {
-        return ImmutableAtlasDbConfig.builder().from(config)
+        return ImmutableAtlasDbConfig.builder()
+                .from(config)
                 .transactionReadTimeoutMillis(TRANSACTION_READ_TIMEOUT_MILLIS_OVERRIDE)
                 .build();
     }

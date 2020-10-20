@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
+import com.google.common.collect.Maps;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CounterColumn;
@@ -37,8 +37,6 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.SuperColumn;
 
-import com.google.common.collect.Maps;
-
 public final class ThriftObjectSizeUtils {
 
     private static final long ONE_BYTE = 1;
@@ -49,10 +47,12 @@ public final class ThriftObjectSizeUtils {
 
     public static long getApproximateSizeOfMutationMap(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
         long approxBytesForKeys = getCollectionSize(batchMutateMap.keySet(), ThriftObjectSizeUtils::getByteBufferSize);
-        long approxBytesForValues = getCollectionSize(batchMutateMap.values(),
+        long approxBytesForValues = getCollectionSize(
+                batchMutateMap.values(),
                 currentMap -> getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
-                        + getCollectionSize(currentMap.values(),
-                            mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
+                        + getCollectionSize(
+                                currentMap.values(),
+                                mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
         return approxBytesForKeys + approxBytesForValues;
     }
 
@@ -76,15 +76,15 @@ public final class ThriftObjectSizeUtils {
     }
 
     public static long getApproximateSizeOfColsByKey(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
-        return getCollectionSize(result.entrySet(),
+        return getCollectionSize(
+                result.entrySet(),
                 rowResult -> ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
-                        + getCollectionSize(rowResult.getValue(),
-                        ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
+                        + getCollectionSize(rowResult.getValue(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
     }
 
     public static long getApproximateSizeOfColListsByKey(Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result) {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> flattenedColumnListMap = Maps.transformValues(result,
-                lists -> lists.stream().flatMap(List::stream).collect(Collectors.toList()));
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> flattenedColumnListMap = Maps.transformValues(
+                result, lists -> lists.stream().flatMap(List::stream).collect(Collectors.toList()));
         return getApproximateSizeOfColsByKey(flattenedColumnListMap);
     }
 
@@ -120,8 +120,8 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
 
-        return getColumnOrSuperColumnSize(mutation.getColumn_or_supercolumn()) + getDeletionSize(
-                mutation.getDeletion());
+        return getColumnOrSuperColumnSize(mutation.getColumn_or_supercolumn())
+                + getDeletionSize(mutation.getDeletion());
     }
 
     public static long getCqlResultSize(CqlResult cqlResult) {
@@ -230,7 +230,8 @@ public final class ThriftObjectSizeUtils {
     }
 
     private static long getByteBufferStringMapSize(Map<ByteBuffer, String> nameTypes) {
-        return getCollectionSize(nameTypes.entrySet(),
+        return getCollectionSize(
+                nameTypes.entrySet(),
                 entry -> ThriftObjectSizeUtils.getByteBufferSize(entry.getKey())
                         + ThriftObjectSizeUtils.getStringSize(entry.getValue()));
     }

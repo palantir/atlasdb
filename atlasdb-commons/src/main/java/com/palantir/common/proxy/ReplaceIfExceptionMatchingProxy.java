@@ -16,6 +16,9 @@
 
 package com.palantir.common.proxy;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
+import com.google.common.reflect.AbstractInvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -23,13 +26,8 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
-import com.google.common.reflect.AbstractInvocationHandler;
 
 public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ReplaceIfExceptionMatchingProxy.class);
@@ -92,11 +90,10 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
 
     @SuppressWarnings("unchecked")
     @VisibleForTesting
-    static <T> T newProxyInstance(
-            Class<T> interfaceClass,
-            Supplier<T> delegate,
-            Predicate<Throwable> shouldReplace) {
-        return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-                new Class<?>[] {interfaceClass}, new ReplaceIfExceptionMatchingProxy<>(delegate, shouldReplace));
+    static <T> T newProxyInstance(Class<T> interfaceClass, Supplier<T> delegate, Predicate<Throwable> shouldReplace) {
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(),
+                new Class<?>[] {interfaceClass},
+                new ReplaceIfExceptionMatchingProxy<>(delegate, shouldReplace));
     }
 }

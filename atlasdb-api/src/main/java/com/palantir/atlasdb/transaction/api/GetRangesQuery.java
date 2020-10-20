@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.BatchingVisitable;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface GetRangesQuery<RESPONSE_TYPE> {
     TableReference tableRef();
+
     Iterable<RangeRequest> rangeRequests();
 
     /**

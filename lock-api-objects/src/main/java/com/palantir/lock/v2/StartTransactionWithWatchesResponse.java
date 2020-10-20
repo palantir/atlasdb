@@ -16,11 +16,10 @@
 
 package com.palantir.lock.v2;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
@@ -33,8 +32,8 @@ public interface StartTransactionWithWatchesResponse {
     @Value.Parameter
     LockWatchStateUpdate watchState();
 
-    static StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res,
-            LockWatchStateUpdate watchStateUpdate) {
+    static StartTransactionWithWatchesResponse of(
+            StartIdentifiedAtlasDbTransactionResponse res, LockWatchStateUpdate watchStateUpdate) {
         return ImmutableStartTransactionWithWatchesResponse.of(res, watchStateUpdate);
     }
 }

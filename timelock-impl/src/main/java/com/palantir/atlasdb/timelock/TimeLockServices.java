@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import org.immutables.value.Value;
-
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimeLockServices {
@@ -39,10 +38,12 @@ public interface TimeLockServices {
     }
 
     TimestampService getTimestampService();
+
     LockService getLockService();
     // The Jersey endpoints
     AsyncTimelockResource getTimelockResource();
     // The RPC-independent leadership-enabled implementation of the timelock service
     AsyncTimelockService getTimelockService();
+
     TimestampManagementService getTimestampManagementService();
 }

@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -29,6 +24,10 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.paxos.Client;
+import java.io.Closeable;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 public final class AutobatchingLeadershipObserverFactory implements Closeable {
 
@@ -41,11 +40,11 @@ public final class AutobatchingLeadershipObserverFactory implements Closeable {
 
     public static AutobatchingLeadershipObserverFactory create(
             Consumer<SetMultimap<LeadershipEvent, Client>> consumer) {
-        DisruptorAutobatcher<Map.Entry<Client, LeadershipEvent>, Void> leadershipEventProcessor = Autobatchers
-                .<Map.Entry<Client, LeadershipEvent>, Void>independent(leadershipEvents ->
-                        processEvents(consumer, leadershipEvents))
-                .safeLoggablePurpose("leadership-observer")
-                .build();
+        DisruptorAutobatcher<Map.Entry<Client, LeadershipEvent>, Void> leadershipEventProcessor =
+                Autobatchers.<Map.Entry<Client, LeadershipEvent>, Void>independent(
+                                leadershipEvents -> processEvents(consumer, leadershipEvents))
+                        .safeLoggablePurpose("leadership-observer")
+                        .build();
 
         return new AutobatchingLeadershipObserverFactory(leadershipEventProcessor);
     }
@@ -58,17 +57,15 @@ public final class AutobatchingLeadershipObserverFactory implements Closeable {
             Consumer<SetMultimap<LeadershipEvent, Client>> consumer,
             List<BatchElement<Map.Entry<Client, LeadershipEvent>, Void>> events) {
 
-        SetMultimap<LeadershipEvent, Client> leadershipEventsToClients = KeyedStream
-                .ofEntries(events.stream().map(BatchElement::argument))
+        SetMultimap<LeadershipEvent, Client> leadershipEventsToClients = KeyedStream.ofEntries(
+                        events.stream().map(BatchElement::argument))
                 .mapEntries((client, leadershipEvent) -> Maps.immutableEntry(leadershipEvent, client))
                 .collectToSetMultimap();
 
         consumer.accept(leadershipEventsToClients);
 
         // complete requests to unblock the autobatcher
-        events.stream()
-                .map(BatchElement::result)
-                .forEach(future -> future.set(null));
+        events.stream().map(BatchElement::result).forEach(future -> future.set(null));
     }
 
     @Override

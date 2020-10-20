@@ -19,16 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -47,24 +39,31 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.TimeDuration;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AdvisoryLocksConditionTest {
 
-    private static final SortedLockCollection<LockDescriptor> LOCK_DESCRIPTORS = LockCollections.of(
-            ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
-            .put(AtlasRowLockDescriptor.of(
-                    TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                    TransactionConstants.getValueForTimestamp(0L)), LockMode.WRITE)
-            .build());
-    private static final LockRequest LOCK_REQUEST = LockRequest.builder(LOCK_DESCRIPTORS).build();
+    private static final SortedLockCollection<LockDescriptor> LOCK_DESCRIPTORS =
+            LockCollections.of(ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                    .put(
+                            AtlasRowLockDescriptor.of(
+                                    TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                                    TransactionConstants.getValueForTimestamp(0L)),
+                            LockMode.WRITE)
+                    .build());
+    private static final LockRequest LOCK_REQUEST =
+            LockRequest.builder(LOCK_DESCRIPTORS).build();
     private static final Supplier<LockRequest> LOCK_REQUEST_SUPPLIER = () -> LOCK_REQUEST;
 
     private static final HeldLocksToken TRANSACTION_LOCK_TOKEN = getHeldLocksToken(BigInteger.ZERO);
-    private static final LockRefreshToken TRANSACTION_LOCK_REFRESH_TOKEN =
-            TRANSACTION_LOCK_TOKEN.getLockRefreshToken();
+    private static final LockRefreshToken TRANSACTION_LOCK_REFRESH_TOKEN = TRANSACTION_LOCK_TOKEN.getLockRefreshToken();
     private static final HeldLocksToken EXTERNAL_LOCK_TOKEN = getHeldLocksToken(BigInteger.ONE);
-    private static final LockRefreshToken EXTERNAL_LOCK_REFRESH_TOKEN =
-            EXTERNAL_LOCK_TOKEN.getLockRefreshToken();
+    private static final LockRefreshToken EXTERNAL_LOCK_REFRESH_TOKEN = EXTERNAL_LOCK_TOKEN.getLockRefreshToken();
 
     private LockService lockService;
     private TransactionLocksCondition transactionLocksCondition;
@@ -76,8 +75,8 @@ public class AdvisoryLocksConditionTest {
         lockService = mock(LockService.class);
         transactionLocksCondition = new TransactionLocksCondition(lockService, TRANSACTION_LOCK_TOKEN);
         externalLocksCondition = new ExternalLocksCondition(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN));
-        combinedLocksCondition = new CombinedLocksCondition(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN),
-                TRANSACTION_LOCK_TOKEN);
+        combinedLocksCondition =
+                new CombinedLocksCondition(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN), TRANSACTION_LOCK_TOKEN);
     }
 
     @Test
@@ -111,7 +110,7 @@ public class AdvisoryLocksConditionTest {
     @Test
     public void externalLocksCondition_cleanUpDoesNotReleaseLock() {
         externalLocksCondition.cleanup();
-        verifyZeroInteractions(lockService);
+        verifyNoMoreInteractions(lockService);
     }
 
     @Test
@@ -181,7 +180,7 @@ public class AdvisoryLocksConditionTest {
                 AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(), LOCK_REQUEST_SUPPLIER);
         when(lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
                 .thenReturn(null);
-        assertThatThrownBy(() -> conditionSupplier.get())
+        assertThatThrownBy(conditionSupplier::get)
                 .isInstanceOf(LockAcquisitionException.class)
                 .hasMessageContaining("Failed to lock using the provided lock request");
     }

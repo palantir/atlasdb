@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.io.InputStream;
-import java.util.Map;
-
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.InputStream;
+import java.util.Map;
 
 /**
  * Interface for storing streams specifically for atlasdb.
@@ -46,13 +45,15 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
     long getByHashOrStoreStreamAndMarkAsUsed(Transaction tx, Sha256Hash hash, InputStream stream, byte[] reference);
 
     void markStreamAsUsed(Transaction tx, long streamId, byte[] reference) throws StreamCleanedException;
+
     void markStreamsAsUsed(Transaction tx, Map<Long, byte[]> streamIdsToReference) throws StreamCleanedException;
 
     /**
      * This removes the index references from streamId -&gt; reference and deletes streams with no remaining references.
      */
     void unmarkStreamAsUsed(Transaction tx, long streamId, byte[] reference);
-    void unmarkStreamsAsUsed(Transaction tx, final Map<Long, byte[]> streamIdsToReference);
+
+    void unmarkStreamsAsUsed(Transaction tx, Map<Long, byte[]> streamIdsToReference);
 
     /**
      * This method will store a stream, but it will not have any references.  This means that if cleanup

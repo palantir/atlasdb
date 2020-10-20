@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.versions;
 
+import com.google.common.base.Suppliers;
 import java.io.PrintStream;
 import java.util.Optional;
 import java.util.function.Supplier;
-
-import com.google.common.base.Suppliers;
 
 public final class AtlasDbVersion {
     public static final String REPORT_VERSION_PROPERTY = "atlasdb.report.version";
@@ -39,9 +38,8 @@ public final class AtlasDbVersion {
     }
 
     public static String ensureVersionReported(PrintStream writer) {
-        boolean shouldReportVersion = Boolean.parseBoolean(System.getProperty(
-                REPORT_VERSION_PROPERTY,
-                REPORT_VERSION_DEFAULT));
+        boolean shouldReportVersion =
+                Boolean.parseBoolean(System.getProperty(REPORT_VERSION_PROPERTY, REPORT_VERSION_DEFAULT));
         if (!versionPrinted && shouldReportVersion) {
             writer.println("AtlasDB Version: " + version.get());
             versionPrinted = true;
@@ -54,4 +52,3 @@ public final class AtlasDbVersion {
                 .orElse(VERSION_UNKNOWN_STRING);
     }
 }
-

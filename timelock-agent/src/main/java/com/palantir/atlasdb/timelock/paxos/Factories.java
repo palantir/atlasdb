@@ -16,28 +16,27 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.List;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosLatestRoundVerifier;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
+import java.io.Closeable;
+import java.util.List;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 public interface Factories {
     interface LeaderPingerFactoryContainer {
-        Factory<LeaderPinger> get();
+        NetworkClientFactories.Factory<LeaderPinger> get();
+
         List<Closeable> closeables();
 
         interface Builder {
             Builder from(Dependencies.LeaderPinger dependencies);
+
             LeaderPingerFactoryContainer build();
         }
     }
@@ -63,7 +62,7 @@ public interface Factories {
         }
 
         @Override
-        public Factory<LeaderPinger> get() {
+        public NetworkClientFactories.Factory<LeaderPinger> get() {
             return pingableLeaderFactory()::leaderPingerFor;
         }
 
@@ -90,7 +89,7 @@ public interface Factories {
         }
 
         @Override
-        public Factory<LeaderPinger> get() {
+        public NetworkClientFactories.Factory<LeaderPinger> get() {
             return _client -> pinger();
         }
 

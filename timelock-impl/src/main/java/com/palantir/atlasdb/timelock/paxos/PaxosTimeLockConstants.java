@@ -40,6 +40,5 @@ public final class PaxosTimeLockConstants {
     @Deprecated
     public static final boolean CANCEL_REMAINING_CALLS = PaxosConstants.CANCEL_REMAINING_CALLS;
 
-    private PaxosTimeLockConstants() {
-    }
+    private PaxosTimeLockConstants() {}
 }

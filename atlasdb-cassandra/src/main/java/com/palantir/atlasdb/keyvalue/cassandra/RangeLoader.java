@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.function.Supplier;
-
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.SlicePredicate;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -34,6 +29,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import java.util.function.Supplier;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.SlicePredicate;
 
 public class RangeLoader {
     private final CassandraClientPool clientPool;
@@ -41,7 +39,10 @@ public class RangeLoader {
     private final MetricsManager metricsManager;
     private ConsistencyLevel consistencyLevel;
 
-    public RangeLoader(CassandraClientPool clientPool, TracingQueryRunner queryRunner, MetricsManager metricsManager,
+    public RangeLoader(
+            CassandraClientPool clientPool,
+            TracingQueryRunner queryRunner,
+            MetricsManager metricsManager,
             ConsistencyLevel consistencyLevel) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
@@ -50,8 +51,8 @@ public class RangeLoader {
     }
 
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long ts) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, ts, consistencyLevel,
-                () -> ValueExtractor.create(metricsManager));
+        return getRangeWithPageCreator(
+                tableRef, rangeRequest, ts, consistencyLevel, () -> ValueExtractor.create(metricsManager));
     }
 
     public void setConsistencyLevel(ConsistencyLevel consistencyLevel) {
@@ -94,13 +95,7 @@ public class RangeLoader {
         }
 
         CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
-                rowGetter,
-                slicePredicate,
-                columnGetter,
-                rangeRequest,
-                resultsExtractor,
-                startTs
-        );
+                rowGetter, slicePredicate, columnGetter, rangeRequest, resultsExtractor, startTs);
 
         return ClosableIterators.wrap(rowResults.iterator());
     }

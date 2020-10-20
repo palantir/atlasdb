@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.performance.schema;
 
-import java.io.File;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -25,6 +23,7 @@ import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.io.File;
 
 public final class StreamTestSchema implements AtlasSchema {
     private static final Schema STREAM_TEST_SCHEMA = generateSchema();
@@ -34,7 +33,8 @@ public final class StreamTestSchema implements AtlasSchema {
     }
 
     private static Schema generateSchema() {
-        Schema schema = new Schema("StreamTest",
+        Schema schema = new Schema(
+                "StreamTest",
                 StreamTestSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
@@ -65,7 +65,7 @@ public final class StreamTestSchema implements AtlasSchema {
         return STREAM_TEST_SCHEMA;
     }
 
-    public static void main(String[]  args) throws Exception {
+    public static void main(String[] args) throws Exception {
         STREAM_TEST_SCHEMA.renderTables(new File("src/main/java"));
     }
 

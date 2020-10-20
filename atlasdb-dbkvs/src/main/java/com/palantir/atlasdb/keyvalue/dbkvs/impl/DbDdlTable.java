@@ -17,8 +17,12 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 public interface DbDdlTable {
     void create(byte[] tableMetadata);
+
     void drop();
+
     void truncate();
+
     void checkDatabaseVersion();
+
     void compactInternally(boolean inSafeHours);
 }

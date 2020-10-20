@@ -17,20 +17,18 @@ package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
 
 public class ThriftQueryWeighersTest {
 
@@ -80,8 +78,9 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void executeCql3QueryWeigherReturnsOneRow() {
-        long actualNumRows = ThriftQueryWeighers.EXECUTE_CQL3_QUERY.weighSuccess(new CqlResult(),
-                TIME_TAKEN).numDistinctRows();
+        long actualNumRows = ThriftQueryWeighers.EXECUTE_CQL3_QUERY
+                .weighSuccess(new CqlResult(), TIME_TAKEN)
+                .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(1);
     }
@@ -94,13 +93,14 @@ public class ThriftQueryWeighersTest {
     @Test
     public void batchMutateWeigherReturnsCorrectNumRows() {
         Map<ByteBuffer, Map<String, List<Mutation>>> mutations = ImmutableMap.of(
-                BYTES1, ImmutableMap.of(
-                        "table1", ImmutableList.of(MUTATION, MUTATION),
-                        "table2", ImmutableList.of(MUTATION)),
-                BYTES2, ImmutableMap.of(
-                        "table1", ImmutableList.of(MUTATION)));
+                BYTES1,
+                        ImmutableMap.of(
+                                "table1", ImmutableList.of(MUTATION, MUTATION),
+                                "table2", ImmutableList.of(MUTATION)),
+                BYTES2, ImmutableMap.of("table1", ImmutableList.of(MUTATION)));
 
-        long actualNumRows = ThriftQueryWeighers.batchMutate(mutations).weighSuccess(null, TIME_TAKEN)
+        long actualNumRows = ThriftQueryWeighers.batchMutate(mutations)
+                .weighSuccess(null, TIME_TAKEN)
                 .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(2);
@@ -108,8 +108,8 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void batchMutateWeigherReturnsSameAsSuccessForFailure() {
-        Map<ByteBuffer, Map<String, List<Mutation>>> mutations = ImmutableMap.of(
-                BYTES1, ImmutableMap.of("foo", ImmutableList.of(MUTATION, MUTATION)));
+        Map<ByteBuffer, Map<String, List<Mutation>>> mutations =
+                ImmutableMap.of(BYTES1, ImmutableMap.of("foo", ImmutableList.of(MUTATION, MUTATION)));
 
         QueryWeigher<Void> weigher = ThriftQueryWeighers.batchMutate(mutations);
 
@@ -126,9 +126,7 @@ public class ThriftQueryWeighersTest {
                 BYTES1, ImmutableList.of(COLUMN_OR_SUPER, COLUMN_OR_SUPER),
                 BYTES2, ImmutableList.of(COLUMN_OR_SUPER));
 
-        long actualNumRows = mapQueryWeigher
-                .weighSuccess(result, TIME_TAKEN)
-                .numDistinctRows();
+        long actualNumRows = mapQueryWeigher.weighSuccess(result, TIME_TAKEN).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(2);
     }
@@ -141,15 +139,14 @@ public class ThriftQueryWeighersTest {
     private void assertThatRangeSlicesWeigherReturnsCorrectNumRows(QueryWeigher<List<KeySlice>> weigher) {
         List<KeySlice> result = ImmutableList.of(KEY_SLICE, KEY_SLICE, KEY_SLICE);
 
-        long actualNumRows = weigher
-                .weighSuccess(result, TIME_TAKEN)
-                .numDistinctRows();
+        long actualNumRows = weigher.weighSuccess(result, TIME_TAKEN).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(3);
     }
 
     private void assertThatGetWeighSuccessReturnsOneRow(QueryWeigher<ColumnOrSuperColumn> weighQuery) {
-        long actualNumRows = weighQuery.weighSuccess(COLUMN_OR_SUPER, TIME_TAKEN).numDistinctRows();
+        long actualNumRows =
+                weighQuery.weighSuccess(COLUMN_OR_SUPER, TIME_TAKEN).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(1);
     }

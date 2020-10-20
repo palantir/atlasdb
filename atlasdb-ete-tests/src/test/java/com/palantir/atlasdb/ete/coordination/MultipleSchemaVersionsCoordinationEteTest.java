@@ -18,17 +18,16 @@ package com.palantir.atlasdb.ete.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.EteSetup;
+import org.junit.Test;
 
 public class MultipleSchemaVersionsCoordinationEteTest {
     private static final int VERSION_ONE = 1;
     private static final int NEW_VERSION = 5888888;
 
-    private final CoordinationResource coordinationResource
-            = EteSetup.createClientToSingleNode(CoordinationResource.class);
+    private final CoordinationResource coordinationResource =
+            EteSetup.createClientToSingleNode(CoordinationResource.class);
 
     @Test
     public void transactionFailsUnderUnknownSchemaVersion() {

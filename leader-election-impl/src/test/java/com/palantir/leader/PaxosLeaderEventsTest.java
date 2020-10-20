@@ -18,18 +18,6 @@ package com.palantir.leader;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -38,6 +26,16 @@ import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PaxosLeaderEventsTest {
@@ -49,7 +47,8 @@ public class PaxosLeaderEventsTest {
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    @Mock private PingableLeader pingableLeader;
+    @Mock
+    private PingableLeader pingableLeader;
 
     @After
     public void after() {
@@ -78,23 +77,23 @@ public class PaxosLeaderEventsTest {
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofMillis(100));
-        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
-                .isEqualTo(LeaderPingResults.pingTimedOut());
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isEqualTo(LeaderPingResults.pingTimedOut());
     }
 
     @Test
     public void recordsLeaderPingReturnedFalse() {
-        when(pingableLeader.pingV2()).thenReturn(PingResult.builder().isLeader(false).build());
+        when(pingableLeader.pingV2())
+                .thenReturn(PingResult.builder().isLeader(false).build());
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
-        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
-                .isEqualTo(LeaderPingResults.pingReturnedFalse());
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isEqualTo(LeaderPingResults.pingReturnedFalse());
     }
 
     @Test
     public void doesNotRecordLeaderPingSuccess() {
-        when(pingableLeader.pingV2()).thenReturn(PingResult.builder().isLeader(true).build());
+        when(pingableLeader.pingV2())
+                .thenReturn(PingResult.builder().isLeader(true).build());
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
@@ -105,8 +104,11 @@ public class PaxosLeaderEventsTest {
     @Test
     public void recordsLeaderPingReturnedTrueWithOlderVersion() {
         OrderableSlsVersion oldTimeLockVersion = OrderableSlsVersion.valueOf("1.1.2");
-        when(pingableLeader.pingV2()).thenReturn(
-                PingResult.builder().isLeader(true).timeLockVersion(oldTimeLockVersion).build());
+        when(pingableLeader.pingV2())
+                .thenReturn(PingResult.builder()
+                        .isLeader(true)
+                        .timeLockVersion(oldTimeLockVersion)
+                        .build());
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("2.1.1"));
@@ -116,8 +118,11 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void leaderPingReturnsTrueWithLeaderOnNewerVersion() {
-        when(pingableLeader.pingV2()).thenReturn(
-                PingResult.builder().isLeader(true).timeLockVersion(OrderableSlsVersion.valueOf("2.1.1")).build());
+        when(pingableLeader.pingV2())
+                .thenReturn(PingResult.builder()
+                        .isLeader(true)
+                        .timeLockVersion(OrderableSlsVersion.valueOf("2.1.1"))
+                        .build());
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));

@@ -16,18 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlRow;
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.cassandra.thrift.NotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -36,6 +24,16 @@ import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlRow;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class HostnamesByIpSupplier implements Supplier<Map<String, String>> {
     private static final Logger logger = LoggerFactory.getLogger(HostnamesByIpSupplier.class);
@@ -66,7 +64,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
             KsDef systemPalantir;
             try {
                 systemPalantir = client.describe_keyspace(SYSTEM_PALANTIR_KEYSPACE);
-            }  catch (NotFoundException e) {
+            } catch (NotFoundException e) {
                 logger.debug("Did not find keyspace with hostnames by ip, moving on without them");
                 return ImmutableMap.of();
             }
@@ -94,10 +92,9 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
     }
 
     private static String getNamedColumnValue(CqlRow row, String columnName) {
-        return Iterables.getOnlyElement(
-                row.getColumns().stream()
-                        .filter(col -> PtBytes.toString(col.getName()).equals(columnName))
-                        .map(col -> PtBytes.toString(col.getValue()))
-                        .collect(Collectors.toList()));
+        return Iterables.getOnlyElement(row.getColumns().stream()
+                .filter(col -> PtBytes.toString(col.getName()).equals(columnName))
+                .map(col -> PtBytes.toString(col.getValue()))
+                .collect(Collectors.toList()));
     }
 }

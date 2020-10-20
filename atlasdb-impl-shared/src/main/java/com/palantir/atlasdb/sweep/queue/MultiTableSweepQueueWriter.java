@@ -15,20 +15,19 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
 public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackInitializable<TransactionManager> {
-    MultiTableSweepQueueWriter NO_OP = ignored -> { };
+    MultiTableSweepQueueWriter NO_OP = ignored -> {};
 
     default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
         enqueue(toWriteInfos(writes, timestamp));

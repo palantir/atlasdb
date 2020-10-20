@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -35,13 +31,17 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-public class TimeLockManagementResource implements UndertowTimeLockManagementService {
+public final class TimeLockManagementResource implements UndertowTimeLockManagementService {
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
-    private TimeLockManagementResource(Set<PersistentNamespaceLoader> namespaceLoaders,
+    private TimeLockManagementResource(
+            Set<PersistentNamespaceLoader> namespaceLoaders,
             TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter) {
         this.namespaceLoaders = namespaceLoaders;
@@ -88,8 +88,7 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
     public ListenableFuture<Void> achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
         return handleExceptions(() -> {
             for (String namespace : namespaces) {
-                NamespacedConsensus
-                        .achieveConsensusForNamespace(timelockNamespaces, namespace);
+                NamespacedConsensus.achieveConsensusForNamespace(timelockNamespaces, namespace);
             }
             return Futures.immediateFuture(null);
         });
@@ -107,12 +106,10 @@ public class TimeLockManagementResource implements UndertowTimeLockManagementSer
                     PersistentNamespaceLoader sqliteLoader = SqliteNamespaceLoader.create(sqliteDataSource);
                     return ImmutableSet.of(diskLoader, sqliteLoader);
                 })
-                .dbBound(seriesProvider -> ImmutableSet.of(
-                        () -> seriesProvider.getKnownSeries()
-                                .stream()
-                                .map(TimestampSeries::series)
-                                .map(Client::of)
-                                .collect(Collectors.toSet())));
+                .dbBound(seriesProvider -> ImmutableSet.of(() -> seriesProvider.getKnownSeries().stream()
+                        .map(TimestampSeries::series)
+                        .map(Client::of)
+                        .collect(Collectors.toSet())));
     }
 
     public static final class JerseyAdapter implements TimeLockManagementService {

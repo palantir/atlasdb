@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,8 +45,13 @@ public class ExperimentRunningProxyTest {
     private final Clock clock = mock(Clock.class);
     private final AtomicLong errorCounter = new AtomicLong();
 
-    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentSupplier,
-            fallbackIntSupplier, useExperimental, enableFallback, clock, errorCounter::incrementAndGet));
+    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(
+            experimentSupplier,
+            fallbackIntSupplier,
+            useExperimental,
+            enableFallback,
+            clock,
+            errorCounter::incrementAndGet));
 
     @Before
     public void setup() {
@@ -142,9 +146,8 @@ public class ExperimentRunningProxyTest {
     }
 
     private static IntSupplier intSupplierForProxy(ExperimentRunningProxy<IntSupplier> proxy) {
-        return (IntSupplier) Proxy.newProxyInstance(IntSupplier.class.getClassLoader(),
-                new Class[] { IntSupplier.class },
-                proxy);
+        return (IntSupplier)
+                Proxy.newProxyInstance(IntSupplier.class.getClassLoader(), new Class[] {IntSupplier.class}, proxy);
     }
 
     private void returnValueOnExperiment() {

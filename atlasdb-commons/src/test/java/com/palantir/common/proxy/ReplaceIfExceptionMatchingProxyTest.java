@@ -25,7 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +33,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ReplaceIfExceptionMatchingProxyTest {
-    @Mock private TestInterface delegate;
-    @Mock private Supplier<TestInterface> supplier;
+    @Mock
+    private TestInterface delegate;
+
+    @Mock
+    private Supplier<TestInterface> supplier;
 
     interface TestInterface {
         void doSomething();
@@ -48,8 +50,8 @@ public class ReplaceIfExceptionMatchingProxyTest {
 
     @Test
     public void lazilyInitialized() {
-        TestInterface iface = ReplaceIfExceptionMatchingProxy.newProxyInstance(
-                TestInterface.class, supplier, _thrown -> true);
+        TestInterface iface =
+                ReplaceIfExceptionMatchingProxy.newProxyInstance(TestInterface.class, supplier, _thrown -> true);
         verify(supplier, never()).get();
         iface.doSomething();
         verify(supplier, times(1)).get();
@@ -71,8 +73,8 @@ public class ReplaceIfExceptionMatchingProxyTest {
 
     @Test
     public void testEqualsHashCodeToStringNotDelegated() {
-        TestInterface iface = ReplaceIfExceptionMatchingProxy.newProxyInstance(
-                TestInterface.class, supplier, _thrown -> true);
+        TestInterface iface =
+                ReplaceIfExceptionMatchingProxy.newProxyInstance(TestInterface.class, supplier, _thrown -> true);
         assertThat(iface.toString()).isNotEqualTo(delegate.toString());
         assertThat(iface).isEqualTo(iface);
         assertThat(iface).isNotEqualTo(delegate);

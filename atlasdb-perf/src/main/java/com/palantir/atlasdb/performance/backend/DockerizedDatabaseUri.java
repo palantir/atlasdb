@@ -32,8 +32,9 @@ public class DockerizedDatabaseUri {
     public static DockerizedDatabaseUri fromUriString(String uri) throws IllegalArgumentException {
         String[] parts = uri.trim().split(DELIMITER);
         String[] addrParts = parts[1].split(":");
-        return new DockerizedDatabaseUri(KeyValueServiceInstrumentation.forDatabase(parts[0]),
-                    InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
+        return new DockerizedDatabaseUri(
+                KeyValueServiceInstrumentation.forDatabase(parts[0]),
+                InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
     }
 
     public KeyValueServiceInstrumentation getKeyValueServiceInstrumentation() {
@@ -44,8 +45,8 @@ public class DockerizedDatabaseUri {
         return addr;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return type.getClassName() + DELIMITER + addr.toString();
     }
-
 }

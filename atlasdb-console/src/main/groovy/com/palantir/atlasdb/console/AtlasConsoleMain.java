@@ -15,12 +15,17 @@
  */
 package com.palantir.atlasdb.console;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.console.module.AtlasCoreModule;
+import groovy.lang.Binding;
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -30,14 +35,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.codehaus.groovy.tools.shell.Main;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.console.module.AtlasCoreModule;
-
-import groovy.lang.Binding;
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
 
 public class AtlasConsoleMain {
 
@@ -56,21 +53,32 @@ public class AtlasConsoleMain {
 
     public static final Options OPTIONS = new Options()
             .addOption(HELP_FLAG_SHORT, HELP_FLAG_LONG, false, "Prints help message.")
-            .addOption(SCRIPT_FLAG_SHORT, SCRIPT_FLAG_LONG, false, "Path to .groovy file to execute as non-interactive application")
-            .addOption(MUTATIONS_ENABLED_FLAG_SHORT, MUTATIONS_ENABLED_FLAG_LONG, false, "Enable put() and delete() commands for database mutation. "
-                                                                + "THIS SHOULD ONLY BE ENABLED IF YOU REALLY KNOW WHAT YOU ARE DOING")
-            .addOption(EVAL_FLAG_SHORT, EVAL_FLAG_LONG, true, "Groovy code to evaluate prior to startup in interactive mode")
-            .addOption(CLASSPATH_FLAG_SHORT, CLASSPATH_FLAG_LONG, true, "Additional locations to include on the classpath")
-            .addOption(OptionBuilder
-                    .withLongOpt(BIND_FLAG_LONG)
+            .addOption(
+                    SCRIPT_FLAG_SHORT,
+                    SCRIPT_FLAG_LONG,
+                    false,
+                    "Path to .groovy file to execute as non-interactive application")
+            .addOption(
+                    MUTATIONS_ENABLED_FLAG_SHORT,
+                    MUTATIONS_ENABLED_FLAG_LONG,
+                    false,
+                    "Enable put() and delete() commands for database mutation. "
+                            + "THIS SHOULD ONLY BE ENABLED IF YOU REALLY KNOW WHAT YOU ARE DOING")
+            .addOption(
+                    EVAL_FLAG_SHORT,
+                    EVAL_FLAG_LONG,
+                    true,
+                    "Groovy code to evaluate prior to startup in interactive mode")
+            .addOption(
+                    CLASSPATH_FLAG_SHORT, CLASSPATH_FLAG_LONG, true, "Additional locations to include on the classpath")
+            .addOption(OptionBuilder.withLongOpt(BIND_FLAG_LONG)
                     .hasArgs(2)
                     .withDescription("Additional bindings to include in the cli")
                     .create(BIND_FLAG_SHORT));
 
     private static String[] additionalBindingsToSetUp = new String[] {};
 
-    protected AtlasConsoleMain() {
-    }
+    protected AtlasConsoleMain() {}
 
     public void run(String[] args) {
         try {
@@ -95,27 +103,27 @@ public class AtlasConsoleMain {
     protected int execute(CommandLine cli) throws CompilationFailedException, IOException {
         if (cli.hasOption(SCRIPT_FLAG_SHORT)) {
             evalFiles(cli.getArgs(), cli);
-        }
-        else {
-            String setupScript = "-e//Starting AtlasConsole...please wait.\n" +
-                    ":set verbosity QUIET\n" +
-                    ":set interpreterMode\n" +
-                    ":set show-last-result false\n" +
-                    getJavaCallbackString(cli.hasOption(MUTATIONS_ENABLED_FLAG_SHORT));
+        } else {
+            String setupScript = "-e//Starting AtlasConsole...please wait.\n" + ":set verbosity QUIET\n"
+                    + ":set interpreterMode\n"
+                    + ":set show-last-result false\n"
+                    + getJavaCallbackString(cli.hasOption(MUTATIONS_ENABLED_FLAG_SHORT));
 
-            if(cli.hasOption(BIND_FLAG_SHORT)) {
+            if (cli.hasOption(BIND_FLAG_SHORT)) {
                 additionalBindingsToSetUp = cli.getOptionValues(BIND_FLAG_SHORT);
-                Preconditions.checkArgument(additionalBindingsToSetUp.length % 2 == 0, "An odd amount of parameters were passed into --bind");
+                Preconditions.checkArgument(
+                        additionalBindingsToSetUp.length % 2 == 0,
+                        "An odd amount of parameters were passed into --bind");
             }
 
-            if(cli.hasOption(EVAL_FLAG_SHORT)) {
+            if (cli.hasOption(EVAL_FLAG_SHORT)) {
                 setupScript += "\n" + Joiner.on('\n').join(cli.getOptionValues(EVAL_FLAG_SHORT));
             }
 
             setupScript += "\n//AtlasConsole started, type help() for more info!";
             List<String> args = new ArrayList<String>(Arrays.asList(cli.getArgs()));
             args.add(setupScript);
-            if(cli.hasOption(CLASSPATH_FLAG_SHORT)) {
+            if (cli.hasOption(CLASSPATH_FLAG_SHORT)) {
                 args.add("-cp");
                 args.add(cli.getOptionValue(CLASSPATH_FLAG_SHORT));
             }
@@ -126,20 +134,22 @@ public class AtlasConsoleMain {
     }
 
     protected void usage() {
-        String prependMessage = "\nAtlasConsole is a command line utility to view and modify an instance of AtlasDB.\n" +
-                      "In addition to the arguments listed below, the utility accepts a filepath to a Groovy script to run" +
-                      "prior to startup. Finally, the utility also accepts all arguments that the Groovysh utility takes. \n" +
-                      "See http://docs.groovy-lang.org/latest/html/documentation/#_groovysh_the_groovy_shell for details.";
+        String prependMessage = "\n"
+            + "AtlasConsole is a command line utility to view and modify an instance of AtlasDB.\n"
+            + "In addition to the arguments listed below, the utility accepts a filepath to a Groovy script to"
+            + " runprior to startup. Finally, the utility also accepts all arguments that the Groovysh utility takes."
+            + " \n"
+            + "See http://docs.groovy-lang.org/latest/html/documentation/#_groovysh_the_groovy_shell for details.";
         System.out.println(prependMessage); // (authorized)
     }
 
     private void evalFiles(String[] filepaths, CommandLine cli) throws CompilationFailedException, IOException {
         Binding binding = setupBinding(new Binding(), cli.hasOption(MUTATIONS_ENABLED_FLAG_SHORT));
         GroovyShell shell = new GroovyShell(binding);
-        if(cli.hasOption(CLASSPATH_FLAG_SHORT)) {
+        if (cli.hasOption(CLASSPATH_FLAG_SHORT)) {
             shell.getClassLoader().addClasspath(cli.getOptionValue(CLASSPATH_FLAG_SHORT));
         }
-        for(String filepath : filepaths) {
+        for (String filepath : filepaths) {
             File file = new File(filepath);
             shell.evaluate(file);
         }
@@ -154,7 +164,7 @@ public class AtlasConsoleMain {
     }
 
     private static Binding setupBinding(Binding binding, boolean mutationsEnabled) {
-        for(int i = 0; i < additionalBindingsToSetUp.length; i += 2) {
+        for (int i = 0; i < additionalBindingsToSetUp.length; i += 2) {
             binding.setVariable(additionalBindingsToSetUp[i], additionalBindingsToSetUp[i + 1]);
         }
 
@@ -172,9 +182,9 @@ public class AtlasConsoleMain {
      * access (removes the need for users to create an explicit ~/.java.policy
      * file).
      */
-    public static void callback(Script script, boolean mutationsEnabled) throws CompilationFailedException, IOException {
+    public static void callback(Script script, boolean mutationsEnabled)
+            throws CompilationFailedException, IOException {
         System.setSecurityManager(null);
         setupBinding(script.getBinding(), mutationsEnabled);
     }
-
 }

@@ -15,17 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -39,6 +29,13 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.MapEntries;
+import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -55,18 +52,53 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         final AtomicLong totalGetCalls = new AtomicLong(0L);
         final AtomicLong totalPutCalls = new AtomicLong(0L);
 
-        public long getTotalGetValueBytes() { return totalGetValueBytes.get(); }
-        public long getTotalPutValueBytes() { return totalPutValueBytes.get(); }
-        public long getTotalGetCellBytes() { return totalGetCellBytes.get(); }
-        public long getTotalPutCellBytes() { return totalPutCellBytes.get(); }
-        public long getTotalGetCells() { return totalGetCells.get(); }
-        public long getTotalPutCells() { return totalPutCells.get(); }
-        public long getTotalGetMillis() { return totalGetMillis.get(); }
-        public long getTotalPutMillis() { return totalPutMillis.get(); }
-        public long getTotalGetBytes() { return getTotalGetCellBytes() + getTotalGetValueBytes(); }
-        public long getTotalPutBytes() { return getTotalPutCellBytes() + getTotalPutValueBytes(); }
-        public long getTotalGetCalls() { return totalGetCalls.get(); }
-        public long getTotalPutCalls() { return totalPutCalls.get(); }
+        public long getTotalGetValueBytes() {
+            return totalGetValueBytes.get();
+        }
+
+        public long getTotalPutValueBytes() {
+            return totalPutValueBytes.get();
+        }
+
+        public long getTotalGetCellBytes() {
+            return totalGetCellBytes.get();
+        }
+
+        public long getTotalPutCellBytes() {
+            return totalPutCellBytes.get();
+        }
+
+        public long getTotalGetCells() {
+            return totalGetCells.get();
+        }
+
+        public long getTotalPutCells() {
+            return totalPutCells.get();
+        }
+
+        public long getTotalGetMillis() {
+            return totalGetMillis.get();
+        }
+
+        public long getTotalPutMillis() {
+            return totalPutMillis.get();
+        }
+
+        public long getTotalGetBytes() {
+            return getTotalGetCellBytes() + getTotalGetValueBytes();
+        }
+
+        public long getTotalPutBytes() {
+            return getTotalPutCellBytes() + getTotalPutValueBytes();
+        }
+
+        public long getTotalGetCalls() {
+            return totalGetCalls.get();
+        }
+
+        public long getTotalPutCalls() {
+            return totalPutCalls.get();
+        }
 
         public void add(TableStats other) {
             totalGetValueBytes.addAndGet(other.totalGetValueBytes.get());
@@ -82,7 +114,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         }
     }
 
-    private final ConcurrentMap<TableReference, TableStats> statsByTableName = Maps.newConcurrentMap();
+    private final ConcurrentMap<TableReference, TableStats> statsByTableName = new ConcurrentHashMap<>();
 
     private final KeyValueService delegate;
 
@@ -112,8 +144,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> get(TableReference tableRef,
-                                Map<Cell, Long> timestampByCell) {
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         long start = System.currentTimeMillis();
         Map<Cell, Value> r = super.get(tableRef, timestampByCell);
         long finish = System.currentTimeMillis();
@@ -134,10 +165,8 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef,
-                                    Iterable<byte[]> rows,
-                                    ColumnSelection columnSelection,
-                                    long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         long start = System.currentTimeMillis();
         Map<Cell, Value> r = super.getRows(tableRef, rows, columnSelection, timestamp);
         long finish = System.currentTimeMillis();
@@ -155,8 +184,8 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(final TableReference tableRef, RangeRequest range,
-                                                       long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            final TableReference tableRef, RangeRequest range, long timestamp) {
         final TableStats s = getTableStats(tableRef);
 
         long start = System.currentTimeMillis();
@@ -214,7 +243,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         long start = System.currentTimeMillis();
         super.multiPut(valuesByTable, timestamp);
         long finish = System.currentTimeMillis();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
+        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
             TableReference tableRef = entry.getKey();
             Map<Cell, byte[]> values = entry.getValue();
             TableStats s = getTableStats(tableRef);
@@ -241,14 +270,13 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
 
         // Only update stats after put was successful.
         s.totalPutCells.addAndGet(values.size());
-        for (Entry<Cell, Value> e : values.entries()) {
+        for (Map.Entry<Cell, Value> e : values.entries()) {
             incrementPutBytes(s, e.getKey(), e.getValue().getContents());
         }
     }
 
     @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         TableStats s = timeOperation(tableRef, () -> super.putUnlessExists(tableRef, values));
 
         // Only update stats after put was successful.
@@ -296,19 +324,12 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     public void dumpStats(PrintWriter writer) {
         Map<TableReference, TableStats> sortedStats = ImmutableSortedMap.copyOf(statsByTableName);
         String headerFmt = "|| %-20s || %10s || %10s || %10s || %10s || %10s || %10s ||%n";
-        String rowFmt =    "|  %-20s |  %10s |  %10s |  %10s |  %10s |  %10s |  %10s |%n";
+        String rowFmt = "|  %-20s |  %10s |  %10s |  %10s |  %10s |  %10s |  %10s |%n";
 
         writer.printf(
-                headerFmt,
-                "table",
-                "get_millis",
-                "put_millis",
-                "get_bytes",
-                "put_bytes",
-                "get_calls",
-                "put_calls");
+                headerFmt, "table", "get_millis", "put_millis", "get_bytes", "put_bytes", "get_calls", "put_calls");
 
-        for (Entry<TableReference, TableStats> statsEntry : sortedStats.entrySet()) {
+        for (Map.Entry<TableReference, TableStats> statsEntry : sortedStats.entrySet()) {
             TableStats s = statsEntry.getValue();
             writer.printf(
                     rowFmt,

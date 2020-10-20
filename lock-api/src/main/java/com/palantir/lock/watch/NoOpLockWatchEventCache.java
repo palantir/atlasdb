@@ -42,13 +42,11 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
-    }
+    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {}
 
     @Override
-    public void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
-            LockWatchStateUpdate update) {
-    }
+    public void processGetCommitTimestampsUpdate(
+            Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {}
 
     @Override
     public CommitUpdate getCommitUpdate(long startTs) {
@@ -56,8 +54,8 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<LockWatchVersion> version) {
+    public TransactionsLockWatchUpdate getUpdateForTransactions(
+            Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return ImmutableTransactionsLockWatchUpdate.builder()
                 .clearCache(true)
                 .startTsToSequence(
@@ -66,6 +64,5 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void removeTransactionStateFromCache(long startTimestamp) {
-    }
+    public void removeTransactionStateFromCache(long startTimestamp) {}
 }

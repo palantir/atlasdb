@@ -21,16 +21,15 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.nexus.db.DBType;
+import org.junit.Test;
 
 public class RangePredicateHelperTest {
-    private static final byte[] ROW_NAME = {1, 2, 3 };
-    private static final byte[] COL_NAME = { 4, 5, 6 };
+    private static final byte[] ROW_NAME = {1, 2, 3};
+    private static final byte[] COL_NAME = {4, 5, 6};
     private static final long TS = 5L;
 
     @Test
@@ -150,7 +149,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(),
+        assertThat(
+                query.getQuery(),
                 equalTo(" AND (row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?)))"));
         assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS));
     }
@@ -161,7 +161,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(),
+        assertThat(
+                query.getQuery(),
                 equalTo(" AND (row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?)))"));
         assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS));
     }
@@ -208,7 +209,7 @@ public class RangePredicateHelperTest {
 
     @Test
     public void columnSelection() {
-        byte[] colTwo = new byte[] { 7, 8, 9 };
+        byte[] colTwo = new byte[] {7, 8, 9};
 
         FullQuery.Builder builder = FullQuery.builder();
         RangePredicateHelper.create(false, DBType.ORACLE, builder).columnSelection(ImmutableList.of(COL_NAME, colTwo));
@@ -217,5 +218,4 @@ public class RangePredicateHelperTest {
         assertThat(query.getQuery(), equalTo(" AND (col_name = ? OR col_name = ?) "));
         assertThat(query.getArgs(), arrayContaining(COL_NAME, colTwo));
     }
-
 }

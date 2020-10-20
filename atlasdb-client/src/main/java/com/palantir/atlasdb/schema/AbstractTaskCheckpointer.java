@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 public abstract class AbstractTaskCheckpointer {
     private static final byte INCOMPLETE = 0;
@@ -39,17 +37,12 @@ public abstract class AbstractTaskCheckpointer {
      * This doesn't make much sense unless this is called within a transaction, because that
      * transaction could be retried.
      */
-    public abstract void checkpoint(String extraId,
-                                    long rangeId,
-                                    byte[] nextRowName,
-                                    Transaction tx);
+    public abstract void checkpoint(String extraId, long rangeId, byte[] nextRowName, Transaction tx);
 
     /**
      * Get the next row name for this range. Returns null if the checkpoint is done.
      */
-    public abstract @Nullable byte[] getCheckpoint(String extraId,
-                                                   long rangeId,
-                                                   Transaction tx);
+    public abstract @Nullable byte[] getCheckpoint(String extraId, long rangeId, Transaction tx);
 
     /**
      * Initialize checkpointing. This will only write checkpoints if checkpoints don't already
@@ -57,8 +50,7 @@ public abstract class AbstractTaskCheckpointer {
      *
      * Checkpoints written here are always valid.
      */
-    public abstract void createCheckpoints(String extraId,
-                                           Map<Long, byte[]> startById);
+    public abstract void createCheckpoints(String extraId, Map<Long, byte[]> startById);
 
     /**
      * Deletes the checkpoints for this checkpointer. This is only to be called once the task is

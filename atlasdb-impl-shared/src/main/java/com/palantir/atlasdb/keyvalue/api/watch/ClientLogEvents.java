@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
@@ -38,6 +32,10 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 interface ClientLogEvents {
@@ -52,13 +50,14 @@ interface ClientLogEvents {
     }
 
     default TransactionsLockWatchUpdate toTransactionsLockWatchUpdate(
-            TimestampMapping timestampMapping,
-            Optional<LockWatchVersion> lastKnownVersion) {
+            TimestampMapping timestampMapping, Optional<LockWatchVersion> lastKnownVersion) {
         // If the client is at the same version as the earliest version in the timestamp mapping, then they will
         // only receive versions after that - and therefore the range of versions coming back from the events will not
         // enclose the versions in the mapping. This flag makes sure that we don't throw on this case
-        boolean offsetStartVersion = lastKnownVersion.map(
-                version -> version.version() == timestampMapping.versionRange().lowerEndpoint()).orElse(false);
+        boolean offsetStartVersion = lastKnownVersion
+                .map(version ->
+                        version.version() == timestampMapping.versionRange().lowerEndpoint())
+                .orElse(false);
         verifyReturnedEventsEnclosesTransactionVersions(timestampMapping.versionRange(), offsetStartVersion);
         return ImmutableTransactionsLockWatchUpdate.builder()
                 .startTsToSequence(timestampMapping.timestampMapping())

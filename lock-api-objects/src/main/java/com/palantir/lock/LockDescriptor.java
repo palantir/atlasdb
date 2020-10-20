@@ -15,12 +15,6 @@
  */
 package com.palantir.lock;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.concurrent.locks.ReadWriteLock;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -28,6 +22,10 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.concurrent.locks.ReadWriteLock;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * A descriptor for a {@link ReadWriteLock}.
@@ -61,9 +59,7 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
     @Override
     public String toString() {
         String lockIdAsString = getLockIdAsString();
-        return getClass().getSimpleName() + " ["
-                + encodeToAscii(lockIdAsString)
-                + "]";
+        return getClass().getSimpleName() + " [" + encodeToAscii(lockIdAsString) + "]";
     }
 
     private String encodeToAscii(String lockIdAsString) {

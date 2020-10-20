@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.List;
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable;
@@ -25,16 +22,18 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvR
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvRowsRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.List;
+import java.util.Map;
 
 public final class RangeScanRowsBenchmark extends AbstractRangeScanBenchmark {
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient, int dataSize, int numRows) {
+    public static Map<String, Object> execute(
+            TransactionManager txnManager, int numClients, int requestsPerClient, int dataSize, int numRows) {
         return new RangeScanRowsBenchmark(txnManager, numClients, requestsPerClient, dataSize, numRows).execute();
     }
 
-    private RangeScanRowsBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient,
-            int dataSize, int numRows) {
+    private RangeScanRowsBenchmark(
+            TransactionManager txnManager, int numClients, int requestsPerClient, int dataSize, int numRows) {
         super(numClients, requestsPerClient, txnManager, dataSize, numRows);
     }
 
@@ -51,8 +50,7 @@ public final class RangeScanRowsBenchmark extends AbstractRangeScanBenchmark {
     protected List<byte[]> getRange(Transaction txn, long startInclusive, long endExclusive) {
         KvRowsTable table = BenchmarksTableFactory.of().getKvRowsTable(txn);
 
-        return table.getRange(
-                RangeRequest.builder()
+        return table.getRange(RangeRequest.builder()
                         .startRowInclusive(KvRowsRow.of(bucket, startInclusive))
                         .endRowExclusive(KvRowsRow.of(bucket, endExclusive))
                         .batchHint(batchSize)
@@ -61,5 +59,4 @@ public final class RangeScanRowsBenchmark extends AbstractRangeScanBenchmark {
                 .transform(KvRowsRowResult::getData)
                 .immutableCopy();
     }
-
 }

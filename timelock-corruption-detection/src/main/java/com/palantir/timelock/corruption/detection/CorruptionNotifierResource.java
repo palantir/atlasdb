@@ -45,7 +45,6 @@ public final class CorruptionNotifierResource implements UndertowTimeLockCorrupt
         return Futures.immediateVoidFuture();
     }
 
-
     public static final class JerseyAdapter implements TimeLockCorruptionNotifier {
         private final CorruptionNotifierResource delegate;
 

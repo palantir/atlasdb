@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.todo;
 
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -62,6 +49,17 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TodoClient {
     private static final Logger log = LoggerFactory.getLogger(TodoClient.class);
@@ -73,15 +71,17 @@ public class TodoClient {
     private final SpecialTimestampsSupplier sweepTimestampProvider;
     private final Random random = new Random();
 
-    public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner,
+    public TodoClient(
+            TransactionManager transactionManager,
+            Supplier<SweepTaskRunner> sweepTaskRunner,
             Supplier<TargetedSweeper> targetedSweeper) {
         this.transactionManager = transactionManager;
         this.kvs = Suppliers.memoize(transactionManager::getKeyValueService);
         this.sweepTaskRunner = sweepTaskRunner;
         this.targetedSweeper = targetedSweeper;
         // Intentionally providing the immutable timestamp instead of unreadable to avoid the delay
-        this.sweepTimestampProvider = new SpecialTimestampsSupplier(transactionManager::getImmutableTimestamp,
-                transactionManager::getImmutableTimestamp);
+        this.sweepTimestampProvider = new SpecialTimestampsSupplier(
+                transactionManager::getImmutableTimestamp, transactionManager::getImmutableTimestamp);
     }
 
     public void addTodo(Todo todo) {
@@ -89,9 +89,8 @@ public class TodoClient {
     }
 
     public long addTodoWithIdAndReturnTimestamp(long id, Todo todo) {
-        return transactionManager.runTaskWithRetry((transaction) -> {
-            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(id),
-                    TodoSchema.todoTextColumn());
+        return transactionManager.runTaskWithRetry(transaction -> {
+            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(id), TodoSchema.todoTextColumn());
             Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(todo.text()));
 
             transaction.put(TodoSchema.todoTable(), write);
@@ -106,9 +105,9 @@ public class TodoClient {
     }
 
     public List<Todo> getTodoList() {
-        ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry((transaction) -> {
-            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
-                    TodoSchema.todoTable(), RangeRequest.all());
+        ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry(transaction -> {
+            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable =
+                    transaction.getRange(TodoSchema.todoTable(), RangeRequest.all());
             ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
 
             rowResultBatchingVisitable.batchAccept(1000, items -> {
@@ -177,20 +176,22 @@ public class TodoClient {
     }
 
     private void runIterationOfTargetedSweepForShard(ShardAndStrategy shardStrategy) {
-        targetedSweeper.get()
+        targetedSweeper
+                .get()
                 .sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampProvider));
     }
 
-
     public SweepResults sweepSnapshotIndices() {
         TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
-        TableReference indexTable = tableFactory.getSnapshotsStreamIdxTable(null).getTableRef();
+        TableReference indexTable =
+                tableFactory.getSnapshotsStreamIdxTable(null).getTableRef();
         return sweepTable(indexTable);
     }
 
     public SweepResults sweepSnapshotValues() {
         TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
-        TableReference valueTable = tableFactory.getSnapshotsStreamValueTable(null).getTableRef();
+        TableReference valueTable =
+                tableFactory.getSnapshotsStreamValueTable(null).getTableRef();
         return sweepTable(valueTable);
     }
 
@@ -220,13 +221,14 @@ public class TodoClient {
     }
 
     private Value getValueForEntry(TableReference tableRef, Map.Entry<Cell, Value> entry) {
-        return kvs.get().get(tableRef, ImmutableMap.of(entry.getKey(), entry.getValue().getTimestamp()))
+        return kvs.get()
+                .get(tableRef, ImmutableMap.of(entry.getKey(), entry.getValue().getTimestamp()))
                 .get(entry.getKey());
     }
 
     private Set<Cell> getAllCells(TableReference tableRef) {
-        try (ClosableIterator<RowResult<Value>> iterator = kvs.get()
-                .getRange(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
+        try (ClosableIterator<RowResult<Value>> iterator =
+                kvs.get().getRange(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
             return iterator.stream()
                     .map(RowResult::getCells)
                     .flatMap(Streams::stream)
@@ -242,17 +244,21 @@ public class TodoClient {
 
     public long addNamespacedTodoWithIdAndReturnTimestamp(long id, String namespace, Todo todo) {
         return transactionManager.runTaskWithRetry(tx -> {
-            TodoSchemaTableFactory.of().getNamespacedTodoTable(tx).put(
-                    NamespacedTodoTable.NamespacedTodoRow.of(namespace),
-                    NamespacedTodoTable.NamespacedTodoColumnValue.of(
-                            NamespacedTodoTable.NamespacedTodoColumn.of(id),
-                            todo.text()));
+            TodoSchemaTableFactory.of()
+                    .getNamespacedTodoTable(tx)
+                    .put(
+                            NamespacedTodoTable.NamespacedTodoRow.of(namespace),
+                            NamespacedTodoTable.NamespacedTodoColumnValue.of(
+                                    NamespacedTodoTable.NamespacedTodoColumn.of(id), todo.text()));
             return tx.getTimestamp();
         });
     }
 
     public boolean namespacedTodoDoesNotExistBeforeTimestamp(long id, long timestamp, String namespace) {
-        return kvs.get().get(TodoSchema.namespacedTodoTable(),
-                ImmutableMap.of(Cell.create(PtBytes.toBytes(namespace), PtBytes.toBytes(id)), timestamp + 1)).isEmpty();
+        return kvs.get()
+                .get(
+                        TodoSchema.namespacedTodoTable(),
+                        ImmutableMap.of(Cell.create(PtBytes.toBytes(namespace), PtBytes.toBytes(id)), timestamp + 1))
+                .isEmpty();
     }
 }

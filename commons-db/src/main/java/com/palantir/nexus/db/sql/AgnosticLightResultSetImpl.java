@@ -15,17 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.exception.PalantirInterruptedException;
@@ -34,6 +23,14 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.sql.ResultSets;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This result set only loads one row at a time, and thus provides a
@@ -43,14 +40,17 @@ import com.palantir.sql.ResultSets;
  *
  */
 class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
-    private static final Logger log = LoggerFactory.getLogger(AgnosticLightResultSet.class);
-    private static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + AgnosticLightResultSetImpl.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(AgnosticLightResultSetImpl.class);
+    private static final Logger sqlExceptionlog =
+            LoggerFactory.getLogger("sqlException." + AgnosticLightResultSetImpl.class.getName());
 
     private final ResultSet results;
     private final DBType dbType;
     private final Map<String, Integer> columnMap;
     private final PreparedStatement stmt;
-    private final AgnosticLightResultRow singletonResultRow;  // This is here and not in the iterator so we can throw a SQLException when constructing it
+    private final AgnosticLightResultRow
+            singletonResultRow; // This is here and not in the iterator so we can throw a SQLException when constructing
+    // it
     private volatile boolean hasBeenClosed = false;
     private SqlTimer.Handle timerKey;
     private final String timingModule;
@@ -58,8 +58,14 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
     private int maxFetchSize = DEFAULT_MAX_FETCH_SIZE;
     private final SqlTimer sqlTimerFactory;
 
-    public AgnosticLightResultSetImpl(ResultSet rs, DBType type, ResultSetMetaData meta, PreparedStatement s,
-                                      String timingModule, FinalSQLString sqlString, SqlTimer sqlTimerFactory)
+    public AgnosticLightResultSetImpl(
+            ResultSet rs,
+            DBType type,
+            ResultSetMetaData meta,
+            PreparedStatement s,
+            String timingModule,
+            FinalSQLString sqlString,
+            SqlTimer sqlTimerFactory)
             throws PalantirSqlException {
         results = rs;
         dbType = type;
@@ -84,8 +90,8 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
             results.close();
             hasBeenClosed = true;
             log.debug("Closed {}", this);
-        } catch(SQLException sqlex) {
-            log.error("Caught SQLException", sqlex); //$NON-NLS-1$
+        } catch (SQLException sqlex) {
+            log.error("Caught SQLException", sqlex); // $NON-NLS-1$
         }
     }
 
@@ -95,11 +101,10 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
         try {
             results.setFetchSize(fetchSize);
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e); //$NON-NLS-1$
-            log.error("Caught SQLException", e); //$NON-NLS-1$
+            sqlExceptionlog.info("Caught SQLException", e); // $NON-NLS-1$
+            log.error("Caught SQLException", e); // $NON-NLS-1$
             Throwables.rewrapAndThrowUncheckedException(e);
         }
-
     }
 
     /**
@@ -131,18 +136,17 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
      * may cause an error! </strong>  In more detail: the first time hasNext() is called after each call to next(), it advances
      * the database cursor, causing any old AgnosticLightResultRow objects to now refer to the next row in the database.
      */
-    private class AgnosticIterator implements Iterator<AgnosticLightResultRow>
-    {
+    private final class AgnosticIterator implements Iterator<AgnosticLightResultRow> {
         private int numRowsFetchedSinceLastChange = 0;
-        private boolean hasReadRow = true; //$NON-NLS-1$  // Effectively "has already read row # -1"
+        private boolean hasReadRow = true; // $NON-NLS-1$  // Effectively "has already read row # -1"
         private boolean hasNext = false;
 
-        private AgnosticIterator(){
-            try{
+        private AgnosticIterator() {
+            try {
                 results.setFetchSize(INITIAL_FETCH_SIZE);
-            } catch (SQLException e){
+            } catch (SQLException e) {
                 sqlExceptionlog.info("Caught SQLException", e);
-                log.error("Caught SQLException", e); //$NON-NLS-1$
+                log.error("Caught SQLException", e); // $NON-NLS-1$
                 Throwables.rewrapAndThrowUncheckedException(e);
             }
         }
@@ -157,25 +161,24 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
 
         private void advanceRow() {
             if (Thread.currentThread().isInterrupted()) {
-                throw new PalantirInterruptedException("Interrupted while iterating through results."); //$NON-NLS-1$
+                throw new PalantirInterruptedException("Interrupted while iterating through results."); // $NON-NLS-1$
             }
-            try{
+            try {
                 numRowsFetchedSinceLastChange++;
-                if (numRowsFetchedSinceLastChange >= results.getFetchSize()){
+                if (numRowsFetchedSinceLastChange >= results.getFetchSize()) {
                     results.setFetchSize(Math.min(results.getFetchSize() * 2, maxFetchSize));
                     numRowsFetchedSinceLastChange = 0;
                 }
-            } catch (SQLException e){
+            } catch (SQLException e) {
                 sqlExceptionlog.info("Caught SQLException", e);
-                log.error("Caught SQLException", e); //$NON-NLS-1$
+                log.error("Caught SQLException", e); // $NON-NLS-1$
                 Throwables.rewrapAndThrowUncheckedException(e);
             }
 
             try {
                 hasNext = results.next();
-            }
-            catch(SQLException sqlex) {
-                log.error("Caught SQLException", sqlex); //$NON-NLS-1$
+            } catch (SQLException sqlex) {
+                log.error("Caught SQLException", sqlex); // $NON-NLS-1$
                 Throwables.rewrapAndThrowUncheckedException(sqlex);
             }
             hasReadRow = false;
@@ -192,7 +195,7 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
 
         @Override
         public void remove() {
-            throw new UnsupportedOperationException("Cannot remove results from SQL cursor"); //$NON-NLS-1$
+            throw new UnsupportedOperationException("Cannot remove results from SQL cursor"); // $NON-NLS-1$
         }
     }
 
@@ -211,4 +214,3 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
         }
     }
 }
-

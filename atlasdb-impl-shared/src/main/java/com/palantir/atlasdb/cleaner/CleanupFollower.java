@@ -15,11 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.Collection;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -28,6 +24,9 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Set;
 
 public final class CleanupFollower implements Follower {
     private final ImmutableMultimap<TableReference, OnCleanupTask> cleanupTasksByTable;
@@ -50,15 +49,12 @@ public final class CleanupFollower implements Follower {
 
     @Override
     public void run(
-            TransactionManager txManager,
-            TableReference tableRef,
-            Set<Cell> cells,
-            TransactionType transactionType) {
+            TransactionManager txManager, TableReference tableRef, Set<Cell> cells, TransactionType transactionType) {
         Collection<OnCleanupTask> nextTasks = cleanupTasksByTable.get(tableRef);
         while (!nextTasks.isEmpty()) {
             final Collection<OnCleanupTask> cleanupTasks = nextTasks;
             nextTasks = txManager.runTaskWithRetry(tx -> {
-                Collection<OnCleanupTask> toRetry = Lists.newArrayList();
+                Collection<OnCleanupTask> toRetry = new ArrayList<>();
                 Preconditions.checkArgument(transactionType == TransactionType.HARD_DELETE
                         || transactionType == TransactionType.AGGRESSIVE_HARD_DELETE);
                 tx.setTransactionType(transactionType);

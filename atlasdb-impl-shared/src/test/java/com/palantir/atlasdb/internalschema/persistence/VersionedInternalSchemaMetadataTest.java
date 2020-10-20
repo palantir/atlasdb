@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
-
 import org.junit.Test;
 
 public class VersionedInternalSchemaMetadataTest {
@@ -77,9 +76,10 @@ public class VersionedInternalSchemaMetadataTest {
 
     private static Path getResourcePath(String subPath) {
         try {
-            return Paths.get(Objects.requireNonNull(
-                    InternalSchemaMetadataPayloadCodecTest.class.getClassLoader().getResource(
-                            "internalschema-persistence/" + subPath)).toURI());
+            return Paths.get(Objects.requireNonNull(InternalSchemaMetadataPayloadCodecTest.class
+                            .getClassLoader()
+                            .getResource("internalschema-persistence/" + subPath))
+                    .toURI());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

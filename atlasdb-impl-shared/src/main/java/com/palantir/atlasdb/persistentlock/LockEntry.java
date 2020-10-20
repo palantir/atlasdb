@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.SortedMap;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -30,6 +23,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.common.base.Throwables;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.SortedMap;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableLockEntry.class)
 @JsonDeserialize(as = ImmutableLockEntry.class)
@@ -41,7 +39,9 @@ public abstract class LockEntry {
     static final String LOCK_COLUMN = "lock";
 
     public abstract String lockName();
+
     public abstract UUID instanceId();
+
     public abstract String reason();
 
     static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
@@ -74,16 +74,15 @@ public abstract class LockEntry {
     }
 
     private static String valueOfColumnInRow(
-            String columnName,
-            RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
+            String columnName, RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         byte[] columnNameBytes = asUtf8Bytes(columnName);
         SortedMap<byte[], com.palantir.atlasdb.keyvalue.api.Value> columns = rowResult.getColumns();
         if (columns.containsKey(columnNameBytes)) {
             byte[] contents = columns.get(columnNameBytes).getContents();
             return asString(contents);
         } else {
-            throw new IllegalStateException(String.format("Couldn't find column %s in the persisted locks table!",
-                    LOCK_COLUMN));
+            throw new IllegalStateException(
+                    String.format("Couldn't find column %s in the persisted locks table!", LOCK_COLUMN));
         }
     }
 

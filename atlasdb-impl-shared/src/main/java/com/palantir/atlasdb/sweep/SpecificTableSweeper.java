@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -41,6 +36,9 @@ import com.palantir.common.time.Clock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SpecificTableSweeper {
     private static final Logger log = LoggerFactory.getLogger(SpecificTableSweeper.class);
@@ -52,7 +50,6 @@ public class SpecificTableSweeper {
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
     private final LegacySweepMetrics sweepMetrics;
     private final Clock wallClock;
-
 
     @VisibleForTesting
     SpecificTableSweeper(
@@ -84,13 +81,18 @@ public class SpecificTableSweeper {
             boolean initializeAsync) {
         SweepProgressStore sweepProgressStore = SweepProgressStoreImpl.create(kvs, initializeAsync);
         SweepPriorityStore sweepPriorityStore = SweepPriorityStoreImpl.create(kvs, tableFactory, initializeAsync);
-        return new SpecificTableSweeper(txManager, kvs, sweepRunner,
-                sweepPriorityStore, sweepProgressStore, sweepPerfLogger,
+        return new SpecificTableSweeper(
+                txManager,
+                kvs,
+                sweepRunner,
+                sweepPriorityStore,
+                sweepProgressStore,
+                sweepPerfLogger,
                 sweepMetrics,
                 System::currentTimeMillis);
     }
 
-    public boolean isInitialized()  {
+    public boolean isInitialized() {
         return sweepProgressStore.isInitialized() && sweepPriorityStore.isInitialized();
     }
 
@@ -136,7 +138,8 @@ public class SpecificTableSweeper {
     }
 
     private void logSweepPerformance(TableReference tableRef, byte[] startRow, SweepResults results) {
-        log.info("Analyzed {} cell+timestamp pairs"
+        log.info(
+                "Analyzed {} cell+timestamp pairs"
                         + " from table {}"
                         + " starting at row {}"
                         + " and deleted {} stale values"
@@ -158,9 +161,10 @@ public class SpecificTableSweeper {
         sweepPerfLogger.logSweepResults(performanceResults);
     }
 
-    private void logSweepError(TableReference tableRef, byte[] startRow, SweepBatchConfig config,
-            RuntimeException exception) {
-        log.info("Failed to sweep table {}"
+    private void logSweepError(
+            TableReference tableRef, byte[] startRow, SweepBatchConfig config, RuntimeException exception) {
+        log.info(
+                "Failed to sweep table {}"
                         + " at row {}"
                         + " with candidate batch size {},"
                         + " delete batch size {},"
@@ -174,8 +178,8 @@ public class SpecificTableSweeper {
     }
 
     private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        updateTimeMetricsOneIteration(currentIteration.getTimeInMillis(),
-                currentIteration.getTimeElapsedSinceStartedSweeping());
+        updateTimeMetricsOneIteration(
+                currentIteration.getTimeInMillis(), currentIteration.getTimeElapsedSinceStartedSweeping());
 
         SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 
@@ -191,7 +195,8 @@ public class SpecificTableSweeper {
     }
 
     private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
-        Preconditions.checkArgument(results.getNextStartRow().isPresent(),
+        Preconditions.checkArgument(
+                results.getNextStartRow().isPresent(),
                 "Next start row should be present when saving intermediate results!");
         txManager.runTaskWithRetry((TxTask) tx -> {
             if (!tableToSweep.hasPreviousProgress()) {
@@ -219,7 +224,8 @@ public class SpecificTableSweeper {
 
     private void processFinishedSweep(TableToSweep tableToSweep, SweepResults cumulativeResults) {
         saveFinalSweepResults(tableToSweep, cumulativeResults);
-        log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values. Time taken "
+        log.info(
+                "Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values. Time taken "
                         + "sweeping: {} ms, time elapsed since sweep first started on this table: {} ms.",
                 LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                 SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),

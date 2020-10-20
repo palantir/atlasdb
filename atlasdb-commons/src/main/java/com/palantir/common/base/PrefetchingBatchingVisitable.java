@@ -15,6 +15,8 @@
  */
 package com.palantir.common.base;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Queues;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -24,12 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Queues;
 
 /**
  * A {@link BatchingVisitable} that will prefetch in a background thread. If an exception happens on
@@ -43,10 +41,8 @@ public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
     private final ExecutorService exec;
     private final String name;
 
-    public PrefetchingBatchingVisitable(BatchingVisitable<T> delegate,
-                                        int capacity,
-                                        ExecutorService exec,
-                                        String name) {
+    public PrefetchingBatchingVisitable(
+            BatchingVisitable<T> delegate, int capacity, ExecutorService exec, String name) {
         this.delegate = delegate;
         this.capacity = capacity;
         this.exec = exec;
@@ -54,8 +50,7 @@ public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
     }
 
     @Override
-    public <K extends Exception> boolean batchAccept(final int batchSize,
-                                                     AbortingVisitor<? super List<T>, K> v)
+    public <K extends Exception> boolean batchAccept(final int batchSize, AbortingVisitor<? super List<T>, K> v)
             throws K {
         final Queue<List<T>> queue = Queues.newArrayDeque();
         final Lock lock = new ReentrantLock();

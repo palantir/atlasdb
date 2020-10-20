@@ -17,22 +17,6 @@ package com.palantir.atlasdb.table.description;
 
 import static java.util.stream.Collectors.toSet;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -41,8 +25,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -57,6 +39,20 @@ import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.table.description.render.TableRendererV2;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Defines a schema.
@@ -78,9 +74,9 @@ public class Schema {
     private boolean ignoreTableNameLengthChecks = false;
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
-    private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
-    private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
-    private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
+    private final Map<String, TableDefinition> tableDefinitions = new HashMap<>();
+    private final Map<String, IndexDefinition> indexDefinitions = new HashMap<>();
+    private final List<StreamStoreRenderer> streamStoreRenderers = new ArrayList<>();
 
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
@@ -115,10 +111,9 @@ public class Schema {
     public void addTableDefinition(String tableName, TableDefinition definition) {
         Preconditions.checkArgument(
                 !tableDefinitions.containsKey(tableName) && !indexDefinitions.containsKey(tableName),
-                "Table already defined: %s", tableName);
-        Preconditions.checkArgument(
-                Schemas.isTableNameValid(tableName),
-                "Invalid table name %s", tableName);
+                "Table already defined: %s",
+                tableName);
+        Preconditions.checkArgument(Schemas.isTableNameValid(tableName), "Invalid table name %s", tableName);
         validateTableNameLength(tableName);
         tableDefinitions.put(tableName, definition);
     }
@@ -134,12 +129,13 @@ public class Schema {
     }
 
     public Map<TableReference, TableMetadata> getAllTablesAndIndexMetadata() {
-        Map<TableReference, TableMetadata> ret = Maps.newHashMap();
+        Map<TableReference, TableMetadata> ret = new HashMap<>();
         for (Map.Entry<String, TableDefinition> e : tableDefinitions.entrySet()) {
             ret.put(TableReference.create(namespace, e.getKey()), e.getValue().toTableMetadata());
         }
         for (Map.Entry<String, IndexDefinition> e : indexDefinitions.entrySet()) {
-            ret.put(TableReference.create(namespace, e.getKey()),
+            ret.put(
+                    TableReference.create(namespace, e.getKey()),
                     e.getValue().toIndexMetadata(e.getKey()).getTableMetadata());
         }
         return ret;
@@ -167,8 +163,8 @@ public class Schema {
 
     private void validateTableNameLength(String idxName) {
         if (!ignoreTableNameLengthChecks) {
-            String internalTableName = AbstractKeyValueService.internalTableName(
-                    TableReference.create(namespace, idxName));
+            String internalTableName =
+                    AbstractKeyValueService.internalTableName(TableReference.create(namespace, idxName));
             List<CharacterLimitType> kvsExceeded = new ArrayList<>();
 
             if (internalTableName.length() > AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT) {
@@ -183,7 +179,8 @@ public class Schema {
                             + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
                             + "of the prefix with the internal table name is below the KVS limit. "
                             + "If running only against a different KVS, set the ignoreTableNameLength flag.",
-                    idxName, StringUtils.join(kvsExceeded, ", "));
+                    idxName,
+                    StringUtils.join(kvsExceeded, ", "));
         }
     }
 
@@ -195,8 +192,8 @@ public class Schema {
     public void addStreamStoreDefinition(StreamStoreDefinition streamStoreDefinition) {
         streamStoreDefinition.getTables().forEach(this::addTableDefinition);
         StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
-        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(
-                packageName, name, renderer, namespace);
+        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks =
+                streamStoreDefinition.getCleanupTasks(packageName, name, renderer, namespace);
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
@@ -206,20 +203,22 @@ public class Schema {
         for (IndexType type : IndexType.values()) {
             Preconditions.checkArgument(
                     !idxName.endsWith(type.getIndexSuffix()),
-                    "Index name cannot end with '%s'.", type.getIndexSuffix());
+                    "Index name cannot end with '%s'.",
+                    type.getIndexSuffix());
             String indexName = idxName + type.getIndexSuffix();
             com.palantir.logsafe.Preconditions.checkArgument(
                     !tableDefinitions.containsKey(indexName) && !indexDefinitions.containsKey(indexName),
                     "Table already defined.");
         }
         com.palantir.logsafe.Preconditions.checkArgument(
-                tableDefinitions.containsKey(definition.getSourceTable()),
-                "Index source table undefined.");
-        Preconditions.checkArgument(
-                Schemas.isTableNameValid(idxName),
-                "Invalid table name %s", idxName);
+                tableDefinitions.containsKey(definition.getSourceTable()), "Index source table undefined.");
+        Preconditions.checkArgument(Schemas.isTableNameValid(idxName), "Invalid table name %s", idxName);
         com.palantir.logsafe.Preconditions.checkArgument(
-                !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns()
+                !tableDefinitions
+                                .get(definition.getSourceTable())
+                                .toTableMetadata()
+                                .getColumns()
+                                .hasDynamicColumns()
                         || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
     }
@@ -233,7 +232,7 @@ public class Schema {
      */
     public void validate() {
         // Try converting to metadata to see if any validation logic throws.
-        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             try {
                 entry.getValue().validate();
             } catch (Exception e) {
@@ -242,7 +241,7 @@ public class Schema {
             }
         }
 
-        for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
+        for (Map.Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
             IndexDefinition def = indexEntry.getValue();
             try {
                 def.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
@@ -253,32 +252,36 @@ public class Schema {
             }
         }
 
-        for (Entry<String, String> e : indexesByTable.entries()) {
+        for (Map.Entry<String, String> e : indexesByTable.entries()) {
             TableMetadata tableMetadata = tableDefinitions.get(e.getKey()).toTableMetadata();
 
-            Collection<String> rowNames = Collections2.transform(tableMetadata.getRowMetadata().getRowParts(),
-                    input -> input.getComponentName());
+            Collection<String> rowNames = Collections2.transform(
+                    tableMetadata.getRowMetadata().getRowParts(), NameComponentDescription::getComponentName);
 
             IndexMetadata indexMetadata = indexDefinitions.get(e.getValue()).toIndexMetadata(e.getValue());
-            for (IndexComponent c : Iterables.concat(indexMetadata.getRowComponents(),
-                    indexMetadata.getColumnComponents())) {
+            for (IndexComponent c :
+                    Iterables.concat(indexMetadata.getRowComponents(), indexMetadata.getColumnComponents())) {
                 if (c.rowComponentName != null) {
-                    com.palantir.logsafe.Preconditions.checkArgument(rowNames.contains(c.rowComponentName),
+                    com.palantir.logsafe.Preconditions.checkArgument(
+                            rowNames.contains(c.rowComponentName),
                             "In index, a componentFromRow must reference an existing row component");
                 }
             }
 
             if (indexMetadata.getColumnNameToAccessData() != null) {
-                com.palantir.logsafe.Preconditions.checkArgument(tableMetadata.getColumns().getDynamicColumn() == null,
+                com.palantir.logsafe.Preconditions.checkArgument(
+                        tableMetadata.getColumns().getDynamicColumn() == null,
                         "Indexes accessing columns not supported for tables with dynamic columns.");
-                Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
-                        NamedColumnDescription::getLongName);
-                com.palantir.logsafe.Preconditions.checkArgument(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
+                Collection<String> columnNames = Collections2.transform(
+                        tableMetadata.getColumns().getNamedColumns(), NamedColumnDescription::getLongName);
+                com.palantir.logsafe.Preconditions.checkArgument(
+                        columnNames.contains(indexMetadata.getColumnNameToAccessData()),
                         "In index, a component derived from column must reference an existing column");
             }
 
             if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {
-                com.palantir.logsafe.Preconditions.checkArgument(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
+                com.palantir.logsafe.Preconditions.checkArgument(
+                        ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
                         "Nonadditive indexes require write-write conflicts on their tables");
             }
         }
@@ -286,12 +289,12 @@ public class Schema {
 
     public Map<TableReference, TableDefinition> getTableDefinitions() {
         return tableDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Map.Entry::getValue));
     }
 
     public Map<TableReference, IndexDefinition> getIndexDefinitions() {
         return indexDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Map.Entry::getValue));
     }
 
     public Namespace getNamespace() {
@@ -309,58 +312,55 @@ public class Schema {
 
         TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
         TableRendererV2 tableRendererV2 = new TableRendererV2(packageName, namespace);
-        for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
+        for (Map.Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
             ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(
                     Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));
             if (table.getGenericTableName() != null) {
-                com.palantir.logsafe.Preconditions.checkState(!indexesByTable.containsKey(rawTableName),
-                        "Generic tables cannot have indices");
+                com.palantir.logsafe.Preconditions.checkState(
+                        !indexesByTable.containsKey(rawTableName), "Generic tables cannot have indices");
             } else {
                 for (String indexName : indexesByTable.get(rawTableName)) {
                     indices.add(indexDefinitions.get(indexName).toIndexMetadata(indexName));
                 }
             }
-            emit(srcDir,
-                 tableRenderer.render(rawTableName, table, indices.build()),
-                 packageName,
-                 tableRenderer.getClassName(rawTableName, table));
+            emit(
+                    srcDir,
+                    tableRenderer.render(rawTableName, table, indices.build()),
+                    packageName,
+                    tableRenderer.getClassName(rawTableName, table));
             if (table.hasV2TableEnabled()) {
-                emit(srcDir,
+                emit(
+                        srcDir,
                         tableRendererV2.render(rawTableName, table),
                         packageName,
                         tableRendererV2.getClassName(rawTableName, table));
             }
         }
         for (StreamStoreRenderer renderer : streamStoreRenderers) {
-            emit(srcDir,
-                 renderer.renderStreamStore(),
-                 renderer.getPackageName(),
-                 renderer.getStreamStoreClassName());
-            emit(srcDir,
-                 renderer.renderIndexCleanupTask(),
-                 renderer.getPackageName(),
-                 renderer.getIndexCleanupTaskClassName());
-            emit(srcDir,
-                 renderer.renderMetadataCleanupTask(),
-                 renderer.getPackageName(),
-                 renderer.getMetadataCleanupTaskClassName());
+            emit(srcDir, renderer.renderStreamStore(), renderer.getPackageName(), renderer.getStreamStoreClassName());
+            emit(
+                    srcDir,
+                    renderer.renderIndexCleanupTask(),
+                    renderer.getPackageName(),
+                    renderer.getIndexCleanupTaskClassName());
+            emit(
+                    srcDir,
+                    renderer.renderMetadataCleanupTask(),
+                    renderer.getPackageName(),
+                    renderer.getMetadataCleanupTaskClassName());
         }
         TableFactoryRenderer tableFactoryRenderer =
-                TableFactoryRenderer.of(
-                        name,
-                        packageName,
-                        namespace,
-                        tableDefinitions);
-        emit(srcDir,
-             tableFactoryRenderer.render(),
-             tableFactoryRenderer.getPackageName(),
-             tableFactoryRenderer.getClassName());
+                TableFactoryRenderer.of(name, packageName, namespace, tableDefinitions);
+        emit(
+                srcDir,
+                tableFactoryRenderer.render(),
+                tableFactoryRenderer.getPackageName(),
+                tableFactoryRenderer.getClassName());
     }
 
-    private void emit(File srcDir, String code, String packName, String className)
-            throws IOException {
+    private void emit(File srcDir, String code, String packName, String className) throws IOException {
         File outputDir = new File(srcDir, packName.replace(".", "/"));
         File outputFile = new File(outputDir, className + ".java");
 

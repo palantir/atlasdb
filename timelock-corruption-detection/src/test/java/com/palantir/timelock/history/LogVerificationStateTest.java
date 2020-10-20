@@ -18,16 +18,14 @@ package com.palantir.timelock.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.paxos.Client;
+import com.palantir.paxos.SqliteConnections;
+import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import javax.sql.DataSource;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.paxos.Client;
-import com.palantir.paxos.SqliteConnections;
-import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 
 public class LogVerificationStateTest {
     @Rule

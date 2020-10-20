@@ -15,20 +15,21 @@
  */
 package com.palantir.atlasdb.table.description.constraints.tuples;
 
-
-public class TupleOf4<A,B,C,D> implements Tuple{
+public class TupleOf4<A, B, C, D> implements Tuple {
     private final A one;
     private final B two;
     private final C three;
     private final D four;
-    public static <A,B,C,D> TupleOf4<A,B,C,D> of(A a, B b, C c, D d) {
-        return new TupleOf4<A,B,C,D>(a,b,c,d);
+
+    public static <A, B, C, D> TupleOf4<A, B, C, D> of(A a, B b, C c, D d) {
+        return new TupleOf4<A, B, C, D>(a, b, c, d);
     }
+
     public TupleOf4(A a, B b, C c, D d) {
-        this.one=a;
-        this.two=b;
-        this.three=c;
-        this.four=d;
+        this.one = a;
+        this.two = b;
+        this.three = c;
+        this.four = d;
     }
 
     public A field1() {
@@ -51,6 +52,4 @@ public class TupleOf4<A,B,C,D> implements Tuple{
     public int getSize() {
         return 4;
     }
-
 }
-

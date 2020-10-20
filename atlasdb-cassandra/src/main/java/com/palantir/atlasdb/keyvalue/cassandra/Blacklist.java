@@ -15,28 +15,26 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
-
 public class Blacklist {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Logger log = LoggerFactory.getLogger(Blacklist.class);
 
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;
@@ -50,7 +48,7 @@ public class Blacklist {
     @VisibleForTesting
     Blacklist(CassandraKeyValueServiceConfig config, Clock clock) {
         this.config = config;
-        this.blacklist = Maps.newConcurrentMap();
+        this.blacklist = new ConcurrentHashMap<>();
         this.clock = clock;
     }
 
@@ -62,11 +60,13 @@ public class Blacklist {
                 if (!pools.containsKey(host)) {
                     // Probably the pool changed underneath us
                     blacklist.remove(host);
-                    log.info("Removing host {} from the blacklist as it wasn't found in the pool.",
+                    log.info(
+                            "Removing host {} from the blacklist as it wasn't found in the pool.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
                 } else if (isHostHealthy(pools.get(host))) {
                     blacklist.remove(host);
-                    log.info("Added host {} back into the pool after a waiting period and successful health check.",
+                    log.info(
+                            "Added host {} back into the pool after a waiting period and successful health check.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
                 }
             }
@@ -84,7 +84,8 @@ public class Blacklist {
             container.runWithPooledResource(CassandraUtils.getValidatePartitioner(config));
             return true;
         } catch (Exception e) {
-            log.info("We tried to add blacklisted host '{}' back into the pool, but got an exception"
+            log.info(
+                    "We tried to add blacklisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
                     SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
@@ -128,10 +129,10 @@ public class Blacklist {
 
     public List<String> blacklistDetails() {
         return blacklist.entrySet().stream()
-                .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
+                .map(blacklistedHostToBlacklistTime -> String.format(
+                        "host: %s was blacklisted at %s",
                         CassandraLogHelper.host(blacklistedHostToBlacklistTime.getKey()),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
                 .collect(Collectors.toList());
-
     }
 }

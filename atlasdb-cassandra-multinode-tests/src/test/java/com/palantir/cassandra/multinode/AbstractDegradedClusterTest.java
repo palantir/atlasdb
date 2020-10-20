@@ -20,14 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.apache.thrift.TException;
-import org.junit.Before;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -41,6 +33,12 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.thrift.TException;
+import org.junit.Before;
 
 public abstract class AbstractDegradedClusterTest {
     static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
@@ -119,11 +117,10 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     private String getUniqueReachableSchemaVersionOrThrow() throws TException {
-        Map<String, List<String>> schemaVersions = getTestKvs().getClientPool().runWithRetry(
-                CassandraClient::describe_schema_versions);
-        return Iterables.getOnlyElement(
-                schemaVersions.keySet().stream()
-                        .filter(schema -> !schema.equals(CassandraKeyValueServices.VERSION_UNREACHABLE))
-                        .collect(Collectors.toList()));
+        Map<String, List<String>> schemaVersions =
+                getTestKvs().getClientPool().runWithRetry(CassandraClient::describe_schema_versions);
+        return Iterables.getOnlyElement(schemaVersions.keySet().stream()
+                .filter(schema -> !schema.equals(CassandraKeyValueServices.VERSION_UNREACHABLE))
+                .collect(Collectors.toList()));
     }
 }

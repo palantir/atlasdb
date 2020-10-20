@@ -16,15 +16,15 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.paxos.Client;
+import com.palantir.paxos.LeaderPingResult;
+import com.palantir.paxos.LeaderPingerContext;
 import java.io.Closeable;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
-import com.palantir.paxos.Client;
-import com.palantir.paxos.LeaderPingResult;
-import com.palantir.paxos.LeaderPingerContext;
-
 interface ClientAwareLeaderPinger extends Closeable {
     Future<LeaderPingResult> registerAndPing(UUID requestedUuid, Client client);
+
     LeaderPingerContext<BatchPingableLeader> underlyingRpcClient();
 }

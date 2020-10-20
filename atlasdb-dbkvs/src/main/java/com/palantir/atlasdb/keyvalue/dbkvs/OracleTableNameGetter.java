@@ -61,8 +61,8 @@ public class OracleTableNameGetter {
     public String getInternalShortOverflowTableName(ConnectionSupplier connectionSupplier, TableReference tableRef)
             throws TableMappingNotFoundException {
         if (useTableMapping) {
-            return oracleTableNameUnmapper
-                    .getShortTableNameFromMappingTable(connectionSupplier, overflowTablePrefix, tableRef);
+            return oracleTableNameUnmapper.getShortTableNameFromMappingTable(
+                    connectionSupplier, overflowTablePrefix, tableRef);
         }
         return getPrefixedOverflowTableName(tableRef);
     }

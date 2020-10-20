@@ -15,16 +15,6 @@
  */
 package com.palantir.common.collect;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Spliterator;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
@@ -34,6 +24,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Spliterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
 
 /**
  * A wrapper for an iterable that gives it super chaining powers. And a nice toString.
@@ -243,7 +241,6 @@ public abstract class IterableView<T> extends ForwardingObject implements Iterab
      */
     @SuppressWarnings("unchecked")
     private Iterable<T> castAsIterable() {
-        return (Iterable<T>)delegate();
+        return (Iterable<T>) delegate();
     }
-
 }

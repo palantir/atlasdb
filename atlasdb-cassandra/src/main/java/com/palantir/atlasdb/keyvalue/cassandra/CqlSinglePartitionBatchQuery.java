@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
-import com.google.common.collect.Lists;
 import com.palantir.logsafe.Arg;
+import java.util.ArrayList;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CqlSinglePartitionBatchQuery {
@@ -33,7 +31,7 @@ public abstract class CqlSinglePartitionBatchQuery {
     @Value.Lazy
     public CqlQuery toCqlQuery() {
         StringBuilder queryFormat = new StringBuilder();
-        List<Arg<?>> queryArgs = Lists.newArrayList();
+        List<Arg<?>> queryArgs = new ArrayList<>();
         queryFormat.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
         individualQueryStatements().forEach(query -> {
             queryFormat.append(query.safeQueryFormat()).append("\n");

@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
 public final class CassandraConstants {
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
@@ -76,5 +75,4 @@ public final class CassandraConstants {
     private CassandraConstants() {
         // Utility class
     }
-
 }

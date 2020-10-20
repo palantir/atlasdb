@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.EvictingQueue;
@@ -36,6 +29,11 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
+import java.time.Instant;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import org.immutables.value.Value;
 
 /**
  * TODO(jkong): Remove this once PDS-95791 is resolved.
@@ -71,16 +69,18 @@ public final class LocalLockTracker {
                     public String visitUnknown(String unknownType) {
                         return "unexpected type: " + unknownType;
                     }
-                })).build();
+                }))
+                .build();
         eventBuffer.add(event);
     }
 
     void logWaitForLocksResponse(Set<ConjureLockDescriptor> lockDescriptors, ConjureWaitForLocksResponse response) {
         TrackedLockEvent event = getTimestampedLockEventBuilder()
                 .eventType(EventType.WAIT_FOR_LOCKS)
-                .eventDescription(response.getWasSuccessful()
-                        ? "SUCCESS - waited for " + lockDescriptors
-                        : "FAILED - tried to wait for " + lockDescriptors)
+                .eventDescription(
+                        response.getWasSuccessful()
+                                ? "SUCCESS - waited for " + lockDescriptors
+                                : "FAILED - tried to wait for " + lockDescriptors)
                 .build();
         eventBuffer.add(event);
     }
@@ -88,8 +88,8 @@ public final class LocalLockTracker {
     void logRefreshResponse(Set<ConjureLockToken> tokens, ConjureRefreshLocksResponse response) {
         TrackedLockEvent event = getTimestampedLockEventBuilder()
                 .eventType(EventType.REFRESH_LOCKS)
-                .eventDescription("Attempted to refresh " + tokens
-                        + "; succeeded refreshing " + response.getRefreshedTokens())
+                .eventDescription(
+                        "Attempted to refresh " + tokens + "; succeeded refreshing " + response.getRefreshedTokens())
                 .build();
         eventBuffer.add(event);
     }
@@ -97,8 +97,7 @@ public final class LocalLockTracker {
     void logUnlockResponse(Set<ConjureLockToken> tokens, ConjureUnlockResponse response) {
         TrackedLockEvent event = getTimestampedLockEventBuilder()
                 .eventType(EventType.UNLOCK)
-                .eventDescription("Attempted to unlock " + tokens
-                        + "; succeeded unlocking " + response.getTokens())
+                .eventDescription("Attempted to unlock " + tokens + "; succeeded unlocking " + response.getTokens())
                 .build();
         eventBuffer.add(event);
     }
@@ -119,7 +118,9 @@ public final class LocalLockTracker {
     @JsonDeserialize(as = ImmutableTrackedLockEvent.class)
     interface TrackedLockEvent {
         Instant wallClockTimestamp();
+
         EventType eventType();
+
         String eventDescription();
     }
 }

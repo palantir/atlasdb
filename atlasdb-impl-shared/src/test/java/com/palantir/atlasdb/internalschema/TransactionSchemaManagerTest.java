@@ -20,16 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked") // Mocks of generic types
 public class TransactionSchemaManagerTest {
@@ -48,7 +46,8 @@ public class TransactionSchemaManagerTest {
     @Test
     public void getRangeAtBoundThresholdWorksOnSingleRanges() {
         assertThat(manager.getRangeAtBoundThreshold(
-                ValueAndBound.of(InternalSchemaMetadata.defaultValue(), TIMESTAMP_1)).getValue())
+                                ValueAndBound.of(InternalSchemaMetadata.defaultValue(), TIMESTAMP_1))
+                        .getValue())
                 .isEqualTo(TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
     }
 
@@ -56,26 +55,25 @@ public class TransactionSchemaManagerTest {
     public void getRangeAtBoundThresholdIdentifiesTheCorrectRange() {
         InternalSchemaMetadata internalSchemaMetadata = InternalSchemaMetadata.builder()
                 .timestampToTransactionsTableSchemaVersion(
-                        TimestampPartitioningMap.of(
-                                ImmutableRangeMap.<Long, Integer>builder()
+                        TimestampPartitioningMap.of(ImmutableRangeMap.<Long, Integer>builder()
                                 .put(Range.closedOpen(1L, TIMESTAMP_1), 1)
                                 .put(Range.closedOpen(TIMESTAMP_1, TIMESTAMP_2), 2)
                                 .put(Range.atLeast(TIMESTAMP_2), 3)
                                 .build()))
                 .build();
 
-        assertThat(manager.getRangeAtBoundThreshold(ValueAndBound.of(internalSchemaMetadata, 1L))).satisfies(
-                entry -> {
+        assertThat(manager.getRangeAtBoundThreshold(ValueAndBound.of(internalSchemaMetadata, 1L)))
+                .satisfies(entry -> {
                     assertThat(entry.getKey()).isEqualTo(Range.closedOpen(1L, TIMESTAMP_1));
                     assertThat(entry.getValue()).isEqualTo(1);
                 });
-        assertThat(manager.getRangeAtBoundThreshold(ValueAndBound.of(internalSchemaMetadata, TIMESTAMP_1))).satisfies(
-                entry -> {
+        assertThat(manager.getRangeAtBoundThreshold(ValueAndBound.of(internalSchemaMetadata, TIMESTAMP_1)))
+                .satisfies(entry -> {
                     assertThat(entry.getKey()).isEqualTo(Range.closedOpen(TIMESTAMP_1, TIMESTAMP_2));
                     assertThat(entry.getValue()).isEqualTo(2);
                 });
-        assertThat(manager.getRangeAtBoundThreshold(ValueAndBound.of(internalSchemaMetadata, TIMESTAMP_2))).satisfies(
-                entry -> {
+        assertThat(manager.getRangeAtBoundThreshold(ValueAndBound.of(internalSchemaMetadata, TIMESTAMP_2)))
+                .satisfies(entry -> {
                     assertThat(entry.getKey()).isEqualTo(Range.atLeast(TIMESTAMP_2));
                     assertThat(entry.getValue()).isEqualTo(3);
                 });

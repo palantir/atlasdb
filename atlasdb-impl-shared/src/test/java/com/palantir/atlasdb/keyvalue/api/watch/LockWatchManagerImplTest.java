@@ -19,14 +19,13 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.palantir.lock.client.NamespacedConjureLockWatchingService;
+import com.palantir.lock.watch.LockWatchEventCache;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.palantir.lock.client.NamespacedConjureLockWatchingService;
-import com.palantir.lock.watch.LockWatchEventCache;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class LockWatchManagerImplTest {

@@ -15,22 +15,20 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CompactPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(CompactPriorityCalculator.class);
@@ -40,13 +38,13 @@ class CompactPriorityCalculator {
     private final SweepHistoryProvider sweepHistoryProvider;
 
     static CompactPriorityCalculator create(TransactionManager transactionManager) {
-        return new CompactPriorityCalculator(transactionManager,
-                new SweepHistoryProvider(),
-                new CompactionHistoryProvider());
+        return new CompactPriorityCalculator(
+                transactionManager, new SweepHistoryProvider(), new CompactionHistoryProvider());
     }
 
     @VisibleForTesting
-    CompactPriorityCalculator(TransactionManager transactionManager,
+    CompactPriorityCalculator(
+            TransactionManager transactionManager,
             SweepHistoryProvider sweepHistoryProvider,
             CompactionHistoryProvider compactionHistoryProvider) {
         this.transactionManager = transactionManager;
@@ -78,8 +76,7 @@ class CompactPriorityCalculator {
     }
 
     private static Optional<String> maybeChooseUncompactedTable(
-            Map<String, Long> tableToLastTimeSwept,
-            Map<String, Long> tableToLastTimeCompacted) {
+            Map<String, Long> tableToLastTimeSwept, Map<String, Long> tableToLastTimeCompacted) {
 
         List<String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
                 .filter(table -> !tableToLastTimeCompacted.keySet().contains(table))
@@ -88,7 +85,8 @@ class CompactPriorityCalculator {
         if (uncompactedTables.size() > 0) {
             int randomTableIndex = ThreadLocalRandom.current().nextInt(uncompactedTables.size());
             String randomlyChosenTable = uncompactedTables.get(randomTableIndex);
-            log.info("There are some tables which have been swept, but not compacted. Choosing {} at random.",
+            log.info(
+                    "There are some tables which have been swept, but not compacted. Choosing {} at random.",
                     safeTableRef(randomlyChosenTable));
             return Optional.of(randomlyChosenTable);
         }
@@ -96,8 +94,7 @@ class CompactPriorityCalculator {
     }
 
     private static Optional<String> maybeChooseTableSweptAfterCompact(
-            Map<String, Long> tableToLastTimeSwept,
-            Map<String, Long> tableToLastTimeCompacted) {
+            Map<String, Long> tableToLastTimeSwept, Map<String, Long> tableToLastTimeCompacted) {
 
         String tableToCompact = null;
         long maxSweptAfterCompact = 0L;
@@ -114,7 +111,8 @@ class CompactPriorityCalculator {
         }
 
         if (tableToCompact != null) {
-            log.info("Choosing to compact {}, because it was swept {} milliseconds after the last compaction",
+            log.info(
+                    "Choosing to compact {}, because it was swept {} milliseconds after the last compaction",
                     safeTableRef(tableToCompact),
                     SafeArg.of("millisFromCompactionToSweep", maxSweptAfterCompact));
             return Optional.of(tableToCompact);
@@ -122,8 +120,7 @@ class CompactPriorityCalculator {
         return Optional.empty();
     }
 
-    private static Optional<String> maybeChooseTableCompactedOver1HourAgo(
-            Map<String, Long> tableToLastTimeCompacted) {
+    private static Optional<String> maybeChooseTableCompactedOver1HourAgo(Map<String, Long> tableToLastTimeCompacted) {
 
         List<String> filteredTablesCompactedAfterSweep = tableToLastTimeCompacted.entrySet().stream()
                 .filter(entry -> entry.getValue() < System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1L))
@@ -132,7 +129,8 @@ class CompactPriorityCalculator {
         if (filteredTablesCompactedAfterSweep.size() > 0) {
             int randomTableIndex = ThreadLocalRandom.current().nextInt(filteredTablesCompactedAfterSweep.size());
             String randomlyChosenTable = filteredTablesCompactedAfterSweep.get(randomTableIndex);
-            log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} at random"
+            log.info(
+                    "All swept tables have been compacted after the last sweep. Choosing to compact {} at random"
                             + " between tables which were compacted more than 1 hour ago.",
                     safeTableRef(randomlyChosenTable));
             return Optional.of(randomlyChosenTable);
@@ -143,5 +141,4 @@ class CompactPriorityCalculator {
     private static Arg<String> safeTableRef(String fullyQualifiedName) {
         return LoggingArgs.safeInternalTableName(fullyQualifiedName);
     }
-
 }

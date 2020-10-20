@@ -23,9 +23,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -35,6 +32,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ShardProgressTest {
     private static final long INITIAL_TIMESTAMP = SweepQueueUtils.INITIAL_TIMESTAMP;
@@ -46,7 +45,7 @@ public class ShardProgressTest {
     private static final ShardAndStrategy THOROUGH_TEN = ShardAndStrategy.thorough(10);
     private static final ShardAndStrategy CONSERVATIVE_TWENTY = ShardAndStrategy.conservative(20);
 
-    private static final Cell DUMMY = Cell.create(new byte[]{0}, new byte[]{0});
+    private static final Cell DUMMY = Cell.create(new byte[] {0}, new byte[] {0});
 
     @Before
     public void setup() {

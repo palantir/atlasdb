@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -31,12 +25,21 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.util.PersistableBoolean;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SweepableTimestamps extends SweepQueueTable {
     private static final byte[] DUMMY = new byte[0];
 
     public SweepableTimestamps(KeyValueService kvs, WriteInfoPartitioner partitioner) {
-        super(kvs, TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef(), partitioner, null);
+        super(
+                kvs,
+                TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef(),
+                partitioner,
+                null);
     }
 
     @Override
@@ -81,8 +84,8 @@ public class SweepableTimestamps extends SweepQueueTable {
         return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
     }
 
-    private Optional<Long> nextSweepablePartition(ShardAndStrategy shardAndStrategy, long minFineInclusive,
-            long maxFineInclusive) {
+    private Optional<Long> nextSweepablePartition(
+            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive) {
         ColumnRangeSelection range = getColRangeSelection(minFineInclusive, maxFineInclusive + 1);
 
         long current = SweepQueueUtils.partitionFineToCoarse(minFineInclusive);
@@ -98,8 +101,8 @@ public class SweepableTimestamps extends SweepQueueTable {
         return Optional.empty();
     }
 
-    private Optional<Long> getCandidatesInCoarsePartition(ShardAndStrategy shardStrategy, long partitionCoarse,
-            ColumnRangeSelection colRange) {
+    private Optional<Long> getCandidatesInCoarsePartition(
+            ShardAndStrategy shardStrategy, long partitionCoarse, ColumnRangeSelection colRange) {
         byte[] rowBytes = computeRowBytes(shardStrategy, partitionCoarse);
 
         RowColumnRangeIterator colIterator = getRowsColumnRange(ImmutableList.of(rowBytes), colRange, 1);
@@ -112,21 +115,25 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     private ColumnRangeSelection getColRangeSelection(long minFineInclusive, long maxFineExclusive) {
-        byte[] start = SweepableTimestampsTable.SweepableTimestampsColumn.of(minFineInclusive).persistToBytes();
-        byte[] end = SweepableTimestampsTable.SweepableTimestampsColumn.of(maxFineExclusive).persistToBytes();
+        byte[] start = SweepableTimestampsTable.SweepableTimestampsColumn.of(minFineInclusive)
+                .persistToBytes();
+        byte[] end = SweepableTimestampsTable.SweepableTimestampsColumn.of(maxFineExclusive)
+                .persistToBytes();
         return new ColumnRangeSelection(start, end);
     }
 
     private byte[] computeRowBytes(ShardAndStrategy shardStrategy, long coarsePartition) {
         SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                shardStrategy.shard(), coarsePartition,
+                shardStrategy.shard(),
+                coarsePartition,
                 PersistableBoolean.of(shardStrategy.isConservative()).persistToBytes());
         return row.persistToBytes();
     }
 
     private long getFinePartitionFromEntry(Map.Entry<Cell, Value> entry) {
         byte[] colName = entry.getKey().getColumnName();
-        return SweepableTimestampsTable.SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(colName)
+        return SweepableTimestampsTable.SweepableTimestampsColumn.BYTES_HYDRATOR
+                .hydrateFromBytes(colName)
                 .getTimestampModulus();
     }
 

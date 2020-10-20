@@ -50,6 +50,8 @@ public class AsyncInitializationState {
     }
 
     public enum State {
-        INITIALIZING, DONE, CANCELLED
+        INITIALIZING,
+        DONE,
+        CANCELLED
     }
 }

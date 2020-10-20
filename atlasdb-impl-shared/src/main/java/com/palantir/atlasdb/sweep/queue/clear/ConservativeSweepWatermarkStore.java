@@ -16,12 +16,12 @@
 
 package com.palantir.atlasdb.sweep.queue.clear;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
 import java.util.Set;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-
 public interface ConservativeSweepWatermarkStore {
     void updateWatermarks(long newWatermark, Set<TableReference> conservativeTables);
+
     Map<TableReference, Long> getWatermarks(Set<TableReference> tableReferences);
 }

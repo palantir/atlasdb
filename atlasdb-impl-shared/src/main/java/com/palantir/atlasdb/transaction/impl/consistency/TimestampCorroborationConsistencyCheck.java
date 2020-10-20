@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.transaction.impl.consistency;
 
-import java.util.function.ToLongFunction;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.SafeArg;
+import java.util.function.ToLongFunction;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Compares a source of fresh timestamps against a conservative lower bound that should always be strictly lower than
@@ -51,20 +49,25 @@ public abstract class TimestampCorroborationConsistencyCheck implements Transact
         try {
             lowerBound = conservativeBound().applyAsLong(transactionManager);
         } catch (Exception e) {
-            log.warn("Could not obtain a lower bound on timestamps, so we don't know if our transaction manager"
-                    + " is consistent.", e);
+            log.warn(
+                    "Could not obtain a lower bound on timestamps, so we don't know if our transaction manager"
+                            + " is consistent.",
+                    e);
             return indeterminateResultForException(e);
         }
 
         try {
             freshTimestamp = freshTimestampSource().applyAsLong(transactionManager);
         } catch (Exception e) {
-            log.warn("Could not obtain a fresh timestamp, so we don't know if our transaction manager is"
-                    + " consistent.", e);
+            log.warn(
+                    "Could not obtain a fresh timestamp, so we don't know if our transaction manager is"
+                            + " consistent.",
+                    e);
             return indeterminateResultForException(e);
         }
         if (freshTimestamp <= lowerBound) {
-            log.error("Your AtlasDB client believes that a strict lower bound for the timestamp was {} (typically by"
+            log.error(
+                    "Your AtlasDB client believes that a strict lower bound for the timestamp was {} (typically by"
                             + " reading the unreadable timestamp), but that's newer than a fresh timestamp of {}, which"
                             + " implies clocks went back. If using TimeLock, this could be because timestamp bounds"
                             + " were not migrated properly - which can happen if you've moved TimeLock Server without"
@@ -76,7 +79,8 @@ public abstract class TimestampCorroborationConsistencyCheck implements Transact
                     .reasonForInconsistency(clocksWentBackwards(lowerBound, freshTimestamp))
                     .build();
         }
-        log.info("Passed timestamp corroboration consistency check; expected a strict lower bound of {}, which was"
+        log.info(
+                "Passed timestamp corroboration consistency check; expected a strict lower bound of {}, which was"
                         + " lower than a fresh timestamp of {}.",
                 SafeArg.of("timestampLowerBound", lowerBound),
                 SafeArg.of("freshTimestamp", freshTimestamp));

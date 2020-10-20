@@ -20,16 +20,14 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirInterruptedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.Test;
-
-import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirInterruptedException;
 
 public class InterruptibleProxyTest {
 
@@ -62,7 +60,7 @@ public class InterruptibleProxyTest {
             @Override
             public String remove(int arg0) {
                 assertNotEquals(Thread.currentThread(), callingThread);
-                while(true) {
+                while (true) {
                     try {
                         Thread.sleep(100);
                         callingThread.interrupt();
@@ -84,8 +82,7 @@ public class InterruptibleProxyTest {
         strings.add("Foo");
 
         @SuppressWarnings("unchecked")
-        List<String> proxy =
-                InterruptibleProxy.newProxyInstance(List.class, strings, CancelDelegate.CANCEL);
+        List<String> proxy = InterruptibleProxy.newProxyInstance(List.class, strings, CancelDelegate.CANCEL);
         assertEquals("Foo", proxy.get(0));
         try {
             Thread.currentThread().interrupt();
@@ -113,5 +110,4 @@ public class InterruptibleProxyTest {
 
         assertTrue(gotInterrupted.get());
     }
-
 }

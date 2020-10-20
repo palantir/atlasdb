@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.logging;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Collections2;
@@ -38,6 +29,13 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 
 /**
  * Includes utilities for generating logging args that may be safe or unsafe, depending on table metadata.
@@ -55,6 +53,7 @@ public final class LoggingArgs {
     @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
         SafeArg<List<TableReference>> safeTableRefs();
+
         UnsafeArg<List<TableReference>> unsafeTableRefs();
     }
 
@@ -201,8 +200,10 @@ public final class LoggingArgs {
     }
 
     public static Arg<?> columnCount(ColumnSelection columnSelection) {
-        return getArg("columnCount", columnSelection.allColumnsSelected()
-                ? "all" : Iterables.size(columnSelection.getSelectedColumns()), true);
+        return getArg(
+                "columnCount",
+                columnSelection.allColumnsSelected() ? "all" : Iterables.size(columnSelection.getSelectedColumns()),
+                true);
     }
 
     public static Arg<?> columnCount(int numberOfColumns) {
@@ -214,10 +215,12 @@ public final class LoggingArgs {
     }
 
     public static Arg<RangeRequest> range(TableReference tableReference, RangeRequest range) {
-        return getArg("range",
+        return getArg(
+                "range",
                 range,
-                range.getColumnNames().stream().allMatch(
-                        (columnName) -> logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
+                range.getColumnNames().stream()
+                        .allMatch(columnName ->
+                                logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
     }
 
     public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(
@@ -232,5 +235,4 @@ public final class LoggingArgs {
     private static <T> Arg<T> getArg(String name, T value, boolean safe) {
         return safe ? SafeArg.of(name, value) : UnsafeArg.of(name, value);
     }
-
 }

@@ -17,12 +17,11 @@ package com.palantir.atlasdb.cli.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cli.runner.StandardStreamUtilities;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 public class OutputPrinterTest {
     private static final OutputPrinter print = new OutputPrinter(LoggerFactory.getLogger(OutputPrinter.class));
@@ -43,17 +42,21 @@ public class OutputPrinterTest {
 
     @Test
     public void testInfoPrintingWorksWithMultipleReplacement() {
-        String systemOut = StandardStreamUtilities.wrapSystemOut(
-                () -> print.info("Replace {} of {} {}.", SafeArg.of("all", "all"), SafeArg.of("these", "these"),
-                        SafeArg.of("fields", "fields")));
+        String systemOut = StandardStreamUtilities.wrapSystemOut(() -> print.info(
+                "Replace {} of {} {}.",
+                SafeArg.of("all", "all"),
+                SafeArg.of("these", "these"),
+                SafeArg.of("fields", "fields")));
         assertThat(systemOut).contains("Replace all of these fields. ");
     }
 
     @Test
     public void testErrorPrintingWorksWithMultipleReplacement() {
-        String systemErr = StandardStreamUtilities.wrapSystemErr(
-                () -> print.error("Replace {} of {} {}.",  SafeArg.of("all", "all"), SafeArg.of("these", "these"),
-                        SafeArg.of("fields", "fields")));
+        String systemErr = StandardStreamUtilities.wrapSystemErr(() -> print.error(
+                "Replace {} of {} {}.",
+                SafeArg.of("all", "all"),
+                SafeArg.of("these", "these"),
+                SafeArg.of("fields", "fields")));
         assertThat(systemErr).contains("Replace all of these fields. ");
     }
 }

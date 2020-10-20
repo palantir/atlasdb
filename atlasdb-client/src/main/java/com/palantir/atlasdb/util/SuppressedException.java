@@ -24,7 +24,8 @@ final class SuppressedException extends RuntimeException {
     }
 
     public static Throwable from(Throwable throwable) {
-        String message = String.format("%s [%s] occurred while processing thread (%s)",
+        String message = String.format(
+                "%s [%s] occurred while processing thread (%s)",
                 highLevelType(throwable), throwable, Thread.currentThread().getName());
         SuppressedException suppressedException = new SuppressedException(message);
         suppressedException.setStackTrace(throwable.getStackTrace());

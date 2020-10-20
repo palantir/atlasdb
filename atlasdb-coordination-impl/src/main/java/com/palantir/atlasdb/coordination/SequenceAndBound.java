@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.coordination;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 /**
  * A pair of a sequence number and a bound on the validity of the value associated with that sequence number.

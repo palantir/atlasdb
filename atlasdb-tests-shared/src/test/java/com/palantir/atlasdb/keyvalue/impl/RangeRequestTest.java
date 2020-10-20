@@ -17,11 +17,10 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class RangeRequestTest {
 
@@ -44,10 +43,13 @@ public class RangeRequestTest {
 
     @Test
     public void testEmpty() {
-        RangeRequest request = RangeRequest.builder().endRowExclusive(RangeRequests.getFirstRowName()).build();
+        RangeRequest request = RangeRequest.builder()
+                .endRowExclusive(RangeRequests.getFirstRowName())
+                .build();
         Assert.assertTrue(request.isEmptyRange());
-        request = RangeRequest.reverseBuilder().endRowExclusive(RangeRequests.getLastRowName()).build();
+        request = RangeRequest.reverseBuilder()
+                .endRowExclusive(RangeRequests.getLastRowName())
+                .build();
         Assert.assertTrue(request.isEmptyRange());
     }
-
 }

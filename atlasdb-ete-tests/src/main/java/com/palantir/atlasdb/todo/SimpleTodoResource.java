@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.todo;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.List;
-
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.List;
 
 public class SimpleTodoResource implements TodoResource {
     private TodoClient atlas;
@@ -107,4 +106,3 @@ public class SimpleTodoResource implements TodoResource {
         return atlas.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace);
     }
 }
-

@@ -110,9 +110,11 @@ public enum ConflictHandler {
     private final boolean checkWriteWriteConflicts;
     private final boolean checkReadWriteConflicts;
 
-
-    ConflictHandler(boolean lockCellsForConflicts, boolean lockRowsForConflicts,
-            boolean checkWriteWriteConflicts, boolean checkReadWriteConflicts) {
+    ConflictHandler(
+            boolean lockCellsForConflicts,
+            boolean lockRowsForConflicts,
+            boolean checkWriteWriteConflicts,
+            boolean checkReadWriteConflicts) {
 
         this.lockCellsForConflicts = lockCellsForConflicts;
         this.lockRowsForConflicts = lockRowsForConflicts;

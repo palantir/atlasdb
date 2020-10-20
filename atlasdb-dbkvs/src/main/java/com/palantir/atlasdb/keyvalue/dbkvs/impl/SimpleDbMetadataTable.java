@@ -28,9 +28,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     protected final ConnectionSupplier conns;
     private final DdlConfig config;
 
-    public SimpleDbMetadataTable(TableReference tableRef,
-                                 ConnectionSupplier conns,
-                                 DdlConfig config) {
+    public SimpleDbMetadataTable(TableReference tableRef, ConnectionSupplier conns, DdlConfig config) {
         this.tableRef = tableRef;
         this.conns = conns;
         this.config = config;
@@ -38,32 +36,34 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
 
     @Override
     public boolean exists() {
-        return conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableRef.getQualifiedName());
+        return conns.get()
+                .selectExistsUnregisteredQuery(
+                        "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                        tableRef.getQualifiedName());
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public byte[] getMetadata() {
-        AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                "SELECT value FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableRef.getQualifiedName());
+        AgnosticResultSet results = conns.get()
+                .selectResultSetUnregisteredQuery(
+                        "SELECT value FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                        tableRef.getQualifiedName());
         if (results.size() < 1) {
             return PtBytes.EMPTY_BYTE_ARRAY;
         } else {
             return MoreObjects.firstNonNull(
-                    Iterables.getOnlyElement(results.rows()).getBytes("value"),
-                    PtBytes.EMPTY_BYTE_ARRAY);
+                    Iterables.getOnlyElement(results.rows()).getBytes("value"), PtBytes.EMPTY_BYTE_ARRAY);
         }
     }
 
     @Override
     public void putMetadata(byte[] metadata) {
         Preconditions.checkArgument(exists(), "Table %s does not exist.", tableRef);
-        conns.get().updateUnregisteredQuery(
-                "UPDATE " + config.metadataTable().getQualifiedName() + " SET value = ? WHERE table_name = ?",
-                metadata,
-                tableRef.getQualifiedName());
+        conns.get()
+                .updateUnregisteredQuery(
+                        "UPDATE " + config.metadataTable().getQualifiedName() + " SET value = ? WHERE table_name = ?",
+                        metadata,
+                        tableRef.getQualifiedName());
     }
 }

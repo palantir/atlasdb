@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-
 import com.codahale.metrics.Counter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -37,6 +28,12 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
 public abstract class ResultsExtractor<T> {
 
@@ -48,17 +45,16 @@ public abstract class ResultsExtractor<T> {
 
     @SuppressWarnings("VisibilityModifier")
     public final byte[] extractResults(
-            Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
-            long startTs,
-            ColumnSelection selection) {
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey, long startTs, ColumnSelection selection) {
         byte[] maxRow = null;
-        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
+        for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
             maxRow = updatedMaxRow(maxRow, row);
 
             for (ColumnOrSuperColumn c : colEntry.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
-                internalExtractResult(startTs, selection, row, pair.lhSide, c.getColumn().getValue(), pair.rhSide);
+                internalExtractResult(
+                        startTs, selection, row, pair.lhSide, c.getColumn().getValue(), pair.rhSide);
             }
         }
         return maxRow;
@@ -83,9 +79,7 @@ public abstract class ResultsExtractor<T> {
     }
 
     public static <T> TokenBackedBasicResultsPage<RowResult<T>, byte[]> getRowResults(
-            byte[] endExclusive,
-            byte[] lastRow,
-            NavigableMap<byte[], NavigableMap<byte[], T>> resultsByRow) {
+            byte[] endExclusive, byte[] lastRow, NavigableMap<byte[], NavigableMap<byte[], T>> resultsByRow) {
         NavigableMap<byte[], RowResult<T>> ret = RowResults.viewOfSortedMap(resultsByRow);
         if (lastRow == null || RangeRequests.isLastRowName(lastRow)) {
             return new SimpleTokenBackedResultsPage<>(endExclusive, ret.values(), false);
@@ -97,12 +91,8 @@ public abstract class ResultsExtractor<T> {
         return new SimpleTokenBackedResultsPage<>(nextStart, ret.values(), true);
     }
 
-    public abstract void internalExtractResult(long startTs,
-                                               ColumnSelection selection,
-                                               byte[] row,
-                                               byte[] col,
-                                               byte[] val,
-                                               long ts);
+    public abstract void internalExtractResult(
+            long startTs, ColumnSelection selection, byte[] row, byte[] col, byte[] val, long ts);
 
     public abstract Map<Cell, T> asMap();
 

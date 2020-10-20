@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-
 public interface TransactionWrapper {
     Transaction wrap(Transaction transaction);
 }

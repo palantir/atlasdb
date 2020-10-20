@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
-
 class SweepBatchAccumulator {
-    private final List<WriteInfo> accumulatedWrites = Lists.newArrayList();
-    private final Set<Long> finePartitions = Sets.newHashSet();
-    private final List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = Lists.newArrayList();
+    private final List<WriteInfo> accumulatedWrites = new ArrayList<>();
+    private final Set<Long> finePartitions = new HashSet<>();
+    private final List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = new ArrayList<>();
     private final long sweepTimestamp;
 
     private long progressTimestamp;
@@ -43,7 +42,8 @@ class SweepBatchAccumulator {
     }
 
     void accumulateBatch(SweepBatch sweepBatch) {
-        Preconditions.checkState(sweepBatch.lastSweptTimestamp() < sweepTimestamp,
+        Preconditions.checkState(
+                sweepBatch.lastSweptTimestamp() < sweepTimestamp,
                 "Tried to accumulate a batch %s at timestamp %s that went beyond the sweep timestamp %s!"
                         + " This is unexpected, and suggests a bug in the way we read in targeted sweep."
                         + " This by itself does not mean that AtlasDB service is compromised, but targeted sweep"
@@ -82,8 +82,7 @@ class SweepBatchAccumulator {
     }
 
     private List<WriteInfo> getLatestWritesByCellReference() {
-        return ImmutableList.copyOf(
-                accumulatedWrites.stream()
+        return ImmutableList.copyOf(accumulatedWrites.stream()
                 .collect(Collectors.toMap(info -> info.writeRef().cellReference(), x -> x, WriteInfo::higherTimestamp))
                 .values());
     }

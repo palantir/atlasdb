@@ -22,13 +22,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.mockito.stubbing.Answer;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -46,12 +39,17 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.mockito.stubbing.Answer;
 
 public class SweeperTestSetup {
-    protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
-            "backgroundsweeper.fasttest");
-    protected static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName(
-            "backgroundsweeper.fasttest_other");
+    protected static final TableReference TABLE_REF =
+            TableReference.createFromFullyQualifiedName("backgroundsweeper.fasttest");
+    protected static final TableReference OTHER_TABLE =
+            TableReference.createFromFullyQualifiedName("backgroundsweeper.fasttest_other");
     protected static final int THREAD_INDEX = 0;
 
     protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
@@ -138,10 +136,12 @@ public class SweeperTestSetup {
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {
-        doReturn(Optional.of(getTableToSweep(tableRef))).when(nextTableToSweepProvider).getNextTableToSweep(any(),
-                anyLong());
-        doReturn(Optional.of(getTableToSweep(tableRef))).when(nextTableToSweepProvider).getNextTableToSweep(any(),
-                anyLong(), any());
+        doReturn(Optional.of(getTableToSweep(tableRef)))
+                .when(nextTableToSweepProvider)
+                .getNextTableToSweep(any(), anyLong());
+        doReturn(Optional.of(getTableToSweep(tableRef)))
+                .when(nextTableToSweepProvider)
+                .getNextTableToSweep(any(), anyLong(), any());
     }
 
     private TableToSweep getTableToSweep(TableReference tableRef) {
@@ -155,5 +155,4 @@ public class SweeperTestSetup {
     protected void setupTaskRunner(TableReference tableRef, SweepResults results) {
         doReturn(results).when(sweepTaskRunner).run(eq(tableRef), any(), any());
     }
-
 }

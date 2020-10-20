@@ -19,15 +19,13 @@ package com.palantir.atlasdb.timelock.adjudicate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 
 public class FeedbackSinkTest {
     private static final FakeTicker FAKE_TICKER = new FakeTicker();
@@ -44,8 +42,7 @@ public class FeedbackSinkTest {
     public void multipleFeedbackReportsAreRegistered() {
         TimeLockClientFeedbackSink sink = createSinkAndAddTestReport();
         IntStream.range(1, 100).forEach(index -> registerTestReport(sink));
-        List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
-                sink.getTrackedFeedbackReports();
+        List<ConjureTimeLockClientFeedback> trackedFeedbackReports = sink.getTrackedFeedbackReports();
         assertThat(trackedFeedbackReports.size()).isEqualTo(100);
 
         FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES);
@@ -63,8 +60,7 @@ public class FeedbackSinkTest {
     @Test
     public void feedbackReportIsEvictedAfterExpiry() {
         TimeLockClientFeedbackSink sink = createSinkAndAddTestReport();
-        List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
-                sink.getTrackedFeedbackReports();
+        List<ConjureTimeLockClientFeedback> trackedFeedbackReports = sink.getTrackedFeedbackReports();
         assertThat(trackedFeedbackReports.size()).isEqualTo(1);
 
         FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES);
@@ -72,11 +68,10 @@ public class FeedbackSinkTest {
     }
 
     TimeLockClientFeedbackSink createSinkAndAddTestReport() {
-        TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink
-                .create(Caffeine.newBuilder()
-                        .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
-                        .ticker(FAKE_TICKER)
-                        .build());
+        TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink.create(Caffeine.newBuilder()
+                .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
+                .ticker(FAKE_TICKER)
+                .build());
         registerTestReport(timeLockClientFeedbackSink);
         return timeLockClientFeedbackSink;
     }
@@ -93,4 +88,3 @@ public class FeedbackSinkTest {
                 .build();
     }
 }
-

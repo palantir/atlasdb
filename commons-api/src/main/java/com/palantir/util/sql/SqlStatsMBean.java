@@ -15,7 +15,6 @@
  */
 package com.palantir.util.sql;
 
-
 import javax.management.MXBean;
 
 @MXBean
@@ -29,5 +28,6 @@ public interface SqlStatsMBean {
     String getTopQueriesByTotalTime(int numQueries);
 
     long getClearTempTableByDeleteCount();
+
     long getClearTempTableByTruncateCount();
 }

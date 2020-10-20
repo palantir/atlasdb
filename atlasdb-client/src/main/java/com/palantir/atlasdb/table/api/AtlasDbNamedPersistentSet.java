@@ -19,7 +19,10 @@ import java.util.Set;
 
 public interface AtlasDbNamedPersistentSet<ROW> {
     void add(Set<ROW> rows);
+
     void add(ROW row);
+
     void addUnlessExists(ROW row);
+
     void addUnlessExists(Set<ROW> rows);
 }

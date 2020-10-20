@@ -17,10 +17,11 @@ package com.palantir.atlasdb.table.generation;
 
 import com.palantir.atlasdb.table.api.ColumnValue;
 
-
 public interface NamedColumnValue<T> extends ColumnValue<T> {
     String getColumnName();
+
     String getShortColumnName();
+
     @Override
     T getValue();
 }

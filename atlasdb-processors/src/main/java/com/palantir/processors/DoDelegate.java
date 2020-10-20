@@ -15,5 +15,4 @@
  */
 package com.palantir.processors;
 
-public @interface DoDelegate {
-}
+public @interface DoDelegate {}

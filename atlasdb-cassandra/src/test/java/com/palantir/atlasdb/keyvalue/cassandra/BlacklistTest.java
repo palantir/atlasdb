@@ -21,20 +21,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.InetSocketAddress;
-import java.time.Clock;
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.common.base.FunctionCheckedException;
+import java.net.InetSocketAddress;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BlacklistTest {
     private static final InetSocketAddress ADDRESS_1 = InetSocketAddress.createUnresolved("NW16XE", 123);
@@ -45,7 +43,10 @@ public class BlacklistTest {
 
     private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
             .servers(ImmutableDefaultConfig.builder().addThriftHosts(ADDRESS_1).build())
-            .credentials(ImmutableCassandraCredentialsConfig.builder().username("a").password("b").build())
+            .credentials(ImmutableCassandraCredentialsConfig.builder()
+                    .username("a")
+                    .password("b")
+                    .build())
             .replicationFactor(1)
             .unresponsiveHostBackoffTimeSeconds(1)
             .build();
@@ -62,7 +63,8 @@ public class BlacklistTest {
     @SuppressWarnings("unchecked") // Mock type is correct
     public void setUp() {
         when(clock.millis()).thenAnswer(invocation -> time.addAndGet(ONE_SECOND.toMillis() + 1));
-        when(badContainer.runWithPooledResource(any(FunctionCheckedException.class))).thenThrow(new RuntimeException());
+        when(badContainer.runWithPooledResource(any(FunctionCheckedException.class)))
+                .thenThrow(new RuntimeException());
         when(badContainer.getHost()).thenReturn(ADDRESS_1);
     }
 

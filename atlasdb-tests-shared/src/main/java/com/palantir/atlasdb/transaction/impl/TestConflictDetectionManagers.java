@@ -15,26 +15,22 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.Map;
 
 public final class TestConflictDetectionManagers {
     private TestConflictDetectionManagers() {}
 
     @VisibleForTesting
-    static ConflictDetectionManager createWithStaticConflictDetection(
-            Map<TableReference, ConflictHandler> staticMap) {
-        return new ConflictDetectionManager(
-                new CacheLoader<TableReference, ConflictHandler>() {
-                    @Override
-                    public ConflictHandler load(TableReference tableReference) throws Exception {
-                        return staticMap.getOrDefault(
-                                tableReference, ConflictHandler.RETRY_ON_WRITE_WRITE);
-                    }
-                });
+    static ConflictDetectionManager createWithStaticConflictDetection(Map<TableReference, ConflictHandler> staticMap) {
+        return new ConflictDetectionManager(new CacheLoader<TableReference, ConflictHandler>() {
+            @Override
+            public ConflictHandler load(TableReference tableReference) throws Exception {
+                return staticMap.getOrDefault(tableReference, ConflictHandler.RETRY_ON_WRITE_WRITE);
+            }
+        });
     }
 }

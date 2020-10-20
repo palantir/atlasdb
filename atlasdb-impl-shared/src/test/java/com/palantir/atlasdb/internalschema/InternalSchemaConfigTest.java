@@ -19,9 +19,8 @@ package com.palantir.atlasdb.internalschema;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import org.junit.Test;
 
 // In these tests we confirm if config is buildable, so we're interested in exceptions (or lack thereof).
 @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -30,16 +29,17 @@ public class InternalSchemaConfigTest {
     public void canCreateConfigWithRecognisedSchemaVersions() {
         for (int version : TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS) {
             assertThatCode(() -> ImmutableInternalSchemaConfig.builder()
-                    .targetTransactionsSchemaVersion(version)
-                    .build()).doesNotThrowAnyException();
+                            .targetTransactionsSchemaVersion(version)
+                            .build())
+                    .doesNotThrowAnyException();
         }
     }
 
     @Test
     public void throwsIfCreatingConfigWithUnrecognizedSchemaVersions() {
         assertThatThrownBy(() -> ImmutableInternalSchemaConfig.builder()
-                .targetTransactionsSchemaVersion(Integer.MIN_VALUE)
-                .build())
+                        .targetTransactionsSchemaVersion(Integer.MIN_VALUE)
+                        .build())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("is not a recognised transactions schema version");
     }

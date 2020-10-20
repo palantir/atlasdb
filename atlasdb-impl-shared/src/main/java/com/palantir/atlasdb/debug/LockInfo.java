@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-
 import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -35,6 +33,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableLockInfo.class)
 public interface LockInfo {
     UUID requestId();
+
     Map<LockState, Instant> lockStates();
 
     static LockInfo newRequest(UUID requestId, Instant instant) {
@@ -45,6 +44,9 @@ public interface LockInfo {
     }
 
     default LockInfo nextStage(LockState lockState, Instant instant) {
-        return ImmutableLockInfo.builder().from(this).putLockStates(lockState, instant).build();
+        return ImmutableLockInfo.builder()
+                .from(this)
+                .putLockStates(lockState, instant)
+                .build();
     }
 }

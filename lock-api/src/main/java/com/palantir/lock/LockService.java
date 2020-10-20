@@ -15,9 +15,14 @@
  */
 package com.palantir.lock;
 
+import com.google.common.annotations.Beta;
+import com.palantir.annotations.remoting.CancelableServerCall;
+import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.annotation.NonIdempotent;
+import com.palantir.logsafe.Safe;
+import com.palantir.processors.AutoDelegate;
 import java.math.BigInteger;
 import java.util.Set;
-
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -26,13 +31,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.google.common.annotations.Beta;
-import com.palantir.annotations.remoting.CancelableServerCall;
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.annotation.NonIdempotent;
-import com.palantir.logsafe.Safe;
-import com.palantir.processors.AutoDelegate;
-
 /**
  * Defines the service which handles locking operations.
  *
@@ -40,7 +38,8 @@ import com.palantir.processors.AutoDelegate;
  */
 @Path("/lock")
 @AutoDelegate
-@Beta public interface LockService extends RemoteLockService {
+@Beta
+public interface LockService extends RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks. The locks are
      * acquired reentrantly as long as the lock client is not
@@ -69,13 +68,15 @@ import com.palantir.processors.AutoDelegate;
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Deprecated
-    @NonIdempotent boolean unlock(HeldLocksToken token);
+    @NonIdempotent
+    boolean unlock(HeldLocksToken token);
 
     @POST
     @Path("unlock-simple")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent boolean unlockSimple(SimpleHeldLocksToken token);
+    @NonIdempotent
+    boolean unlockSimple(SimpleHeldLocksToken token);
 
     /**
      * Unlocks the set of locks represented by the <code>token</code>
@@ -114,7 +115,8 @@ import com.palantir.processors.AutoDelegate;
     @Path("unlock-and-freeze")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent boolean unlockAndFreeze(HeldLocksToken token);
+    @NonIdempotent
+    boolean unlockAndFreeze(HeldLocksToken token);
 
     /**
      * Returns the set of all lock tokens that the given <code>client</code> is currently
@@ -127,7 +129,8 @@ import com.palantir.processors.AutoDelegate;
     @Path("get-tokens/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent Set<HeldLocksToken> getTokens(@Safe @PathParam("client") LockClient client);
+    @Idempotent
+    Set<HeldLocksToken> getTokens(@Safe @PathParam("client") LockClient client);
 
     /**
      * Refreshes the given lock tokens.
@@ -141,7 +144,8 @@ import com.palantir.processors.AutoDelegate;
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Deprecated
-    @Idempotent Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens);
+    @Idempotent
+    Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens);
 
     /**
      * Refreshes the given lock grant.
@@ -149,13 +153,13 @@ import com.palantir.processors.AutoDelegate;
      * @return the new {@link HeldLocksGrant} token if refreshed successfully,
      *         or {@code null} if the grant could not be refreshed.
      */
-
     @POST
     @Path("refresh-grant")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    @Nullable HeldLocksGrant refreshGrant(HeldLocksGrant grant);
+    @Nullable
+    HeldLocksGrant refreshGrant(HeldLocksGrant grant);
 
     /**
      * Refreshes the lock grant identified by the given grant ID.
@@ -168,7 +172,8 @@ import com.palantir.processors.AutoDelegate;
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    @Nullable HeldLocksGrant refreshGrant(BigInteger grantId);
+    @Nullable
+    HeldLocksGrant refreshGrant(BigInteger grantId);
 
     /**
      * Converts the given token into a lock grant. The underlying locks are not
@@ -191,7 +196,8 @@ import com.palantir.processors.AutoDelegate;
     @Path("convert-to-grant")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent HeldLocksGrant convertToGrant(HeldLocksToken token);
+    @NonIdempotent
+    HeldLocksGrant convertToGrant(HeldLocksToken token);
 
     /**
      * Grants the specified client ownership of the locks represented by the
@@ -204,7 +210,8 @@ import com.palantir.processors.AutoDelegate;
     @Path("use-grant/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent HeldLocksToken useGrant(@Safe @PathParam("client") LockClient client, HeldLocksGrant grant);
+    @NonIdempotent
+    HeldLocksToken useGrant(@Safe @PathParam("client") LockClient client, HeldLocksGrant grant);
 
     /**
      * Grants the specified client ownership of the locks represented by the
@@ -217,7 +224,8 @@ import com.palantir.processors.AutoDelegate;
     @Path("use-grant-id/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent HeldLocksToken useGrant(@Safe @PathParam("client") LockClient client, BigInteger grantId);
+    @NonIdempotent
+    HeldLocksToken useGrant(@Safe @PathParam("client") LockClient client, BigInteger grantId);
 
     /**
      * This method is the same as <code>getMinLockedInVersionId(LockClient.ANONYMOUS)</code>.
@@ -229,7 +237,8 @@ import com.palantir.processors.AutoDelegate;
     @Consumes(MediaType.APPLICATION_JSON)
     @Deprecated
     @Idempotent
-    @Nullable Long getMinLockedInVersionId();
+    @Nullable
+    Long getMinLockedInVersionId();
 
     /**
      * Returns the minimum version ID for all locks that are currently acquired
@@ -247,7 +256,8 @@ import com.palantir.processors.AutoDelegate;
     @Path("lock-server-options")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent LockServerOptions getLockServerOptions();
+    @Idempotent
+    LockServerOptions getLockServerOptions();
 
     /** Returns the current time in milliseconds on the server. */
     @POST
@@ -255,13 +265,14 @@ import com.palantir.processors.AutoDelegate;
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Override
-    @Idempotent long currentTimeMillis();
+    @Idempotent
+    long currentTimeMillis();
 
     @POST
     @Path("log-current-state")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Override
-    @Idempotent void logCurrentState();
-
+    @Idempotent
+    void logCurrentState();
 }

@@ -21,8 +21,6 @@ public class GeneralTaskCheckpointerTest extends AbstractTaskCheckpointerTest {
     @Override
     protected AbstractTaskCheckpointer getCheckpointer() {
         return new GeneralTaskCheckpointer(
-                TableReference.createWithEmptyNamespace("checkpoint"),
-                keyValueService,
-                txManager);
+                TableReference.createWithEmptyNamespace("checkpoint"), keyValueService, txManager);
     }
 }

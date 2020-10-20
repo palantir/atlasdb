@@ -36,7 +36,8 @@ class DynamicRowResultRenderer extends Renderer {
 
     @Override
     protected void run() {
-        line("public static final class ", RowResult, " implements TypedRowResult {"); {
+        line("public static final class ", RowResult, " implements TypedRowResult {");
+        {
             fields();
             line();
             staticFactories();
@@ -52,7 +53,8 @@ class DynamicRowResultRenderer extends Renderer {
             getColumnValuesFun();
             line();
             renderToString();
-        } line("}");
+        }
+        line("}");
     }
 
     private void fields() {
@@ -61,67 +63,94 @@ class DynamicRowResultRenderer extends Renderer {
     }
 
     private void staticFactories() {
-        line("public static ", RowResult, " of(RowResult<byte[]> rowResult) {"); {
+        line("public static ", RowResult, " of(RowResult<byte[]> rowResult) {");
+        {
             line(Row, " rowName = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());");
-            line("Set<", ColumnValue, "> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());");
-            line("for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {"); {
+            line(
+                    "Set<",
+                    ColumnValue,
+                    "> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());");
+            line("for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {");
+            {
                 line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
                 line(Value, " value = ", ColumnValue, ".hydrateValue(e.getValue());");
                 line("columnValues.add(", ColumnValue, ".of(col, value));");
-            } line("}");
+            }
+            line("}");
             line("return new ", RowResult, "(rowName, ImmutableSet.copyOf(columnValues));");
-        } line("}");
+        }
+        line("}");
     }
 
     private void constructors() {
-        line("private ", RowResult, "(", Row, " rowName, ImmutableSet<", ColumnValue, "> columnValues) {"); {
+        line("private ", RowResult, "(", Row, " rowName, ImmutableSet<", ColumnValue, "> columnValues) {");
+        {
             line("this.rowName = rowName;");
             line("this.columnValues = columnValues;");
-        } line("}");
+        }
+        line("}");
     }
 
     private void getRowName() {
         line("@Override");
-        line("public ", Row, " getRowName() {"); {
+        line("public ", Row, " getRowName() {");
+        {
             line("return rowName;");
-        } line("}");
+        }
+        line("}");
     }
 
     private void getColumnValues() {
-        line("public Set<", ColumnValue, "> getColumnValues() {"); {
+        line("public Set<", ColumnValue, "> getColumnValues() {");
+        {
             line("return columnValues;");
-        } line("}");
+        }
+        line("}");
     }
 
     private void getRowNameFun() {
-        line("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {"); {
-            line("return new Function<", RowResult, ", ", Row, ">() {"); {
+        line("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {");
+        {
+            line("return new Function<", RowResult, ", ", Row, ">() {");
+            {
                 line("@Override");
-                line("public ", Row, " apply(", RowResult, " rowResult) {"); {
+                line("public ", Row, " apply(", RowResult, " rowResult) {");
+                {
                     line("return rowResult.rowName;");
-                } line("}");
-            } line("};");
-        } line("}");
+                }
+                line("}");
+            }
+            line("};");
+        }
+        line("}");
     }
 
     private void getColumnValuesFun() {
-        line("public static Function<", RowResult, ", ImmutableSet<", ColumnValue, ">> getColumnValuesFun() {"); {
-            line("return new Function<", RowResult, ", ImmutableSet<", ColumnValue, ">>() {"); {
+        line("public static Function<", RowResult, ", ImmutableSet<", ColumnValue, ">> getColumnValuesFun() {");
+        {
+            line("return new Function<", RowResult, ", ImmutableSet<", ColumnValue, ">>() {");
+            {
                 line("@Override");
-                line("public ImmutableSet<", ColumnValue, "> apply(", RowResult, " rowResult) {"); {
+                line("public ImmutableSet<", ColumnValue, "> apply(", RowResult, " rowResult) {");
+                {
                     line("return rowResult.columnValues;");
-                } line("}");
-            } line("};");
-        } line("}");
+                }
+                line("}");
+            }
+            line("};");
+        }
+        line("}");
     }
 
     private void renderToString() {
         line("@Override");
-        line("public String toString() {"); {
+        line("public String toString() {");
+        {
             line("return MoreObjects.toStringHelper(getClass().getSimpleName())");
             line("    .add(\"RowName\", getRowName())");
             line("    .add(\"ColumnValues\", getColumnValues())");
             line("    .toString();");
-        } line("}");
+        }
+        line("}");
     }
 }

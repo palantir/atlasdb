@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.EnumMap;
-
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -48,5 +47,4 @@ public class UseCaseAwareBatchPaxosResource {
         }
         return resourcesForUseCase;
     }
-
 }

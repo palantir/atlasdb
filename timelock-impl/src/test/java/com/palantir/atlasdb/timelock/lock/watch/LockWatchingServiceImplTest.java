@@ -20,14 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -50,6 +42,12 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LockWatchingServiceImplTest {
     private static final UUID LOG_ID = UUID.randomUUID();
@@ -59,8 +57,8 @@ public class LockWatchingServiceImplTest {
 
     private static final byte[] ROW = PtBytes.toBytes("row");
     private static final Cell CELL = Cell.create(ROW, PtBytes.toBytes("col"));
-    private static final LockDescriptor CELL_DESCRIPTOR = AtlasCellLockDescriptor
-            .of(TABLE.getQualifiedName(), CELL.getRowName(), CELL.getColumnName());
+    private static final LockDescriptor CELL_DESCRIPTOR =
+            AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), CELL.getRowName(), CELL.getColumnName());
     private static final LockDescriptor ROW_DESCRIPTOR = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW);
     private static final AsyncLock LOCK = new ExclusiveLock(ROW_DESCRIPTOR);
     private static final AsyncLock LOCK_2 = new ExclusiveLock(descriptorForOtherTable());
@@ -84,15 +82,14 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest request = tableRequest();
         lockWatcher.startWatching(request);
 
-        List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
+        List<LockWatchEvent> expectedEvents =
+                ImmutableList.of(createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
 
     @Test
     public void registeringWatchWithWiderScopeLogsAlreadyWatchedLocksAgain() {
-        LockDescriptor secondRow = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(),
-                PtBytes.toBytes("other_row"));
+        LockDescriptor secondRow = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("other_row"));
         when(heldLocks.getLocks()).thenReturn(ImmutableList.of(LOCK, new ExclusiveLock(secondRow)));
 
         LockWatchRequest prefixRequest = prefixRequest(ROW);
@@ -112,13 +109,14 @@ public class LockWatchingServiceImplTest {
         LockDescriptor ab = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("ab"));
         LockDescriptor bc = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("bc"));
         LockDescriptor cd = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("cd"));
-        when(heldLocks.getLocks()).thenReturn(ImmutableList.of(
-                LOCK, new ExclusiveLock(ab), new ExclusiveLock(bc), new ExclusiveLock(cd)));
+        when(heldLocks.getLocks())
+                .thenReturn(
+                        ImmutableList.of(LOCK, new ExclusiveLock(ab), new ExclusiveLock(bc), new ExclusiveLock(cd)));
 
-        LockWatchReference acRange = LockWatchReferenceUtils
-                .rowRange(TABLE, PtBytes.toBytes("a"), PtBytes.toBytes("c"));
-        LockWatchReference bdRange = LockWatchReferenceUtils
-                .rowRange(TABLE, PtBytes.toBytes("b"), PtBytes.toBytes("d"));
+        LockWatchReference acRange =
+                LockWatchReferenceUtils.rowRange(TABLE, PtBytes.toBytes("a"), PtBytes.toBytes("c"));
+        LockWatchReference bdRange =
+                LockWatchReferenceUtils.rowRange(TABLE, PtBytes.toBytes("b"), PtBytes.toBytes("d"));
 
         lockWatcher.startWatching(LockWatchRequest.of(ImmutableSet.of(acRange)));
         lockWatcher.startWatching(LockWatchRequest.of(ImmutableSet.of(bdRange)));
@@ -129,7 +127,6 @@ public class LockWatchingServiceImplTest {
         assertLoggedEvents(expectedEvents);
     }
 
-
     @Test
     public void registeringWatchWithNarrowerScopeIsNoop() {
         LockWatchRequest request = tableRequest();
@@ -138,8 +135,8 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest prefixRequest = prefixRequest(ROW);
         lockWatcher.startWatching(prefixRequest);
 
-        List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
+        List<LockWatchEvent> expectedEvents =
+                ImmutableList.of(createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -149,9 +146,8 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         LockWatchReference newWatch = LockWatchReferenceUtils.entireTable(TABLE_2);
-        LockWatchRequest prefixAndOtherTableRequest = LockWatchRequest.of(ImmutableSet.of(
-                LockWatchReferenceUtils.rowPrefix(TABLE, ROW),
-                newWatch));
+        LockWatchRequest prefixAndOtherTableRequest =
+                LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.rowPrefix(TABLE, ROW), newWatch));
         lockWatcher.startWatching(prefixAndOtherTableRequest);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
@@ -160,11 +156,10 @@ public class LockWatchingServiceImplTest {
         assertLoggedEvents(expectedEvents);
     }
 
-
     @Test
     public void exactCellWatchMatchesExactDescriptorOnly() {
-        LockDescriptor cellSuffixDescriptor = AtlasCellLockDescriptor
-                .of(TABLE.getQualifiedName(), CELL.getRowName(), PtBytes.toBytes("col2"));
+        LockDescriptor cellSuffixDescriptor =
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), CELL.getRowName(), PtBytes.toBytes("col2"));
 
         LockWatchRequest request = LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.exactCell(TABLE, CELL)));
         lockWatcher.startWatching(request);
@@ -173,15 +168,14 @@ public class LockWatchingServiceImplTest {
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
-                createdEvent(request.getReferences(), ImmutableSet.of()),
-                lockEvent(ImmutableSet.of(CELL_DESCRIPTOR)));
+                createdEvent(request.getReferences(), ImmutableSet.of()), lockEvent(ImmutableSet.of(CELL_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
 
     @Test
     public void exactRowWatchMatchesExactDescriptorOnly() {
-        LockWatchRequest rowRequest = LockWatchRequest.of(
-                ImmutableSet.of(LockWatchReferenceUtils.exactRow(TABLE, ROW)));
+        LockWatchRequest rowRequest =
+                LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.exactRow(TABLE, ROW)));
         lockWatcher.startWatching(rowRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, ROW_DESCRIPTOR);
@@ -222,12 +216,12 @@ public class LockWatchingServiceImplTest {
         LockDescriptor rowInRange2 = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("cc"));
         LockDescriptor rowOutOfRange = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("cca"));
 
-        LockWatchRequest rangeRequest = LockWatchRequest.of(ImmutableSet.of(
-                LockWatchReferenceUtils.rowRange(TABLE, startOfRange, endOfRange)));
+        LockWatchRequest rangeRequest =
+                LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.rowRange(TABLE, startOfRange, endOfRange)));
         lockWatcher.startWatching(rangeRequest);
 
-        ImmutableSet<LockDescriptor> locks = ImmutableSet.of(
-                cellInRange, cellOutOfRange, rowInRange, rowInRange2, rowOutOfRange);
+        ImmutableSet<LockDescriptor> locks =
+                ImmutableSet.of(cellInRange, cellOutOfRange, rowInRange, rowInRange2, rowOutOfRange);
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
@@ -245,8 +239,8 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest tableRequest = tableRequest();
         lockWatcher.startWatching(tableRequest);
 
-        ImmutableSet<LockDescriptor> locks = ImmutableSet
-                .of(CELL_DESCRIPTOR, cellOutOfRange, rowInRange, rowOutOfRange);
+        ImmutableSet<LockDescriptor> locks =
+                ImmutableSet.of(CELL_DESCRIPTOR, cellOutOfRange, rowInRange, rowOutOfRange);
         lockWatcher.registerLock(locks, TOKEN);
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
@@ -293,8 +287,7 @@ public class LockWatchingServiceImplTest {
     }
 
     private void assertLoggedEvents(List<LockWatchEvent> expectedEvents) {
-        LockWatchStateUpdate update = lockWatcher.getWatchStateUpdate(
-                Optional.of(LockWatchVersion.of(LOG_ID, -1L)));
+        LockWatchStateUpdate update = lockWatcher.getWatchStateUpdate(Optional.of(LockWatchVersion.of(LOG_ID, -1L)));
         List<LockWatchEvent> events = UpdateVisitors.assertSuccess(update).events();
         assertThat(events).isEqualTo(expectedEvents);
     }

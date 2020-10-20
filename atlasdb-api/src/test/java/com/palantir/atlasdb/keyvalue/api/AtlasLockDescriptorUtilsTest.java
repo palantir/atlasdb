@@ -18,18 +18,15 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-
+import java.util.List;
+import java.util.stream.Collectors;
 import okio.ByteString;
+import org.junit.Test;
 
 public class AtlasLockDescriptorUtilsTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
@@ -64,9 +61,9 @@ public class AtlasLockDescriptorUtilsTest {
         LockDescriptor descriptor = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), ROW_WITH_ZEROS, NO_ZERO_COL);
 
         List<CellReference> expected = ImmutableList.of(
-                Cell.create(new byte[] {1}, new byte[] {2, 0, 3, 0, 4, 5, 6}),
-                Cell.create(new byte[] {1, 0, 2}, new byte[] {3, 0, 4, 5, 6}),
-                Cell.create(new byte[] {1, 0, 2, 0, 3}, new byte[] {4, 5, 6}))
+                        Cell.create(new byte[] {1}, new byte[] {2, 0, 3, 0, 4, 5, 6}),
+                        Cell.create(new byte[] {1, 0, 2}, new byte[] {3, 0, 4, 5, 6}),
+                        Cell.create(new byte[] {1, 0, 2, 0, 3}, new byte[] {4, 5, 6}))
                 .stream()
                 .map(cell -> CellReference.of(TABLE, cell))
                 .collect(Collectors.toList());
@@ -81,9 +78,9 @@ public class AtlasLockDescriptorUtilsTest {
         LockDescriptor descriptor = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), NO_ZERO_ROW, COL_WITH_ZEROS);
 
         List<CellReference> expected = ImmutableList.of(
-                Cell.create(new byte[] {1, 2, 3}, new byte[] {4, 0, 0, 5, 6}),
-                Cell.create(new byte[] {1, 2, 3, 0, 4}, new byte[] {0, 5, 6}),
-                Cell.create(new byte[] {1, 2, 3, 0, 4, 0}, new byte[] {5, 6}))
+                        Cell.create(new byte[] {1, 2, 3}, new byte[] {4, 0, 0, 5, 6}),
+                        Cell.create(new byte[] {1, 2, 3, 0, 4}, new byte[] {0, 5, 6}),
+                        Cell.create(new byte[] {1, 2, 3, 0, 4, 0}, new byte[] {5, 6}))
                 .stream()
                 .map(cell -> CellReference.of(TABLE, cell))
                 .collect(Collectors.toList());
@@ -98,8 +95,8 @@ public class AtlasLockDescriptorUtilsTest {
         LockDescriptor descriptor = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), END_WITH_ZERO, NO_ZERO_COL);
 
         List<CellReference> expected = ImmutableList.of(
-                Cell.create(new byte[] {4, 5, 6}, new byte[] {0, 4, 5, 6}),
-                Cell.create(new byte[] {4, 5, 6, 0}, new byte[] {4, 5, 6}))
+                        Cell.create(new byte[] {4, 5, 6}, new byte[] {0, 4, 5, 6}),
+                        Cell.create(new byte[] {4, 5, 6, 0}, new byte[] {4, 5, 6}))
                 .stream()
                 .map(cell -> CellReference.of(TABLE, cell))
                 .collect(Collectors.toList());

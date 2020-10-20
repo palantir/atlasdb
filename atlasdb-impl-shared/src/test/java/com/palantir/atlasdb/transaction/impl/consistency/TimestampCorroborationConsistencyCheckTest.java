@@ -18,13 +18,11 @@ package com.palantir.atlasdb.transaction.impl.consistency;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.function.ToLongFunction;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.function.ToLongFunction;
+import org.junit.Test;
 
 public class TimestampCorroborationConsistencyCheckTest {
     private static final RuntimeException EXCEPTION = new IllegalStateException("bad");
@@ -72,23 +70,21 @@ public class TimestampCorroborationConsistencyCheckTest {
     @Test
     public void returnsTerminalIfBoundEqualsFreshTimestamp() {
         TimestampCorroborationConsistencyCheck check = createForTimestamps(42, 42);
-        assertThat(check.apply(mock(TransactionManager.class))).satisfies(
-                result -> {
-                    assertThat(result.consistencyState()).isEqualTo(
-                            TransactionManagerConsistencyResult.ConsistencyState.TERMINAL);
-                    assertThat(result.reasonForInconsistency()).isPresent();
-                });
+        assertThat(check.apply(mock(TransactionManager.class))).satisfies(result -> {
+            assertThat(result.consistencyState())
+                    .isEqualTo(TransactionManagerConsistencyResult.ConsistencyState.TERMINAL);
+            assertThat(result.reasonForInconsistency()).isPresent();
+        });
     }
 
     @Test
     public void returnsTerminalIfBoundIsAboveFreshTimestamp() {
         TimestampCorroborationConsistencyCheck check = createForTimestamps(111, 42);
-        assertThat(check.apply(mock(TransactionManager.class))).satisfies(
-                result -> {
-                    assertThat(result.consistencyState()).isEqualTo(
-                            TransactionManagerConsistencyResult.ConsistencyState.TERMINAL);
-                    assertThat(result.reasonForInconsistency()).isPresent();
-                });
+        assertThat(check.apply(mock(TransactionManager.class))).satisfies(result -> {
+            assertThat(result.consistencyState())
+                    .isEqualTo(TransactionManagerConsistencyResult.ConsistencyState.TERMINAL);
+            assertThat(result.reasonForInconsistency()).isPresent();
+        });
     }
 
     private TimestampCorroborationConsistencyCheck createForTimestamps(long conservativeBound, long freshTimestamp) {

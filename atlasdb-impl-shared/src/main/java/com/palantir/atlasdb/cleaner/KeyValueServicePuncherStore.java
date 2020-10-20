@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.nio.charset.StandardCharsets;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -32,6 +30,7 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
+import java.nio.charset.StandardCharsets;
 
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
@@ -39,7 +38,7 @@ import com.palantir.common.base.ClosableIterator;
  * @author jweel
  */
 public final class KeyValueServicePuncherStore implements PuncherStore {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PuncherStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PuncherStore {
         @Override
         public PuncherStore delegate() {
             checkInitialized();
@@ -77,11 +76,14 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
     }
 
     private void tryInitialize() {
-        keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, TableMetadata.internal()
-                .rowMetadata(NameMetadataDescription.create("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))
-                .singleNamedColumn("t", "t", ValueType.VAR_LONG)
-                .build()
-                .persistToBytes());
+        keyValueService.createTable(
+                AtlasDbConstants.PUNCH_TABLE,
+                TableMetadata.internal()
+                        .rowMetadata(
+                                NameMetadataDescription.create("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))
+                        .singleNamedColumn("t", "t", ValueType.VAR_LONG)
+                        .build()
+                        .persistToBytes());
     }
 
     @Override
@@ -106,11 +108,13 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
     public static Long get(KeyValueService kvs, Long timeMillis) {
         byte[] row = EncodingUtils.encodeUnsignedVarLong(timeMillis);
         EncodingUtils.flipAllBitsInPlace(row);
-        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(row).batchHint(1).build();
-        try (ClosableIterator<RowResult<Value>> result = kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest,
-                Long.MAX_VALUE)) {
+        RangeRequest rangeRequest =
+                RangeRequest.builder().startRowInclusive(row).batchHint(1).build();
+        try (ClosableIterator<RowResult<Value>> result =
+                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, Long.MAX_VALUE)) {
             if (result.hasNext()) {
-                return EncodingUtils.decodeUnsignedVarLong(result.next().getColumns().get(COLUMN).getContents());
+                return EncodingUtils.decodeUnsignedVarLong(
+                        result.next().getColumns().get(COLUMN).getContents());
             } else {
                 return Long.MIN_VALUE;
             }
@@ -143,8 +147,8 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
                 .batchHint(1000)
                 .build();
 
-        try (ClosableIterator<RowResult<Value>> result = kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest,
-                timestampExclusive)) {
+        try (ClosableIterator<RowResult<Value>> result =
+                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, timestampExclusive)) {
             if (result.hasNext()) {
                 byte[] encodedMillis = result.next().getRowName();
                 EncodingUtils.flipAllBitsInPlace(encodedMillis);

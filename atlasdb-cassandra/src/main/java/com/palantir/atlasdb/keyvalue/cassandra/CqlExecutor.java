@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 public interface CqlExecutor {
     /**
@@ -27,11 +26,7 @@ public interface CqlExecutor {
      * pair represented by ({@code startColumnInclusive}, {@code startTimestampExclusive}).
      */
     List<CellWithTimestamp> getTimestampsWithinRow(
-            TableReference tableRef,
-            byte[] row,
-            byte[] startColumnInclusive,
-            long startTimestampExclusive,
-            int limit);
+            TableReference tableRef, byte[] row, byte[] startColumnInclusive, long startTimestampExclusive, int limit);
 
     /**
      * Returns a list of {@link CellWithTimestamp}s from cells within the given {@code rows}, starting at the given
@@ -40,6 +35,6 @@ public interface CqlExecutor {
      * @param executor is used for parallelizing the queries to Cassandra. Each row is fetched in a separate thread.
      * @param executorThreads the number of threads to use when fetching rows from Cassandra.
      */
-    List<CellWithTimestamp> getTimestamps(TableReference tableRef, List<byte[]> rows, int limit,
-            ExecutorService executor, Integer executorThreads);
+    List<CellWithTimestamp> getTimestamps(
+            TableReference tableRef, List<byte[]> rows, int limit, ExecutorService executor, Integer executorThreads);
 }

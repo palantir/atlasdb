@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.List;
-import java.util.LongSummaryStatistics;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.LongSummaryStatistics;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface LockWatchEvents {
@@ -32,7 +30,8 @@ public interface LockWatchEvents {
 
     @Value.Derived
     default Optional<Range<Long>> versionRange() {
-        LongSummaryStatistics summary = events().stream().mapToLong(LockWatchEvent::sequence).summaryStatistics();
+        LongSummaryStatistics summary =
+                events().stream().mapToLong(LockWatchEvent::sequence).summaryStatistics();
 
         if (summary.getCount() == 0) {
             return Optional.empty();
@@ -48,7 +47,8 @@ public interface LockWatchEvents {
         }
 
         for (int i = 0; i < events().size() - 1; ++i) {
-            Preconditions.checkArgument(events().get(i).sequence() + 1 == events().get(i + 1).sequence(),
+            Preconditions.checkArgument(
+                    events().get(i).sequence() + 1 == events().get(i + 1).sequence(),
                     "Events form a non-contiguous sequence");
         }
     }

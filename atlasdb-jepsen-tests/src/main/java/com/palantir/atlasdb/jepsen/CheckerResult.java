@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.jepsen.events.Event;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableCheckerResult.class)
 @JsonDeserialize(as = ImmutableCheckerResult.class)
@@ -30,8 +28,7 @@ import com.palantir.atlasdb.jepsen.events.Event;
 public abstract class CheckerResult {
     public static CheckerResult combine(List<CheckerResult> results) {
         return ImmutableCheckerResult.builder()
-                .valid(results.stream()
-                        .allMatch(CheckerResult::valid))
+                .valid(results.stream().allMatch(CheckerResult::valid))
                 .errors(results.stream()
                         .flatMap(result -> result.errors().stream())
                         .collect(Collectors.toList()))

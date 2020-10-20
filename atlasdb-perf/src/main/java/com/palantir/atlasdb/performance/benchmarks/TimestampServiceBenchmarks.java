@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.palantir.atlasdb.performance.benchmarks.endpoint.TimestampServiceEndpoint;
+import com.palantir.timestamp.TimestampRange;
 import java.util.concurrent.TimeUnit;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-
-import com.palantir.atlasdb.performance.benchmarks.endpoint.TimestampServiceEndpoint;
-import com.palantir.timestamp.TimestampRange;
 
 public class TimestampServiceBenchmarks {
     @Benchmark

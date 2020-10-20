@@ -18,11 +18,10 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import org.junit.Test;
 
 public class IdentifiedLockRequestTest {
     private static final String SERIALIZED_LOCK_REQUEST = "{"
@@ -31,9 +30,8 @@ public class IdentifiedLockRequestTest {
             + "\"acquireTimeoutMs\":123,"
             + "\"clientDescription\":\"Thread: main\"}";
 
-    private static final ObjectMapper mapper = new ObjectMapper()
-            .registerModule(new Jdk8Module())
-            .registerModule(new GuavaModule());
+    private static final ObjectMapper mapper =
+            new ObjectMapper().registerModule(new Jdk8Module()).registerModule(new GuavaModule());
 
     @Test
     public void ensureSerdeBackcompat() throws Exception {

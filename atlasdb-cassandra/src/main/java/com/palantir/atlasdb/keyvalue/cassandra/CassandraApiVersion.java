@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.logsafe.SafeArg;
 import java.util.Arrays;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.SafeArg;
 
 public class CassandraApiVersion {
     private static final Logger LOGGER = LoggerFactory.getLogger(CassandraApiVersion.class);
@@ -47,10 +45,12 @@ public class CassandraApiVersion {
         boolean supportsCheckAndSet = majorVersion > 19 || (majorVersion == 19 && minorVersion >= 37);
 
         if (supportsCheckAndSet) {
-            LOGGER.info("Your cassandra api version ({}) supports check and set.",
+            LOGGER.info(
+                    "Your cassandra api version ({}) supports check and set.",
                     SafeArg.of("cassandraVersion", versionString));
         } else {
-            LOGGER.info("Your cassandra api version ({}) does not support check and set.",
+            LOGGER.info(
+                    "Your cassandra api version ({}) does not support check and set.",
                     SafeArg.of("cassandraVersion", versionString));
         }
 

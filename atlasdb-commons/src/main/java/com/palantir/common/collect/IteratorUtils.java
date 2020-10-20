@@ -15,20 +15,11 @@
  */
 package com.palantir.common.collect;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.palantir.common.base.Throwables;
@@ -36,8 +27,15 @@ import com.palantir.common.base.Visitors;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import javax.annotation.Nullable;
 
-public class IteratorUtils {
+public final class IteratorUtils {
 
     private static final Random rand = new Random();
 
@@ -58,7 +56,7 @@ public class IteratorUtils {
 
     public static <T> Collection<T> chooseRandomElements(Iterator<? extends T> it, final int k) {
         Preconditions.checkArgument(k >= 0);
-        List<T> ret = Lists.newArrayList();
+        List<T> ret = new ArrayList<>();
 
         int i = 0; // i is the element number
         while (it.hasNext()) {
@@ -82,8 +80,10 @@ public class IteratorUtils {
      * calling {@code passVisitor.visit()} on all that satisfy the predicate and
      * {@code failVisitor.visit()} on all that do not.
      */
-    public static <T> UnmodifiableIterator<T> filterAndVisit(final Iterator<? extends T> unfiltered,
-            final Predicate<? super T> predicate, @Nullable Visitor<? super T> passVisitor,
+    public static <T> UnmodifiableIterator<T> filterAndVisit(
+            final Iterator<? extends T> unfiltered,
+            final Predicate<? super T> predicate,
+            @Nullable Visitor<? super T> passVisitor,
             @Nullable Visitor<? super T> failVisitor) {
         Preconditions.checkNotNull(unfiltered);
         Preconditions.checkNotNull(predicate);
@@ -100,7 +100,8 @@ public class IteratorUtils {
             actualFailVisitor = Visitors.emptyVisitor();
         }
         return new AbstractIterator<T>() {
-            @Override protected T computeNext() {
+            @Override
+            protected T computeNext() {
                 try {
                     while (unfiltered.hasNext()) {
                         T element = unfiltered.next();
@@ -127,7 +128,7 @@ public class IteratorUtils {
             @SuppressWarnings("unchecked")
             @Override
             protected Iterator<T> delegate() {
-                return (Iterator<T>)iterator;
+                return (Iterator<T>) iterator;
             }
         };
     }
@@ -139,8 +140,11 @@ public class IteratorUtils {
     /**
      * The iterators provided to this function have to be sorted and strictly increasing.
      */
-    public static <T> Iterator<T> mergeIterators(Iterator<? extends T> one, Iterator<? extends T> two,
-            final Comparator<? super T> ordering, final Function<? super Pair<T, T>, ? extends T> mergeFunction) {
+    public static <T> Iterator<T> mergeIterators(
+            Iterator<? extends T> one,
+            Iterator<? extends T> two,
+            final Comparator<? super T> ordering,
+            final Function<? super Pair<T, T>, ? extends T> mergeFunction) {
         Preconditions.checkNotNull(mergeFunction);
         Preconditions.checkNotNull(ordering);
         final PeekingIterator<T> a = Iterators.peekingIterator(one);
@@ -152,14 +156,14 @@ public class IteratorUtils {
                     return endOfData();
                 }
                 if (!a.hasNext()) {
-                    T ret =  b.next();
+                    T ret = b.next();
                     if (b.hasNext()) {
                         assert ordering.compare(ret, b.peek()) < 0;
                     }
                     return ret;
                 }
                 if (!b.hasNext()) {
-                    T ret =  a.next();
+                    T ret = a.next();
                     if (a.hasNext()) {
                         assert ordering.compare(ret, a.peek()) < 0;
                     }
@@ -171,13 +175,13 @@ public class IteratorUtils {
                 if (comp == 0) {
                     return mergeFunction.apply(Pair.create(a.next(), b.next()));
                 } else if (comp < 0) {
-                    T ret =  a.next();
+                    T ret = a.next();
                     if (a.hasNext()) {
                         assert ordering.compare(ret, a.peek()) < 0;
                     }
                     return ret;
                 } else {
-                    T ret =  b.next();
+                    T ret = b.next();
                     if (b.hasNext()) {
                         assert ordering.compare(ret, b.peek()) < 0;
                     }
@@ -188,7 +192,7 @@ public class IteratorUtils {
     }
 
     public static <T, U> Iterator<Pair<T, U>> zip(final Iterator<? extends T> it1, final Iterator<? extends U> it2) {
-        return new AbstractIterator<Pair<T,U>>() {
+        return new AbstractIterator<Pair<T, U>>() {
             @Override
             protected Pair<T, U> computeNext() {
                 if (!it1.hasNext() && !it2.hasNext()) {

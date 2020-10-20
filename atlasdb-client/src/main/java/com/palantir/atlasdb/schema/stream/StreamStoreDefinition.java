@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import java.util.Map;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public class StreamStoreDefinition {
     // from ArrayList.MAX_ARRAY_SIZE on 64-bit systems
@@ -73,15 +72,12 @@ public class StreamStoreDefinition {
 
     public StreamStoreRenderer getRenderer(String packageName, String name) {
         String renderedLongName = Renderers.CamelCase(longName);
-        return new StreamStoreRenderer(renderedLongName, idType, packageName, name, inMemoryThreshold,
-                streamCompression);
+        return new StreamStoreRenderer(
+                renderedLongName, idType, packageName, name, inMemoryThreshold, streamCompression);
     }
 
     public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(
-            String packageName,
-            String name,
-            StreamStoreRenderer renderer,
-            Namespace namespace) {
+            String packageName, String name, StreamStoreRenderer renderer, Namespace namespace) {
         Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
 
         // We use reflection and wrap these in suppliers because these classes are generated classes that

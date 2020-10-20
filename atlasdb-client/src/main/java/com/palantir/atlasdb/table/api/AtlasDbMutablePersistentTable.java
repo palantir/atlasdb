@@ -20,7 +20,7 @@ import com.google.common.collect.Multimap;
 /*
  * Each AtlasDbTable should implement this interface.
  */
-public interface AtlasDbMutablePersistentTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
-            AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
+public interface AtlasDbMutablePersistentTable<ROW, COLUMN_VALUE, ROW_RESULT>
+        extends AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     void put(Multimap<ROW, ? extends COLUMN_VALUE> rows);
 }

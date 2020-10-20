@@ -16,9 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.List;
-import java.util.Set;
-
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -32,6 +29,8 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
+import java.util.Set;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final NamespacedTimelockRpcClient rpcClient;
@@ -40,7 +39,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final TransactionStarter transactionStarter;
     private final CommitTimestampGetter commitTimestampGetter;
 
-    private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
+    private RemoteTimelockServiceAdapter(
+            NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LockWatchEventCache lockWatchEventCache) {
         this.rpcClient = rpcClient;

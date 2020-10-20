@@ -24,8 +24,7 @@ public class ThreadLocalWrappingTransactionManager extends WrappingTransactionMa
     private final ExecutorInheritableThreadLocal<TransactionWrapper> wrapper;
 
     public ThreadLocalWrappingTransactionManager(
-            TransactionManager delegate,
-            ExecutorInheritableThreadLocal<TransactionWrapper> wrapper) {
+            TransactionManager delegate, ExecutorInheritableThreadLocal<TransactionWrapper> wrapper) {
         super(delegate);
         this.wrapper = wrapper;
     }

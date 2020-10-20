@@ -16,16 +16,15 @@
 
 package com.palantir.leader;
 
-import java.io.Closeable;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import java.io.Closeable;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 public class BatchingLeaderElectionService implements LeaderElectionService, Closeable {
     private final LeaderElectionService delegate;

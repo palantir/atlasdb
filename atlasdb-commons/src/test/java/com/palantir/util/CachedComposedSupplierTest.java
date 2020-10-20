@@ -18,17 +18,15 @@ package com.palantir.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.palantir.common.concurrent.PTExecutors;
 
 public class CachedComposedSupplierTest {
     private long counter;
@@ -63,7 +61,6 @@ public class CachedComposedSupplierTest {
         assertThat(testSupplier.get()).isEqualTo(6);
         assertThat(counter).isEqualTo(1);
     }
-
 
     @Test
     public void appliesFunctionEachTimeGetIsInvokedAndSuppliedVersionChanged() {
@@ -121,8 +118,7 @@ public class CachedComposedSupplierTest {
     @Test
     public void recomputesIfSupplierHasNotUpdatedForTooLong() throws InterruptedException {
         AtomicLong clockCounter = new AtomicLong();
-        testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::constantNumber,
-                5, () -> clockCounter.get());
+        testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::constantNumber, 5, clockCounter::get);
         for (int i = 0; i < 25; i++) {
             clockCounter.incrementAndGet();
             testSupplier.get();

@@ -27,14 +27,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.net.ConnectException;
-import java.net.UnknownHostException;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -50,6 +42,12 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.CloseableTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.net.ConnectException;
+import java.net.UnknownHostException;
+import java.util.UUID;
+import org.junit.Test;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 public class TimeLockClientTest {
 
@@ -64,19 +62,17 @@ public class TimeLockClientTest {
     private final TimelockService delegate = mock(TimelockService.class);
     private final TimeLockUnlocker unlocker = mock(TimeLockUnlocker.class);
     private final TimelockService timelock = spy(new TimeLockClient(delegate, timestampService, refresher, unlocker));
-    private final StartIdentifiedAtlasDbTransactionResponse response = mock(
-            StartIdentifiedAtlasDbTransactionResponse.class);
+    private final StartIdentifiedAtlasDbTransactionResponse response =
+            mock(StartIdentifiedAtlasDbTransactionResponse.class);
     private final LockToken immutableTsLock = mock(LockToken.class);
-    private final LockImmutableTimestampResponse immutableTimestampResponse = LockImmutableTimestampResponse.of(6,
-            immutableTsLock);
+    private final LockImmutableTimestampResponse immutableTimestampResponse =
+            LockImmutableTimestampResponse.of(6, immutableTsLock);
 
     private static final long TIMEOUT = 10_000;
 
     @Test
     public void delegatesInitializationCheck() {
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
         when(timestampService.isInitialized()).thenReturn(true);
 
         assertFalse(timelock.isInitialized());
@@ -190,8 +186,9 @@ public class TimeLockClientTest {
     public void doesNotThrowDependencyExceptionWhenDelegateFailsForSomeOtherReason() {
         when(delegate.currentTimeMillis()).thenThrow(new RuntimeException("something else happened"));
 
-        assertThatThrownBy(timelock::currentTimeMillis).isInstanceOf(RuntimeException.class)
-            .isNotInstanceOf(AtlasDbDependencyException.class);
+        assertThatThrownBy(timelock::currentTimeMillis)
+                .isInstanceOf(RuntimeException.class)
+                .isNotInstanceOf(AtlasDbDependencyException.class);
     }
 
     @Test

@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
@@ -31,8 +27,11 @@ import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-public class SweepStrategyManagers {
+public final class SweepStrategyManagers {
     private SweepStrategyManagers() {
         //
     }
@@ -46,7 +45,8 @@ public class SweepStrategyManagers {
                             .expireAfterAccess(1, TimeUnit.DAYS)
                             .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
 
-                    // On async initialization, add all tables to optimize for cases when using mostly non-dynamic tables.
+                    // On async initialization, add all tables to optimize for cases when using mostly non-dynamic
+                    // tables.
                     cache.putAll(getSweepStrategies(kvs));
 
                     return cache;
@@ -76,10 +76,8 @@ public class SweepStrategyManagers {
     }
 
     public static SweepStrategyManager fromMap(final Map<TableReference, SweepStrategy> map) {
-        return tableRef -> Preconditions.checkNotNull(
-                map.get(tableRef),
-                "unknown table",
-                SafeArg.of("tableRef", tableRef));
+        return tableRef ->
+                Preconditions.checkNotNull(map.get(tableRef), "unknown table", SafeArg.of("tableRef", tableRef));
     }
 
     public static SweepStrategyManager completelyConservative() {
@@ -87,13 +85,14 @@ public class SweepStrategyManagers {
     }
 
     private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
-        return ImmutableMap.copyOf(Maps.transformValues(kvs.getMetadataForTables(),
-                SweepStrategyManagers::getSweepStrategy));
+        return ImmutableMap.copyOf(
+                Maps.transformValues(kvs.getMetadataForTables(), SweepStrategyManagers::getSweepStrategy));
     }
 
     private static SweepStrategy getSweepStrategy(byte[] tableMeta) {
         if (tableMeta != null && tableMeta.length > 0) {
-            return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
+            return SweepStrategy.from(
+                    TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         } else {
             return SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         }

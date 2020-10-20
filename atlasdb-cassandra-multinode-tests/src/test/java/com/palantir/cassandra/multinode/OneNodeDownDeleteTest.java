@@ -15,13 +15,12 @@
  */
 package com.palantir.cassandra.multinode;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import org.junit.Test;
 
 public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
 
@@ -32,19 +31,21 @@ public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
 
     @Test
     public void deletingThrows() {
-        assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().delete(TEST_TABLE, ImmutableMultimap.of(CELL_1_1, TIMESTAMP)));
+        assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().delete(TEST_TABLE, ImmutableMultimap.of(CELL_1_1, TIMESTAMP)));
     }
 
     @Test
     public void deleteAllTimestampsThrows() {
-        assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().deleteAllTimestamps(
+        assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(() -> getTestKvs()
+                .deleteAllTimestamps(
                         TEST_TABLE,
-                        ImmutableMap.of(CELL_1_1, new TimestampRangeDelete.Builder()
-                                .timestamp(TIMESTAMP)
-                                .endInclusive(false)
-                                .deleteSentinels(false)
-                                .build())));
+                        ImmutableMap.of(
+                                CELL_1_1,
+                                new TimestampRangeDelete.Builder()
+                                        .timestamp(TIMESTAMP)
+                                        .endInclusive(false)
+                                        .deleteSentinels(false)
+                                        .build())));
     }
 }

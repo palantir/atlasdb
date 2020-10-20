@@ -18,17 +18,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-
+import java.util.Map;
+import java.util.stream.Collectors;
 import okio.ByteString;
+import org.junit.Test;
 
 public class CassandraKeyValueServicePueTest {
     @Test
@@ -54,7 +51,8 @@ public class CassandraKeyValueServicePueTest {
 
         assertThat(result.size()).isEqualTo(3);
         Map<Cell, byte[]> resultEntries = result.values().stream()
-                .flatMap(x -> x.entrySet().stream()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .flatMap(x -> x.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(resultEntries).containsAllEntriesOf(entries);
         assertThat(entries).containsAllEntriesOf(resultEntries);
     }

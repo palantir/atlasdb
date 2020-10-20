@@ -15,24 +15,9 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -44,6 +29,18 @@ import com.palantir.tritium.event.DefaultInvocationContext;
 import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simplified and yet extended version of Tritium's MetricsInvocationEventHandler. This class supports augmenting
@@ -62,11 +59,13 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
 
     @Nullable
     private final Function<Method, Timer> onSuccessTimerMappingFunctionUntagged;
-    private final ConcurrentMap<Method, Timer> untaggedTimerCache = Maps.newConcurrentMap();
+
+    private final ConcurrentMap<Method, Timer> untaggedTimerCache = new ConcurrentHashMap<>();
 
     @Nullable
     private final Function<MethodWithExtraTags, Timer> onSuccessTimerMappingFunctionExtraTags;
-    private final ConcurrentMap<MethodWithExtraTags, Timer> extraTagsTimerCache = Maps.newConcurrentMap();
+
+    private final ConcurrentMap<MethodWithExtraTags, Timer> extraTagsTimerCache = new ConcurrentHashMap<>();
 
     public TaggedMetricsInvocationEventHandler(TaggedMetricRegistry taggedMetricRegistry, String serviceName) {
         super(InstrumentationUtils.getEnabledSupplier(serviceName));
@@ -89,7 +88,8 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         this.tagFunction = Optional.of(tagFunction);
         this.onSuccessTimerMappingFunctionUntagged = null;
         this.onSuccessTimerMappingFunctionExtraTags = methodAndTags -> taggedMetricRegistry.timer(MetricName.builder()
-                .safeName(MetricRegistry.name(serviceName, methodAndTags.method().getName()))
+                .safeName(
+                        MetricRegistry.name(serviceName, methodAndTags.method().getName()))
                 .putAllSafeTags(methodAndTags.extraTags())
                 .build());
     }
@@ -109,7 +109,9 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         if (result != null
                 && ListenableFuture.class.isAssignableFrom(context.getMethod().getReturnType())
                 && ListenableFuture.class.isAssignableFrom(result.getClass())) {
-            Futures.addCallback((ListenableFuture<?>) result, new FutureCallback<Object>() {
+            Futures.addCallback(
+                    (ListenableFuture<?>) result,
+                    new FutureCallback<Object>() {
                         @Override
                         public void onSuccess(Object result) {
                             update(context);
@@ -154,6 +156,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
     interface MethodWithExtraTags {
         @Value.Parameter
         Method method();
+
         @Value.Parameter
         Map<String, String> extraTags();
     }
@@ -162,7 +165,8 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
     public void onFailure(@Nullable InvocationContext context, @Nonnull Throwable cause) {
         markGlobalFailure();
         if (context == null) {
-            logger.debug("Encountered null metric context likely due to exception in preInvocation: {}",
+            logger.debug(
+                    "Encountered null metric context likely due to exception in preInvocation: {}",
                     UnsafeArg.of("exception", cause),
                     cause);
             return;
@@ -170,19 +174,24 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
 
         String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
         Map<String, String> tags = tagFunction.map(f -> f.apply(context)).orElseGet(ImmutableMap::of);
-        taggedMetricRegistry.meter(MetricName.builder()
-                .safeName(failuresMetricName)
-                .safeTags(tags)
-                .build())
+        taggedMetricRegistry
+                .meter(MetricName.builder()
+                        .safeName(failuresMetricName)
+                        .safeTags(tags)
+                        .build())
                 .mark();
-        taggedMetricRegistry.meter(MetricName.builder()
-                .safeName(MetricRegistry.name(failuresMetricName, cause.getClass().getName()))
-                .safeTags(tags)
-                .build())
+        taggedMetricRegistry
+                .meter(MetricName.builder()
+                        .safeName(MetricRegistry.name(
+                                failuresMetricName, cause.getClass().getName()))
+                        .safeTags(tags)
+                        .build())
                 .mark();
     }
 
     private void markGlobalFailure() {
-        taggedMetricRegistry.meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME).mark();
+        taggedMetricRegistry
+                .meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME)
+                .mark();
     }
 }

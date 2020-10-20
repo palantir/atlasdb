@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.SortedMap;
-
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Collections2;
@@ -34,6 +27,12 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.collect.Maps2;
 import com.palantir.logsafe.Preconditions;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.SortedMap;
 
 public final class RowResult<T> implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -42,9 +41,11 @@ public final class RowResult<T> implements Serializable {
     private final ImmutableSortedMap<byte[], T> columns;
 
     public static <T> RowResult<T> of(Cell cell, T value) {
-        return new RowResult<T>(cell.getRowName(),
-            ImmutableSortedMap.<byte[], T>orderedBy(UnsignedBytes.lexicographicalComparator())
-                .put(cell.getColumnName(), value).build());
+        return new RowResult<T>(
+                cell.getRowName(),
+                ImmutableSortedMap.<byte[], T>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put(cell.getColumnName(), value)
+                        .build());
     }
 
     public static <T> RowResult<T> create(byte[] row, SortedMap<byte[], T> columns) {
@@ -53,7 +54,8 @@ public final class RowResult<T> implements Serializable {
 
     private RowResult(byte[] row, SortedMap<byte[], T> columns) {
         Preconditions.checkArgument(Cell.isNameValid(row));
-        Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().equals(columns.comparator()),
+        Preconditions.checkArgument(
+                UnsignedBytes.lexicographicalComparator().equals(columns.comparator()),
                 "comparator for the map must be the bytes comparator");
         for (byte[] colName : columns.keySet()) {
             Preconditions.checkArgument(Cell.isNameValid(colName));
@@ -91,18 +93,17 @@ public final class RowResult<T> implements Serializable {
     }
 
     public static <T> Function<RowResult<T>, byte[]> getRowNameFun() {
-        return input -> input.getRowName();
+        return RowResult::getRowName;
     }
 
     public T getOnlyColumnValue() {
-        Preconditions.checkState(columns.size() == 1,
-                "Works only when the row result has a single column value.");
+        Preconditions.checkState(columns.size() == 1, "Works only when the row result has a single column value.");
         return Iterables.getOnlyElement(columns.values());
     }
 
     public Iterable<Map.Entry<Cell, T>> getCells() {
-        return Collections2.transform(columns.entrySet(),
-                from -> Maps.immutableEntry(Cell.create(row, from.getKey()), from.getValue()));
+        return Collections2.transform(
+                columns.entrySet(), from -> Maps.immutableEntry(Cell.create(row, from.getKey()), from.getValue()));
     }
 
     @Override
@@ -147,6 +148,4 @@ public final class RowResult<T> implements Serializable {
         }
         return true;
     }
-
-
 }

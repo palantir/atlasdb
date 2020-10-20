@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.io.File;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.OptionalType;
@@ -25,28 +22,29 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.io.File;
+import java.util.function.Supplier;
 
 public enum SweepSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("sweep");
-    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(() -> generateSchema());
+    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(SweepSchema::generateSchema);
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {
-        Schema schema = new Schema("Sweep",
-                SweepSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE,
-                OptionalType.JAVA8);
+        Schema schema = new Schema(
+                "Sweep", SweepSchema.class.getPackage().getName() + ".generated", NAMESPACE, OptionalType.JAVA8);
 
         // This table tracks stats about tables that are relevant
         // in determining when and in which order they should be swept.
-        schema.addTableDefinition("priority", new TableDefinition() {{
-            javaTableName("SweepPriority");
-            allSafeForLoggingByDefault();
-            rowName();
+        schema.addTableDefinition("priority", new TableDefinition() {
+            {
+                javaTableName("SweepPriority");
+                allSafeForLoggingByDefault();
+                rowName();
                 rowComponent("full_table_name", ValueType.STRING);
-            columns();
+                columns();
                 // The (approximate) number of writes to this table
                 // since the last time it was swept.
                 column("write_count", "w", ValueType.VAR_LONG);
@@ -62,9 +60,10 @@ public enum SweepSchema implements AtlasSchema {
                 // The number of cells in the table when this table
                 // was last swept.
                 column("cells_examined", "e", ValueType.VAR_LONG);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-            rangeScanAllowed();
-        }});
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+                rangeScanAllowed();
+            }
+        });
 
         schema.validate();
         return schema;

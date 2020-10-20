@@ -15,6 +15,8 @@
  */
 package com.palantir.util;
 
+import com.google.common.collect.Collections2;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.ReferenceQueue;
@@ -26,7 +28,6 @@ import java.net.Socket;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.RMISocketFactory;
-
 import javax.management.Attribute;
 import javax.management.AttributeList;
 import javax.management.AttributeNotFoundException;
@@ -47,12 +48,8 @@ import javax.management.StringValueExp;
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Collections2;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  */
@@ -73,8 +70,8 @@ public final class JMXUtils {
      * register with.
      */
     @SuppressWarnings("cast")
-    public static <T> T newMBeanProxy(final MBeanServerConnection conn,
-            final ObjectName objectName, final Class<T> interfaceClass) {
+    public static <T> T newMBeanProxy(
+            final MBeanServerConnection conn, final ObjectName objectName, final Class<T> interfaceClass) {
         return (T) MBeanServerInvocationHandler.newProxyInstance(conn, objectName, interfaceClass, false);
     }
 
@@ -86,8 +83,7 @@ public final class JMXUtils {
      * life-cycle management, use
      * {@link #registerMBeanWeakRefPlusCatchAndLogExceptions(Object, Class, String)}
      */
-    public static void registerMBeanCatchAndLogExceptions(final Object mbean,
-            final String objectName) {
+    public static void registerMBeanCatchAndLogExceptions(final Object mbean, final String objectName) {
         final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         try {
             final ObjectName on = new ObjectName(objectName);
@@ -101,7 +97,7 @@ public final class JMXUtils {
 
             server.registerMBean(mbean, on);
         } catch (InstanceAlreadyExistsException e) {
-            //The bean was registered concurrently; log a warning, but don't fail tests
+            // The bean was registered concurrently; log a warning, but don't fail tests
             log.warn("Failed to register mbean for name {}", objectName, e);
         } catch (Exception e) {
             log.warn("Unexpected exception registering mbean for name {}", objectName, e);
@@ -133,8 +129,8 @@ public final class JMXUtils {
      *         registered. null will be returned if this bean is not regsitered
      *         correctly
      */
-    public static <T> DynamicMBean registerMBeanWeakRefPlusCatchAndLogExceptions(final T mbean,
-            final Class<T> clazz, final String objectName) {
+    public static <T> DynamicMBean registerMBeanWeakRefPlusCatchAndLogExceptions(
+            final T mbean, final Class<T> clazz, final String objectName) {
         final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         try {
             final DynamicMBean bean = new StandardMBean(mbean, clazz);
@@ -160,7 +156,7 @@ public final class JMXUtils {
 
     static class WeakMBeanHandler implements DynamicMBean {
         private final WeakReference<DynamicMBean> delegateRef;
-        private final static ReferenceQueue<DynamicMBean> refQueue = new ReferenceQueue<DynamicMBean>();
+        private static final ReferenceQueue<DynamicMBean> refQueue = new ReferenceQueue<DynamicMBean>();
 
         static {
             final Runnable task = () -> {
@@ -169,7 +165,7 @@ public final class JMXUtils {
                         // Blocks until available, or throws InterruptedException
                         @SuppressWarnings("unchecked")
                         final KeyedWeakReference<String, DynamicMBean> ref =
-                            (KeyedWeakReference<String, DynamicMBean>) refQueue.remove();
+                                (KeyedWeakReference<String, DynamicMBean>) refQueue.remove();
                         unregisterMBeanCatchAndLogExceptions(ref.getKey());
                     } catch (final InterruptedException e) {
                         // Stop the cleanup thread when interrupted.
@@ -198,8 +194,8 @@ public final class JMXUtils {
         }
 
         @Override
-        public Object getAttribute(final String attribute) throws AttributeNotFoundException,
-                MBeanException, ReflectionException {
+        public Object getAttribute(final String attribute)
+                throws AttributeNotFoundException, MBeanException, ReflectionException {
             return delegate().getAttribute(attribute);
         }
 
@@ -214,14 +210,14 @@ public final class JMXUtils {
         }
 
         @Override
-        public Object invoke(final String actionName, final Object[] params,
-                final String[] signature) throws MBeanException, ReflectionException {
+        public Object invoke(final String actionName, final Object[] params, final String[] signature)
+                throws MBeanException, ReflectionException {
             return delegate().invoke(actionName, params, signature);
         }
 
         @Override
-        public void setAttribute(final Attribute attribute) throws AttributeNotFoundException,
-                InvalidAttributeValueException, MBeanException, ReflectionException {
+        public void setAttribute(final Attribute attribute)
+                throws AttributeNotFoundException, InvalidAttributeValueException, MBeanException, ReflectionException {
             delegate().setAttribute(attribute);
         }
 
@@ -232,7 +228,8 @@ public final class JMXUtils {
     }
 
     public enum AllowConnections {
-        ALL, LOCALHOST_ONLY
+        ALL,
+        LOCALHOST_ONLY
     }
 
     /**
@@ -246,18 +243,15 @@ public final class JMXUtils {
      */
     public static void startLocalJMXServer(final int port, final AllowConnections allowConnections)
             throws IOException, MalformedURLException, RemoteException {
-        final RMISocketFactory serverSocketFactory =
-            allowConnections == AllowConnections.ALL ?
-                    RMISocketFactory.getDefaultSocketFactory() : new LocalhostRMIServerSocketFactory();
+        final RMISocketFactory serverSocketFactory = allowConnections == AllowConnections.ALL
+                ? RMISocketFactory.getDefaultSocketFactory()
+                : new LocalhostRMIServerSocketFactory();
 
-        LocateRegistry.createRegistry(port, RMISocketFactory.getDefaultSocketFactory(),
-                serverSocketFactory);
+        LocateRegistry.createRegistry(port, RMISocketFactory.getDefaultSocketFactory(), serverSocketFactory);
 
         final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-        final JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://localhost:"
-                + port + "/jmxrmi");
-        final JMXConnectorServer rmiServer = JMXConnectorServerFactory.newJMXConnectorServer(url,
-                null, mbs);
+        final JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://localhost:" + port + "/jmxrmi");
+        final JMXConnectorServer rmiServer = JMXConnectorServerFactory.newJMXConnectorServer(url, null, mbs);
         rmiServer.start();
     }
 
@@ -265,7 +259,7 @@ public final class JMXUtils {
      * {@link RMISocketFactory} which binds server sockets to "localhost" so
      * that only connections from "localhost" are accepted.
      */
-    private static class LocalhostRMIServerSocketFactory extends RMISocketFactory {
+    private static final class LocalhostRMIServerSocketFactory extends RMISocketFactory {
         @Override
         public ServerSocket createServerSocket(final int port) throws IOException {
             return new ServerSocket(port, 0, InetAddress.getByName("localhost"));
@@ -283,9 +277,10 @@ public final class JMXUtils {
      * @param mbeanClazz
      * @return proxy interfaces to all beans registered to the server implementing the class mbeanClazz.
      */
-    public static <T> Iterable<T> getInstanceBeanProxies(final Class<T> mbeanClazz){
+    public static <T> Iterable<T> getInstanceBeanProxies(final Class<T> mbeanClazz) {
         return Collections2.transform(
-                ManagementFactory.getPlatformMBeanServer().queryNames(ObjectName.WILDCARD, Query.isInstanceOf(new StringValueExp(mbeanClazz.getName())))
-                , obj -> JMXUtils.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), obj, mbeanClazz));
+                ManagementFactory.getPlatformMBeanServer()
+                        .queryNames(ObjectName.WILDCARD, Query.isInstanceOf(new StringValueExp(mbeanClazz.getName()))),
+                obj -> JMXUtils.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), obj, mbeanClazz));
     }
 }
