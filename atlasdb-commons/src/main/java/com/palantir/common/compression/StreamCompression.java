@@ -86,6 +86,7 @@ public enum StreamCompression {
         }
     }
 
+    @SuppressWarnings("InputStreamSlowMultibyteRead") // Always throws
     private static final class ThrowingInputStream extends InputStream {
         private final Throwable thrown;
 
