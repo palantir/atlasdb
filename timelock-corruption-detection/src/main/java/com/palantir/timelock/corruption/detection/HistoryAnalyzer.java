@@ -114,9 +114,10 @@ public final class HistoryAnalyzer {
     private static List<PaxosValue> getAcceptedValues(List<ConsolidatedLearnerAndAcceptorRecord> records, Long seq,
             PaxosValue learnedValue) {
         return records.stream()
-                .map(record -> record.get(seq).acceptedValue())
-                .map(paxosAcceptorData ->
-                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElseGet(Optional::empty))
+                .map(record -> record.get(seq)
+                        .acceptedValue()
+                        .map(PaxosAcceptorData::getLastAcceptedValue)
+                        .orElseGet(Optional::empty))
                 .filter(optionalPaxosValue ->
                         optionalPaxosValue.isPresent() && optionalPaxosValue.get().equals(learnedValue))
                 .map(Optional::get)
@@ -126,9 +127,10 @@ public final class HistoryAnalyzer {
     private static Optional<PaxosValue> getGreatestAcceptedValueAtSequence(
             List<ConsolidatedLearnerAndAcceptorRecord> records, long seq) {
         return records.stream()
-                .map(record -> record.get(seq).acceptedValue())
-                .map(paxosAcceptorData ->
-                        paxosAcceptorData.map(PaxosAcceptorData::getLastAcceptedValue).orElseGet(Optional::empty))
+                .map(record -> record.get(seq)
+                        .acceptedValue()
+                        .map(PaxosAcceptorData::getLastAcceptedValue)
+                        .orElseGet(Optional::empty))
                 .filter(paxosValue -> getPaxosValueData(paxosValue) != null)
                 .map(Optional::get)
                 .max(Comparator.comparingLong(paxosValue ->  PtBytes.toLong(paxosValue.getData())));
