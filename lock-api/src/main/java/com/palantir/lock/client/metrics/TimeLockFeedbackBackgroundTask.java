@@ -16,17 +16,6 @@
 
 package com.palantir.lock.client.metrics;
 
-import com.codahale.metrics.Timer;
-import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
-import com.palantir.lock.client.LeaderElectionReportingTimelockService;
-import com.palantir.refreshable.Refreshable;
-import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
-import com.palantir.timelock.feedback.EndpointStatistics;
-import com.palantir.tokens.auth.AuthHeader;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +24,23 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Timer;
+import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
+import com.palantir.lock.client.LeaderElectionReportingTimelockService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import com.palantir.timelock.feedback.DurationStatistics;
+import com.palantir.timelock.feedback.EndpointStatistics;
+import com.palantir.tokens.auth.AuthHeader;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TimeLockFeedbackBackgroundTask.class);
@@ -87,24 +91,27 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
         task = executor.scheduleWithFixedDelay(
                 () -> {
                     try {
-                        ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
-                                .builder()
+                        Optional<DurationStatistics> leaderElectionStatistics =
+                                timelock.map(LeaderElectionReportingTimelockService::statistics);
+                        ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback.builder()
                                 .startTransaction(getEndpointStatsForStartTxn())
                                 .leaderTime(getEndpointStatsForLeaderTime())
                                 .atlasVersion(versionSupplier.get())
                                 .nodeId(nodeId)
                                 .serviceName(serviceName)
                                 .namespace(namespace)
-                                .leaderElectionStatistics(
-                                        timelock.map(LeaderElectionReportingTimelockService::statistics))
+                                .leaderElectionStatistics(leaderElectionStatistics)
                                 .build();
                         timeLockClientFeedbackServices
                                 .current()
                                 .forEach(service -> reportClientFeedbackToService(feedbackReport, service));
+                        log.info(
+                                "Background task view of leader election statistics",
+                                SafeArg.of("statistics", leaderElectionStatistics));
                     } catch (Exception e) {
                         log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
                     }
-        },
+                },
                 TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
                 TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);
