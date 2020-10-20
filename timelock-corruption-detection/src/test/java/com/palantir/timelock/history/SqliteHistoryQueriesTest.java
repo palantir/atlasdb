@@ -71,9 +71,8 @@ public class SqliteHistoryQueriesTest {
     @Test
     public void canGetAllLearnerLogsSince() {
         IntStream.rangeClosed(1, 100).forEach(i -> createAndWriteValueForLogAndRound(learnerLog, i));
-        LearnerAndAcceptorRecords learnerAndAcceptorRecords
-                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
-                        CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(0);
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
     }
@@ -82,9 +81,8 @@ public class SqliteHistoryQueriesTest {
     public void canGetAllCorrectLearnerLogsSince() {
         long round = 1;
         createAndWriteValueForLogAndRound(learnerLog, round);
-        LearnerAndAcceptorRecords learnerAndAcceptorRecords
-                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
-                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 0L);
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 0L);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(0);
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(1);
 
@@ -96,9 +94,8 @@ public class SqliteHistoryQueriesTest {
     @Test
     public void canGetAllAcceptorLogsSince() {
         IntStream.rangeClosed(1, 100).forEach(i -> writeAcceptorStateForLogAndRound(acceptorLog, i, Optional.empty()));
-        LearnerAndAcceptorRecords learnerAndAcceptorRecords
-                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
-                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(0);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
     }
@@ -106,9 +103,8 @@ public class SqliteHistoryQueriesTest {
     @Test
     public void canGetAllLearnerAndAcceptorLogsSince() {
         PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 100);
-        LearnerAndAcceptorRecords learnerAndAcceptorRecords
-                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
-                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
     }
@@ -118,9 +114,8 @@ public class SqliteHistoryQueriesTest {
         int startInclusive = 55;
         PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, startInclusive, 100);
 
-        LearnerAndAcceptorRecords learnerAndAcceptorRecords
-                = history.loadLocalHistory(ImmutableNamespaceAndUseCase.of(
-                CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+        LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
 
         int expected = 100 - startInclusive + 1;
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(expected);
