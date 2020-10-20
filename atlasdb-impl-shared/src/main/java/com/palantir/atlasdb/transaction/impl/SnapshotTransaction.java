@@ -1776,7 +1776,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
-            log.error(baseMsg + "{}", expiredLocksErrorString, ex);
+            log.warn(baseMsg + "{}", expiredLocksErrorString, ex);
             transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
