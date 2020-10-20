@@ -19,8 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import java.util.Optional;
-import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class SweepResultsTest {
@@ -74,7 +72,8 @@ public class SweepResultsTest {
 
     @Test
     public void accumulateWithNoNextRowInOrder() {
-        assertThat(RESULTS.accumulateWith(RESULTS_NO_START_ROW)).isEqualTo(SweepResults.builder()
+        assertThat(RESULTS.accumulateWith(RESULTS_NO_START_ROW))
+                .isEqualTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 3000L)
                         .staleValuesDeleted(100L + 300L)
@@ -86,7 +85,8 @@ public class SweepResultsTest {
 
     @Test
     public void accumulateWithNoNextRowInOppositeOrder() {
-        assertThat(RESULTS_NO_START_ROW.accumulateWith(OTHER_RESULTS)).isEqualTo(SweepResults.builder()
+        assertThat(RESULTS_NO_START_ROW.accumulateWith(OTHER_RESULTS))
+                .isEqualTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(2000L + 3000L)
                         .staleValuesDeleted(200L + 300L)
@@ -98,7 +98,8 @@ public class SweepResultsTest {
 
     @Test
     public void accumulateAll() {
-        assertThat(RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS)).isEqualTo(SweepResults.builder()
+        assertThat(RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS))
+                .isEqualTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 2000L + 3000L)
                         .staleValuesDeleted(100L + 200L + 300L)

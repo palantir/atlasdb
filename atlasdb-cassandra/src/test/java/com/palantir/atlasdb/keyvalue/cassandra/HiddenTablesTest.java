@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -30,31 +29,37 @@ public class HiddenTablesTest {
 
     @Test
     public void shouldSayMetadataIsHidden() {
-        assertThat(HiddenTables.isHidden(AtlasDbConstants.DEFAULT_METADATA_TABLE)).isEqualTo(true);
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.DEFAULT_METADATA_TABLE))
+                .isEqualTo(true);
     }
 
     @Test
     public void shouldSayAnOldStyleLocksTableIsHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks"))).isEqualTo(true);
+        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks")))
+                .isEqualTo(true);
     }
 
     @Test
     public void shouldSayANewStyleLocksTableIsHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks_aaaa_123"))).isEqualTo(true);
+        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks_aaaa_123")))
+                .isEqualTo(true);
     }
 
     @Test
     public void shouldSayANamespacedTableIsNotHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table"))).isEqualTo(false);
+        assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table")))
+                .isEqualTo(false);
     }
 
     @Test
     public void shouldSayANonNamespacedVisibleTableIsNotHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("table"))).isEqualTo(false);
+        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("table")))
+                .isEqualTo(false);
     }
 
     @Test
     public void shouldSayPersistedLocksTableIsHidden() {
-        assertThat(HiddenTables.isHidden(AtlasDbConstants.PERSISTED_LOCKS_TABLE)).isEqualTo(true);
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.PERSISTED_LOCKS_TABLE))
+                .isEqualTo(true);
     }
 }

@@ -37,7 +37,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.util.SortedMap;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,7 +76,8 @@ public class TestScrubQueueMigrationCommand {
         BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> visitable =
                 scrubStore.getBatchingVisitableScrubQueue(
                         Long.MAX_VALUE, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY);
-        assertThat(Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))).isEqualTo(ImmutableSortedMap.of(
+        assertThat(Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable)))
+                .isEqualTo(ImmutableSortedMap.of(
                         10L, ImmutableMultimap.of(foo, cell1, bar, cell1),
                         20L, ImmutableMultimap.of(baz, cell1),
                         30L, ImmutableMultimap.of(foo, cell2),

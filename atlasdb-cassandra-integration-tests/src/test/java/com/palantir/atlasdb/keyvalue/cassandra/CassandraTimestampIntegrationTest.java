@@ -17,14 +17,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -73,13 +71,15 @@ public class CassandraTimestampIntegrationTest {
         assertThat(ts2.getUpperLimit()).isEqualTo(limit + 10);
 
         ts.storeUpperLimit(limit + 20);
-                    assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 20)).isInstanceOf(MultipleRunningTimestampServiceError.class);
+        assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 20))
+                .isInstanceOf(MultipleRunningTimestampServiceError.class);
         assertThat(ts.getUpperLimit()).isEqualTo(limit + 20);
         assertThat(ts2.getUpperLimit()).isEqualTo(limit + 20);
 
         ts.storeUpperLimit(limit + 30);
         assertThat(ts.getUpperLimit()).isEqualTo(limit + 30);
 
-                    assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 40)).isInstanceOf(MultipleRunningTimestampServiceError.class);
+        assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 40))
+                .isInstanceOf(MultipleRunningTimestampServiceError.class);
     }
 }

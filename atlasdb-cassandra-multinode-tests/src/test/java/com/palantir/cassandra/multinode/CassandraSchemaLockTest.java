@@ -17,8 +17,6 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -84,7 +82,8 @@ public class CassandraSchemaLockTest {
         CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         assertThat(kvs.getAllTableNames()).contains(table1);
 
-        assertThat(new File(CONTAINERS.getLogDirectory())).is(new HamcrestCondition<>(containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError()))));
+        assertThat(new File(CONTAINERS.getLogDirectory()))
+                .is(new HamcrestCondition<>(containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError()))));
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
