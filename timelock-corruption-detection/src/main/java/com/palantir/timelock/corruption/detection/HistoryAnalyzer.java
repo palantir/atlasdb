@@ -41,12 +41,13 @@ public final class HistoryAnalyzer {
 
     @VisibleForTesting
     static boolean verifyLearnersHaveLearnedSameValues(CompletePaxosHistoryForNamespaceAndUseCase history) {
-        Set<Long> allSequenceNumbers = history.getAllSequenceNumbers();
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
-        return allSequenceNumbers.stream().allMatch(seq -> {
-            Set<PaxosValue> learnedValuesForRound = getLearnedValuesForRound(records, seq);
-            return learnedValuesForRound.size() <= 1;
-        });
+        return history.getAllSequenceNumbers()
+                .stream()
+                .allMatch(seq -> {
+                    Set<PaxosValue> learnedValuesForRound = getLearnedValuesForRound(records, seq);
+                    return learnedValuesForRound.size() <= 1;
+                });
     }
 
     @VisibleForTesting
@@ -54,25 +55,28 @@ public final class HistoryAnalyzer {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         int quorum = getQuorumSize(records);
 
-        return history.getAllSequenceNumbers().stream().allMatch(seq -> {
-            Optional<PaxosValue> optionalLearnedValue = getLearnedValue(records, seq);
+        return history.getAllSequenceNumbers()
+                .stream()
+                .allMatch(seq -> {
+                    Optional<PaxosValue> optionalLearnedValue = getLearnedValue(records, seq);
 
-            if(!optionalLearnedValue.isPresent()) {
-                return true;
-            }
+                    if(!optionalLearnedValue.isPresent()) {
+                        return true;
+                    }
 
-            PaxosValue learnedValue = optionalLearnedValue.get();
+                    PaxosValue learnedValue = optionalLearnedValue.get();
 
-            List<PaxosValue> acceptedValues = getAcceptedValues(records, seq, learnedValue);
-            return acceptedValues.size() >= quorum;
-        });
+                    List<PaxosValue> acceptedValues = getAcceptedValues(records, seq, learnedValue);
+                    return acceptedValues.size() >= quorum;
+                });
     }
 
     @VisibleForTesting
     static boolean verifyLearnedValueIsGreatestAcceptedValue(CompletePaxosHistoryForNamespaceAndUseCase history) {
-        Set<Long> allSequenceNumbers = history.getAllSequenceNumbers();
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
-        return allSequenceNumbers.stream().allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq));
+        return history.getAllSequenceNumbers()
+                .stream()
+                .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq));
     }
 
     // utils
