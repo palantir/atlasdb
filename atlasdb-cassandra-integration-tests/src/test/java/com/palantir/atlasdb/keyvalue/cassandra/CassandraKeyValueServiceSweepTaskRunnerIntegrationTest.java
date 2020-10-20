@@ -24,7 +24,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.util.MetricsManagers;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 

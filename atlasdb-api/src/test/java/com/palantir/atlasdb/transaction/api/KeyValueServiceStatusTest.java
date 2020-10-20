@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.transaction.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -29,7 +27,8 @@ public class KeyValueServiceStatusTest {
 
     @Test
     public void mostOperationsMeansNotHealthy() {
-        assertThat(KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES.isHealthy()).isFalse();
+        assertThat(KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES.isHealthy())
+                .isFalse();
     }
 
     @Test

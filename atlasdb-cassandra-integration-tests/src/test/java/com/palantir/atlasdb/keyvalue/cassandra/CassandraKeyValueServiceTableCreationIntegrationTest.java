@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -182,10 +180,14 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 .filter(cfDef -> cfDef.name.equals(
                         AbstractKeyValueService.internalTableName(TransactionConstants.TRANSACTIONS2_TABLE)))
                 .collect(MoreCollectors.onlyElement());
-        assertThat(transactions2CfDef.bloom_filter_fp_chance).isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE);
-        assertThat(transactions2CfDef.min_index_interval).isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL);
-        assertThat(transactions2CfDef.max_index_interval).isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL);
-        assertThat(transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)).isEqualTo(String.valueOf(
+        assertThat(transactions2CfDef.bloom_filter_fp_chance)
+                .isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE);
+        assertThat(transactions2CfDef.min_index_interval)
+                .isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL);
+        assertThat(transactions2CfDef.max_index_interval)
+                .isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL);
+        assertThat(transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY))
+                .isEqualTo(String.valueOf(
                         TransactionConstants.TRANSACTIONS2_TABLE_METADATA.getExplicitCompressionBlockSizeKB()));
     }
 

@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -59,14 +57,16 @@ public class CassandraKeyValueServiceConfigTest {
     @Test
     public void notUsingSslIfSslParamFalseAndSslConfigurationPresent() {
         assertThat(CASSANDRA_CONFIG
-                .withSsl(false)
-                .withSslConfiguration(SSL_CONFIGURATION)
-                .usingSsl()).isFalse();
+                        .withSsl(false)
+                        .withSslConfiguration(SSL_CONFIGURATION)
+                        .usingSsl())
+                .isFalse();
     }
 
     @Test
     public void usingSslIfSslParamNotPresentAndSslConfigurationPresent() {
-        assertThat(CASSANDRA_CONFIG.withSslConfiguration(SSL_CONFIGURATION).usingSsl()).isTrue();
+        assertThat(CASSANDRA_CONFIG.withSslConfiguration(SSL_CONFIGURATION).usingSsl())
+                .isTrue();
     }
 
     @Test

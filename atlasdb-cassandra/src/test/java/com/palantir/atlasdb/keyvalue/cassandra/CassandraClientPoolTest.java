@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -523,8 +521,10 @@ public class CassandraClientPoolTest {
 
     private void verifyAggregateFailureMetrics(
             double requestFailureProportion, double requestConnectionExceptionProportion) {
-        assertThat(getAggregateMetricValueForMetricName("requestFailureProportion")).isEqualTo(requestFailureProportion);
-        assertThat(getAggregateMetricValueForMetricName("requestConnectionExceptionProportion")).isEqualTo(requestConnectionExceptionProportion);
+        assertThat(getAggregateMetricValueForMetricName("requestFailureProportion"))
+                .isEqualTo(requestFailureProportion);
+        assertThat(getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"))
+                .isEqualTo(requestConnectionExceptionProportion);
     }
 
     private void verifyBlacklistMetric(Integer expectedSize) {
