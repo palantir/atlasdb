@@ -114,7 +114,6 @@ allprojects {
                 'DoNotMock',
                 'ExtendsErrorOrThrowable',
                 'ImmutablesBuilderMissingInitialization',
-                'InputStreamSlowMultibyteRead',
                 'LogSafePreconditionsMessageFormat',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
