@@ -19,10 +19,13 @@ package com.palantir.nexus.db.pool.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.pool.config.OracleConnectionConfig.ServiceNameConfiguration;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import org.junit.Test;
@@ -144,4 +147,33 @@ public class OracleConnectionConfigTest {
                 .host(HOST)
                 .port(PORT);
     }
+
+    @Test
+    public void protocolCaseInsensitiveTest() throws IOException {
+        // protocol (tcp or tcps) should be case insensitive in config
+        ObjectMapper mapper = new ObjectMapper();
+
+        Map<String, ConnectionProtocol> serializedProtocols = ImmutableMap.<String, ConnectionProtocol>builder()
+                .put("\"TCP\"", ConnectionProtocol.TCP)
+                .put("\"tcp\"", ConnectionProtocol.TCP)
+                .put("\"TCPS\"", ConnectionProtocol.TCPS)
+                .put("\"tcps\"", ConnectionProtocol.TCPS)
+                .build();
+
+        for (Map.Entry<String, ConnectionProtocol> entry : serializedProtocols.entrySet()) {
+            ConnectionProtocol protocol = mapper.readValue(entry.getKey(), ConnectionProtocol.class);
+            assertThat(protocol)
+                    .isEqualTo(entry.getValue());
+        }
+    }
+
+    @Test
+    public void invalidProtocolTest() {
+        ObjectMapper mapper = new ObjectMapper();
+
+        assertThatThrownBy(() -> mapper.readValue("\"invalid\"", ConnectionProtocol.class))
+                .hasCauseInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("invalid does not correspond to a known ConnectionProtocol");
+    }
+
 }

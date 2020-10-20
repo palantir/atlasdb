@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Reduces logging level for throwIfImmutableTsOrCommitLocksExpired to warn because it usually succeeds on retries, so logging at error level is misleading.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5046
