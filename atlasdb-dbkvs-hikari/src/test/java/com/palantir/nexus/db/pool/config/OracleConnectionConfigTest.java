@@ -162,8 +162,7 @@ public class OracleConnectionConfigTest {
 
         for (Map.Entry<String, ConnectionProtocol> entry : serializedProtocols.entrySet()) {
             ConnectionProtocol protocol = mapper.readValue(entry.getKey(), ConnectionProtocol.class);
-            assertThat(protocol)
-                    .isEqualTo(entry.getValue());
+            assertThat(protocol).isEqualTo(entry.getValue());
         }
     }
 
@@ -175,5 +174,4 @@ public class OracleConnectionConfigTest {
                 .hasCauseInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("invalid does not correspond to a known ConnectionProtocol");
     }
-
 }
