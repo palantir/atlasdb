@@ -16,8 +16,9 @@
 
 package com.palantir.timelock.history.models;
 
+import static com.palantir.timelock.history.models.LearnedAndAcceptedValue.voidLearnedAndAcceptedValue;
+
 import java.util.Map;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -37,8 +38,7 @@ public interface ConsolidatedLearnerAndAcceptorRecord {
         return ImmutableConsolidatedLearnerAndAcceptorRecord.of(record);
     }
 
-    // todo Snanda
     default LearnedAndAcceptedValue get(long seq) {
-        return record().getOrDefault(seq, ImmutableLearnedAndAcceptedValue.of(Optional.empty(), Optional.empty()));
+        return record().getOrDefault(seq, voidLearnedAndAcceptedValue());
     }
 }

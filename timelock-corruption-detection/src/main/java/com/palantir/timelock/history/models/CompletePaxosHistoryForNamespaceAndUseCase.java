@@ -42,7 +42,6 @@ public interface CompletePaxosHistoryForNamespaceAndUseCase {
     @Value.Parameter
     List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords();
 
-    //todo snanda
     @Value.Lazy
     default Set<Long> getAllSequenceNumbers() {
         return localAndRemoteLearnerAndAcceptorRecords().stream()
