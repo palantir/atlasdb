@@ -16,8 +16,16 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import org.immutables.value.Value;
+
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -44,13 +52,6 @@ import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.zaxxer.hikari.HikariDataSource;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import org.immutables.value.Value;
 
 public final class PaxosResourcesFactory {
 
@@ -244,9 +245,8 @@ public final class PaxosResourcesFactory {
     private static TimeLockCorruptionComponents timeLockCorruptionComponents(PaxosRemoteClients remoteClients) {
         RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
 
-        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
-                LocalCorruptionDetector.create(remoteClients.getRemoteCorruptionNotifiers()),
-                remoteCorruptionDetector));
+        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(
+                LocalCorruptionDetector.create(remoteClients.getRemoteCorruptionNotifiers()), remoteCorruptionDetector);
 
         return TimeLockCorruptionComponents.builder()
                 .timeLockCorruptionHealthCheck(healthCheck)

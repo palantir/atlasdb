@@ -34,13 +34,13 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
     private final LocalCorruptionHandler corruptionHandler;
 
-    private volatile CorruptionStatus localCorruptionState = CorruptionStatus.HEALTHY;
+    private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
 
     public static LocalCorruptionDetector create(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
         LocalCorruptionDetector localCorruptionDetector = new LocalCorruptionDetector(corruptionNotifiers);
 
-        //        TODO(snanda) - uncomment when TL corruption detection goes live
-        //        timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
+        //TODO(snanda) - uncomment when TL corruption detection goes live
+        //timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
@@ -51,27 +51,28 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     private void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(
                 () -> {
-                    if (detectedSignsOfCorruption()) {
-                        killTimeLock();
-                    }
+                    CorruptionHealthReport latestReport = analyzeHistoryAndBuildCorruptionHealthReport();
+                    processLocalHealthReport(latestReport);
                 },
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);
     }
 
-    private void killTimeLock() {
-        localCorruptionState = CorruptionStatus.CORRUPTION;
-        corruptionHandler.notifyRemoteServersOfCorruption();
+    private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
+        //todo(snanda)
+        return CorruptionHealthReport.defaultHealthyReport();
     }
 
-    private boolean detectedSignsOfCorruption() {
-        // no op for now
-        return false;
+    private void processLocalHealthReport(CorruptionHealthReport latestReport) {
+        localCorruptionReport.overrideIfAllowed(latestReport);
+        if (localCorruptionReport.shootTimeLock()) {
+            corruptionHandler.notifyRemoteServersOfCorruption();
+        }
     }
 
     @Override
-    public boolean hasDetectedCorruption() {
-        return localCorruptionState.hasCorruption();
+    public CorruptionHealthReport corruptionHealthReport() {
+        return localCorruptionReport;
     }
 }

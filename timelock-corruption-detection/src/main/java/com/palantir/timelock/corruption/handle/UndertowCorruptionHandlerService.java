@@ -16,15 +16,17 @@
 
 package com.palantir.timelock.corruption.handle;
 
+import java.util.List;
+
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.undertow.lib.Endpoint;
 import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
+
 import io.undertow.server.HandlerWrapper;
 import io.undertow.util.Headers;
 import io.undertow.util.StatusCodes;
-import java.util.List;
 
 public class UndertowCorruptionHandlerService implements UndertowService {
     private final UndertowService delegate;
@@ -35,12 +37,12 @@ public class UndertowCorruptionHandlerService implements UndertowService {
         this.delegate = service;
         this.healthCheck = healthCheck;
         this.wrapper = handler -> exchange -> {
-            if (healthCheck.isHealthy()) {
-                handler.handleRequest(exchange);
-            } else {
+            if (healthCheck.shootTimeLock()) {
                 exchange.setStatusCode(StatusCodes.SERVICE_UNAVAILABLE);
                 exchange.getResponseHeaders().put(Headers.CONTENT_LENGTH, "0"); // 503 with no body
                 exchange.endExchange();
+            } else {
+                handler.handleRequest(exchange);
             }
         };
     }

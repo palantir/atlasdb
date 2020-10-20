@@ -17,5 +17,5 @@
 package com.palantir.timelock.corruption.detection;
 
 public interface CorruptionDetector {
-    boolean hasDetectedCorruption();
+    CorruptionHealthReport corruptionHealthReport();
 }

@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.corruption.detection;
+package com.palantir.timelock;
 
-public class RemoteCorruptionDetector implements CorruptionDetector {
-    private volatile CorruptionHealthReport remoteCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
+public class TimeLockCorruptionManager {
 
-    public void setRemoteCorruptionState() {
-        remoteCorruptionReport = CorruptionHealthReport.defaultRemoteCorruptionReport();
-    }
+    public static void doEverything() {
 
-    @Override
-    public CorruptionHealthReport corruptionHealthReport() {
-        return remoteCorruptionReport;
     }
 }

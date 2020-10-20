@@ -15,6 +15,15 @@
  */
 package com.palantir.timelock.paxos;
 
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -62,6 +71,7 @@ import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
+import com.palantir.timelock.corruption.detection.CorruptionHealthReport;
 import com.palantir.timelock.corruption.handle.CorruptionNotifierResource;
 import com.palantir.timelock.corruption.handle.JerseyCorruptionFilter;
 import com.palantir.timelock.corruption.handle.UndertowCorruptionHandlerService;
@@ -74,14 +84,6 @@ import com.palantir.timelock.management.ImmutableTimestampStorage;
 import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
-import java.net.URL;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
@@ -417,6 +419,10 @@ public class TimeLockAgent {
                 .leadershipContextFactory()
                 .leaderElectionHealthCheck()
                 .leaderElectionRateHealthReport();
+    }
+
+    public CorruptionHealthReport timeLockCorruptionHealthCheck() {
+        return corruptionComponents.timeLockCorruptionHealthCheck().localCorruptionDetector();
     }
 
     public void shutdown() {

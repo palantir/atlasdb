@@ -18,14 +18,25 @@ package com.palantir.timelock.corruption.detection;
 
 import java.util.List;
 
-public class CorruptionHealthCheck {
-    private final List<CorruptionDetector> corruptionDetectors;
+import com.google.common.collect.ImmutableList;
 
-    public CorruptionHealthCheck(List<CorruptionDetector> corruptionDetectors) {
-        this.corruptionDetectors = corruptionDetectors;
+public class CorruptionHealthCheck {
+    private final LocalCorruptionDetector localCorruptionDetector;
+    private final List<CorruptionDetector> localAndRemoteCorruptionDetectors;
+
+    public CorruptionHealthCheck(LocalCorruptionDetector localCorruptionDetector,
+            RemoteCorruptionDetector remoteCorruptionDetector) {
+        this.localCorruptionDetector = localCorruptionDetector;
+        this.localAndRemoteCorruptionDetectors = ImmutableList.of(localCorruptionDetector, remoteCorruptionDetector);
     }
 
-    public boolean isHealthy() {
-        return corruptionDetectors.stream().noneMatch(CorruptionDetector::hasDetectedCorruption);
+    public boolean shootTimeLock() {
+        return localAndRemoteCorruptionDetectors.stream()
+                .anyMatch(detector -> detector.corruptionHealthReport().shootTimeLock());
+    }
+
+    public CorruptionHealthReport localCorruptionDetector() {
+        //todo(snanda) should merge local and remote reports?
+        return localCorruptionDetector.corruptionHealthReport();
     }
 }
