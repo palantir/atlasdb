@@ -190,7 +190,7 @@ public final class AtlasDbMetricsTest {
                             return true;
                         },
                         MoreExecutors.directExecutor());
-        assertThat(Futures.getUnchecked(done)).isEqualTo(true);
+        assertThat(Futures.getUnchecked(done)).isTrue();
     }
 
     private void assertMethodInstrumented(String methodTimerName, Supplier<String> invocation) {
@@ -215,7 +215,7 @@ public final class AtlasDbMetricsTest {
     }
 
     private void assertTimerNotRegistered(String timer) {
-        assertThat(metrics.getTimers().get(timer)).isNull();
+        assertThat(metrics.getTimers()).doesNotContainKey(timer);
     }
 
     public interface TestService {

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -27,7 +28,7 @@ public class ConflictHandlersTest {
         for (ConflictHandler conflictHandler : ConflictHandler.values()) {
             TableMetadataPersistence.TableConflictHandler proto = ConflictHandlers.persistToProto(conflictHandler);
             ConflictHandler convertedConflictHandler = ConflictHandlers.hydrateFromProto(proto);
-            assertEquals(conflictHandler, convertedConflictHandler);
+            assertThat(convertedConflictHandler).isEqualTo(conflictHandler);
         }
     }
 }

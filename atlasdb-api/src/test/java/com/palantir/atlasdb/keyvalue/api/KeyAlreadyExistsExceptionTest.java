@@ -42,6 +42,6 @@ public class KeyAlreadyExistsExceptionTest {
         assertThat(deserialized.getCause()).isNull();
         assertThat(deserialized.getExistingKeys())
                 .containsExactly(Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col")));
-        assertThat(deserialized.getKnownSuccessfullyCommittedKeys()).isEqualTo(ImmutableList.of());
+        assertThat(deserialized.getKnownSuccessfullyCommittedKeys()).isEmpty();
     }
 }

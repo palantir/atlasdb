@@ -101,7 +101,7 @@ public class MetricPublicationArbiterTest {
             arbiter.registerMetricsFilter(METRIC_NAME_1, () -> index == 1);
             arbiter.registerMetricsFilter(METRIC_NAME_1, () -> index == 2);
         }
-        assertThat(filters.get(METRIC_NAME_1).size()).isEqualTo(2);
+        assertThat(filters.get(METRIC_NAME_1)).hasSize(2);
     }
 
     private static MetricPublicationArbiter createArbiter(Map<MetricName, Set<MetricPublicationFilter>> filters) {
