@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.Snapshot;
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -37,26 +38,28 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.timelock.feedback.DurationStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class MetricReportingNamespacedConjureTimelockService implements NamespacedConjureTimelockService {
+public class LeaderElectionReportingTimelockService implements NamespacedConjureTimelockService {
     private final NamespacedConjureTimelockService delegate;
     private final LeaderElectionMetrics metrics;
     private volatile UUID leaderId = null;
 
-    public MetricReportingNamespacedConjureTimelockService(
+    public LeaderElectionReportingTimelockService(
             NamespacedConjureTimelockService delegate,
             TaggedMetricRegistry taggedMetricRegistry) {
         this.delegate = delegate;
         this.metrics = LeaderElectionMetrics.of(taggedMetricRegistry);
     }
 
-    public static MetricReportingNamespacedConjureTimelockService create(
+    public static LeaderElectionReportingTimelockService create(
             ConjureTimelockService conjureTimelockService,
             String namespace) {
-        return new MetricReportingNamespacedConjureTimelockService(
+        return new LeaderElectionReportingTimelockService(
                 new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace),
                 new DefaultTaggedMetricRegistry());
     }
@@ -99,6 +102,16 @@ public class MetricReportingNamespacedConjureTimelockService implements Namespac
     @Override
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return runTimed(() -> delegate.startTransactions(request), response -> response.getLockWatchUpdate().logId());
+    }
+
+    public DurationStatistics statistics() {
+        Snapshot metricsSnapshot = metrics.observedDuration().getSnapshot();
+        return DurationStatistics.builder()
+                .p99(metricsSnapshot.get99thPercentile())
+                .p95(metricsSnapshot.get95thPercentile())
+                .mean(metricsSnapshot.getMean())
+                .count(SafeLong.of(metrics.observedDuration().getCount()))
+                .build();
     }
 
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {

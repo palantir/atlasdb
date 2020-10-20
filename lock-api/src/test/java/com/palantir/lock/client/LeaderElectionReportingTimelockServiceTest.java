@@ -40,7 +40,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class MetricReportingNamespacedConjureTimelockServiceTest {
+public class LeaderElectionReportingTimelockServiceTest {
     private static final UUID LEADER_1 = UUID.randomUUID();
     private static final LockWatchStateUpdate UPDATE = LockWatchStateUpdate.success(LEADER_1, -1L, ImmutableList.of());
 
@@ -56,7 +56,7 @@ public class MetricReportingNamespacedConjureTimelockServiceTest {
 
     @Before
     public void before() {
-        timelockService = new MetricReportingNamespacedConjureTimelockService(mockedDelegeate, mockedRegistry);
+        timelockService = new LeaderElectionReportingTimelockService(mockedDelegeate, mockedRegistry);
         when(mockedDelegeate.startTransactions(any())).thenReturn(startTransactionsResponse);
         when(mockedDelegeate.getCommitTimestamps(any())).thenReturn(commitTimestampsResponse);
         when(mockedRegistry.timer(any())).thenReturn(mockedTimer);

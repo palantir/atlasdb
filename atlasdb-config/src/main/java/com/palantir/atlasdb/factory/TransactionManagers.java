@@ -167,8 +167,8 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.client.MetricReportingNamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
@@ -1168,11 +1168,12 @@ public abstract class TransactionManagers {
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
-        MetricReportingNamespacedConjureTimelockService namespacedConjureTimelockService
-                = MetricReportingNamespacedConjureTimelockService.create(
+        LeaderElectionReportingTimelockService namespacedConjureTimelockService
+                = LeaderElectionReportingTimelockService.create(
                         withDiagnosticsConjureTimelockService, timelockNamespace);
 
-        timeLockFeedbackBackgroundTask.ifPresent(task -> task.register(namespacedConjureTimelockService));
+        timeLockFeedbackBackgroundTask
+                .ifPresent(task -> task.registerLeaderElectionStatistics(namespacedConjureTimelockService));
 
         LockWatchEventCache lockWatchEventCache = LockWatchEventCacheImpl.create(metricsManager);
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(

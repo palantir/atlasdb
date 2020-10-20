@@ -34,7 +34,7 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackS
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
-import com.palantir.lock.client.MetricReportingNamespacedConjureTimelockService;
+import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
@@ -58,7 +58,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final String serviceName;
     private final String namespace;
     private final Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
-    private volatile Optional<MetricReportingNamespacedConjureTimelockService> timelockService;
+    private volatile Optional<LeaderElectionReportingTimelockService> timelock;
 
     private ScheduledFuture<?> task;
 
@@ -99,6 +99,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                         .nodeId(nodeId)
                         .serviceName(serviceName)
                         .namespace(namespace)
+                        .leaderElectionStatistics(timelock.map(LeaderElectionReportingTimelockService::statistics))
                         .build();
                 timeLockClientFeedbackServices
                         .current()
@@ -112,8 +113,8 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                 TimeUnit.SECONDS);
     }
 
-    public void register(MetricReportingNamespacedConjureTimelockService conjureTimelock) {
-        this.timelockService = Optional.of(conjureTimelock);
+    public void registerLeaderElectionStatistics(LeaderElectionReportingTimelockService conjureTimelock) {
+        this.timelock = Optional.of(conjureTimelock);
     }
 
     private void reportClientFeedbackToService(ConjureTimeLockClientFeedback feedbackReport,
@@ -144,7 +145,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private double getP99ForLeaderTime() {
-        return getP99(() -> conjureTimelockServiceBlockingMetrics.leaderTime());
+        return getP99(conjureTimelockServiceBlockingMetrics::leaderTime);
 
     }
 
@@ -166,7 +167,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     }
 
     private double getP99ForStartTxn() {
-        return getP99(() -> conjureTimelockServiceBlockingMetrics.startTransactions());
+        return getP99(conjureTimelockServiceBlockingMetrics::startTransactions);
     }
 
     private double getP99(Supplier<Timer> timerSupplier) {
