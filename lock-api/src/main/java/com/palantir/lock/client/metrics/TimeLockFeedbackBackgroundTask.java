@@ -19,6 +19,7 @@ package com.palantir.lock.client.metrics;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackS
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
+import com.palantir.lock.client.MetricReportingNamespacedConjureTimelockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
@@ -56,6 +58,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final String serviceName;
     private final String namespace;
     private final Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
+    private volatile Optional<MetricReportingNamespacedConjureTimelockService> timelockService;
 
     private ScheduledFuture<?> task;
 
@@ -107,6 +110,10 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                 TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
                 TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);
+    }
+
+    public void register(MetricReportingNamespacedConjureTimelockService conjureTimelock) {
+        this.timelockService = Optional.of(conjureTimelock);
     }
 
     private void reportClientFeedbackToService(ConjureTimeLockClientFeedback feedbackReport,

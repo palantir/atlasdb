@@ -63,7 +63,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LockLeaseServiceTest {
-    @Mock private NamespacedConjureTimelockServiceImpl timelock;
+    @Mock private NamespacedConjureTimelockService timelock;
     @Mock private LockRequest lockRequest;
     @Mock private PartitionedTimestamps partitionedTimestamps;
 

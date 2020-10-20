@@ -53,16 +53,16 @@ final class BlockEnforcingLockService {
      */
     static final Duration MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT = Duration.ofSeconds(65).minusMillis(100);
 
-    private final NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
+    private final NamespacedConjureTimelockService namespacedConjureTimelockService;
     private final RemoteTimeoutRetryer timeoutRetryer;
 
-    private BlockEnforcingLockService(NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService,
+    private BlockEnforcingLockService(NamespacedConjureTimelockService namespacedConjureTimelockService,
             RemoteTimeoutRetryer timeoutRetryer) {
         this.namespacedConjureTimelockService = namespacedConjureTimelockService;
         this.timeoutRetryer = timeoutRetryer;
     }
 
-    static BlockEnforcingLockService create(NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService) {
+    static BlockEnforcingLockService create(NamespacedConjureTimelockService namespacedConjureTimelockService) {
         return new BlockEnforcingLockService(namespacedConjureTimelockService, RemoteTimeoutRetryer.createDefault());
     }
 

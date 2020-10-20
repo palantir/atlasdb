@@ -31,12 +31,14 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class MetricReportingNamespacedConjureTimelockService implements NamespacedConjureTimelockService {
@@ -49,6 +51,14 @@ public class MetricReportingNamespacedConjureTimelockService implements Namespac
             TaggedMetricRegistry taggedMetricRegistry) {
         this.delegate = delegate;
         this.metrics = LeaderElectionMetrics.of(taggedMetricRegistry);
+    }
+
+    public static MetricReportingNamespacedConjureTimelockService create(
+            ConjureTimelockService conjureTimelockService,
+            String namespace) {
+        return new MetricReportingNamespacedConjureTimelockService(
+                new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace),
+                new DefaultTaggedMetricRegistry());
     }
 
     @Override

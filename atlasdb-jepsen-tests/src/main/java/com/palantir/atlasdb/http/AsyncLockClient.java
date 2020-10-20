@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
@@ -38,7 +39,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private final TimelockService timelockService;
 
     private AsyncLockClient(NamespacedTimelockRpcClient timelockService,
-            NamespacedConjureTimelockServiceImpl conjureTimelockService) {
+            NamespacedConjureTimelockService conjureTimelockService) {
         this.timelockService = RemoteTimelockServiceAdapter.create(
                 timelockService,
                 conjureTimelockService,

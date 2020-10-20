@@ -24,6 +24,7 @@ import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
@@ -85,7 +86,7 @@ public interface NamespacedClients {
     }
 
     @Value.Derived
-    default NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService() {
+    default NamespacedConjureTimelockService namespacedConjureTimelockService() {
         return new NamespacedConjureTimelockServiceImpl(conjureTimelockService(), namespace());
     }
 
