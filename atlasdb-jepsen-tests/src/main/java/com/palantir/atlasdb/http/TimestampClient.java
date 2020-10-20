@@ -30,14 +30,13 @@ public final class TimestampClient {
     private TimestampClient() {}
 
     public static TimestampService create(MetricsManager metricsManager, List<String> hosts) {
-        return new TimelockTimestampServiceAdapter(
-               RemoteTimelockServiceAdapter.create(
-                       new NamespacedTimelockRpcClient(
-                               TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
-                               TimelockUtils.NAMESPACE),
-                       new NamespacedConjureTimelockServiceImpl(
-                               TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
-                               TimelockUtils.NAMESPACE),
-                       NoOpLockWatchEventCache.INSTANCE));
+        return new TimelockTimestampServiceAdapter(RemoteTimelockServiceAdapter.create(
+                new NamespacedTimelockRpcClient(
+                        TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
+                        TimelockUtils.NAMESPACE),
+                new NamespacedConjureTimelockServiceImpl(
+                        TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
+                        TimelockUtils.NAMESPACE),
+                NoOpLockWatchEventCache.INSTANCE));
     }
 }

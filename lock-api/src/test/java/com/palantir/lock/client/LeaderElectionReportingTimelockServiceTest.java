@@ -25,11 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -39,6 +34,9 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LeaderElectionReportingTimelockServiceTest {
     private static final UUID LEADER_1 = UUID.randomUUID();

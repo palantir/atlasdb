@@ -46,11 +46,9 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {
         return new AsyncLockClient(
                 new NamespacedTimelockRpcClient(
-                        TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
-                        NAMESPACE),
+                        TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class), NAMESPACE),
                 new NamespacedConjureTimelockServiceImpl(
-                        TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
-                        NAMESPACE));
+                        TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class), NAMESPACE));
     }
 
     @Override

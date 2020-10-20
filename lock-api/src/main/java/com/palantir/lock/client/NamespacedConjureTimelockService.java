@@ -33,11 +33,18 @@ import com.palantir.lock.v2.LeaderTime;
 
 public interface NamespacedConjureTimelockService {
     ConjureUnlockResponse unlock(ConjureUnlockRequest request);
+
     ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request);
+
     ConjureWaitForLocksResponse waitForLocks(ConjureLockRequest request);
+
     ConjureLockResponse lock(ConjureLockRequest request);
+
     LeaderTime leaderTime();
+
     GetCommitTimestampsResponse getCommitTimestamps(GetCommitTimestampsRequest request);
+
     ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request);
+
     ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request);
 }

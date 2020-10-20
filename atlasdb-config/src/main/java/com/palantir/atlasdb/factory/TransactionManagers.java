@@ -959,19 +959,18 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        LockAndTimestampServices lockAndTimestampServices =
-                createRawInstrumentedServices(
-                        metricsManager,
-                        config,
-                        runtimeConfigSupplier,
-                        env,
-                        lock,
-                        time,
-                        invalidator,
-                        UserAgents.tryParse(userAgent),
-                        Optional.empty(),
-                        newMinimalDialogueFactory(),
-                        Optional.empty());
+        LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
+                metricsManager,
+                config,
+                runtimeConfigSupplier,
+                env,
+                lock,
+                time,
+                invalidator,
+                UserAgents.tryParse(userAgent),
+                Optional.empty(),
+                newMinimalDialogueFactory(),
+                Optional.empty());
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -1171,14 +1170,13 @@ public abstract class TransactionManagers {
                         components.localLockTracker()))
                 .orElse(conjureTimelockService);
 
-        NamespacedTimelockRpcClient namespacedTimelockRpcClient
-                = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
-        LeaderElectionReportingTimelockService namespacedConjureTimelockService
-                = LeaderElectionReportingTimelockService.create(
-                        withDiagnosticsConjureTimelockService, timelockNamespace);
+        NamespacedTimelockRpcClient namespacedTimelockRpcClient =
+                new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
+        LeaderElectionReportingTimelockService namespacedConjureTimelockService =
+                LeaderElectionReportingTimelockService.create(withDiagnosticsConjureTimelockService, timelockNamespace);
 
-        timeLockFeedbackBackgroundTask
-                .ifPresent(task -> task.registerLeaderElectionStatistics(namespacedConjureTimelockService));
+        timeLockFeedbackBackgroundTask.ifPresent(
+                task -> task.registerLeaderElectionStatistics(namespacedConjureTimelockService));
 
         LockWatchEventCache lockWatchEventCache = LockWatchEventCacheImpl.create(metricsManager);
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
