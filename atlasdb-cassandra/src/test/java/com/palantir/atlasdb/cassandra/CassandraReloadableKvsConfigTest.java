@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +39,7 @@ public class CassandraReloadableKvsConfigTest {
 
         boolean installConfigParam = true;
         when(config.autoRefreshNodes()).thenReturn(installConfigParam);
-        assertThat(reloadableConfig.autoRefreshNodes(), is(installConfigParam));
+        assertThat(reloadableConfig.autoRefreshNodes()).isEqualTo(installConfigParam);
     }
 
     @Test
@@ -53,7 +52,7 @@ public class CassandraReloadableKvsConfigTest {
         int runtimeConfigParam = 2;
         when(runtimeConfig.sweepReadThreads()).thenReturn(runtimeConfigParam);
 
-        assertThat(reloadableConfig.sweepReadThreads(), is(runtimeConfigParam));
+        assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(runtimeConfigParam);
     }
 
     @Test
@@ -63,8 +62,8 @@ public class CassandraReloadableKvsConfigTest {
         int firstValue = 1;
         int secondValue = 2;
         when(runtimeConfig.sweepReadThreads()).thenReturn(firstValue, secondValue);
-        assertThat(reloadableConfig.sweepReadThreads(), is(firstValue));
-        assertThat(reloadableConfig.sweepReadThreads(), is(secondValue));
+        assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(firstValue);
+        assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(secondValue);
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {

@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -54,11 +53,11 @@ public class ColumnFamilyDefinitionsTest {
         CfDef fullyQualified = standard.setCompaction_strategy("com.palantir.AwesomeCompactionStrategy");
         CfDef onlyClassName = standard.deepCopy().setCompaction_strategy("AwesomeCompactionStrategy");
 
-        assertTrue(
-                String.format(
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(fullyQualified, onlyClassName))
+                .describedAs(String.format(
                         "Compaction strategies %s and %s should match",
-                        fullyQualified.compaction_strategy, onlyClassName.compaction_strategy),
-                ColumnFamilyDefinitions.isMatchingCf(fullyQualified, onlyClassName));
+                        fullyQualified.compaction_strategy, onlyClassName.compaction_strategy))
+                .isTrue();
     }
 
     @Test
@@ -74,9 +73,9 @@ public class ColumnFamilyDefinitionsTest {
                 FOUR_DAYS_IN_SECONDS,
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        assertFalse(
-                "ColumnFamilyDefinitions with different gc_grace_seconds should not match",
-                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable))
+                .describedAs("ColumnFamilyDefinitions with different gc_grace_seconds should not match")
+                .isFalse();
     }
 
     @Test
@@ -92,9 +91,9 @@ public class ColumnFamilyDefinitionsTest {
                 CassandraConstants.DEFAULT_GC_GRACE_SECONDS,
                 TableMetadata.builder().denselyAccessedWideRows(true).build().persistToBytes());
 
-        assertFalse(
-                "denselyAccessedWideRows should be reflected in comparisons of ColumnFamilyDefinitions",
-                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable))
+                .describedAs("denselyAccessedWideRows should be reflected in comparisons of ColumnFamilyDefinitions")
+                .isFalse();
     }
 
     @Test
@@ -106,9 +105,9 @@ public class ColumnFamilyDefinitionsTest {
                 .setCompression_options(DEFAULT_COMPRESSION)
                 .setMin_index_interval(128);
 
-        assertFalse(
-                "ColumnFamilyDefinitions with different min_index_interval should not match",
-                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable))
+                .describedAs("ColumnFamilyDefinitions with different min_index_interval should not match")
+                .isFalse();
     }
 
     @Test
@@ -120,9 +119,9 @@ public class ColumnFamilyDefinitionsTest {
                 .setCompression_options(DEFAULT_COMPRESSION)
                 .setMax_index_interval(128);
 
-        assertFalse(
-                "ColumnFamilyDefinitions with different min_index_interval should not match",
-                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable))
+                .describedAs("ColumnFamilyDefinitions with different min_index_interval should not match")
+                .isFalse();
     }
 
     @Test
@@ -139,7 +138,9 @@ public class ColumnFamilyDefinitionsTest {
                 FOUR_DAYS_IN_SECONDS,
                 TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES);
 
-        assertTrue("identical CFs should equal each other", ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(cf1, cf2))
+                .describedAs("identical CFs should equal each other")
+                .isTrue();
     }
 
     @Test
@@ -156,6 +157,8 @@ public class ColumnFamilyDefinitionsTest {
                 FOUR_DAYS_IN_SECONDS,
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        assertTrue("identical CFs should equal each other", ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(cf1, cf2))
+                .describedAs("identical CFs should equal each other")
+                .isTrue();
     }
 }

@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
-import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -93,7 +93,7 @@ public class IterablePartitionerTest {
                 Lists.newArrayList(1, 2, 3), 2, MAXIMUM_PUT_SIZE, tableName, foo -> approximatePutSize, mockLogger);
         int i = 1;
         for (List<Integer> partition : partitions) {
-            Assert.assertThat(partition, Matchers.contains(i));
+            assertThat(partition).containsExactly(i);
             i++;
         }
     }

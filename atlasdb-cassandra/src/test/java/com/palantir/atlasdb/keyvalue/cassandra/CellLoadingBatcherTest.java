@@ -110,7 +110,7 @@ public class CellLoadingBatcherTest {
         List<List<Cell>> batches = partitionUsingMockCallback(manyColumns);
 
         assertBatchContainsAllCells(batches, manyColumns);
-        batches.forEach(batch -> assertThat(batch.size()).isLessThanOrEqualTo(CROSS_COLUMN_LIMIT));
+        batches.forEach(batch -> assertThat(batch).hasSizeLessThanOrEqualTo(CROSS_COLUMN_LIMIT));
     }
 
     @Test

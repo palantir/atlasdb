@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,6 +41,6 @@ public class KeyAlreadyExistsExceptionTest {
         assertThat(deserialized.getCause()).isNull();
         assertThat(deserialized.getExistingKeys())
                 .containsExactly(Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col")));
-        assertThat(deserialized.getKnownSuccessfullyCommittedKeys()).isEqualTo(ImmutableList.of());
+        assertThat(deserialized.getKnownSuccessfullyCommittedKeys()).isEmpty();
     }
 }
