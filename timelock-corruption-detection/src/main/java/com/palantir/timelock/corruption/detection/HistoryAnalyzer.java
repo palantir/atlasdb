@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.paxos.PaxosValue;
@@ -30,7 +31,6 @@ import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
 
-// Think carefully before changing the ordering of code in this class
 public final class HistoryAnalyzer {
 
     public static boolean runCorruptionCheckOnHistory(CompletePaxosHistoryForNamespaceAndUseCase history) {
@@ -39,18 +39,20 @@ public final class HistoryAnalyzer {
         && verifyLearnedValueIsGreatestAcceptedValue(history);
     }
 
-    private static boolean verifyLearnersHaveLearnedSameValues(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    @VisibleForTesting
+    static boolean verifyLearnersHaveLearnedSameValues(CompletePaxosHistoryForNamespaceAndUseCase history) {
         Set<Long> allSequenceNumbers = history.getAllSequenceNumbers();
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         return allSequenceNumbers.stream().allMatch(seq -> {
-            getLearnedValue(records, seq);
-            return true;
+            Set<PaxosValue> learnedValuesForRound = getLearnedValuesForRound(records, seq);
+            return learnedValuesForRound.size() <= 1;
         });
     }
 
-    private static boolean verifyLearnedValueWasAcceptedByQuorum(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    @VisibleForTesting
+    static boolean verifyLearnedValueWasAcceptedByQuorum(CompletePaxosHistoryForNamespaceAndUseCase history) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
-        int quorum = records.size() / 2 + 1;
+        int quorum = getQuorumSize(records);
 
         return history.getAllSequenceNumbers().stream().allMatch(seq -> {
             Optional<PaxosValue> optionalLearnedValue = getLearnedValue(records, seq);
@@ -61,20 +63,13 @@ public final class HistoryAnalyzer {
 
             PaxosValue learnedValue = optionalLearnedValue.get();
 
-            List<PaxosValue> acceptedValues = records
-                    .stream()
-                    .map(record -> record.get(seq).acceptedValue())
-                    .filter(Optional::isPresent)
-                    .map(acceptorData -> acceptorData.get().getLastAcceptedValue())
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .filter(value -> value.equals(learnedValue))
-                    .collect(Collectors.toList());
+            List<PaxosValue> acceptedValues = getAcceptedValues(records, seq, learnedValue);
             return acceptedValues.size() >= quorum;
         });
     }
 
-    private static boolean verifyLearnedValueIsGreatestAcceptedValue(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    @VisibleForTesting
+    static boolean verifyLearnedValueIsGreatestAcceptedValue(CompletePaxosHistoryForNamespaceAndUseCase history) {
         Set<Long> allSequenceNumbers = history.getAllSequenceNumbers();
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         return allSequenceNumbers.stream().allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq));
@@ -103,14 +98,36 @@ public final class HistoryAnalyzer {
     }
 
     private static Optional<PaxosValue> getLearnedValue(List<ConsolidatedLearnerAndAcceptorRecord> recordList, Long seq) {
-        Set<PaxosValue> values = recordList
+        Set<PaxosValue> values = getLearnedValuesForRound(recordList, seq);
+        return values.isEmpty() ? Optional.empty() : Optional.of(Iterables.getOnlyElement(values));
+    }
+
+    private static Set<PaxosValue> getLearnedValuesForRound(List<ConsolidatedLearnerAndAcceptorRecord> recordList,
+            Long seq) {
+        return recordList
                 .stream()
                 .map(consolidatedLearnerAndAcceptorRecord ->
                         consolidatedLearnerAndAcceptorRecord.get(seq).learnedValue())
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
-        return values.isEmpty() ? Optional.empty() : Optional.of(Iterables.getOnlyElement(values));
+    }
+
+    private static int getQuorumSize(List<ConsolidatedLearnerAndAcceptorRecord> records) {
+        return records.size() / 2 + 1;
+    }
+
+    private static List<PaxosValue> getAcceptedValues(List<ConsolidatedLearnerAndAcceptorRecord> records, Long seq,
+            PaxosValue learnedValue) {
+        return records
+                .stream()
+                .map(record -> record.get(seq).acceptedValue())
+                .filter(Optional::isPresent)
+                .map(acceptorData -> acceptorData.get().getLastAcceptedValue())
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(value -> value.equals(learnedValue))
+                .collect(Collectors.toList());
     }
 
     private static Optional<PaxosValue> getGreatestAcceptedValueAtSequence(

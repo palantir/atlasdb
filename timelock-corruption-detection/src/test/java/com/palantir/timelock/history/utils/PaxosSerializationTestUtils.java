@@ -36,7 +36,7 @@ public final class PaxosSerializationTestUtils {
     public static Set<PaxosValue> writeToLogs(PaxosStateLog<PaxosAcceptorState> acceptorLog,
             PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
         return IntStream.rangeClosed(start, end).boxed().map(i -> {
-            PaxosValue paxosValue = createPaxosValue(i);
+            PaxosValue paxosValue = createPaxosValueForRound(i);
             writeAcceptorStateForLogAndRound(acceptorLog, i, Optional.of(paxosValue));
             writePaxosValue(learnerLog, i, paxosValue);
             return paxosValue;
@@ -44,7 +44,7 @@ public final class PaxosSerializationTestUtils {
     }
 
     public static PaxosValue createAndWriteValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
-        PaxosValue paxosValue = createPaxosValue(round);
+        PaxosValue paxosValue = createPaxosValueForRound(round);
         return writePaxosValue(log, round, paxosValue);
     }
 
@@ -53,8 +53,12 @@ public final class PaxosSerializationTestUtils {
         return paxosValue;
     }
 
-    public static PaxosValue createPaxosValue(long round) {
+    public static PaxosValue createPaxosValueForRound(long round) {
         return new PaxosValue("leaderUuid", round, longToBytes(round));
+    }
+
+    public static PaxosValue createPaxosValueForRoundAndData(long round, long data) {
+        return new PaxosValue("leaderUuid", round, longToBytes(data));
     }
 
     public static PaxosAcceptorState writeAcceptorStateForLogAndRound(
