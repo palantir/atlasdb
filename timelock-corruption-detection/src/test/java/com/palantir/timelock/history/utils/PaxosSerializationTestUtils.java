@@ -21,6 +21,7 @@ import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,33 +33,41 @@ public final class PaxosSerializationTestUtils {
         // no op
     }
 
-    public static Set<PaxosValue> writeToLogs(
-            PaxosStateLog<PaxosAcceptorState> acceptorLog, PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
-        return IntStream.rangeClosed(start, end)
-                .boxed()
-                .map(i -> {
-                    writeAcceptorStateForLogAndRound(acceptorLog, i);
-                    return writeValueForLogAndRound(learnerLog, i);
-                })
-                .collect(Collectors.toSet());
+    public static Set<PaxosValue> writeToLogs(PaxosStateLog<PaxosAcceptorState> acceptorLog,
+            PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
+        return IntStream.rangeClosed(start, end).boxed().map(i -> {
+            PaxosValue paxosValue = createPaxosValue(i);
+            writeAcceptorStateForLogAndRound(acceptorLog, i, Optional.of(paxosValue));
+            writePaxosValue(learnerLog, i, paxosValue);
+            return paxosValue;
+        }).collect(Collectors.toSet());
     }
 
-    public static PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
-        PaxosValue paxosValue = new PaxosValue("leaderUuid", round, longToBytes(round));
+    public static PaxosValue createAndWriteValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
+        PaxosValue paxosValue = createPaxosValue(round);
+        return writePaxosValue(log, round, paxosValue);
+    }
+
+    public static PaxosValue writePaxosValue(PaxosStateLog<PaxosValue> log, long round, PaxosValue paxosValue) {
         log.writeRound(round, paxosValue);
         return paxosValue;
     }
 
+    public static PaxosValue createPaxosValue(long round) {
+        return new PaxosValue("leaderUuid", round, longToBytes(round));
+    }
+
     public static PaxosAcceptorState writeAcceptorStateForLogAndRound(
-            PaxosStateLog<PaxosAcceptorState> log, long round) {
-        PaxosAcceptorState acceptorState = getAcceptorStateForRound(round);
+            PaxosStateLog<PaxosAcceptorState> log, long round, Optional<PaxosValue> paxosValue) {
+        PaxosAcceptorState acceptorState = getAcceptorStateForRound(round, paxosValue);
         log.writeRound(round, acceptorState);
         return acceptorState;
     }
 
-    public static PaxosAcceptorState getAcceptorStateForRound(long round) {
-        return PaxosAcceptorState.newState(
-                new PaxosProposalId(round, UUID.randomUUID().toString()));
+    private static PaxosAcceptorState getAcceptorStateForRound(long round, Optional<PaxosValue> paxosValue) {
+        PaxosProposalId pid = new PaxosProposalId(round, UUID.randomUUID().toString());
+        PaxosAcceptorState acceptorState = PaxosAcceptorState.newState(pid);
+        return paxosValue.map(val -> acceptorState.withState(pid, pid, val)).orElse(acceptorState);
     }
 
     public static byte[] longToBytes(long value) {

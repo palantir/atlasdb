@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.corruption.detection;
+package com.palantir.timelock.corruption.handle;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
+
+import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 
 @PreMatching
 public class JerseyCorruptionFilter implements ContainerRequestFilter {

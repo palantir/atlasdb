@@ -18,6 +18,10 @@ package com.palantir.timelock.history.models;
 
 import com.palantir.paxos.Client;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.immutables.value.Value;
 
 /**
@@ -37,4 +41,14 @@ public interface CompletePaxosHistoryForNamespaceAndUseCase {
 
     @Value.Parameter
     List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords();
+
+    //todo snanda
+    @Value.Lazy
+    default Set<Long> getAllSequenceNumbers() {
+        return localAndRemoteLearnerAndAcceptorRecords().stream()
+                .map(ConsolidatedLearnerAndAcceptorRecord::record)
+                .map(Map::keySet)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
 }
