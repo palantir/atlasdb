@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import org.immutables.value.Value;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CellWithTimestamp {
@@ -35,7 +34,9 @@ public abstract class CellWithTimestamp {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkState(timestamp() >= -1,
-                "Timestamp must be non-negative (or -1 for the sweep sentinel); got %s", timestamp());
+        Preconditions.checkState(
+                timestamp() >= -1,
+                "Timestamp must be non-negative (or -1 for the sweep sentinel); got %s",
+                timestamp());
     }
 }

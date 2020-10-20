@@ -16,16 +16,15 @@
 
 package com.palantir.timelock.history.utils;
 
+import com.palantir.paxos.PaxosAcceptorState;
+import com.palantir.paxos.PaxosProposalId;
+import com.palantir.paxos.PaxosStateLog;
+import com.palantir.paxos.PaxosValue;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import com.palantir.paxos.PaxosAcceptorState;
-import com.palantir.paxos.PaxosProposalId;
-import com.palantir.paxos.PaxosStateLog;
-import com.palantir.paxos.PaxosValue;
 
 public final class PaxosSerializationTestUtils {
 
@@ -33,12 +32,15 @@ public final class PaxosSerializationTestUtils {
         // no op
     }
 
-    public static Set<PaxosValue> writeToLogs(PaxosStateLog<PaxosAcceptorState> acceptorLog,
-            PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
-        return IntStream.rangeClosed(start, end).boxed().map(i -> {
-            writeAcceptorStateForLogAndRound(acceptorLog, i);
-            return writeValueForLogAndRound(learnerLog, i);
-        }).collect(Collectors.toSet());
+    public static Set<PaxosValue> writeToLogs(
+            PaxosStateLog<PaxosAcceptorState> acceptorLog, PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
+        return IntStream.rangeClosed(start, end)
+                .boxed()
+                .map(i -> {
+                    writeAcceptorStateForLogAndRound(acceptorLog, i);
+                    return writeValueForLogAndRound(learnerLog, i);
+                })
+                .collect(Collectors.toSet());
     }
 
     public static PaxosValue writeValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {
@@ -55,8 +57,8 @@ public final class PaxosSerializationTestUtils {
     }
 
     public static PaxosAcceptorState getAcceptorStateForRound(long round) {
-        return PaxosAcceptorState.newState(new PaxosProposalId(
-                round, UUID.randomUUID().toString()));
+        return PaxosAcceptorState.newState(
+                new PaxosProposalId(round, UUID.randomUUID().toString()));
     }
 
     public static byte[] longToBytes(long value) {

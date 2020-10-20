@@ -15,26 +15,20 @@
  */
 package com.palantir.timelock.config;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import org.immutables.value.Value;
 
-@JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME,
-        property = "type",
-        defaultImpl = DefaultClusterConfiguration.class)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = DefaultClusterConfiguration.class)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = DefaultClusterConfiguration.class,
-                name = DefaultClusterConfiguration.TYPE),
-        @JsonSubTypes.Type(value = KubernetesClusterConfiguration.class,
-                name = KubernetesClusterConfiguration.TYPE)})
+    @JsonSubTypes.Type(value = DefaultClusterConfiguration.class, name = DefaultClusterConfiguration.TYPE),
+    @JsonSubTypes.Type(value = KubernetesClusterConfiguration.class, name = KubernetesClusterConfiguration.TYPE)
+})
 public interface ClusterConfiguration {
 
     /** To access the members of the cluster, use {@link #clusterMembers()} instead. */
@@ -73,7 +67,8 @@ public interface ClusterConfiguration {
             return;
         }
 
-        Preconditions.checkArgument(clusterMembers().size() >= 3,
+        Preconditions.checkArgument(
+                clusterMembers().size() >= 3,
                 "This TimeLock cluster is set up to use an insufficient (< 3) number of servers, which is not a"
                         + " standard configuration! With fewer than three servers, your service will not have high"
                         + " availability. In the event a node goes down, timelock will become unresponsive, meaning"

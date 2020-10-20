@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
@@ -32,6 +29,8 @@ import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
 import com.palantir.util.CachedTransformingSupplier;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();
@@ -45,28 +44,20 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
 
     @Override
     public <T> InstanceAndVersion<T> createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
+            Optional<TrustContext> trustContext, String uri, Class<T> type, AuxiliaryRemotingParameters parameters) {
         ClientOptions relevantOptions = ClientOptions.fromRemotingParameters(parameters);
         ClientConfiguration clientConfiguration = relevantOptions.create(
                 ImmutableList.of(uri),
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
         T client = JaxRsClient.create(
-                type,
-                addAtlasDbRemotingAgent(parameters.userAgent()),
-                HOST_METRICS_REGISTRY,
-                clientConfiguration);
+                type, addAtlasDbRemotingAgent(parameters.userAgent()), HOST_METRICS_REGISTRY, clientConfiguration);
         return wrapWithVersion(client);
     }
 
     @Override
     public <T> InstanceAndVersion<T> createProxyWithFailover(
-            ServerListConfig serverListConfig,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
+            ServerListConfig serverListConfig, Class<T> type, AuxiliaryRemotingParameters parameters) {
         // It doesn't make sense to create a proxy with the capacity to failover that doesn't retry.
         ClientOptions clientOptions = getClientOptionsForFailoverProxy(parameters);
         return createFailoverProxy(serverListConfig, type, parameters, clientOptions);
@@ -90,9 +81,7 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     }
 
     public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
-            ServerListConfig serverListConfig,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
+            ServerListConfig serverListConfig, Class<T> type, AuxiliaryRemotingParameters parameters) {
         return createFailoverProxy(serverListConfig, type, parameters, ClientOptions.FAST_RETRYING_FOR_TEST);
     }
 
@@ -104,10 +93,7 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
         ClientConfiguration clientConfiguration = clientOptions.serverListToClient(serverListConfig);
 
         T client = JaxRsClient.create(
-                type,
-                addAtlasDbRemotingAgent(parameters.userAgent()),
-                HOST_METRICS_REGISTRY,
-                clientConfiguration);
+                type, addAtlasDbRemotingAgent(parameters.userAgent()), HOST_METRICS_REGISTRY, clientConfiguration);
         return decorateFailoverProxy(type, () -> client);
     }
 

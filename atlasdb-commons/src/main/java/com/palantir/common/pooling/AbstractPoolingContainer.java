@@ -15,21 +15,17 @@
  */
 package com.palantir.common.pooling;
 
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.annotation.Nonnull;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.EmptyQueue;
 import com.palantir.logsafe.Preconditions;
-
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class will pool resources up to the passedLimit.  It will never block and instead will always allocate a new
@@ -38,7 +34,7 @@ import com.palantir.logsafe.Preconditions;
 public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T> {
     private static final Logger log = LoggerFactory.getLogger(AbstractPoolingContainer.class);
 
-    volatile private Queue<T> pool;
+    private volatile Queue<T> pool;
     protected final AtomicLong allocatedResources = new AtomicLong();
     private final int maxPoolSize;
 
@@ -79,7 +75,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
      * This should not throw because it is called in finally blocks.
      */
     protected void cleanupForDiscard(T discardedResource) {
-        //nothing to do here
+        // nothing to do here
     }
 
     /**
@@ -92,7 +88,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
      * This should not throw because it is called in finally blocks.
      */
     protected void cleanupForReturnToPool(T resourceToReturn) {
-        //nothing here
+        // nothing here
     }
 
     /**
@@ -161,8 +157,11 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
 
     private void logPoolStats() {
         if (log.isDebugEnabled()) {
-            log.debug("Allocated {} instances, {} remaining in pool, {} max pool size",
-                    getAllocatedResources(), pool.size(), getMaxPoolSize());
+            log.debug(
+                    "Allocated {} instances, {} remaining in pool, {} max pool size",
+                    getAllocatedResources(),
+                    pool.size(),
+                    getMaxPoolSize());
         }
     }
 
@@ -211,5 +210,4 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
         }
         return ret;
     }
-
 }

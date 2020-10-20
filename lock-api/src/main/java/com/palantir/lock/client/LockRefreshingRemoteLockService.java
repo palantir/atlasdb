@@ -15,15 +15,6 @@
  */
 package com.palantir.lock.client;
 
-import java.io.IOException;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.ForwardingRemoteLockService;
@@ -31,6 +22,13 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService {
@@ -44,24 +42,32 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
 
     public static LockRefreshingRemoteLockService create(RemoteLockService delegate) {
         final LockRefreshingRemoteLockService ret = new LockRefreshingRemoteLockService(delegate);
-        ret.exec.scheduleWithFixedDelay(() -> {
-            long startTime = System.currentTimeMillis();
-            try {
-                ret.refreshLocks();
-            } catch (Throwable t) {
-                log.warn("Failed to refresh locks", t);
-            } finally {
-                long elapsed = System.currentTimeMillis() - startTime;
+        ret.exec.scheduleWithFixedDelay(
+                () -> {
+                    long startTime = System.currentTimeMillis();
+                    try {
+                        ret.refreshLocks();
+                    } catch (Throwable t) {
+                        log.warn("Failed to refresh locks", t);
+                    } finally {
+                        long elapsed = System.currentTimeMillis() - startTime;
 
-                if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
-                    log.warn("Refreshing locks took {} milliseconds"
-                            + " for tokens: {}", elapsed,  ret.toRefresh);
-                } else if (elapsed > ret.refreshFrequencyMillis) {
-                    log.info("Refreshing locks took {} milliseconds"
-                            + " for tokens: {}", elapsed, ret.toRefresh);
-                }
-            }
-        }, 0, ret.refreshFrequencyMillis, TimeUnit.MILLISECONDS);
+                        if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
+                            log.warn(
+                                    "Refreshing locks took {} milliseconds" + " for tokens: {}",
+                                    elapsed,
+                                    ret.toRefresh);
+                        } else if (elapsed > ret.refreshFrequencyMillis) {
+                            log.info(
+                                    "Refreshing locks took {} milliseconds" + " for tokens: {}",
+                                    elapsed,
+                                    ret.toRefresh);
+                        }
+                    }
+                },
+                0,
+                ret.refreshFrequencyMillis,
+                TimeUnit.MILLISECONDS);
         return ret;
     }
 
@@ -107,8 +113,7 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
         }
         Set<LockRefreshToken> refreshedTokens = delegate().refreshLockRefreshTokens(refreshCopy);
         for (LockRefreshToken token : refreshCopy) {
-            if (!refreshedTokens.contains(token)
-                    && toRefresh.contains(token)) {
+            if (!refreshedTokens.contains(token) && toRefresh.contains(token)) {
                 log.warn("failed to refresh lock: {}", token);
                 toRefresh.remove(token);
             }

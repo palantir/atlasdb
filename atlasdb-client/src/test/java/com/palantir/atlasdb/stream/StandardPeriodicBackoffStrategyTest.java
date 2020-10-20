@@ -23,12 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Test;
 
 public class StandardPeriodicBackoffStrategyTest {
-    private final StandardPeriodicBackoffStrategy.BackoffMechanism backoffMechanism
-            = mock(StandardPeriodicBackoffStrategy.BackoffMechanism.class);
+    private final StandardPeriodicBackoffStrategy.BackoffMechanism backoffMechanism =
+            mock(StandardPeriodicBackoffStrategy.BackoffMechanism.class);
 
     @Test
     public void doesNotInvokeBackoffIfCalledWithZeroTime() {
@@ -62,7 +61,6 @@ public class StandardPeriodicBackoffStrategyTest {
         verify(backoffMechanism, never()).backoff(anyLong());
         backoffStrategy.accept(3);
         verify(backoffMechanism).backoff(100L);
-
     }
 
     @Test
@@ -71,8 +69,8 @@ public class StandardPeriodicBackoffStrategyTest {
         StreamStorePersistenceConfiguration config2 = getStreamStorePersistenceConfiguration(2, 200);
         AtomicReference<StreamStorePersistenceConfiguration> activeConfig = new AtomicReference<>(config1);
 
-        StreamStoreBackoffStrategy backoffStrategy
-                = new StandardPeriodicBackoffStrategy(activeConfig::get, backoffMechanism);
+        StreamStoreBackoffStrategy backoffStrategy =
+                new StandardPeriodicBackoffStrategy(activeConfig::get, backoffMechanism);
 
         backoffStrategy.accept(1);
         verify(backoffMechanism).backoff(100L);
@@ -85,7 +83,6 @@ public class StandardPeriodicBackoffStrategyTest {
         backoffStrategy.accept(4);
         verify(backoffMechanism).backoff(200L);
         verifyNoMoreInteractions(backoffMechanism);
-
     }
 
     private StreamStoreBackoffStrategy createStaticBackoffStrategy(

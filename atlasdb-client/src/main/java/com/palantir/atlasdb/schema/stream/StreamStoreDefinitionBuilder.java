@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.compression.StreamCompression;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class StreamStoreDefinitionBuilder {
     private final ValueType valueType;
@@ -43,7 +42,8 @@ public class StreamStoreDefinitionBuilder {
      */
     public StreamStoreDefinitionBuilder(String shortName, String longName, ValueType valueType) {
         for (StreamTableType tableType : StreamTableType.values()) {
-            streamTables.put(tableType.getTableName(shortName),
+            streamTables.put(
+                    tableType.getTableName(shortName),
                     new StreamTableDefinitionBuilder(tableType, longName, valueType));
         }
         this.valueType = valueType;
@@ -72,7 +72,8 @@ public class StreamStoreDefinitionBuilder {
     }
 
     private StreamStoreDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
-        com.palantir.logsafe.Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+        com.palantir.logsafe.Preconditions.checkArgument(
+                numberOfComponentsHashed <= 2,
                 "The number of components specified must be less than two as "
                         + "StreamStore internal tables use at most two row components.");
         streamTables.forEach((tableName, streamTableBuilder) ->
@@ -82,8 +83,7 @@ public class StreamStoreDefinitionBuilder {
     }
 
     public StreamStoreDefinitionBuilder tableNameLogSafety(TableMetadataPersistence.LogSafety logSafety) {
-        streamTables.forEach((tableName, streamTableBuilder) ->
-                streamTableBuilder.tableNameLogSafety(logSafety));
+        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.tableNameLogSafety(logSafety));
         return this;
     }
 
@@ -118,11 +118,15 @@ public class StreamStoreDefinitionBuilder {
 
     public StreamStoreDefinition build() {
         Map<String, TableDefinition> tablesToCreate = streamTables.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build()));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, entry -> entry.getValue().build()));
 
-        com.palantir.logsafe.Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
-        Preconditions.checkArgument(inMemoryThreshold <= StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD,
-                "inMemoryThreshold cannot be greater than %s", StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
+        com.palantir.logsafe.Preconditions.checkArgument(
+                valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
+        Preconditions.checkArgument(
+                inMemoryThreshold <= StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD,
+                "inMemoryThreshold cannot be greater than %s",
+                StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
 
         return new StreamStoreDefinition(
                 tablesToCreate,
@@ -133,5 +137,4 @@ public class StreamStoreDefinitionBuilder {
                 compressStreamType,
                 numberOfRowComponentsHashed);
     }
-
 }

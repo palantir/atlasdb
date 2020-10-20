@@ -17,10 +17,9 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import org.junit.Test;
 
 public abstract class AbstractNodeAvailabilityTest extends AbstractDegradedClusterTest {
 

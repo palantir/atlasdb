@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.sweep.queue.clear;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -36,9 +31,14 @@ import com.palantir.atlasdb.schema.generated.TableClearsTable.TableClearsRow;
 import com.palantir.atlasdb.schema.generated.TableClearsTable.TableClearsRowResult;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.common.streams.KeyedStream;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class DefaultConservativeSweepWatermarkStore implements ConservativeSweepWatermarkStore {
-    private static final TableReference CLEARS = TargetedSweepTableFactory.of().getTableClearsTable(null).getTableRef();
+    private static final TableReference CLEARS =
+            TargetedSweepTableFactory.of().getTableClearsTable(null).getTableRef();
     private final KeyValueService kvs;
 
     public DefaultConservativeSweepWatermarkStore(KeyValueService kvs) {
@@ -55,7 +55,8 @@ public final class DefaultConservativeSweepWatermarkStore implements Conservativ
             Cell cell = cell(table);
             Optional<Value> currentValue = Optional.ofNullable(
                     kvs.get(CLEARS, ImmutableMap.of(cell, Long.MAX_VALUE)).get(cell));
-            Optional<Long> currentWatermark = currentValue.map(value -> RowResult.of(cell, value.getContents()))
+            Optional<Long> currentWatermark = currentValue
+                    .map(value -> RowResult.of(cell, value.getContents()))
                     .map(TableClearsRowResult::of)
                     .map(TableClearsRowResult::getLastClearedTimestamp);
 
@@ -69,8 +70,8 @@ public final class DefaultConservativeSweepWatermarkStore implements Conservativ
                             cell,
                             EncodingUtils.encodeVarLong(watermark),
                             EncodingUtils.encodeVarLong(newWatermark)))
-                    .orElseGet(() -> CheckAndSetRequest.newCell(
-                            CLEARS, cell, EncodingUtils.encodeVarLong(newWatermark)));
+                    .orElseGet(
+                            () -> CheckAndSetRequest.newCell(CLEARS, cell, EncodingUtils.encodeVarLong(newWatermark)));
 
             try {
                 kvs.checkAndSet(request);
@@ -86,10 +87,11 @@ public final class DefaultConservativeSweepWatermarkStore implements Conservativ
         return Cell.create(row.persistToBytes(), TableClearsNamedColumn.LAST_CLEARED_TIMESTAMP.getShortName());
     }
 
-
     @Override
     public Map<TableReference, Long> getWatermarks(Set<TableReference> tableReferences) {
-        Set<Cell> cells = tableReferences.stream().map(table -> cell(table)).collect(Collectors.toSet());
+        Set<Cell> cells = tableReferences.stream()
+                .map(DefaultConservativeSweepWatermarkStore::cell)
+                .collect(Collectors.toSet());
         Map<Cell, Value> fetched = kvs.get(CLEARS, Maps.asMap(cells, ignored -> Long.MAX_VALUE));
         return KeyedStream.stream(fetched)
                 .map((cell, value) -> RowResult.of(cell, value.getContents()))

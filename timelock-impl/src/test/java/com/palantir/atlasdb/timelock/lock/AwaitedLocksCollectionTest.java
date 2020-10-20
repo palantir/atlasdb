@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 import org.junit.Test;
@@ -80,10 +79,10 @@ public class AwaitedLocksCollectionTest {
 
     @Test
     public void removesRequestIfSupplierThrows() {
-        assertThatThrownBy(() ->
-                awaitedLocks.getExistingOrAwait(REQUEST_1, () -> {
+        assertThatThrownBy(() -> awaitedLocks.getExistingOrAwait(REQUEST_1, () -> {
                     throw new RuntimeException("foo");
-                })).isInstanceOf(RuntimeException.class);
+                }))
+                .isInstanceOf(RuntimeException.class);
 
         assertRequestsWereRemoved(REQUEST_1);
     }
@@ -111,5 +110,4 @@ public class AwaitedLocksCollectionTest {
                     }
                 });
     }
-
 }

@@ -15,21 +15,6 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.Queue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.PTExecutors;
@@ -38,6 +23,19 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.StringLockDescriptor;
+import java.util.Queue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
 
 /**
  * Tests for {@link ClientAwareReadWriteLockImpl}.
@@ -62,7 +60,8 @@ public final class ClientAwareLockTest {
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     /** Sets up the tests. */
-    @Before public void setUp() {
+    @Before
+    public void setUp() {
         readWriteLock = new LockServerLock(StringLockDescriptor.of("lock"), new LockClientIndices());
         anonymousReadLock = readWriteLock.get(LockClient.ANONYMOUS, LockMode.READ);
         anonymousWriteLock = readWriteLock.get(LockClient.ANONYMOUS, LockMode.WRITE);
@@ -72,7 +71,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests using an anonymous (non-reentrant) client. */
-    @Test public void testAnonymousClient() throws InterruptedException {
+    @Test
+    public void testAnonymousClient() throws InterruptedException {
         Assert.assertNull(anonymousReadLock.tryLock());
         Assert.assertNotNull(anonymousWriteLock.tryLock());
         Assert.assertNotNull(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
@@ -86,7 +86,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that things fail when they should. */
-    @Test public void testIllegalActions() throws InterruptedException {
+    @Test
+    public void testIllegalActions() throws InterruptedException {
         try {
             knownClientReadLock.unlock();
             Assert.fail();
@@ -115,7 +116,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests changing the owner of locks. */
-    @Test public void testChangeOwner() {
+    @Test
+    public void testChangeOwner() {
         try {
             knownClientReadLock.changeOwner(LockClient.ANONYMOUS);
             Assert.fail();
@@ -161,7 +163,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that a timed try lock can block but eventually succeed. */
-    @Test public void testTimedTryLockCanSucceed() throws Exception {
+    @Test
+    public void testTimedTryLockCanSucceed() throws Exception {
         anonymousReadLock.lock();
         Future<?> future = executor.submit((Callable<Void>) () -> {
             Assert.assertNotNull(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
@@ -187,7 +190,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that a timed try lock can fail and wake up blocking threads. */
-    @Test public void testTimedTryLockCanFail() throws Exception {
+    @Test
+    public void testTimedTryLockCanFail() throws Exception {
         anonymousReadLock.lock();
         Assert.assertNull(anonymousReadLock.tryLock());
         anonymousReadLock.unlock();
@@ -212,7 +216,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that locks obey fair ordering. */
-    @Test public void testFairness() throws Exception {
+    @Test
+    public void testFairness() throws Exception {
         final Queue<String> orderingQueue = new ConcurrentLinkedQueue<String>();
         anonymousReadLock.lock();
         addLockToQueue(anonymousWriteLock, orderingQueue, "one");
@@ -224,13 +229,14 @@ public final class ClientAwareLockTest {
         addLockToQueue(anonymousReadLock, orderingQueue, "five");
         anonymousReadLock.unlock();
         anonymousWriteLock.lock();
-        Assert.assertEquals(ImmutableList.of("one", "two", "two", "three", "four", "five", "five"),
+        Assert.assertEquals(
+                ImmutableList.of("one", "two", "two", "three", "four", "five", "five"),
                 ImmutableList.copyOf(orderingQueue));
         anonymousWriteLock.unlock();
     }
 
-    private <T> void addLockToQueue(final KnownClientLock lock, final Queue<? super T> queue,
-            final T index) throws Exception {
+    private <T> void addLockToQueue(final KnownClientLock lock, final Queue<? super T> queue, final T index)
+            throws Exception {
         executor.submit((Callable<Void>) () -> {
             barrier.await();
             lock.lock();
@@ -243,7 +249,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that {@code lock()} handles thread interruptions properly. */
-    @Test public void testUninterruptibleLock() throws Exception {
+    @Test
+    public void testUninterruptibleLock() throws Exception {
         anonymousReadLock.lock();
         InterruptibleFuture<?> future = new InterruptibleFuture<Void>() {
             @Override
@@ -266,7 +273,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that {@code tryLock()} handles thread interruptions properly. */
-    @Test public void testInterruptibleTryLock() throws Exception {
+    @Test
+    public void testInterruptibleTryLock() throws Exception {
         anonymousWriteLock.lock();
         InterruptibleFuture<?> futureToCancel = new InterruptibleFuture<Void>() {
             @Override
@@ -313,7 +321,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that unlockAndFreeze() works as expected. */
-    @Test public void testFreezing() throws InterruptedException {
+    @Test
+    public void testFreezing() throws InterruptedException {
         knownClientReadLock.lock();
         try {
             knownClientReadLock.unlockAndFreeze();
@@ -347,7 +356,8 @@ public final class ClientAwareLockTest {
         knownClientReadLock.unlock();
     }
 
-    @Test public void testReadLockReentrancy() throws Exception {
+    @Test
+    public void testReadLockReentrancy() throws Exception {
         knownClientReadLock.tryLock();
         InterruptibleFuture<?> future = new InterruptibleFuture<Void>() {
             @Override
@@ -380,7 +390,8 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that our objects have {@code toString()} methods defined. */
-    @Test public void testToStrings() {
+    @Test
+    public void testToStrings() {
         Assert.assertEquals("client", client.getClientId());
         Assert.assertEquals("lock", readWriteLock.getDescriptor().getLockIdAsString());
         assertGoodToString(readWriteLock);

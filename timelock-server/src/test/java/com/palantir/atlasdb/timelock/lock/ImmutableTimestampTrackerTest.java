@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 import java.util.UUID;
-
 import org.junit.Test;
 
 public class ImmutableTimestampTrackerTest {
@@ -87,5 +86,4 @@ public class ImmutableTimestampTrackerTest {
     private void unlock(long timestamp, UUID requestId) {
         tracker.getLockFor(timestamp).unlock(requestId);
     }
-
 }

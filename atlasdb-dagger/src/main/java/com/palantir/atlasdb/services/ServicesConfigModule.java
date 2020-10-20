@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.io.File;
-import java.io.IOException;
-
-import javax.inject.Singleton;
-
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-
 import dagger.Module;
 import dagger.Provides;
+import java.io.File;
+import java.io.IOException;
+import javax.inject.Singleton;
 
 @Module
 public class ServicesConfigModule {
@@ -34,8 +31,8 @@ public class ServicesConfigModule {
 
     public static ServicesConfigModule create(File configFile, String configRoot, AtlasDbRuntimeConfig runtimeConfig)
             throws IOException {
-        return ServicesConfigModule.create(AtlasDbConfigs.load(configFile, configRoot, AtlasDbConfig.class),
-                runtimeConfig);
+        return ServicesConfigModule.create(
+                AtlasDbConfigs.load(configFile, configRoot, AtlasDbConfig.class), runtimeConfig);
     }
 
     public static ServicesConfigModule create(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {

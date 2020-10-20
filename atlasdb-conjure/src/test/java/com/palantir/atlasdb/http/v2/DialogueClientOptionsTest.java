@@ -18,11 +18,6 @@ package com.palantir.atlasdb.http.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.file.Paths;
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -32,6 +27,9 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.nio.file.Paths;
+import java.util.List;
+import org.junit.Test;
 
 public class DialogueClientOptionsTest {
     private static final String SERVICE_NAME = "service";
@@ -39,36 +37,36 @@ public class DialogueClientOptionsTest {
     private static final List<String> SERVERS = ImmutableList.of("apple", "banana", "cherry", "dewberry");
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(Paths.get("a", "b"));
 
-    private static final AuxiliaryRemotingParameters REMOTING_PARAMETERS_EXTENDED_TIMEOUT
-            = AuxiliaryRemotingParameters.builder()
-            .userAgent(USER_AGENT)
-            .shouldRetry(true)
-            .shouldLimitPayload(true)
-            .shouldUseExtendedTimeout(true)
-            .build();
-    private static final AuxiliaryRemotingParameters REMOTING_PARAMETERS_SHORT_TIMEOUT
-            = AuxiliaryRemotingParameters.builder()
-            .userAgent(USER_AGENT)
-            .shouldRetry(true)
-            .shouldLimitPayload(true)
-            .shouldUseExtendedTimeout(false)
-            .build();
+    private static final AuxiliaryRemotingParameters REMOTING_PARAMETERS_EXTENDED_TIMEOUT =
+            AuxiliaryRemotingParameters.builder()
+                    .userAgent(USER_AGENT)
+                    .shouldRetry(true)
+                    .shouldLimitPayload(true)
+                    .shouldUseExtendedTimeout(true)
+                    .build();
+    private static final AuxiliaryRemotingParameters REMOTING_PARAMETERS_SHORT_TIMEOUT =
+            AuxiliaryRemotingParameters.builder()
+                    .userAgent(USER_AGENT)
+                    .shouldRetry(true)
+                    .shouldLimitPayload(true)
+                    .shouldUseExtendedTimeout(false)
+                    .build();
 
     private static final ServerListConfig SERVER_LIST_CONFIG = ImmutableServerListConfig.builder()
             .sslConfiguration(SSL_CONFIGURATION)
             .addAllServers(SERVERS)
             .build();
 
-    private static final RemoteServiceConfiguration REMOTE_SERVICE_CONFIGURATION_EXTENDED_TIMEOUT
-            = ImmutableRemoteServiceConfiguration.builder()
-            .serverList(SERVER_LIST_CONFIG)
-            .remotingParameters(REMOTING_PARAMETERS_EXTENDED_TIMEOUT)
-            .build();
-    private static final RemoteServiceConfiguration REMOTE_SERVICE_CONFIGURATION_SHORT_TIMEOUT
-            = ImmutableRemoteServiceConfiguration.builder()
-            .serverList(SERVER_LIST_CONFIG)
-            .remotingParameters(REMOTING_PARAMETERS_SHORT_TIMEOUT)
-            .build();
+    private static final RemoteServiceConfiguration REMOTE_SERVICE_CONFIGURATION_EXTENDED_TIMEOUT =
+            ImmutableRemoteServiceConfiguration.builder()
+                    .serverList(SERVER_LIST_CONFIG)
+                    .remotingParameters(REMOTING_PARAMETERS_EXTENDED_TIMEOUT)
+                    .build();
+    private static final RemoteServiceConfiguration REMOTE_SERVICE_CONFIGURATION_SHORT_TIMEOUT =
+            ImmutableRemoteServiceConfiguration.builder()
+                    .serverList(SERVER_LIST_CONFIG)
+                    .remotingParameters(REMOTING_PARAMETERS_SHORT_TIMEOUT)
+                    .build();
 
     @Test
     public void serviceConfigBlockGeneration() {
@@ -77,7 +75,8 @@ public class DialogueClientOptionsTest {
 
         assertThat(servicesConfigBlock.services()).containsOnlyKeys(SERVICE_NAME);
 
-        PartialServiceConfiguration partialServiceConfiguration = servicesConfigBlock.services().get(SERVICE_NAME);
+        PartialServiceConfiguration partialServiceConfiguration =
+                servicesConfigBlock.services().get(SERVICE_NAME);
         assertThat(partialServiceConfiguration.uris()).hasSameElementsAs(SERVERS);
         assertThat(partialServiceConfiguration.security()).contains(SSL_CONFIGURATION);
         assertThat(partialServiceConfiguration.proxyConfiguration()).isEmpty();
@@ -91,18 +90,18 @@ public class DialogueClientOptionsTest {
     @Test
     public void differentlyKeyedServicesTreatedDifferently() {
         String otherServiceName = "tom";
-        ServicesConfigBlock servicesConfigBlock = DialogueClientOptions.toServicesConfigBlock(
-                ImmutableMap.of(
-                        SERVICE_NAME, REMOTE_SERVICE_CONFIGURATION_EXTENDED_TIMEOUT,
-                        otherServiceName, REMOTE_SERVICE_CONFIGURATION_SHORT_TIMEOUT));
+        ServicesConfigBlock servicesConfigBlock = DialogueClientOptions.toServicesConfigBlock(ImmutableMap.of(
+                SERVICE_NAME, REMOTE_SERVICE_CONFIGURATION_EXTENDED_TIMEOUT,
+                otherServiceName, REMOTE_SERVICE_CONFIGURATION_SHORT_TIMEOUT));
 
         assertThat(servicesConfigBlock.services()).containsOnlyKeys(SERVICE_NAME, otherServiceName);
 
-        PartialServiceConfiguration partialServiceConfiguration = servicesConfigBlock.services().get(SERVICE_NAME);
+        PartialServiceConfiguration partialServiceConfiguration =
+                servicesConfigBlock.services().get(SERVICE_NAME);
         assertThat(partialServiceConfiguration.readTimeout()).contains(ClientOptionsConstants.LONG_READ_TIMEOUT);
 
-        PartialServiceConfiguration otherPartialServiceConfiguration
-                = servicesConfigBlock.services().get(otherServiceName);
+        PartialServiceConfiguration otherPartialServiceConfiguration =
+                servicesConfigBlock.services().get(otherServiceName);
         assertThat(otherPartialServiceConfiguration.readTimeout()).contains(ClientOptionsConstants.SHORT_READ_TIMEOUT);
     }
 }

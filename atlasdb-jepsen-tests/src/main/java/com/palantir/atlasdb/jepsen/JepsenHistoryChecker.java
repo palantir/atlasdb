@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import clojure.lang.Keyword;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
-
-import clojure.lang.Keyword;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class JepsenHistoryChecker {
 
@@ -61,31 +59,22 @@ public class JepsenHistoryChecker {
     }
 
     private static List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
-        return clojureHistory.stream()
-                .map(Event::fromKeywordMap)
-                .collect(Collectors.toList());
+        return clojureHistory.stream().map(Event::fromKeywordMap).collect(Collectors.toList());
     }
 
     private Map<Keyword, Object> checkHistory(List<Event> events) {
-        List<CheckerResult> allResults = checkers.stream()
-                .map(checker -> checker.check(events))
-                .collect(Collectors.toList());
+        List<CheckerResult> allResults =
+                checkers.stream().map(checker -> checker.check(events)).collect(Collectors.toList());
         return createClojureMapFromResults(CheckerResult.combine(allResults));
     }
 
     private static Map<Keyword, Object> createClojureMapFromResults(CheckerResult results) {
         List<Map<Keyword, Object>> errorsAsClojureHistory = convertEventListToClojureHistory(results.errors());
         return ImmutableMap.of(
-                Keyword.intern("valid?"), results.valid(),
-                Keyword.intern("errors"), errorsAsClojureHistory);
+                Keyword.intern("valid?"), results.valid(), Keyword.intern("errors"), errorsAsClojureHistory);
     }
 
     private static List<Map<Keyword, Object>> convertEventListToClojureHistory(List<Event> events) {
-        return events.stream()
-                .map(Event::toKeywordMap)
-                .collect(Collectors.toList());
+        return events.stream().map(Event::toKeywordMap).collect(Collectors.toList());
     }
-
 }
-
-

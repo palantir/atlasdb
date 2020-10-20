@@ -15,17 +15,16 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
 import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.function.Supplier;
 
 public class PaxosTimestampCreator implements TimestampCreator {
-    private final Factory<ManagedTimestampService> timestampServiceFactory;
+    private final NetworkClientFactories.Factory<ManagedTimestampService> timestampServiceFactory;
 
-    PaxosTimestampCreator(Factory<ManagedTimestampService> timestampServiceFactory) {
+    PaxosTimestampCreator(NetworkClientFactories.Factory<ManagedTimestampService> timestampServiceFactory) {
         this.timestampServiceFactory = timestampServiceFactory;
     }
 

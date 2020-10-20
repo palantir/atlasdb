@@ -17,23 +17,20 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HttpHeaders;
 import com.palantir.remoting2.errors.SerializableError;
-
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import org.junit.Test;
 import wiremock.org.eclipse.jetty.http.HttpStatus;
 
 public class ExceptionMappersTest {
     private static final Exception RUNTIME_EXCEPTION = new RuntimeException("foo");
-    private static final Response RESPONSE_503_WITHOUT_RETRY_AFTER
-            = ExceptionMappers.encode503ResponseWithoutRetryAfter(RUNTIME_EXCEPTION);
-    private static final Response RESPONSE_503_WITH_RETRY_AFTER
-            = ExceptionMappers.encode503ResponseWithRetryAfter(RUNTIME_EXCEPTION);
+    private static final Response RESPONSE_503_WITHOUT_RETRY_AFTER =
+            ExceptionMappers.encode503ResponseWithoutRetryAfter(RUNTIME_EXCEPTION);
+    private static final Response RESPONSE_503_WITH_RETRY_AFTER =
+            ExceptionMappers.encode503ResponseWithRetryAfter(RUNTIME_EXCEPTION);
 
     @Test
     public void responseWithoutRetryAfterShouldHaveContentTypeApplicationJson() {
@@ -43,8 +40,7 @@ public class ExceptionMappersTest {
 
     @Test
     public void responseWithoutRetryAfterShouldHaveClaimedStatusCode() {
-        assertThat(RESPONSE_503_WITHOUT_RETRY_AFTER.getStatus())
-                .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE_503);
+        assertThat(RESPONSE_503_WITHOUT_RETRY_AFTER.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE_503);
     }
 
     @Test
@@ -56,8 +52,7 @@ public class ExceptionMappersTest {
 
     @Test
     public void responseWithoutRetryAfterShouldNotHaveRetryAfterHeader() {
-        assertThat(RESPONSE_503_WITHOUT_RETRY_AFTER.getStringHeaders())
-                .doesNotContainKey(HttpHeaders.RETRY_AFTER);
+        assertThat(RESPONSE_503_WITHOUT_RETRY_AFTER.getStringHeaders()).doesNotContainKey(HttpHeaders.RETRY_AFTER);
     }
 
     @Test
@@ -68,8 +63,7 @@ public class ExceptionMappersTest {
 
     @Test
     public void responseWithRetryAfterShouldHaveClaimedStatusCode() {
-        assertThat(RESPONSE_503_WITH_RETRY_AFTER.getStatus())
-                .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE_503);
+        assertThat(RESPONSE_503_WITH_RETRY_AFTER.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE_503);
     }
 
     @Test

@@ -19,13 +19,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import org.junit.rules.ExternalResource;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -40,9 +33,13 @@ import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-
 import io.dropwizard.jackson.Jackson;
 import io.dropwizard.testing.DropwizardTestSupport;
+import java.io.File;
+import java.io.IOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import org.junit.rules.ExternalResource;
 
 public class TimeLockServerHolder extends ExternalResource {
 
@@ -54,13 +51,13 @@ public class TimeLockServerHolder extends ExternalResource {
 
     static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
 
-    private static final Function<Integer, WireMockConfiguration> WIRE_MOCK_CONFIG_FACTORY
-            = port -> WireMockConfiguration.wireMockConfig()
-            .dynamicPort()
-            .httpsPort(port)
-            .keystorePath("var/security/keyStore.jks")
-            .keystorePassword("keystore")
-            .keyManagerPassword("keystore");
+    private static final Function<Integer, WireMockConfiguration> WIRE_MOCK_CONFIG_FACTORY =
+            port -> WireMockConfiguration.wireMockConfig()
+                    .dynamicPort()
+                    .httpsPort(port)
+                    .keystorePath("var/security/keyStore.jks")
+                    .keystorePassword("keystore")
+                    .keyManagerPassword("keystore");
 
     private final Supplier<String> configFilePathSupplier;
 
@@ -108,7 +105,8 @@ public class TimeLockServerHolder extends ExternalResource {
     void resetWireMock() {
         wireMock.removeMappings();
         StubMapping catchAll = any(anyUrl())
-                .willReturn(aResponse().proxiedFrom(getTimelockUri())
+                .willReturn(aResponse()
+                        .proxiedFrom(getTimelockUri())
                         .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
                 .atPriority(Integer.MAX_VALUE)
                 .build();
@@ -170,5 +168,4 @@ public class TimeLockServerHolder extends ExternalResource {
             throw new RuntimeException(e);
         }
     }
-
 }

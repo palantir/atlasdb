@@ -19,20 +19,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
-
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.thrift.TException;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -50,6 +36,18 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
     private static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -60,7 +58,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
-
 
     @BeforeClass
     public static void initializeKvs() {
@@ -87,18 +84,18 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ForkJoinPool threadPool = new ForkJoinPool(threadCount);
 
-        threadPool.submit(() ->
-                IntStream.range(0, threadCount).parallel().forEach(i -> {
-                    try {
-                        barrier.await();
-                        slowTimeoutKvs.createTable(GOOD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                    } catch (BrokenBarrierException | InterruptedException e) {
-                        // Do nothing
-                    }
-                }));
+        threadPool.execute(() -> IntStream.range(0, threadCount).parallel().forEach(i -> {
+            try {
+                barrier.await();
+                slowTimeoutKvs.createTable(GOOD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+            } catch (BrokenBarrierException | InterruptedException e) {
+                // Do nothing
+            }
+        }));
 
         threadPool.shutdown();
-        Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),
+        Preconditions.checkState(
+                threadPool.awaitTermination(90, TimeUnit.SECONDS),
                 "Not all table creation threads completed within the time limit");
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);
@@ -121,7 +118,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
         kvs.createTable(missingMetadataTable, initialMetadata);
 
-
         // retrieve the metadata and see that it's the same as what we just put in
         byte[] existingMetadata = kvs.getMetadataForTable(missingMetadataTable);
         assertThat(initialMetadata, is(existingMetadata));
@@ -131,9 +127,10 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 missingMetadataTable.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                 "m".getBytes(StandardCharsets.UTF_8));
         Value persistedMetadata = Iterables.getLast(
-                kvs.get(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).values());
-        kvs.delete(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
+                kvs.get(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE))
+                        .values());
+        kvs.delete(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
 
         // pretend we started up again and did a createTable() for our existing table, that no longer has metadata
         kvs.createTable(missingMetadataTable, initialMetadata);
@@ -185,20 +182,24 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 .filter(cfDef -> cfDef.name.equals(
                         AbstractKeyValueService.internalTableName(TransactionConstants.TRANSACTIONS2_TABLE)))
                 .collect(MoreCollectors.onlyElement());
-        assertThat(transactions2CfDef.bloom_filter_fp_chance, equalTo(
-                CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE));
-        assertThat(transactions2CfDef.min_index_interval,
+        assertThat(
+                transactions2CfDef.bloom_filter_fp_chance,
+                equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE));
+        assertThat(
+                transactions2CfDef.min_index_interval,
                 equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
-        assertThat(transactions2CfDef.max_index_interval,
+        assertThat(
+                transactions2CfDef.max_index_interval,
                 equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
-        assertThat(transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
+        assertThat(
+                transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
                 equalTo(String.valueOf(
                         TransactionConstants.TRANSACTIONS2_TABLE_METADATA.getExplicitCompressionBlockSizeKB())));
     }
 
     private static CassandraKeyValueService kvsWithSchemaMutationTimeout(int millis) {
-        ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CASSANDRA.getConfig())
+        ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.copyOf(
+                        CASSANDRA.getConfig())
                 .withSchemaMutationTimeoutMillis(millis);
         return CassandraKeyValueServiceImpl.createForTesting(config);
     }

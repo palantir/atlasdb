@@ -16,19 +16,10 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
-
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
-
-import javax.annotation.Nullable;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -36,20 +27,28 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeNullPointerException;
+import javax.annotation.Nullable;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class TransactionConflictDetectionManagerTest {
 
-    private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.EMPTY_NAMESPACE,
-            "test_table");
+    private static final TableReference TABLE_REFERENCE =
+            TableReference.create(Namespace.EMPTY_NAMESPACE, "test_table");
 
     @Mock
     private CacheLoader<TableReference, ConflictHandler> delegate;
+
     private TransactionConflictDetectionManager conflictDetectionManager;
 
     @Before
     public void before() {
         conflictDetectionManager = new TransactionConflictDetectionManager(new ConflictDetectionManager(delegate) {
+            @Override
             @Nullable
             public ConflictHandler get(TableReference tableReference) {
                 try {
@@ -110,8 +109,8 @@ public final class TransactionConflictDetectionManagerTest {
 
     @Test
     public void testDisableReadWriteConflict_RetryOnWriteWriteCell() throws Exception {
-        testDisableReadWriteConflict(ConflictHandler.RETRY_ON_WRITE_WRITE_CELL,
-                ConflictHandler.RETRY_ON_WRITE_WRITE_CELL);
+        testDisableReadWriteConflict(
+                ConflictHandler.RETRY_ON_WRITE_WRITE_CELL, ConflictHandler.RETRY_ON_WRITE_WRITE_CELL);
     }
 
     @Test

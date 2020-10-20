@@ -53,10 +53,7 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         this.version = Defaults.defaultValue(long.class);
     }
 
-    private PaxosAcceptorState(PaxosProposalId pid,
-                               PaxosProposalId aid,
-                               PaxosValue val,
-                               long version) {
+    private PaxosAcceptorState(PaxosProposalId pid, PaxosProposalId aid, PaxosValue val, long version) {
         this.lastPromisedId = pid;
         this.lastAcceptedId = aid;
         this.lastAcceptedValue = val;
@@ -67,9 +64,7 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         return new PaxosAcceptorState(pid, lastAcceptedId, lastAcceptedValue, version + 1);
     }
 
-    public PaxosAcceptorState withState(PaxosProposalId pid,
-                                        PaxosProposalId aid,
-                                        PaxosValue val) {
+    public PaxosAcceptorState withState(PaxosProposalId pid, PaxosProposalId aid, PaxosValue val) {
         return new PaxosAcceptorState(pid, aid, val, version + 1);
     }
 

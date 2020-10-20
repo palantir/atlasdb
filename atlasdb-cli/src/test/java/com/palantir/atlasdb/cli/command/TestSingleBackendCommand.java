@@ -15,25 +15,22 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.services.AtlasDbServices;
-
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import io.airlift.airline.Option;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class TestSingleBackendCommand {
 
@@ -43,10 +40,14 @@ public class TestSingleBackendCommand {
     @Command(name = "test", description = "test functionality")
     public static class TestCommand extends SingleBackendCommand {
 
-        @Option(name = {"-f1", "--flag1"}, description = "flag 1")
+        @Option(
+                name = {"-f1", "--flag1"},
+                description = "flag 1")
         Boolean flag1;
 
-        @Option(name = {"-f2", "--flag2"}, description = "flag 2")
+        @Option(
+                name = {"-f2", "--flag2"},
+                description = "flag 2")
         String flag2;
 
         @Override
@@ -68,7 +69,8 @@ public class TestSingleBackendCommand {
             if (flag2 != null) {
                 TableReference table = TableReference.createUnsafe(flag2);
                 services.getKeyValueService().createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                Preconditions.checkArgument(services.getKeyValueService().getAllTableNames().contains(table),
+                Preconditions.checkArgument(
+                        services.getKeyValueService().getAllTableNames().contains(table),
                         "kvs contains tables %s, but not table %s",
                         services.getKeyValueService().getAllTableNames(),
                         table.getQualifiedName());
@@ -76,25 +78,27 @@ public class TestSingleBackendCommand {
             }
             return 0;
         }
-
     }
 
     @BeforeClass
     public static void setup() throws URISyntaxException {
         simpleConfigFile = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
-        nestedConfigFile = Paths.get(TestSingleBackendCommand.class.getClassLoader()
-                .getResource("nested_cli_test_config.yml").toURI()).toString();
+        nestedConfigFile = Paths.get(TestSingleBackendCommand.class
+                        .getClassLoader()
+                        .getResource("nested_cli_test_config.yml")
+                        .toURI())
+                .toString();
     }
 
     @Test
     public void testFailure() {
-        assertFailure(runTest(new String[] { "test", "--noopt" }));
+        assertFailure(runTest(new String[] {"test", "--noopt"}));
     }
 
     @Test
     public void testRunHelp() {
-        assertSuccessful(runTest(new String[] { "help" }));
-        assertSuccessful(runTest(new String[] { "help", "test" }));
+        assertSuccessful(runTest(new String[] {"help"}));
+        assertSuccessful(runTest(new String[] {"help", "test"}));
     }
 
     @Test
@@ -114,14 +118,21 @@ public class TestSingleBackendCommand {
 
     @Test
     public void testRunNestedConfig() {
-        assertSuccessful(runTest(new String[] {"-c", nestedConfigFile,
-                                               "--config-root", "/config/dropwizardConfig/real/atlasdb",
-                                               "test", "-f1", "-f2", "test.new_table"}));
+        assertSuccessful(runTest(new String[] {
+            "-c",
+            nestedConfigFile,
+            "--config-root",
+            "/config/dropwizardConfig/real/atlasdb",
+            "test",
+            "-f1",
+            "-f2",
+            "test.new_table"
+        }));
     }
 
     @Test
     public void testMustSpecifyConfig() {
-        assertFailure(runTest(new String[] { "test" }));
+        assertFailure(runTest(new String[] {"test"}));
     }
 
     private int runTest(String[] args) {
@@ -146,5 +157,4 @@ public class TestSingleBackendCommand {
     private void assertFailure(int returnVal) {
         Preconditions.checkArgument(returnVal == 1, "CLI exited with exit code zero.");
     }
-
 }

@@ -16,16 +16,13 @@
 
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
-
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 
 @Value.Immutable
 @Value.Enclosing
@@ -35,11 +32,16 @@ public interface TemplateVariables {
 
     @Nullable
     String getDataDirectory();
+
     @Nullable
     String getSqliteDataDirectory();
+
     List<Integer> getServerPorts();
+
     Integer getLocalServerPort();
+
     TimestampPaxos getClientPaxos();
+
     PaxosLeaderMode getLeaderMode();
 
     @Value.Default
@@ -49,7 +51,9 @@ public interface TemplateVariables {
 
     @Value.Derived
     default List<Integer> getServerProxyPorts() {
-        return getServerPorts().stream().map(TemplateVariables::doProxyTransform).collect(Collectors.toList());
+        return getServerPorts().stream()
+                .map(TemplateVariables::doProxyTransform)
+                .collect(Collectors.toList());
     }
 
     static int doProxyTransform(int port) {
@@ -64,7 +68,8 @@ public interface TemplateVariables {
             return this;
         }
 
-        return ImmutableTemplateVariables.builder().from(this)
+        return ImmutableTemplateVariables.builder()
+                .from(this)
                 .addServerPorts(getLocalServerPort())
                 .build();
     }
@@ -72,6 +77,7 @@ public interface TemplateVariables {
     @Value.Immutable
     interface TimestampPaxos {
         boolean isUseBatchPaxosTimestamp();
+
         @Value.Default
         default boolean isBatchSingleLeader() {
             return false;
@@ -79,9 +85,9 @@ public interface TemplateVariables {
     }
 
     static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(
-            int startingPort,
-            UnaryOperator<ImmutableTemplateVariables.Builder> customizer) {
-        List<Integer> allPorts = IntStream.range(startingPort, startingPort + 3).boxed().collect(Collectors.toList());
+            int startingPort, UnaryOperator<ImmutableTemplateVariables.Builder> customizer) {
+        List<Integer> allPorts =
+                IntStream.range(startingPort, startingPort + 3).boxed().collect(Collectors.toList());
         return IntStream.range(startingPort, startingPort + 3)
                 .boxed()
                 .map(port -> ImmutableTemplateVariables.builder()

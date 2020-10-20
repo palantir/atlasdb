@@ -15,35 +15,33 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.primitives.Longs;
 import com.palantir.logsafe.Preconditions;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * A simple, immutable implementation of {@link TimeDuration}.
  *
  * @author jtamer
  */
-@Immutable public final class SimpleTimeDuration implements TimeDuration, Serializable {
+@Immutable
+public final class SimpleTimeDuration implements TimeDuration, Serializable {
     private static final long serialVersionUID = 0x221d07e843433df7L;
 
     private final long time;
     private final TimeUnit unit;
 
     @JsonCreator
-    public static SimpleTimeDuration of(@JsonProperty("time") long time,
-                                        @JsonProperty("unit") TimeUnit unit) {
+    public static SimpleTimeDuration of(@JsonProperty("time") long time, @JsonProperty("unit") TimeUnit unit) {
         return new SimpleTimeDuration(time, unit);
     }
 
@@ -130,7 +128,8 @@ import com.palantir.logsafe.Preconditions;
         return Longs.compare(toNanos(), other.toNanos());
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override
+    public boolean equals(@Nullable Object obj) {
         if (obj == this) {
             return true;
         }
@@ -140,17 +139,19 @@ import com.palantir.logsafe.Preconditions;
         return toNanos() == ((TimeDuration) obj).toNanos();
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return Objects.hashCode(toNanos());
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .addValue(time + " " + unit.toString().toLowerCase()).toString();
+                .addValue(time + " " + unit.toString().toLowerCase())
+                .toString();
     }
 
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }
 

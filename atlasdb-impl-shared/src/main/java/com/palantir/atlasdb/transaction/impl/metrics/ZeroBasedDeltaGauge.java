@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.function.LongSupplier;
-
 import com.codahale.metrics.Gauge;
+import java.util.function.LongSupplier;
 
 /**
  * Reports the difference between measurements of a supplier of long values.

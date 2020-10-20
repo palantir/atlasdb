@@ -27,6 +27,7 @@ public enum CharacterLimitType {
 
     private final String kvsName;
     private final int charLimit;
+
     CharacterLimitType(String name, int limit) {
         kvsName = name;
         charLimit = limit;

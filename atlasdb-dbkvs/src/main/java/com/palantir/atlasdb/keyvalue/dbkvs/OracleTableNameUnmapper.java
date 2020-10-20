@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.util.concurrent.ExecutionException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
@@ -30,6 +25,9 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class OracleTableNameUnmapper {
     private static final Logger log = LoggerFactory.getLogger(OracleTableNameUnmapper.class);
@@ -42,9 +40,8 @@ class OracleTableNameUnmapper {
 
     @SuppressWarnings("checkstyle:NestedTryDepth")
     public String getShortTableNameFromMappingTable(
-            ConnectionSupplier connectionSupplier,
-            String tablePrefix,
-            TableReference tableRef) throws TableMappingNotFoundException {
+            ConnectionSupplier connectionSupplier, String tablePrefix, TableReference tableRef)
+            throws TableMappingNotFoundException {
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         try {
             return unmappingCache.get(fullTableName, () -> {
@@ -52,11 +49,11 @@ class OracleTableNameUnmapper {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                         "SELECT short_table_name "
                                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                                + " WHERE table_name = ?", fullTableName);
+                                + " WHERE table_name = ?",
+                        fullTableName);
                 if (results.size() == 0) {
-                    throw new TableMappingNotFoundException(
-                            "The table " + fullTableName + " does not have a mapping."
-                                    + "This might be because the table does not exist.");
+                    throw new TableMappingNotFoundException("The table " + fullTableName + " does not have a mapping."
+                            + "This might be because the table does not exist.");
                 }
 
                 return Iterables.getOnlyElement(results.rows()).getString("short_table_name");

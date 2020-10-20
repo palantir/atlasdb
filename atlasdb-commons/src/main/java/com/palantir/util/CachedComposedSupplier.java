@@ -15,13 +15,12 @@
  */
 package com.palantir.util;
 
+import com.palantir.common.time.Clock;
+import com.palantir.common.time.SystemClock;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import com.palantir.common.time.Clock;
-import com.palantir.common.time.SystemClock;
 
 /**
  * A version of composed supplier that caches the result of applying the function to the value supplied by the
@@ -44,8 +43,8 @@ public class CachedComposedSupplier<T, R> implements Supplier<R> {
         this(function, supplier, TimeUnit.MINUTES.toMillis(5), new SystemClock());
     }
 
-    public CachedComposedSupplier(Function<T, R> function, Supplier<VersionedType<T>> supplier,
-            long maxTimeBetweenRecomputes, Clock clock) {
+    public CachedComposedSupplier(
+            Function<T, R> function, Supplier<VersionedType<T>> supplier, long maxTimeBetweenRecomputes, Clock clock) {
         this.function = function;
         this.supplier = supplier;
         this.maxTimeBetweenRecomputes = maxTimeBetweenRecomputes;

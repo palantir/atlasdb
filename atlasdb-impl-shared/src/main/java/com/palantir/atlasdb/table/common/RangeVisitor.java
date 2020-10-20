@@ -15,19 +15,8 @@
  */
 package com.palantir.atlasdb.table.common;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -39,6 +28,15 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RangeVisitor {
     private static final Logger log = LoggerFactory.getLogger(RangeVisitor.class);
@@ -52,8 +50,7 @@ public class RangeVisitor {
     private Iterable<HeldLocksToken> lockTokens = ImmutableList.of();
     private AtomicLong counter = new AtomicLong();
 
-    public RangeVisitor(TransactionManager txManager,
-                        TableReference tableRef) {
+    public RangeVisitor(TransactionManager txManager, TableReference tableRef) {
         this.txManager = txManager;
         this.tableRef = tableRef;
     }
@@ -113,9 +110,8 @@ public class RangeVisitor {
             final RangeRequest request = range.getRangeRequest();
             try {
                 long startTime = System.currentTimeMillis();
-                long numVisited = txManager.runTaskWithLocksWithRetry(lockTokens,
-                        Suppliers.ofInstance(null),
-                        new LockAwareTransactionTask<Long, RuntimeException>() {
+                long numVisited = txManager.runTaskWithLocksWithRetry(
+                        lockTokens, Suppliers.ofInstance(null), new LockAwareTransactionTask<Long, RuntimeException>() {
                             @Override
                             public Long execute(Transaction tx, Iterable<HeldLocksToken> heldLocks) {
                                 return visitInternal(tx, visitor, request, range);
@@ -127,7 +123,8 @@ public class RangeVisitor {
                             }
                         });
                 counter.addAndGet(numVisited);
-                log.info("Visited {} rows from {} in {} ms.",
+                log.info(
+                        "Visited {} rows from {} in {} ms.",
                         numVisited,
                         tableRef.getQualifiedName(),
                         System.currentTimeMillis() - startTime);
@@ -139,18 +136,17 @@ public class RangeVisitor {
 
     private long visitInternal(Transaction tx, Visitor visitor, RangeRequest request, MutableRange range) {
         final AtomicLong numVisited = new AtomicLong();
-        boolean isEmpty = tx.getRange(tableRef, request).batchAccept(range.getBatchSize(),
-                batch -> {
-                    visitor.visit(tx, batch);
-                    if (batch.size() < range.getBatchSize()) {
-                        range.setStartRow(null);
-                    } else {
-                        byte[] lastRow = batch.get(batch.size() - 1).getRowName();
-                        range.setStartRow(RangeRequests.nextLexicographicName(lastRow));
-                    }
-                    numVisited.set(batch.size());
-                    return false;
-                });
+        boolean isEmpty = tx.getRange(tableRef, request).batchAccept(range.getBatchSize(), batch -> {
+            visitor.visit(tx, batch);
+            if (batch.size() < range.getBatchSize()) {
+                range.setStartRow(null);
+            } else {
+                byte[] lastRow = batch.get(batch.size() - 1).getRowName();
+                range.setStartRow(RangeRequests.nextLexicographicName(lastRow));
+            }
+            numVisited.set(batch.size());
+            return false;
+        });
         if (isEmpty) {
             range.setStartRow(null);
         }
@@ -172,7 +168,7 @@ public class RangeVisitor {
         BigInteger endNum = new BigInteger(1, expandedEndRow);
         BigInteger step = endNum.subtract(startNum).divide(BigInteger.valueOf(threadCount));
         BigInteger curr = startNum.add(step);
-        Collection<MutableRange> ranges = Lists.newArrayListWithCapacity(threadCount);
+        Collection<MutableRange> ranges = new ArrayList<>(threadCount);
         ranges.add(new MutableRange(startRow, toBytes(curr, length), batchSize));
         for (int i = 1; i < threadCount - 1; i++) {
             BigInteger next = curr.add(step);

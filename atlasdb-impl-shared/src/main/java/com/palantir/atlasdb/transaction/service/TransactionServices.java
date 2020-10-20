@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -32,6 +30,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
+import java.util.Map;
 
 public final class TransactionServices {
     private TransactionServices() {
@@ -47,17 +46,15 @@ public final class TransactionServices {
     }
 
     private static TransactionService createSplitKeyTransactionService(
-            KeyValueService keyValueService,
-            TransactionSchemaManager transactionSchemaManager) {
+            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
-        return new PreStartHandlingTransactionService(
-                new SplitKeyDelegatingTransactionService<>(
-                        transactionSchemaManager::getTransactionsSchemaVersion,
-                        ImmutableMap.of(
-                                TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                                createV1TransactionService(keyValueService),
-                                TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                                createV2TransactionService(keyValueService))));
+        return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
+                transactionSchemaManager::getTransactionsSchemaVersion,
+                ImmutableMap.of(
+                        TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                        createV1TransactionService(keyValueService),
+                        TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                        createV2TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -65,8 +62,8 @@ public final class TransactionServices {
     }
 
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
-                        SimpleTransactionService.createV2(keyValueService)));
+        return new PreStartHandlingTransactionService(
+                WriteBatchingTransactionService.create(SimpleTransactionService.createV2(keyValueService)));
     }
 
     /**
@@ -76,15 +73,13 @@ public final class TransactionServices {
      */
     public static TransactionService createRaw(
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
-        CoordinationService<InternalSchemaMetadata> coordinationService
-                = CoordinationServices.createDefault(
-                        keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
+        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
-            KeyValueService keyValueService,
-            MetricsManager metricsManager) {
+            KeyValueService keyValueService, MetricsManager metricsManager) {
         if (keyValueService.supportsCheckAndSet()) {
             CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                     keyValueService,
@@ -95,12 +90,11 @@ public final class TransactionServices {
                     },
                     metricsManager,
                     false);
-            ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
-                    = new ReadOnlyTransactionSchemaManager(coordinationService);
-            return new PreStartHandlingTransactionService(
-                    new SplitKeyDelegatingTransactionService<>(
-                            readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
-                            ImmutableMap.of(1, createV1TransactionService(keyValueService))));
+            ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager =
+                    new ReadOnlyTransactionSchemaManager(coordinationService);
+            return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
+                    readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
+                    ImmutableMap.of(1, createV1TransactionService(keyValueService))));
         }
         return createV1TransactionService(keyValueService);
     }

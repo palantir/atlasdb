@@ -18,14 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -33,6 +25,12 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AbstractMultiCasTest {
     private static final byte[] ROW_1 = PtBytes.toBytes("row1");
@@ -68,7 +66,8 @@ public class AbstractMultiCasTest {
         assertThatThrownBy(() -> kvs.putUnlessExists(TEST_TABLE, putDataInCols(COL_1, COL_2, COL_3)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
 
-        assertThat(kvs.get(TEST_TABLE, ImmutableMap.of(FIRST_CELL, Long.MAX_VALUE))).isEmpty();
+        assertThat(kvs.get(TEST_TABLE, ImmutableMap.of(FIRST_CELL, Long.MAX_VALUE)))
+                .isEmpty();
     }
 
     @Test
@@ -76,7 +75,9 @@ public class AbstractMultiCasTest {
         kvs.put(TEST_TABLE, ImmutableMap.of(Cell.create(ROW_1, COL_3), DATA), 0);
         kvs.putUnlessExists(TEST_TABLE, putDataInCols(COL_1, COL_2));
 
-        assertThat(kvs.get(TEST_TABLE, ImmutableMap.of(FIRST_CELL, Long.MAX_VALUE)).get(FIRST_CELL).getContents())
+        assertThat(kvs.get(TEST_TABLE, ImmutableMap.of(FIRST_CELL, Long.MAX_VALUE))
+                        .get(FIRST_CELL)
+                        .getContents())
                 .contains(DATA);
     }
 

@@ -21,6 +21,8 @@ import com.palantir.processors.AutoDelegate;
 @AutoDelegate
 public interface LockStore {
     LockEntry getLockEntryWithLockId(PersistentLockId lockId);
+
     void releaseLock(LockEntry lockEntry) throws CheckAndSetException;
+
     LockEntry acquireBackupLock(String reason) throws CheckAndSetException;
 }

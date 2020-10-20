@@ -19,8 +19,6 @@ package com.palantir.atlasdb.table.description;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,13 +28,14 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.exception.PalantirRuntimeException;
+import org.junit.Test;
 
 public class NameMetadataDescriptionTest {
-    private static final NameMetadataDescription SIMPLE_NAME_METADATA_DESCRIPTION = NameMetadataDescription.safe(
-            "string", ValueType.STRING);
+    private static final NameMetadataDescription SIMPLE_NAME_METADATA_DESCRIPTION =
+            NameMetadataDescription.safe("string", ValueType.STRING);
 
-    private static final NameMetadataDescription MULTIPART_NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
-            ImmutableList.of(
+    private static final NameMetadataDescription MULTIPART_NAME_METADATA_DESCRIPTION =
+            NameMetadataDescription.create(ImmutableList.of(
                     new NameComponentDescription.Builder()
                             .componentName("alpha")
                             .type(ValueType.VAR_LONG)
@@ -59,7 +58,8 @@ public class NameMetadataDescriptionTest {
     public void parseAndRenderAreInverses_Simple() {
         byte[] row = PtBytes.toBytes("theData");
         assertThat(SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(
-                SIMPLE_NAME_METADATA_DESCRIPTION.renderToJson(row), false)).containsExactly(row);
+                        SIMPLE_NAME_METADATA_DESCRIPTION.renderToJson(row), false))
+                .containsExactly(row);
     }
 
     @Test
@@ -74,11 +74,12 @@ public class NameMetadataDescriptionTest {
     public void duplicateFieldsAreTolerated() {
         String invalidJson = "{\"string\": \"tom\", \"string\": \"robert\"}";
         byte[] result = SIMPLE_NAME_METADATA_DESCRIPTION.parseFromJson(invalidJson, false);
-        
+
         // Which value is selected is an implementation detail - we should not guarantee this.
-        assertThat(result).satisfiesAnyOf(
-                (bytes) -> assertThat(bytes).containsExactly(PtBytes.toBytes("tom")),
-                (bytes) -> assertThat(bytes).containsExactly(PtBytes.toBytes("robert")));
+        assertThat(result)
+                .satisfiesAnyOf(
+                        bytes -> assertThat(bytes).containsExactly(PtBytes.toBytes("tom")),
+                        bytes -> assertThat(bytes).containsExactly(PtBytes.toBytes("robert")));
     }
 
     @Test
@@ -120,7 +121,8 @@ public class NameMetadataDescriptionTest {
     @Test
     public void parseAndRenderAreInverses_MultiPart() {
         assertThat(MULTIPART_NAME_METADATA_DESCRIPTION.parseFromJson(
-                MULTIPART_NAME_METADATA_DESCRIPTION.renderToJson(SAMPLE_ROW), false)).containsExactly(SAMPLE_ROW);
+                        MULTIPART_NAME_METADATA_DESCRIPTION.renderToJson(SAMPLE_ROW), false))
+                .containsExactly(SAMPLE_ROW);
     }
 
     @Test
@@ -155,7 +157,8 @@ public class NameMetadataDescriptionTest {
     @Test
     public void differentOrderingOfFieldsInSerializedFormIsAcceptable() {
         String beginWithEnd = "{\"omega\": \"O(n)\", \"alpha\": 42, \"beta\": \"AAAAAAA==\", \"gamma\": \"boo\"}";
-        assertThat(MULTIPART_NAME_METADATA_DESCRIPTION.parseFromJson(beginWithEnd, false)).containsExactly(SAMPLE_ROW);
+        assertThat(MULTIPART_NAME_METADATA_DESCRIPTION.parseFromJson(beginWithEnd, false))
+                .containsExactly(SAMPLE_ROW);
     }
 
     @Test

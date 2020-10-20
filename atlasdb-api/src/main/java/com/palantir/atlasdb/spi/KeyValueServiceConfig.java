@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.spi;
 
-import java.util.Optional;
-
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import java.util.Optional;
 
 /**
  * Marker interface for various AtlasDb KeyValueService config objects.
  */
-@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "type", visible = false)
 public interface KeyValueServiceConfig {
     String type();
 
@@ -42,5 +40,4 @@ public interface KeyValueServiceConfig {
     default int defaultGetRangesConcurrency() {
         return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
     }
-
 }

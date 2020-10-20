@@ -18,12 +18,11 @@ package com.palantir.atlasdb.timelock.util;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.conjure.java.api.errors.QosException;
-
 import feign.RetryableException;
 
 public final class ExceptionMatchers {
 
-    private ExceptionMatchers() { }
+    private ExceptionMatchers() {}
 
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
         assertThat(throwable)

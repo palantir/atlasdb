@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.ptobject;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
-import org.apache.commons.lang3.ArrayUtils;
-
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.CodedOutputStream;
@@ -33,9 +24,16 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import org.apache.commons.lang3.ArrayUtils;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
-public class EncodingUtils {
+public final class EncodingUtils {
     private EncodingUtils() {
         // empty
     }
@@ -69,11 +67,11 @@ public class EncodingUtils {
     }
 
     public static byte[] encodeSignedVarLong(long value) {
-        final boolean negative = value<0;
+        final boolean negative = value < 0;
         int size = sizeOfSignedVarLong(value);
         value ^= (value >> 63);
         byte[] ret = new byte[size];
-        encodeVarLongForSize(value, ret, size+1);
+        encodeVarLongForSize(value, ret, size + 1);
         if (negative) {
             flipAllBitsInPlace(ret);
         }
@@ -88,15 +86,15 @@ public class EncodingUtils {
     private static void encodeVarLongForSize(long value, @Output byte[] ret, int size) {
         int end = 0;
         if (size > 8) {
-            ret[0] = (byte)0xff;
+            ret[0] = (byte) 0xff;
             end = 1;
             size -= 8;
         }
-        ret[end] = (byte)((0xff << (9-size)) & 0xff);
+        ret[end] = (byte) ((0xff << (9 - size)) & 0xff);
 
         int index = ret.length;
         while (index-- > end) {
-            ret[index] |= (byte)((int)value & 0xff);
+            ret[index] |= (byte) ((int) value & 0xff);
             value >>>= 8;
         }
     }
@@ -133,15 +131,15 @@ public class EncodingUtils {
             return first;
         }
         int bitsBeforeZero = Integer.numberOfLeadingZeros(~first) - 24;
-        if (bitsBeforeZero == 8 && (encoded[offset+1] ^ flipByte) < 0) {
+        if (bitsBeforeZero == 8 && (encoded[offset + 1] ^ flipByte) < 0) {
             bitsBeforeZero++;
-            if (((encoded[offset+1] ^ flipByte) & 0x40) != 0) {
+            if (((encoded[offset + 1] ^ flipByte) & 0x40) != 0) {
                 throw new SafeIllegalArgumentException("bad varlong, too big");
             }
         }
-        int size = bitsBeforeZero+1;
+        int size = bitsBeforeZero + 1;
 
-        int index = (size)/8;
+        int index = size / 8;
         int mask = size % 8;
         long ret = 0;
         while (index < size) {
@@ -185,17 +183,17 @@ public class EncodingUtils {
         }
         int first = encoded[offset] ^ flipByte;
         int bitsBeforeZero = Integer.numberOfLeadingZeros(~first) - 24;
-        if (bitsBeforeZero == 8 && (encoded[offset+1] ^ flipByte) < 0) {
+        if (bitsBeforeZero == 8 && (encoded[offset + 1] ^ flipByte) < 0) {
             bitsBeforeZero++;
-            if (((encoded[offset+1] ^ flipByte) & 0x40) != 0) {
+            if (((encoded[offset + 1] ^ flipByte) & 0x40) != 0) {
                 bitsBeforeZero++;
-                if (((encoded[offset+1] ^ flipByte) & 0x20) != 0) {
+                if (((encoded[offset + 1] ^ flipByte) & 0x20) != 0) {
                     throw new SafeIllegalArgumentException("bad varlong, too big");
                 }
             }
         }
         int size = bitsBeforeZero;
-        int index = (size)/8;
+        int index = size / 8;
         int mask = size % 8;
         long ret = 0;
         while (index < size) {
@@ -262,8 +260,7 @@ public class EncodingUtils {
     }
 
     public static byte[] encodeUUID(UUID uuid) {
-        return ByteBuffer
-                .allocate(2 * Longs.BYTES)
+        return ByteBuffer.allocate(2 * Longs.BYTES)
                 .order(ByteOrder.BIG_ENDIAN)
                 .putLong(uuid.getMostSignificantBits())
                 .putLong(uuid.getLeastSignificantBits())
@@ -294,8 +291,8 @@ public class EncodingUtils {
      */
     public static byte[] flipAllBits(byte[] bytes, int index) {
         byte[] ret = new byte[bytes.length - index];
-        for (int i = 0 ; i < ret.length ; i++) {
-            ret[i] = (byte)(bytes[index + i] ^ 0xff);
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = (byte) (bytes[index + i] ^ 0xff);
         }
         return ret;
     }
@@ -322,8 +319,8 @@ public class EncodingUtils {
      */
     public static byte[] flipAllBitsInPlace(byte[] bytes, int index, int length) {
         int endIndex = Math.min(bytes.length, index + length);
-        for (int i = index ; i < endIndex ; i++) {
-            bytes[i] = (byte)(bytes[i] ^ 0xff);
+        for (int i = index; i < endIndex; i++) {
+            bytes[i] = (byte) (bytes[i] ^ 0xff);
         }
         return bytes;
     }
@@ -359,11 +356,11 @@ public class EncodingUtils {
         if (offset == 0) {
             return b1;
         }
-        return PtBytes.tail(b1, b1.length-offset);
+        return PtBytes.tail(b1, b1.length - offset);
     }
 
     public static byte[] get32Bytes(byte[] b1, int offset) {
-        return ArrayUtils.subarray(b1, offset, offset+32);
+        return ArrayUtils.subarray(b1, offset, offset + 32);
     }
 
     public static long decodeLittleEndian(byte[] value, int offset) {
@@ -423,7 +420,7 @@ public class EncodingUtils {
     }
 
     public static List<Object> fromBytes(byte[] b, List<EncodingType> types) {
-        List<Object> result = Lists.newArrayList();
+        List<Object> result = new ArrayList<>();
         int index = 0;
         boolean lastDesc = false;
 
@@ -462,7 +459,7 @@ public class EncodingUtils {
         if (value == null) {
             return new byte[9];
         } else {
-            return ArrayUtils.addAll(new byte[] { 1 }, PtBytes.toBytes(Long.MIN_VALUE ^ value));
+            return ArrayUtils.addAll(new byte[] {1}, PtBytes.toBytes(Long.MIN_VALUE ^ value));
         }
     }
 }

@@ -15,21 +15,20 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-
-import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TestDataBuilder {
     private final KeyValueService kvs;
     private final TableReference table;
 
-    private Map<Long, Map<Cell, byte[]>> cellsByTimestamp = Maps.newHashMap();
+    private Map<Long, Map<Cell, byte[]>> cellsByTimestamp = new HashMap<>();
 
     public TestDataBuilder(KeyValueService kvs, TableReference table) {
         this.kvs = kvs;
@@ -45,8 +44,7 @@ public class TestDataBuilder {
     }
 
     public TestDataBuilder put(int row, int col, long ts, byte[] value) {
-        cellsByTimestamp.computeIfAbsent(ts, key -> Maps.newHashMap())
-                .put(cell(row, col), value);
+        cellsByTimestamp.computeIfAbsent(ts, key -> new HashMap<>()).put(cell(row, col), value);
         return this;
     }
 

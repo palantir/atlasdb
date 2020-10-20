@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.PrintWriter;
-import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
@@ -38,17 +32,22 @@ import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
+import java.io.PrintWriter;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 
-@Command(name = "scrub-queue-migration",
-        description = "Move the contents of the old scrub queue into the new "
-                + "scrub queue. This operation is resumable.")
+@Command(
+        name = "scrub-queue-migration",
+        description =
+                "Move the contents of the old scrub queue into the new " + "scrub queue. This operation is resumable.")
 public class ScrubQueueMigrationCommand extends SingleBackendCommand {
     private static final byte[] DUMMY_CONTENTS = new byte[] {1};
 
-    @Option(name = {"--truncate"},
+    @Option(
+            name = {"--truncate"},
             description = "Truncate the old scrub queue instead of moving it. "
                     + "This is fine to do if you have not been running hard "
                     + "deletes to satisfy legal requirements (a background "
@@ -56,13 +55,15 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
                     + "in the scrub queue).")
     boolean truncateOldQueue;
 
-    @Option(name = {"--batch-size"},
+    @Option(
+            name = {"--batch-size"},
             description = "Batch size for copying rows, defaults to 1000.")
     Integer batchSize;
 
     @Override
     public int execute(AtlasDbServices services) {
-        Preconditions.checkArgument(!truncateOldQueue || batchSize == null,
+        Preconditions.checkArgument(
+                !truncateOldQueue || batchSize == null,
                 "Truncating the old scrub queue and specifying a batch size are mutually exclusive options.");
         PrintWriter output = new PrintWriter(System.out, true);
         if (truncateOldQueue) {
@@ -74,9 +75,7 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
         return 0;
     }
 
-    public static void run(KeyValueService kvs,
-                           PrintWriter output,
-                           int batchSize) {
+    public static void run(KeyValueService kvs, PrintWriter output, int batchSize) {
         Context context = new Context(kvs, output, batchSize);
 
         // This potentially needs to iterate multiple times because getRange
@@ -84,30 +83,29 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
         // about every timestamp in the old scrub queue (this was the main
         // problem with the old scrub queue). Each iteration will peel off the
         // top version of each cell until the entire queue is drained.
-        for (int i = 0;; i++) {
+        for (int i = 0; ; i++) {
             output.println("Starting iteration " + i + " of scrub migration.");
             Stopwatch watch = Stopwatch.createStarted();
-            try (ClosableIterator<RowResult<Value>> iter = kvs.getRange(
-                    AtlasDbConstants.OLD_SCRUB_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
+            try (ClosableIterator<RowResult<Value>> iter =
+                    kvs.getRange(AtlasDbConstants.OLD_SCRUB_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
                 if (!iter.hasNext()) {
                     output.println("Finished all iterations of scrub migration.");
                     break;
                 }
                 runOnce(context, iter);
             }
-            output.println("Finished iteration " + i + " of scrub migration in "
-                    + watch.elapsed(TimeUnit.SECONDS) + " seconds.");
+            output.println("Finished iteration " + i + " of scrub migration in " + watch.elapsed(TimeUnit.SECONDS)
+                    + " seconds.");
         }
     }
 
-    private static void runOnce(Context context,
-                                ClosableIterator<RowResult<Value>> iter) {
+    private static void runOnce(Context context, ClosableIterator<RowResult<Value>> iter) {
         Multimap<Cell, Value> batchToCreate = ArrayListMultimap.create();
         Multimap<Cell, Long> batchToDelete = ArrayListMultimap.create();
         while (iter.hasNext()) {
             RowResult<Value> rowResult = iter.next();
             byte[] row = rowResult.getRowName();
-            for (Entry<byte[], Value> entry : rowResult.getColumns().entrySet()) {
+            for (Map.Entry<byte[], Value> entry : rowResult.getColumns().entrySet()) {
                 byte[] col = entry.getKey();
                 Value value = entry.getValue();
                 long timestamp = value.getTimestamp();
@@ -130,17 +128,16 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
         }
     }
 
-    private static void flush(Context context,
-                              Multimap<Cell, Value> batchToCreate,
-                              Multimap<Cell, Long> batchToDelete) {
+    private static void flush(
+            Context context, Multimap<Cell, Value> batchToCreate, Multimap<Cell, Long> batchToDelete) {
         context.kvs.delete(AtlasDbConstants.OLD_SCRUB_TABLE, batchToDelete);
         context.totalDeletes += batchToDelete.size();
         batchToDelete.clear();
         try {
             context.kvs.putWithTimestamps(AtlasDbConstants.SCRUB_TABLE, batchToCreate);
         } catch (KeyAlreadyExistsException e) {
-            context.kvs.delete(AtlasDbConstants.SCRUB_TABLE,
-                    Multimaps.transformValues(batchToCreate, Value::getTimestamp));
+            context.kvs.delete(
+                    AtlasDbConstants.SCRUB_TABLE, Multimaps.transformValues(batchToCreate, Value::getTimestamp));
             context.kvs.putWithTimestamps(AtlasDbConstants.SCRUB_TABLE, batchToCreate);
         }
         context.totalPuts += batchToCreate.size();

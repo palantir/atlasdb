@@ -26,12 +26,12 @@ public class KeyedWeakReference<K, V> extends WeakReference<V> implements KeyedR
 
     private final K key;
 
-    public KeyedWeakReference(K key, V value){
+    public KeyedWeakReference(K key, V value) {
         super(value);
         this.key = key;
     }
 
-    public KeyedWeakReference(K key, V value, ReferenceQueue<V> queue){
+    public KeyedWeakReference(K key, V value, ReferenceQueue<V> queue) {
         super(value, queue);
         this.key = key;
     }

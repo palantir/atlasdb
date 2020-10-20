@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen.timestamp;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
@@ -28,6 +23,10 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class UniquenessChecker implements Checker {
     @Override
@@ -40,7 +39,7 @@ public class UniquenessChecker implements Checker {
                 .build();
     }
 
-    private static class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
         private final Map<String, OkEvent> valuesAlreadySeen = new HashMap<>();
 
@@ -58,8 +57,7 @@ public class UniquenessChecker implements Checker {
         }
 
         @Override
-        public void visit(FailEvent event) {
-        }
+        public void visit(FailEvent event) {}
 
         public boolean valid() {
             return errors.isEmpty();

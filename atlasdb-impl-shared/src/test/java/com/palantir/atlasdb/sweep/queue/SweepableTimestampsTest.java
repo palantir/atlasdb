@@ -15,21 +15,18 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
-
-import java.util.Optional;
-
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.sweep.Sweeper;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     private ShardProgress progress;

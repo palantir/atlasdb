@@ -25,20 +25,18 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LockStoreTest {
     private static final String REASON = "reason";
-    private static final UUID OTHER_ID = UUID.fromString("4-8-15-16-23"/*-42*/);
+    private static final UUID OTHER_ID = UUID.fromString("4-8-15-16-23" /*-42*/);
     private static final String OTHER_REASON = "bar";
 
     private InMemoryKeyValueService kvs;
@@ -65,7 +63,9 @@ public class LockStoreTest {
 
     @Test
     public void noErrorIfLockOpenedWhileCreatingTable() {
-        doThrow(new CheckAndSetException("foo", null, null, ImmutableList.of())).when(kvs).checkAndSet(anyObject());
+        doThrow(new CheckAndSetException("foo", null, null, ImmutableList.of()))
+                .when(kvs)
+                .checkAndSet(anyObject());
 
         new LockStoreImpl.LockStorePopulator(kvs).populate(); // should not throw
     }

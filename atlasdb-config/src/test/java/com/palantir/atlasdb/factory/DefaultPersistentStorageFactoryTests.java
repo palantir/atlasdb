@@ -18,19 +18,17 @@ package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
-import java.util.List;
-
-import org.assertj.core.util.Files;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
+import java.io.File;
+import java.util.List;
+import org.assertj.core.util.Files;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public final class DefaultPersistentStorageFactoryTests {
     @Rule
@@ -39,8 +37,7 @@ public final class DefaultPersistentStorageFactoryTests {
     @Test
     public void createsPersistentStorage() throws Exception {
         RocksDbPersistentStorageConfig config = createRocksDbConfig(testFolder.getRoot());
-        PersistentStore persistentStore = new DefaultPersistentStorageFactory()
-                .constructPersistentStore(config);
+        PersistentStore persistentStore = new DefaultPersistentStorageFactory().constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
         assertThat(testFolderContent().get(0).listFiles()).hasSize(1);
@@ -49,7 +46,6 @@ public final class DefaultPersistentStorageFactoryTests {
 
         assertThat(testFolderContent().get(0).listFiles()).isEmpty();
     }
-
 
     @Test
     public void createsMultiplePersistentStores() throws Exception {
@@ -71,16 +67,11 @@ public final class DefaultPersistentStorageFactoryTests {
     }
 
     private static String relativePath(File file) {
-        return Files.currentFolder()
-                .toPath()
-                .relativize(file.toPath())
-                .toString();
+        return Files.currentFolder().toPath().relativize(file.toPath()).toString();
     }
 
-
     private List<File> testFolderContent() {
-        return ImmutableList.copyOf(MoreObjects.firstNonNull(
-                testFolder.getRoot().listFiles(),
-                new File[0]));
+        return ImmutableList.copyOf(
+                MoreObjects.firstNonNull(testFolder.getRoot().listFiles(), new File[0]));
     }
 }

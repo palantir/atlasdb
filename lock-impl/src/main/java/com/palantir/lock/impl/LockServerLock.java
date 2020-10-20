@@ -15,16 +15,14 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.MoreObjects;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.logsafe.Preconditions;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LockServerLock implements ClientAwareReadWriteLock {
     private static final Logger log = LoggerFactory.getLogger(LockServerLock.class);
@@ -32,8 +30,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
     private final LockDescriptor descriptor;
     private final LockServerSync sync;
 
-    public LockServerLock(LockDescriptor descriptor,
-                          LockClientIndices clients) {
+    public LockServerLock(LockDescriptor descriptor, LockClientIndices clients) {
         this.descriptor = Preconditions.checkNotNull(descriptor);
         this.sync = new LockServerSync(clients);
     }
@@ -47,9 +44,12 @@ public class LockServerLock implements ClientAwareReadWriteLock {
     public KnownClientLock get(LockClient client, LockMode mode) {
         Preconditions.checkNotNull(client);
         switch (mode) {
-        case READ: return new ReadLock(sync, client);
-        case WRITE: return new WriteLock(sync, client);
-        default: throw new EnumConstantNotPresentException(LockMode.class, mode.name());
+            case READ:
+                return new ReadLock(sync, client);
+            case WRITE:
+                return new WriteLock(sync, client);
+            default:
+                throw new EnumConstantNotPresentException(LockMode.class, mode.name());
         }
     }
 

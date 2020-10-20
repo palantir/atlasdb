@@ -15,20 +15,18 @@
  */
 package com.palantir.timelock.paxos;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.timelock.config.ClusterConfiguration;
+import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import javax.ws.rs.core.UriBuilder;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import com.palantir.timelock.config.ClusterConfiguration;
-import com.palantir.timelock.config.TimeLockInstallConfiguration;
 
 public final class PaxosRemotingUtils {
     private PaxosRemotingUtils() {
@@ -48,7 +46,7 @@ public final class PaxosRemotingUtils {
     }
 
     public static List<String> getRemoteServerAddresses(TimeLockInstallConfiguration install) {
-        List<String> result = Lists.newArrayList(getClusterAddresses(install));
+        List<String> result = new ArrayList<>(getClusterAddresses(install));
         result.remove(install.cluster().localServer());
         return ImmutableList.copyOf(result);
     }
@@ -67,9 +65,7 @@ public final class PaxosRemotingUtils {
     }
 
     public static List<String> addProtocols(TimeLockInstallConfiguration install, List<String> addresses) {
-        return addresses.stream()
-                .map(address -> addProtocol(install, address))
-                .collect(Collectors.toList());
+        return addresses.stream().map(address -> addProtocol(install, address)).collect(Collectors.toList());
     }
 
     public static URL convertAddressToUrl(TimeLockInstallConfiguration install, String address) {

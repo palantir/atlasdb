@@ -18,18 +18,6 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.google.common.collect.MoreCollectors;
@@ -39,6 +27,16 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Name matches the class we're testing
 public class PTExecutorsTest {
@@ -94,7 +92,8 @@ public class PTExecutorsTest {
         withExecutor(PTExecutors::newSingleThreadScheduledExecutor, executor -> {
             ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
             threadLocal.set("test");
-            String result = executor.schedule(threadLocal::get, 1, TimeUnit.MILLISECONDS).get();
+            String result = executor.schedule(threadLocal::get, 1, TimeUnit.MILLISECONDS)
+                    .get();
             assertThat(result).isEqualTo("test");
         });
     }
@@ -105,8 +104,8 @@ public class PTExecutorsTest {
             SettableFuture<String> result = SettableFuture.create();
             ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
             threadLocal.set("test");
-            ScheduledFuture<?> scheduledFuture = executor.scheduleWithFixedDelay(() ->
-                    result.set(threadLocal.get()), 0, 1, TimeUnit.MILLISECONDS);
+            ScheduledFuture<?> scheduledFuture =
+                    executor.scheduleWithFixedDelay(() -> result.set(threadLocal.get()), 0, 1, TimeUnit.MILLISECONDS);
             String value = result.get();
             scheduledFuture.cancel(true);
             assertThat(value)
@@ -121,8 +120,8 @@ public class PTExecutorsTest {
             SettableFuture<String> result = SettableFuture.create();
             ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
             threadLocal.set("test");
-            ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(() ->
-                    result.set(threadLocal.get()), 0, 1, TimeUnit.MILLISECONDS);
+            ScheduledFuture<?> scheduledFuture =
+                    executor.scheduleAtFixedRate(() -> result.set(threadLocal.get()), 0, 1, TimeUnit.MILLISECONDS);
             String value = result.get();
             scheduledFuture.cancel(true);
             assertThat(value)
@@ -139,12 +138,15 @@ public class PTExecutorsTest {
         String executorName = UUID.randomUUID().toString();
         TaggedMetricRegistry metrics = SharedTaggedMetricRegistries.getSingleton();
         withExecutor(() -> PTExecutors.newCachedThreadPool(executorName), executor -> {
-            executor.submit(Runnables.doNothing());
+            executor.execute(Runnables.doNothing());
         });
-        Meter submitted = findMetric(metrics, MetricName.builder()
-                .safeName("executor.submitted")
-                .putSafeTags("executor", executorName)
-                .build(), Meter.class);
+        Meter submitted = findMetric(
+                metrics,
+                MetricName.builder()
+                        .safeName("executor.submitted")
+                        .putSafeTags("executor", executorName)
+                        .build(),
+                Meter.class);
         assertThat(submitted.getCount()).isOne();
     }
 
@@ -153,7 +155,10 @@ public class PTExecutorsTest {
                 .filter(entry -> {
                     MetricName metricName = entry.getKey();
                     return Objects.equals(name.safeName(), metricName.safeName())
-                            && metricName.safeTags().entrySet().containsAll(name.safeTags().entrySet());
+                            && metricName
+                                    .safeTags()
+                                    .entrySet()
+                                    .containsAll(name.safeTags().entrySet());
                 })
                 .map(Map.Entry::getValue)
                 .map(type::cast)

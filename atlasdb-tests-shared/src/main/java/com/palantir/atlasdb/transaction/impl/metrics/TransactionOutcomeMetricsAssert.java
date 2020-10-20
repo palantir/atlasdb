@@ -15,21 +15,19 @@
  */
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.function.LongConsumer;
-
-import org.assertj.core.api.AbstractAssert;
-import org.assertj.core.api.WritableAssertionInfo;
-import org.assertj.core.internal.Objects;
-
 import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.function.LongConsumer;
+import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.WritableAssertionInfo;
+import org.assertj.core.internal.Objects;
 
-public class TransactionOutcomeMetricsAssert extends
-        AbstractAssert<TransactionOutcomeMetricsAssert, TransactionOutcomeMetrics> {
+public class TransactionOutcomeMetricsAssert
+        extends AbstractAssert<TransactionOutcomeMetricsAssert, TransactionOutcomeMetrics> {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Objects objects = Objects.instance();
     private WritableAssertionInfo writableAssertionInfo = new WritableAssertionInfo();
@@ -101,19 +99,18 @@ public class TransactionOutcomeMetricsAssert extends
     }
 
     public TransactionOutcomeMetricsAssert hasPlaceholderWriteWriteConflictsSatisfying(LongConsumer assertion) {
-        MetricName metricName = actual.getMetricName(TransactionOutcome.WRITE_WRITE_CONFLICT,
+        MetricName metricName = actual.getMetricName(
+                TransactionOutcome.WRITE_WRITE_CONFLICT,
                 getTableReferenceTags(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE));
         assertion.accept(taggedMetricRegistry.meter(metricName).getCount());
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasNoKnowledgeOf(TableReference tableReference) {
-        assertMetricNotExists(actual.getMetricName(
-                TransactionOutcome.READ_WRITE_CONFLICT,
-                getTableReferenceTags(tableReference)));
-        assertMetricNotExists(actual.getMetricName(
-                TransactionOutcome.WRITE_WRITE_CONFLICT,
-                getTableReferenceTags(tableReference)));
+        assertMetricNotExists(
+                actual.getMetricName(TransactionOutcome.READ_WRITE_CONFLICT, getTableReferenceTags(tableReference)));
+        assertMetricNotExists(
+                actual.getMetricName(TransactionOutcome.WRITE_WRITE_CONFLICT, getTableReferenceTags(tableReference)));
         return this;
     }
 
@@ -133,7 +130,8 @@ public class TransactionOutcomeMetricsAssert extends
 
     private void checkPresentAndCheckCount(MetricName metricName, long count) {
         assertMetricExists(metricName);
-        objects.assertEqual(writableAssertionInfo, taggedMetricRegistry.meter(metricName).getCount(), count);
+        objects.assertEqual(
+                writableAssertionInfo, taggedMetricRegistry.meter(metricName).getCount(), count);
     }
 
     private void assertMetricExists(MetricName metricName) {

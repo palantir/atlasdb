@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.logsafe.SafeArg;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SweepQueueCleaner {
     private static final Logger log = LoggerFactory.getLogger(SweepQueueCleaner.class);
@@ -55,8 +53,11 @@ public class SweepQueueCleaner {
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
         sweepableCells.deleteNonDedicatedRows(shardStrategy, partitions);
         if (log.isDebugEnabled()) {
-            log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
-                    LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
+            log.debug(
+                    "Deleted persisted sweep queue information in table {} for partitions {}.",
+                    LoggingArgs.tableRef(TargetedSweepTableFactory.of()
+                            .getSweepableCellsTable(null)
+                            .getTableRef()),
                     SafeArg.of("partitions", partitions));
         }
     }
@@ -73,9 +74,11 @@ public class SweepQueueCleaner {
 
         sweepableTimestamps.deleteCoarsePartitions(shardStrategy, coarsePartitions);
         if (log.isDebugEnabled()) {
-            log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
-                    LoggingArgs.tableRef(
-                            TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef()),
+            log.debug(
+                    "Deleted persisted sweep queue information in table {} for partitions {}.",
+                    LoggingArgs.tableRef(TargetedSweepTableFactory.of()
+                            .getSweepableTimestampsTable(null)
+                            .getTableRef()),
                     SafeArg.of("partitions", coarsePartitions));
         }
     }
@@ -87,15 +90,18 @@ public class SweepQueueCleaner {
 
     private void progressTo(ShardAndStrategy shardStrategy, long lastTs) {
         if (lastTs < 0) {
-            log.warn("Wasn't able to progress targeted sweep for {} since last swept timestamp {} is negative.",
-                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", lastTs));
+            log.warn(
+                    "Wasn't able to progress targeted sweep for {} since last swept timestamp {} is negative.",
+                    SafeArg.of("shardStrategy", shardStrategy.toText()),
+                    SafeArg.of("timestamp", lastTs));
             return;
         }
         progress.updateLastSweptTimestamp(shardStrategy, lastTs);
         if (log.isDebugEnabled()) {
-            log.debug("Progressed last swept timestamp for {} to {}.",
-                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", lastTs));
+            log.debug(
+                    "Progressed last swept timestamp for {} to {}.",
+                    SafeArg.of("shardStrategy", shardStrategy.toText()),
+                    SafeArg.of("timestamp", lastTs));
         }
-
     }
 }

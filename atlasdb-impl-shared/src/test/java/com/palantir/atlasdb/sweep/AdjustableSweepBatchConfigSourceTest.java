@@ -17,11 +17,9 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.function.Function;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.util.function.Function;
+import org.junit.Test;
 
 public class AdjustableSweepBatchConfigSourceTest {
 
@@ -38,13 +36,12 @@ public class AdjustableSweepBatchConfigSourceTest {
         adjustableConfig.decreaseMultiplier();
 
         // Then
-        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier())
-                .isLessThan(previousMultiplier);
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier()).isLessThan(previousMultiplier);
     }
 
     @Test
     public void canDecreaseAndIncreaseConfigWithAllSmallValues() {
-        //Given
+        // Given
         configWithValues(1, 1, 1);
 
         whenDecreasingTheMultiplier_thenAdjustedConfigValuesDecrease();
@@ -56,7 +53,7 @@ public class AdjustableSweepBatchConfigSourceTest {
 
     @Test
     public void canDecreaseAndIncreaseConfigWithAllLargeValues() {
-        //Given
+        // Given
         configWithValues(1000, 1000, 1000);
 
         whenDecreasingTheMultiplier_thenAdjustedConfigValuesDecrease();
@@ -68,7 +65,7 @@ public class AdjustableSweepBatchConfigSourceTest {
 
     @Test
     public void canDecreaseAndIncreaseConfigWithMixOfValues() {
-        //Given
+        // Given
         configWithValues(1000, 1, 100);
 
         whenDecreasingTheMultiplier_thenAdjustedConfigValuesDecrease();
@@ -112,13 +109,11 @@ public class AdjustableSweepBatchConfigSourceTest {
 
     private void configWithValues(int maxCellTsPairsToExamine, int candidateBatchSize, int deleteBatchSize) {
         adjustableConfig = AdjustableSweepBatchConfigSource.create(
-                MetricsManagers.createForTests(),
-                () -> ImmutableSweepBatchConfig.builder()
+                MetricsManagers.createForTests(), () -> ImmutableSweepBatchConfig.builder()
                         .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
                         .candidateBatchSize(candidateBatchSize)
                         .deleteBatchSize(deleteBatchSize)
-                        .build()
-        );
+                        .build());
 
         updatePreviousValues();
     }
@@ -131,9 +126,8 @@ public class AdjustableSweepBatchConfigSourceTest {
         int newValue = getValue.apply(adjustableConfig.getAdjustedSweepConfig());
         int previousValue = getValue.apply(previousConfig);
 
-        assertThat(newValue).satisfiesAnyOf(
-                x -> assertThat(x).isEqualTo(1),
-                x -> assertThat(x).isLessThan(previousValue));
+        assertThat(newValue).satisfiesAnyOf(x -> assertThat(x).isEqualTo(1), x -> assertThat(x)
+                .isLessThan(previousValue));
     }
 
     private void maxCellTsPairsToExamineDecreasesToAMinimumOfOne() {
@@ -171,9 +165,8 @@ public class AdjustableSweepBatchConfigSourceTest {
 
     private void increasesBackUpToBaseConfig(Function<SweepBatchConfig, Integer> getValue) {
         assertThat(getValue.apply(adjustableConfig.getAdjustedSweepConfig()))
-                .satisfiesAnyOf(
-                        x -> assertThat(x).isGreaterThan(getValue.apply(previousConfig)),
-                        x -> assertThat(x).isLessThanOrEqualTo(getValue.apply(adjustableConfig.getRawSweepConfig())));
+                .satisfiesAnyOf(x -> assertThat(x).isGreaterThan(getValue.apply(previousConfig)), x -> assertThat(x)
+                        .isLessThanOrEqualTo(getValue.apply(adjustableConfig.getRawSweepConfig())));
     }
 
     private void updatePreviousValues() {

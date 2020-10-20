@@ -20,17 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.containers.CassandraResource;
@@ -40,13 +29,23 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.random.RandomBytes;
-
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import okio.ByteString;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     private static final TableReference GET_ROW_KEYS_TABLE = TableReference.createFromFullyQualifiedName("test.rows");
     private static final byte[] NO_SWEEP_METADATA = TableMetadata.builder()
-            .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING).build().persistToBytes();
+            .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
+            .build()
+            .persistToBytes();
 
     private CassandraKeyValueService kvs;
 
@@ -111,8 +110,10 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
         List<Cell> cells = createAndWriteCells(10, 2);
         List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
 
-        kvs.deleteAllTimestamps(GET_ROW_KEYS_TABLE,
-                ImmutableMap.of(cells.get(1),
+        kvs.deleteAllTimestamps(
+                GET_ROW_KEYS_TABLE,
+                ImmutableMap.of(
+                        cells.get(1),
                         new TimestampRangeDelete.Builder()
                                 .timestamp(Long.MAX_VALUE)
                                 .endInclusive(false)
@@ -125,10 +126,7 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     private List<Cell> createAndWriteCells(int numRows, int colsPerRow) {
         List<Cell> cells = createCells(numRows, colsPerRow);
 
-        cells.stream().forEach(cell -> kvs.put(
-                GET_ROW_KEYS_TABLE,
-                ImmutableMap.of(cell, cell.getColumnName()),
-                getTimestamp()));
+        cells.forEach(cell -> kvs.put(GET_ROW_KEYS_TABLE, ImmutableMap.of(cell, cell.getColumnName()), getTimestamp()));
 
         return cells;
     }
@@ -138,7 +136,9 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     }
 
     private static List<Cell> createCells(int numRows, int colsPerRow) {
-        return IntStream.generate(() -> colsPerRow).limit(numRows).boxed()
+        return IntStream.generate(() -> colsPerRow)
+                .limit(numRows)
+                .boxed()
                 .flatMap(CassandraKeyValueServiceGetRowKeysInRangeTest::createRandomCellsInSameRow)
                 .collect(Collectors.toList());
     }

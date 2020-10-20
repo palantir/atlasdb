@@ -26,7 +26,6 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.After;
 import org.junit.Test;
@@ -62,7 +61,8 @@ public class TransactionSchemaInstallerTest {
 
     @Test
     public void responsiveToChangesInVersionToInstall() {
-        when(versionToInstall.get()).thenReturn(Optional.of(1))
+        when(versionToInstall.get())
+                .thenReturn(Optional.of(1))
                 .thenReturn(Optional.of(2))
                 .thenReturn(Optional.of(3));
         runAndWaitForPollingIntervals(2);
@@ -83,9 +83,7 @@ public class TransactionSchemaInstallerTest {
 
     @Test
     public void resilientToFailuresToGetTheVersionToInstall() {
-        when(versionToInstall.get())
-                .thenThrow(new IllegalStateException("boo"))
-                .thenReturn(Optional.of(2));
+        when(versionToInstall.get()).thenThrow(new IllegalStateException("boo")).thenReturn(Optional.of(2));
         runAndWaitForPollingIntervals(1);
         verify(versionToInstall, times(2)).get();
         verify(manager).tryInstallNewTransactionsSchemaVersion(2);
@@ -104,8 +102,7 @@ public class TransactionSchemaInstallerTest {
 
     private void runAndWaitForPollingIntervals(int intervals) {
         createAndStartTransactionSchemaInstaller();
-        scheduler.tick(TransactionSchemaInstaller.POLLING_INTERVAL.toMinutes() * intervals,
-                TimeUnit.MINUTES);
+        scheduler.tick(TransactionSchemaInstaller.POLLING_INTERVAL.toMinutes() * intervals, TimeUnit.MINUTES);
         scheduler.runUntilIdle();
     }
 

@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -31,6 +25,12 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Divides a list of {@link Cell}s into batches for querying.
@@ -52,26 +52,26 @@ final class CellLoadingBatcher {
     private final Supplier<CassandraCellLoadingConfig> loadingConfigSupplier;
     private final BatchCallback rebatchingManyRowsForColumnCallback;
 
-    CellLoadingBatcher(Supplier<CassandraCellLoadingConfig> loadingConfigSupplier,
+    CellLoadingBatcher(
+            Supplier<CassandraCellLoadingConfig> loadingConfigSupplier,
             BatchCallback rebatchingManyRowsForColumnCallback) {
         this.loadingConfigSupplier = loadingConfigSupplier;
         this.rebatchingManyRowsForColumnCallback = rebatchingManyRowsForColumnCallback;
     }
 
     List<List<Cell>> partitionIntoBatches(
-            Collection<Cell> cellsToPartition,
-            InetSocketAddress host,
-            TableReference tableReference) {
+            Collection<Cell> cellsToPartition, InetSocketAddress host, TableReference tableReference) {
         CassandraCellLoadingConfig config = loadingConfigSupplier.get();
 
         ListMultimap<byte[], Cell> cellsByColumn = indexCellsByColumnName(cellsToPartition);
 
-        List<List<Cell>> batches = Lists.newArrayList();
-        List<Cell> cellsForCrossColumnBatching = Lists.newArrayList();
-        for (Map.Entry<byte[], List<Cell>> cellColumnPair : Multimaps.asMap(cellsByColumn).entrySet()) {
+        List<List<Cell>> batches = new ArrayList<>();
+        List<Cell> cellsForCrossColumnBatching = new ArrayList<>();
+        for (Map.Entry<byte[], List<Cell>> cellColumnPair :
+                Multimaps.asMap(cellsByColumn).entrySet()) {
             if (shouldExplicitlyAllocateBatchToColumn(config, cellColumnPair.getValue())) {
-                batches.addAll(partitionBySingleQueryLoadBatchLimit(
-                        cellColumnPair.getValue(), config, host, tableReference));
+                batches.addAll(
+                        partitionBySingleQueryLoadBatchLimit(cellColumnPair.getValue(), config, host, tableReference));
             } else {
                 cellsForCrossColumnBatching.addAll(cellColumnPair.getValue());
             }

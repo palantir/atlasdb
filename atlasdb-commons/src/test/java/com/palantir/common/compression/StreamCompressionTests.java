@@ -19,18 +19,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.io.ByteStreams;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Random;
-
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import com.google.common.io.ByteStreams;
 
 @RunWith(Parameterized.class)
 public class StreamCompressionTests {
@@ -69,16 +67,17 @@ public class StreamCompressionTests {
     public void testUncompressed_doesNotDecompressEvenIfDataCompressed() throws IOException {
         byte[] data = new byte[1_000_000];
         fillWithIncompressibleData(data);
-        assertThat(ByteStreams.toByteArray(GZIP.decompress(NONE.decompress(GZIP.compress(
-                        new ByteArrayInputStream(data)))))).isEqualTo(data);
+        assertThat(ByteStreams.toByteArray(
+                        GZIP.decompress(NONE.decompress(GZIP.compress(new ByteArrayInputStream(data))))))
+                .isEqualTo(data);
     }
 
     @Test
     public void testCanDecompressGzipAsLz4() throws IOException {
         byte[] data = new byte[1_000_000];
         fillWithIncompressibleData(data);
-        assertThat(ByteStreams.toByteArray(LZ4.decompress((GZIP.compress(
-                        new ByteArrayInputStream(data)))))).isEqualTo(data);
+        assertThat(ByteStreams.toByteArray(LZ4.decompress((GZIP.compress(new ByteArrayInputStream(data))))))
+                .isEqualTo(data);
     }
 
     @Test
@@ -94,7 +93,7 @@ public class StreamCompressionTests {
 
     @Test
     public void testSingleCharacterStream_singleByteRead() throws IOException {
-        byte[] uncompressedData = new byte[] { SINGLE_VALUE };
+        byte[] uncompressedData = new byte[] {SINGLE_VALUE};
         initializeStreams(uncompressedData);
         int value = decompressingStream.read();
 

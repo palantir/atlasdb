@@ -16,5 +16,4 @@
 package com.palantir.processors;
 
 @AutoDelegate
-interface PackagePrivateInterface {
-}
+interface PackagePrivateInterface {}

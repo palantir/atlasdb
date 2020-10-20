@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
+import org.junit.ClassRule;
 
 public class DbKvsSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule

@@ -15,14 +15,13 @@
  */
 package com.palantir.sql;
 
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.BasicSQL;
 import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.BasicSQL;
 
 public class PreparedStatements {
     public static int getUpdateCount(PreparedStatement ps) throws PalantirSqlException {
@@ -49,7 +48,6 @@ public class PreparedStatements {
         }
     }
 
-
     public static void setObject(PreparedStatement ps, int index, Object obj) throws PalantirSqlException {
         try {
             ps.setObject(index, obj);
@@ -66,7 +64,8 @@ public class PreparedStatements {
         }
     }
 
-    public static void setBinaryStream(PreparedStatement ps, int index, InputStream stream, int length) throws PalantirSqlException {
+    public static void setBinaryStream(PreparedStatement ps, int index, InputStream stream, int length)
+            throws PalantirSqlException {
         try {
             ps.setBinaryStream(index, stream, length);
         } catch (SQLException e) {
@@ -154,8 +153,8 @@ public class PreparedStatements {
         }
     }
 
-    public static void setNull(PreparedStatement ps, int index, int sqlType,
-            String typeName) throws PalantirSqlException {
+    public static void setNull(PreparedStatement ps, int index, int sqlType, String typeName)
+            throws PalantirSqlException {
         try {
             ps.setNull(index, sqlType, typeName);
         } catch (SQLException e) {

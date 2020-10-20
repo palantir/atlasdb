@@ -18,6 +18,17 @@ package com.palantir.atlasdb.internalschema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
+import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -30,20 +41,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
-import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.coordination.ValueAndBound;
-import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
     private static final int NUM_THREADS = 8;
@@ -68,7 +66,7 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
                 .mapToObj(unused -> createTransactionSchemaManager())
                 .collect(Collectors.toList());
 
-        List<Future> futures = Lists.newArrayList();
+        List<Future> futures = new ArrayList<>();
         Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots = ConcurrentHashMap.newKeySet();
 
         for (int i = 0; i < numRequests; i++) {
@@ -80,30 +78,28 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
 
     private TransactionSchemaManager createTransactionSchemaManager() {
         return new TransactionSchemaManager(
-                CoordinationServices.createDefault(
-                        kvs,
-                        timestampService,
-                        MetricsManagers.createForTests(),
-                        false));
+                CoordinationServices.createDefault(kvs, timestampService, MetricsManagers.createForTests(), false));
     }
 
     private static TransactionSchemaManager getRandomManager(List<TransactionSchemaManager> managers) {
         return managers.get(ThreadLocalRandom.current().nextInt(managers.size()));
     }
 
-    private static void writeBetweenTwoSnapshots(TransactionSchemaManager manager,
-            Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots) {
+    private static void writeBetweenTwoSnapshots(
+            TransactionSchemaManager manager, Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots) {
         readCoordinationAndStoreTimestampMap(manager, snapshots);
-        manager.tryInstallNewTransactionsSchemaVersion(ThreadLocalRandom.current().nextInt(10));
+        manager.tryInstallNewTransactionsSchemaVersion(
+                ThreadLocalRandom.current().nextInt(10));
         readCoordinationAndStoreTimestampMap(manager, snapshots);
     }
 
-    private static void readCoordinationAndStoreTimestampMap(TransactionSchemaManager manager,
-            Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots) {
-        Optional<ValueAndBound<InternalSchemaMetadata>> optionalLocalValue
-                = manager.getCoordinationService().getLastKnownLocalValue();
-        optionalLocalValue.ifPresent(valueAndBound -> valueAndBound.value().ifPresent(
-                value -> snapshots.add(
+    private static void readCoordinationAndStoreTimestampMap(
+            TransactionSchemaManager manager, Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots) {
+        Optional<ValueAndBound<InternalSchemaMetadata>> optionalLocalValue =
+                manager.getCoordinationService().getLastKnownLocalValue();
+        optionalLocalValue.ifPresent(valueAndBound -> valueAndBound
+                .value()
+                .ifPresent(value -> snapshots.add(
                         ValueAndBound.of(value.timestampToTransactionsTableSchemaVersion(), valueAndBound.bound()))));
     }
 
@@ -133,8 +129,10 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
 
         for (ValueAndBound<TimestampPartitioningMap<Integer>> valueAndBound : snapshots) {
             long comparisonBound = valueAndBound.bound();
-            valueAndBound.value().ifPresent(currentSnapshot -> assertEqualityUpToBound(
-                    finalSnapshot, currentSnapshot, comparisonBound));
+            valueAndBound
+                    .value()
+                    .ifPresent(currentSnapshot ->
+                            assertEqualityUpToBound(finalSnapshot, currentSnapshot, comparisonBound));
         }
     }
 
@@ -143,8 +141,7 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
         ValueAndBound<TimestampPartitioningMap<Integer>> maximumBoundedValue = snapshots.stream()
                 .max(Comparator.comparingLong(ValueAndBound::bound))
                 .orElseThrow(() -> new IllegalStateException("No maximum value found, unexpected"));
-        return maximumBoundedValue.value()
-                .orElseThrow(() -> new IllegalStateException("Last snapshot is empty!"));
+        return maximumBoundedValue.value().orElseThrow(() -> new IllegalStateException("Last snapshot is empty!"));
     }
 
     private static void assertEqualityUpToBound(

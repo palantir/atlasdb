@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.dht;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -22,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Token;
@@ -32,9 +33,6 @@ import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Hex;
 import org.apache.cassandra.utils.Pair;
 import org.apache.commons.lang3.ArrayUtils;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     private final Random r = new SecureRandom();
@@ -46,8 +44,7 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     public static class AtlasBytesToken extends ByteOrderedPartitioner.BytesToken {
         private static final long serialVersionUID = 8285261694722952407L;
 
-        public AtlasBytesToken(ByteBuffer token)
-        {
+        public AtlasBytesToken(ByteBuffer token) {
             this(ByteBufferUtil.getArray(token));
         }
 
@@ -56,30 +53,26 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
         }
 
         @Override
-        public IPartitioner getPartitioner()
-        {
+        public IPartitioner getPartitioner() {
             return instance;
         }
     }
 
     @Override
-    public AtlasBytesToken getToken(ByteBuffer key)
-    {
-        if (key.remaining() == 0)
+    public AtlasBytesToken getToken(ByteBuffer key) {
+        if (key.remaining() == 0) {
             return MINIMUM;
+        }
         return new AtlasBytesToken(key);
     }
 
-
     @Override
-    public AtlasBytesToken getMinimumToken()
-    {
+    public AtlasBytesToken getMinimumToken() {
         return MINIMUM;
     }
 
     @Override
-    public AtlasBytesToken midpoint(Token lt, Token rt)
-    {
+    public AtlasBytesToken midpoint(Token lt, Token rt) {
         byte[] leftTokenValue = (byte[]) lt.getTokenValue();
         byte[] rightTokenValue = (byte[]) rt.getTokenValue();
 
@@ -87,7 +80,7 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
         BigInteger left = bigForBytes(leftTokenValue, sigbytes);
         BigInteger right = bigForBytes(rightTokenValue, sigbytes);
 
-        Pair<BigInteger,Boolean> midpair = FBUtilities.midpoint(left, right, 8*sigbytes);
+        Pair<BigInteger, Boolean> midpair = FBUtilities.midpoint(left, right, 8 * sigbytes);
         return new AtlasBytesToken(bytesForBig(midpair.left, sigbytes, midpair.right));
     }
 
@@ -97,35 +90,35 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
         r.nextBytes(buffer);
 
         switch ((indexCounter.getAndIncrement() & Integer.MAX_VALUE) % 6) {
-        case 0:
-        case 2:
-        case 4:
-            // This is the standard case of having a positive fixed long.
-            // This is a very common case.
-            // This is used for little endian longs, sha256 hashes as well.
-            buffer[0] |= 0x80; // high bit is one for positive longs.
-            return new AtlasBytesToken(buffer);
-        case 1:
-            // This is the standard case of having a negative fixed long.
-            // This is used for little endian longs, sha256 hashes as well.
-            buffer[0] &= 0x7f;
-            return new AtlasBytesToken(buffer);
-        case 3:
-            // This is the 1, fixlong case.
-            // This handles the base realm, positive object id specifically.
-            buffer[0] = 1;
-            buffer[1] |= 0x80; // we sort positive after neg by doing id ^ Long.MIN_VALUE
-            return new AtlasBytesToken(buffer);
-        case 5:
-            // This is the positive varlong case.
-            // This handles realm_id which is a var_long in most tables.
-            long randVal = r.nextLong();
-            randVal &= Long.MAX_VALUE;
-            byte[] bytes = encodeVarLong(randVal);
-            System.arraycopy(bytes, 0, buffer, 0, bytes.length);
-            return new AtlasBytesToken(buffer);
-        default:
-            throw new IllegalStateException();
+            case 0:
+            case 2:
+            case 4:
+                // This is the standard case of having a positive fixed long.
+                // This is a very common case.
+                // This is used for little endian longs, sha256 hashes as well.
+                buffer[0] |= 0x80; // high bit is one for positive longs.
+                return new AtlasBytesToken(buffer);
+            case 1:
+                // This is the standard case of having a negative fixed long.
+                // This is used for little endian longs, sha256 hashes as well.
+                buffer[0] &= 0x7f;
+                return new AtlasBytesToken(buffer);
+            case 3:
+                // This is the 1, fixlong case.
+                // This handles the base realm, positive object id specifically.
+                buffer[0] = 1;
+                buffer[1] |= 0x80; // we sort positive after neg by doing id ^ Long.MIN_VALUE
+                return new AtlasBytesToken(buffer);
+            case 5:
+                // This is the positive varlong case.
+                // This handles realm_id which is a var_long in most tables.
+                long randVal = r.nextLong();
+                randVal &= Long.MAX_VALUE;
+                byte[] bytes = encodeVarLong(randVal);
+                System.arraycopy(bytes, 0, buffer, 0, bytes.length);
+                return new AtlasBytesToken(buffer);
+            default:
+                throw new IllegalStateException();
         }
     }
 
@@ -176,75 +169,77 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     }
 
     private static int computeRawVarint64Size(final long value) {
-        if ((value & (0xffffffffffffffffL << 7)) == 0)
+        if ((value & (0xffffffffffffffffL << 7)) == 0) {
             return 1;
-        if ((value & (0xffffffffffffffffL << 14)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 14)) == 0) {
             return 2;
-        if ((value & (0xffffffffffffffffL << 21)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 21)) == 0) {
             return 3;
-        if ((value & (0xffffffffffffffffL << 28)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 28)) == 0) {
             return 4;
-        if ((value & (0xffffffffffffffffL << 35)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 35)) == 0) {
             return 5;
-        if ((value & (0xffffffffffffffffL << 42)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 42)) == 0) {
             return 6;
-        if ((value & (0xffffffffffffffffL << 49)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 49)) == 0) {
             return 7;
-        if ((value & (0xffffffffffffffffL << 56)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 56)) == 0) {
             return 8;
-        if ((value & (0xffffffffffffffffL << 63)) == 0)
+        }
+        if ((value & (0xffffffffffffffffL << 63)) == 0) {
             return 9;
+        }
         return 10;
     }
 
     private final Token.TokenFactory tokenFactory = new Token.TokenFactory() {
         @Override
-        public ByteBuffer toByteArray(Token token)
-        {
+        public ByteBuffer toByteArray(Token token) {
             AtlasBytesToken bytesToken = (AtlasBytesToken) token;
             return ByteBuffer.wrap((byte[]) bytesToken.getTokenValue());
         }
 
         @Override
-        public Token fromByteArray(ByteBuffer bytes)
-        {
+        public Token fromByteArray(ByteBuffer bytes) {
             return new AtlasBytesToken(bytes);
         }
 
         @Override
-        public String toString(Token token)
-        {
+        public String toString(Token token) {
             AtlasBytesToken bytesToken = (AtlasBytesToken) token;
             return Hex.bytesToHex((byte[]) bytesToken.getTokenValue());
         }
 
         @Override
-        public void validate(String token) throws ConfigurationException
-        {
-            try
-            {
-                if (token.length() % 2 == 1)
+        public void validate(String token) throws ConfigurationException {
+            try {
+                if (token.length() % 2 == 1) {
                     token = "0" + token;
+                }
                 Hex.hexToBytes(token);
-            }
-            catch (NumberFormatException e)
-            {
+            } catch (NumberFormatException e) {
                 throw new ConfigurationException("Token " + token + " contains non-hex digits");
             }
         }
 
         @Override
-        public Token fromString(String string)
-        {
-            if (string.length() % 2 == 1)
+        public Token fromString(String string) {
+            if (string.length() % 2 == 1) {
                 string = "0" + string;
+            }
             return new AtlasBytesToken(Hex.hexToBytes(string));
         }
     };
 
     @Override
-    public Token.TokenFactory getTokenFactory()
-    {
+    public Token.TokenFactory getTokenFactory() {
         return tokenFactory;
     }
 }

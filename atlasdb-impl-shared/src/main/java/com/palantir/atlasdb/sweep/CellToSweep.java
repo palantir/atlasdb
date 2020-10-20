@@ -15,15 +15,15 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CellToSweep {
     Cell cell();
+
     List<Long> sortedTimestamps();
+
     boolean needsSentinel();
 }

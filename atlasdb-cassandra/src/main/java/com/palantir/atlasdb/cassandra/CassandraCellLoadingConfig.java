@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.cassandra;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import org.immutables.value.Value;
 
 /**
  * Specifies limits on query sizes when loading cells from an underlying Cassandra key-value service.
@@ -65,7 +64,8 @@ public abstract class CassandraCellLoadingConfig {
                 singleQueryLoadBatchLimit() > 0,
                 "singleQueryLoadBatchLimit should be positive, but found %s",
                 singleQueryLoadBatchLimit());
-        Preconditions.checkState(crossColumnLoadBatchLimit() <= singleQueryLoadBatchLimit(),
+        Preconditions.checkState(
+                crossColumnLoadBatchLimit() <= singleQueryLoadBatchLimit(),
                 "Cross column load batch limit %s shouldn't exceed single query load batch limit %s",
                 crossColumnLoadBatchLimit(),
                 singleQueryLoadBatchLimit());

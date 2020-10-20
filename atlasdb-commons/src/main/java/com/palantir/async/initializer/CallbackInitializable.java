@@ -30,8 +30,7 @@ public interface CallbackInitializable<R> {
      * @param resource the resource used in initialization.
      * @param initFailure the Throwable causing the failure in initialization.
      */
-    default void onInitializationFailureCleanup(R resource, Throwable initFailure) {
-    }
+    default void onInitializationFailureCleanup(R resource, Throwable initFailure) {}
 
     /**
      * Returns a Callback that runs initialize only once. On initialization failure, executes the specified cleanup and

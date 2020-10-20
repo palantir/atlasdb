@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.google.common.collect.AbstractIterator;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.logsafe.Preconditions;
 
 // The batches can end up very small or even empty after we filter out unsweepable cells,
 // so we want to re-partition them before deleting.
@@ -32,8 +31,8 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
     private final ExaminedCellLimit limit;
     private boolean limitReached = false;
 
-    public CellsToSweepPartitioningIterator(Iterator<BatchOfCellsToSweep> cellsToSweep, int deleteBatchSize,
-            ExaminedCellLimit limit) {
+    public CellsToSweepPartitioningIterator(
+            Iterator<BatchOfCellsToSweep> cellsToSweep, int deleteBatchSize, ExaminedCellLimit limit) {
         Preconditions.checkArgument(deleteBatchSize > 0, "Iterator batch size must be positive");
         this.cellsToSweep = cellsToSweep;
         this.deleteBatchSize = deleteBatchSize;
@@ -62,7 +61,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
         if (limitReached) {
             return endOfData();
         } else {
-            List<CellToSweep> batch = Lists.newArrayList();
+            List<CellToSweep> batch = new ArrayList<>();
             int cellTsPairsToDelete = 0;
             long numCellTsPairsExamined = 0;
             Cell lastCellExamined = null;

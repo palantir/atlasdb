@@ -15,11 +15,10 @@
  */
 package com.palantir.util.paging;
 
-import java.util.Iterator;
-
 import com.google.common.collect.AbstractIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
+import java.util.Iterator;
 
 /**
  * This class only requires two methods {@link #getFirstPage()} and
@@ -75,7 +74,7 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
 
                 try {
                     setNextPage(iterable.getNextPage(currentPage));
-                } catch(Exception e) {
+                } catch (Exception e) {
                     throw Throwables.throwUncheckedException(e);
                 }
             }
@@ -105,5 +104,4 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
     protected abstract P getFirstPage() throws Exception;
 
     protected abstract P getNextPage(P previous) throws Exception;
-
 }

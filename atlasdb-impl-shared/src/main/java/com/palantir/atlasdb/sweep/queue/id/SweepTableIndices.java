@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.sweep.queue.id;
 
-import java.util.NoSuchElementException;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Creates a dictionary of table references to shorter (integral) identifiers.
@@ -73,7 +71,8 @@ public final class SweepTableIndices {
     }
 
     private TableReference getTableReferenceUncached(int tableId) {
-        return idToNames.get(tableId)
+        return idToNames
+                .get(tableId)
                 .orElseThrow(() -> new NoSuchElementException("Id " + tableId + " does not exist"));
     }
 
@@ -88,14 +87,18 @@ public final class SweepTableIndices {
             // doing our updates as CAS (at the bottom) not PUE, but it doubles as a get
             SweepTableIdentifier afterPendingPut = namesToIds.storeAsPending(table, idToNames.getNextId());
             if (!afterPendingPut.isPending()) {
-                log.info("Assigned table {} to id {}", LoggingArgs.tableRef(table),
+                log.info(
+                        "Assigned table {} to id {}",
+                        LoggingArgs.tableRef(table),
                         SafeArg.of("id", afterPendingPut.identifier()));
                 return afterPendingPut.identifier();
             }
             boolean assigmentWasSuccessful = idToNames.storeNewMapping(table, afterPendingPut.identifier());
             if (assigmentWasSuccessful) {
                 namesToIds.moveToComplete(table, afterPendingPut.identifier());
-                log.info("Assigned table {} to id {}", LoggingArgs.tableRef(table),
+                log.info(
+                        "Assigned table {} to id {}",
+                        LoggingArgs.tableRef(table),
                         SafeArg.of("id", afterPendingPut.identifier()));
                 return afterPendingPut.identifier();
             }

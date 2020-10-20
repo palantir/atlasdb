@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.palantir.logsafe.Safe;
 import java.util.Optional;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.logsafe.Safe;
 
 /**
  * Provides endpoints for sweeping a specific table.
@@ -35,13 +33,18 @@ import com.palantir.logsafe.Safe;
 public interface SweeperService {
 
     default SweepTableResponse sweepTableFully(String tableName) {
-        return sweepTable(tableName, Optional.empty(), Optional.empty(),
-                Optional.empty(), Optional.empty(), Optional.empty());
+        return sweepTable(
+                tableName, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
     }
 
     default SweepTableResponse sweepTableFrom(String tableName, String startRow) {
-        return sweepTable(tableName, Optional.of(startRow), Optional.empty(),
-                Optional.empty(), Optional.empty(), Optional.empty());
+        return sweepTable(
+                tableName,
+                Optional.of(startRow),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
     }
 
     /**

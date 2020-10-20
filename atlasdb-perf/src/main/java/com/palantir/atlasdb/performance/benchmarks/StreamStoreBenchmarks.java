@@ -20,24 +20,22 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
+import com.palantir.atlasdb.performance.benchmarks.table.StreamingTable;
+import com.palantir.atlasdb.performance.schema.generated.StreamTestTableFactory;
+import com.palantir.atlasdb.performance.schema.generated.ValueStreamStore;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-
-import com.palantir.atlasdb.performance.benchmarks.table.StreamingTable;
-import com.palantir.atlasdb.performance.schema.generated.StreamTestTableFactory;
-import com.palantir.atlasdb.performance.schema.generated.ValueStreamStore;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 @State(Scope.Benchmark)
 public class StreamStoreBenchmarks {

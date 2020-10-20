@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.table.description;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
 
 /**
  * Represents the properties that the user has picked wrt sweep. The sweeper strategy is the mode of sweep that the
@@ -28,12 +27,14 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * immutable lock after migrating to this mode.
  */
 public final class SweepStrategy {
-    public enum SweeperStrategy { CONSERVATIVE, THOROUGH }
+    public enum SweeperStrategy {
+        CONSERVATIVE,
+        THOROUGH
+    }
 
     public static final SweepStrategy CONSERVATIVE =
             new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false);
-    public static final SweepStrategy THOROUGH =
-            new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), true);
+    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), true);
 
     private final Optional<SweeperStrategy> sweeperStrategy;
     private final boolean mustCheckImmutableLockAfterReads;
@@ -60,8 +61,10 @@ public final class SweepStrategy {
             case CONSERVATIVE:
             case THOROUGH_MIGRATION:
                 return Optional.of(SweeperStrategy.CONSERVATIVE);
-            case THOROUGH: return Optional.of(SweeperStrategy.THOROUGH);
-            case NOTHING: return Optional.empty();
+            case THOROUGH:
+                return Optional.of(SweeperStrategy.THOROUGH);
+            case NOTHING:
+                return Optional.empty();
         }
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }

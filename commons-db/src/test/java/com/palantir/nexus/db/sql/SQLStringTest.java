@@ -17,11 +17,9 @@ package com.palantir.nexus.db.sql;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.junit.Test;
 
 public class SQLStringTest {
     @Test
@@ -62,15 +60,13 @@ public class SQLStringTest {
                 "insert foo into bar; /* UnregisteredSQLString */ insert foo into bar");
         String canonicalBatch = "insertfoointobar;insertfoointobar";
 
-        testBatch.forEach(sql -> assertEquals(canonicalBatch, SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql)));
+        testBatch.forEach(
+                sql -> assertEquals(canonicalBatch, SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql)));
     }
 
     @Test
     public void testCanonicalizeBlanks() throws Exception {
-        List<String> testBatch = ImmutableList.of("",
-                " ",
-                " ;; ; ");
+        List<String> testBatch = ImmutableList.of("", " ", " ;; ; ");
         testBatch.forEach(sql -> assertEquals("", SQLString.canonicalizeString(sql)));
-
     }
 }

@@ -18,11 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.wrap;
 
-import java.io.Closeable;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -37,10 +32,15 @@ import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosResponses;
+import java.io.Closeable;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
-public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable {
+public final class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable {
 
-    private final DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare;
+    private final DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>>
+            prepare;
     private final DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept;
     private final DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequence;
 
@@ -59,21 +59,19 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
             int quorumSize) {
 
         DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare =
-                Autobatchers.coalescing(
-                        wrap(acceptors, executors, quorumSize, PrepareCoalescingFunction::new))
+                Autobatchers.coalescing(wrap(acceptors, executors, quorumSize, PrepareCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.prepare")
                         .build();
 
         DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept =
-                Autobatchers.coalescing(
-                        wrap(acceptors, executors, quorumSize, AcceptCoalescingFunction::new))
+                Autobatchers.coalescing(wrap(acceptors, executors, quorumSize, AcceptCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.accept")
                         .build();
 
-        DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequenceAutobatcher =
-                Autobatchers.coalescing(wrap(acceptors, executors, quorumSize, BatchingPaxosLatestSequenceCache::new))
-                        .safeLoggablePurpose("batch-paxos-acceptor.latest-sequence-cache")
-                        .build();
+        DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequenceAutobatcher = Autobatchers.coalescing(
+                        wrap(acceptors, executors, quorumSize, BatchingPaxosLatestSequenceCache::new))
+                .safeLoggablePurpose("batch-paxos-acceptor.latest-sequence-cache")
+                .build();
 
         return new AutobatchingPaxosAcceptorNetworkClientFactory(prepare, accept, latestSequenceAutobatcher);
     }
@@ -100,7 +98,8 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
         @Override
         public PaxosResponses<PaxosPromise> prepare(long seq, PaxosProposalId proposalId) {
             try {
-                return prepare.apply(Maps.immutableEntry(client, WithSeq.of(proposalId, seq))).get();
+                return prepare.apply(Maps.immutableEntry(client, WithSeq.of(proposalId, seq)))
+                        .get();
             } catch (ExecutionException | InterruptedException e) {
                 throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
@@ -108,7 +107,8 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
 
         @Override
         public PaxosResponses<BooleanPaxosResponse> accept(long seq, PaxosProposal proposal) {
-            Preconditions.checkArgument(seq == proposal.getValue().getRound(), "seq does not match round in paxos value inside proposal");
+            Preconditions.checkArgument(
+                    seq == proposal.getValue().getRound(), "seq does not match round in paxos value inside proposal");
             try {
                 return accept.apply(Maps.immutableEntry(client, proposal)).get();
             } catch (ExecutionException | InterruptedException e) {
@@ -130,5 +130,4 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
             return latestSequence.apply(client);
         }
     }
-
 }

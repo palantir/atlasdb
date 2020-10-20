@@ -15,22 +15,24 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import org.immutables.value.Value;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ShardAndStrategy {
     public abstract int shard();
+
     public abstract SweeperStrategy strategy();
 
     @Value.Check
     void allowOnlyConservativeAndThorough() {
-        Preconditions.checkArgument(isConservative() || isThorough(), "Sweep strategy should be CONSERVATIVE or "
-                + "THOROUGH, but it is %s instead.", strategy());
+        Preconditions.checkArgument(
+                isConservative() || isThorough(),
+                "Sweep strategy should be CONSERVATIVE or " + "THOROUGH, but it is %s instead.",
+                strategy());
     }
 
     public String toText() {

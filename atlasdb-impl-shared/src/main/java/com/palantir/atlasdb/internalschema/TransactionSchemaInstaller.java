@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.internalschema;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.SafeArg;
 
 public final class TransactionSchemaInstaller implements AutoCloseable {
     private static final ScheduledExecutorService sharedScheduledExecutorService =
@@ -43,16 +41,13 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
 
     private ScheduledFuture<?> task;
 
-    private TransactionSchemaInstaller(
-            TransactionSchemaManager manager,
-            Supplier<Optional<Integer>> versionToInstall) {
+    private TransactionSchemaInstaller(TransactionSchemaManager manager, Supplier<Optional<Integer>> versionToInstall) {
         this.manager = manager;
         this.versionToInstall = versionToInstall;
     }
 
     public static TransactionSchemaInstaller createStarted(
-            TransactionSchemaManager manager,
-            Supplier<Optional<Integer>> versionToInstall) {
+            TransactionSchemaManager manager, Supplier<Optional<Integer>> versionToInstall) {
         return createStarted(manager, versionToInstall, sharedScheduledExecutorService);
     }
 
@@ -65,14 +60,14 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
         installer.task = scheduledExecutor.scheduleAtFixedRate(
                 installer::runOneIteration, 0, POLLING_INTERVAL.toMinutes(), TimeUnit.MINUTES);
         return installer;
-
     }
 
     private void runOneIteration() {
         try {
             runOneIterationUnsafe();
         } catch (Exception e) {
-            log.info("Encountered an error when trying to install a new transactions schema version."
+            log.info(
+                    "Encountered an error when trying to install a new transactions schema version."
                             + " This is probably benign and we will retry, but pending version changes may be delayed.",
                     e);
         }
@@ -82,7 +77,8 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
         Optional<Integer> version = versionToInstall.get();
         version.ifPresent(presentVersion -> {
             if (!manager.tryInstallNewTransactionsSchemaVersion(presentVersion)) {
-                log.info("We attempted to install transactions schema version {} because we saw it in configuration, "
+                log.info(
+                        "We attempted to install transactions schema version {} because we saw it in configuration, "
                                 + " but this was unsuccessful because another service changed the database. This is"
                                 + " probably benign, but note that such version changes may be delayed.",
                         SafeArg.of("version", presentVersion));

@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.conjure.java.client.config.ImmutablesStyle;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableHostLocation.class)
 @JsonSerialize(as = ImmutableHostLocation.class)

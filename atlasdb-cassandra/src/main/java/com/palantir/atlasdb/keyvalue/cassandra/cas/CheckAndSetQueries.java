@@ -37,32 +37,42 @@ final class CheckAndSetQueries {
     }
 
     private static CqlQuery insertIfNotExists(CheckAndSetRequest request) {
-        Preconditions.checkState(!request.oldValue().isPresent(),
+        Preconditions.checkState(
+                !request.oldValue().isPresent(),
                 "insertIfNotExists queries should only be made if we don't have an old value");
         return ImmutableCqlQuery.builder()
-                .safeQueryFormat("INSERT INTO \"%s\" (key, column1, column2, value)"
-                        + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
+                .safeQueryFormat(
+                        "INSERT INTO \"%s\" (key, column1, column2, value)" + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
                 .addArgs(
                         LoggingArgs.internalTableName(request.table()),
-                        UnsafeArg.of("row", encodeCassandraHexString(request.cell().getRowName())),
-                        UnsafeArg.of("column", encodeCassandraHexString(request.cell().getColumnName())),
+                        UnsafeArg.of(
+                                "row", encodeCassandraHexString(request.cell().getRowName())),
+                        UnsafeArg.of(
+                                "column",
+                                encodeCassandraHexString(request.cell().getColumnName())),
                         SafeArg.of("cassandraTimestamp", CASSANDRA_TIMESTAMP),
                         UnsafeArg.of("newValue", encodeCassandraHexString(request.newValue())))
                 .build();
     }
 
     private static CqlQuery updateIfMatching(CheckAndSetRequest request) {
-        Preconditions.checkState(request.oldValue().isPresent(),
+        Preconditions.checkState(
+                request.oldValue().isPresent(),
                 "updateIfMatching queries should only be made if we do have an old value");
         return ImmutableCqlQuery.builder()
                 .safeQueryFormat("UPDATE \"%s\" SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")
                 .addArgs(
                         LoggingArgs.internalTableName(request.table()),
                         UnsafeArg.of("newValue", encodeCassandraHexString(request.newValue())),
-                        UnsafeArg.of("row", encodeCassandraHexString(request.cell().getRowName())),
-                        UnsafeArg.of("column", encodeCassandraHexString(request.cell().getColumnName())),
+                        UnsafeArg.of(
+                                "row", encodeCassandraHexString(request.cell().getRowName())),
+                        UnsafeArg.of(
+                                "column",
+                                encodeCassandraHexString(request.cell().getColumnName())),
                         SafeArg.of("cassandraTimestamp", CASSANDRA_TIMESTAMP),
-                        UnsafeArg.of("oldValue", encodeCassandraHexString(request.oldValue().get())))
+                        UnsafeArg.of(
+                                "oldValue",
+                                encodeCassandraHexString(request.oldValue().get())))
                 .build();
     }
 

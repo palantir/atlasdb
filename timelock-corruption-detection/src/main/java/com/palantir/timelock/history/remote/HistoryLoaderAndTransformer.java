@@ -16,10 +16,6 @@
 
 package com.palantir.timelock.history.remote;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -29,16 +25,19 @@ import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class HistoryLoaderAndTransformer {
     private HistoryLoaderAndTransformer() {
-        //no op
+        // no op
     }
 
-    public static List<LogsForNamespaceAndUseCase> getLogsForHistoryQueries(LocalHistoryLoader localHistoryLoader,
-            List<HistoryQuery> historyQueries) {
-        Map<NamespaceAndUseCase, Long> lastVerifiedSequences = historyQueries.stream().collect(
-                Collectors.toMap(HistoryQuery::getNamespaceAndUseCase, HistoryQuery::getSeq, Math::min));
+    public static List<LogsForNamespaceAndUseCase> getLogsForHistoryQueries(
+            LocalHistoryLoader localHistoryLoader, List<HistoryQuery> historyQueries) {
+        Map<NamespaceAndUseCase, Long> lastVerifiedSequences = historyQueries.stream()
+                .collect(Collectors.toMap(HistoryQuery::getNamespaceAndUseCase, HistoryQuery::getSeq, Math::min));
 
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
@@ -51,8 +50,8 @@ public final class HistoryLoaderAndTransformer {
     private static Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(
             NamespaceAndUseCase namespaceAndUseCase, LearnerAndAcceptorRecords records) {
 
-        List<PaxosLogWithAcceptedAndLearnedValues> logs = records.getAllSequenceNumbers().stream().map(
-                sequence -> PaxosLogWithAcceptedAndLearnedValues.builder()
+        List<PaxosLogWithAcceptedAndLearnedValues> logs = records.getAllSequenceNumbers().stream()
+                .map(sequence -> PaxosLogWithAcceptedAndLearnedValues.builder()
                         .paxosValue(records.getLearnedValueAtSeqIfExists(sequence))
                         .acceptedState(records.getAcceptedValueAtSeqIfExists(sequence))
                         .seq(sequence)

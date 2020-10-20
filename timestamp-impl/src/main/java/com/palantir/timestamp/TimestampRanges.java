@@ -41,8 +41,9 @@ public final class TimestampRanges {
         checkModulusAndResidue(residue, modulus);
 
         long startTimestamp = getLowestTimestampMatchingModulus(range.getLowerBound(), residue, modulus);
-        long endTimestamp = range.getUpperBound() % modulus == residue ? range.getUpperBound() :
-                getLowestTimestampMatchingModulus(range.getUpperBound(), residue, modulus) - modulus;
+        long endTimestamp = range.getUpperBound() % modulus == residue
+                ? range.getUpperBound()
+                : getLowestTimestampMatchingModulus(range.getUpperBound(), residue, modulus) - modulus;
 
         if (startTimestamp > endTimestamp) {
             return ImmutablePartitionedTimestamps.builder()
@@ -63,14 +64,14 @@ public final class TimestampRanges {
 
     private static long getLowestTimestampMatchingModulus(long lowerBound, int residue, int modulus) {
         long lowerBoundResidue = LongMath.mod(lowerBound, modulus);
-        long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue :
-                residue - lowerBoundResidue;
+        long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue : residue - lowerBoundResidue;
         return lowerBound + shift;
     }
 
     private static void checkModulusAndResidue(int residue, int modulus) {
         Preconditions.checkArgument(modulus > 0, "Modulus should be positive, but found %s.", modulus);
-        Preconditions.checkArgument(Math.abs((long) residue) < modulus,
+        Preconditions.checkArgument(
+                Math.abs((long) residue) < modulus,
                 "Absolute value of residue %s equals or exceeds modulus %s - no solutions",
                 residue,
                 modulus);

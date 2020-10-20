@@ -24,5 +24,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD})
 public @interface ConsoleBinding {
     String name();
+
     String help() default "";
 }

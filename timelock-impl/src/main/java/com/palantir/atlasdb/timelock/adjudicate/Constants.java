@@ -17,11 +17,9 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.commons.lang3.math.Fraction;
-
-import com.google.common.collect.Sets;
 
 public final class Constants {
     private Constants() {
@@ -31,25 +29,25 @@ public final class Constants {
     public static final Duration HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES = Duration.ofMinutes(2);
     public static final Fraction UNHEALTHY_CLIENTS_PROPORTION_LIMIT = Fraction.ONE_THIRD;
 
-    public static final ServiceLevelObjectiveSpecification LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
-            = ServiceLevelObjectiveSpecification.builder()
-            .maximumPermittedSteadyStateP99(Duration.ofMillis(200))
-            .minimumRequestRateForConsideration(0.025)
-            .name("leaderTime")
-            .maximumPermittedErrorProportion(0.5)
-            .maximumPermittedQuietP99(Duration.ofSeconds(40))
-            .build();
+    public static final ServiceLevelObjectiveSpecification LEADER_TIME_SERVICE_LEVEL_OBJECTIVES =
+            ServiceLevelObjectiveSpecification.builder()
+                    .maximumPermittedSteadyStateP99(Duration.ofMillis(200))
+                    .minimumRequestRateForConsideration(0.025)
+                    .name("leaderTime")
+                    .maximumPermittedErrorProportion(0.5)
+                    .maximumPermittedQuietP99(Duration.ofSeconds(40))
+                    .build();
 
-    public static final ServiceLevelObjectiveSpecification START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES
-            = ServiceLevelObjectiveSpecification.builder()
-            .maximumPermittedSteadyStateP99(Duration.ofMillis(500))
-            .minimumRequestRateForConsideration(0.02)
-            .name("startTransaction")
-            .maximumPermittedErrorProportion(0.5)
-            .maximumPermittedQuietP99(Duration.ofSeconds(50))
-            .build();
+    public static final ServiceLevelObjectiveSpecification START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES =
+            ServiceLevelObjectiveSpecification.builder()
+                    .maximumPermittedSteadyStateP99(Duration.ofMillis(500))
+                    .minimumRequestRateForConsideration(0.02)
+                    .name("startTransaction")
+                    .maximumPermittedErrorProportion(0.5)
+                    .maximumPermittedQuietP99(Duration.ofSeconds(50))
+                    .build();
 
     public static final int MIN_UNHEALTHY_SERVICES = 2;
 
-    public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = Sets.newHashSet();
+    public static final Set<String> ATLAS_BLACKLISTED_VERSIONS = new HashSet<>();
 }

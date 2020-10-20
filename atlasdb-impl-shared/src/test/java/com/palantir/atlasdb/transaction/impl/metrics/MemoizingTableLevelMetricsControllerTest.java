@@ -24,16 +24,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.Counter;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.codahale.metrics.Counter;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class MemoizingTableLevelMetricsControllerTest {
     private static final String METRIC_NAME = "name";
@@ -76,8 +74,8 @@ public class MemoizingTableLevelMetricsControllerTest {
                 .collect(Collectors.toList());
         for (int iteration = 0; iteration < 5; iteration++) {
             Collections.shuffle(tableReferences);
-            tableReferences.forEach(tableReference -> memoizing.createAndRegisterCounter(
-                    STRING_CLASS, METRIC_NAME, tableReference));
+            tableReferences.forEach(
+                    tableReference -> memoizing.createAndRegisterCounter(STRING_CLASS, METRIC_NAME, tableReference));
         }
 
         verify(delegate, times(numTableReferences)).createAndRegisterCounter(any(), any(), any());

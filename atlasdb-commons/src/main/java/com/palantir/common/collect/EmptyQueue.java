@@ -15,10 +15,9 @@
  */
 package com.palantir.common.collect;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.AbstractQueue;
 import java.util.Iterator;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This queue is empty and will neither return nor accept any elements
@@ -26,12 +25,12 @@ import com.google.common.collect.ImmutableSet;
  *
  * @param <E>
  */
-public class EmptyQueue<E> extends AbstractQueue<E> {
+public final class EmptyQueue<E> extends AbstractQueue<E> {
     private static final EmptyQueue<?> INSTANCE = new EmptyQueue<Object>();
 
     @SuppressWarnings("unchecked")
     public static <E> EmptyQueue<E> of() {
-        return (EmptyQueue<E>)INSTANCE;
+        return (EmptyQueue<E>) INSTANCE;
     }
 
     private EmptyQueue() {

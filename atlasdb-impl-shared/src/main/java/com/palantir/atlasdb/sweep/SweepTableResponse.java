@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableSweepTableResponse.class)
@@ -42,5 +40,4 @@ public interface SweepTableResponse {
                 .nextStartRow(results.getNextStartRow().map(PtBytes::encodeHexString))
                 .build();
     }
-
 }

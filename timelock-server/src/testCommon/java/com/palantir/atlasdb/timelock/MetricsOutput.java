@@ -60,11 +60,11 @@ public class MetricsOutput {
 
     public void printToStdOut() {
         try {
-            System.out.println(
-                    new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(output));
+            System.out.println(new ObjectMapper()
+                    .enable(SerializationFeature.INDENT_OUTPUT)
+                    .writeValueAsString(output));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
-
 }

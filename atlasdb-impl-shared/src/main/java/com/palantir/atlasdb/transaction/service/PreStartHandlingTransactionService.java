@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
@@ -33,6 +26,12 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.annotation.CheckForNull;
 
 /**
  * This service handles queries for timestamps before {@link AtlasDbConstants#STARTING_TS}
@@ -79,7 +78,8 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         if (!isTimestampValid(startTimestamp)) {
-            throw new SafeIllegalStateException("Attempted to putUnlessExists({}, {}) which is disallowed.",
+            throw new SafeIllegalStateException(
+                    "Attempted to putUnlessExists({}, {}) which is disallowed.",
                     SafeArg.of("startTimestamp", startTimestamp),
                     SafeArg.of("commitTimestamp", commitTimestamp));
         }
@@ -99,13 +99,12 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     private ListenableFuture<Map<Long, Long>> getInternal(
-            Iterable<Long> startTimestamps,
-            AsyncTransactionService asyncTransactionService) {
+            Iterable<Long> startTimestamps, AsyncTransactionService asyncTransactionService) {
         Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
         List<Long> validTimestamps = classifiedTimestamps.get(true);
-        Map<Long, Long> result = Maps.newHashMap();
+        Map<Long, Long> result = new HashMap<>();
         result.putAll(Maps.asMap(
                 ImmutableSet.copyOf(classifiedTimestamps.get(false)), unused -> AtlasDbConstants.STARTING_TS - 1));
 

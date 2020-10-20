@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Optional;
-import java.util.Set;
-
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import java.util.Optional;
+import java.util.Set;
 
 public abstract class LockWatchManager {
     /**
@@ -50,6 +49,6 @@ public abstract class LockWatchManager {
      * that version, and a map associating each start timestamp with its respective lock watch state version, and a flag
      * that is true if a snapshot or timelock leader election occurred.
      */
-    abstract TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<LockWatchVersion> version);
+    abstract TransactionsLockWatchUpdate getUpdateForTransactions(
+            Set<Long> startTimestamps, Optional<LockWatchVersion> version);
 }

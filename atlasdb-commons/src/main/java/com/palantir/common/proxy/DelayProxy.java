@@ -15,21 +15,21 @@
  */
 package com.palantir.common.proxy;
 
+import com.google.common.base.Suppliers;
+import com.palantir.common.base.Throwables;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
 
-import com.google.common.base.Suppliers;
-import com.palantir.common.base.Throwables;
-
 public class DelayProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate,
-            Supplier<Long> sleepTimeMsSupplier) {
-        return (T)Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-            new Class<?>[] {interfaceClass}, new DelayProxy(delegate, sleepTimeMsSupplier));
+    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, Supplier<Long> sleepTimeMsSupplier) {
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(),
+                new Class<?>[] {interfaceClass},
+                new DelayProxy(delegate, sleepTimeMsSupplier));
     }
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, long sleepTimeMs) {

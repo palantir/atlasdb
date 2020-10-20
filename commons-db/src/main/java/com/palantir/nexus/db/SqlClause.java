@@ -39,6 +39,6 @@ public class SqlClause {
 
     @Override
     public String toString() {
-        return key + ": " + clause; //$NON-NLS-1$
+        return key + ": " + clause; // $NON-NLS-1$
     }
 }

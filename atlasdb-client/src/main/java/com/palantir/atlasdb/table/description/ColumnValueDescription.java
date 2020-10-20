@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
-import com.palantir.atlasdb.annotation.Reusable;
-import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.AbstractMessage;
@@ -38,10 +26,10 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
 import com.googlecode.protobuf.format.JsonFormat.ParseException;
+import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.common.base.Throwables;
@@ -49,6 +37,14 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Immutable
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -86,11 +82,15 @@ public final class ColumnValueDescription {
     final Format format;
     final Compression compression;
     final ValueType type;
-    @Nullable final String className; // null if format is VALUE_TYPE
 
-    @Nullable final String canonicalClassName; // null if format is VALUE_TYPE
+    @Nullable
+    final String className; // null if format is VALUE_TYPE
+
+    @Nullable
+    final String canonicalClassName; // null if format is VALUE_TYPE
     // null if not a proto or descriptor is missing
-    @Nullable final Descriptor protoDescriptor;
+    @Nullable
+    final Descriptor protoDescriptor;
 
     private ColumnValueDescription(ValueType type, Compression compression) {
         this.format = Format.VALUE_TYPE;
@@ -105,8 +105,7 @@ public final class ColumnValueDescription {
         return forType(type, Compression.NONE);
     }
 
-    public static ColumnValueDescription forType(ValueType type,
-                                                 Compression compression) {
+    public static ColumnValueDescription forType(ValueType type, Compression compression) {
         return new ColumnValueDescription(type, compression);
     }
 
@@ -114,10 +113,11 @@ public final class ColumnValueDescription {
         return forPersistable(clazz, Compression.NONE);
     }
 
-    public static ColumnValueDescription forPersistable(Class<? extends Persistable> clazz,
-                                                        Compression compression) {
-        Preconditions.checkNotNull(Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");
-        return new ColumnValueDescription(Format.PERSISTABLE, clazz.getName(), clazz.getCanonicalName(), compression, null);
+    public static ColumnValueDescription forPersistable(Class<? extends Persistable> clazz, Compression compression) {
+        Preconditions.checkNotNull(
+                Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");
+        return new ColumnValueDescription(
+                Format.PERSISTABLE, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
     public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz) {
@@ -125,21 +125,18 @@ public final class ColumnValueDescription {
     }
 
     public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz, Compression compression) {
-        return new ColumnValueDescription(Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
+        return new ColumnValueDescription(
+                Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
     public static ColumnValueDescription forProtoMessage(Class<? extends AbstractMessage> clazz) {
         return forProtoMessage(clazz, Compression.NONE);
     }
 
-    public static ColumnValueDescription forProtoMessage(Class<? extends AbstractMessage> clazz,
-                                                         Compression compression) {
+    public static ColumnValueDescription forProtoMessage(
+            Class<? extends AbstractMessage> clazz, Compression compression) {
         return new ColumnValueDescription(
-                Format.PROTO,
-                clazz.getName(),
-                clazz.getCanonicalName(),
-                compression,
-                getDescriptor(clazz));
+                Format.PROTO, clazz.getName(), clazz.getCanonicalName(), compression, getDescriptor(clazz));
     }
 
     private static <T extends AbstractMessage> Descriptor getDescriptor(Class<T> clazz) {
@@ -153,11 +150,12 @@ public final class ColumnValueDescription {
         }
     }
 
-    private ColumnValueDescription(Format format,
-                                   String className,
-                                   String canonicalClassName,
-                                   Compression compression,
-                                   Descriptor protoDescriptor) {
+    private ColumnValueDescription(
+            Format format,
+            String className,
+            String canonicalClassName,
+            Compression compression,
+            Descriptor protoDescriptor) {
         this.compression = Preconditions.checkNotNull(compression);
         this.type = ValueType.BLOB;
         this.format = Preconditions.checkNotNull(format);
@@ -225,15 +223,19 @@ public final class ColumnValueDescription {
 
     public Persister<?> getPersister() {
         Preconditions.checkArgument(Format.PERSISTER == format);
-            @SuppressWarnings("unchecked")
-            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
-            try {
-                Persister<?> persister = persisterClass.getConstructor().newInstance();
-                return persister;
-            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-                    | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
+        @SuppressWarnings("unchecked")
+        Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+        try {
+            Persister<?> persister = persisterClass.getConstructor().newInstance();
+            return persister;
+        } catch (InstantiationException
+                | IllegalAccessException
+                | IllegalArgumentException
+                | InvocationTargetException
+                | NoSuchMethodException
+                | SecurityException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     public String getPersistCode(String varName) {
@@ -247,8 +249,8 @@ public final class ColumnValueDescription {
         } else {
             result = type.getPersistCode(varName);
         }
-        return "com.palantir.atlasdb.compress.CompressionUtils.compress(" + result + ", " +
-                "com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
+        return "com.palantir.atlasdb.compress.CompressionUtils.compress(" + result + ", "
+                + "com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
     }
 
     public byte[] persistJsonToBytes(String str) throws ParseException {
@@ -327,35 +329,36 @@ public final class ColumnValueDescription {
                 return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
             }
         } else if (format == Format.PROTO) {
-                return "new Supplier<" + canonicalClassName + ">() { " +
-                    "@Override " +
-                    "public " + canonicalClassName + " get() { " +
-                        "try { " +
-                            "return " + canonicalClassName + ".parseFrom(" + varName + "); " +
-                        "} catch (InvalidProtocolBufferException _ex) { " +
-                            "throw Throwables.throwUncheckedException(_ex); " +
-                        "} " +
-                    "} " +
-                "}.get()";
+            return "new Supplier<" + canonicalClassName + ">() { " + "@Override "
+                    + "public "
+                    + canonicalClassName + " get() { " + "try { "
+                    + "return "
+                    + canonicalClassName + ".parseFrom(" + varName + "); "
+                    + "} catch (InvalidProtocolBufferException _ex) { "
+                    + "throw Throwables.throwUncheckedException(_ex); "
+                    + "} "
+                    + "} "
+                    + "}.get()";
         } else {
             return type.getHydrateCode(varName, "0");
         }
     }
 
     public String composeVarName(String varName) {
-        return "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName +
-                ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
+        return "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName
+                + ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
     }
 
     public String getInstantiateReusablePersisterCode() {
-        return "private final " + canonicalClassName + " REUSABLE_PERSISTER = " +
-                        "new " + canonicalClassName + "();";
+        return "private final " + canonicalClassName + " REUSABLE_PERSISTER = " + "new " + canonicalClassName + "();";
     }
 
     @SuppressWarnings("unchecked")
     public Persistable hydratePersistable(ClassLoader classLoader, byte[] value) {
         Preconditions.checkState(format == Format.PERSISTABLE, "Column value is not a Persistable.");
-        return ColumnValues.parsePersistable((Class<? extends Persistable>)getImportClass(classLoader), CompressionUtils.decompress(value, compression));
+        return ColumnValues.parsePersistable(
+                (Class<? extends Persistable>) getImportClass(classLoader),
+                CompressionUtils.decompress(value, compression));
     }
 
     public Object hydratePersister(ClassLoader classLoader, byte[] value) {
@@ -367,11 +370,14 @@ public final class ColumnValueDescription {
     @SuppressWarnings("unchecked")
     public Message hydrateProto(ClassLoader classLoader, byte[] value) {
         Preconditions.checkState(format == Format.PROTO, "Column value is not a protocol buffer.");
-        return ColumnValues.parseProtoBuf((Class<? extends AbstractMessage>) getImportClass(classLoader), CompressionUtils.decompress(value, compression));
+        return ColumnValues.parseProtoBuf(
+                (Class<? extends AbstractMessage>) getImportClass(classLoader),
+                CompressionUtils.decompress(value, compression));
     }
 
     public TableMetadataPersistence.ColumnValueDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.ColumnValueDescription.newBuilder();
+        TableMetadataPersistence.ColumnValueDescription.Builder builder =
+                TableMetadataPersistence.ColumnValueDescription.newBuilder();
         builder.setType(type.persistToProto());
         builder.setCompression(compression.persistToProto());
         if (className != null) {
@@ -416,16 +422,12 @@ public final class ColumnValueDescription {
                     FileDescriptor fileDescriptor = hydrateFileDescriptorTree(message.getProtoFileDescriptorTree());
                     protoDescriptor = fileDescriptor.findMessageTypeByName(message.getProtoMessageName());
                 } else if (message.hasProtoFileDescriptor()) {
-                        FileDescriptorProto fileProto = FileDescriptorProto.parseFrom(message.getProtoFileDescriptor());
-                        FileDescriptor fileDescriptor = FileDescriptor.buildFrom(fileProto, new FileDescriptor[0]);
-                        protoDescriptor = fileDescriptor.findMessageTypeByName(message.getProtoMessageName());
+                    FileDescriptorProto fileProto = FileDescriptorProto.parseFrom(message.getProtoFileDescriptor());
+                    FileDescriptor fileDescriptor = FileDescriptor.buildFrom(fileProto, new FileDescriptor[0]);
+                    protoDescriptor = fileDescriptor.findMessageTypeByName(message.getProtoMessageName());
                 }
                 return new ColumnValueDescription(
-                        format,
-                        message.getClassName(),
-                        message.getCanonicalClassName(),
-                        compression,
-                        protoDescriptor);
+                        format, message.getClassName(), message.getCanonicalClassName(), compression, protoDescriptor);
             } catch (Exception e) {
                 log.error("Failed to parse FileDescriptorProto.", e);
             }
@@ -450,11 +452,7 @@ public final class ColumnValueDescription {
             }
         }
         return new ColumnValueDescription(
-                format,
-                message.getClassName(),
-                message.getCanonicalClassName(),
-                compression,
-                protoDescriptor);
+                format, message.getClassName(), message.getCanonicalClassName(), compression, protoDescriptor);
     }
 
     private static FileDescriptor hydrateFileDescriptorTree(FileDescriptorTreeProto proto)

@@ -23,10 +23,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
-import org.junit.Test;
-
 import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
+import org.junit.Test;
 
 public class FreshTimestampSupplierAdapterTest {
     private final FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();

@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.io.File;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.StoredWriteReference;
@@ -29,6 +26,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.io.File;
+import java.util.function.Supplier;
 
 public enum TargetedSweepSchema implements AtlasSchema {
     INSTANCE;
@@ -58,7 +57,8 @@ public enum TargetedSweepSchema implements AtlasSchema {
     }
 
     private static Schema newSchemaObject() {
-        return new Schema("TargetedSweep",
+        return new Schema(
+                "TargetedSweep",
                 TargetedSweepSchema.class.getPackage().getName() + ".generated",
                 NAMESPACE,
                 OptionalType.JAVA8);
@@ -66,97 +66,109 @@ public enum TargetedSweepSchema implements AtlasSchema {
 
     private static void addSweepStateTables(Schema schema) {
         // Stores actual cells to be swept
-        schema.addTableDefinition("sweepableCells", new TableDefinition() {{
-            javaTableName("SweepableCells");
-            allSafeForLoggingByDefault();
-            rowName();
-            hashFirstNRowComponents(2);
-            rowComponent("timestamp_partition", ValueType.VAR_LONG);
-            rowComponent("metadata", ValueType.BLOB);
-            dynamicColumns();
-            columnComponent("timestamp_modulus", ValueType.VAR_LONG);
-            columnComponent("write_index", ValueType.VAR_SIGNED_LONG);
-            value(StoredWriteReference.class);
+        schema.addTableDefinition("sweepableCells", new TableDefinition() {
+            {
+                javaTableName("SweepableCells");
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstNRowComponents(2);
+                rowComponent("timestamp_partition", ValueType.VAR_LONG);
+                rowComponent("metadata", ValueType.BLOB);
+                dynamicColumns();
+                columnComponent("timestamp_modulus", ValueType.VAR_LONG);
+                columnComponent("write_index", ValueType.VAR_SIGNED_LONG);
+                value(StoredWriteReference.class);
 
-            // we do our own cleanup
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                // we do our own cleanup
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
 
-        schema.addTableDefinition("sweepableTimestamps", new TableDefinition() {{
-            javaTableName("SweepableTimestamps");
-            allSafeForLoggingByDefault();
-            rowName();
-            hashFirstRowComponent();
-            rowComponent("shard", ValueType.VAR_LONG);
-            rowComponent("timestamp_partition", ValueType.VAR_LONG);
-            rowComponent("sweep_conservative", ValueType.BLOB);
-            dynamicColumns();
-            columnComponent("timestamp_modulus", ValueType.VAR_LONG);
-            value(ValueType.BLOB);
+        schema.addTableDefinition("sweepableTimestamps", new TableDefinition() {
+            {
+                javaTableName("SweepableTimestamps");
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("shard", ValueType.VAR_LONG);
+                rowComponent("timestamp_partition", ValueType.VAR_LONG);
+                rowComponent("sweep_conservative", ValueType.BLOB);
+                dynamicColumns();
+                columnComponent("timestamp_modulus", ValueType.VAR_LONG);
+                value(ValueType.BLOB);
 
-            // we do our own cleanup
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                // we do our own cleanup
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
 
-        schema.addTableDefinition("sweepProgressPerShard", new TableDefinition() {{
-            javaTableName("SweepShardProgress");
-            allSafeForLoggingByDefault();
-            rowName();
-            hashFirstRowComponent();
-            rowComponent("shard", ValueType.VAR_SIGNED_LONG);
-            rowComponent("sweep_conservative", ValueType.BLOB);
-            columns();
-            column("value", "v", ValueType.VAR_LONG);
+        schema.addTableDefinition("sweepProgressPerShard", new TableDefinition() {
+            {
+                javaTableName("SweepShardProgress");
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("shard", ValueType.VAR_SIGNED_LONG);
+                rowComponent("sweep_conservative", ValueType.BLOB);
+                columns();
+                column("value", "v", ValueType.VAR_LONG);
 
-            // we do our own cleanup
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                // we do our own cleanup
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
     }
 
     private static void addTableIdentifierTables(Schema schema) {
-        schema.addTableDefinition("sweepNameToId", new TableDefinition() {{
-            allSafeForLoggingByDefault();
-            rowName();
-            hashFirstRowComponent();
-            rowComponent("table", ValueType.STRING);
-            columns();
-            column("id", "i", SweepTableIdentifier.class);
+        schema.addTableDefinition("sweepNameToId", new TableDefinition() {
+            {
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("table", ValueType.STRING);
+                columns();
+                column("id", "i", SweepTableIdentifier.class);
 
-            // append-only + all writes are CAS
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                // append-only + all writes are CAS
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
 
-        schema.addTableDefinition("sweepIdToName", new TableDefinition() {{
-            allSafeForLoggingByDefault();
-            rowName();
-            hashFirstRowComponent();
-            rowComponent("singleton", ValueType.STRING);
-            dynamicColumns();
-            // descending lets us select the next table id in O(1) time
-            columnComponent("tableId", ValueType.VAR_LONG, ValueByteOrder.DESCENDING);
-            value(ValueType.STRING);
+        schema.addTableDefinition("sweepIdToName", new TableDefinition() {
+            {
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("singleton", ValueType.STRING);
+                dynamicColumns();
+                // descending lets us select the next table id in O(1) time
+                columnComponent("tableId", ValueType.VAR_LONG, ValueByteOrder.DESCENDING);
+                value(ValueType.STRING);
 
-            // append-only + all writes are CAS
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                // append-only + all writes are CAS
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
 
-        schema.addTableDefinition("tableClears", new TableDefinition() {{
-            allSafeForLoggingByDefault();
-            rowName();
-            rowComponent("table", ValueType.STRING);
+        schema.addTableDefinition("tableClears", new TableDefinition() {
+            {
+                allSafeForLoggingByDefault();
+                rowName();
+                rowComponent("table", ValueType.STRING);
 
-            columns();
-            column("lastClearedTimestamp", "l", ValueType.VAR_LONG);
+                columns();
+                column("lastClearedTimestamp", "l", ValueType.VAR_LONG);
 
-            // all writes are CAS
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
+                // all writes are CAS
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
     }
 
     @Override

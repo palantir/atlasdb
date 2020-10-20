@@ -15,14 +15,12 @@
  */
 package com.palantir.nexus.db.pool;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.ReentrantConnectionSupplier;
+import java.sql.Connection;
+import java.sql.SQLException;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public class ReentrantManagedConnectionSupplier implements ReentrantConnectionSupplier {
@@ -32,8 +30,8 @@ public class ReentrantManagedConnectionSupplier implements ReentrantConnectionSu
 
     public ReentrantManagedConnectionSupplier(final ConnectionManager delegate) {
         this.delegate = Preconditions.checkNotNull(delegate);
-        this.threadLocal = ThreadLocal.withInitial(() ->
-                new ResourceSharer<Connection, SQLException>(ResourceTypes.CONNECTION) {
+        this.threadLocal =
+                ThreadLocal.withInitial(() -> new ResourceSharer<Connection, SQLException>(ResourceTypes.CONNECTION) {
                     @Override
                     public Connection open() {
                         return delegate.getConnectionUnchecked();

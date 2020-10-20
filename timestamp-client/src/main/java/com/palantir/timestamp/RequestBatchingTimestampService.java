@@ -16,12 +16,6 @@
 
 package com.palantir.timestamp;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,6 +27,10 @@ import com.palantir.common.proxy.TimingProxy;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.timer.LoggingOperationTimer;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * This uses smart batching to queue up requests and send them all as one larger batch.
@@ -44,8 +42,8 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
     private final TimestampService delegate;
     private final DisruptorAutobatcher<Integer, TimestampRange> batcher;
 
-    private RequestBatchingTimestampService(TimestampService delegate,
-            DisruptorAutobatcher<Integer, TimestampRange> batcher) {
+    private RequestBatchingTimestampService(
+            TimestampService delegate, DisruptorAutobatcher<Integer, TimestampRange> batcher) {
         this.delegate = delegate;
         this.batcher = batcher;
     }
@@ -94,7 +92,8 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
     @VisibleForTesting
     static Consumer<List<BatchElement<Integer, TimestampRange>>> consumer(TimestampService delegate) {
         return batch -> {
-            long totalTimestamps = batch.stream().mapToLong(BatchElement::argument).reduce(0, Math::addExact);
+            long totalTimestamps =
+                    batch.stream().mapToLong(BatchElement::argument).reduce(0, Math::addExact);
             long startInclusive = 0;
             long endExclusive = 0;
             for (BatchElement<Integer, TimestampRange> element : batch) {
@@ -104,8 +103,8 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
                     startInclusive += timestampsRequired;
                     totalTimestamps -= timestampsRequired;
                 } else {
-                    TimestampRange requested = getFreshTimestampsFromDelegate(
-                            delegate, Ints.saturatedCast(totalTimestamps));
+                    TimestampRange requested =
+                            getFreshTimestampsFromDelegate(delegate, Ints.saturatedCast(totalTimestamps));
                     startInclusive = requested.getLowerBound();
                     endExclusive = Math.addExact(requested.getUpperBound(), 1);
                     int toTake = Math.min(Ints.checkedCast(endExclusive - startInclusive), timestampsRequired);
@@ -126,8 +125,7 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
     }
 
     private static TimestampRange createExclusiveRange(long start, long end) {
-        Preconditions.checkArgument(end > start,
-                "End is not ahead of start so cannot create an exclusive range");
+        Preconditions.checkArgument(end > start, "End is not ahead of start so cannot create an exclusive range");
         return TimestampRange.createInclusiveRange(start, end - 1);
     }
 }

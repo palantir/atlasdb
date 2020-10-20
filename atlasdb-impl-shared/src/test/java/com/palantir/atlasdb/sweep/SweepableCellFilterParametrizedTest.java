@@ -20,20 +20,6 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -43,14 +29,25 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class SweepableCellFilterParametrizedTest {
     private static final Set<Boolean> BOOLEANS = ImmutableSet.of(true, false);
 
-    private static final Cell SINGLE_CELL = Cell.create(
-            "cellRow".getBytes(StandardCharsets.UTF_8),
-            "cellCol".getBytes(StandardCharsets.UTF_8));
+    private static final Cell SINGLE_CELL =
+            Cell.create("cellRow".getBytes(StandardCharsets.UTF_8), "cellCol".getBytes(StandardCharsets.UTF_8));
     private static final List<Long> COMMITTED_BEFORE = ImmutableList.of(10L, 20L, 30L, 40L);
     private static final List<Long> COMMITTED_AFTER = ImmutableList.of(13L, 23L, 33L);
     private static final List<Long> ABORTED_TS = ImmutableList.of(16L, 26L, 36L);
@@ -72,9 +69,9 @@ public class SweepableCellFilterParametrizedTest {
 
     @Parameterized.Parameters(name = "{0}, {1}, {2}")
     public static Collection<Object[]> parameters() {
-        return Sets.<Object>cartesianProduct(BOOLEANS,
-                ImmutableSet.copyOf(Committed.values()),
-                ImmutableSet.copyOf(Sweeper.values())).stream()
+        return Sets.<Object>cartesianProduct(
+                        BOOLEANS, ImmutableSet.copyOf(Committed.values()), ImmutableSet.copyOf(Sweeper.values()))
+                .stream()
                 .map(List::toArray)
                 .collect(Collectors.toList());
     }
@@ -141,7 +138,9 @@ public class SweepableCellFilterParametrizedTest {
     }
 
     private enum Committed {
-        BEFORE(SWEEP_TS - 1), AFTER(SWEEP_TS + 1), ABORTED(TransactionConstants.FAILED_COMMIT_TS);
+        BEFORE(SWEEP_TS - 1),
+        AFTER(SWEEP_TS + 1),
+        ABORTED(TransactionConstants.FAILED_COMMIT_TS);
 
         private long commitTs;
 

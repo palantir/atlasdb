@@ -15,28 +15,29 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.sql.ResultSetMetaData;
-import java.util.List;
-import java.util.Map;
-
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.sql.ResultSets;
+import java.sql.ResultSetMetaData;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class AgnosticResultSetImpl implements AgnosticResultSet {
     private final List<List<Object>> results;
     private final DBType dbType;
     private final Map<String, Integer> columnMap;
 
-    public AgnosticResultSetImpl(List<List<Object>> rs, DBType type, Map<String, Integer> columnMap) throws PalantirSqlException {
+    public AgnosticResultSetImpl(List<List<Object>> rs, DBType type, Map<String, Integer> columnMap)
+            throws PalantirSqlException {
         results = rs;
         dbType = type;
         this.columnMap = columnMap;
     }
 
-    public AgnosticResultSetImpl(List<List<Object>> rs, DBType type, ResultSetMetaData meta) throws PalantirSqlException {
+    public AgnosticResultSetImpl(List<List<Object>> rs, DBType type, ResultSetMetaData meta)
+            throws PalantirSqlException {
         results = rs;
         dbType = type;
 
@@ -58,7 +59,7 @@ public class AgnosticResultSetImpl implements AgnosticResultSet {
 
     @Override
     public List<AgnosticResultRow> rows() {
-        List<AgnosticResultRow> allRows = Lists.newArrayListWithCapacity(size());
+        List<AgnosticResultRow> allRows = new ArrayList<>(size());
         for (List<Object> list : results) {
             allRows.add(new AgnosticResultRowImpl(list, dbType, columnMap));
         }
@@ -77,16 +78,16 @@ public class AgnosticResultSetImpl implements AgnosticResultSet {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("AgnosticResultSetImpl {\n"); //$NON-NLS-1$
+        StringBuilder sb = new StringBuilder("AgnosticResultSetImpl {\n"); // $NON-NLS-1$
         boolean first = true;
         for (AgnosticResultRow row : rows()) {
             if (!first) {
-                sb.append(",\n"); //$NON-NLS-1$
+                sb.append(",\n"); // $NON-NLS-1$
             }
 
             first = false;
             sb.append(row);
         }
-        return sb.append("\n}").toString(); //$NON-NLS-1$
+        return sb.append("\n}").toString(); // $NON-NLS-1$
     }
 }

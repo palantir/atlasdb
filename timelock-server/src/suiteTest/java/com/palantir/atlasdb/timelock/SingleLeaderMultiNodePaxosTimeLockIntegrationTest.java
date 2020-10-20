@@ -16,23 +16,12 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
 import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
@@ -45,6 +34,14 @@ import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.Client;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
@@ -71,8 +68,8 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @Test
     public void clientsCreatedDynamicallyOnNonLeadersAreFunctionalAfterFailover() {
-        cluster.nonLeaders(namespace.namespace()).forEach((clientName, server) ->
-                assertThatThrownBy(() -> server.client(clientName).getFreshTimestamp())
+        cluster.nonLeaders(namespace.namespace()).forEach((clientName, server) -> assertThatThrownBy(
+                        () -> server.client(clientName).getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
         cluster.failoverToNewLeader(namespace.namespace());
@@ -83,15 +80,15 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
     @Test
     public void clientsCreatedDynamicallyOnLeaderAreFunctionalImmediately() {
         assertThatCode(() -> cluster.currentLeaderFor(namespace.namespace())
-                .client(namespace.namespace())
-                .getFreshTimestamp())
+                        .client(namespace.namespace())
+                        .getFreshTimestamp())
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void noConflictIfLeaderAndNonLeadersSeparatelyInitializeClient() {
-        cluster.nonLeaders(namespace.namespace()).forEach((clientName, server) ->
-                assertThatThrownBy(() -> server.client(clientName).getFreshTimestamp())
+        cluster.nonLeaders(namespace.namespace()).forEach((clientName, server) -> assertThatThrownBy(
+                        () -> server.client(clientName).getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
         long ts1 = namespace.getFreshTimestamp();
@@ -147,27 +144,32 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
     }
 
     private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
-        nonLeader.serverHolder().wireMock().register(
-                WireMock.any(WireMock.anyUrl())
+        nonLeader
+                .serverHolder()
+                .wireMock()
+                .register(WireMock.any(WireMock.anyUrl())
                         .atPriority(Integer.MAX_VALUE - 1)
-                        .willReturn(WireMock.serviceUnavailable().withFixedDelay(
-                                Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
+                        .willReturn(WireMock.serviceUnavailable()
+                                .withFixedDelay(
+                                        Ints.checkedCast(Duration.ofSeconds(2).toMillis())))
+                        .build());
     }
 
     private static long getSequenceForServerUsingBatchedEndpoint(TestableTimelockServer server) {
-        BatchPaxosAcceptorRpcClient acceptor = server.client(LEADER_PAXOS_NAMESPACE).proxyFactory().createProxy(
-                BatchPaxosAcceptorRpcClient.class,
-                TestProxies.ProxyMode.DIRECT);
+        BatchPaxosAcceptorRpcClient acceptor = server.client(LEADER_PAXOS_NAMESPACE)
+                .proxyFactory()
+                .createProxy(BatchPaxosAcceptorRpcClient.class, TestProxies.ProxyMode.DIRECT);
         return acceptor.latestSequencesPreparedOrAccepted(LEADER_FOR_ALL_CLIENTS, null, CLIENT_SET)
                 .updates()
                 .get(PSEUDO_LEADERSHIP_CLIENT);
     }
 
     private static long getSequenceForServerUsingOldEndpoint(TestableTimelockServer server) {
-        PaxosRemoteClients.TimelockSingleLeaderPaxosAcceptorRpcClient acceptor = server.client(
-                LEADER_PAXOS_NAMESPACE).proxyFactory().createProxy(
-                PaxosRemoteClients.TimelockSingleLeaderPaxosAcceptorRpcClient.class,
-                TestProxies.ProxyMode.DIRECT);
+        PaxosRemoteClients.TimelockSingleLeaderPaxosAcceptorRpcClient acceptor = server.client(LEADER_PAXOS_NAMESPACE)
+                .proxyFactory()
+                .createProxy(
+                        PaxosRemoteClients.TimelockSingleLeaderPaxosAcceptorRpcClient.class,
+                        TestProxies.ProxyMode.DIRECT);
         return acceptor.getLatestSequencePreparedOrAccepted();
     }
 }

@@ -16,20 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-
-import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-
-import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeoutException;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
@@ -51,6 +41,13 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class DbTimestampStoreInvalidatorCreationTest {
     private final MetricsManager metrics = MetricsManagers.createForTests();
@@ -58,17 +55,18 @@ public class DbTimestampStoreInvalidatorCreationTest {
 
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TableReference otherTable = TableReference.createWithEmptyNamespace("fooBar");
     private final String prefix = "";
 
-    private final TimestampBoundStore defaultStore = getStore(AtlasDbConstants.TIMESTAMP_TABLE,
+    private final TimestampBoundStore defaultStore = getStore(
+            AtlasDbConstants.TIMESTAMP_TABLE,
             DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     private final TimestampBoundStore otherStore = getStore(otherTable, prefix);
 
-    private final InvalidationRunner invalidationRunner = new InvalidationRunner(kvs.getConnectionManager(),
-            otherTable,
-            prefix);
+    private final InvalidationRunner invalidationRunner =
+            new InvalidationRunner(kvs.getConnectionManager(), otherTable, prefix);
     private static final long TIMESTAMP_1 = 12000;
 
     @Before
@@ -79,8 +77,8 @@ public class DbTimestampStoreInvalidatorCreationTest {
 
     @Test
     public void doesNotInvalidateMultiSeriesTable() {
-        assertThatThrownBy(() -> storeUpperLimitAndGetTimestampStoreInvalidator(
-                Optional.of(DbTimestampCreationSettings.multipleSeries(otherTable, TimestampSeries.of("test")))))
+        assertThatThrownBy(() -> storeUpperLimitAndGetTimestampStoreInvalidator(Optional.of(
+                        DbTimestampCreationSettings.multipleSeries(otherTable, TimestampSeries.of("test")))))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Invalidator must only be called by embedded DB timeLock that does not support "
                         + "multi series timestamp store. This is unexpected, please contact support.");
@@ -119,10 +117,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
 
     // utils
     private InDbTimestampBoundStore getStore(TableReference tableReference, String tablePrefix) {
-        return InDbTimestampBoundStore.create(
-                kvs.getConnectionManager(),
-                tableReference,
-                tablePrefix);
+        return InDbTimestampBoundStore.create(kvs.getConnectionManager(), tableReference, tablePrefix);
     }
 
     private void assertStoreNotPoisoned(TimestampBoundStore store) {
@@ -132,25 +127,24 @@ public class DbTimestampStoreInvalidatorCreationTest {
     private void assertBoundNotReadableAfterBeingPoisoned(TimestampBoundStore store) {
         // This timeout is only meant for tests, the server retries for 3 minutes
         TimeLimiter limit = SimpleTimeLimiter.create(Executors.newSingleThreadExecutor());
-        assertThatThrownBy(() ->
-                limit.runWithTimeout(store::getUpperLimit, Duration.ofSeconds(1)))
+        assertThatThrownBy(() -> limit.runWithTimeout(store::getUpperLimit, Duration.ofSeconds(1)))
                 .isInstanceOf(TimeoutException.class);
     }
-
 
     private TimestampStoreInvalidator storeUpperLimitAndGetTimestampStoreInvalidator(
             Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
         otherStore.storeUpperLimit(TIMESTAMP_1);
         otherStore.getUpperLimit();
-        ServiceDiscoveringAtlasSupplier atlasSupplier = createAtlasSupplier(
-                DbkvsPostgresTestSuite.getKvsConfig(),
-                dbTimestampCreationParameters);
+        ServiceDiscoveringAtlasSupplier atlasSupplier =
+                createAtlasSupplier(DbkvsPostgresTestSuite.getKvsConfig(), dbTimestampCreationParameters);
         return atlasSupplier.getTimestampStoreInvalidator();
     }
 
-    private ServiceDiscoveringAtlasSupplier createAtlasSupplier(KeyValueServiceConfig providedKvsConfig,
+    private ServiceDiscoveringAtlasSupplier createAtlasSupplier(
+            KeyValueServiceConfig providedKvsConfig,
             Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
-        return new ServiceDiscoveringAtlasSupplier(metrics,
+        return new ServiceDiscoveringAtlasSupplier(
+                metrics,
                 providedKvsConfig,
                 Optional::empty,
                 leaderConfig,
@@ -159,6 +153,4 @@ public class DbTimestampStoreInvalidatorCreationTest {
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
-
-
 }

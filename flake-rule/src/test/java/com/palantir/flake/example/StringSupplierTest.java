@@ -17,14 +17,12 @@ package com.palantir.flake.example;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Supplier;
-
-import org.junit.Rule;
-import org.junit.Test;
-
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class StringSupplierTest {
     private static final String TEST_STRING = "123";

@@ -15,6 +15,10 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.palantir.logsafe.Preconditions;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,16 +26,9 @@ import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.palantir.logsafe.Preconditions;
 
 public final class RetriableTransactions {
     private static final Logger log = LoggerFactory.getLogger(RetriableTransactions.class);
@@ -64,16 +61,18 @@ public final class RetriableTransactions {
         }
     }
 
-    public static enum TransactionStatus {
-        SUCCESSFUL, FAILED, UNKNOWN;
+    public enum TransactionStatus {
+        SUCCESSFUL,
+        FAILED,
+        UNKNOWN;
     }
-    public static class TransactionResult<T> {
+
+    public static final class TransactionResult<T> {
         private final TransactionStatus status;
         private final @Nullable T resultValue;
         private final Optional<Throwable> error;
-        private TransactionResult(TransactionStatus status,
-                                  @Nullable T resultValue,
-                                  Optional<Throwable> error) {
+
+        private TransactionResult(TransactionStatus status, @Nullable T resultValue, Optional<Throwable> error) {
             this.status = status;
             this.resultValue = resultValue;
             this.error = error;
@@ -97,7 +96,9 @@ public final class RetriableTransactions {
 
         // May only be called if the result is SUCCESSFUL.
         public @Nullable T getResultValue() {
-            Preconditions.checkState(status.equals(TransactionStatus.SUCCESSFUL), "Trying to get result from a transaction which never succeeded");
+            Preconditions.checkState(
+                    status.equals(TransactionStatus.SUCCESSFUL),
+                    "Trying to get result from a transaction which never succeeded");
             return resultValue;
         }
 
@@ -162,16 +163,30 @@ public final class RetriableTransactions {
                     } catch (SQLException e) {
                         long now = System.currentTimeMillis();
                         if (log.isTraceEnabled()) {
-                            log.trace("Got exception for retriable write transaction, startTimeMs = {}, attemptTimeMs = {}, now = {}", startTimeMs, attemptTimeMs, now, e);
+                            log.trace(
+                                    "Got exception for retriable write transaction, startTimeMs = {}, attemptTimeMs ="
+                                            + " {}, now = {}",
+                                    startTimeMs,
+                                    attemptTimeMs,
+                                    now,
+                                    e);
                         }
                         if (shouldStillRetry(startTimeMs, attemptTimeMs)) {
                             long attemptLengthMs = now - attemptTimeMs;
                             long totalLengthMs = now - startTimeMs;
-                            log.info("Swallowing possible transient exception for retriable transaction, last attempt took {} ms, total attempts have taken {}", attemptLengthMs, totalLengthMs, e);
+                            log.info(
+                                    "Swallowing possible transient exception for retriable transaction, last attempt"
+                                            + " took {} ms, total attempts have taken {}",
+                                    attemptLengthMs,
+                                    totalLengthMs,
+                                    e);
                             continue;
                         }
                         if (pending) {
-                            log.error("Giving up on [verification of] retriable write transaction that might have actually commited!", e);
+                            log.error(
+                                    "Giving up on [verification of] retriable write transaction that might have"
+                                            + " actually commited!",
+                                    e);
                             return TransactionResult.unknown(e);
                         }
                         return TransactionResult.failure(e);
@@ -249,12 +264,15 @@ public final class RetriableTransactions {
         return new LexicalHelper().run();
     }
 
-    private static final LoadingCache<ConnectionManager, AtomicBoolean> createdTxTables = CacheBuilder.newBuilder().weakKeys().build(new CacheLoader<ConnectionManager, AtomicBoolean>() {
-        @Override
-        public AtomicBoolean load(ConnectionManager cm) {
-            return new AtomicBoolean(false);
-        }
-    });
+    private static final LoadingCache<ConnectionManager, AtomicBoolean> createdTxTables = CacheBuilder.newBuilder()
+            .weakKeys()
+            .build(new CacheLoader<ConnectionManager, AtomicBoolean>() {
+                @Override
+                public AtomicBoolean load(ConnectionManager cm) {
+                    return new AtomicBoolean(false);
+                }
+            });
+
     private static void createTxTable(ConnectionManager cm) throws SQLException {
         AtomicBoolean createdTxTable = createdTxTables.getUnchecked(cm);
         if (createdTxTable.get()) {
@@ -294,10 +312,15 @@ public final class RetriableTransactions {
             // Great, that worked, fallthrough to below but don't commit.
         } catch (SQLException e) {
             log.info("The table {} has not been created yet, so we will try to create it.", TABLE_NAME);
-            log.debug("To check whether the table exists we tried to use it. This caused an exception indicating that it did not exist. The exception was: ", e);
+            log.debug(
+                    "To check whether the table exists we tried to use it. This caused an exception indicating that it"
+                            + " did not exist. The exception was: ",
+                    e);
             Connection c = cm.getConnection();
             try {
-                c.createStatement().execute("CREATE TABLE " + TABLE_NAME + " (id " + varcharType + "(36) PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+                c.createStatement()
+                        .execute("CREATE TABLE " + TABLE_NAME + " (id " + varcharType
+                                + "(36) PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             } finally {
                 c.close();
             }

@@ -16,25 +16,22 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-
 import static com.palantir.paxos.LeaderPingResults.pingReturnedFalse;
 import static com.palantir.paxos.LeaderPingResults.pingReturnedTrue;
-
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingPingableLeaderFactory.PingRequest;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PingCoalescingFunctionTests {
@@ -48,13 +45,13 @@ public class PingCoalescingFunctionTests {
 
     private static final HostAndPort HOST_AND_PORT = HostAndPort.fromParts("localhost", 8080);
 
-    @Mock private BatchPingableLeader remote;
+    @Mock
+    private BatchPingableLeader remote;
 
     @Test
     public void canProcessBatch() {
         Set<Client> clients = ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3);
-        when(remote.ping(clients))
-                .thenReturn(ImmutableSet.of(CLIENT_1, CLIENT_3));
+        when(remote.ping(clients)).thenReturn(ImmutableSet.of(CLIENT_1, CLIENT_3));
 
         Set<PingRequest> requests = ImmutableSet.of(
                 pingRequest(CLIENT_1, LEADER_UUID_1),

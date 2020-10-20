@@ -16,18 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableMap;
@@ -41,6 +29,16 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This should be removed once PDS-95791 is complete.
@@ -87,11 +85,12 @@ public class LockDiagnosticCollector implements LockEvents {
 
     LockDiagnosticInfo getAndLogCurrentState(Set<UUID> requestIds) {
         Map<UUID, Optional<LockInfo>> cacheSnapshot = ImmutableMap.copyOf(cache.asMap());
-        Map<UUID, Optional<LockInfo>> viewForRequestIds = Maps.toMap(requestIds,
-                requestId -> cacheSnapshot.getOrDefault(requestId, Optional.empty()));
+        Map<UUID, Optional<LockInfo>> viewForRequestIds =
+                Maps.toMap(requestIds, requestId -> cacheSnapshot.getOrDefault(requestId, Optional.empty()));
         LockDiagnosticInfo diagnosticInfo = computeLockDiagnosticInfo(viewForRequestIds);
 
-        log.info("Got a request to log lock diagnostic information",
+        log.info(
+                "Got a request to log lock diagnostic information",
                 UnsafeArg.of("info", diagnosticInfo),
                 SafeArg.of("requestIds", requestIds));
         return diagnosticInfo;
@@ -128,5 +127,4 @@ public class LockDiagnosticCollector implements LockEvents {
                 .flatMap(Function.identity())
                 .map(info -> info.nextStage(nextStage, Instant.now()));
     }
-
 }

@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,11 +48,10 @@ public class AnnotatedCallableTest {
 
     @Test
     public void prependThreadName() throws Exception {
-        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(
-                AnnotationType.PREPEND, "test", () -> {
-                    assertThat(Thread.currentThread().getName(), is("test AnnotatedCallableTest"));
-                    return "Hello, world!";
-                });
+        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND, "test", () -> {
+            assertThat(Thread.currentThread().getName(), is("test AnnotatedCallableTest"));
+            return "Hello, world!";
+        });
 
         String result = callable.call();
         assertThat(result, is("Hello, world!"));
@@ -61,11 +59,10 @@ public class AnnotatedCallableTest {
 
     @Test
     public void appendThreadName() throws Exception {
-        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(
-                AnnotationType.APPEND, "test", () -> {
-                    assertThat(Thread.currentThread().getName(), is("AnnotatedCallableTest test"));
-                    return "Hello, world!";
-                });
+        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(AnnotationType.APPEND, "test", () -> {
+            assertThat(Thread.currentThread().getName(), is("AnnotatedCallableTest test"));
+            return "Hello, world!";
+        });
 
         String result = callable.call();
         assertThat(result, is("Hello, world!"));
@@ -73,11 +70,10 @@ public class AnnotatedCallableTest {
 
     @Test
     public void replaceThreadName() throws Exception {
-        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(
-                AnnotationType.REPLACE, "test", () -> {
-                    assertThat(Thread.currentThread().getName(), is("test"));
-                    return "Hello, world!";
-                });
+        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(AnnotationType.REPLACE, "test", () -> {
+            assertThat(Thread.currentThread().getName(), is("test"));
+            return "Hello, world!";
+        });
 
         String result = callable.call();
         assertThat(result, is("Hello, world!"));
@@ -85,11 +81,10 @@ public class AnnotatedCallableTest {
 
     @Test
     public void replaceThreadNameWith() throws Exception {
-        Callable<String> callable = AnnotatedCallable.replaceThreadNameWith(
-                "test", () -> {
-                    assertThat(Thread.currentThread().getName(), is("test"));
-                    return "Hello, world!";
-                });
+        Callable<String> callable = AnnotatedCallable.replaceThreadNameWith("test", () -> {
+            assertThat(Thread.currentThread().getName(), is("test"));
+            return "Hello, world!";
+        });
 
         String result = callable.call();
         assertThat(result, is("Hello, world!"));
@@ -97,8 +92,8 @@ public class AnnotatedCallableTest {
 
     @Test
     public void annotateError() {
-        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(
-                AnnotationType.PREPEND, "test thread name", () -> {
+        Callable<String> callable =
+                AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND, "test thread name", () -> {
                     assertThat(Thread.currentThread().getName(), startsWith("test thread name "));
                     assertThat(Thread.currentThread().getName(), is("test thread name AnnotatedCallableTest"));
                     throw new OutOfMemoryError("test message");
@@ -112,7 +107,8 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage(), is("test message"));
             assertThat(expected.getSuppressed().length, is(1));
             assertThat(expected.getSuppressed()[0], instanceOf(SuppressedException.class));
-            assertThat(expected.getSuppressed()[0].getMessage(),
+            assertThat(
+                    expected.getSuppressed()[0].getMessage(),
                     is("Error [java.lang.OutOfMemoryError: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
         }
@@ -120,8 +116,8 @@ public class AnnotatedCallableTest {
 
     @Test
     public void annotateException() {
-        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(
-                AnnotationType.PREPEND, "test thread name", () -> {
+        Callable<String> callable =
+                AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND, "test thread name", () -> {
                     assertThat(Thread.currentThread().getName(), startsWith("test thread name "));
                     assertThat(Thread.currentThread().getName(), is("test thread name AnnotatedCallableTest"));
                     throw new IOException("test message");
@@ -135,7 +131,8 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage(), is("test message"));
             assertThat(expected.getSuppressed().length, is(1));
             assertThat(expected.getSuppressed()[0], instanceOf(SuppressedException.class));
-            assertThat(expected.getSuppressed()[0].getMessage(),
+            assertThat(
+                    expected.getSuppressed()[0].getMessage(),
                     is("Exception [java.io.IOException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
         }
@@ -144,8 +141,8 @@ public class AnnotatedCallableTest {
     @Test
     public void annotateExecutionException() {
         final Throwable cause = new Throwable("test cause");
-        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(
-                AnnotationType.PREPEND, "test thread name", () -> {
+        Callable<String> callable =
+                AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND, "test thread name", () -> {
                     assertThat(Thread.currentThread().getName(), startsWith("test thread name "));
                     assertThat(Thread.currentThread().getName(), is("test thread name AnnotatedCallableTest"));
                     throw new ExecutionException("test message", cause);
@@ -159,7 +156,8 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage(), is("test message"));
             assertThat(expected.getSuppressed().length, is(1));
             assertThat(expected.getSuppressed()[0], instanceOf(SuppressedException.class));
-            assertThat(expected.getSuppressed()[0].getMessage(),
+            assertThat(
+                    expected.getSuppressed()[0].getMessage(),
                     is("Exception [java.util.concurrent.ExecutionException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
         }
@@ -167,8 +165,8 @@ public class AnnotatedCallableTest {
 
     @Test
     public void annotateRuntimeException() {
-        Callable<String> callable = AnnotatedCallable.wrapWithThreadName(
-                AnnotationType.PREPEND, "test thread name", () -> {
+        Callable<String> callable =
+                AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND, "test thread name", () -> {
                     assertThat(Thread.currentThread().getName(), startsWith("test thread name "));
                     assertThat(Thread.currentThread().getName(), is("test thread name AnnotatedCallableTest"));
                     throw new IllegalArgumentException("test message");
@@ -182,10 +180,10 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage(), is("test message"));
             assertThat(expected.getSuppressed().length, is(1));
             assertThat(expected.getSuppressed()[0], instanceOf(SuppressedException.class));
-            assertThat(expected.getSuppressed()[0].getMessage(),
+            assertThat(
+                    expected.getSuppressed()[0].getMessage(),
                     is("RuntimeException [java.lang.IllegalArgumentException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
         }
     }
-
 }

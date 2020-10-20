@@ -15,14 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
@@ -36,6 +31,10 @@ import com.palantir.atlasdb.table.description.constraints.TableConstraint;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Defines a table for a schema.
@@ -72,10 +71,13 @@ public class TableDefinition extends AbstractDefinition {
      * values of both SAFE and UNSAFE).
      */
     public void tableNameLogSafety(LogSafety logSafety) {
-        com.palantir.logsafe.Preconditions.checkState(!(logSafetyDeclared && tableNameSafety != logSafety),
+        com.palantir.logsafe.Preconditions.checkState(
+                !(logSafetyDeclared && tableNameSafety != logSafety),
                 "This table name's safety for logging has already been declared.");
-        com.palantir.logsafe.Preconditions.checkState(state == State.NONE, "Specifying a table name is safe or unsafe should be done outside"
-                + " of the subscopes of TableDefinition.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.NONE,
+                "Specifying a table name is safe or unsafe should be done outside"
+                        + " of the subscopes of TableDefinition.");
         logSafetyDeclared = true;
         tableNameSafety = logSafety;
     }
@@ -90,8 +92,10 @@ public class TableDefinition extends AbstractDefinition {
      * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void namedComponentsSafeByDefault() {
-        com.palantir.logsafe.Preconditions.checkState(state == State.NONE, "Specifying components are safe by default should be done outside"
-                + " of the subscopes of TableDefinition.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.NONE,
+                "Specifying components are safe by default should be done outside"
+                        + " of the subscopes of TableDefinition.");
         defaultNamedComponentLogSafety = LogSafety.SAFE;
     }
 
@@ -125,12 +129,8 @@ public class TableDefinition extends AbstractDefinition {
             LogSafety columnNameLoggable) {
         checkStateForNamedColumnDefinition();
         checkUniqueColumnNames(columnName, shortName);
-        fixedColumns.add(
-                new NamedColumnDescription(
-                        shortName,
-                        columnName,
-                        getColumnValueDescription(protoOrPersistable, compression),
-                        columnNameLoggable));
+        fixedColumns.add(new NamedColumnDescription(
+                shortName, columnName, getColumnValueDescription(protoOrPersistable, compression), columnNameLoggable));
     }
 
     public void column(String columnName, String shortName, ValueType valueType) {
@@ -140,34 +140,31 @@ public class TableDefinition extends AbstractDefinition {
     public void column(String columnName, String shortName, ValueType valueType, LogSafety columnNameLoggable) {
         checkStateForNamedColumnDefinition();
         checkUniqueColumnNames(columnName, shortName);
-        fixedColumns.add(
-                new NamedColumnDescription(
-                        shortName,
-                        columnName,
-                        ColumnValueDescription.forType(valueType),
-                        columnNameLoggable));
+        fixedColumns.add(new NamedColumnDescription(
+                shortName, columnName, ColumnValueDescription.forType(valueType), columnNameLoggable));
     }
 
     private void checkStateForNamedColumnDefinition() {
-        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_COLUMNS,
-                "Can only define named columns when in the columns scope.");
-        com.palantir.logsafe.Preconditions.checkState(!noColumns, "Cannot define named columns if noColumns() was already indicated");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.DEFINING_COLUMNS, "Can only define named columns when in the columns scope.");
+        com.palantir.logsafe.Preconditions.checkState(
+                !noColumns, "Cannot define named columns if noColumns() was already indicated");
     }
 
     public void noColumns() {
-        com.palantir.logsafe.Preconditions.checkState(state != State.DEFINING_COLUMNS,
-                "Cannot declare noColumns() inside the column scope.");
-        com.palantir.logsafe.Preconditions.checkState(fixedColumns.isEmpty(),
-                "Cannot declare noColumns() if columns have already been declared.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state != State.DEFINING_COLUMNS, "Cannot declare noColumns() inside the column scope.");
+        com.palantir.logsafe.Preconditions.checkState(
+                fixedColumns.isEmpty(), "Cannot declare noColumns() if columns have already been declared.");
         fixedColumns.add(new NamedColumnDescription("e", "exists", ColumnValueDescription.forType(ValueType.VAR_LONG)));
         noColumns = true;
     }
 
     private void checkUniqueColumnNames(String columnName, String shortName) {
-        Preconditions.checkState(!fixedColumnShortNames.contains(shortName),
-                "Duplicate short column name found: %s", shortName);
-        Preconditions.checkState(!fixedColumnLongNames.contains(columnName),
-                "Duplicate long column name found: %s", columnName);
+        Preconditions.checkState(
+                !fixedColumnShortNames.contains(shortName), "Duplicate short column name found: %s", shortName);
+        Preconditions.checkState(
+                !fixedColumnLongNames.contains(columnName), "Duplicate long column name found: %s", columnName);
         fixedColumnShortNames.add(shortName);
         fixedColumnLongNames.add(columnName);
     }
@@ -191,8 +188,8 @@ public class TableDefinition extends AbstractDefinition {
      * If using prefix range requests, the components that are hashed must also be specified in the prefix.
      */
     public void hashFirstNRowComponents(int numberOfComponents) {
-        com.palantir.logsafe.Preconditions.checkState(numberOfComponents >= 0,
-                "Need to specify a non-negative number of components to hash.");
+        com.palantir.logsafe.Preconditions.checkState(
+                numberOfComponents >= 0, "Need to specify a non-negative number of components to hash.");
         checkHashRowComponentsPreconditions("hashFirstNRowComponents");
         numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
@@ -219,15 +216,14 @@ public class TableDefinition extends AbstractDefinition {
 
     public void rowComponent(
             String componentName, ValueType valueType, ValueByteOrder valueByteOrder, LogSafety rowNameLoggable) {
-        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_NAME,
-                "Can only declare a row component inside the rowName scope.");
-        rowNameComponents.add(
-                new NameComponentDescription.Builder()
-                        .componentName(componentName)
-                        .type(valueType)
-                        .byteOrder(valueByteOrder)
-                        .logSafety(rowNameLoggable)
-                        .build());
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.DEFINING_ROW_NAME, "Can only declare a row component inside the rowName scope.");
+        rowNameComponents.add(new NameComponentDescription.Builder()
+                .componentName(componentName)
+                .type(valueType)
+                .byteOrder(valueByteOrder)
+                .logSafety(rowNameLoggable)
+                .build());
     }
 
     /**
@@ -239,32 +235,35 @@ public class TableDefinition extends AbstractDefinition {
      */
     public void partition(RowNamePartitioner... partitioners) {
         checkStateForPartitioner();
-        NameComponentDescription last = rowNameComponents.get(rowNameComponents.size()-1);
-        rowNameComponents.set(rowNameComponents.size()-1, last.withPartitioners(partitioners));
+        NameComponentDescription last = rowNameComponents.get(rowNameComponents.size() - 1);
+        rowNameComponents.set(rowNameComponents.size() - 1, last.withPartitioners(partitioners));
     }
 
     public ExplicitRowNamePartitioner explicit(String... componentValues) {
         checkStateForPartitioner();
-        return new ExplicitRowNamePartitioner(rowNameComponents.get(rowNameComponents.size()-1).getType(), ImmutableSet.copyOf(componentValues));
+        return new ExplicitRowNamePartitioner(
+                rowNameComponents.get(rowNameComponents.size() - 1).getType(), ImmutableSet.copyOf(componentValues));
     }
 
     public ExplicitRowNamePartitioner explicit(long... componentValues) {
         checkStateForPartitioner();
-        Set<String> set = Sets.newHashSet();
+        Set<String> set = new HashSet<>();
         for (long l : componentValues) {
             set.add(Long.toString(l));
         }
-        return new ExplicitRowNamePartitioner(rowNameComponents.get(rowNameComponents.size()-1).getType(), set);
+        return new ExplicitRowNamePartitioner(
+                rowNameComponents.get(rowNameComponents.size() - 1).getType(), set);
     }
 
     public UniformRowNamePartitioner uniform() {
         checkStateForPartitioner();
-        return new UniformRowNamePartitioner(rowNameComponents.get(rowNameComponents.size()-1).getType());
+        return new UniformRowNamePartitioner(
+                rowNameComponents.get(rowNameComponents.size() - 1).getType());
     }
 
     private void checkStateForPartitioner() {
-        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_NAME,
-                "Can only define a partitioner inside the rowName scope.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.DEFINING_ROW_NAME, "Can only define a partitioner inside the rowName scope.");
     }
 
     public void columnComponent(String componentName, ValueType valueType) {
@@ -272,7 +271,8 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void columnComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
-        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.DEFINING_DYNAMIC_COLUMN,
                 "Can only define a dynamic column component inside the dynamicColumns scope.");
         dynamicColumnNameComponents.add(new NameComponentDescription.Builder()
                 .componentName(componentName)
@@ -299,8 +299,8 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     private void checkStateForDynamicColumnValues() {
-        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
-                "Can only define a value inside the dynamicColumns scope.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.DEFINING_DYNAMIC_COLUMN, "Can only define a value inside the dynamicColumns scope.");
     }
 
     public void tableConstraint(TableConstraint constraint) {
@@ -319,8 +319,8 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     private void checkStateForTableConstraints() {
-        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_CONSTRAINTS,
-                "Can only define a constraint inside the constraints scope.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.DEFINING_CONSTRAINTS, "Can only define a constraint inside the constraints scope.");
     }
 
     public void maxValueSize(int size) {
@@ -385,13 +385,13 @@ public class TableDefinition extends AbstractDefinition {
     private String genericTableName = null;
     private String javaTableName = null;
     private int numberOfComponentsHashed = 0;
-    private List<NameComponentDescription> rowNameComponents = Lists.newArrayList();
-    private List<NamedColumnDescription> fixedColumns = Lists.newArrayList();
-    private List<NameComponentDescription> dynamicColumnNameComponents = Lists.newArrayList();
+    private List<NameComponentDescription> rowNameComponents = new ArrayList<>();
+    private List<NamedColumnDescription> fixedColumns = new ArrayList<>();
+    private List<NameComponentDescription> dynamicColumnNameComponents = new ArrayList<>();
     private ColumnValueDescription dynamicColumnValue = null;
     private ConstraintMetadata.Builder constraintBuilder = ConstraintMetadata.builder();
-    private Set<String> fixedColumnShortNames = Sets.newHashSet();
-    private Set<String> fixedColumnLongNames = Sets.newHashSet();
+    private Set<String> fixedColumnShortNames = new HashSet<>();
+    private Set<String> fixedColumnLongNames = new HashSet<>();
     private boolean noColumns = false;
     private LogSafety tableNameSafety = LogSafety.UNSAFE;
     private LogSafety defaultNamedComponentLogSafety = LogSafety.UNSAFE;
@@ -402,7 +402,8 @@ public class TableDefinition extends AbstractDefinition {
 
         if (explicitCompressionRequested && explicitCompressionBlockSizeKb == 0) {
             if (rangeScanAllowed) {
-                explicitCompressionBlockSizeKb = AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB;
+                explicitCompressionBlockSizeKb =
+                        AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB;
             } else {
                 explicitCompressionBlockSizeKb = AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB;
             }
@@ -425,16 +426,14 @@ public class TableDefinition extends AbstractDefinition {
     private ColumnMetadataDescription getColumnMetadataDescription() {
         if (!fixedColumns.isEmpty()) {
             com.palantir.logsafe.Preconditions.checkState(
-                    dynamicColumnNameComponents.isEmpty(),
-                    "Cannot define both dynamic and fixed columns.");
+                    dynamicColumnNameComponents.isEmpty(), "Cannot define both dynamic and fixed columns.");
             return new ColumnMetadataDescription(fixedColumns);
         } else {
             com.palantir.logsafe.Preconditions.checkState(
                     !dynamicColumnNameComponents.isEmpty() && dynamicColumnValue != null,
                     "Columns not properly defined.");
-            return new ColumnMetadataDescription(
-                    new DynamicColumnDescription(NameMetadataDescription.create(dynamicColumnNameComponents),
-                            dynamicColumnValue));
+            return new ColumnMetadataDescription(new DynamicColumnDescription(
+                    NameMetadataDescription.create(dynamicColumnNameComponents), dynamicColumnValue));
         }
     }
 
@@ -442,7 +441,7 @@ public class TableDefinition extends AbstractDefinition {
         return constraintBuilder.build();
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private ColumnValueDescription getColumnValueDescription(Class protoOrPersistable, Compression compression) {
         if (AbstractMessage.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forProtoMessage(protoOrPersistable, compression);
@@ -456,9 +455,8 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     private void checkHashRowComponentsPreconditions(String methodName) {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
-                "Can only indicate %s inside the rowName scope.", methodName);
-        Preconditions.checkState(rowNameComponents.isEmpty(),
-                "%s must be the first row component.", methodName);
+        Preconditions.checkState(
+                state == State.DEFINING_ROW_NAME, "Can only indicate %s inside the rowName scope.", methodName);
+        Preconditions.checkState(rowNameComponents.isEmpty(), "%s must be the first row component.", methodName);
     }
 }

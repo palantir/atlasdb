@@ -16,6 +16,11 @@
 
 package com.palantir.common.proxy;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.SafeArg;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -26,15 +31,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.exception.NotInitializedException;
-import com.palantir.logsafe.SafeArg;
 
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);
@@ -82,10 +80,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
                 enableFallback,
                 Clock.systemUTC(),
                 markErrorMetric);
-        return (T) Proxy.newProxyInstance(
-                clazz.getClassLoader(),
-                new Class[] { clazz },
-                service);
+        return (T) Proxy.newProxyInstance(clazz.getClassLoader(), new Class[] {clazz}, service);
     }
 
     @Override
@@ -98,10 +93,10 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
             if (runExperiment) {
                 markExperimentFailure(e);
             }
-            if (e.getTargetException() instanceof NotInitializedException) {
+            if (e.getCause() instanceof NotInitializedException) {
                 log.warn("Resource is not initialized yet!");
             }
-            throw e.getTargetException();
+            throw e.getCause();
         }
     }
 
@@ -123,11 +118,14 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
 
     private void markExperimentFailure(Exception exception) {
         if (enableFallback.getAsBoolean()) {
-            nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
+            nextPermittedExperiment.accumulateAndGet(
+                    Instant.now(clock).plus(REFRESH_INTERVAL),
                     (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
-            log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use the "
-                    + "experimental service again after a timeout.",
-                    SafeArg.of("timeout", REFRESH_INTERVAL), exception);
+            log.info(
+                    "Experiment failed; we will revert to the fallback service. We will allow attempting to use the "
+                            + "experimental service again after a timeout.",
+                    SafeArg.of("timeout", REFRESH_INTERVAL),
+                    exception);
         }
         errorTask.run();
     }

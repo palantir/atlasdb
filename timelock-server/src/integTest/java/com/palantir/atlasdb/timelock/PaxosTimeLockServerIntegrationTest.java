@@ -15,23 +15,9 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
-
-import java.util.List;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -45,6 +31,17 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PaxosTimeLockServerIntegrationTest {
 
@@ -64,8 +61,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static final String LOCK_CLIENT_NAME = "remoteLock-client-name";
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
-    private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
-            ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
+    private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
 
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
@@ -94,8 +90,10 @@ public class PaxosTimeLockServerIntegrationTest {
                     try {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).getFreshTimestamp());
-                        NAMESPACES.forEach(client -> TIMELOCK.client(client).timelockService().currentTimeMillis());
-                        NAMESPACES.forEach(client -> TIMELOCK.client(client).legacyLockService().currentTimeMillis());
+                        NAMESPACES.forEach(client ->
+                                TIMELOCK.client(client).timelockService().currentTimeMillis());
+                        NAMESPACES.forEach(client ->
+                                TIMELOCK.client(client).legacyLockService().currentTimeMillis());
                         return TIMELOCK.pinger().ping(NAMESPACES).containsAll(NAMESPACES);
                     } catch (Throwable t) {
                         log.error("erreur!", t);
@@ -108,9 +106,9 @@ public class PaxosTimeLockServerIntegrationTest {
     public void lockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
         LockService lockService = namespace1.legacyLockService();
 
-        LockRefreshToken token = lockService.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
-                .doNotBlock()
-                .build());
+        LockRefreshToken token = lockService.lock(
+                LOCK_CLIENT_NAME,
+                com.palantir.lock.LockRequest.builder(LOCK_MAP).doNotBlock().build());
 
         assertThat(token).isNotNull();
 
@@ -122,12 +120,12 @@ public class PaxosTimeLockServerIntegrationTest {
         LockService lockService1 = namespace1.legacyLockService();
         LockService lockService2 = namespace2.legacyLockService();
 
-        LockRefreshToken token1 = lockService1.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
-                .doNotBlock()
-                .build());
-        LockRefreshToken token2 = lockService2.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
-                .doNotBlock()
-                .build());
+        LockRefreshToken token1 = lockService1.lock(
+                LOCK_CLIENT_NAME,
+                com.palantir.lock.LockRequest.builder(LOCK_MAP).doNotBlock().build());
+        LockRefreshToken token2 = lockService2.lock(
+                LOCK_CLIENT_NAME,
+                com.palantir.lock.LockRequest.builder(LOCK_MAP).doNotBlock().build());
 
         assertThat(token1).isNotNull();
         assertThat(token2).isNotNull();
@@ -141,15 +139,16 @@ public class PaxosTimeLockServerIntegrationTest {
         LockService lockService1 = namespace1.legacyLockService();
         LockService lockService2 = namespace2.legacyLockService();
 
-        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(LOCK_MAP)
-                .doNotBlock()
-                .build();
+        com.palantir.lock.LockRequest request =
+                com.palantir.lock.LockRequest.builder(LOCK_MAP).doNotBlock().build();
 
         LockRefreshToken token = lockService1.lock(LOCK_CLIENT_NAME, request);
 
         assertThat(token).isNotNull();
-        assertThat(lockService1.refreshLockRefreshTokens(ImmutableList.of(token))).isNotEmpty();
-        assertThat(lockService2.refreshLockRefreshTokens(ImmutableList.of(token))).isEmpty();
+        assertThat(lockService1.refreshLockRefreshTokens(ImmutableList.of(token)))
+                .isNotEmpty();
+        assertThat(lockService2.refreshLockRefreshTokens(ImmutableList.of(token)))
+                .isEmpty();
 
         lockService1.unlock(token);
     }
@@ -205,8 +204,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void timestampServiceRespectsTimestampManagementService() {
         long currentTimestampIncrementedByOneMillion = namespace1.getFreshTimestamp() + ONE_MILLION;
         namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
-        assertThat(namespace1.getFreshTimestamp())
-                .isGreaterThan(currentTimestampIncrementedByOneMillion);
+        assertThat(namespace1.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByOneMillion);
     }
 
     @Test
@@ -215,8 +213,7 @@ public class PaxosTimeLockServerIntegrationTest {
         namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
         getFortyTwoFreshTimestamps(namespace1.timelockService());
         namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
-        assertThat(namespace1.getFreshTimestamp())
-                .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
+        assertThat(namespace1.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
     }
 
     @Test
@@ -225,8 +222,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
         // Catching any exception since this currently is an error deserialization exception
         // until we stop requiring http-remoting2 errors
-        assertThatThrownBy(() -> lockService.getMinLockedInVersionId(CLIENT_1))
-                .isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> lockService.getMinLockedInVersionId(CLIENT_1)).isInstanceOf(Exception.class);
     }
 
     private static void getFortyTwoFreshTimestamps(TimelockService timelockService) {
@@ -241,8 +237,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
         long currentTimestamp = namespace1.getFreshTimestamp();
         anotherClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
-        assertThat(namespace1.getFreshTimestamp())
-                .isBetween(currentTimestamp + 1, currentTimestamp + ONE_MILLION - 1);
+        assertThat(namespace1.getFreshTimestamp()).isBetween(currentTimestamp + 1, currentTimestamp + ONE_MILLION - 1);
     }
 
     @Test
@@ -259,8 +254,7 @@ public class PaxosTimeLockServerIntegrationTest {
     @Test
     public void throwsOnQueryingTimestampWithInvalidClientName() {
         TimelockService invalidTimelockService = TIMELOCK.client(INVALID_CLIENT).timelockService();
-        assertThatThrownBy(invalidTimelockService::getFreshTimestamp)
-                .hasMessageContaining("INVALID_ARGUMENT");
+        assertThatThrownBy(invalidTimelockService::getFreshTimestamp).hasMessageContaining("INVALID_ARGUMENT");
     }
 
     @Test

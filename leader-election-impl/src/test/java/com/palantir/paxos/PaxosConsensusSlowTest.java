@@ -18,16 +18,14 @@ package com.palantir.paxos;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.common.concurrent.PTExecutors;
 
 public class PaxosConsensusSlowTest {
 
@@ -48,7 +46,6 @@ public class PaxosConsensusSlowTest {
         PaxosConsensusTestUtils.teardown(state);
     }
 
-
     static final long NO_QUORUM_POLL_WAIT_TIME_IN_MS = 100;
     static final long QUORUM_POLL_WAIT_TIME_IN_MS = 30000;
 
@@ -59,8 +56,7 @@ public class PaxosConsensusSlowTest {
             state.goDown(i);
         }
 
-        CompletionService<Void> leadershipCompletionService = new ExecutorCompletionService<Void>(
-                executor);
+        CompletionService<Void> leadershipCompletionService = new ExecutorCompletionService<Void>(executor);
         leadershipCompletionService.submit(() -> {
             state.gainLeadership(NUM_POTENTIAL_LEADERS - 1);
             return null;
@@ -71,15 +67,11 @@ public class PaxosConsensusSlowTest {
                 if (i + 1 < QUORUM_SIZE) {
                     assertNull(
                             "proposer should continue to block without quorum",
-                            leadershipCompletionService.poll(
-                                    NO_QUORUM_POLL_WAIT_TIME_IN_MS,
-                                    TimeUnit.MILLISECONDS));
+                            leadershipCompletionService.poll(NO_QUORUM_POLL_WAIT_TIME_IN_MS, TimeUnit.MILLISECONDS));
                 } else {
                     assertNotNull(
                             "proposer should get leadership with quorum",
-                            leadershipCompletionService.poll(
-                                    QUORUM_POLL_WAIT_TIME_IN_MS,
-                                    TimeUnit.MILLISECONDS));
+                            leadershipCompletionService.poll(QUORUM_POLL_WAIT_TIME_IN_MS, TimeUnit.MILLISECONDS));
                     return;
                 }
             } catch (InterruptedException ignored) {
@@ -88,5 +80,4 @@ public class PaxosConsensusSlowTest {
             }
         }
     }
-
 }

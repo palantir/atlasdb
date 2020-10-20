@@ -25,13 +25,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.util.concurrent.Futures;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Futures;
 
 public class CheckedRejectionExecutorServiceTest {
     private static final Runnable DO_NOTHING = () -> {};
@@ -39,8 +37,8 @@ public class CheckedRejectionExecutorServiceTest {
     private static final RejectedExecutionException REJECTED_EXECUTION_EXCEPTION = new RejectedExecutionException();
 
     private final ExecutorService delegate = mock(ExecutorService.class);
-    private final CheckedRejectionExecutorService checkedRejectionExecutor
-            = new CheckedRejectionExecutorService(delegate);
+    private final CheckedRejectionExecutorService checkedRejectionExecutor =
+            new CheckedRejectionExecutorService(delegate);
 
     @Test
     public void passesCallThroughExecute() throws CheckedRejectedExecutionException {
@@ -51,7 +49,8 @@ public class CheckedRejectionExecutorServiceTest {
     @Test
     public void passesCallThroughSubmit() throws CheckedRejectedExecutionException {
         when(delegate.submit(RETURN_ONE)).thenReturn(Futures.immediateFuture(1));
-        assertThat(Futures.getUnchecked(checkedRejectionExecutor.submit(RETURN_ONE))).isEqualTo(1);
+        assertThat(Futures.getUnchecked(checkedRejectionExecutor.submit(RETURN_ONE)))
+                .isEqualTo(1);
         verify(delegate, times(1)).submit(RETURN_ONE);
     }
 

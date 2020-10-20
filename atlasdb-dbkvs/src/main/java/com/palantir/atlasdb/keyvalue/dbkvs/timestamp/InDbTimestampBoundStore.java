@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.OptionalLong;
-
-import javax.annotation.concurrent.GuardedBy;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.common.base.Throwables;
@@ -34,6 +28,10 @@ import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
 import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.OptionalLong;
+import javax.annotation.concurrent.GuardedBy;
 
 // TODO(hsaraogi): switch to using ptdatabase sql running, which more gracefully supports multiple db types.
 public class InDbTimestampBoundStore implements TimestampBoundStore {
@@ -60,28 +58,24 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     public static InDbTimestampBoundStore create(
-            ConnectionManager connManager,
-            TableReference timestampTable,
-            String tablePrefixString) {
+            ConnectionManager connManager, TableReference timestampTable, String tablePrefixString) {
         return createWithStrategy(connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString));
     }
 
     public static InDbTimestampBoundStore createForMultiSeries(
-            ConnectionManager connManager,
-            TableReference timestampTable,
-            TimestampSeries series) {
+            ConnectionManager connManager, TableReference timestampTable, TimestampSeries series) {
         return createWithStrategy(connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series));
     }
 
-    private static InDbTimestampBoundStore createWithStrategy(ConnectionManager connManager,
-            PhysicalBoundStoreStrategy strategy) {
+    private static InDbTimestampBoundStore createWithStrategy(
+            ConnectionManager connManager, PhysicalBoundStoreStrategy strategy) {
         InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager, strategy);
         inDbTimestampBoundStore.init();
         return inDbTimestampBoundStore;
     }
 
-    private InDbTimestampBoundStore(ConnectionManager connManager,
-            PhysicalBoundStoreStrategy physicalBoundStoreStrategy) {
+    private InDbTimestampBoundStore(
+            ConnectionManager connManager, PhysicalBoundStoreStrategy physicalBoundStoreStrategy) {
         this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
         this.physicalBoundStoreStrategy = physicalBoundStoreStrategy;
     }
@@ -118,11 +112,10 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
                         }
                     } else {
                         // disappearance
-                        throw new SafeIllegalStateException(
-                                "Unable to retrieve a timestamp when expected. "
-                                        + "This service is in a dangerous state and should be taken down "
-                                        + "until a new safe timestamp value can be established in the KVS. "
-                                        + "Please contact support.");
+                        throw new SafeIllegalStateException("Unable to retrieve a timestamp when expected. "
+                                + "This service is in a dangerous state and should be taken down "
+                                + "until a new safe timestamp value can be established in the KVS. "
+                                + "Please contact support.");
                     }
                 } else {
                     // first read, no check to be done

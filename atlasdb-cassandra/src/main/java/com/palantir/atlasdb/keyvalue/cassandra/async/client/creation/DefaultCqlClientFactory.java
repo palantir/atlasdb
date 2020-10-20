@@ -16,16 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
-import java.net.InetSocketAddress;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-
-import javax.net.ssl.SSLContext;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PoolingOptions;
@@ -47,6 +37,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.net.InetSocketAddress;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultCqlClientFactory implements CqlClientFactory {
     public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();
@@ -63,10 +60,9 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
         this(Cluster::builder);
     }
 
+    @Override
     public Optional<CqlClient> constructClient(
-            TaggedMetricRegistry taggedMetricRegistry,
-            CassandraKeyValueServiceConfig config,
-            boolean initializeAsync) {
+            TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         return config.servers().accept(new CassandraServersConfigs.Visitor<Optional<CqlClient>>() {
             @Override
             public Optional<CqlClient> visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
@@ -83,9 +79,12 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
 
                 Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
 
-                Cluster.Builder clusterBuilder = cqlClusterBuilderFactory.get()
+                Cluster.Builder clusterBuilder = cqlClusterBuilderFactory
+                        .get()
                         .addContactPointsWithPorts(servers)
-                        .withCredentials(config.credentials().username(), config.credentials().password())
+                        .withCredentials(
+                                config.credentials().username(),
+                                config.credentials().password())
                         .withCompression(ProtocolOptions.Compression.LZ4)
                         .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
                         .withoutJMXReporting()
@@ -99,10 +98,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
                 clusterBuilder = withSocketOptions(clusterBuilder, config);
 
                 return Optional.of(CqlClientImpl.create(
-                        taggedMetricRegistry,
-                        clusterBuilder.build(),
-                        cqlCapableConfig.tuning(),
-                        initializeAsync));
+                        taggedMetricRegistry, clusterBuilder.build(), cqlCapableConfig.tuning(), initializeAsync));
             }
         });
     }
@@ -117,7 +113,8 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
             return builder;
         }
         if (config.sslConfiguration().isPresent()) {
-            SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
+            SSLContext sslContext = SslSocketFactories.createSslContext(
+                    config.sslConfiguration().get());
             return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder()
                     .withSSLContext(sslContext)
                     .build());
@@ -126,11 +123,10 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     }
 
     private static Cluster.Builder withPoolingOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
-        return builder.withPoolingOptions(
-                new PoolingOptions()
-                        .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
-                        .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
-                        .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis()));
+        return builder.withPoolingOptions(new PoolingOptions()
+                .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
+                .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
+                .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis()));
     }
 
     private static Cluster.Builder withQueryOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
@@ -138,16 +134,15 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     }
 
     private static Cluster.Builder withLoadBalancingPolicy(
-            Cluster.Builder builder,
-            CassandraKeyValueServiceConfig config,
-            Set<InetSocketAddress> servers) {
+            Cluster.Builder builder, CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
         // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
         // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
         // Note we are being purposely datacenter-irreverent here, instead relying on latency alone
         // to approximate what DCAwareRR would do;
         // this is because DCs for Atlas are always quite latency-close and should be used this way,
         // not as if we have some cross-country backup DC.
-        LoadBalancingPolicy policy = LatencyAwarePolicy.builder(new RoundRobinPolicy()).build();
+        LoadBalancingPolicy policy =
+                LatencyAwarePolicy.builder(new RoundRobinPolicy()).build();
 
         // If user wants, do not automatically add in new nodes to pool (useful during DC migrations / rebuilds)
         if (!config.autoRefreshNodes()) {

@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Objects;
-
-import javax.annotation.Nonnull;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Represents a value in the key-value store (including its timestamp).
@@ -38,8 +36,7 @@ public final class Value implements Serializable {
     public static final long INVALID_VALUE_TIMESTAMP = -1L;
 
     @JsonCreator
-    public static Value create(@JsonProperty("contents") byte[] contents,
-                               @JsonProperty("timestamp") long timestamp) {
+    public static Value create(@JsonProperty("contents") byte[] contents, @JsonProperty("timestamp") long timestamp) {
         return new Value(MoreObjects.firstNonNull(contents, PtBytes.EMPTY_BYTE_ARRAY), timestamp);
     }
 
@@ -94,8 +91,7 @@ public final class Value implements Serializable {
             return false;
         }
         Value value = (Value) obj;
-        return timestamp == value.timestamp
-                && Arrays.equals(contents, value.contents);
+        return timestamp == value.timestamp && Arrays.equals(contents, value.contents);
     }
 
     @Override

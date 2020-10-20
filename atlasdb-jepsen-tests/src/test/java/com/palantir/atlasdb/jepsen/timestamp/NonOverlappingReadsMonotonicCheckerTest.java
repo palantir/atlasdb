@@ -18,13 +18,12 @@ package com.palantir.atlasdb.jepsen.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
+import org.junit.Test;
 
 public class NonOverlappingReadsMonotonicCheckerTest {
     private static final int PROCESS_0 = 0;
@@ -90,8 +89,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event3 = TestEventUtils.timestampOk(time++, PROCESS_0, "1");
         Event event4 = TestEventUtils.timestampOk(time++, PROCESS_1, "0");
 
-        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
-                event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new, event1, event2, event3, event4);
     }
 
     @Test
@@ -102,8 +100,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event3 = TestEventUtils.invokeTimestamp(time++, PROCESS_0);
         Event event4 = TestEventUtils.timestampOk(time++, PROCESS_0, "1");
 
-        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
-                event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new, event1, event2, event3, event4);
     }
 
     @Test
@@ -114,8 +111,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event3 = TestEventUtils.invokeTimestamp(time++, PROCESS_1);
         Event event4 = TestEventUtils.timestampOk(time++, PROCESS_1, "1");
 
-        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
-                event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new, event1, event2, event3, event4);
     }
 
     @Test
@@ -126,8 +122,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event2 = TestEventUtils.createFailEvent(time++, PROCESS_0);
         Event event4 = TestEventUtils.timestampOk(time++, PROCESS_1, "1");
 
-        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
-                event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new, event1, event2, event3, event4);
     }
 
     @Test
@@ -151,10 +146,8 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event3 = TestEventUtils.invokeTimestamp(time++, PROCESS_0);
         Event event4 = TestEventUtils.timestampOk(time++, PROCESS_0, INT_MAX_PLUS_TWO.toString());
 
-        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
-                event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new, event1, event2, event3, event4);
     }
-
 
     private static CheckerResult runChecker(Event... events) {
         NonOverlappingReadsMonotonicChecker checker = new NonOverlappingReadsMonotonicChecker();

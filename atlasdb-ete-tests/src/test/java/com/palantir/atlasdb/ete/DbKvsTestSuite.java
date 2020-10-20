@@ -15,29 +15,25 @@
  */
 package com.palantir.atlasdb.ete;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 import java.util.List;
-
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        TodoEteTest.class,
-        TimestampManagementEteTest.class,
-        CoordinationEteTest.class,
-        LockWithoutTimelockEteTest.class
-        })
+    TodoEteTest.class,
+    TimestampManagementEteTest.class,
+    CoordinationEteTest.class,
+    LockWithoutTimelockEteTest.class
+})
 public class DbKvsTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            DbKvsTestSuite.class,
-            "docker-compose.dbkvs.yml",
-            CLIENTS);
+    public static final RuleChain COMPOSITION_SETUP =
+            EteSetup.setupComposition(DbKvsTestSuite.class, "docker-compose.dbkvs.yml", CLIENTS);
 }

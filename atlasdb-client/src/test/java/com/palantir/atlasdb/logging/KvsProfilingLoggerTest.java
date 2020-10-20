@@ -22,11 +22,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import org.junit.After;
-import org.junit.Test;
-
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
+import org.junit.After;
+import org.junit.Test;
 
 public class KvsProfilingLoggerTest {
     private static final String LOG_TEMPLATE_1 = "The method {} was called.";
@@ -36,13 +35,11 @@ public class KvsProfilingLoggerTest {
     private static final Arg<String> ARG_2 = SafeArg.of("baz", "quux");
     private static final Arg<String> ARG_3 = SafeArg.of("wat", "atlas");
 
-    private final KvsProfilingLogger.LoggingFunction logSink =
-            mock(KvsProfilingLogger.LoggingFunction.class);
+    private final KvsProfilingLogger.LoggingFunction logSink = mock(KvsProfilingLogger.LoggingFunction.class);
 
     @Test
     public void propagatesLogsToSink() {
-        try (KvsProfilingLogger.LogAccumulator accumulator =
-                new KvsProfilingLogger.LogAccumulator(logSink)) {
+        try (KvsProfilingLogger.LogAccumulator accumulator = new KvsProfilingLogger.LogAccumulator(logSink)) {
             accumulator.log(LOG_TEMPLATE_1, ARG_1);
         }
         verify(logSink).log(LOG_TEMPLATE_1, ARG_1);
@@ -50,8 +47,7 @@ public class KvsProfilingLoggerTest {
 
     @Test
     public void concatenatesLogsWithNewlinesInBetweenIfLoggingMultipleTimesBeforeClose() {
-        try (KvsProfilingLogger.LogAccumulator accumulator =
-                new KvsProfilingLogger.LogAccumulator(logSink)) {
+        try (KvsProfilingLogger.LogAccumulator accumulator = new KvsProfilingLogger.LogAccumulator(logSink)) {
             accumulator.log(LOG_TEMPLATE_1, ARG_1);
             accumulator.log(LOG_TEMPLATE_2, ARG_2, ARG_3);
         }

@@ -52,5 +52,4 @@ public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerif
     public PaxosQuorumStatus isLatestRound(long round) {
         return verifiersByRound.getUnchecked(round).get();
     }
-
 }

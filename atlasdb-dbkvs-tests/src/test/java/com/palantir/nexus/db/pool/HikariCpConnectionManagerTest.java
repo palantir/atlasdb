@@ -16,21 +16,6 @@
 
 package com.palantir.nexus.db.pool;
 
-import java.net.InetSocketAddress;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLTransientConnectionException;
-import java.sql.Statement;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -39,6 +24,19 @@ import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
+import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
+import java.sql.Statement;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class HikariCpConnectionManagerTest {
 
@@ -87,8 +85,8 @@ public class HikariCpConnectionManagerTest {
     @Test
     public void testCantGetConnectionIfPoolExhausted() throws SQLException {
         try (Connection conn1 = manager.getConnection();
-             Connection conn2 = manager.getConnection();
-             Connection conn3 = manager.getConnection()) {
+                Connection conn2 = manager.getConnection();
+                Connection conn3 = manager.getConnection()) {
             thrown.expect(SQLTransientConnectionException.class);
             thrown.expectMessage("Connection is not available, request timed out after");
             try (Connection conn4 = manager.getConnection()) {
@@ -101,7 +99,7 @@ public class HikariCpConnectionManagerTest {
     @Test
     public void testConnectionsAreReturnedToPoolWhenClosedAndOverAllocationsAreStillRejected() throws SQLException {
         try (Connection conn1 = manager.getConnection();
-             Connection conn2 = manager.getConnection()) {
+                Connection conn2 = manager.getConnection()) {
             try (Connection conn3 = manager.getConnection()) {
                 checkConnection(conn3);
                 // Make sure we exhausted the pool
@@ -152,9 +150,7 @@ public class HikariCpConnectionManagerTest {
     }
 
     private static ConnectionConfig createConnectionConfig(int maxConnections) {
-        DockerPort port = docker.containers()
-                .container("postgres")
-                .port(POSTGRES_PORT_NUMBER);
+        DockerPort port = docker.containers().container("postgres").port(POSTGRES_PORT_NUMBER);
         InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
         return ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
@@ -166,5 +162,4 @@ public class HikariCpConnectionManagerTest {
                 .checkoutTimeout(2000)
                 .build();
     }
-
 }

@@ -15,11 +15,10 @@
  */
 package com.palantir.common.io;
 
+import com.google.common.collect.Queues;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Queue;
-
-import com.google.common.collect.Queues;
 
 public class ConcatenatedInputStream extends InputStream {
     private final Queue<InputStream> streams;

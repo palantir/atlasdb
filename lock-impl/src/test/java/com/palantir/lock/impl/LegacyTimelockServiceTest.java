@@ -23,20 +23,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Maps;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -52,6 +40,16 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
+import java.math.BigInteger;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 public class LegacyTimelockServiceTest {
 
@@ -70,7 +68,8 @@ public class LegacyTimelockServiceTest {
 
     private static final long TIMEOUT = 10_000;
 
-    private final LegacyTimelockService timelock = new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
+    private final LegacyTimelockService timelock =
+            new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
 
     @Before
     public void before() {
@@ -98,8 +97,8 @@ public class LegacyTimelockServiceTest {
         LockRefreshToken expectedToken = mockImmutableTsLockResponse();
         mockMinLockedInVersionIdResponse(immutableTs);
 
-        LockImmutableTimestampResponse expectedResponse = LockImmutableTimestampResponse.of(immutableTs,
-                toTokenV2(expectedToken));
+        LockImmutableTimestampResponse expectedResponse =
+                LockImmutableTimestampResponse.of(immutableTs, toTokenV2(expectedToken));
         assertThat(timelock.lockImmutableTimestamp()).isEqualTo(expectedResponse);
     }
 
@@ -125,11 +124,13 @@ public class LegacyTimelockServiceTest {
 
     @Test
     public void lockDelegatesToLockService() throws InterruptedException {
-        com.palantir.lock.LockRequest legacyRequest = com.palantir.lock.LockRequest.builder(buildLockMap(LockMode.WRITE))
+        com.palantir.lock.LockRequest legacyRequest = com.palantir.lock.LockRequest.builder(
+                        buildLockMap(LockMode.WRITE))
                 .blockForAtMost(SimpleTimeDuration.of(TIMEOUT, TimeUnit.MILLISECONDS))
                 .build();
 
-        when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
+        when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest))
+                .thenReturn(LOCK_REFRESH_TOKEN);
 
         assertThat(timelock.lock(LockRequest.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)))
                 .isEqualTo(LockResponse.successful(LOCK_TOKEN_V2));
@@ -155,15 +156,19 @@ public class LegacyTimelockServiceTest {
                 .thenThrow(illegalStateException);
         when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertThatThrownBy(() -> timelock.startIdentifiedAtlasDbTransactionBatch(1)).isEqualTo(illegalStateException);
+        assertThatThrownBy(() -> timelock.startIdentifiedAtlasDbTransactionBatch(1))
+                .isEqualTo(illegalStateException);
         verify(lockService).unlock(LOCK_REFRESH_TOKEN);
     }
 
     @Test
     public void waitForLocksDelegatesToLockService() throws InterruptedException {
-        com.palantir.lock.LockRequest legacyRequest = com.palantir.lock.LockRequest.builder(buildLockMap(LockMode.READ)).lockAndRelease().build();
+        com.palantir.lock.LockRequest legacyRequest = com.palantir.lock.LockRequest.builder(buildLockMap(LockMode.READ))
+                .lockAndRelease()
+                .build();
 
-        when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
+        when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest))
+                .thenReturn(LOCK_REFRESH_TOKEN);
 
         timelock.waitForLocks(WaitForLocksRequest.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
@@ -214,15 +219,17 @@ public class LegacyTimelockServiceTest {
 
     private LockRefreshToken mockImmutableTsLockResponse() throws InterruptedException {
         LockDescriptor descriptor = AtlasTimestampLockDescriptor.of(FRESH_TIMESTAMP);
-        com.palantir.lock.LockRequest expectedRequest = com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(descriptor, LockMode.READ))
-                .withLockedInVersionId(FRESH_TIMESTAMP).build();
+        com.palantir.lock.LockRequest expectedRequest = com.palantir.lock.LockRequest.builder(
+                        ImmutableSortedMap.of(descriptor, LockMode.READ))
+                .withLockedInVersionId(FRESH_TIMESTAMP)
+                .build();
         LockRefreshToken expectedToken = new LockRefreshToken(BigInteger.ONE, 123L);
         when(lockService.lock(LOCK_CLIENT.getClientId(), expectedRequest)).thenReturn(expectedToken);
         return expectedToken;
     }
 
     private SortedMap<LockDescriptor, LockMode> buildLockMap(LockMode mode) {
-        SortedMap<LockDescriptor, LockMode> lockMap = Maps.newTreeMap();
+        SortedMap<LockDescriptor, LockMode> lockMap = new TreeMap<>();
         lockMap.put(LOCK_A, mode);
         lockMap.put(LOCK_B, mode);
 
@@ -236,5 +243,4 @@ public class LegacyTimelockServiceTest {
     private static LockToken toTokenV2(LockRefreshToken token) {
         return LockTokenConverter.toTokenV2(token);
     }
-
 }

@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Collection;
-import java.util.List;
-
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.nexus.db.sql.BasicSQLUtils;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public final class WhereClauses {
     private final List<String> clauses;
@@ -38,8 +38,8 @@ public final class WhereClauses {
         byte[] end = request.getEndExclusive();
         Collection<byte[]> cols = request.getColumnNames();
 
-        List<Object> args = Lists.newArrayListWithCapacity(2 + cols.size());
-        List<String> whereClauses = Lists.newArrayListWithCapacity(3 + extraWhereClauses.size());
+        List<Object> args = new ArrayList<>(2 + cols.size());
+        List<String> whereClauses = new ArrayList<>(3 + extraWhereClauses.size());
 
         if (start.length > 0) {
             whereClauses.add(tableIdentifier + (request.isReverse() ? ".row_name <= ?" : ".row_name >= ?"));

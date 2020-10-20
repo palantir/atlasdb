@@ -23,5 +23,5 @@ public interface OutputStateLogger {
 
     void warn(String message, Arg... args);
 
-    void error(final String message, Arg... args);
+    void error(String message, Arg... args);
 }

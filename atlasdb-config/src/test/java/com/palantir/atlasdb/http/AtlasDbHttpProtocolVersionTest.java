@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
 import java.util.stream.Stream;
-
 import org.junit.Test;
 
 public class AtlasDbHttpProtocolVersionTest {
@@ -44,6 +43,5 @@ public class AtlasDbHttpProtocolVersionTest {
     public void infersLegacyIfVersionStringIsUnintelligible() {
         assertThat(AtlasDbHttpProtocolVersion.inferFromString(Optional.of("this is a bad version string!111!!!")))
                 .isEqualTo(AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN);
-
     }
 }

@@ -23,20 +23,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
-import java.time.Duration;
-import java.util.OptionalLong;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-
-import org.junit.Test;
-import org.mockito.stubbing.Answer;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.paxos.HealthCheckDigest;
 import com.palantir.timelock.paxos.ImmutableHealthCheckDigest;
+import java.time.Duration;
+import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("unchecked") // Usage of mocks in conjunction with generics
 public class NoSimultaneousServiceCheckTest {
@@ -57,7 +55,9 @@ public class NoSimultaneousServiceCheckTest {
     private final AtomicLong timestamps = new AtomicLong(1L);
     private final Consumer<String> failureMechanism = mock(Consumer.class);
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck = new NoSimultaneousServiceCheck(
-            ImmutableList.of(checker1, checker2), failureMechanism, MoreExecutors.newDirectExecutorService(),
+            ImmutableList.of(checker1, checker2),
+            failureMechanism,
+            MoreExecutors.newDirectExecutorService(),
             Duration.ofMillis(50L));
 
     @Test
@@ -102,7 +102,6 @@ public class NoSimultaneousServiceCheckTest {
         verify(checker1, times(3)).getFreshTimestampFromNodeForClient(CLIENT.value());
         verify(checker2, times(3)).getFreshTimestampFromNodeForClient(CLIENT.value());
     }
-
 
     @Test
     public void failureMechanismInvokedForRepeatedTimestampsBetweenRounds() {

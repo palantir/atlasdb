@@ -15,15 +15,11 @@
  */
 package com.palantir.nexus.db.sql;
 
-
-
-
-
 public class BasicSQLString {
 
     @Override
     public String toString() {
-        return "SQLString [key=" + key + ", sql=" + sql + "]"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        return "SQLString [key=" + key + ", sql=" + sql + "]"; // $NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     private final String key;
@@ -52,21 +48,25 @@ public class BasicSQLString {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         final BasicSQLString other = (BasicSQLString) obj;
         if (sql == null) {
-            if (other.sql != null)
+            if (other.sql != null) {
                 return false;
-        } else if (!sql.equals(other.sql))
+            }
+        } else if (!sql.equals(other.sql)) {
             return false;
+        }
         return true;
     }
-
 
     /**
      * This class is a SQLString that is only created when it has the correct sqlquery for a given key
@@ -80,7 +80,7 @@ public class BasicSQLString {
 
         @Override
         public String toString() {
-            return "FinalSQLString [delegate=" + delegate + "]"; //$NON-NLS-1$ //$NON-NLS-2$
+            return "FinalSQLString [delegate=" + delegate + "]"; // $NON-NLS-1$ //$NON-NLS-2$
         }
 
         protected final BasicSQLString delegate;
@@ -94,11 +94,9 @@ public class BasicSQLString {
             this.delegate = sqlstring;
         }
 
-
         public FinalSQLString(String key, String sql) {
             this(new BasicSQLString(key, sql));
         }
-
 
         String getQuery() {
             return delegate.getQuery();

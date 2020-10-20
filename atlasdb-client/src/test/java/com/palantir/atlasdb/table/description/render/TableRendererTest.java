@@ -17,11 +17,8 @@ package com.palantir.atlasdb.table.description.render;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
-
-import org.junit.Test;
-
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persister.JsonNodePersister;
@@ -29,11 +26,15 @@ import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import org.junit.Test;
 
 public class TableRendererTest {
 
     private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("TestTable");
-    private static SortedSet<IndexMetadata> NO_INDICES = new TreeSet<>();
+    private static SortedSet<IndexMetadata> NO_INDICES =
+            new TreeSet<>(Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));
 
     @Test
     public void testCanRenderGuavaOptionals() {
@@ -60,30 +61,36 @@ public class TableRendererTest {
     }
 
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
-        return new TableDefinition() {{
-            javaTableName(tableRef.getTablename());
-            rowName();
-            rowComponent("rowName", ValueType.STRING);
-            columns();
-            column("col1", "1", ValueType.VAR_LONG);
-        }};
+        return new TableDefinition() {
+            {
+                javaTableName(tableRef.getTablename());
+                rowName();
+                rowComponent("rowName", ValueType.STRING);
+                columns();
+                column("col1", "1", ValueType.VAR_LONG);
+            }
+        };
     }
 
     @Test
     public void testReusablePersisters() {
         TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
-        String renderedTableDefinition = renderer.render("table", getTableWithUserSpecifiedPersister(TABLE_REF), NO_INDICES);
-        assertThat(renderedTableDefinition).contains("REUSABLE_PERSISTER.hydrateFromBytes")
+        String renderedTableDefinition =
+                renderer.render("table", getTableWithUserSpecifiedPersister(TABLE_REF), NO_INDICES);
+        assertThat(renderedTableDefinition)
+                .contains("REUSABLE_PERSISTER.hydrateFromBytes")
                 .contains("private final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =");
     }
 
     private TableDefinition getTableWithUserSpecifiedPersister(TableReference tableRef) {
-        return new TableDefinition() {{
-            javaTableName(tableRef.getTablename());
-            rowName();
-            rowComponent("rowName", ValueType.STRING);
-            columns();
-            column("col1", "1", JsonNodePersister.class);
-        }};
+        return new TableDefinition() {
+            {
+                javaTableName(tableRef.getTablename());
+                rowName();
+                rowComponent("rowName", ValueType.STRING);
+                columns();
+                column("col1", "1", JsonNodePersister.class);
+            }
+        };
     }
 }

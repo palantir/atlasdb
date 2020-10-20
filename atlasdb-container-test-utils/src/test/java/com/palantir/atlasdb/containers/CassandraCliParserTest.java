@@ -100,15 +100,20 @@ public class CassandraCliParserTest {
         CassandraCliParser parserThreeSeven = new CassandraCliParser(CassandraVersion.from("3.7"));
 
         String output = "\n"
-                + " keyspace_name      | durable_writes | replication\n"
-                + "--------------------+----------------+-------------------------------------------------------------------------------------\n"
-                + "             system |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}\n"
-                + "        system_auth |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '4'}\n"
-                + " system_distributed |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '3'}\n"
-                + "      system_schema |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}\n"
-                + "      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '2'}\n"
-                + "\n"
-                + "(5 rows)";
+            + " keyspace_name      | durable_writes | replication\n"
+            + "--------------------+----------------+-------------------------------------------------------------------------------------\n"
+            + "             system |           True |                             {'class':"
+            + " 'org.apache.cassandra.locator.LocalStrategy'}\n"
+            + "        system_auth |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy',"
+            + " 'replication_factor': '4'}\n"
+            + " system_distributed |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy',"
+            + " 'replication_factor': '3'}\n"
+            + "      system_schema |           True |                             {'class':"
+            + " 'org.apache.cassandra.locator.LocalStrategy'}\n"
+            + "      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy',"
+            + " 'replication_factor': '2'}\n"
+            + "\n"
+            + "(5 rows)";
         assertThat(parserThreeSeven.parseSystemAuthReplicationFromCqlsh(output), is(4));
     }
 

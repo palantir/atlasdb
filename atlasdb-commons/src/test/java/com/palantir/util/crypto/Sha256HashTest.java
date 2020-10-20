@@ -15,13 +15,11 @@
  */
 package com.palantir.util.crypto;
 
-import java.security.MessageDigest;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
+import java.security.MessageDigest;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class Sha256HashTest {
 
@@ -36,5 +34,4 @@ public class Sha256HashTest {
                 BaseEncoding.base16().encode(result));
         Assert.assertEquals(32, result.length);
     }
-
 }

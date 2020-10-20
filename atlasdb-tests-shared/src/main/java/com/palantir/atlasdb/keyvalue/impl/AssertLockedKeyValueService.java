@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.SortedMap;
-
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -33,6 +28,10 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     final KeyValueService delegate;
@@ -52,12 +51,13 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
 
         if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-            SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = Maps.newTreeMap();
-            SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = Maps.newTreeMap();
+            SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = new TreeMap<>();
+            SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = new TreeMap<>();
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                LockDescriptor descriptor = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(),
-                        e.getKey().getRowName());
-                if (Arrays.equals(e.getValue(),
+                LockDescriptor descriptor = AtlasRowLockDescriptor.of(
+                        tableRef.getQualifiedName(), e.getKey().getRowName());
+                if (Arrays.equals(
+                        e.getValue(),
                         TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS))) {
                     mapToAssertLockNotHeld.put(descriptor, LockMode.READ);
                 } else {
@@ -76,7 +76,9 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
                 }
 
                 if (!mapToAssertLockNotHeld.isEmpty()) {
-                    LockRequest request = LockRequest.builder(mapToAssertLockNotHeld).doNotBlock().build();
+                    LockRequest request = LockRequest.builder(mapToAssertLockNotHeld)
+                            .doNotBlock()
+                            .build();
                     LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
                     Preconditions.checkArgument(lock != null, "these should already be waited for");
                 }

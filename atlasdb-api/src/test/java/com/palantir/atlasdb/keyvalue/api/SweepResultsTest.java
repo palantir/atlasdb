@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import java.util.Optional;
-
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.palantir.atlasdb.encoding.PtBytes;
 
 public class SweepResultsTest {
     private static final SweepResults RESULTS = SweepResults.builder()
@@ -74,7 +72,8 @@ public class SweepResultsTest {
 
     @Test
     public void accumulateWithNoNextRowInOrder() {
-        Assert.assertThat(RESULTS.accumulateWith(RESULTS_NO_START_ROW),
+        Assert.assertThat(
+                RESULTS.accumulateWith(RESULTS_NO_START_ROW),
                 Matchers.equalTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 3000L)
@@ -83,12 +82,12 @@ public class SweepResultsTest {
                         .timeInMillis(1L + 3L)
                         .timeSweepStarted(1_000L)
                         .build()));
-
     }
 
     @Test
     public void accumulateWithNoNextRowInOppositeOrder() {
-        Assert.assertThat(RESULTS_NO_START_ROW.accumulateWith(OTHER_RESULTS),
+        Assert.assertThat(
+                RESULTS_NO_START_ROW.accumulateWith(OTHER_RESULTS),
                 Matchers.equalTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(2000L + 3000L)
@@ -101,7 +100,8 @@ public class SweepResultsTest {
 
     @Test
     public void accumulateAll() {
-        Assert.assertThat(RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS),
+        Assert.assertThat(
+                RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS),
                 Matchers.equalTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 2000L + 3000L)
@@ -115,7 +115,8 @@ public class SweepResultsTest {
     @Test
     public void equalsIgnoresTimeSweepStarted() {
         SweepResults emptySweepResult = SweepResults.createEmptySweepResult(Optional.empty());
-        SweepResults laterEmptySweepResult = SweepResults.builder().from(emptySweepResult)
+        SweepResults laterEmptySweepResult = SweepResults.builder()
+                .from(emptySweepResult)
                 .timeSweepStarted(emptySweepResult.getTimeSweepStarted() + 1)
                 .build();
 

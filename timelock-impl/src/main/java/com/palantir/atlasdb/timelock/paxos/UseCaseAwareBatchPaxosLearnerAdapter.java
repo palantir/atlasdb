@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.SetMultimap;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.SetMultimap;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.PaxosValue;
-
-public class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
+public final class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
 
     private final PaxosUseCase useCase;
     private final BatchPaxosLearnerRpcClient rpcClient;
@@ -35,22 +34,23 @@ public class UseCaseAwareBatchPaxosLearnerAdapter implements BatchPaxosLearner {
         this.rpcClient = rpcClient;
     }
 
+    @Override
     public void learn(SetMultimap<Client, PaxosValue> paxosValuesByClient) {
         rpcClient.learn(useCase, paxosValuesByClient);
     }
 
+    @Override
     public SetMultimap<Client, PaxosValue> getLearnedValues(Set<WithSeq<Client>> clientAndSeqs) {
         return rpcClient.getLearnedValues(useCase, clientAndSeqs);
     }
 
+    @Override
     public SetMultimap<Client, PaxosValue> getLearnedValuesSince(Map<Client, Long> seqLowerBoundsByClient) {
         return rpcClient.getLearnedValuesSince(useCase, seqLowerBoundsByClient);
     }
 
     public static List<BatchPaxosLearner> wrap(PaxosUseCase useCase, List<BatchPaxosLearnerRpcClient> remotes) {
-        return remotes.stream()
-                .map(rpcClient -> wrap(useCase, rpcClient))
-                .collect(Collectors.toList());
+        return remotes.stream().map(rpcClient -> wrap(useCase, rpcClient)).collect(Collectors.toList());
     }
 
     public static BatchPaxosLearner wrap(PaxosUseCase useCase, BatchPaxosLearnerRpcClient remote) {

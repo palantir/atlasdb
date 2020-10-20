@@ -15,19 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.function.LongSupplier;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -57,6 +45,16 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.LongSupplier;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -80,15 +78,17 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     @Before
     public void setup() {
         InMemoryTimestampService tsService = new InMemoryTimestampService();
-        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
+        kvs = SweepStatsKeyValueService.create(
+                getKeyValueService(),
+                tsService,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD,
-                () -> true
-        );
+                () -> true);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createV1TransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
-        PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
+        PersistentLockManager persistentLockManager = new PersistentLockManager(
+                metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
@@ -107,9 +107,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
         backgroundSweeper = new BackgroundSweepThread(
                 txManager.getLockService(),
-                NextTableToSweepProvider.create(kvs,
-                        txManager.getLockService(),
-                        specificTableSweeper.getSweepPriorityStore()),
+                NextTableToSweepProvider.create(
+                        kvs, txManager.getLockService(), specificTableSweeper.getSweepPriorityStore()),
                 sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
@@ -143,8 +142,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         }
         verifyTableSwept(TABLE_1, 75, true);
         verifyTableSwept(TABLE_2, 58, false);
-        List<SweepPriority> priorities = txManager.runTaskReadOnly(
-                tx -> SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false).loadNewPriorities(tx));
+        List<SweepPriority> priorities =
+                txManager.runTaskReadOnly(tx -> SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false)
+                        .loadNewPriorities(tx));
         Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)));
         Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)));
     }
@@ -158,7 +158,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             while (iter.hasNext()) {
                 RowResult<Set<Long>> rr = iter.next();
                 numCells += rr.getColumns().size();
-                Assert.assertTrue(String.format("Found unswept values in %s!", tableRef.getQualifiedName()),
+                Assert.assertTrue(
+                        String.format("Found unswept values in %s!", tableRef.getQualifiedName()),
                         rr.getColumns().values().stream()
                                 .allMatch(s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))));
             }
@@ -167,7 +168,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     }
 
     protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
-        kvs.createTable(tableReference,
+        kvs.createTable(
+                tableReference,
                 new TableDefinition() {
                     {
                         rowName();
@@ -177,14 +179,14 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                         conflictHandler(ConflictHandler.IGNORE_ALL);
                         sweepStrategy(sweepStrategy);
                     }
-                }.toTableMetadata().persistToBytes()
-        );
+                }.toTableMetadata().persistToBytes());
     }
 
     void putManyCells(TableReference tableRef, long startTs, long commitTs) {
-        Map<Cell, byte[]> cells = Maps.newHashMap();
+        Map<Cell, byte[]> cells = new HashMap<>();
         for (int i = 0; i < 50; ++i) {
-            cells.put(Cell.create(Ints.toByteArray(i), "c".getBytes()),
+            cells.put(
+                    Cell.create(Ints.toByteArray(i), "c".getBytes()),
                     (i % 3 == 0) ? new byte[] {} : Ints.toByteArray(123456 + i));
             if (i % 2 == 0) {
                 cells.put(Cell.create(Ints.toByteArray(i), "d".getBytes()), Ints.toByteArray(9876543 - i));

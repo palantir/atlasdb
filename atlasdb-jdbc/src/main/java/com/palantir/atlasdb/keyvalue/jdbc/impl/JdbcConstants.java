@@ -19,7 +19,7 @@ import static org.jooq.impl.DSL.field;
 
 import org.jooq.Field;
 
-public class JdbcConstants {
+public final class JdbcConstants {
 
     private JdbcConstants() {
         // cannot instantiate

@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
+import java.util.ArrayList;
 import java.util.List;
-
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
-
-import com.google.common.collect.Lists;
 
 public final class DatabasesContainer implements AutoCloseable {
 
     public static DatabasesContainer startup(List<KeyValueServiceInstrumentation> backends) {
-        List<DockerizedDatabase> dbs = Lists.newArrayList();
+        List<DockerizedDatabase> dbs = new ArrayList<>();
         try {
             for (KeyValueServiceInstrumentation backend : backends) {
                 DockerizedDatabase db = DockerizedDatabase.start(backend);

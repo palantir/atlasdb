@@ -15,13 +15,12 @@
  */
 package com.palantir.common.base;
 
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.collect.Iterables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.proxy.SingleCallProxy;
+import java.util.Iterator;
+import java.util.List;
 
 public class BatchingVisitableFromIterable<T> extends AbstractBatchingVisitable<T> {
 
@@ -43,14 +42,12 @@ public class BatchingVisitableFromIterable<T> extends AbstractBatchingVisitable<
      */
     @SuppressWarnings("unchecked")
     public static <T> BatchingVisitable<T> create(final Iterator<? extends T> iterator) {
-        return SingleCallProxy.newProxyInstance(BatchingVisitable.class,
-            create((Iterable<T>) () -> IteratorUtils.wrap(iterator))
-        );
+        return SingleCallProxy.newProxyInstance(
+                BatchingVisitable.class, create((Iterable<T>) () -> IteratorUtils.wrap(iterator)));
     }
 
     @Override
-    public <K extends Exception> void batchAcceptSizeHint(int batchSize,
-            ConsistentVisitor<T, K> v) throws K {
+    public <K extends Exception> void batchAcceptSizeHint(int batchSize, ConsistentVisitor<T, K> v) throws K {
         /*
          * Iterables.partition allocates an array of size batchSize, so avoid an OOM by making sure
          * it's not too big.

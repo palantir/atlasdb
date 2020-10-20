@@ -16,13 +16,11 @@
 
 package com.palantir.paxos;
 
+import com.palantir.logsafe.Preconditions;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Predicate;
-
 import javax.annotation.concurrent.NotThreadSafe;
-
-import com.palantir.logsafe.Preconditions;
 
 @NotThreadSafe
 final class PaxosResponseAccumulator<S, T extends PaxosResponse> {
@@ -36,9 +34,7 @@ final class PaxosResponseAccumulator<S, T extends PaxosResponse> {
     private int failures = 0;
 
     private PaxosResponseAccumulator(
-            int totalRequests,
-            int quorum,
-            Predicate<InProgressResponseState<S, T>> shouldShortcutPredicate) {
+            int totalRequests, int quorum, Predicate<InProgressResponseState<S, T>> shouldShortcutPredicate) {
         this.totalRequests = totalRequests;
         this.quorum = quorum;
         this.shouldShortcutPredicate = shouldShortcutPredicate;
@@ -46,9 +42,7 @@ final class PaxosResponseAccumulator<S, T extends PaxosResponse> {
     }
 
     static <S, T extends PaxosResponse> PaxosResponseAccumulator<S, T> newResponse(
-            int totalRequests,
-            int quorumSize,
-            Predicate<InProgressResponseState<S, T>> customShortcutPredicate) {
+            int totalRequests, int quorumSize, Predicate<InProgressResponseState<S, T>> customShortcutPredicate) {
         return new PaxosResponseAccumulator<>(totalRequests, quorumSize, customShortcutPredicate);
     }
 
@@ -90,5 +84,4 @@ final class PaxosResponseAccumulator<S, T extends PaxosResponse> {
                 .totalRequests(totalRequests)
                 .build();
     }
-
 }

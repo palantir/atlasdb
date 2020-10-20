@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -34,6 +27,12 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 /**
  * Provides the methods for a transaction with the key-value store.
@@ -66,9 +65,7 @@ public interface Transaction {
      */
     @Idempotent
     NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnSelection columnSelection);
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection);
 
     /**
      * Returns a mapping of requested {@code rows} to corresponding columns from the queried table.
@@ -88,9 +85,7 @@ public interface Transaction {
      */
     @Idempotent
     Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection);
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection);
 
     /**
      * Returns a single iterator over the cell-value pairs in {@code tableRef} for the specified {@code rows}, where the
@@ -112,10 +107,7 @@ public interface Transaction {
      */
     @Idempotent
     Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
-            int batchHint);
+            TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int batchHint);
 
     /**
      * Returns a mapping of rows to {@link Iterator}s over cell-value pairs within {@code tableRef} for the specified
@@ -136,9 +128,7 @@ public interface Transaction {
      */
     @Idempotent
     Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection);
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection);
 
     /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}.
@@ -186,8 +176,7 @@ public interface Transaction {
     @Idempotent
     @Deprecated
     Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
-            TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests);
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests);
 
     /**
      * Creates unvisited visitables that scan the provided ranges and then applies the provided visitableProcessor
@@ -198,7 +187,7 @@ public interface Transaction {
      */
     @Idempotent
     <T> Stream<T> getRanges(
-            final TableReference tableRef,
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
@@ -209,7 +198,7 @@ public interface Transaction {
      */
     @Idempotent
     <T> Stream<T> getRanges(
-            final TableReference tableRef,
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
 
@@ -226,7 +215,7 @@ public interface Transaction {
      */
     @Idempotent
     Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
-            final TableReference tableRef, Iterable<RangeRequest> rangeRequests);
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then

@@ -15,15 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.net.URL;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -83,6 +74,14 @@ import com.palantir.timelock.management.ImmutableTimestampStorage;
 import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
@@ -105,7 +104,8 @@ public class TimeLockAgent {
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
-    public static TimeLockAgent create(MetricsManager metricsManager,
+    public static TimeLockAgent create(
+            MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             UserAgent userAgent,
@@ -114,11 +114,11 @@ public class TimeLockAgent {
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion) {
-        TimeLockDialogueServiceProvider timeLockDialogueServiceProvider = createTimeLockDialogueServiceProvider(
-                metricsManager, install, userAgent);
+        TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
+                createTimeLockDialogueServiceProvider(metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
-                ImmutableTimelockPaxosInstallationContext
-                        .of(install, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
+                ImmutableTimelockPaxosInstallationContext.of(
+                        install, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
 
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
@@ -143,7 +143,7 @@ public class TimeLockAgent {
     private static TimeLockDialogueServiceProvider createTimeLockDialogueServiceProvider(
             MetricsManager metricsManager, TimeLockInstallConfiguration install, UserAgent userAgent) {
         DialogueClients.ReloadingFactory baseFactory = DialogueClients.create(
-                Refreshable.only(ServicesConfigBlock.builder().build()))
+                        Refreshable.only(ServicesConfigBlock.builder().build()))
                 .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
         ServerListConfig timeLockServerListConfig = ImmutableServerListConfig.builder()
                 .addAllServers(PaxosRemotingUtils.getRemoteServerPaths(install))
@@ -162,7 +162,8 @@ public class TimeLockAgent {
                         .build());
     }
 
-    private TimeLockAgent(MetricsManager metricsManager,
+    private TimeLockAgent(
+            MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             Optional<Consumer<UndertowService>> undertowRegistrar,
@@ -170,7 +171,8 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             PaxosResources paxosResources,
-            UserAgent userAgent, HikariDataSource sqliteDataSource) {
+            UserAgent userAgent,
+            HikariDataSource sqliteDataSource) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
@@ -180,20 +182,18 @@ public class TimeLockAgent {
         this.sqliteDataSource = sqliteDataSource;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampStorage = getTimestampStorage();
-        LockLog lockLog = new LockLog(metricsManager.getRegistry(),
+        LockLog lockLog = new LockLog(
+                metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
 
         this.timelockCreator = new AsyncTimeLockServicesCreator(
-                metricsManager,
-                lockLog,
-                paxosResources.leadershipComponents(),
-                install.lockDiagnosticConfig()
-        );
+                metricsManager, lockLog, paxosResources.leadershipComponents(), install.lockDiagnosticConfig());
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
 
-        this.feedbackHandler = new FeedbackHandler(metricsManager, () -> runtime.get().adjudication().enabled());
+        this.feedbackHandler = new FeedbackHandler(
+                metricsManager, () -> runtime.get().adjudication().enabled());
         this.corruptionComponents = paxosResources.timeLockCorruptionComponents();
     }
 
@@ -202,33 +202,28 @@ public class TimeLockAgent {
         if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
             return createPaxosBasedTimestampStorage();
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
-            return createDatabaseTimestampStorage(
-                    (DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence);
+            return createDatabaseTimestampStorage((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence);
         }
-        throw new RuntimeException(String.format("Unknown TsBoundPersisterConfiguration found %s",
-                timestampBoundPersistence.getClass()));
+        throw new RuntimeException(
+                String.format("Unknown TsBoundPersisterConfiguration found %s", timestampBoundPersistence.getClass()));
     }
 
     private TimestampStorage createPaxosBasedTimestampStorage() {
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new PaxosTimestampCreator(paxosResources.timestampServiceFactory()))
-                .persistentNamespaceContext(
-                        PersistentNamespaceContexts.timestampBoundPaxos(
-                                install.paxos().dataDirectory().toPath(),
-                                sqliteDataSource))
+                .persistentNamespaceContext(PersistentNamespaceContexts.timestampBoundPaxos(
+                        install.paxos().dataDirectory().toPath(), sqliteDataSource))
                 .build();
     }
 
     private TimestampStorage createDatabaseTimestampStorage(
             DatabaseTsBoundPersisterConfiguration timestampBoundPersistence) {
-        ServiceDiscoveringDatabaseTimeLockSupplier dbTimeLockSupplier =
-                new ServiceDiscoveringDatabaseTimeLockSupplier(
-                        metricsManager, timestampBoundPersistence.keyValueServiceConfig(), createLeaderConfig());
+        ServiceDiscoveringDatabaseTimeLockSupplier dbTimeLockSupplier = new ServiceDiscoveringDatabaseTimeLockSupplier(
+                metricsManager, timestampBoundPersistence.keyValueServiceConfig(), createLeaderConfig());
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
                 .persistentNamespaceContext(PersistentNamespaceContexts.dbBound(
-                        dbTimeLockSupplier.getTimestampSeriesProvider(
-                                AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE)))
+                        dbTimeLockSupplier.getTimestampSeriesProvider(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE)))
                 .build();
     }
 
@@ -250,23 +245,26 @@ public class TimeLockAgent {
 
         registrar.accept(resource);
 
-        Function<String, AsyncTimelockService> asyncTimelockServiceGetter
-                = namespace -> namespaces.get(namespace).getTimelockService();
-        Function<String, LockService> lockServiceGetter
-                = namespace -> namespaces.get(namespace).getLockService();
-        LocalHistoryLoader localHistoryLoader = LocalHistoryLoader.create(
-                SqlitePaxosStateLogHistory.create(sqliteDataSource));
+        Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
+                namespace -> namespaces.get(namespace).getTimelockService();
+        Function<String, LockService> lockServiceGetter =
+                namespace -> namespaces.get(namespace).getLockService();
+        LocalHistoryLoader localHistoryLoader =
+                LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(sqliteDataSource));
 
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
-            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
                     ConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
-            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
                     ConjureLockWatchingResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
-            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
                     ConjureLockV1Resource.undertow(redirectRetryTargeter(), lockServiceGetter));
-            registerCorruptionHandlerWrappedService(presentUndertowRegistrar,
-                    TimeLockPaxosHistoryProviderResource.undertow(localHistoryLoader));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar, TimeLockPaxosHistoryProviderResource.undertow(localHistoryLoader));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
@@ -277,17 +275,18 @@ public class TimeLockAgent {
 
     private void registerClientFeedbackService() {
         if (undertowRegistrar.isPresent()) {
-            registerCorruptionHandlerWrappedService(undertowRegistrar.get(),
+            registerCorruptionHandlerWrappedService(
+                    undertowRegistrar.get(),
                     TimeLockClientFeedbackResource.undertow(feedbackHandler, this::isLeaderForClient));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler,
-                    this::isLeaderForClient));
+            registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler, this::isLeaderForClient));
         }
     }
 
     private void registerTimeLockCorruptionNotifiers() {
         if (undertowRegistrar.isPresent()) {
-            registerCorruptionHandlerWrappedService(undertowRegistrar.get(),
+            registerCorruptionHandlerWrappedService(
+                    undertowRegistrar.get(),
                     CorruptionNotifierResource.undertow(corruptionComponents.remoteCorruptionDetector()));
         } else {
             registrar.accept(CorruptionNotifierResource.jersey(corruptionComponents.remoteCorruptionDetector()));
@@ -305,15 +304,13 @@ public class TimeLockAgent {
     private void registerManagementResource() {
         Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
-            registerCorruptionHandlerWrappedService(undertowRegistrar.get(), TimeLockManagementResource.undertow(
-                    timestampStorage.persistentNamespaceContext(),
-                    namespaces,
-                    redirectRetryTargeter()));
+            registerCorruptionHandlerWrappedService(
+                    undertowRegistrar.get(),
+                    TimeLockManagementResource.undertow(
+                            timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter()));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    timestampStorage.persistentNamespaceContext(),
-                    namespaces,
-                    redirectRetryTargeter()));
+                    timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter()));
         }
     }
 
@@ -323,8 +320,8 @@ public class TimeLockAgent {
         }
     }
 
-    private void registerCorruptionHandlerWrappedService(Consumer<UndertowService> presentUndertowRegistrar,
-            UndertowService service) {
+    private void registerCorruptionHandlerWrappedService(
+            Consumer<UndertowService> presentUndertowRegistrar, UndertowService service) {
         presentUndertowRegistrar.accept(
                 UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
     }
@@ -377,8 +374,10 @@ public class TimeLockAgent {
     }
 
     private RedirectRetryTargeter redirectRetryTargeter() {
-        URL localServer = PaxosRemotingUtils.convertAddressToUrl(install, install.cluster().localServer());
-        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(install, install.cluster().clusterMembers());
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(
+                install, install.cluster().localServer());
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(
+                install, install.cluster().clusterMembers());
         return RedirectRetryTargeter.create(localServer, clusterUrls);
     }
 
@@ -393,8 +392,8 @@ public class TimeLockAgent {
 
         Client typedClient = Client.of(client);
 
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampStorage.timestampCreator()
-                .createTimestampService(typedClient, leaderConfig);
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
+                timestampStorage.timestampCreator().createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
@@ -414,7 +413,10 @@ public class TimeLockAgent {
     }
 
     public LeaderElectionHealthReport timeLockLeadershipHealthCheck() {
-        return paxosResources.leadershipContextFactory().leaderElectionHealthCheck().leaderElectionRateHealthReport();
+        return paxosResources
+                .leadershipContextFactory()
+                .leaderElectionHealthCheck()
+                .leaderElectionRateHealthReport();
     }
 
     public void shutdown() {

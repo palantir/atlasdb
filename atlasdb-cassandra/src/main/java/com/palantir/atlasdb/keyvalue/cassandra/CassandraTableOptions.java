@@ -52,5 +52,4 @@ final class CassandraTableOptions {
                 ? CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL
                 : CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL;
     }
-
 }

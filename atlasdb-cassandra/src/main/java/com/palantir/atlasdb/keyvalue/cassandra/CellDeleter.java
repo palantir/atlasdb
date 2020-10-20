@@ -15,20 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.function.LongUnaryOperator;
-
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.Deletion;
-import org.apache.cassandra.thrift.Mutation;
-import org.apache.cassandra.thrift.SlicePredicate;
-
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -37,6 +24,17 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.LongUnaryOperator;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.Deletion;
+import org.apache.cassandra.thrift.Mutation;
+import org.apache.cassandra.thrift.SlicePredicate;
 
 class CellDeleter {
     private final CassandraClientPool clientPool;
@@ -44,7 +42,8 @@ class CellDeleter {
     private final ConsistencyLevel deleteConsistency;
     private final LongUnaryOperator deleteTimestampGetter;
 
-    CellDeleter(CassandraClientPool clientPool,
+    CellDeleter(
+            CassandraClientPool clientPool,
             WrappingQueryRunner wrappingQueryRunner,
             ConsistencyLevel deleteConsistency,
             LongUnaryOperator deleteTimestampGetter) {
@@ -55,16 +54,17 @@ class CellDeleter {
     }
 
     void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = HostPartitioner.partitionMapByHost(clientPool,
-                keys.asMap().entrySet());
+        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost =
+                HostPartitioner.partitionMapByHost(clientPool, keys.asMap().entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
         }
     }
 
-    private void deleteOnSingleHost(final InetSocketAddress host,
-                                    final TableReference tableRef,
-                                    final Map<Cell, Collection<Long>> cellVersionsMap) {
+    private void deleteOnSingleHost(
+            final InetSocketAddress host,
+            final TableReference tableRef,
+            final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                 private int numVersions = 0;
@@ -74,7 +74,7 @@ class CellDeleter {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
                     // atomically so we have to potentially do many deletes if there are many timestamps for the
                     // same key.
-                    Map<Integer, MutationMap> mutationMaps = Maps.newTreeMap();
+                    Map<Integer, MutationMap> mutationMaps = new TreeMap<>();
 
                     for (Map.Entry<Cell, Collection<Long>> cellVersions : cellVersionsMap.entrySet()) {
                         int mapIndex = 0;
@@ -84,8 +84,7 @@ class CellDeleter {
                             }
                             MutationMap mutationMap = mutationMaps.get(mapIndex);
                             ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(
-                                    cellVersions.getKey().getColumnName(),
-                                    ts);
+                                    cellVersions.getKey().getColumnName(), ts);
                             SlicePredicate pred = new SlicePredicate();
                             pred.setColumn_names(Collections.singletonList(colName));
                             Deletion del = new Deletion();
@@ -102,16 +101,16 @@ class CellDeleter {
                     for (MutationMap map : mutationMaps.values()) {
                         // NOTE: we run with ConsistencyLevel.ALL here instead of ConsistencyLevel.QUORUM
                         // because we want to remove all copies of this data
-                        wrappingQueryRunner.batchMutate("delete", client, ImmutableSet.of(tableRef), map,
-                                deleteConsistency);
+                        wrappingQueryRunner.batchMutate(
+                                "delete", client, ImmutableSet.of(tableRef), map, deleteConsistency);
                     }
                     return null;
                 }
 
                 @Override
                 public String toString() {
-                    return "delete_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
-                            + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
+                    return "delete_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + numVersions
+                            + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
         } catch (RetryLimitReachedException e) {

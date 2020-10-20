@@ -59,5 +59,4 @@ public final class AnnotatedCallable<T> implements Callable<T> {
             Thread.currentThread().setName(oldName);
         }
     }
-
 }

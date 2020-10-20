@@ -17,8 +17,6 @@ package com.palantir.atlasdb.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
@@ -36,13 +34,15 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-
 import io.airlift.airline.Command;
+import org.junit.Test;
 
 public class TestFastForwardTimestampCommand {
     private static final String TIMESTAMP_GROUP = "timestamp";
-    private static final String FETCH_COMMAND = FetchTimestamp.class.getAnnotation(Command.class).name();
-    private static final String FAST_FORWARD_COMMAND = FastForwardTimestamp.class.getAnnotation(Command.class).name();
+    private static final String FETCH_COMMAND =
+            FetchTimestamp.class.getAnnotation(Command.class).name();
+    private static final String FAST_FORWARD_COMMAND =
+            FastForwardTimestamp.class.getAnnotation(Command.class).name();
     private static final long POSITIVE_OFFSET = 777L;
     private static final long NEGATIVE_OFFSET = -1 * POSITIVE_OFFSET;
 
@@ -79,7 +79,8 @@ public class TestFastForwardTimestampCommand {
         String response = runner.run();
         // Unintuitive, but is consistent with existing CLI behaviour.
         assertThat(response).contains("Timestamp successfully fast-forwarded to " + target);
-        assertThat(atlasDbServices.getManagedTimestampService().getFreshTimestamp()).isEqualTo(expected + 1);
+        assertThat(atlasDbServices.getManagedTimestampService().getFreshTimestamp())
+                .isEqualTo(expected + 1);
     }
 
     private static InMemoryTestRunner makeRunnerWithTargetTimestamp(long targetTimestamp) {
@@ -102,7 +103,7 @@ public class TestFastForwardTimestampCommand {
         };
     }
 
-    private static class FakeLockAndTimestampModule extends LockAndTimestampModule {
+    private static final class FakeLockAndTimestampModule extends LockAndTimestampModule {
         private static InMemoryTimestampService timestampService = new InMemoryTimestampService();
 
         @Override

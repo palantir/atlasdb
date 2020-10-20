@@ -15,10 +15,9 @@
  */
 package com.palantir.async.initializer;
 
+import com.palantir.common.base.Throwables;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
-import com.palantir.common.base.Throwables;
 
 /**
  * Convenience class for creating callbacks using lambda expressions.
@@ -66,7 +65,7 @@ public final class LambdaCallback<R> extends Callback<R> {
      * @return the desired Callback object.
      */
     public static <R> Callback<R> of(Consumer<R> initialize) {
-        return singleAttempt(initialize, (no, cleanup) -> { });
+        return singleAttempt(initialize, (no, cleanup) -> {});
     }
 
     @Override

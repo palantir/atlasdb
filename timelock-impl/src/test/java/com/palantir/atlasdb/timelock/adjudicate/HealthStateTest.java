@@ -18,24 +18,18 @@ package com.palantir.atlasdb.timelock.adjudicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-
-import org.junit.Test;
-
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Arrays;
+import org.junit.Test;
 
 public class HealthStateTest {
 
     @Test
     public void worstStatusOfAllOptions() {
-        assertThat(getWorst(HealthStatus.HEALTHY, HealthStatus.UNKNOWN))
-                .isEqualTo(HealthStatus.UNKNOWN);
-        assertThat(getWorst(HealthStatus.HEALTHY, HealthStatus.UNHEALTHY))
-                .isEqualTo(HealthStatus.UNHEALTHY);
-        assertThat(getWorst(HealthStatus.HEALTHY, HealthStatus.HEALTHY))
-                .isEqualTo(HealthStatus.HEALTHY);
-        assertThat(getWorst(HealthStatus.UNKNOWN, HealthStatus.UNHEALTHY))
-                .isEqualTo(HealthStatus.UNHEALTHY);
+        assertThat(getWorst(HealthStatus.HEALTHY, HealthStatus.UNKNOWN)).isEqualTo(HealthStatus.UNKNOWN);
+        assertThat(getWorst(HealthStatus.HEALTHY, HealthStatus.UNHEALTHY)).isEqualTo(HealthStatus.UNHEALTHY);
+        assertThat(getWorst(HealthStatus.HEALTHY, HealthStatus.HEALTHY)).isEqualTo(HealthStatus.HEALTHY);
+        assertThat(getWorst(HealthStatus.UNKNOWN, HealthStatus.UNHEALTHY)).isEqualTo(HealthStatus.UNHEALTHY);
         assertThat(getWorst(HealthStatus.UNKNOWN, HealthStatus.UNHEALTHY, HealthStatus.HEALTHY))
                 .isEqualTo(HealthStatus.UNHEALTHY);
     }

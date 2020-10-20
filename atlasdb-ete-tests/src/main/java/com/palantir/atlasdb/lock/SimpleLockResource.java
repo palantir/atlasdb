@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.lock;
 
-import java.security.SecureRandom;
-import java.util.Comparator;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -34,6 +26,13 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import java.security.SecureRandom;
+import java.util.Comparator;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class SimpleLockResource implements LockResource {
     private static final SecureRandom GENERATOR = new SecureRandom();
@@ -45,7 +44,8 @@ public class SimpleLockResource implements LockResource {
 
     @Override
     public boolean lockUsingTimelockApi(int numLocks, int descriptorSize) {
-        Set<LockDescriptor> descriptors = generateDescriptors(numLocks, descriptorSize).collect(Collectors.toSet());
+        Set<LockDescriptor> descriptors =
+                generateDescriptors(numLocks, descriptorSize).collect(Collectors.toSet());
         LockRequest request = LockRequest.of(descriptors, 1_000);
         LockResponse response = transactionManager.getTimelockService().lock(request);
         if (response.wasSuccessful()) {
@@ -57,8 +57,8 @@ public class SimpleLockResource implements LockResource {
 
     @Override
     public boolean lockUsingLegacyLockApi(int numLocks, int descriptorSize) {
-        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest
-                .builder(generateDescriptorMap(numLocks, descriptorSize))
+        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(
+                        generateDescriptorMap(numLocks, descriptorSize))
                 .build();
         try {
             HeldLocksToken response = transactionManager.getLockService().lockAndGetHeldLocks("test", request);
@@ -73,8 +73,9 @@ public class SimpleLockResource implements LockResource {
     }
 
     private SortedMap<LockDescriptor, LockMode> generateDescriptorMap(int numLocks, int descriptorSize) {
-        return generateDescriptors(numLocks, descriptorSize).collect(ImmutableSortedMap
-                .toImmutableSortedMap(Comparator.naturalOrder(), descriptor -> descriptor, no -> LockMode.WRITE));
+        return generateDescriptors(numLocks, descriptorSize)
+                .collect(ImmutableSortedMap.toImmutableSortedMap(
+                        Comparator.naturalOrder(), descriptor -> descriptor, no -> LockMode.WRITE));
     }
 
     private Stream<LockDescriptor> generateDescriptors(int numDescriptors, int descriptorSize) {

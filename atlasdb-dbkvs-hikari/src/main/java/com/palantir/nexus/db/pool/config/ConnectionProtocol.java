@@ -18,7 +18,8 @@ package com.palantir.nexus.db.pool.config;
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 public enum ConnectionProtocol {
-    TCP("tcp"), TCPS("tcps");
+    TCP("tcp"),
+    TCPS("tcps");
 
     private final String urlStr;
 

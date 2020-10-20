@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.google.common.collect.Lists;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
-
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,10 +26,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
-
-import com.google.common.collect.Lists;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 @RunWith(Parameterized.class)
 public class IterablePartitionerTest {
@@ -58,11 +56,12 @@ public class IterablePartitionerTest {
 
         // verify the correct log messages were sent
         Mockito.verify(mockLogger, Mockito.times(3)).isWarnEnabled();
-        Mockito.verify(mockLogger, Mockito.times(3)).warn(
-                Mockito.anyString(),
-                Mockito.eq(SafeArg.of("approximatePutSize", LARGE_PUT_SIZE)),
-                Mockito.eq(SafeArg.of("maximumPutSize", MAXIMUM_PUT_SIZE)),
-                Mockito.eq(UnsafeArg.of("tableName", tableName)));
+        Mockito.verify(mockLogger, Mockito.times(3))
+                .warn(
+                        Mockito.anyString(),
+                        Mockito.eq(SafeArg.of("approximatePutSize", LARGE_PUT_SIZE)),
+                        Mockito.eq(SafeArg.of("maximumPutSize", MAXIMUM_PUT_SIZE)),
+                        Mockito.eq(UnsafeArg.of("tableName", tableName)));
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
@@ -91,13 +90,7 @@ public class IterablePartitionerTest {
 
     private void simplePartition(Logger mockLogger, long approximatePutSize) {
         Iterable<List<Integer>> partitions = IterablePartitioner.partitionByCountAndBytes(
-                Lists.newArrayList(1, 2, 3),
-                2,
-                MAXIMUM_PUT_SIZE,
-                tableName,
-                (foo) -> approximatePutSize,
-                mockLogger
-        );
+                Lists.newArrayList(1, 2, 3), 2, MAXIMUM_PUT_SIZE, tableName, foo -> approximatePutSize, mockLogger);
         int i = 1;
         for (List<Integer> partition : partitions) {
             Assert.assertThat(partition, Matchers.contains(i));

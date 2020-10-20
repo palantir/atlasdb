@@ -18,20 +18,16 @@ package com.palantir.atlasdb.persistentlock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import java.util.UUID;
-
-import javax.ws.rs.core.Response;
-
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
-
 import io.dropwizard.testing.junit.DropwizardClientRule;
+import java.util.UUID;
+import javax.ws.rs.core.Response;
+import org.junit.After;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class KvsBackedPersistentLockServiceClientTest {
     private static final String REASON = "some-reason";
@@ -43,11 +39,10 @@ public class KvsBackedPersistentLockServiceClientTest {
             new CheckAndSetExceptionMapper(),
             ConjureJerseyFeature.INSTANCE);
 
-    private final PersistentLockService lockService =
-            TestJaxRsClientFactory.createJaxRsClientForTest(
-                    PersistentLockService.class,
-                    KvsBackedPersistentLockServiceClientTest.class,
-                    DW.baseUri().toString());
+    private final PersistentLockService lockService = TestJaxRsClientFactory.createJaxRsClientForTest(
+            PersistentLockService.class,
+            KvsBackedPersistentLockServiceClientTest.class,
+            DW.baseUri().toString());
 
     @After
     public void lockCleanup() {
@@ -115,6 +110,5 @@ public class KvsBackedPersistentLockServiceClientTest {
         assertThatExceptionOfType(RemoteException.class)
                 .isThrownBy(() -> lockService.acquireBackupLock(null))
                 .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
-
     }
 }

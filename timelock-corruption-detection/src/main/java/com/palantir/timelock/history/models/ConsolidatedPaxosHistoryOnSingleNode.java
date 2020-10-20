@@ -16,12 +16,10 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.paxos.NamespaceAndUseCase;
+import java.util.Map;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ConsolidatedPaxosHistoryOnSingleNode {

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -45,6 +39,10 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.List;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(ReadOnlyTransactionManager.class);
@@ -94,15 +92,14 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionFailedRetriableException {
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) {
+            Supplier<LockRequest> lockSupplier, LockAwareTransactionTask<T, E> task) {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
@@ -116,8 +113,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
+            Iterable<HeldLocksToken> lockTokens, LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
@@ -203,14 +199,14 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(C condition,
-            ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(C condition,
-            ConditionAwareTransactionTask<T, C, E> task) throws E {
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
                 metricsManager,
@@ -224,7 +220,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 MoreExecutors.newDirectExecutorService(),
                 defaultGetRangesConcurrency,
                 transactionConfig);
-        return runTaskThrowOnConflict((transaction) -> task.execute(transaction, condition),
+        return runTaskThrowOnConflict(
+                transaction -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 }

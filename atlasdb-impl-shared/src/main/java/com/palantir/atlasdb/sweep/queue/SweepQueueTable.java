@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -34,6 +25,13 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 public abstract class SweepQueueTable {
     final KeyValueService kvs;
@@ -41,7 +39,10 @@ public abstract class SweepQueueTable {
     private final WriteInfoPartitioner partitioner;
     final Optional<TargetedSweepMetrics> maybeMetrics;
 
-    public SweepQueueTable(KeyValueService kvs, TableReference tableRef, WriteInfoPartitioner partitioner,
+    public SweepQueueTable(
+            KeyValueService kvs,
+            TableReference tableRef,
+            WriteInfoPartitioner partitioner,
             @Nullable TargetedSweepMetrics metrics) {
         this.kvs = kvs;
         this.tableRef = tableRef;
@@ -70,13 +71,11 @@ public abstract class SweepQueueTable {
                     write(cellsToWrite, timestamp);
                     updateWriteMetrics(partitionedWrites);
                 });
-
     }
 
     private void updateWriteMetrics(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
-        maybeMetrics.ifPresent(metrics ->
-                partitionedWrites.forEach((info, writes) ->
-                        metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
+        maybeMetrics.ifPresent(metrics -> partitionedWrites.forEach(
+                (info, writes) -> metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
     }
 
     /**
@@ -111,10 +110,14 @@ public abstract class SweepQueueTable {
     }
 
     private Stream<RowColumnRangeIterator> getBatchForRow(byte[] row, ColumnRangeSelection columnRange, int batchSize) {
-        return kvs.getRowsColumnRange(
-                tableRef, Collections.singleton(row),
-                BatchColumnRangeSelection.create(columnRange, batchSize),
-                SweepQueueUtils.READ_TS).values().stream();
+        return kvs
+                .getRowsColumnRange(
+                        tableRef,
+                        Collections.singleton(row),
+                        BatchColumnRangeSelection.create(columnRange, batchSize),
+                        SweepQueueUtils.READ_TS)
+                .values()
+                .stream();
     }
 
     void deleteRows(Iterable<byte[]> rows) {

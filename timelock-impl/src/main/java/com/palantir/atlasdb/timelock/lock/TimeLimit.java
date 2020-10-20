@@ -30,5 +30,4 @@ public interface TimeLimit {
     static TimeLimit zero() {
         return of(0L);
     }
-
 }

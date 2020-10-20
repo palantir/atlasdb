@@ -17,19 +17,19 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-
 import org.junit.Test;
 
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-
 public class AtlasDbRuntimeConfigDeserializationTest {
-    private static final File TEST_RUNTIME_CONFIG_FILE = new File(
-            AtlasDbRuntimeConfigDeserializationTest.class.getResource("/runtime-config-block.yml").getPath());
-    private static final File TEST_RUNTIME_CONFIG_NO_SERVERS_FILE = new File(
-            AtlasDbRuntimeConfigDeserializationTest.class.getResource("/runtime-config-block-no-servers.yml")
+    private static final File TEST_RUNTIME_CONFIG_FILE = new File(AtlasDbRuntimeConfigDeserializationTest.class
+            .getResource("/runtime-config-block.yml")
+            .getPath());
+    private static final File TEST_RUNTIME_CONFIG_NO_SERVERS_FILE =
+            new File(AtlasDbRuntimeConfigDeserializationTest.class
+                    .getResource("/runtime-config-block-no-servers.yml")
                     .getPath());
 
     @Test
@@ -40,25 +40,21 @@ public class AtlasDbRuntimeConfigDeserializationTest {
 
         assertThat(runtimeConfig.timelockRuntime()).isPresent();
         assertThat(runtimeConfig.timelockRuntime().get().serversList().servers())
-                .containsExactlyInAnyOrder(
-                        "https://foo1:12345",
-                        "https://foo2:8421",
-                        "https://foo3:9421");
-        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).satisfies(
-                sslConfiguration -> sslConfiguration.ifPresent(this::assertSslConfigDeserializedCorrectly));
-        assertThat(runtimeConfig.streamStorePersistence()).satisfies(
-                persistenceConfig -> {
-                    assertThat(persistenceConfig.numBlocksToWriteBeforePause()).isEqualTo(7);
-                    assertThat(persistenceConfig.writePauseDurationMillis()).isEqualTo(77);
-                });
-        assertThat(runtimeConfig.sweep().sweepPriorityOverrides()).satisfies(
-                overrides -> {
-                    assertThat(overrides.priorityTables()).containsExactlyInAnyOrder("atlas.mission_critical_table");
-                    assertThat(overrides.blacklistTables()).containsExactlyInAnyOrder(
-                            "atlas.bad_table", "atlas2.immutable_log");
-                });
+                .containsExactlyInAnyOrder("https://foo1:12345", "https://foo2:8421", "https://foo3:9421");
+        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration())
+                .satisfies(sslConfiguration -> sslConfiguration.ifPresent(this::assertSslConfigDeserializedCorrectly));
+        assertThat(runtimeConfig.streamStorePersistence()).satisfies(persistenceConfig -> {
+            assertThat(persistenceConfig.numBlocksToWriteBeforePause()).isEqualTo(7);
+            assertThat(persistenceConfig.writePauseDurationMillis()).isEqualTo(77);
+        });
+        assertThat(runtimeConfig.sweep().sweepPriorityOverrides()).satisfies(overrides -> {
+            assertThat(overrides.priorityTables()).containsExactlyInAnyOrder("atlas.mission_critical_table");
+            assertThat(overrides.blacklistTables())
+                    .containsExactlyInAnyOrder("atlas.bad_table", "atlas2.immutable_log");
+        });
 
-        assertThat(runtimeConfig.internalSchema().targetTransactionsSchemaVersion()).contains(1);
+        assertThat(runtimeConfig.internalSchema().targetTransactionsSchemaVersion())
+                .contains(1);
     }
 
     private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {
@@ -74,7 +70,9 @@ public class AtlasDbRuntimeConfigDeserializationTest {
         assertThat(runtimeConfig.timestampClient().enableTimestampBatching()).isTrue();
 
         assertThat(runtimeConfig.timelockRuntime()).isPresent();
-        assertThat(runtimeConfig.timelockRuntime().get().serversList().servers()).isEmpty();
-        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).isEmpty();
+        assertThat(runtimeConfig.timelockRuntime().get().serversList().servers())
+                .isEmpty();
+        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration())
+                .isEmpty();
     }
 }

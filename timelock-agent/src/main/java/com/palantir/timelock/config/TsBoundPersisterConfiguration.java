@@ -18,11 +18,9 @@ package com.palantir.timelock.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = PaxosTsBoundPersisterConfiguration.class, name = "paxos"),
-        @JsonSubTypes.Type(value = DatabaseTsBoundPersisterConfiguration.class, name = "database")})
-public interface TsBoundPersisterConfiguration {
-}
+    @JsonSubTypes.Type(value = PaxosTsBoundPersisterConfiguration.class, name = "paxos"),
+    @JsonSubTypes.Type(value = DatabaseTsBoundPersisterConfiguration.class, name = "database")
+})
+public interface TsBoundPersisterConfiguration {}

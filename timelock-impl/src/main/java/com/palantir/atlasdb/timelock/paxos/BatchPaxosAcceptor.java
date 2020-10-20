@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.Client;
@@ -26,6 +23,8 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Optional;
+import java.util.Set;
 
 public interface BatchPaxosAcceptor {
 
@@ -42,7 +41,6 @@ public interface BatchPaxosAcceptor {
      */
     SetMultimap<Client, WithSeq<PaxosPromise>> prepare(
             SetMultimap<Client, WithSeq<PaxosProposalId>> promiseWithSeqRequestsByClient);
-
 
     /**
      * Batch counterpart to {@link PaxosAcceptor#accept}. For a given {@link Client} on paxos instance {@code seq}, the
@@ -101,5 +99,4 @@ public interface BatchPaxosAcceptor {
      */
     Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(AcceptorCacheKey cacheKey)
             throws InvalidAcceptorCacheKeyException;
-
 }

@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -22,61 +26,63 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 
 public class DbKvsPartitionersTest {
     @Test
     public void testBasic() {
-        Map<Integer, Integer> counts = ImmutableMap.of(0, 5,
-                                                       1, 1,
-                                                       2, 2,
-                                                       3, 2);
+        Map<Integer, Integer> counts = ImmutableMap.of(
+                0, 5,
+                1, 1,
+                2, 2,
+                3, 2);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
 
         Assert.assertEquals(
                 ImmutableList.of(
                         ImmutableMap.of(0, 5),
-                        ImmutableMap.of(1, 1,
-                                        2, 2,
-                                        3, 2)),
+                        ImmutableMap.of(
+                                1, 1,
+                                2, 2,
+                                3, 2)),
                 partitioned);
     }
 
     @Test
     public void testKeySplitAcrossPartitions() {
-        Map<Integer, Integer> counts = ImmutableMap.of(0, 3,
-                                                       3, 3,
-                                                       1, 3,
-                                                       4, 3);
+        Map<Integer, Integer> counts = ImmutableMap.of(
+                0, 3,
+                3, 3,
+                1, 3,
+                4, 3);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
 
         Assert.assertEquals(
                 ImmutableList.of(
-                        ImmutableMap.of(0, 3,
-                                        3, 2),
-                        ImmutableMap.of(3, 1,
-                                        1, 3,
-                                        4, 1),
+                        ImmutableMap.of(
+                                0, 3,
+                                3, 2),
+                        ImmutableMap.of(
+                                3, 1,
+                                1, 3,
+                                4, 1),
                         ImmutableMap.of(4, 2)),
                 partitioned);
     }
 
     @Test
     public void testKeyWithLargeCount() {
-        Map<Integer, Integer> counts = ImmutableMap.of(0, 1,
-                                                       1, 99);
+        Map<Integer, Integer> counts = ImmutableMap.of(
+                0, 1,
+                1, 99);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
         Assert.assertEquals(20, partitioned.size());
-        Assert.assertEquals(ImmutableMap.of(0, 1,
-                                            1, 4),
-                            partitioned.get(0));
+        Assert.assertEquals(
+                ImmutableMap.of(
+                        0, 1,
+                        1, 4),
+                partitioned.get(0));
         for (int i = 1; i < 20; i++) {
             Assert.assertEquals(ImmutableMap.of(1, 5), partitioned.get(i));
         }
@@ -99,7 +105,8 @@ public class DbKvsPartitionersTest {
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, partitionSize);
         // All partitions except the last should be completely filled
         for (Map<Integer, Integer> partition : partitioned.subList(0, partitioned.size() - 1)) {
-            int totalCount = partition.values().stream().mapToInt(count -> count).sum();
+            int totalCount =
+                    partition.values().stream().mapToInt(count -> count).sum();
             Assert.assertEquals(partitionSize, totalCount);
         }
 
@@ -107,8 +114,8 @@ public class DbKvsPartitionersTest {
         assertOrderingInPartitionsMatchesOriginal(counts, partitioned);
     }
 
-    private void assertTotalCountsInPartitionsMatchesOriginal(Map<Integer, Integer> originalCounts,
-                                                              List<Map<Integer, Integer>> partitioned) {
+    private void assertTotalCountsInPartitionsMatchesOriginal(
+            Map<Integer, Integer> originalCounts, List<Map<Integer, Integer>> partitioned) {
         Map<Integer, Integer> totalCountsAfterPartitioning = new HashMap<>();
         for (Map<Integer, Integer> partition : partitioned) {
             for (Map.Entry<Integer, Integer> entry : partition.entrySet()) {
@@ -119,8 +126,8 @@ public class DbKvsPartitionersTest {
         Assert.assertEquals(originalCounts, totalCountsAfterPartitioning);
     }
 
-    private void assertOrderingInPartitionsMatchesOriginal(Map<Integer, Integer> counts,
-                                                           List<Map<Integer, Integer>> partitioned) {
+    private void assertOrderingInPartitionsMatchesOriginal(
+            Map<Integer, Integer> counts, List<Map<Integer, Integer>> partitioned) {
         List<Integer> originalOrder = ImmutableList.copyOf(counts.keySet());
         List<Integer> partitionedOrder = new ArrayList<>();
         for (Map<Integer, Integer> partition : partitioned) {

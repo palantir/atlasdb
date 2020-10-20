@@ -15,9 +15,8 @@
  */
 package com.palantir.paxos;
 
-import java.io.IOException;
-
 import com.palantir.common.persist.Persistable;
+import java.io.IOException;
 
 public interface PaxosStateLog<V extends Persistable & Versionable> {
 
@@ -71,5 +70,4 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
      * @param toDeleteInclusive the upper bound sequence number (inclusive)
      */
     void truncate(long toDeleteInclusive);
-
 }
