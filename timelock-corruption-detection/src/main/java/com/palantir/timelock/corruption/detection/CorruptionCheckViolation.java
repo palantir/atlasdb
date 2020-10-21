@@ -16,24 +16,25 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.container.PreMatching;
-import javax.ws.rs.core.Response;
+public enum CorruptionCheckViolation {
+    NONE(false, false),
+    DIVERGED_LEARNERS(true, false), // this is false for now
+    VALUE_LEARNED_WITHOUT_QUORUM(true, false),
+    ACCEPTED_VALUE_GREATER_THAN_LEARNED(true, false);
 
-@PreMatching
-public class JerseyCorruptionFilter implements ContainerRequestFilter {
-    private CorruptionHealthCheck healthCheck;
+    private final boolean shouldRaiseErrorAlert;
+    private final boolean shouldShootTimeLock;
 
-    public JerseyCorruptionFilter(CorruptionHealthCheck healthCheck) {
-        this.healthCheck = healthCheck;
+    CorruptionCheckViolation(boolean shouldRaiseErrorAlert, boolean shouldShootTimeLock) {
+        this.shouldRaiseErrorAlert = shouldRaiseErrorAlert;
+        this.shouldShootTimeLock = shouldShootTimeLock;
     }
 
-    @Override
-    public void filter(ContainerRequestContext requestContext) {
-        if (!healthCheck.isHealthy()) {
-            requestContext.abortWith(
-                    Response.status(Response.Status.SERVICE_UNAVAILABLE).build());
-        }
+    public boolean shootTimeLock() {
+        return shouldShootTimeLock;
+    }
+
+    public boolean raiseErrorAlert() {
+        return shouldRaiseErrorAlert;
     }
 }
