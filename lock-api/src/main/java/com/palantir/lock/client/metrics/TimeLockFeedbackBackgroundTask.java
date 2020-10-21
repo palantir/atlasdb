@@ -25,6 +25,7 @@ import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
+import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
@@ -95,9 +96,13 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                                 .serviceName(serviceName)
                                 .namespace(namespace)
                                 .build();
-                        timeLockClientFeedbackServices
-                                .current()
-                                .forEach(service -> reportClientFeedbackToService(feedbackReport, service));
+                        Optional<LeaderElectionStatistics> leaderElectionStatistics =
+                                timelock.map(LeaderElectionReportingTimelockService::statistics);
+                        timeLockClientFeedbackServices.current().forEach(service -> {
+                            reportClientFeedbackToService(feedbackReport, service);
+                            leaderElectionStatistics.ifPresent(
+                                    statistics -> reportLeaderElectionStatisticsToService(statistics, service));
+                        });
                     } catch (Exception e) {
                         log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
                     }
@@ -109,6 +114,15 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
 
     public void registerLeaderElectionStatistics(LeaderElectionReportingTimelockService conjureTimelock) {
         this.timelock = Optional.of(conjureTimelock);
+    }
+
+    private void reportLeaderElectionStatisticsToService(
+            LeaderElectionStatistics leaderElectionStatistics, TimeLockClientFeedbackService service) {
+        try {
+            service.reportLeaderMetrics(AUTH_HEADER, leaderElectionStatistics);
+        } catch (Exception e) {
+            log.warn("Failed to report leader election statistics.", e);
+        }
     }
 
     private void reportClientFeedbackToService(
