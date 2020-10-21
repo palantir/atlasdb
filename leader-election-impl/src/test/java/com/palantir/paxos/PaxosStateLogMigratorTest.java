@@ -16,11 +16,6 @@
 
 package com.palantir.paxos;
 
-import static com.palantir.paxos.PaxosStateLogMigrator.BATCH_SIZE;
-import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
-import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
-import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,20 +30,29 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.palantir.common.streams.KeyedStream;
+import static com.palantir.paxos.PaxosStateLogMigrator.BATCH_SIZE;
+import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
+import static com.palantir.paxos.PaxosStateLogTestUtils.getPaxosValue;
+import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+
 import javax.sql.DataSource;
+
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.palantir.common.streams.KeyedStream;
 
 public class PaxosStateLogMigratorTest {
     @Rule
@@ -283,7 +287,7 @@ public class PaxosStateLogMigratorTest {
                 .migrateFrom(lowerBound)
                 .build();
 
-        assertThatCode(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context))
+        assertThatCode(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context, NAMESPACE))
                 .doesNotThrowAnyException();
     }
 
@@ -305,7 +309,7 @@ public class PaxosStateLogMigratorTest {
                 .migrateFrom(lowerBound)
                 .build();
 
-        assertThatThrownBy(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context))
+        assertThatThrownBy(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context, NAMESPACE))
                 .isEqualTo(expectedException);
     }
 
@@ -319,7 +323,7 @@ public class PaxosStateLogMigratorTest {
 
         insertValuesWithinBounds(upperBound + 50, upperBound + 50, source);
         insertValuesWithinBounds(upperBound + 50, upperBound + 50, target);
-        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.empty())).isInstanceOf(IllegalStateException.class);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty())).doesNotThrowAnyException();
     }
 
     @Test
@@ -332,7 +336,7 @@ public class PaxosStateLogMigratorTest {
 
         insertValuesWithinBounds(upperBound + 1, upperBound + 1, source);
         target.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
-        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.empty())).isInstanceOf(IllegalStateException.class);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty())).doesNotThrowAnyException();
     }
 
     @Test
@@ -344,7 +348,7 @@ public class PaxosStateLogMigratorTest {
         migrateFrom(source, OptionalLong.empty());
 
         insertValuesWithinBounds(upperBound + 1, upperBound + 1, source);
-        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.empty())).isInstanceOf(IllegalStateException.class);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty())).doesNotThrowAnyException();
     }
 
     @Test
@@ -357,7 +361,7 @@ public class PaxosStateLogMigratorTest {
 
         source.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
         insertValuesWithinBounds(upperBound + 1, upperBound + 100, target);
-        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.of(150))).isInstanceOf(IllegalStateException.class);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.of(150))).doesNotThrowAnyException();
     }
 
     @Test
@@ -370,7 +374,7 @@ public class PaxosStateLogMigratorTest {
 
         source.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
         insertValuesWithinBounds(upperBound + 2, upperBound + 100, target);
-        assertThatThrownBy(() -> migrateFrom(source, OptionalLong.of(150))).isInstanceOf(IllegalStateException.class);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.of(150))).doesNotThrowAnyException();
     }
 
     @Test
@@ -408,7 +412,7 @@ public class PaxosStateLogMigratorTest {
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
                 .migrationState(migrationState)
                 .migrateFrom(lowerBound)
-                .build());
+                .build(), NAMESPACE);
     }
 
     private List<PaxosValue> insertValuesWithinBounds(long from, long to, PaxosStateLog<PaxosValue> targetLog) {

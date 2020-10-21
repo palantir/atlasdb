@@ -138,8 +138,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                     SafeArg.of("fresh cutoff", migrationCutoff),
                     SafeArg.of("persisted cutoff", persistedCutoff),
                     SafeArg.of("source greatest entry", greatestSourceEntry),
-                    SafeArg.of("namespace", namespaceAndUseCase.namespace().value()),
-                    SafeArg.of("useCase", namespaceAndUseCase.useCase()));
+                    SafeArg.of("namespaceAndUseCase", namespaceAndUseCase));
         }
         if (greatestSourceEntry == PaxosAcceptor.NO_LOG_ENTRY) {
             return;
@@ -156,8 +155,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                                 + "performed which could lead to data corruption if allowed to continue.",
                         SafeArg.of("source entry", source),
                         SafeArg.of("destination entry", dest),
-                        SafeArg.of("namespace", namespaceAndUseCase.namespace().value()),
-                        SafeArg.of("useCase", namespaceAndUseCase.useCase()));
+                        SafeArg.of("namespaceAndUseCase", namespaceAndUseCase));
             }
         } catch (IOException e) {
             throw new SafeIllegalArgumentException("Unable to verify consistency between source and destination paxos "
