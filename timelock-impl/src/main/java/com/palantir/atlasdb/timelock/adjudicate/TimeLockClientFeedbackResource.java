@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import java.util.function.Predicate;
+
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
@@ -26,9 +28,9 @@ import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.function.Predicate;
 
 public final class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
+    private final LeaderElectionAggregator leaderElectionAggregator = null;
     private Predicate<Client> leadershipCheck;
     private FeedbackHandler feedbackHandler;
 
@@ -62,7 +64,8 @@ public final class TimeLockClientFeedbackResource implements UndertowTimeLockCli
 
     @Override
     public ListenableFuture<Void> reportLeaderMetrics(AuthHeader authHeader, LeaderElectionStatistics statistics) {
-        return null; // todo
+        leaderElectionAggregator.report(statistics);
+        return Futures.immediateVoidFuture();
     }
 
     public Client getClient(ConjureTimeLockClientFeedback feedbackReport) {
