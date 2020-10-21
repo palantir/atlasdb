@@ -43,7 +43,7 @@ public final class HistoryAnalyzer {
                         divergedLearners(history),
                         learnedValueWithoutQuorum(history),
                         greatestAcceptedValueNotLearned(history))
-                .filter(status -> status != CorruptionCheckViolation.NONE)
+                .filter(CorruptionCheckViolation::raiseErrorAlert)
                 .collect(Collectors.toList());
     }
 
