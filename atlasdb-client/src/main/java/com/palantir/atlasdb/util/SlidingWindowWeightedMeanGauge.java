@@ -34,7 +34,7 @@ import org.immutables.value.Value;
  */
 public class SlidingWindowWeightedMeanGauge implements Gauge<Double> {
     private final Cache<Long, WeightedEntry> updates;
-    private final AtomicLong counter = new AtomicLong();
+    private final AtomicLong fakeCounter = new AtomicLong();
 
     public SlidingWindowWeightedMeanGauge(Duration expirationDuration) {
         this.updates =
@@ -56,18 +56,16 @@ public class SlidingWindowWeightedMeanGauge implements Gauge<Double> {
         if (weight == 0) {
             return;
         }
-        updates.put(counter.getAndIncrement(), ImmutableWeightedEntry.of(value, weight));
+        updates.put(fakeCounter.getAndIncrement(), ImmutableWeightedEntry.of(value, weight));
     }
 
     private double summarize(List<WeightedEntry> snapshot) {
-        long totalWeight =
-                snapshot.stream().map(WeightedEntry::weight).mapToLong(x -> x).sum();
+        long totalWeight = snapshot.stream().mapToLong(WeightedEntry::weight).sum();
         if (totalWeight == 0) {
             return 0.0;
         }
         double valueSum = snapshot.stream()
-                .map(entry -> entry.value() * entry.weight())
-                .mapToDouble(x -> x)
+                .mapToDouble(entry -> entry.value() * entry.weight())
                 .sum();
         return valueSum / totalWeight;
     }

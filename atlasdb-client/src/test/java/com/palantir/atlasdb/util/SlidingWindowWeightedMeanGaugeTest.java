@@ -28,7 +28,7 @@ public class SlidingWindowWeightedMeanGaugeTest {
 
     @Test
     public void initialValueIsZero() {
-        assertValueWithinOnePercentOf(0.0);
+        assertValueIsCloseTo(0.0);
     }
 
     @Test
@@ -36,7 +36,7 @@ public class SlidingWindowWeightedMeanGaugeTest {
         gauge.update(1.2, 5L);
         gauge.update(1.5, 5L);
         gauge.update(1.8, 5L);
-        assertValueWithinOnePercentOf(1.5);
+        assertValueIsCloseTo(1.5);
     }
 
     @Test
@@ -44,16 +44,16 @@ public class SlidingWindowWeightedMeanGaugeTest {
         gauge.update(101.0, 1);
         gauge.update(1.0, 98);
         gauge.update(301.0, 1);
-        assertValueWithinOnePercentOf(5.0);
+        assertValueIsCloseTo(5.0);
     }
 
     @Test
     public void testMultipleGets() {
         gauge.update(1.0, 1);
-        assertValueWithinOnePercentOf(1.0);
-        assertValueWithinOnePercentOf(1.0);
+        assertValueIsCloseTo(1.0);
+        assertValueIsCloseTo(1.0);
         gauge.update(0.5, 4);
-        assertValueWithinOnePercentOf(0.6);
+        assertValueIsCloseTo(0.6);
     }
 
     @Test
@@ -61,14 +61,14 @@ public class SlidingWindowWeightedMeanGaugeTest {
         gauge.update(999.0, 0);
         gauge.update(1.0, 1);
         gauge.update(123.0, 0);
-        assertValueWithinOnePercentOf(1.0);
+        assertValueIsCloseTo(1.0);
     }
 
     @Test
     public void entriesWithNegativeWeightThrow() {
         gauge.update(5.0, 4);
         assertThatThrownBy(() -> gauge.update(2345.0, -1)).isInstanceOf(IllegalArgumentException.class);
-        assertValueWithinOnePercentOf(5.0);
+        assertValueIsCloseTo(5.0);
     }
 
     @Test
@@ -76,10 +76,10 @@ public class SlidingWindowWeightedMeanGaugeTest {
         SlidingWindowWeightedMeanGauge expiringGauge = new SlidingWindowWeightedMeanGauge(Duration.ZERO);
         expiringGauge.update(100.0, 50);
         expiringGauge.update(50.0, 4);
-        assertThat(expiringGauge.getValue()).isCloseTo(0.0, withinPercentage(1));
+        assertThat(expiringGauge.getValue()).isCloseTo(0.0, withinPercentage(0.1));
     }
 
-    private void assertValueWithinOnePercentOf(double expected) {
-        assertThat(gauge.getValue()).isCloseTo(expected, withinPercentage(1));
+    private void assertValueIsCloseTo(double expected) {
+        assertThat(gauge.getValue()).isCloseTo(expected, withinPercentage(0.1));
     }
 }
