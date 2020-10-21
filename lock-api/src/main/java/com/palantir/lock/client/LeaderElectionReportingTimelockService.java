@@ -107,14 +107,14 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     public LeaderElectionStatistics statistics() {
         Snapshot metricsSnapshot = metrics.observedDuration().getSnapshot();
-        LeaderElectionStatistics meh = LeaderElectionStatistics.builder()
+        LeaderElectionStatistics electionStatistics = LeaderElectionStatistics.builder()
                 .p99(metricsSnapshot.get99thPercentile())
                 .p95(metricsSnapshot.get95thPercentile())
                 .mean(metricsSnapshot.getMean())
                 .count(SafeLong.of(metrics.observedDuration().getCount()))
                 .build();
         resetTimer();
-        return meh;
+        return electionStatistics;
     }
 
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {
