@@ -43,7 +43,7 @@ public final class HistoryAnalyzer {
                         divergedLearners(history),
                         learnedValueWithoutQuorum(history),
                         greatestAcceptedValueNotLearned(history))
-                .filter(status -> status != CorruptionCheckViolation.HEALTHY)
+                .filter(status -> status != CorruptionCheckViolation.NONE)
                 .collect(Collectors.toList());
     }
 
@@ -54,7 +54,7 @@ public final class HistoryAnalyzer {
                     Set<PaxosValue> learnedValuesForRound = getLearnedValuesForRound(records, seq);
                     return learnedValuesForRound.size() <= 1;
                 })
-                ? CorruptionCheckViolation.HEALTHY
+                ? CorruptionCheckViolation.NONE
                 : CorruptionCheckViolation.DIVERGED_LEARNERS;
     }
 
@@ -65,7 +65,7 @@ public final class HistoryAnalyzer {
 
         return history.getAllSequenceNumbers().stream()
                         .allMatch(seq -> isLearnedValueAcceptedByQuorum(records, quorum, seq))
-                ? CorruptionCheckViolation.HEALTHY
+                ? CorruptionCheckViolation.NONE
                 : CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM;
     }
 
@@ -75,7 +75,7 @@ public final class HistoryAnalyzer {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         return history.getAllSequenceNumbers().stream()
                         .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq))
-                ? CorruptionCheckViolation.HEALTHY
+                ? CorruptionCheckViolation.NONE
                 : CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED;
     }
 
