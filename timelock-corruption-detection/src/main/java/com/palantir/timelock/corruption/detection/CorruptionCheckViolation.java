@@ -16,18 +16,25 @@
 
 package com.palantir.timelock.corruption.detection;
 
-public enum CorruptionStatus {
-    HEALTHY(false),
-    DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL(true),
-    DEFINITIVE_CORRUPTION_DETECTED_BY_REMOTE(true);
+public enum CorruptionCheckViolation {
+    HEALTHY(false, false),
+    DIVERGED_LEARNERS(true, false), // this is false for now
+    VALUE_LEARNED_WITHOUT_QUORUM(true, false),
+    ACCEPTED_VALUE_GREATER_THAN_LEARNED(true, false);
 
+    private final boolean shouldRaiseErrorAlert;
     private final boolean shouldShootTimeLock;
 
-    CorruptionStatus(boolean shouldShootTimeLock) {
+    CorruptionCheckViolation(boolean shouldRaiseErrorAlert, boolean shouldShootTimeLock) {
+        this.shouldRaiseErrorAlert = shouldRaiseErrorAlert;
         this.shouldShootTimeLock = shouldShootTimeLock;
     }
 
     public boolean shootTimeLock() {
         return shouldShootTimeLock;
+    }
+
+    public boolean raiseErrorAlert() {
+        return shouldRaiseErrorAlert;
     }
 }

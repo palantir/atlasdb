@@ -81,7 +81,8 @@ public class HistoryAnalyzerTest {
         remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1, 10));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.corruptionStateForNamespaceAndUseCase(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.violatedCorruptionChecksForNamespaceAndUseCase(
+                        Iterables.getOnlyElement(historyForAll)))
                 .hasSize(0);
     }
 
@@ -96,8 +97,8 @@ public class HistoryAnalyzerTest {
                         server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.learnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionStatus.DIVERGED_LEARNERS);
+        assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(CorruptionCheckViolation.DIVERGED_LEARNERS);
     }
 
     @Test
@@ -105,10 +106,10 @@ public class HistoryAnalyzerTest {
         writeLogsOnServer(localStateLogComponents, 1, 10);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.learnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionStatus.HEALTHY);
-        assertThat(HistoryAnalyzer.learnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionStatus.VALUE_LEARNED_WITHOUT_QUORUM);
+        assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(CorruptionCheckViolation.HEALTHY);
+        assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
     }
 
     @Test
@@ -122,12 +123,12 @@ public class HistoryAnalyzerTest {
                 Optional.of(PaxosSerializationTestUtils.createPaxosValueForRoundAndData(5, 105)));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.learnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionStatus.HEALTHY);
-        assertThat(HistoryAnalyzer.learnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionStatus.HEALTHY);
-        assertThat(HistoryAnalyzer.learnedValueIsGreatestAcceptedValue(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionStatus.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
+        assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(CorruptionCheckViolation.HEALTHY);
+        assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(CorruptionCheckViolation.HEALTHY);
+        assertThat(HistoryAnalyzer.greatestAcceptedValueNotLearned(Iterables.getOnlyElement(historyForAll)))
+                .isEqualTo(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
     }
 
     // utils
