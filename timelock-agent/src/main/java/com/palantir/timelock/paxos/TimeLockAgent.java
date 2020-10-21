@@ -36,6 +36,7 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
+import com.palantir.atlasdb.timelock.adjudicate.LeaderElectionAggregator;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
@@ -100,6 +101,7 @@ public class TimeLockAgent {
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
+    private final LeaderElectionAggregator leaderElectionAggregator;
     private final TimeLockCorruptionComponents corruptionComponents;
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
@@ -195,6 +197,7 @@ public class TimeLockAgent {
         this.feedbackHandler = new FeedbackHandler(
                 metricsManager, () -> runtime.get().adjudication().enabled());
         this.corruptionComponents = paxosResources.timeLockCorruptionComponents();
+        this.leaderElectionAggregator = new LeaderElectionAggregator(metricsManager);
     }
 
     private TimestampStorage getTimestampStorage() {
@@ -277,9 +280,11 @@ public class TimeLockAgent {
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
-                    TimeLockClientFeedbackResource.undertow(feedbackHandler, this::isLeaderForClient));
+                    TimeLockClientFeedbackResource.undertow(
+                            feedbackHandler, this::isLeaderForClient, leaderElectionAggregator));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler, this::isLeaderForClient));
+            registrar.accept(TimeLockClientFeedbackResource.jersey(
+                    feedbackHandler, this::isLeaderForClient, leaderElectionAggregator));
         }
     }
 

@@ -16,8 +16,31 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.SlidingWindowWeightedMeanGauge;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 
 public final class LeaderElectionAggregator {
-    public private final void report(LeaderElectionStatistics statistics) {}
+    private final SlidingWindowWeightedMeanGauge weightedGaugeP99;
+    private final SlidingWindowWeightedMeanGauge weightedGaugeP95;
+    private final SlidingWindowWeightedMeanGauge weightedGaugeMean;
+
+    public LeaderElectionAggregator(MetricsManager metricsManager) {
+        weightedGaugeP99 = SlidingWindowWeightedMeanGauge.create();
+        weightedGaugeP95 = SlidingWindowWeightedMeanGauge.create();
+        weightedGaugeMean = SlidingWindowWeightedMeanGauge.create();
+        metricsManager.registerOrGetGauge(
+                LeaderElectionAggregator.class, "leaderElectionImpactMean", () -> weightedGaugeMean);
+        metricsManager.registerOrGetGauge(
+                LeaderElectionAggregator.class, "leaderElectionImpactP95", () -> weightedGaugeP95);
+        metricsManager.registerOrGetGauge(
+                LeaderElectionAggregator.class, "leaderElectionImpactP99", () -> weightedGaugeP99);
+    }
+
+    void report(LeaderElectionStatistics statistics) {
+        long count = statistics.getCount().longValue();
+        weightedGaugeMean.update(statistics.getMean(), count);
+        weightedGaugeP95.update(statistics.getP95(), count);
+        weightedGaugeP99.update(statistics.getP99(), count);
+    }
 }
