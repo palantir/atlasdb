@@ -20,7 +20,7 @@ public class RemoteCorruptionStateHolder implements CorruptionStateHolder {
     private volatile CorruptionStatus remoteCorruptionState = CorruptionStatus.HEALTHY;
 
     public void setRemoteCorruptionState() {
-        remoteCorruptionState = CorruptionStatus.DEFINITIVE_REMOTE_CORRUPTION;
+        remoteCorruptionState = CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_REMOTE;
     }
 
     @Override

@@ -37,7 +37,7 @@ public final class LocalCorruptionDetector implements CorruptionStateHolder {
     private final PaxosLogHistoryProvider historyProvider;
 
     private volatile CorruptionStatus localCorruptionStatus = CorruptionStatus.HEALTHY;
-    private volatile CorruptionHealthReport localCorruptionReport;
+    private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
 
     public static LocalCorruptionDetector create(PaxosLogHistoryProvider historyProvider,
             List<TimeLockCorruptionNotifier> corruptionNotifiers) {
@@ -77,7 +77,6 @@ public final class LocalCorruptionDetector implements CorruptionStateHolder {
     }
 
     CorruptionStatus latestCorruptionStatus(CorruptionHealthReport latestReport) {
-        // todo(snanda) only override if there is definitive local corruption
         return latestReport.shootTimeLock() ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL : localCorruptionStatus;
     }
 

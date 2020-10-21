@@ -41,11 +41,14 @@ public final class HistoryAnalyzer {
             List<CompletePaxosHistoryForNamespaceAndUseCase> history) {
         SetMultimap<CorruptionStatus, NamespaceAndUseCase> statusNamespaceAndUseCase = LinkedHashMultimap.create();
         for (CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase: history) {
+            ImmutableNamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.builder().namespace(
+                    historyForNamespaceAndUseCase.namespace()).useCase(
+                    historyForNamespaceAndUseCase.useCase()).build();
+
             for (CorruptionStatus status: corruptionStateForNamespaceAndUseCase(historyForNamespaceAndUseCase)) {
-                ImmutableNamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.builder().namespace(
-                        historyForNamespaceAndUseCase.namespace()).useCase(
-                        historyForNamespaceAndUseCase.useCase()).build();
-                statusNamespaceAndUseCase.put(status, namespaceAndUseCase);
+                if (status.shootTimeLock() || status.raiseErrorAlert()) {
+                    statusNamespaceAndUseCase.put(status, namespaceAndUseCase);
+                }
             }
         }
         return ImmutableCorruptionHealthReport.builder().statusesToNamespaceAndUseCase(statusNamespaceAndUseCase).build();

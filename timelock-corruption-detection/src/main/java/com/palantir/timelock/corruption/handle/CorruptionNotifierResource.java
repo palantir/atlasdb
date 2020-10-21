@@ -26,10 +26,10 @@ import com.palantir.timelock.corruption.detection.RemoteCorruptionStateHolder;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class CorruptionNotifierResource implements UndertowTimeLockCorruptionNotifier {
-    private RemoteCorruptionStateHolder remoteCorruptionDetector;
+    private RemoteCorruptionStateHolder remoteCorruptionStateHolder;
 
-    private CorruptionNotifierResource(RemoteCorruptionStateHolder remoteCorruptionDetector) {
-        this.remoteCorruptionDetector = remoteCorruptionDetector;
+    private CorruptionNotifierResource(RemoteCorruptionStateHolder remoteCorruptionStateHolder) {
+        this.remoteCorruptionStateHolder = remoteCorruptionStateHolder;
     }
 
     public static UndertowService undertow(RemoteCorruptionStateHolder remoteCorruptionDetector) {
@@ -42,7 +42,7 @@ public final class CorruptionNotifierResource implements UndertowTimeLockCorrupt
 
     @Override
     public ListenableFuture<Void> corruptionDetected(AuthHeader authHeader) {
-        remoteCorruptionDetector.setRemoteCorruptionState();
+        remoteCorruptionStateHolder.setRemoteCorruptionState();
         return Futures.immediateVoidFuture();
     }
 

@@ -18,6 +18,7 @@ package com.palantir.timelock.corruption.detection;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.NamespaceAndUseCase;
 
@@ -30,13 +31,9 @@ public interface CorruptionHealthReport {
         return ImmutableCorruptionHealthReport.builder();
     }
 
-//    static CorruptionHealthReport defaultHealthyReport() {
-//        return CorruptionHealthReport.builder().status(CorruptionStatus.HEALTHY).build();
-//    }
-//
-//    static CorruptionHealthReport defaultRemoteCorruptionReport() {
-//        return CorruptionHealthReport.builder().status(CorruptionStatus.DEFINITIVE_REMOTE_CORRUPTION).build();
-//    }
+    static CorruptionHealthReport defaultHealthyReport() {
+        return CorruptionHealthReport.builder().statusesToNamespaceAndUseCase(ImmutableSetMultimap.of()).build();
+    }
 
     default boolean shootTimeLock() {
         return statusesToNamespaceAndUseCase().keySet().stream().anyMatch(CorruptionStatus::shootTimeLock);
