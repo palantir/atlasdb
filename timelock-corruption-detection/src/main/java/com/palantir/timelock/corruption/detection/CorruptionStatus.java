@@ -18,8 +18,11 @@ package com.palantir.timelock.corruption.detection;
 
 public enum CorruptionStatus {
     HEALTHY(false, false),
-    SIGNS_OF_CORRUPTION(true, false),
-    DEFINITIVE_CORRUPTION(true, true);
+    DIVERGED_LEARNERS(true, false), // this is false for now
+    VALUE_LEARNED_WITHOUT_QUORUM(true, false),
+    ACCEPTED_VALUE_GREATER_THAN_LEARNED(true, false),
+    DEFINITIVE_LOCAL_CORRUPTION(true, true),
+    DEFINITIVE_REMOTE_CORRUPTION(true, true);
 
     private final boolean shouldRaiseErrorAlert;
     private final boolean shouldShootTimeLock;

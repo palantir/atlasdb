@@ -16,37 +16,33 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import java.util.Optional;
-
 import org.immutables.value.Value;
+
+import com.google.common.collect.SetMultimap;
+import com.palantir.paxos.NamespaceAndUseCase;
 
 @Value.Immutable
 public interface CorruptionHealthReport {
-    CorruptionStatus status();
-
-    Optional<String> message();
+    @Value.Parameter
+    SetMultimap<CorruptionStatus, NamespaceAndUseCase> statusesToNamespaceAndUseCase();
 
     static ImmutableCorruptionHealthReport.Builder builder() {
         return ImmutableCorruptionHealthReport.builder();
     }
 
-    static CorruptionHealthReport defaultHealthyReport() {
-        return CorruptionHealthReport.builder().status(CorruptionStatus.HEALTHY).build();
-    }
-
-    static CorruptionHealthReport defaultRemoteCorruptionReport() {
-        return CorruptionHealthReport.builder().status(CorruptionStatus.DEFINITIVE_CORRUPTION).build();
-    }
-
-    default CorruptionHealthReport overrideIfAllowed(CorruptionHealthReport override) {
-        return this;
-    }
+//    static CorruptionHealthReport defaultHealthyReport() {
+//        return CorruptionHealthReport.builder().status(CorruptionStatus.HEALTHY).build();
+//    }
+//
+//    static CorruptionHealthReport defaultRemoteCorruptionReport() {
+//        return CorruptionHealthReport.builder().status(CorruptionStatus.DEFINITIVE_REMOTE_CORRUPTION).build();
+//    }
 
     default boolean shootTimeLock() {
-        return status().shootTimeLock();
+        return statusesToNamespaceAndUseCase().keySet().stream().anyMatch(CorruptionStatus::shootTimeLock);
     }
 
     default boolean raiseErrorAlert() {
-        return status().raiseErrorAlert();
+        return statusesToNamespaceAndUseCase().keySet().stream().anyMatch(CorruptionStatus::raiseErrorAlert);
     }
 }

@@ -17,10 +17,14 @@
 package com.palantir.timelock.corruption.detection;
 
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
@@ -36,7 +40,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     private final LocalCorruptionHandler corruptionHandler;
     private final PaxosLogHistoryProvider historyProvider;
 
-    private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
+    private volatile CorruptionStatus localCorruptionStatus = CorruptionStatus.HEALTHY;
 
     public static LocalCorruptionDetector create(PaxosLogHistoryProvider historyProvider,
             List<TimeLockCorruptionNotifier> corruptionNotifiers) {
@@ -65,19 +69,23 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
-//        return HistoryAnalyzer.runCorruptionCheckOnHistory(historyProvider.getHistory());
-        return CorruptionHealthReport.defaultHealthyReport();
+        return HistoryAnalyzer.corruptionStateForHistory(historyProvider.getHistory());
     }
 
     private void processLocalHealthReport(CorruptionHealthReport latestReport) {
-        localCorruptionReport.overrideIfAllowed(latestReport);
-        if (localCorruptionReport.shootTimeLock()) {
+        localCorruptionStatus = latestCorruptionStatus(latestReport);
+        if (localCorruptionStatus.shootTimeLock()) {
             corruptionHandler.notifyRemoteServersOfCorruption();
         }
     }
 
+    CorruptionStatus latestCorruptionStatus(CorruptionHealthReport latestReport) {
+        // only override if there is definitive local corruption
+        return latestReport.shootTimeLock() ? CorruptionStatus.DEFINITIVE_LOCAL_CORRUPTION : localCorruptionStatus;
+    }
+
     @Override
     public CorruptionHealthReport corruptionHealthReport() {
-        return localCorruptionReport;
+        return localCorruptionStatus;
     }
 }

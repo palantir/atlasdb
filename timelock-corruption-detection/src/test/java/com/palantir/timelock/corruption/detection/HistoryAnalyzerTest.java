@@ -82,7 +82,7 @@ public class HistoryAnalyzerTest {
         remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1 , 10));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.runCorruptionCheckOnHistory(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.corruptionStateForNamespaceAndUseCase(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(true);
     }
 
@@ -95,7 +95,7 @@ public class HistoryAnalyzerTest {
                         PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.verifyLearnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.learnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(false);
     }
 
@@ -104,9 +104,9 @@ public class HistoryAnalyzerTest {
         writeLogsOnServer(localStateLogComponents, 1 , 10);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.verifyLearnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.learnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(true);
-        assertThat(HistoryAnalyzer.verifyLearnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.learnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(false);
     }
 
@@ -119,11 +119,11 @@ public class HistoryAnalyzerTest {
                 Optional.of(PaxosSerializationTestUtils.createPaxosValueForRoundAndData(5, 105)));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.verifyLearnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.learnersHaveLearnedSameValues(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(true);
-        assertThat(HistoryAnalyzer.verifyLearnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.learnedValueWasAcceptedByQuorum(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(true);
-        assertThat(HistoryAnalyzer.verifyLearnedValueIsGreatestAcceptedValue(Iterables.getOnlyElement(historyForAll)))
+        assertThat(HistoryAnalyzer.learnedValueIsGreatestAcceptedValue(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(false);
     }
 

@@ -22,36 +22,57 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
 
 public final class HistoryAnalyzer {
+    public static CorruptionHealthReport corruptionStateForHistory(
+            List<CompletePaxosHistoryForNamespaceAndUseCase> history) {
+        SetMultimap<CorruptionStatus, NamespaceAndUseCase> statusNamespaceAndUseCase = LinkedHashMultimap.create();
+        for (CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase: history) {
+            for (CorruptionStatus status: corruptionStateForNamespaceAndUseCase(historyForNamespaceAndUseCase)) {
+                ImmutableNamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.builder().namespace(
+                        historyForNamespaceAndUseCase.namespace()).useCase(
+                        historyForNamespaceAndUseCase.useCase()).build();
+                statusNamespaceAndUseCase.put(status, namespaceAndUseCase);
+            }
+        }
+        return ImmutableCorruptionHealthReport.builder().statusesToNamespaceAndUseCase(statusNamespaceAndUseCase).build();
+    }
 
-    public static boolean runCorruptionCheckOnHistory(CompletePaxosHistoryForNamespaceAndUseCase history) {
-        return verifyLearnersHaveLearnedSameValues(history)
-        && verifyLearnedValueWasAcceptedByQuorum(history)
-        && verifyLearnedValueIsGreatestAcceptedValue(history);
+    public static List<CorruptionStatus> corruptionStateForNamespaceAndUseCase(
+            CompletePaxosHistoryForNamespaceAndUseCase history) {
+        return Stream.of(learnersHaveLearnedSameValues(history),
+                learnedValueWasAcceptedByQuorum(history),
+                learnedValueIsGreatestAcceptedValue(history))
+                .filter(status -> status != CorruptionStatus.HEALTHY)
+                .collect(Collectors.toList());
     }
 
     @VisibleForTesting
-    static boolean verifyLearnersHaveLearnedSameValues(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    static CorruptionStatus learnersHaveLearnedSameValues(CompletePaxosHistoryForNamespaceAndUseCase history) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         return history.getAllSequenceNumbers()
                 .stream()
                 .allMatch(seq -> {
                     Set<PaxosValue> learnedValuesForRound = getLearnedValuesForRound(records, seq);
                     return learnedValuesForRound.size() <= 1;
-                });
+                }) ? CorruptionStatus.HEALTHY : CorruptionStatus.DIVERGED_LEARNERS;
     }
 
     @VisibleForTesting
-    static boolean verifyLearnedValueWasAcceptedByQuorum(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    static CorruptionStatus learnedValueWasAcceptedByQuorum(CompletePaxosHistoryForNamespaceAndUseCase history) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         int quorum = getQuorumSize(records);
 
@@ -66,15 +87,16 @@ public final class HistoryAnalyzer {
                     PaxosValue learnedValue = optionalLearnedValue.get();
                     List<PaxosValue> acceptedValues = getAcceptedValues(records, seq, learnedValue);
                     return acceptedValues.size() >= quorum;
-                });
+                }) ? CorruptionStatus.HEALTHY : CorruptionStatus.VALUE_LEARNED_WITHOUT_QUORUM;
     }
 
     @VisibleForTesting
-    static boolean verifyLearnedValueIsGreatestAcceptedValue(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    static CorruptionStatus learnedValueIsGreatestAcceptedValue(CompletePaxosHistoryForNamespaceAndUseCase history) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         return history.getAllSequenceNumbers()
                 .stream()
-                .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq));
+                .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq))
+                ? CorruptionStatus.HEALTHY : CorruptionStatus.DIVERGED_LEARNERS;
     }
 
     private static boolean learnedValueIsGreatestAcceptedValue(
@@ -135,7 +157,6 @@ public final class HistoryAnalyzer {
                 .map(Optional::get)
                 .max(Comparator.comparingLong(paxosValue ->  PtBytes.toLong(paxosValue.getData())));
     }
-
 
     private static byte[] getPaxosValueData(Optional<PaxosValue> learnedValue) {
         return learnedValue.map(PaxosValue::getData).orElse(null);
