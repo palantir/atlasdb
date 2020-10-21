@@ -54,6 +54,8 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.health.LeaderElectionHealthReport;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -76,7 +78,6 @@ import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,7 +88,7 @@ import java.util.function.Supplier;
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
     // Schema version from 2 onwards are on SQLite
-    private static final Long SCHEMA_VERSION = 3L;
+    static final Long SCHEMA_VERSION = 3L;
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
@@ -99,6 +100,7 @@ public class TimeLockAgent {
     private final TimestampStorage timestampStorage;
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
+    private final PersistedSchemaVersion persistedSchemaVersion;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
     private final LeaderElectionAggregator leaderElectionAggregator;
@@ -122,6 +124,13 @@ public class TimeLockAgent {
                 ImmutableTimelockPaxosInstallationContext.of(
                         install, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
 
+        // Upgrading the schema version should generally happen BEFORE any migration has started. Keep this in
+        // mind for any potential live migrations
+        PersistedSchemaVersion persistedSchemaVersion =
+                PersistedSchemaVersion.create(installationContext.sqliteDataSource());
+        persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
+        verifySchemaVersion(persistedSchemaVersion);
+
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
                 metricsManager,
@@ -137,6 +146,7 @@ public class TimeLockAgent {
                 registrar,
                 paxosResources,
                 userAgent,
+                persistedSchemaVersion,
                 installationContext.sqliteDataSource());
         agent.createAndRegisterResources();
         return agent;
@@ -174,6 +184,7 @@ public class TimeLockAgent {
             Consumer<Object> registrar,
             PaxosResources paxosResources,
             UserAgent userAgent,
+            PersistedSchemaVersion persistedSchemaVersion,
             HikariDataSource sqliteDataSource) {
         this.metricsManager = metricsManager;
         this.install = install;
@@ -184,6 +195,7 @@ public class TimeLockAgent {
         this.sqliteDataSource = sqliteDataSource;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampStorage = getTimestampStorage();
+        this.persistedSchemaVersion = persistedSchemaVersion;
         LockLog lockLog = new LockLog(
                 metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
@@ -307,7 +319,6 @@ public class TimeLockAgent {
     }
 
     private void registerManagementResource() {
-        Path rootDataDirectory = install.paxos().dataDirectory().toPath();
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
@@ -329,6 +340,14 @@ public class TimeLockAgent {
             Consumer<UndertowService> presentUndertowRegistrar, UndertowService service) {
         presentUndertowRegistrar.accept(
                 UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
+    }
+
+    static void verifySchemaVersion(PersistedSchemaVersion persistedSchemaVersion) {
+        Preconditions.checkState(
+                persistedSchemaVersion.getVersion() == SCHEMA_VERSION,
+                "Persisted schema version does not match timelock's current schema version.",
+                SafeArg.of("current schema version", SCHEMA_VERSION),
+                SafeArg.of("persisted schema version", persistedSchemaVersion.getVersion()));
     }
 
     @SuppressWarnings("unused") // used by external health checks
@@ -355,9 +374,7 @@ public class TimeLockAgent {
 
     @SuppressWarnings("unused")
     public long getSchemaVersion() {
-        // So far there's only been one schema version. For future schema versions, we will have to persist the version
-        // to disk somehow, so that we can check if var/data/paxos will have data in the expected format.
-        return SCHEMA_VERSION;
+        return persistedSchemaVersion.getVersion();
     }
 
     @SuppressWarnings("unused")
