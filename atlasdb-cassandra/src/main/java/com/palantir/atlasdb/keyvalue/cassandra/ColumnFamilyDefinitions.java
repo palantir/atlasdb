@@ -206,7 +206,7 @@ final class ColumnFamilyDefinitions {
     }
 
     private static boolean equalsIgnoringClasspath(String class1, String class2) {
-        if (class1 == class2) {
+        if (Objects.equals(class1, class2)) {
             return true;
         }
         if (class1 == null || class2 == null) {
