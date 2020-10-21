@@ -29,12 +29,10 @@ public final class LeaderElectionAggregator {
         weightedGaugeP99 = SlidingWindowWeightedMeanGauge.create();
         weightedGaugeP95 = SlidingWindowWeightedMeanGauge.create();
         weightedGaugeMean = SlidingWindowWeightedMeanGauge.create();
-        metricsManager.registerOrGetGauge(
-                LeaderElectionAggregator.class, "leaderElectionImpactMean", () -> weightedGaugeMean);
-        metricsManager.registerOrGetGauge(
-                LeaderElectionAggregator.class, "leaderElectionImpactP95", () -> weightedGaugeP95);
-        metricsManager.registerOrGetGauge(
-                LeaderElectionAggregator.class, "leaderElectionImpactP99", () -> weightedGaugeP99);
+
+        metricsManager.registerMetric(LeaderElectionAggregator.class, "leaderElectionImpactMean", weightedGaugeMean);
+        metricsManager.registerMetric(LeaderElectionAggregator.class, "leaderElectionImpactP95", weightedGaugeP95);
+        metricsManager.registerMetric(LeaderElectionAggregator.class, "leaderElectionImpactP99", weightedGaugeP99);
     }
 
     void report(LeaderElectionStatistics statistics) {
