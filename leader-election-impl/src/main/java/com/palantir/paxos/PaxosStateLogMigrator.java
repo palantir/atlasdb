@@ -16,6 +16,14 @@
 
 package com.palantir.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -25,18 +33,9 @@ import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.persist.Persistable;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
@@ -60,8 +59,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
      * value of {@link MigrationContext#migrateFrom()}, and the migration is guaranteed to copy at least one entry if
      * sourceLog is not empty. If sourceLog is empty, cutoff will be {@link PaxosAcceptor#NO_LOG_ENTRY}.
      */
-    public static <V extends Persistable & Versionable> long migrateAndReturnCutoff(
-            MigrationContext<V> context, NamespaceAndUseCase namespaceAndUseCase) {
+    public static <V extends Persistable & Versionable> long migrateAndReturnCutoff(MigrationContext<V> context) {
         PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(context.sourceLog(), context.destinationLog());
         if (!context.migrationState().isInMigratedState()) {
             long cutoff = calculateCutoff(context);
@@ -70,7 +68,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             context.migrationState().migrateToMigratedState();
             return cutoff;
         } else {
-            validateConsistency(context, namespaceAndUseCase);
+            validateConsistency(context);
         }
         return context.migrationState().getCutoff();
     }
@@ -124,23 +122,19 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         target.writeBatchOfRounds(batch);
     }
 
-    private static <V extends Persistable & Versionable> void validateConsistency(
-            MigrationContext<V> context, NamespaceAndUseCase namespaceAndUseCase) {
+    private static <V extends Persistable & Versionable> void validateConsistency(MigrationContext<V> context) {
         long migrationCutoff = calculateCutoff(context);
         long persistedCutoff = context.migrationState().getCutoff();
         long greatestSourceEntry = context.sourceLog().getGreatestLogEntry();
-
-        if (migrationCutoff > persistedCutoff) {
-            log.error(
-                    "The migration to the destination state log was already performed in the past, but the persisted"
-                        + " cutoff value does not match a newly calculated one. This indicates the source log has"
-                        + " advanced since the migration was performed which could lead to data corruption if allowed"
-                        + " to continue.",
-                    SafeArg.of("fresh cutoff", migrationCutoff),
-                    SafeArg.of("persisted cutoff", persistedCutoff),
-                    SafeArg.of("source greatest entry", greatestSourceEntry),
-                    SafeArg.of("namespaceAndUseCase", namespaceAndUseCase));
-        }
+        Preconditions.checkState(
+                migrationCutoff <= persistedCutoff,
+                "The migration to the destination state log was already performed in the past, but the "
+                        + "persisted cutoff value does not match a newly calculated one. This indicates the source "
+                        + "log has advanced since the migration was performed which could lead to data corruption if "
+                        + "allowed to continue.",
+                SafeArg.of("fresh cutoff", migrationCutoff),
+                SafeArg.of("persisted cutoff", persistedCutoff),
+                SafeArg.of("source greatest entry", greatestSourceEntry));
         if (greatestSourceEntry == PaxosAcceptor.NO_LOG_ENTRY) {
             return;
         }
@@ -148,17 +142,14 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             V source = context.hydrator().hydrateFromBytes(context.sourceLog().readRound(greatestSourceEntry));
             byte[] destinationBytes = context.destinationLog().readRound(greatestSourceEntry);
             V dest = destinationBytes != null ? context.hydrator().hydrateFromBytes(destinationBytes) : null;
-
-            if (!source.equalsIgnoringVersion(dest)) {
-                log.error(
-                        "The migration to the destination state log was already performed in the past, but the "
-                                + "entry with the greatest sequence in source log does not match the entry in the "
-                                + "destination log. This indicates the source log has advanced since the migration was "
-                                + "performed which could lead to data corruption if allowed to continue.",
-                        SafeArg.of("source entry", source),
-                        SafeArg.of("destination entry", dest),
-                        SafeArg.of("namespaceAndUseCase", namespaceAndUseCase));
-            }
+            Preconditions.checkState(
+                    source.equalsIgnoringVersion(dest),
+                    "The migration to the destination state log was already performed in the past, but the "
+                            + "entry with the greatest sequence in source log does not match the entry in the "
+                            + "destination log. This indicates the source log has advanced since the migration was "
+                            + "performed which could lead to data corruption if allowed to continue.",
+                    SafeArg.of("source entry", source),
+                    SafeArg.of("destination entry", dest));
         } catch (IOException e) {
             throw new SafeIllegalArgumentException("Unable to verify consistency between source and destination paxos "
                     + "logs because the source log entry could not be read.");
