@@ -16,7 +16,6 @@
 
 package com.palantir.lock.client;
 
-import com.codahale.metrics.Snapshot;
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -32,10 +31,7 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
@@ -43,11 +39,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LeaderElectionReportingTimelockService implements NamespacedConjureTimelockService {
-    private static final Logger log = LoggerFactory.getLogger(LeaderElectionReportingTimelockService.class);
     private final NamespacedConjureTimelockService delegate;
     private final LeaderElectionMetrics metrics;
     private volatile UUID leaderId = null;
@@ -107,18 +100,6 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 .logId());
     }
 
-    public LeaderElectionStatistics statistics() {
-        Snapshot metricsSnapshot = metrics.observedDuration().getSnapshot();
-        LeaderElectionStatistics meh = LeaderElectionStatistics.builder()
-                .p99(metricsSnapshot.get99thPercentile())
-                .p95(metricsSnapshot.get95thPercentile())
-                .mean(metricsSnapshot.getMean())
-                .count(SafeLong.of(metrics.observedDuration().getCount()))
-                .build();
-        resetTimer();
-        return meh;
-    }
-
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {
         UUID currentLeader = leaderId;
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -143,6 +124,5 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     private void logMetrics(Duration timeTaken) {
         metrics.observedDuration().update(timeTaken.toNanos(), TimeUnit.NANOSECONDS);
-        log.info("Leader election duration as observed by call", SafeArg.of("timeTaken", timeTaken));
     }
 }
