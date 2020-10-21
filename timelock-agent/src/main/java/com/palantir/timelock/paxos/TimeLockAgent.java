@@ -419,7 +419,7 @@ public class TimeLockAgent {
     }
 
     public CorruptionHealthReport timeLockCorruptionHealthCheck() {
-        return corruptionComponents.timeLockCorruptionHealthCheck().localCorruptionDetector();
+        return corruptionComponents.timeLockCorruptionHealthCheck().localCorruptionReport();
     }
 
     public void shutdown() {

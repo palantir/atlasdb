@@ -22,21 +22,21 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifierEndpoints;
 import com.palantir.timelock.corruption.UndertowTimeLockCorruptionNotifier;
-import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
+import com.palantir.timelock.corruption.detection.RemoteCorruptionStateHolder;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class CorruptionNotifierResource implements UndertowTimeLockCorruptionNotifier {
-    private RemoteCorruptionDetector remoteCorruptionDetector;
+    private RemoteCorruptionStateHolder remoteCorruptionDetector;
 
-    private CorruptionNotifierResource(RemoteCorruptionDetector remoteCorruptionDetector) {
+    private CorruptionNotifierResource(RemoteCorruptionStateHolder remoteCorruptionDetector) {
         this.remoteCorruptionDetector = remoteCorruptionDetector;
     }
 
-    public static UndertowService undertow(RemoteCorruptionDetector remoteCorruptionDetector) {
+    public static UndertowService undertow(RemoteCorruptionStateHolder remoteCorruptionDetector) {
         return TimeLockCorruptionNotifierEndpoints.of(new CorruptionNotifierResource(remoteCorruptionDetector));
     }
 
-    public static TimeLockCorruptionNotifier jersey(RemoteCorruptionDetector remoteCorruptionDetector) {
+    public static TimeLockCorruptionNotifier jersey(RemoteCorruptionStateHolder remoteCorruptionDetector) {
         return new JerseyAdapter(new CorruptionNotifierResource(remoteCorruptionDetector));
     }
 

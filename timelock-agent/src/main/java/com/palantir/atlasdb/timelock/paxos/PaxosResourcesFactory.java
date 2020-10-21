@@ -47,7 +47,7 @@ import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 import com.palantir.timelock.corruption.detection.LocalCorruptionDetector;
-import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
+import com.palantir.timelock.corruption.detection.RemoteCorruptionStateHolder;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
@@ -249,7 +249,7 @@ public final class PaxosResourcesFactory {
 
     private static TimeLockCorruptionComponents timeLockCorruptionComponents(
             DataSource dataSource, PaxosRemoteClients remoteClients) {
-        RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
+        RemoteCorruptionStateHolder remoteCorruptionDetector = new RemoteCorruptionStateHolder();
 
         PaxosLogHistoryProvider historyProvider =
                 new PaxosLogHistoryProvider(dataSource, remoteClients.getRemoteHistoryProviders());

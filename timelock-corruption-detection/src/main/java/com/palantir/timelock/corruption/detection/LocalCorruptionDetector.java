@@ -17,21 +17,17 @@
 package com.palantir.timelock.corruption.detection;
 
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.handle.LocalCorruptionHandler;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
 
-public final class LocalCorruptionDetector implements CorruptionDetector {
+public final class LocalCorruptionDetector implements CorruptionStateHolder {
     private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
     private static final String CORRUPTION_DETECTOR_THREAD_PREFIX = "timelock-corruption-detector";
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
@@ -41,6 +37,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     private final PaxosLogHistoryProvider historyProvider;
 
     private volatile CorruptionStatus localCorruptionStatus = CorruptionStatus.HEALTHY;
+    private volatile CorruptionHealthReport localCorruptionReport;
 
     public static LocalCorruptionDetector create(PaxosLogHistoryProvider historyProvider,
             List<TimeLockCorruptionNotifier> corruptionNotifiers) {
@@ -69,7 +66,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
-        return HistoryAnalyzer.corruptionStateForHistory(historyProvider.getHistory());
+        return localCorruptionReport = HistoryAnalyzer.corruptionStateForHistory(historyProvider.getHistory());
     }
 
     private void processLocalHealthReport(CorruptionHealthReport latestReport) {
@@ -80,12 +77,16 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     CorruptionStatus latestCorruptionStatus(CorruptionHealthReport latestReport) {
-        // only override if there is definitive local corruption
-        return latestReport.shootTimeLock() ? CorruptionStatus.DEFINITIVE_LOCAL_CORRUPTION : localCorruptionStatus;
+        // todo(snanda) only override if there is definitive local corruption
+        return latestReport.shootTimeLock() ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL : localCorruptionStatus;
+    }
+
+    public CorruptionHealthReport corruptionHealthReport() {
+        return localCorruptionReport;
     }
 
     @Override
-    public CorruptionHealthReport corruptionHealthReport() {
-        return localCorruptionStatus;
+    public boolean shootTimeLock() {
+        return localCorruptionStatus.shootTimeLock();
     }
 }

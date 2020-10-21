@@ -22,21 +22,20 @@ import com.google.common.collect.ImmutableList;
 
 public class CorruptionHealthCheck {
     private final LocalCorruptionDetector localCorruptionDetector;
-    private final List<CorruptionDetector> localAndRemoteCorruptionDetectors;
+    private final List<CorruptionStateHolder> localAndRemoteCorruptionStateHolders;
 
     public CorruptionHealthCheck(LocalCorruptionDetector localCorruptionDetector,
-            RemoteCorruptionDetector remoteCorruptionDetector) {
+            RemoteCorruptionStateHolder remoteCorruptionDetector) {
         this.localCorruptionDetector = localCorruptionDetector;
-        this.localAndRemoteCorruptionDetectors = ImmutableList.of(localCorruptionDetector, remoteCorruptionDetector);
+        this.localAndRemoteCorruptionStateHolders = ImmutableList.of(localCorruptionDetector, remoteCorruptionDetector);
     }
 
     public boolean shootTimeLock() {
-        return localAndRemoteCorruptionDetectors.stream()
-                .anyMatch(detector -> detector.corruptionHealthReport().shootTimeLock());
+        return localAndRemoteCorruptionStateHolders.stream()
+                .anyMatch(stateHolder -> stateHolder.shootTimeLock());
     }
 
-    public CorruptionHealthReport localCorruptionDetector() {
-        //todo(snanda) should merge local and remote reports?
+    public CorruptionHealthReport localCorruptionReport() {
         return localCorruptionDetector.corruptionHealthReport();
     }
 }

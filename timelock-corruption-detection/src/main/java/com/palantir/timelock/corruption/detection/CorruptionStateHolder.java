@@ -16,15 +16,6 @@
 
 package com.palantir.timelock.corruption.detection;
 
-public class RemoteCorruptionDetector implements CorruptionDetector {
-    private volatile CorruptionHealthReport remoteCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
-
-    public void setRemoteCorruptionState() {
-        remoteCorruptionReport = CorruptionHealthReport.defaultRemoteCorruptionReport();
-    }
-
-    @Override
-    public CorruptionHealthReport corruptionHealthReport() {
-        return remoteCorruptionReport;
-    }
+public interface CorruptionStateHolder {
+    boolean shootTimeLock();
 }
