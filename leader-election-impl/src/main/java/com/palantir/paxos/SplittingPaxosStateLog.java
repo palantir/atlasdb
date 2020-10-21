@@ -19,11 +19,9 @@ package com.palantir.paxos;
 import java.io.IOException;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;

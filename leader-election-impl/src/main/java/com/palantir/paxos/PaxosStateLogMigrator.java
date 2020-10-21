@@ -25,11 +25,9 @@ import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -124,17 +122,18 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         target.writeBatchOfRounds(batch);
     }
 
-    private static <V extends Persistable & Versionable> void validateConsistency(MigrationContext<V> context,
-            NamespaceAndUseCase namespaceAndUseCase) {
+    private static <V extends Persistable & Versionable> void validateConsistency(
+            MigrationContext<V> context, NamespaceAndUseCase namespaceAndUseCase) {
         long migrationCutoff = calculateCutoff(context);
         long persistedCutoff = context.migrationState().getCutoff();
         long greatestSourceEntry = context.sourceLog().getGreatestLogEntry();
 
         if (migrationCutoff > persistedCutoff) {
-            log.error("The migration to the destination state log was already performed in the past, but the "
-                            + "persisted cutoff value does not match a newly calculated one. This indicates the source "
-                            + "log has advanced since the migration was performed which could lead to data corruption if "
-                            + "allowed to continue.",
+            log.error(
+                    "The migration to the destination state log was already performed in the past, but the persisted"
+                        + " cutoff value does not match a newly calculated one. This indicates the source log has"
+                        + " advanced since the migration was performed which could lead to data corruption if allowed"
+                        + " to continue.",
                     SafeArg.of("fresh cutoff", migrationCutoff),
                     SafeArg.of("persisted cutoff", persistedCutoff),
                     SafeArg.of("source greatest entry", greatestSourceEntry),
@@ -149,7 +148,8 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             V dest = destinationBytes != null ? context.hydrator().hydrateFromBytes(destinationBytes) : null;
 
             if (!source.equalsIgnoringVersion(dest)) {
-                log.error("The migration to the destination state log was already performed in the past, but the "
+                log.error(
+                        "The migration to the destination state log was already performed in the past, but the "
                                 + "entry with the greatest sequence in source log does not match the entry in the "
                                 + "destination log. This indicates the source log has advanced since the migration was "
                                 + "performed which could lead to data corruption if allowed to continue.",

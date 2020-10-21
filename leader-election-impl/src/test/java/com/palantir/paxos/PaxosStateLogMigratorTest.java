@@ -406,13 +406,15 @@ public class PaxosStateLogMigratorTest {
     }
 
     private long migrateFrom(PaxosStateLog<PaxosValue> sourceLog, OptionalLong lowerBound) {
-        return PaxosStateLogMigrator.migrateAndReturnCutoff(ImmutableMigrationContext.<PaxosValue>builder()
-                .sourceLog(sourceLog)
-                .destinationLog(target)
-                .hydrator(PaxosValue.BYTES_HYDRATOR)
-                .migrationState(migrationState)
-                .migrateFrom(lowerBound)
-                .build(), NAMESPACE);
+        return PaxosStateLogMigrator.migrateAndReturnCutoff(
+                ImmutableMigrationContext.<PaxosValue>builder()
+                        .sourceLog(sourceLog)
+                        .destinationLog(target)
+                        .hydrator(PaxosValue.BYTES_HYDRATOR)
+                        .migrationState(migrationState)
+                        .migrateFrom(lowerBound)
+                        .build(),
+                NAMESPACE);
     }
 
     private List<PaxosValue> insertValuesWithinBounds(long from, long to, PaxosStateLog<PaxosValue> targetLog) {
