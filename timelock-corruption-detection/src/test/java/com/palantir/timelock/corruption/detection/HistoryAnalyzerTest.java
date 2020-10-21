@@ -66,10 +66,10 @@ public class HistoryAnalyzerTest {
 
     @Before
     public void setup() throws IOException {
-        localStateLogComponents = createShitForServer("randomFile1");
+        localStateLogComponents = createLogComponentsForServer("randomFile1");
         remoteStateLogComponents = ImmutableList.of(
-                createShitForServer("randomFile2"),
-                createShitForServer("randomFile3"));
+                createLogComponentsForServer("randomFile2"),
+                createLogComponentsForServer("randomFile3"));
         paxosLogHistoryProvider = new PaxosLogHistoryProvider(localStateLogComponents.dataSource(),
                 remoteStateLogComponents.stream()
                         .map(StateLogComponents::serverHistoryProvider)
@@ -132,7 +132,7 @@ public class HistoryAnalyzerTest {
         return PaxosSerializationTestUtils.writeToLogs(server.acceptorLog(), server.learnerLog(), start, end);
     }
 
-    public StateLogComponents createShitForServer(String fileName) throws IOException {
+    public StateLogComponents createLogComponentsForServer(String fileName) throws IOException {
         DataSource dataSource = SqliteConnections.getPooledDataSource(tempFolder.newFolder(fileName).toPath());
         PaxosStateLog<PaxosValue> learnerLog = SqlitePaxosStateLog.create(
                 ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER), dataSource);
