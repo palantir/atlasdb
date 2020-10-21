@@ -30,7 +30,9 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 /**
- * A gauge that calculates the weighted mean of updates during a sliding window of time.
+ * A gauge that calculates the weighted mean of updates during a sliding window of time. Correctness is only guaranteed
+ * as long as the sum of recorded weights and sum of weighted values do not exceed {@link Long#MAX_VALUE} and
+ * {@link Double#MAX_VALUE}, respectively.
  */
 public class SlidingWindowWeightedMeanGauge implements Gauge<Double> {
     private final Cache<Long, WeightedEntry> updates;
@@ -61,10 +63,10 @@ public class SlidingWindowWeightedMeanGauge implements Gauge<Double> {
     }
 
     private double summarize(List<WeightedEntry> snapshot) {
-        if (snapshot.isEmpty()) {
-            return 0d;
-        }
         long totalWeight = snapshot.stream().map(WeightedEntry::weight).mapToLong(x -> x).sum();
+        if (totalWeight == 0) {
+            return 0.0;
+        }
         double valueSum = snapshot.stream().map(entry -> entry.value() * entry.weight()).mapToDouble(x -> x).sum();
         return valueSum / totalWeight;
     }

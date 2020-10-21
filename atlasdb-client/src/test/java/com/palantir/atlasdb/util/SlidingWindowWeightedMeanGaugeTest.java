@@ -25,7 +25,7 @@ import java.time.Duration;
 import org.junit.Test;
 
 public class SlidingWindowWeightedMeanGaugeTest {
-    private SlidingWindowWeightedMeanGauge gauge = new SlidingWindowWeightedMeanGauge(Duration.ofMinutes(1));
+    private SlidingWindowWeightedMeanGauge gauge = SlidingWindowWeightedMeanGauge.create();
 
     @Test
     public void initialValueIsZero() {
@@ -67,7 +67,9 @@ public class SlidingWindowWeightedMeanGaugeTest {
 
     @Test
     public void entriesWithNegativeWeightThrow() {
+        gauge.update(5.0, 4);
         assertThatThrownBy(() -> gauge.update(2345.0, -1)).isInstanceOf(IllegalArgumentException.class);
+        assertValueWithinOnePercentOf(5.0);
     }
 
     @Test
