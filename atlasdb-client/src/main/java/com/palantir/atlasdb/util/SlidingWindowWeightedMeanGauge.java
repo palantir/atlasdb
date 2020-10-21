@@ -16,18 +16,16 @@
 
 package com.palantir.atlasdb.util;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.Gauge;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import org.immutables.value.Value;
 
 /**
  * A gauge that calculates the weighted mean of updates during a sliding window of time. Correctness is only guaranteed
@@ -39,9 +37,8 @@ public class SlidingWindowWeightedMeanGauge implements Gauge<Double> {
     private final AtomicLong counter = new AtomicLong();
 
     public SlidingWindowWeightedMeanGauge(Duration expirationDuration) {
-        this.updates = Caffeine.newBuilder()
-                .expireAfterWrite(expirationDuration)
-                .build();
+        this.updates =
+                Caffeine.newBuilder().expireAfterWrite(expirationDuration).build();
     }
 
     public static SlidingWindowWeightedMeanGauge create() {
@@ -63,11 +60,15 @@ public class SlidingWindowWeightedMeanGauge implements Gauge<Double> {
     }
 
     private double summarize(List<WeightedEntry> snapshot) {
-        long totalWeight = snapshot.stream().map(WeightedEntry::weight).mapToLong(x -> x).sum();
+        long totalWeight =
+                snapshot.stream().map(WeightedEntry::weight).mapToLong(x -> x).sum();
         if (totalWeight == 0) {
             return 0.0;
         }
-        double valueSum = snapshot.stream().map(entry -> entry.value() * entry.weight()).mapToDouble(x -> x).sum();
+        double valueSum = snapshot.stream()
+                .map(entry -> entry.value() * entry.weight())
+                .mapToDouble(x -> x)
+                .sum();
         return valueSum / totalWeight;
     }
 

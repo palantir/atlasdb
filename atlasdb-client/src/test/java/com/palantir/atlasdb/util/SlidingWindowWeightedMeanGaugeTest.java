@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.withinPercentage;
 
 import java.time.Duration;
-
 import org.junit.Test;
 
 public class SlidingWindowWeightedMeanGaugeTest {
@@ -83,5 +82,4 @@ public class SlidingWindowWeightedMeanGaugeTest {
     private void assertValueWithinOnePercentOf(double expected) {
         assertThat(gauge.getValue()).isCloseTo(expected, withinPercentage(1));
     }
-
 }
