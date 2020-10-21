@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |2
+
+    This is temporary - Suppress invalid log state from throwing, instead log error.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5063
