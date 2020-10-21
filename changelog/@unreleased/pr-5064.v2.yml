@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Implement a new gauge to aggregate metrics from Timelock clients.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5064
