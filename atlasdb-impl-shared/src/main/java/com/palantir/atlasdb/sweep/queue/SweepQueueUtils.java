@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -32,6 +26,11 @@ import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public final class SweepQueueUtils {
     public static final long REFRESH_TIME = TimeUnit.MINUTES.toMillis(5L);
@@ -93,10 +92,11 @@ public final class SweepQueueUtils {
         writes.forEach(writesForShard -> {
             int cellsWritten = writesForShard.size();
             if (cellsWritten > MAX_CELLS_PER_SHARD) {
-                throw new SafeIllegalArgumentException("Attempted to persist targeted sweep information for {} cells "
-                        + "in the same shard. This exceeds the maximum number of cells {} per shard per transaction. "
-                        + "The transaction will be aborted. Consider changing your workflow to break up the operation "
-                        + "into several smaller transactions.",
+                throw new SafeIllegalArgumentException(
+                        "Attempted to persist targeted sweep information for {} cells in the same shard. This exceeds"
+                                + " the maximum number of cells {} per shard per transaction. The transaction will be"
+                                + " aborted. Consider changing your workflow to break up the operation into several"
+                                + " smaller transactions.",
                         SafeArg.of("cellsWritten", cellsWritten),
                         SafeArg.of("maxCells", MAX_CELLS_PER_SHARD));
             }

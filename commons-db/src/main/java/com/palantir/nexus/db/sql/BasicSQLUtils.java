@@ -15,6 +15,12 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.palantir.common.concurrent.ThreadNamingCallable;
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.SQLConstants;
+import com.palantir.nexus.db.ThreadConfinedProxy;
+import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
 import java.io.ByteArrayInputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -25,20 +31,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 import javax.annotation.Nullable;
-
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.format.DateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.common.concurrent.ThreadNamingCallable;
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.SQLConstants;
-import com.palantir.nexus.db.ThreadConfinedProxy;
-import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
 
 public class BasicSQLUtils {
 
@@ -48,18 +45,18 @@ public class BasicSQLUtils {
      *
      * @return count of comma-delimited fields.
      */
-    public static final int countFields(String fieldList) {
-        return fieldList.split("\\s*,\\s*").length; //$NON-NLS-1$
+    public static int countFields(String fieldList) {
+        return fieldList.split("\\s*,\\s*").length; // $NON-NLS-1$
     }
 
     public static String nArguments(int n) {
-        return StringUtils.repeat("?", ",", n); //$NON-NLS-1$ //$NON-NLS-2$
+        return StringUtils.repeat("?", ",", n); // $NON-NLS-1$ //$NON-NLS-2$
     }
 
     // convert ints to longs, to ensure that we do not overflow our bind variables.
     // private, so that clients can only pass in values that we know will not overflow
-    public static String internalLimitQuery(String query, long maxRows, long offset, List<Object> varbinds,
-            DBType dbType) {
+    public static String internalLimitQuery(
+            String query, long maxRows, long offset, List<Object> varbinds, DBType dbType) {
         // our strategy is to create a subselect around the user-provided
         // query that limits on rows returned and offsets.  this isn't the
         // most efficient operation in most dbs, but it works...
@@ -68,7 +65,7 @@ public class BasicSQLUtils {
                 final String limitQuery = String.format(SQLConstants.SQL_ORACLE_LIMIT_QUERY, query);
                 varbinds.add(maxRows + 1);
                 return limitQuery;
-            } else {        // limit & offset (paging)
+            } else { // limit & offset (paging)
                 final String limitOffsetQuery = String.format(SQLConstants.SQL_ORACLE_LIMIT_OFFSET_QUERY, query);
                 varbinds.add(maxRows + offset + 1);
                 varbinds.add(offset + 1);
@@ -81,20 +78,19 @@ public class BasicSQLUtils {
                 varbinds.add(offset);
                 return limitOffsetQuery;
             } else {
-                SqlLoggers.LOGGER.warn("Passed a negative limit to SQL.limitQuery - ignoring limit"); //$NON-NLS-1$
+                SqlLoggers.LOGGER.warn("Passed a negative limit to SQL.limitQuery - ignoring limit"); // $NON-NLS-1$
                 return query;
             }
         }
 
-        assert false : "limitQuery() only supports POSTGRES, H2, HSQL, and ORACLE db type."; //$NON-NLS-1$
+        assert false : "limitQuery() only supports POSTGRES, H2, HSQL, and ORACLE db type."; // $NON-NLS-1$
         return query;
     }
 
     /**
      * POSTGRES limit and offset query syntax.
      */
-    private static final String SQL_POSTGRES_LIMIT_OFFSET_QUERY =
-            " %s  LIMIT ? OFFSET ?"; //$NON-NLS-1$
+    private static final String SQL_POSTGRES_LIMIT_OFFSET_QUERY = " %s  LIMIT ? OFFSET ?"; // $NON-NLS-1$
 
     /**
      * Alters the varbinds to work with limitQuery.  To use this, you must have created your
@@ -104,7 +100,7 @@ public class BasicSQLUtils {
      * @see SQL#formatLimitQuery(String)
      */
     public static void addVarbindsForLimitQuery(int maxRows, long offset, List<Object> varbinds, DBType dbType) {
-        internalLimitQuery("", maxRows, offset, varbinds, dbType); //$NON-NLS-1$
+        internalLimitQuery("", maxRows, offset, varbinds, dbType); // $NON-NLS-1$
     }
 
     /**
@@ -164,7 +160,7 @@ public class BasicSQLUtils {
     public static String formatLimitQuery(String query, BasicSQL.OffsetInclusion offset, DBType dbType) {
         int fakeOffset;
         if (offset.equals(BasicSQL.OffsetInclusion.INCLUDE_OFFSET)) {
-            //TODO (dcohen): comment why this fake offset causes the proper query to be created
+            // TODO (dcohen): comment why this fake offset causes the proper query to be created
             fakeOffset = 1;
         } else {
             fakeOffset = 0;
@@ -188,26 +184,24 @@ public class BasicSQLUtils {
             sql = String.format(ORACLE_SINGLE_ID_COLUMN, new Object[] {sequenceName});
         }
         if (label != null) {
-            sql += " AS " + label; //$NON-NLS-1$
+            sql += " AS " + label; // $NON-NLS-1$
         }
         return sql;
     }
 
-
-    private static final String ORACLE_SINGLE_ID_COLUMN = "%s.nextval"; //$NON-NLS-1$
-    private static final String POSTGRESQL_SINGLE_ID_COLUMN = "nextval('%s')"; //$NON-NLS-1$
+    private static final String ORACLE_SINGLE_ID_COLUMN = "%s.nextval"; // $NON-NLS-1$
+    private static final String POSTGRESQL_SINGLE_ID_COLUMN = "nextval('%s')"; // $NON-NLS-1$
 
     public static String qualifyFields(String fieldList, String tableName) {
-        String fields[] = fieldList.split("\\s*,\\s*"); //$NON-NLS-1$
+        String fields[] = fieldList.split("\\s*,\\s*"); // $NON-NLS-1$
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < fields.length; i++) {
-            out.append(tableName).append(".").append(fields[i]); //$NON-NLS-1$
+            out.append(tableName).append(".").append(fields[i]); // $NON-NLS-1$
             if (i < fields.length - 1) {
-                out.append(","); //$NON-NLS-1$
+                out.append(","); // $NON-NLS-1$
             }
         }
         return out.toString();
-
     }
 
     @Nullable
@@ -230,7 +224,7 @@ public class BasicSQLUtils {
         return true;
     }
 
-    public static final String COMMON_SYSTEM_FIELDS = "deleted, created_by, time_created, last_modified"; //$NON-NLS-1$
+    public static final String COMMON_SYSTEM_FIELDS = "deleted, created_by, time_created, last_modified"; // $NON-NLS-1$
 
     /**
      * Builds update compatible field list from comma delimited field names
@@ -238,18 +232,18 @@ public class BasicSQLUtils {
      * @param fieldList - in form of "field1, field2,..."
      */
     public static String generateUpdateString(String fieldList) {
-        String fields[] = fieldList.split("\\s*,\\s*"); //$NON-NLS-1$
+        String fields[] = fieldList.split("\\s*,\\s*"); // $NON-NLS-1$
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < fields.length; i++) {
-            out.append(fields[i]).append(" = ?"); //$NON-NLS-1$
+            out.append(fields[i]).append(" = ?"); // $NON-NLS-1$
             if (i < fields.length - 1) {
-                out.append(","); //$NON-NLS-1$
+                out.append(","); // $NON-NLS-1$
             }
         }
         return out.toString();
     }
 
-    private static final Logger cancelLogger = LoggerFactory.getLogger("SQLUtils.cancel"); //$NON-NLS-1$
+    private static final Logger cancelLogger = LoggerFactory.getLogger("SQLUtils.cancel"); // $NON-NLS-1$
 
     /** Helper method for wrapping quick calls that don't appreciate being interrupted.
      * Passes all exceptions and errors back to the client.
@@ -264,33 +258,29 @@ public class BasicSQLUtils {
      * this connection.
      */
     public static <T> T runUninterruptably(
-            final Callable<T> callable,
-            String threadString,
-            final @Nullable Connection connection) throws PalantirSqlException {
-        return runUninterruptably(
-                BasicSQL.DEFAULT_EXECUTE_EXECUTOR.get(),
-                callable,
-                threadString,
-                connection);
+            final Callable<T> callable, String threadString, final @Nullable Connection connection)
+            throws PalantirSqlException {
+        return runUninterruptably(BasicSQL.DEFAULT_EXECUTE_EXECUTOR.get(), callable, threadString, connection);
     }
 
     public static <T> T runUninterruptably(
             ExecutorService executorService,
             final Callable<T> callable,
             String threadString,
-            final @Nullable Connection connection) throws PalantirSqlException {
+            final @Nullable Connection connection)
+            throws PalantirSqlException {
         Future<T> future = executorService.submit(ThreadNamingCallable.wrapWithThreadName(
-                ThreadConfinedProxy.threadLendingCallable(connection,
-                        () -> {
-                            if(Thread.currentThread().isInterrupted()) {
-                                cancelLogger.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
-                                //we want to clear the interrupted status here -
-                                //we cancel via the prepared statement, not interrupts
-                                Thread.interrupted();
-                            }
-                            return callable.call();
-                        }),
-                threadString, ThreadNamingCallable.Type.APPEND));
+                ThreadConfinedProxy.threadLendingCallable(connection, () -> {
+                    if (Thread.currentThread().isInterrupted()) {
+                        cancelLogger.error("Threadpool thread has interrupt flag set!"); // $NON-NLS-1$
+                        // we want to clear the interrupted status here -
+                        // we cancel via the prepared statement, not interrupts
+                        Thread.interrupted();
+                    }
+                    return callable.call();
+                }),
+                threadString,
+                ThreadNamingCallable.Type.APPEND));
 
         boolean interrupted = false;
         T result = null;
@@ -302,12 +292,12 @@ public class BasicSQLUtils {
             while (true) {
                 try {
                     result = future.get();
-                    break; //success
+                    break; // success
                 } catch (InterruptedException e) {
-                    //ignore
+                    // ignore
                     interrupted = true;
                 } catch (ExecutionException ee) {
-                   throw BasicSQL.handleInterruptions(startTime, ee);
+                    throw BasicSQL.handleInterruptions(startTime, ee);
                 }
             }
         } finally {
@@ -326,14 +316,14 @@ public class BasicSQLUtils {
                 toStringSqlArgs(sb, rowOfArgs);
             }
         } else {
-            sb.append("("); //$NON-NLS-1$
+            sb.append("("); // $NON-NLS-1$
             for (int i = 0; i < args.length; i++) {
                 Object arg = args[i];
                 if (arg == null) {
-                    sb.append("NULL: 'null'"); //$NON-NLS-1$
+                    sb.append("NULL: 'null'"); // $NON-NLS-1$
                 } else {
                     sb.append(arg.getClass().getName());
-                    sb.append(": '"); //$NON-NLS-1$
+                    sb.append(": '"); // $NON-NLS-1$
                     if (arg instanceof ByteArrayInputStream) {
                         @SuppressWarnings("resource") // Caller is responsible for closing
                         ByteArrayInputStream bais = (ByteArrayInputStream) arg;
@@ -343,13 +333,13 @@ public class BasicSQLUtils {
                     } else {
                         sb.append(arg.toString());
                     }
-                    sb.append("'"); //$NON-NLS-1$
+                    sb.append("'"); // $NON-NLS-1$
                 }
                 if (i != args.length - 1) {
                     sb.append(", ");
                 }
             }
-            sb.append(")\n"); //$NON-NLS-1$
+            sb.append(")\n"); // $NON-NLS-1$
         }
     }
 

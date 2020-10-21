@@ -17,12 +17,11 @@ package com.palantir.atlasdb.sweep.queue.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import org.junit.Test;
 
 public final class IdsToNamesTest {
     private final KeyValueService kvs = new InMemoryKeyValueService(true);

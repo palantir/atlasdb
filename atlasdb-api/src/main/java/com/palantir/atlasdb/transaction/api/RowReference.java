@@ -16,17 +16,20 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 public interface RowReference {
     TableReference tableRef();
+
     byte[] rowName();
 
     static RowReference of(TableReference tableRef, byte[] rowName) {
-        return ImmutableRowReference.builder().tableRef(tableRef).rowName(rowName).build();
+        return ImmutableRowReference.builder()
+                .tableRef(tableRef)
+                .rowName(rowName)
+                .build();
     }
 }

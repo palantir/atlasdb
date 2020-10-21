@@ -20,5 +20,5 @@ package com.palantir.util;
  *
  */
 public interface KeyedReference {
-    public Object getKey();
+    Object getKey();
 }

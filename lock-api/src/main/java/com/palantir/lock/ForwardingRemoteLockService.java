@@ -15,11 +15,10 @@
  */
 package com.palantir.lock;
 
+import com.google.common.collect.ForwardingObject;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Set;
-
-import com.google.common.collect.ForwardingObject;
 
 public abstract class ForwardingRemoteLockService extends ForwardingObject implements CloseableRemoteLockService {
 
@@ -27,14 +26,12 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
     protected abstract RemoteLockService delegate();
 
     @Override
-    public LockRefreshToken lock(String client, LockRequest request)
-            throws InterruptedException {
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         return delegate().lock(client, request);
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
-            throws InterruptedException {
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
         return delegate().lockAndGetHeldLocks(client, request);
     }
 

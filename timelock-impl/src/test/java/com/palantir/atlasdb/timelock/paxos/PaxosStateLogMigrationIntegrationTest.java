@@ -17,17 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.UUID;
-
-import javax.sql.DataSource;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.persist.Persistable;
@@ -44,6 +34,14 @@ import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.paxos.Versionable;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.UUID;
+import javax.sql.DataSource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class PaxosStateLogMigrationIntegrationTest {
     private static final Client CLIENT = Client.of("test");
@@ -62,7 +60,8 @@ public class PaxosStateLogMigrationIntegrationTest {
     @Before
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
-        sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
+        sqlite = SqliteConnections.getPooledDataSource(
+                TEMPORARY_FOLDER.newFolder("sqlite").toPath());
         fileBasedLearnerLog = createFileSystemLearnerLog(CLIENT);
     }
 
@@ -74,8 +73,10 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertThat(learner.getLearnedValue(0L)).isEmpty();
         assertThat(learner.getGreatestLearnedValue()).isEmpty();
 
-        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
-        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
+        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount())
+                .isEqualTo(0L);
+        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount())
+                .isEqualTo(0L);
     }
 
     @Test
@@ -96,8 +97,10 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(CUTOFF, learner);
         assertValueLearned(ROUND_BEFORE_CUTOFF, learner);
 
-        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
-        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount()).isGreaterThanOrEqualTo(1L);
+        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount())
+                .isEqualTo(0L);
+        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount())
+                .isGreaterThanOrEqualTo(1L);
     }
 
     @Test
@@ -116,8 +119,10 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueNotLearned(CUTOFF, learner);
         assertValueLearned(ROUND_BEFORE_CUTOFF, learner);
 
-        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
-        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount()).isGreaterThanOrEqualTo(1L);
+        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount())
+                .isEqualTo(0L);
+        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount())
+                .isGreaterThanOrEqualTo(1L);
     }
 
     @Test
@@ -137,8 +142,10 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(CUTOFF, learner);
         assertValueNotLearned(ROUND_BEFORE_CUTOFF, learner);
 
-        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
-        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount()).isGreaterThanOrEqualTo(1L);
+        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount())
+                .isEqualTo(0L);
+        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount())
+                .isGreaterThanOrEqualTo(1L);
     }
 
     @Test
@@ -155,30 +162,24 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueAbsent(ROUND_BEFORE_CUTOFF, sqliteLog);
         assertValueLearned(ROUND_BEFORE_CUTOFF, learner);
 
-        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount()).isEqualTo(1L);
-        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
+        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount())
+                .isEqualTo(1L);
+        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount())
+                .isEqualTo(0L);
     }
 
     @Test
-    public void migrateOnlyOnce() throws IOException {
+    public void failWhenOldLogWritesAtGreaterSequenceAfterMigrationAlreadyRan() throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        createPaxosComponents();
 
         long newRound = LATEST_ROUND_BEFORE_MIGRATING + 3;
         fileBasedLearnerLog.writeRound(newRound, valueForRound(newRound));
 
-        createPaxosComponents();
-
-        PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(paxosComponents.getLearnerParameters(CLIENT));
-        assertValuePresent(LATEST_ROUND_BEFORE_MIGRATING, sqliteLog);
-        assertValueAbsent(newRound, sqliteLog);
-
-        PaxosLearner learner = paxosComponents.learner(CLIENT);
-        assertValueNotLearned(newRound, learner);
-
-        assertThat(paxosComponents.getWriteCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
-        assertThat(paxosComponents.getReadCounter(PaxosLearner.class).getCount()).isEqualTo(0L);
+        assertThatThrownBy(this::createPaxosComponents)
+                .as("Written to file based log at greater sequence after migration alredy ran")
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -269,7 +270,7 @@ public class PaxosStateLogMigrationIntegrationTest {
     }
 
     private PaxosValue valueForRound(long num) {
-        return new PaxosValue("value", num, new byte[] { 1 });
+        return new PaxosValue("value", num, new byte[] {1});
     }
 
     private PaxosAcceptorState stateForRound(long num) {
@@ -278,17 +279,19 @@ public class PaxosStateLogMigrationIntegrationTest {
 
     private PaxosStateLog<PaxosValue> createFileSystemLearnerLog(Client client) {
         Path dir = useCase.logDirectoryRelativeToDataDirectory(legacyDirectory).resolve(client.value());
-        String learnerLogDir = dir.resolve(PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString();
+        String learnerLogDir =
+                dir.resolve(PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString();
         return new PaxosStateLogImpl<>(learnerLogDir);
     }
 
     private PaxosStateLog<PaxosAcceptorState> createFileSystemAcceptorLog(Client client) {
         Path dir = useCase.logDirectoryRelativeToDataDirectory(legacyDirectory).resolve(client.value());
-        String learnerLogDir = dir.resolve(PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toString();
+        String learnerLogDir =
+                dir.resolve(PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toString();
         return new PaxosStateLogImpl<>(learnerLogDir);
     }
 
-    private <T extends Persistable & Versionable>  PaxosStateLog<T> createSqliteLog(PaxosStorageParameters parameters) {
+    private <T extends Persistable & Versionable> PaxosStateLog<T> createSqliteLog(PaxosStorageParameters parameters) {
         return SqlitePaxosStateLog.create(parameters.namespaceAndUseCase(), parameters.sqliteDataSource());
     }
 }

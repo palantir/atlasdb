@@ -17,12 +17,6 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 
 import static com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert.assertThat;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.IntStream;
-
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -31,6 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.IntStream;
+import org.junit.Test;
 
 public class TransactionOutcomeMetricsTest {
     private static final Namespace NAMESPACE = Namespace.DEFAULT_NAMESPACE;
@@ -45,12 +43,10 @@ public class TransactionOutcomeMetricsTest {
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
 
-    private final MetricsManager metricsManager = new MetricsManager(
-            metricRegistry,
-            taggedMetricRegistry,
-            SAFE_REFERENCES::contains);
-    private final TransactionOutcomeMetrics transactionOutcomeMetrics = new TransactionOutcomeMetrics(metricsManager,
-            SAFE_REFERENCES::contains);
+    private final MetricsManager metricsManager =
+            new MetricsManager(metricRegistry, taggedMetricRegistry, SAFE_REFERENCES::contains);
+    private final TransactionOutcomeMetrics transactionOutcomeMetrics =
+            new TransactionOutcomeMetrics(metricsManager, SAFE_REFERENCES::contains);
 
     @Test
     public void canMarkOneSuccessfulCommit() {
@@ -78,7 +74,8 @@ public class TransactionOutcomeMetricsTest {
                 .put(6, transactionOutcomeMetrics::markPreCommitCheckFailed)
                 .build();
 
-        tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey()).forEach(unused -> entry.getValue().run()));
+        tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey())
+                .forEach(unused -> entry.getValue().run()));
 
         assertThat(transactionOutcomeMetrics)
                 .hasAborts(1)

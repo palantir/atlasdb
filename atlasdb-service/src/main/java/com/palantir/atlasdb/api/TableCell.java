@@ -18,7 +18,6 @@ package com.palantir.atlasdb.api;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.logsafe.Preconditions;
 
-
 /**
  * For tables with named columns,
  * <pre>

@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.function.LongSupplier;
-
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.function.LongSupplier;
 
 public class SpecialTimestampsSupplier {
     private final LongSupplier unreadableTsSupplier;

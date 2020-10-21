@@ -23,15 +23,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.Test;
 
 public class TargetedSweeperLockTest {
     private TimelockService mockLockService = mock(TimelockService.class);
@@ -39,10 +37,9 @@ public class TargetedSweeperLockTest {
     @Test
     public void successfulLockAndUnlock() throws InterruptedException {
         LockToken lockToken = LockToken.of(UUID.randomUUID());
-        when(mockLockService.lock(any()))
-                .thenReturn(() -> Optional.of(lockToken));
-        Optional<TargetedSweeperLock> maybeLock = TargetedSweeperLock
-                .tryAcquire(1, SweeperStrategy.CONSERVATIVE, mockLockService);
+        when(mockLockService.lock(any())).thenReturn(() -> Optional.of(lockToken));
+        Optional<TargetedSweeperLock> maybeLock =
+                TargetedSweeperLock.tryAcquire(1, SweeperStrategy.CONSERVATIVE, mockLockService);
 
         assertThat(maybeLock).isPresent();
         TargetedSweeperLock lock = maybeLock.get();
@@ -56,9 +53,9 @@ public class TargetedSweeperLockTest {
 
     @Test
     public void unsuccessfulLock() throws InterruptedException {
-        when(mockLockService.lock(any())).thenReturn(() -> Optional.empty());
-        Optional<TargetedSweeperLock> maybeLock = TargetedSweeperLock
-                .tryAcquire(2, SweeperStrategy.THOROUGH, mockLockService);
+        when(mockLockService.lock(any())).thenReturn(Optional::empty);
+        Optional<TargetedSweeperLock> maybeLock =
+                TargetedSweeperLock.tryAcquire(2, SweeperStrategy.THOROUGH, mockLockService);
 
         assertThat(maybeLock).isNotPresent();
         verify(mockLockService, times(1)).lock(any());

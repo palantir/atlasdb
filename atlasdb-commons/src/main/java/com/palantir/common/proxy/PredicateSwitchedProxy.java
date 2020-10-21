@@ -15,16 +15,14 @@
  */
 package com.palantir.common.proxy;
 
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.exception.NotInitializedException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.exception.NotInitializedException;
 
 public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
     private final T firstService;
@@ -43,10 +41,7 @@ public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
             T firstService, T secondService, Supplier<Boolean> shouldUseFirstService, Class<T> clazz) {
         PredicateSwitchedProxy<T> service =
                 new PredicateSwitchedProxy<>(firstService, secondService, shouldUseFirstService);
-        return (T) Proxy.newProxyInstance(
-                clazz.getClassLoader(),
-                new Class[] { clazz },
-                service);
+        return (T) Proxy.newProxyInstance(clazz.getClassLoader(), new Class[] {clazz}, service);
     }
 
     @Override
@@ -55,10 +50,10 @@ public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
         try {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
-            if (e.getTargetException() instanceof NotInitializedException) {
+            if (e.getCause() instanceof NotInitializedException) {
                 log.warn("Resource is not initialized yet!");
             }
-            throw e.getTargetException();
+            throw e.getCause();
         }
     }
 }

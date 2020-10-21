@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -24,7 +22,6 @@ import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.EnumValueDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
-import com.google.protobuf.Descriptors.FieldDescriptor.Type;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Format;
@@ -33,6 +30,7 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
 
 public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
     private static final long serialVersionUID = 1L;
@@ -110,8 +108,8 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
                 jgen.writeObjectField("type", value.getValueType());
                 break;
             default:
-                throw new EnumConstantNotPresentException(Format.class, value.getFormat().name());
-
+                throw new EnumConstantNotPresentException(
+                        Format.class, value.getFormat().name());
         }
     }
 
@@ -130,11 +128,11 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
         jgen.writeObjectField("name", field.getName());
         jgen.writeObjectField("label", field.toProto().getLabel());
         jgen.writeObjectField("type_name", field.getType());
-        if (field.getType() == Type.MESSAGE) {
+        if (field.getType() == FieldDescriptor.Type.MESSAGE) {
             jgen.writeObjectFieldStart("type");
             serialize(jgen, field.getMessageType());
             jgen.writeEndObject();
-        } else if (field.getType() == Type.ENUM) {
+        } else if (field.getType() == FieldDescriptor.Type.ENUM) {
             jgen.writeObjectFieldStart("type");
             serialize(jgen, field.getEnumType());
             jgen.writeEndObject();

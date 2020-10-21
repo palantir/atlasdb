@@ -17,16 +17,6 @@ package com.palantir.atlasdb.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.Callable;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ObjectArrays;
@@ -38,6 +28,12 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestKvsMigrationCommand {
     private AtlasDbServices fromServices;
@@ -45,7 +41,7 @@ public class TestKvsMigrationCommand {
 
     @Before
     public void setupServices() throws Exception {
-        KvsMigrationCommand cmd = getCommand(new String[] { });
+        KvsMigrationCommand cmd = getCommand(new String[] {});
         fromServices = cmd.connectFromServices();
         toServices = cmd.connectToServices();
     }
@@ -59,10 +55,12 @@ public class TestKvsMigrationCommand {
     @Test
     public void doesNotSweepDuringMigration() {
         assertThat(fromServices.getAtlasDbRuntimeConfig().sweep().enabled()).contains(false);
-        assertThat(fromServices.getAtlasDbRuntimeConfig().targetedSweep().enabled()).isFalse();
+        assertThat(fromServices.getAtlasDbRuntimeConfig().targetedSweep().enabled())
+                .isFalse();
 
         assertThat(toServices.getAtlasDbRuntimeConfig().sweep().enabled()).contains(false);
-        assertThat(toServices.getAtlasDbRuntimeConfig().targetedSweep().enabled()).isFalse();
+        assertThat(toServices.getAtlasDbRuntimeConfig().targetedSweep().enabled())
+                .isFalse();
     }
 
     @Test
@@ -100,7 +98,7 @@ public class TestKvsMigrationCommand {
 
     private KvsMigrationCommand getCommand(String[] args) throws URISyntaxException {
         String filePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
-        String[] initArgs = new String[] { "migrate", "-fc", filePath, "-mc", filePath };
+        String[] initArgs = new String[] {"migrate", "-fc", filePath, "-mc", filePath};
         String[] fullArgs = ObjectArrays.concat(initArgs, args, String.class);
         return AbstractTestRunner.buildCommand(KvsMigrationCommand.class, fullArgs);
     }
@@ -143,9 +141,9 @@ public class TestKvsMigrationCommand {
                 }
                 Map<Cell, byte[]> expected = expectedBuilder.build();
                 Map<Cell, byte[]> result = t.get(table, expected.keySet());
-                Assert.assertEquals(expected.keySet(), result.keySet());
-                for (Entry<Cell, byte[]> e : result.entrySet()) {
-                    Assert.assertArrayEquals(expected.get(e.getKey()), e.getValue());
+                assertThat(result.keySet()).isEqualTo(expected.keySet());
+                for (Map.Entry<Cell, byte[]> e : result.entrySet()) {
+                    assertThat(e.getValue()).isEqualTo(expected.get(e.getKey()));
                 }
                 return null;
             });

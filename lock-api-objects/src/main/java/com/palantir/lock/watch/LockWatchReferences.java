@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -26,6 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Range;
 import com.palantir.lock.AtlasLockDescriptorRanges;
 import com.palantir.lock.LockDescriptor;
+import org.immutables.value.Value;
 
 public final class LockWatchReferences {
     public static final LockDescriptorRangeVisitor TO_RANGES_VISITOR = new LockDescriptorRangeVisitor();
@@ -56,22 +55,26 @@ public final class LockWatchReferences {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = ImmutableEntireTable.class, name = EntireTable.TYPE),
-            @JsonSubTypes.Type(value = ImmutableRowPrefix.class, name = RowPrefix.TYPE),
-            @JsonSubTypes.Type(value = ImmutableRowRange.class, name = RowRange.TYPE),
-            @JsonSubTypes.Type(value = ImmutableExactRow.class, name = ExactRow.TYPE),
-            @JsonSubTypes.Type(value = ImmutableExactCell.class, name = ExactCell.TYPE)})
+        @JsonSubTypes.Type(value = ImmutableEntireTable.class, name = EntireTable.TYPE),
+        @JsonSubTypes.Type(value = ImmutableRowPrefix.class, name = RowPrefix.TYPE),
+        @JsonSubTypes.Type(value = ImmutableRowRange.class, name = RowRange.TYPE),
+        @JsonSubTypes.Type(value = ImmutableExactRow.class, name = ExactRow.TYPE),
+        @JsonSubTypes.Type(value = ImmutableExactCell.class, name = ExactCell.TYPE)
+    })
     public interface LockWatchReference {
         <T> T accept(Visitor<T> visitor);
     }
 
     public interface Visitor<T> {
         T visit(EntireTable reference);
-        T visit(RowPrefix reference);
-        T visit(RowRange reference);
-        T visit(ExactRow reference);
-        T visit(ExactCell reference);
 
+        T visit(RowPrefix reference);
+
+        T visit(RowRange reference);
+
+        T visit(ExactRow reference);
+
+        T visit(ExactCell reference);
     }
 
     @Value.Immutable
@@ -84,6 +87,7 @@ public final class LockWatchReferences {
 
         @Value.Parameter
         abstract String qualifiedTableRef();
+
         @Override
         public <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
@@ -100,6 +104,7 @@ public final class LockWatchReferences {
 
         @Value.Parameter
         abstract String qualifiedTableRef();
+
         @Value.Parameter
         abstract byte[] row();
 
@@ -119,8 +124,10 @@ public final class LockWatchReferences {
 
         @Value.Parameter
         abstract String qualifiedTableRef();
+
         @Value.Parameter
         abstract byte[] startInclusive();
+
         @Value.Parameter
         abstract byte[] endExclusive();
 
@@ -140,6 +147,7 @@ public final class LockWatchReferences {
 
         @Value.Parameter
         abstract String qualifiedTableRef();
+
         @Value.Parameter
         abstract byte[] row();
 
@@ -159,8 +167,10 @@ public final class LockWatchReferences {
 
         @Value.Parameter
         abstract String qualifiedTableRef();
+
         @Value.Parameter
         abstract byte[] row();
+
         @Value.Parameter
         abstract byte[] col();
 
@@ -170,7 +180,7 @@ public final class LockWatchReferences {
         }
     }
 
-    private static class LockDescriptorRangeVisitor implements Visitor<Range<LockDescriptor>> {
+    private static final class LockDescriptorRangeVisitor implements Visitor<Range<LockDescriptor>> {
         @Override
         public Range<LockDescriptor> visit(EntireTable reference) {
             return AtlasLockDescriptorRanges.fullTable(reference.qualifiedTableRef());
@@ -183,8 +193,8 @@ public final class LockWatchReferences {
 
         @Override
         public Range<LockDescriptor> visit(RowRange reference) {
-            return AtlasLockDescriptorRanges.rowRange(reference.qualifiedTableRef(), reference.startInclusive(),
-                    reference.endExclusive());
+            return AtlasLockDescriptorRanges.rowRange(
+                    reference.qualifiedTableRef(), reference.startInclusive(), reference.endExclusive());
         }
 
         @Override

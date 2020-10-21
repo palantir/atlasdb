@@ -18,7 +18,6 @@ package com.palantir.paxos;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.annotation.Nullable;
 
 /**
@@ -35,16 +34,12 @@ public final class PaxosProposerImpl implements PaxosProposer {
     private final AtomicLong proposalNumber;
 
     public static PaxosProposer newProposer(
-            PaxosAcceptorNetworkClient acceptorClient,
-            PaxosLearnerNetworkClient learnerClient,
-            UUID leaderUuid) {
+            PaxosAcceptorNetworkClient acceptorClient, PaxosLearnerNetworkClient learnerClient, UUID leaderUuid) {
         return new PaxosProposerImpl(acceptorClient, learnerClient, leaderUuid);
     }
 
     private PaxosProposerImpl(
-            PaxosAcceptorNetworkClient acceptorClient,
-            PaxosLearnerNetworkClient learnerClient,
-            UUID leaderUuid) {
+            PaxosAcceptorNetworkClient acceptorClient, PaxosLearnerNetworkClient learnerClient, UUID leaderUuid) {
         this.acceptorClient = acceptorClient;
         this.learnerClient = learnerClient;
         this.uuid = leaderUuid.toString();
@@ -61,10 +56,8 @@ public final class PaxosProposerImpl implements PaxosProposer {
         return proposeWithId(UUID.randomUUID().toString(), seq, proposalValue);
     }
 
-    private byte[] proposeWithId(
-            String uuidToProposeWith,
-            final long seq,
-            @Nullable byte[] bytes) throws PaxosRoundFailureException {
+    private byte[] proposeWithId(String uuidToProposeWith, final long seq, @Nullable byte[] bytes)
+            throws PaxosRoundFailureException {
         final PaxosProposalId proposalId = new PaxosProposalId(proposalNumber.incrementAndGet(), uuidToProposeWith);
         PaxosValue toPropose = new PaxosValue(uuidToProposeWith, seq, bytes);
 
@@ -133,5 +126,4 @@ public final class PaxosProposerImpl implements PaxosProposer {
     public String getUuid() {
         return uuid;
     }
-
 }

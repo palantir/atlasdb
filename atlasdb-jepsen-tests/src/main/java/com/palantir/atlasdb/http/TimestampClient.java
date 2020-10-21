@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.List;
-
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -26,20 +24,19 @@ import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampService;
+import java.util.List;
 
 public final class TimestampClient {
-    private TimestampClient() {
-    }
+    private TimestampClient() {}
 
     public static TimestampService create(MetricsManager metricsManager, List<String> hosts) {
-        return new TimelockTimestampServiceAdapter(
-               RemoteTimelockServiceAdapter.create(
-                       new NamespacedTimelockRpcClient(
-                               TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
-                               TimelockUtils.NAMESPACE),
-                       new NamespacedConjureTimelockService(
-                               TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
-                               TimelockUtils.NAMESPACE),
-                       NoOpLockWatchEventCache.INSTANCE));
+        return new TimelockTimestampServiceAdapter(RemoteTimelockServiceAdapter.create(
+                new NamespacedTimelockRpcClient(
+                        TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
+                        TimelockUtils.NAMESPACE),
+                new NamespacedConjureTimelockService(
+                        TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
+                        TimelockUtils.NAMESPACE),
+                NoOpLockWatchEventCache.INSTANCE));
     }
 }

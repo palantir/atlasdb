@@ -48,14 +48,14 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     }
 
     @Override
-    public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
-            ConjureStartTransactionsRequest request) {
+    public ConjureStartTransactionsResponse startTransactions(
+            AuthHeader authHeader, String namespace, ConjureStartTransactionsRequest request) {
         return shortTimeoutProxy.startTransactions(authHeader, namespace, request);
     }
 
     @Override
-    public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
-            ConjureGetFreshTimestampsRequest request) {
+    public ConjureGetFreshTimestampsResponse getFreshTimestamps(
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
         return shortTimeoutProxy.getFreshTimestamps(authHeader, namespace, request);
     }
 
@@ -70,14 +70,14 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     }
 
     @Override
-    public ConjureWaitForLocksResponse waitForLocks(AuthHeader authHeader, String namespace,
-            ConjureLockRequest request) {
+    public ConjureWaitForLocksResponse waitForLocks(
+            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
         return longTimeoutProxy.waitForLocks(authHeader, namespace, request);
     }
 
     @Override
-    public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
-            ConjureRefreshLocksRequest request) {
+    public ConjureRefreshLocksResponse refreshLocks(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequest request) {
         return shortTimeoutProxy.refreshLocks(authHeader, namespace, request);
     }
 
@@ -87,8 +87,8 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     }
 
     @Override
-    public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
-            GetCommitTimestampsRequest request) {
+    public GetCommitTimestampsResponse getCommitTimestamps(
+            AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return shortTimeoutProxy.getCommitTimestamps(authHeader, namespace, request);
     }
 }

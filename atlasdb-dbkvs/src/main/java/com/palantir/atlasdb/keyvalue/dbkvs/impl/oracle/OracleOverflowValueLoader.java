@@ -15,14 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -37,22 +31,25 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class OracleOverflowValueLoader implements OverflowValueLoader {
 
     private final OracleDdlConfig config;
     private final OracleTableNameGetter tableNameGetter;
 
-    public OracleOverflowValueLoader(OracleDdlConfig config,
-                                     OracleTableNameGetter tableNameGetter) {
+    public OracleOverflowValueLoader(OracleDdlConfig config, OracleTableNameGetter tableNameGetter) {
         this.config = config;
         this.tableNameGetter = tableNameGetter;
     }
 
     @Override
-    public Map<Long, byte[]> loadOverflowValues(ConnectionSupplier conns,
-                                                TableReference tableRef,
-                                                Collection<Long> overflowIds) {
+    public Map<Long, byte[]> loadOverflowValues(
+            ConnectionSupplier conns, TableReference tableRef, Collection<Long> overflowIds) {
         if (overflowIds.isEmpty()) {
             return Collections.emptyMap();
         } else {
@@ -74,21 +71,19 @@ public class OracleOverflowValueLoader implements OverflowValueLoader {
     }
 
     private ClosableIterator<AgnosticLightResultRow> select(ConnectionSupplier conns, FullQuery query) {
-        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
-                query.getQuery(), query.getArgs());
+        AgnosticLightResultSet results =
+                conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
         return ClosableIterators.wrap(results.iterator(), results);
     }
 
-    private List<FullQuery> getOverflowQueries(ConnectionSupplier conns,
-                                               TableReference tableRef,
-                                               Collection<Long> overflowIds) {
-        List<Object[]> oraRows = Lists.newArrayListWithCapacity(overflowIds.size());
+    private List<FullQuery> getOverflowQueries(
+            ConnectionSupplier conns, TableReference tableRef, Collection<Long> overflowIds) {
+        List<Object[]> oraRows = new ArrayList<>(overflowIds.size());
         for (Long overflowId : overflowIds) {
-            oraRows.add(new Object[] { null, null, overflowId });
+            oraRows.add(new Object[] {null, null, overflowId});
         }
-        ArrayHandler arg = config.jdbcHandler().createStructArray(
-                structArrayPrefix() + "CELL_TS",
-                structArrayPrefix() + "CELL_TS_TABLE", oraRows);
+        ArrayHandler arg = config.jdbcHandler()
+                .createStructArray(structArrayPrefix() + "CELL_TS", structArrayPrefix() + "CELL_TS_TABLE", oraRows);
         switch (config.overflowMigrationState()) {
             case UNSTARTED:
                 return ImmutableList.of(getOldOverflowQuery(arg));
@@ -99,7 +94,8 @@ public class OracleOverflowValueLoader implements OverflowValueLoader {
                 return ImmutableList.of(getNewOverflowQuery(conns, tableRef, arg));
             default:
                 throw new EnumConstantNotPresentException(
-                        OverflowMigrationState.class, config.overflowMigrationState().name());
+                        OverflowMigrationState.class,
+                        config.overflowMigrationState().name());
         }
     }
 
@@ -115,9 +111,7 @@ public class OracleOverflowValueLoader implements OverflowValueLoader {
         return new FullQuery(query).withArg(arg);
     }
 
-    private FullQuery getNewOverflowQuery(ConnectionSupplier conns,
-                                          TableReference tableRef,
-                                          ArrayHandler arg) {
+    private FullQuery getNewOverflowQuery(ConnectionSupplier conns, TableReference tableRef, ArrayHandler arg) {
         String overflowTableName = getOverflowTableName(conns, tableRef);
         String query = " /* SELECT_OVERFLOW (" + overflowTableName + ") */ "
                 + " SELECT"

@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.SocketTimeoutException;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -32,6 +27,10 @@ import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.dialogue.Channel;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class AtlasDbHttpClients {
 
@@ -40,13 +39,10 @@ public final class AtlasDbHttpClients {
     }
 
     public static <T> T createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
-        return wrapWithOkHttpBugHandling(type,
-                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(
-                        trustContext, uri, type, parameters).instance());
+            Optional<TrustContext> trustContext, String uri, Class<T> type, AuxiliaryRemotingParameters parameters) {
+        return wrapWithOkHttpBugHandling(type, () -> ConjureJavaRuntimeTargetFactory.DEFAULT
+                .createProxy(trustContext, uri, type, parameters)
+                .instance());
     }
 
     /**
@@ -76,18 +72,14 @@ public final class AtlasDbHttpClients {
         Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier,
-                        type,
-                        clientParameters),
+                        serverListConfigSupplier, type, clientParameters),
                 type);
         return wrapWithOkHttpBugHandling(type, clientFactory);
     }
 
     public static <T> T createDialogueProxy(TaggedMetricRegistry registry, Class<T> type, Channel channel) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                registry,
-                type,
-                createUninstrumentedDialogueProxy(type, channel));
+                registry, type, createUninstrumentedDialogueProxy(type, channel));
     }
 
     public static <T> T createUninstrumentedDialogueProxy(Class<T> type, Channel channel) {
@@ -110,9 +102,7 @@ public final class AtlasDbHttpClients {
     }
 
     private static <T> T instrument(
-            TaggedMetricRegistry taggedMetricRegistry,
-            TargetFactory.InstanceAndVersion<T> client,
-            Class<T> clazz) {
+            TaggedMetricRegistry taggedMetricRegistry, TargetFactory.InstanceAndVersion<T> client, Class<T> clazz) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetricRegistry, clazz, client.instance());
     }
 
@@ -123,10 +113,7 @@ public final class AtlasDbHttpClients {
      */
     private static <T> T wrapWithOkHttpBugHandling(Class<T> type, Supplier<T> supplier) {
         return ReplaceIfExceptionMatchingProxy.create(
-                type,
-                supplier,
-                Duration.ofMinutes(20),
-                AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
+                type, supplier, Duration.ofMinutes(20), AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
     }
 
     @VisibleForTesting

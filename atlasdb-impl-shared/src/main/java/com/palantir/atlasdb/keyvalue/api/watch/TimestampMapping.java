@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.LongSummaryStatistics;
-import java.util.Map;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import java.util.LongSummaryStatistics;
+import java.util.Map;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
 interface TimestampMapping {
@@ -33,8 +31,9 @@ interface TimestampMapping {
 
     @Value.Derived
     default Range<Long> versionRange() {
-        LongSummaryStatistics summary = timestampMapping().values().stream().mapToLong(
-                LockWatchVersion::version).summaryStatistics();
+        LongSummaryStatistics summary = timestampMapping().values().stream()
+                .mapToLong(LockWatchVersion::version)
+                .summaryStatistics();
         return Range.closed(summary.getMin(), summary.getMax());
     }
 
@@ -45,9 +44,7 @@ interface TimestampMapping {
 
     @Value.Derived
     default UUID leader() {
-        return timestampMapping()
-                .values()
-                .stream()
+        return timestampMapping().values().stream()
                 .map(LockWatchVersion::id)
                 .distinct()
                 .collect(MoreCollectors.onlyElement());

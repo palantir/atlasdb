@@ -28,15 +28,15 @@ public class OracleTableNameMapper {
     public static final int SUFFIX_NUMBER_LENGTH = 4;
     public static final int MAX_NAMESPACE_LENGTH = 2;
     private static final int ONE_UNDERSCORE = 1;
-    private static final int NAMESPACED_TABLE_NAME_LENGTH = AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT
-            - (ONE_UNDERSCORE + SUFFIX_NUMBER_LENGTH);
+    private static final int NAMESPACED_TABLE_NAME_LENGTH =
+            AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT - (ONE_UNDERSCORE + SUFFIX_NUMBER_LENGTH);
 
     public String getShortPrefixedTableName(
-            ConnectionSupplier connectionSupplier,
-            String tablePrefix,
-            TableReference tableRef) {
-        Preconditions.checkState(tablePrefix.length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
-                "The tablePrefix can be at most %s characters long", AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
+            ConnectionSupplier connectionSupplier, String tablePrefix, TableReference tableRef) {
+        Preconditions.checkState(
+                tablePrefix.length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
+                "The tablePrefix can be at most %s characters long",
+                AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
 
         TableReference shortenedNamespaceTableRef = truncateNamespace(tableRef);
 
@@ -61,29 +61,28 @@ public class OracleTableNameMapper {
     }
 
     private String getTableNumber(
-            ConnectionSupplier connectionSupplier,
-            String fullTableName,
-            String truncatedTableName) {
+            ConnectionSupplier connectionSupplier, String fullTableName, String truncatedTableName) {
         int tableSuffixNumber = getNextTableNumber(connectionSupplier, truncatedTableName);
         long maxTablesWithSamePrefix = IntMath.checkedPow(10, SUFFIX_NUMBER_LENGTH);
         if (tableSuffixNumber >= maxTablesWithSamePrefix) {
-            throw new IllegalArgumentException(
-                    String.format("Cannot create any more tables with name starting with %s. "
+            throw new IllegalArgumentException(String.format(
+                    "Cannot create any more tables with name starting with %s. "
                             + "%d tables might have already been created. "
                             + "Please rename the table %s.",
-                            truncatedTableName,
-                            maxTablesWithSamePrefix,
-                            fullTableName));
+                    truncatedTableName, maxTablesWithSamePrefix, fullTableName));
         }
         return String.format("%0" + SUFFIX_NUMBER_LENGTH + "d", tableSuffixNumber);
     }
 
     private int getNextTableNumber(ConnectionSupplier connectionSupplier, String truncatedTableName) {
-        AgnosticResultSet results = connectionSupplier.get().selectResultSetUnregisteredQuery(
-                "SELECT short_table_name "
-                + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                + " WHERE LOWER(short_table_name) LIKE LOWER(?||'\\_____%') ESCAPE '\\'"
-                + " ORDER BY short_table_name DESC", truncatedTableName);
+        AgnosticResultSet results = connectionSupplier
+                .get()
+                .selectResultSetUnregisteredQuery(
+                        "SELECT short_table_name "
+                                + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                                + " WHERE LOWER(short_table_name) LIKE LOWER(?||'\\_____%') ESCAPE '\\'"
+                                + " ORDER BY short_table_name DESC",
+                        truncatedTableName);
         return getTableNumberFromTableNames(truncatedTableName, results);
     }
 
@@ -93,7 +92,7 @@ public class OracleTableNameMapper {
             try {
                 return Integer.parseInt(shortName.substring(truncatedTableName.length() + 1)) + 1;
             } catch (NumberFormatException e) {
-                //Table in different format - Do nothing;
+                // Table in different format - Do nothing;
             }
         }
         return 0;

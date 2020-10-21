@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -25,6 +23,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
+import java.util.function.Supplier;
 
 public abstract class AbstractLockAwareTransactionManager extends AbstractConditionAwareTransactionManager {
 
@@ -39,32 +38,30 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractCondit
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
+            LockAwareTransactionTask<T, E> task)
+            throws E, InterruptedException {
         checkOpen();
         Supplier<AdvisoryLocksCondition> conditionSupplier =
                 AdvisoryLockConditionSuppliers.get(getLockService(), lockTokens, lockSupplier);
-        return runTaskWithConditionWithRetry(conditionSupplier, (transaction, condition) ->
-                task.execute(transaction, condition.getLocks()));
+        return runTaskWithConditionWithRetry(
+                conditionSupplier, (transaction, condition) -> task.execute(transaction, condition.getLocks()));
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
+            Supplier<LockRequest> lockSupplier, LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
         checkOpen();
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
+            Iterable<HeldLocksToken> lockTokens, LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         checkOpen();
         AdvisoryLocksCondition lockCondition =
                 new ExternalLocksCondition(getLockService(), ImmutableSet.copyOf(lockTokens));
-        return runTaskWithConditionThrowOnConflict(lockCondition,
-                (transaction, condition) -> task.execute(transaction, condition.getLocks()));
+        return runTaskWithConditionThrowOnConflict(
+                lockCondition, (transaction, condition) -> task.execute(transaction, condition.getLocks()));
     }
 }

@@ -16,21 +16,20 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ServiceFeedback {
 
-    private Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseFeedback = Maps.newConcurrentMap();
+    private Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseFeedback = new ConcurrentHashMap<>();
 
     public void addFeedbackForNode(UUID nodeId, ConjureTimeLockClientFeedback feedback) {
-        nodeWiseFeedback.computeIfAbsent(nodeId, node -> Lists.newArrayList()).add(feedback);
+        nodeWiseFeedback.computeIfAbsent(nodeId, node -> new ArrayList<>()).add(feedback);
     }
 
     public Collection<List<ConjureTimeLockClientFeedback>> values() {

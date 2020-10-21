@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import org.junit.ClassRule;
 
 public class JdbcTransactionTest extends AbstractTransactionTest {
     @ClassRule

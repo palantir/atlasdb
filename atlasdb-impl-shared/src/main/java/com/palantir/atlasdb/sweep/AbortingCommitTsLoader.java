@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -32,6 +24,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.logsafe.SafeArg;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
     private static final Logger log = LoggerFactory.getLogger(AbortingCommitTsLoader.class);
@@ -81,9 +79,11 @@ public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
             return Optional.of(TransactionConstants.FAILED_COMMIT_TS);
         } catch (KeyAlreadyExistsException e) {
-            log.info("Could not roll back transaction with start timestamp {}. Either it was already rolled back, or "
-                    + "it committed successfully before we could roll it back. This isn't a bug but it should be "
-                    + "very infrequent.", SafeArg.of("startTs", startTs));
+            log.info(
+                    "Could not roll back transaction with start timestamp {}. Either it was already rolled back, or it"
+                            + " committed successfully before we could roll it back. This isn't a bug but it should be"
+                            + " very infrequent.",
+                    SafeArg.of("startTs", startTs));
             return Optional.empty();
         }
     }

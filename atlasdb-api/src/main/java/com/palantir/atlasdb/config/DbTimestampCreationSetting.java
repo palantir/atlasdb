@@ -16,26 +16,27 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-
-import org.derive4j.Data;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
+import java.util.Optional;
+import org.derive4j.Data;
 
 @Data
 public abstract class DbTimestampCreationSetting {
     public interface Cases<R> {
-        R multipleSeries(Optional<TableReference> tableReference, TimestampSeries series);
-        R singleSeries(Optional<TableReference> tableReference);
+        R multipleSeries(TableReference tableReference, TimestampSeries series);
+
+        R singleSeries(Optional<TableReference> tableReferenceOverride);
     }
 
     public abstract <R> R match(Cases<R> cases);
 
     @Override
     public abstract int hashCode();
+
     @Override
     public abstract boolean equals(Object obj);
+
     @Override
     public abstract String toString();
 }

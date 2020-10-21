@@ -15,14 +15,6 @@
  */
 package com.palantir.leader;
 
-import java.util.List;
-
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.apache.commons.lang3.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
@@ -30,6 +22,11 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.List;
+import javax.annotation.concurrent.ThreadSafe;
+import org.apache.commons.lang3.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 class LeadershipEvents {
@@ -61,7 +58,8 @@ class LeadershipEvents {
     }
 
     void noQuorum(PaxosValue value) {
-        leaderLog.warn("The most recent known information says this server is the leader,"
+        leaderLog.warn(
+                "The most recent known information says this server is the leader,"
                         + " but there is no quorum right now. The paxos value is {}",
                 withContextArgs(SafeArg.of("value", value)));
         leaderElectionServiceMetrics.noQuorum().mark();
@@ -83,7 +81,8 @@ class LeadershipEvents {
     }
 
     void proposalFailure(PaxosRoundFailureException paxosException) {
-        leaderLog.warn("Leadership was not gained.\n"
+        leaderLog.warn(
+                "Leadership was not gained.\n"
                         + "We should recover automatically. If this recurs often, try to \n"
                         + "  (1) ensure that most other nodes are reachable over the network, and \n"
                         + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.",
@@ -94,7 +93,8 @@ class LeadershipEvents {
     public void leaderOnOlderTimeLockVersion(OrderableSlsVersion version) {
         // TODO(snanda): Kill log after few successful runs of blue-green deployment.
         if (leaderOnOlderVersionLoggingRateLimiter.tryAcquire()) {
-            leaderLog.info("We contacted the leader and it reported that it is on an older version of TimeLock - {}",
+            leaderLog.info(
+                    "We contacted the leader and it reported that it is on an older version of TimeLock - {}",
                     withContextArgs(SafeArg.of("version", version)));
         }
         leaderElectionServiceMetrics.leaderOnOlderTimeLockVersion().mark();
@@ -102,7 +102,7 @@ class LeadershipEvents {
 
     private Object[] withContextArgs(Object arg) {
         if (contextArgs.length == 0) {
-            return new Object[] { arg };
+            return new Object[] {arg};
         } else {
             return ArrayUtils.add(contextArgs, arg);
         }

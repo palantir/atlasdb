@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import java.util.SortedSet;
-
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import java.util.SortedSet;
 
 public class NamedColumnRenderer extends Renderer {
     private final String namedColumn;
@@ -32,27 +31,39 @@ public class NamedColumnRenderer extends Renderer {
     @Override
     @SuppressWarnings("checkstyle:AvoidNestedBlocks")
     protected void run() {
-        line("public enum ", namedColumn, " {"); {
+        line("public enum ", namedColumn, " {");
+        {
             for (NamedColumnDescription col : cols) {
-                line(Renderers.UPPER_CASE(col.getLongName()), " {"); {
+                line(Renderers.UPPER_CASE(col.getLongName()), " {");
+                {
                     line("@Override");
-                    line("public byte[] getShortName() {"); {
+                    line("public byte[] getShortName() {");
+                    {
                         line("return PtBytes.toCachedBytes(\"", col.getShortName(), "\");");
-                    } line("}");
-                } line("},");
+                    }
+                    line("}");
+                }
+                line("},");
             }
             replace(",", ";");
             line();
             line("public abstract byte[] getShortName();");
             line();
-            line("public static Function<", namedColumn, ", byte[]> toShortName() {"); {
-                line("return new Function<", namedColumn, ", byte[]>() {"); {
+            line("public static Function<", namedColumn, ", byte[]> toShortName() {");
+            {
+                line("return new Function<", namedColumn, ", byte[]>() {");
+                {
                     line("@Override");
-                    line("public byte[] apply(", namedColumn, " namedColumn) {"); {
+                    line("public byte[] apply(", namedColumn, " namedColumn) {");
+                    {
                         line("return namedColumn.getShortName();");
-                    } line("}");
-                } line("};");
-            } line("}");
-        } line("}");
+                    }
+                    line("}");
+                }
+                line("};");
+            }
+            line("}");
+        }
+        line("}");
     }
 }

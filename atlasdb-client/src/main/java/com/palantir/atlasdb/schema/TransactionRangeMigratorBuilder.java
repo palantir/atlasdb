@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
 import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -24,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.collect.Maps2;
 import com.palantir.logsafe.Preconditions;
+import java.util.Map;
 
 /**
  * Builder for a {@link TransactionRangeMigrator}.
@@ -114,12 +113,6 @@ public class TransactionRangeMigratorBuilder {
         Preconditions.checkNotNull(checkpointer);
 
         return new TransactionRangeMigrator(
-                srcTable,
-                destTable,
-                readBatchSize,
-                readTxManager,
-                txManager,
-                checkpointer,
-                rowTransform);
+                srcTable, destTable, readBatchSize, readTxManager, txManager, checkpointer, rowTransform);
     }
 }

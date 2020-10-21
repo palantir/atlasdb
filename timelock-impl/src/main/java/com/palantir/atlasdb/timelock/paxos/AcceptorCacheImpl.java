@@ -16,9 +16,15 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.collect.TreeMultimap;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.Client;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -26,22 +32,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.collect.Maps;
-import com.google.common.collect.TreeMultimap;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.paxos.Client;
 
 public class AcceptorCacheImpl implements AcceptorCache {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Cache<AcceptorCacheKey, TimestampedAcceptorCacheKey> cacheKeyToTimestamp;
-    private final Map<Client, WithSeq<Long>> clientToTimeAndSeq = Maps.newHashMap();
+    private final Map<Client, WithSeq<Long>> clientToTimeAndSeq = new HashMap<>();
     private final TreeMultimap<Long, WithSeq<Client>> clientsByLatestTimestamp = TreeMultimap.create(
             Comparator.naturalOrder(),
             Comparator.comparing(clientWithSeq -> clientWithSeq.value().value(), Comparator.naturalOrder()));
@@ -51,9 +49,8 @@ public class AcceptorCacheImpl implements AcceptorCache {
             TimestampedAcceptorCacheKey.of(AcceptorCacheKey.newCacheKey(), 0);
 
     public AcceptorCacheImpl() {
-        Cache<AcceptorCacheKey, TimestampedAcceptorCacheKey> cacheKeyToTime = Caffeine.newBuilder()
-                .expireAfterAccess(Duration.ofMinutes(10))
-                .build();
+        Cache<AcceptorCacheKey, TimestampedAcceptorCacheKey> cacheKeyToTime =
+                Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();
         cacheKeyToTime.put(latestTimestampedAcceptorCacheKey.cacheKey(), latestTimestampedAcceptorCacheKey);
         this.cacheKeyToTimestamp = cacheKeyToTime;
     }
@@ -82,8 +79,7 @@ public class AcceptorCacheImpl implements AcceptorCache {
                     clientToTimeAndSeq.put(client, WithSeq.of(nextTimestamp, incomingSequenceNumber));
                     clientsByLatestTimestamp.put(nextTimestamp, clientAndSeq);
                     clientsByLatestTimestamp.remove(
-                            clientLatestWithTs.value(),
-                            WithSeq.of(client, clientLatestWithTs.seq()));
+                            clientLatestWithTs.value(), WithSeq.of(client, clientLatestWithTs.seq()));
                     updated.set(true);
                 }
             });
@@ -106,9 +102,8 @@ public class AcceptorCacheImpl implements AcceptorCache {
     public AcceptorCacheDigest getAllUpdates() {
         lock.readLock().lock();
         try {
-            Map<Client, Long> clientsToLatest = KeyedStream.stream(clientToTimeAndSeq)
-                    .map(WithSeq::seq)
-                    .collectToMap();
+            Map<Client, Long> clientsToLatest =
+                    KeyedStream.stream(clientToTimeAndSeq).map(WithSeq::seq).collectToMap();
             return ImmutableAcceptorCacheDigest.builder()
                     .newCacheKey(latestTimestampedAcceptorCacheKey.cacheKey())
                     .cacheTimestamp(latestTimestampedAcceptorCacheKey.timestamp())
@@ -132,10 +127,10 @@ public class AcceptorCacheImpl implements AcceptorCache {
                     .map(TimestampedAcceptorCacheKey::timestamp)
                     .orElseThrow(() -> new InvalidAcceptorCacheKeyException(cacheKey));
 
-            Map<Client, Long> diff = clientsByLatestTimestamp.asMap().tailMap(cacheKeyTimestamp, false).values()
-                    .stream()
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toMap(WithSeq::value, WithSeq::seq));
+            Map<Client, Long> diff =
+                    clientsByLatestTimestamp.asMap().tailMap(cacheKeyTimestamp, false).values().stream()
+                            .flatMap(Collection::stream)
+                            .collect(Collectors.toMap(WithSeq::value, WithSeq::seq));
 
             return Optional.of(ImmutableAcceptorCacheDigest.builder()
                     .newCacheKey(latestTimestampedAcceptorCacheKey.cacheKey())
@@ -146,5 +141,4 @@ public class AcceptorCacheImpl implements AcceptorCache {
             lock.readLock().unlock();
         }
     }
-
 }

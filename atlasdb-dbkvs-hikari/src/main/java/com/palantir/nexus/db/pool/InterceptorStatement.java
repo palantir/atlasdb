@@ -15,6 +15,8 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.reflect.AbstractInvocationHandler;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,12 +24,8 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
  * Allows you to intercept and override methods in {@link Statement} and subinterfaces
@@ -35,7 +33,7 @@ import com.google.common.reflect.AbstractInvocationHandler;
  */
 public final class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler
         implements InvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(InterceptorStatement.class);
 
     private final T delegate;
 
@@ -49,7 +47,7 @@ public final class InterceptorStatement<T extends Statement> extends AbstractInv
             try {
                 return method.invoke(delegate, args);
             } catch (InvocationTargetException e) {
-                throw e.getTargetException();
+                throw e.getCause();
             }
         } catch (SQLException e) {
             throw e;
@@ -59,8 +57,10 @@ public final class InterceptorStatement<T extends Statement> extends AbstractInv
                     handleExecException(e);
                 } catch (Exception ex) {
                     // We want to preserve the original exception, so let's log and discard here.
-                    log.debug("Unexpected exception handling unexpected exception from Statement execution.  "
-                            + "This exception will be logged and discarded.", ex);
+                    log.debug(
+                            "Unexpected exception handling unexpected exception from Statement execution.  "
+                                    + "This exception will be logged and discarded.",
+                            ex);
                 }
             }
             throw e;
@@ -104,12 +104,8 @@ public final class InterceptorStatement<T extends Statement> extends AbstractInv
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Statement> T wrapInterceptor(final T delegate,
-                                                          final Class<? extends Statement> clazz) {
+    public static <T extends Statement> T wrapInterceptor(final T delegate, final Class<? extends Statement> clazz) {
         InterceptorStatement<T> instance = new InterceptorStatement<T>(delegate);
-        return (T) Proxy.newProxyInstance(
-                instance.getClass().getClassLoader(),
-                new Class[]{clazz},
-                instance);
+        return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), new Class[] {clazz}, instance);
     }
 }

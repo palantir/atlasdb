@@ -76,12 +76,10 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     @Test
     public void rowsRangeScan() {
         runAndPrintResults(() -> client.rangeScanRows(1, 20, 200, 1_000));
-
     }
+
     @Test
     public void dynamicColumnsRangeScan() {
         runAndPrintResults(() -> client.rangeScanDynamicColumns(1, 20, 200, 1_000));
     }
-
 }
-

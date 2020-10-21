@@ -17,12 +17,6 @@ package com.palantir.lock.logger;
 
 import static org.junit.Assert.assertEquals;
 
-import java.math.BigInteger;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -37,32 +31,37 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
 
 public class LockServiceSerDeTest {
 
     @Test
     public void testSerialisationAndDeserialisationOfLockResponse() throws Exception {
-        HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
-                new BigInteger("1"), "held-lock-1",
-                "logger-lock");
+        HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken(
+                "client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
         LockResponse response = new LockResponse(token);
         ObjectMapper mapper = new ObjectMapper();
-        LockResponse deserializedLockResponse = mapper.readValue(mapper.writeValueAsString(response),
-                LockResponse.class);
+        LockResponse deserializedLockResponse =
+                mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
         assertEquals(deserializedLockResponse, response);
     }
 
     @Test
     public void testSerialisationAndDeserialisationOfLockResponseWithLockHolders() throws Exception {
-        HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
-                new BigInteger("1"), "held-lock-1",
-                "logger-lock");
-        Map<LockDescriptor, LockClient> lockHolders = ImmutableMap.of(StringLockDescriptor.of("lock_id"),
-                LockClient.ANONYMOUS, StringLockDescriptor.of("lock_id2"), LockClient.of("client"));
+        HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken(
+                "client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
+        Map<LockDescriptor, LockClient> lockHolders = ImmutableMap.of(
+                StringLockDescriptor.of("lock_id"),
+                LockClient.ANONYMOUS,
+                StringLockDescriptor.of("lock_id2"),
+                LockClient.of("client"));
         LockResponse response = new LockResponse(token, lockHolders);
         ObjectMapper mapper = new ObjectMapper();
-        LockResponse deserializedLockResponse = mapper.readValue(mapper.writeValueAsString(response),
-                LockResponse.class);
+        LockResponse deserializedLockResponse =
+                mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
         assertEquals(lockHolders, deserializedLockResponse.getLockHolders());
     }
 
@@ -91,8 +90,8 @@ public class LockServiceSerDeTest {
 
     @Test
     public void testSerialisationAndDeserialisationOfHeldLocksGrant() throws Exception {
-        ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode = LockServiceTestUtils
-                .getLockDescriptorLockMode(ImmutableList.of("lock1", "lock2"));
+        ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode =
+                LockServiceTestUtils.getLockDescriptorLockMode(ImmutableList.of("lock1", "lock2"));
 
         HeldLocksGrant heldLocksGrant = new HeldLocksGrant(
                 BigInteger.ONE,

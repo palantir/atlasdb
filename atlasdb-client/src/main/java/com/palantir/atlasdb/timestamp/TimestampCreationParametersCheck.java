@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timestamp;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.DbTimestampCreationSettings;
+import java.util.Optional;
 
 public final class TimestampCreationParametersCheck {
     private TimestampCreationParametersCheck() {
@@ -29,9 +28,11 @@ public final class TimestampCreationParametersCheck {
 
     public static boolean areCreationParametersConsistentWithDefaults(
             Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
-        return dbTimestampCreationParameters.map(params -> DbTimestampCreationSettings.caseOf(params)
-                .multipleSeries((ig, nore) -> false)
-                .singleSeries(tableRef -> tableRef.map(AtlasDbConstants.TIMESTAMP_TABLE::equals).orElse(true)))
+        return dbTimestampCreationParameters
+                .map(params -> DbTimestampCreationSettings.caseOf(params)
+                        .multipleSeries((ig, nore) -> false)
+                        .singleSeries(tableRef -> tableRef.map(AtlasDbConstants.TIMESTAMP_TABLE::equals)
+                                .orElse(true)))
                 .orElse(true);
     }
 }

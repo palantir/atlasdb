@@ -29,17 +29,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
-import java.util.Collections;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import java.math.BigInteger;
+import java.util.Collections;
+import org.junit.Test;
 
 public class SynchronousLockClientTest {
     private static final LockService LOCK_SERVICE = mock(LockService.class);
@@ -52,7 +50,7 @@ public class SynchronousLockClientTest {
 
     @Test
     public void lockRequestIsNonBlocking() throws InterruptedException {
-        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
+        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer(invocation -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getBlockingMode(), is(BlockingMode.DO_NOT_BLOCK));
             return null;
@@ -62,7 +60,7 @@ public class SynchronousLockClientTest {
 
     @Test
     public void lockRequestIsWrite() throws InterruptedException {
-        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
+        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer(invocation -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getLocks(), contains(hasProperty("lockMode", is(LockMode.WRITE))));
             return null;

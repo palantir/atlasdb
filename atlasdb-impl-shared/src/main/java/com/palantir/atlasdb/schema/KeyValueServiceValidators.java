@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class KeyValueServiceValidators {
     private KeyValueServiceValidators() {
@@ -36,10 +35,9 @@ public final class KeyValueServiceValidators {
      * Clearly, the tables to be validated are a subset of that to be migrated.
      */
     public static Set<TableReference> getValidatableTableNames(
-            KeyValueService kvs,
-            Set<TableReference> unmigratableTables) {
-        Set<TableReference> tableNames = KeyValueServiceMigratorUtils
-                .getMigratableTableNames(kvs, unmigratableTables, null);
+            KeyValueService kvs, Set<TableReference> unmigratableTables) {
+        Set<TableReference> tableNames =
+                KeyValueServiceMigratorUtils.getMigratableTableNames(kvs, unmigratableTables, null);
         return removeSweepTableReferences(tableNames);
     }
 

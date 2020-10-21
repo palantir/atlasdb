@@ -18,9 +18,8 @@ package com.palantir.lock;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
 
 public final class LockClientTest {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -33,5 +32,4 @@ public final class LockClientTest {
         assertThat(lockClient.getClientId(), is(deserializedLockClient.getClientId()));
         assertThat(lockClient.isAnonymous(), is(deserializedLockClient.isAnonymous()));
     }
-
 }

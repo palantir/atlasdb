@@ -21,8 +21,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -30,9 +31,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
-
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
 
 public class BeforeAndAfterTest {
     private static final AtomicInteger attemptCount = new AtomicInteger();

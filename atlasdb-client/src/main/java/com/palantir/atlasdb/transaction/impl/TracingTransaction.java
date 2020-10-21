@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.Map;
+import java.util.Set;
 
 public abstract class TracingTransaction extends ForwardingTransaction {
     private final Transaction delegate;
@@ -42,12 +41,12 @@ public abstract class TracingTransaction extends ForwardingTransaction {
                 Cell key = e.getKey();
                 byte[] value = e.getValue();
                 trace(
-                    "PUT: timestamp=%d table=%s row=%s column=%s value=%s",
-                    delegate.getTimestamp(),
+                        "PUT: timestamp=%d table=%s row=%s column=%s value=%s",
+                        delegate.getTimestamp(),
                         tableRef,
-                    toHex(key.getRowName()),
-                    toHex(key.getColumnName()),
-                    toHex(value));
+                        toHex(key.getRowName()),
+                        toHex(key.getColumnName()),
+                        toHex(value));
             }
         }
         super.put(tableRef, values);
@@ -58,11 +57,8 @@ public abstract class TracingTransaction extends ForwardingTransaction {
         if (isTraceEnabled()) {
             for (Cell key : keys) {
                 trace(
-                    "DELETE: timestamp=%d table=%s row=%s column=%s",
-                    delegate.getTimestamp(),
-                        tableRef,
-                    toHex(key.getRowName()),
-                    toHex(key.getColumnName()));
+                        "DELETE: timestamp=%d table=%s row=%s column=%s",
+                        delegate.getTimestamp(), tableRef, toHex(key.getRowName()), toHex(key.getColumnName()));
             }
         }
         super.delete(tableRef, keys);

@@ -33,23 +33,31 @@ public final class IndexComponent {
 
     final boolean isMultiple;
 
-
     /**
      * This takes an existing row component and uses it in the index.
      */
-    public static IndexComponent createFromRow(NameComponentDescription rowKeyDesc,
-                                               String rowComponentName) {
-        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
-                Preconditions.checkNotNull(rowComponentName), null, null, null, false);
+    public static IndexComponent createFromRow(NameComponentDescription rowKeyDesc, String rowComponentName) {
+        return new IndexComponent(
+                Preconditions.checkNotNull(rowKeyDesc),
+                Preconditions.checkNotNull(rowComponentName),
+                null,
+                null,
+                null,
+                false);
     }
 
     /**
      * This takes an existing dynamic column component and uses it in the index.
      */
-    public static IndexComponent createFromDynamicColumn(NameComponentDescription rowKeyDesc,
-                                                         String dynamicColumnComponentName) {
-        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
-                null, Preconditions.checkNotNull(dynamicColumnComponentName), null, null, false);
+    public static IndexComponent createFromDynamicColumn(
+            NameComponentDescription rowKeyDesc, String dynamicColumnComponentName) {
+        return new IndexComponent(
+                Preconditions.checkNotNull(rowKeyDesc),
+                null,
+                Preconditions.checkNotNull(dynamicColumnComponentName),
+                null,
+                null,
+                false);
     }
 
     /**
@@ -60,11 +68,11 @@ public final class IndexComponent {
      * @param codeToAccessValue this is code snippet to be run to extract the value of a column.
      *          The string "_value" can be used in this string as the value type of the column
      */
-    public static IndexComponent createFromColumn(NameComponentDescription rowKeyDesc,
-                                                  String columnNameToGetData,
-                                                  String codeToAccessValue) {
+    public static IndexComponent createFromColumn(
+            NameComponentDescription rowKeyDesc, String columnNameToGetData, String codeToAccessValue) {
 
-        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
+        return new IndexComponent(
+                Preconditions.checkNotNull(rowKeyDesc),
                 null,
                 null,
                 Preconditions.checkNotNull(columnNameToGetData),
@@ -81,11 +89,11 @@ public final class IndexComponent {
      * @param codeToAccessValue this is code snippet to be run to extract the value of a column.
      *          The string "_value" can be used in this string as the value type of the column
      */
-    public static IndexComponent createIterableFromColumn(NameComponentDescription rowKeyDesc,
-                                                          String columnNameToGetData,
-                                                          String codeToAccessValue) {
+    public static IndexComponent createIterableFromColumn(
+            NameComponentDescription rowKeyDesc, String columnNameToGetData, String codeToAccessValue) {
 
-        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
+        return new IndexComponent(
+                Preconditions.checkNotNull(rowKeyDesc),
                 null,
                 null,
                 Preconditions.checkNotNull(columnNameToGetData),
@@ -93,12 +101,13 @@ public final class IndexComponent {
                 true);
     }
 
-    private IndexComponent(NameComponentDescription rowKeyDesc,
-                          String rowComponentName,
-                          String dynamicColumnComponentName,
-                          String columnNameToGetData,
-                          String codeToAccessValue,
-                          boolean isMultiple) {
+    private IndexComponent(
+            NameComponentDescription rowKeyDesc,
+            String rowComponentName,
+            String dynamicColumnComponentName,
+            String columnNameToGetData,
+            String codeToAccessValue,
+            boolean isMultiple) {
         this.rowKeyDesc = rowKeyDesc;
         this.rowComponentName = rowComponentName;
         this.dynamicColumnComponentName = dynamicColumnComponentName;
@@ -109,8 +118,13 @@ public final class IndexComponent {
 
     public IndexComponent withPartitioners(RowNamePartitioner... partitioners) {
         NameComponentDescription newRowKeyDesc = rowKeyDesc.withPartitioners(partitioners);
-        return new IndexComponent(newRowKeyDesc, rowComponentName, dynamicColumnComponentName,
-                columnNameToGetData, codeToAccessValue, isMultiple);
+        return new IndexComponent(
+                newRowKeyDesc,
+                rowComponentName,
+                dynamicColumnComponentName,
+                columnNameToGetData,
+                codeToAccessValue,
+                isMultiple);
     }
 
     public NameComponentDescription getRowKeyDescription() {

@@ -15,23 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.ExecutionException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -47,6 +36,15 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CachingTransaction extends ForwardingTransaction {
 
@@ -75,8 +73,8 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
-                                                        ColumnSelection columnSelection) {
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
@@ -86,7 +84,7 @@ public class CachingTransaction extends ForwardingTransaction {
             cacheLoadedRows(tableRef, loaded.values());
             return loaded;
         } else {
-            Set<byte[]> toLoad = Sets.newHashSet();
+            Set<byte[]> toLoad = new HashSet<>();
             ImmutableSortedMap.Builder<byte[], RowResult<byte[]>> inCache =
                     ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
             for (byte[] row : rows) {
@@ -121,9 +119,10 @@ public class CachingTransaction extends ForwardingTransaction {
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
             return getWithLoader(
-                    tableRef,
-                    cells,
-                    (tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead))).get();
+                            tableRef,
+                            cells,
+                            (tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead)))
+                    .get();
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
@@ -135,14 +134,12 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
-            TableReference tableRef,
-            Set<Cell> cells,
-            CellLoader cellLoader) {
+            TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         if (cells.isEmpty()) {
             return Futures.immediateFuture(ImmutableMap.of());
         }
 
-        Set<Cell> toLoad = Sets.newHashSet();
+        Set<Cell> toLoad = new HashSet<>();
         Map<Cell, byte[]> cacheHit = Maps.newHashMapWithExpectedSize(cells.size());
         for (Cell cell : cells) {
             byte[] val = getCachedCellIfPresent(tableRef, cell);
@@ -155,7 +152,8 @@ public class CachingTransaction extends ForwardingTransaction {
             }
         }
 
-        return Futures.transform(cellLoader.load(tableRef, toLoad),
+        return Futures.transform(
+                cellLoader.load(tableRef, toLoad),
                 loadedCells -> {
                     cacheLoadedCells(tableRef, toLoad, loadedCells);
                     cacheHit.putAll(loadedCells);
@@ -200,9 +198,8 @@ public class CachingTransaction extends ForwardingTransaction {
             Collection<byte[]> columnNames,
             SortedMap<byte[], RowResult<byte[]>> toCache) {
         for (byte[] row : toLoad) {
-            SortedMap<byte[], byte[]> columnValues = toCache.get(row) != null
-                    ? toCache.get(row).getColumns()
-                    : ImmutableSortedMap.of();
+            SortedMap<byte[], byte[]> columnValues =
+                    toCache.get(row) != null ? toCache.get(row).getColumns() : ImmutableSortedMap.of();
             for (byte[] columnName : columnNames) {
                 byte[] value = columnValues.get(columnName);
                 if (value == null) {
@@ -230,7 +227,6 @@ public class CachingTransaction extends ForwardingTransaction {
     private void cacheLoadedCell(TableReference tableRef, Cell cell, byte[] value) {
         cellCache.put(Pair.create(tableRef.getQualifiedName(), cell), value);
     }
-
 
     // Log cache stats on commit or abort.
     // Note we check for logging enabled because actually getting stats is not necessarily trivial

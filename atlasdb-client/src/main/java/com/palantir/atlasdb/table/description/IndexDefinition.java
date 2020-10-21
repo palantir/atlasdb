@@ -15,19 +15,18 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Defines a secondary index for a schema.
@@ -70,10 +69,13 @@ public class IndexDefinition extends AbstractDefinition {
      * values of both SAFE and UNSAFE).
      */
     public void indexNameLogSafety(TableMetadataPersistence.LogSafety logSafety) {
-        com.palantir.logsafe.Preconditions.checkState(!(logSafetyDeclared && tableNameSafety != logSafety),
+        com.palantir.logsafe.Preconditions.checkState(
+                !(logSafetyDeclared && tableNameSafety != logSafety),
                 "This table name's safety for logging has already been declared.");
-        com.palantir.logsafe.Preconditions.checkState(state == IndexDefinition.State.NONE, "Specifying a table name is safe or unsafe should be done outside"
-                + " of the subscopes of TableDefinition.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == IndexDefinition.State.NONE,
+                "Specifying a table name is safe or unsafe should be done outside"
+                        + " of the subscopes of TableDefinition.");
         logSafetyDeclared = true;
         tableNameSafety = logSafety;
     }
@@ -88,8 +90,10 @@ public class IndexDefinition extends AbstractDefinition {
      * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void namedComponentsSafeByDefault() {
-        com.palantir.logsafe.Preconditions.checkState(state == IndexDefinition.State.NONE, "Specifying components are safe by default should be done outside"
-                + " of the subscopes of TableDefinition.");
+        com.palantir.logsafe.Preconditions.checkState(
+                state == IndexDefinition.State.NONE,
+                "Specifying components are safe by default should be done outside"
+                        + " of the subscopes of TableDefinition.");
         defaultNamedComponentLogSafety = TableMetadataPersistence.LogSafety.SAFE;
     }
 
@@ -115,7 +119,10 @@ public class IndexDefinition extends AbstractDefinition {
         componentFromRow(componentName, valueType, valueByteOrder, componentName, defaultNamedComponentLogSafety);
     }
 
-    public void componentFromRow(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+    public void componentFromRow(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
             TableMetadataPersistence.LogSafety logSafety) {
         componentFromRow(componentName, valueType, valueByteOrder, componentName, logSafety);
     }
@@ -124,17 +131,23 @@ public class IndexDefinition extends AbstractDefinition {
         componentFromRow(componentName, valueType, sourceComponentName, defaultNamedComponentLogSafety);
     }
 
-    public void componentFromRow(String componentName, ValueType valueType, String sourceComponentName,
+    public void componentFromRow(
+            String componentName,
+            ValueType valueType,
+            String sourceComponentName,
             TableMetadataPersistence.LogSafety logSafety) {
         componentFromRow(componentName, valueType, ValueByteOrder.ASCENDING, sourceComponentName, logSafety);
     }
 
-    public void componentFromRow(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
-            String sourceComponentName) {
+    public void componentFromRow(
+            String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceComponentName) {
         componentFromRow(componentName, valueType, valueByteOrder, sourceComponentName, defaultNamedComponentLogSafety);
     }
 
-    public void componentFromRow(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+    public void componentFromRow(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
             String sourceComponentName,
             TableMetadataPersistence.LogSafety logSafety) {
         addComponent(IndexComponent.createFromRow(
@@ -151,38 +164,51 @@ public class IndexDefinition extends AbstractDefinition {
         componentFromDynamicColumn(componentName, valueType, ValueByteOrder.ASCENDING, defaultNamedComponentLogSafety);
     }
 
-    public void componentFromDynamicColumn(String componentName, ValueType valueType,
-            TableMetadataPersistence.LogSafety logSafety) {
+    public void componentFromDynamicColumn(
+            String componentName, ValueType valueType, TableMetadataPersistence.LogSafety logSafety) {
         componentFromDynamicColumn(componentName, valueType, ValueByteOrder.ASCENDING, logSafety);
     }
 
     public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
-        componentFromDynamicColumn(componentName, valueType, valueByteOrder, componentName,
-                defaultNamedComponentLogSafety);
+        componentFromDynamicColumn(
+                componentName, valueType, valueByteOrder, componentName, defaultNamedComponentLogSafety);
     }
 
-    public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+    public void componentFromDynamicColumn(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
             TableMetadataPersistence.LogSafety logSafety) {
         componentFromDynamicColumn(componentName, valueType, valueByteOrder, componentName, logSafety);
     }
 
     public void componentFromDynamicColumn(String componentName, ValueType valueType, String sourceComponentName) {
-        componentFromDynamicColumn(componentName, valueType, ValueByteOrder.ASCENDING, sourceComponentName,
+        componentFromDynamicColumn(
+                componentName,
+                valueType,
+                ValueByteOrder.ASCENDING,
+                sourceComponentName,
                 defaultNamedComponentLogSafety);
     }
 
-    public void componentFromDynamicColumn(String componentName, ValueType valueType, String sourceComponentName,
+    public void componentFromDynamicColumn(
+            String componentName,
+            ValueType valueType,
+            String sourceComponentName,
             TableMetadataPersistence.LogSafety logSafety) {
         componentFromDynamicColumn(componentName, valueType, ValueByteOrder.ASCENDING, sourceComponentName, logSafety);
     }
 
-    public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
-            String sourceComponentName) {
-        componentFromDynamicColumn(componentName, valueType, valueByteOrder, sourceComponentName,
-                defaultNamedComponentLogSafety);
+    public void componentFromDynamicColumn(
+            String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceComponentName) {
+        componentFromDynamicColumn(
+                componentName, valueType, valueByteOrder, sourceComponentName, defaultNamedComponentLogSafety);
     }
 
-    public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+    public void componentFromDynamicColumn(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
             String sourceComponentName,
             TableMetadataPersistence.LogSafety logSafety) {
         addComponent(IndexComponent.createFromDynamicColumn(
@@ -214,8 +240,8 @@ public class IndexDefinition extends AbstractDefinition {
      * If using prefix range requests, the components that are hashed must also be specified in the prefix.
      */
     public void hashFirstNRowComponents(int numberOfComponents) {
-        com.palantir.logsafe.Preconditions.checkState(numberOfComponents >= 0,
-                "Need to specify a non-negative number of components to hash.");
+        com.palantir.logsafe.Preconditions.checkState(
+                numberOfComponents >= 0, "Need to specify a non-negative number of components to hash.");
         checkHashRowComponentsPreconditions("hashFirstNRowComponents");
         numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
@@ -229,44 +255,68 @@ public class IndexDefinition extends AbstractDefinition {
 
     public ExplicitRowNamePartitioner explicit(String... componentValues) {
         com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        return new ExplicitRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType(),
-                ImmutableSet.copyOf(componentValues));
+        return new ExplicitRowNamePartitioner(
+                rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType(), ImmutableSet.copyOf(componentValues));
     }
 
     public ExplicitRowNamePartitioner explicit(long... componentValues) {
         com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        Set<String> set = Sets.newHashSet();
+        Set<String> set = new HashSet<>();
         for (long l : componentValues) {
             set.add(Long.toString(l));
         }
-        return new ExplicitRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType(), set);
+        return new ExplicitRowNamePartitioner(
+                rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType(), set);
     }
 
     public UniformRowNamePartitioner uniform() {
         com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        return new UniformRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType());
+        return new UniformRowNamePartitioner(
+                rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType());
     }
 
-    public void componentFromColumn(String componentName, ValueType valueType, String sourceColumnName,
+    public void componentFromColumn(
+            String componentName, ValueType valueType, String sourceColumnName, String codeToAccessValue) {
+        componentFromColumn(
+                componentName,
+                valueType,
+                ValueByteOrder.ASCENDING,
+                sourceColumnName,
+                codeToAccessValue,
+                defaultNamedComponentLogSafety);
+    }
+
+    public void componentFromColumn(
+            String componentName,
+            ValueType valueType,
+            String sourceColumnName,
+            String codeToAccessValue,
+            TableMetadataPersistence.LogSafety logSafety) {
+        componentFromColumn(
+                componentName, valueType, ValueByteOrder.ASCENDING, sourceColumnName, codeToAccessValue, logSafety);
+    }
+
+    public void componentFromColumn(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
+            String sourceColumnName,
             String codeToAccessValue) {
-        componentFromColumn(componentName, valueType, ValueByteOrder.ASCENDING, sourceColumnName, codeToAccessValue,
+        componentFromColumn(
+                componentName,
+                valueType,
+                valueByteOrder,
+                sourceColumnName,
+                codeToAccessValue,
                 defaultNamedComponentLogSafety);
     }
 
-    public void componentFromColumn(String componentName, ValueType valueType, String sourceColumnName,
-            String codeToAccessValue, TableMetadataPersistence.LogSafety logSafety) {
-        componentFromColumn(componentName, valueType, ValueByteOrder.ASCENDING, sourceColumnName, codeToAccessValue,
-                logSafety);
-    }
-
-    public void componentFromColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
-            String sourceColumnName, String codeToAccessValue) {
-        componentFromColumn(componentName, valueType, valueByteOrder, sourceColumnName, codeToAccessValue,
-                defaultNamedComponentLogSafety);
-    }
-
-    public void componentFromColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
-            String sourceColumnName, String codeToAccessValue,
+    public void componentFromColumn(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
+            String sourceColumnName,
+            String codeToAccessValue,
             TableMetadataPersistence.LogSafety logSafety) {
         addComponent(IndexComponent.createFromColumn(
                 new NameComponentDescription.Builder()
@@ -284,9 +334,18 @@ public class IndexDefinition extends AbstractDefinition {
      * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable<valueType>
      *     using codeToAccessValue.
      */
-    public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
-            String sourceColumnName, String codeToAccessValue) {
-        componentFromIterableColumn(componentName, valueType, valueByteOrder, sourceColumnName, codeToAccessValue,
+    public void componentFromIterableColumn(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
+            String sourceColumnName,
+            String codeToAccessValue) {
+        componentFromIterableColumn(
+                componentName,
+                valueType,
+                valueByteOrder,
+                sourceColumnName,
+                codeToAccessValue,
                 defaultNamedComponentLogSafety);
     }
 
@@ -295,8 +354,12 @@ public class IndexDefinition extends AbstractDefinition {
      * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable<valueType>
      *     using codeToAccessValue.
      */
-    public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
-            String sourceColumnName, String codeToAccessValue,
+    public void componentFromIterableColumn(
+            String componentName,
+            ValueType valueType,
+            ValueByteOrder valueByteOrder,
+            String sourceColumnName,
+            String codeToAccessValue,
             TableMetadataPersistence.LogSafety logSafety) {
         addComponent(IndexComponent.createIterableFromColumn(
                 new NameComponentDescription.Builder()
@@ -326,9 +389,7 @@ public class IndexDefinition extends AbstractDefinition {
 
     public void javaTableName(String name) {
         String suffix = Renderers.camelCase(indexType.getIndexSuffix());
-        Preconditions.checkArgument(
-                !name.endsWith(suffix),
-                "Java index name cannot end with '%s'", suffix);
+        Preconditions.checkArgument(!name.endsWith(suffix), "Java index name cannot end with '%s'", suffix);
         this.javaIndexTableName = name + suffix;
     }
 
@@ -354,10 +415,9 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     private void checkHashRowComponentsPreconditions(String methodName) {
-        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS,
-                "Can only indicate %s inside the rowName scope.", methodName);
-        Preconditions.checkState(rowComponents.isEmpty(),
-                "%s must be the first row component.", methodName);
+        Preconditions.checkState(
+                state == State.DEFINING_ROW_COMPONENTS, "Can only indicate %s inside the rowName scope.", methodName);
+        Preconditions.checkState(rowComponents.isEmpty(), "%s must be the first row component.", methodName);
     }
 
     // State machine variables, that ensure the index definition is well-formed
@@ -368,8 +428,8 @@ public class IndexDefinition extends AbstractDefinition {
     private int numberOfComponentsHashed = 0;
     private String sourceTableName = null;
     private String javaIndexTableName = null;
-    private List<IndexComponent> rowComponents = Lists.newArrayList();
-    private List<IndexComponent> colComponents = Lists.newArrayList();
+    private List<IndexComponent> rowComponents = new ArrayList<>();
+    private List<IndexComponent> colComponents = new ArrayList<>();
     private IndexCondition indexCondition = null;
     private final IndexType indexType;
     private TableMetadataPersistence.LogSafety tableNameSafety = TableMetadataPersistence.LogSafety.UNSAFE;
@@ -381,6 +441,7 @@ public class IndexDefinition extends AbstractDefinition {
         CELL_REFERENCING("_idx");
 
         private final String indexSuffix;
+
         IndexType(String indexSuffix) {
             this.indexSuffix = indexSuffix;
         }

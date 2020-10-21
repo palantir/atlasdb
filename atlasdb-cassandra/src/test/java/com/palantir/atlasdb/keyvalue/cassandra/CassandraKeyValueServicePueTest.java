@@ -18,17 +18,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-
+import java.util.Map;
+import java.util.stream.Collectors;
 import okio.ByteString;
+import org.junit.Test;
 
 public class CassandraKeyValueServicePueTest {
     @Test
@@ -39,7 +36,7 @@ public class CassandraKeyValueServicePueTest {
                 Cell.create(getBytes(0), getBytes(2)), getBytes(1));
         Map<ByteString, Map<Cell, byte[]>> result = CassandraKeyValueServiceImpl.partitionPerRow(entries);
 
-        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).hasSize(1);
         assertThat(Iterables.getOnlyElement(result.values())).containsAllEntriesOf(entries);
         assertThat(entries).containsAllEntriesOf(Iterables.getOnlyElement(result.values()));
     }
@@ -52,9 +49,10 @@ public class CassandraKeyValueServicePueTest {
                 Cell.create(getBytes(2), getBytes(2)), getBytes(1));
         Map<ByteString, Map<Cell, byte[]>> result = CassandraKeyValueServiceImpl.partitionPerRow(entries);
 
-        assertThat(result.size()).isEqualTo(3);
+        assertThat(result).hasSize(3);
         Map<Cell, byte[]> resultEntries = result.values().stream()
-                .flatMap(x -> x.entrySet().stream()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .flatMap(x -> x.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(resultEntries).containsAllEntriesOf(entries);
         assertThat(entries).containsAllEntriesOf(resultEntries);
     }
@@ -69,7 +67,7 @@ public class CassandraKeyValueServicePueTest {
                 Cell.create(getBytes(2), getBytes(2)), getBytes(1));
         Map<ByteString, Map<Cell, byte[]>> result = CassandraKeyValueServiceImpl.partitionPerRow(entries);
 
-        assertThat(result.size()).isEqualTo(3);
+        assertThat(result).hasSize(3);
 
         assertThat(getTransformedMapFor(result, 0))
                 .containsExactly(

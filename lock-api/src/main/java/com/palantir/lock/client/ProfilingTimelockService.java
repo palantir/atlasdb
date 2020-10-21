@@ -16,18 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.RateLimiter;
@@ -43,6 +31,16 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampRange;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Logs operations on an underlying {@link TimelockService} that take a long time (defined as longer than
@@ -64,14 +62,14 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     @VisibleForTesting
     static final Duration SLOW_THRESHOLD = Duration.ofSeconds(1);
+
     private static final Duration LOGGING_TIME_WINDOW = Duration.ofSeconds(10);
 
     private final Logger logger;
     private final TimelockService delegate;
     private final Supplier<Stopwatch> stopwatchSupplier;
 
-    private final AtomicReference<Optional<ActionProfile>> slowestOperation
-            = new AtomicReference<>(Optional.empty());
+    private final AtomicReference<Optional<ActionProfile>> slowestOperation = new AtomicReference<>(Optional.empty());
     private final BooleanSupplier loggingPermissionSupplier;
 
     @VisibleForTesting
@@ -119,8 +117,8 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return runTaskTimed("startIdentifiedAtlasDbTransactionBatch",
-                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
+        return runTaskTimed(
+                "startIdentifiedAtlasDbTransactionBatch", () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
     }
 
     @Override
@@ -206,7 +204,8 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
             Optional<ActionProfile> actionProfile = slowestOperation.getAndSet(Optional.empty());
             if (actionProfile.isPresent()) {
                 ActionProfile presentActionProfile = actionProfile.get();
-                logger.info("Call to TimeLockService#{} took {}. This was the slowest operation that completed"
+                logger.info(
+                        "Call to TimeLockService#{} took {}. This was the slowest operation that completed"
                                 + " in the last {}. The operation completed with outcome {} - if it failed, the error"
                                 + " was {}.",
                         SafeArg.of("actionName", presentActionProfile.actionName()),
@@ -237,8 +236,10 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     interface ActionProfile {
         @Value.Parameter
         String actionName();
+
         @Value.Parameter
         Duration duration();
+
         @Value.Parameter
         Optional<Exception> failure();
     }

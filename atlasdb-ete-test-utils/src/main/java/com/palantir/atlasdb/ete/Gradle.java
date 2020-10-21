@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.apache.commons.io.IOUtils;
 import org.junit.rules.ExternalResource;
 
@@ -43,11 +42,11 @@ public final class Gradle extends ExternalResource {
     protected void before() throws Throwable {
         if (isRunningOutsideOfGradle()) {
             System.out.println("It looks like you are not running in gradle,"
-                    + " performing the required gradle command: " + command);  // (authorized)
+                    + " performing the required gradle command: " + command); // (authorized)
             gradle();
         } else {
-            System.out.println("You are running in gradle,"
-                    + " allowing gradle task dependencies to make sure " + command + " is run");  // (authorized)
+            System.out.println("You are running in gradle," + " allowing gradle task dependencies to make sure "
+                    + command + " is run"); // (authorized)
         }
     }
 

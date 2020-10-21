@@ -22,11 +22,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 public final class SweepQueryHelpers {
     private SweepQueryHelpers() {}
 
-    public static void appendIgnoredTimestampPredicate(CandidateCellForSweepingRequest request,
-                                                       FullQuery.Builder builder) {
+    public static void appendIgnoredTimestampPredicate(
+            CandidateCellForSweepingRequest request, FullQuery.Builder builder) {
         if (!request.shouldDeleteGarbageCollectionSentinels()) {
             builder.append(" AND ts <> ").append(String.valueOf(Value.INVALID_VALUE_TIMESTAMP));
         }
     }
-
 }

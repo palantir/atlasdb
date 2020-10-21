@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock.v1;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,51 +29,45 @@ import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureLockV1ServiceEndpoints;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.ConjureLockV1Service;
-import com.palantir.lock.ConjureLockV1ServiceEndpoints;
-import com.palantir.lock.ConjureSimpleHeldLocksToken;
-import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.ConjureLockV1ServiceEndpoints;
-import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.UndertowConjureLockV1Service;
 import com.palantir.lock.client.ConjureLockV1Tokens;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
-public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
+public final class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, LockService> lockServices;
 
     private ConjureLockV1Resource(
-            RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LockService> lockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, LockService> lockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.lockServices = lockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LockService> lockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, LockService> lockServices) {
         return ConjureLockV1ServiceEndpoints.of(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
     }
 
     public static ConjureLockV1ShimService jersey(
-            RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LockService> lockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, LockService> lockServices) {
         return new ConjureLockV1Resource.JerseyAdapter(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
     }
 
     @Override
-    public ListenableFuture<Optional<HeldLocksToken>> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
-            ConjureLockV1Request request) {
+    public ListenableFuture<Optional<HeldLocksToken>> lockAndGetHeldLocks(
+            AuthHeader authHeader, String namespace, ConjureLockV1Request request) {
         return exceptionHandler.handleExceptions(() -> {
             try {
-                return Futures.immediateFuture(Optional.ofNullable(
-                        lockServices.apply(namespace)
-                                .lockAndGetHeldLocks(request.getLockClient(), request.getLockRequest())
-                ));
+                return Futures.immediateFuture(Optional.ofNullable(lockServices
+                        .apply(namespace)
+                        .lockAndGetHeldLocks(request.getLockClient(), request.getLockRequest())));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
@@ -87,12 +76,12 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     }
 
     @Override
-    public ListenableFuture<Set<ConjureLockRefreshToken>> refreshLockRefreshTokens(AuthHeader authHeader,
-            String namespace, List<ConjureLockRefreshToken> request) {
+    public ListenableFuture<Set<ConjureLockRefreshToken>> refreshLockRefreshTokens(
+            AuthHeader authHeader, String namespace, List<ConjureLockRefreshToken> request) {
         return exceptionHandler.handleExceptions(() -> {
-            ListenableFuture<Set<LockRefreshToken>> serviceTokens = Futures.immediateFuture(
-                    lockServices.apply(namespace).refreshLockRefreshTokens(
-                            ConjureLockV1Tokens.getLegacyTokens(request)));
+            ListenableFuture<Set<LockRefreshToken>> serviceTokens = Futures.immediateFuture(lockServices
+                    .apply(namespace)
+                    .refreshLockRefreshTokens(ConjureLockV1Tokens.getLegacyTokens(request)));
             return Futures.transform(
                     serviceTokens,
                     tokens -> ImmutableSet.copyOf(ConjureLockV1Tokens.getConjureTokens(tokens)),
@@ -101,11 +90,11 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     }
 
     @Override
-    public ListenableFuture<Boolean> unlockSimple(AuthHeader authHeader, String namespace,
-            ConjureSimpleHeldLocksToken request) {
+    public ListenableFuture<Boolean> unlockSimple(
+            AuthHeader authHeader, String namespace, ConjureSimpleHeldLocksToken request) {
         return exceptionHandler.handleExceptions(() -> {
-            SimpleHeldLocksToken serverToken = new SimpleHeldLocksToken(
-                    request.getTokenId(), request.getCreationDateMs());
+            SimpleHeldLocksToken serverToken =
+                    new SimpleHeldLocksToken(request.getTokenId(), request.getCreationDateMs());
             return Futures.immediateFuture(lockServices.apply(namespace).unlockSimple(serverToken));
         });
     }
@@ -118,14 +107,14 @@ public class ConjureLockV1Resource implements UndertowConjureLockV1Service {
         }
 
         @Override
-        public Optional<HeldLocksToken> lockAndGetHeldLocks(AuthHeader authHeader, String namespace,
-                ConjureLockV1Request request) {
+        public Optional<HeldLocksToken> lockAndGetHeldLocks(
+                AuthHeader authHeader, String namespace, ConjureLockV1Request request) {
             return unwrap(resource.lockAndGetHeldLocks(authHeader, namespace, request));
         }
 
         @Override
-        public Set<ConjureLockRefreshToken> refreshLockRefreshTokens(AuthHeader authHeader, String namespace,
-                List<ConjureLockRefreshToken> request) {
+        public Set<ConjureLockRefreshToken> refreshLockRefreshTokens(
+                AuthHeader authHeader, String namespace, List<ConjureLockRefreshToken> request) {
             return unwrap(resource.refreshLockRefreshTokens(authHeader, namespace, request));
         }
 

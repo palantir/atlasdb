@@ -18,14 +18,6 @@ package com.palantir.example.profile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
@@ -45,6 +37,12 @@ import com.palantir.example.profile.schema.generated.UserProfileTable;
 import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStreamId;
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import org.junit.Before;
+import org.junit.Test;
 
 public class WritesDigestTest {
 
@@ -54,7 +52,9 @@ public class WritesDigestTest {
 
     @Before
     public void setUp() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
         AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.withSweepDisabled();
         transactionManager = TransactionManagers.builder()
                 .config(config)
@@ -65,8 +65,8 @@ public class WritesDigestTest {
                 .runtimeConfigSupplier(() -> Optional.of(runtimeConfig))
                 .build()
                 .serializable();
-        emitter = new WritesDigestEmitter(transactionManager, TABLE_FACTORY.getUserProfileTable(null).getTableRef());
-
+        emitter = new WritesDigestEmitter(
+                transactionManager, TABLE_FACTORY.getUserProfileTable(null).getTableRef());
     }
 
     @Test
@@ -78,7 +78,8 @@ public class WritesDigestTest {
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 19L)));
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 23L)));
 
-        WritesDigest<String> digest = emitter.getDigest(row, PhotoStreamId.of(0L).persistColumnName());
+        WritesDigest<String> digest =
+                emitter.getDigest(row, PhotoStreamId.of(0L).persistColumnName());
 
         assertThat(digest.allWrittenTimestamps())
                 .as("nothing should be swept, we can see all the timestamps we've written at thus far")
@@ -96,8 +97,8 @@ public class WritesDigestTest {
     }
 
     private <T> T runWithRetry(Function<UserProfileTable, T> task) {
-        return transactionManager.runTaskWithRetry(transaction ->
-                task.apply(TABLE_FACTORY.getUserProfileTable(transaction)));
+        return transactionManager.runTaskWithRetry(
+                transaction -> task.apply(TABLE_FACTORY.getUserProfileTable(transaction)));
     }
 
     private void runWithRetryVoid(Consumer<UserProfileTable> task) {

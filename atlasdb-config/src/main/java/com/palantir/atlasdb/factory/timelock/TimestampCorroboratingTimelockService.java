@@ -16,23 +16,21 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A timelock service decorator for introducing runtime validity checks on received timestamps.
@@ -65,7 +63,8 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return checkAndUpdateLowerBound(() -> delegate.getFreshTimestamps(numTimestampsRequested),
+        return checkAndUpdateLowerBound(
+                () -> delegate.getFreshTimestamps(numTimestampsRequested),
                 TimestampRange::getLowerBound,
                 TimestampRange::getUpperBound,
                 OperationType.TIMESTAMP);
@@ -73,15 +72,17 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
 
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return checkAndUpdateLowerBound(() -> delegate.startIdentifiedAtlasDbTransactionBatch(count),
+        return checkAndUpdateLowerBound(
+                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count),
                 responses -> Collections.min(getTimestampsFromResponses(responses)),
                 responses -> Collections.max(getTimestampsFromResponses(responses)),
                 OperationType.TRANSACTION);
     }
 
     private List<Long> getTimestampsFromResponses(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
-        return responses.stream().map(response -> response.startTimestampAndPartition().timestamp()).collect(
-                Collectors.toList());
+        return responses.stream()
+                .map(response -> response.startTimestampAndPartition().timestamp())
+                .collect(Collectors.toList());
     }
 
     private <T> T checkAndUpdateLowerBound(
@@ -100,9 +101,7 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     private TimestampBounds getTimestampBounds() {
         long threadLocalLowerBoundFromTimestamps = lowerBoundFromTimestamps.get();
         long threadLocalLowerBoundFromTransactions = lowerBoundFromTransactions.get();
-        return ImmutableTimestampBounds.of(
-                threadLocalLowerBoundFromTimestamps,
-                threadLocalLowerBoundFromTransactions);
+        return ImmutableTimestampBounds.of(threadLocalLowerBoundFromTimestamps, threadLocalLowerBoundFromTransactions);
     }
 
     private static void checkTimestamp(TimestampBounds bounds, OperationType type, long freshTimestamp) {
@@ -111,10 +110,11 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         }
     }
 
-    private static RuntimeException clocksWentBackwards(TimestampBounds bounds,
-            OperationType type, long freshTimestamp) {
+    private static RuntimeException clocksWentBackwards(
+            TimestampBounds bounds, OperationType type, long freshTimestamp) {
         RuntimeException runtimeException = new SafeRuntimeException(CLOCKS_WENT_BACKWARDS_MESSAGE);
-        log.error(CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
+        log.error(
+                CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
                 SafeArg.of("bounds", bounds),
                 SafeArg.of("operationType", type),
                 SafeArg.of("freshTimestamp", freshTimestamp),
@@ -134,6 +134,7 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     interface TimestampBounds {
         @Value.Parameter
         long boundFromTimestamps();
+
         @Value.Parameter
         long boundFromTransactions();
     }

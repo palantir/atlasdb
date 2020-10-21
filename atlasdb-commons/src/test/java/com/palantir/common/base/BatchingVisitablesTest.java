@@ -24,12 +24,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import org.junit.Test;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -44,6 +38,10 @@ import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
+import org.junit.Test;
 
 @SuppressWarnings("Guava") // BatchingVisitables uses Guava.
 public class BatchingVisitablesTest {
@@ -90,30 +88,35 @@ public class BatchingVisitablesTest {
         assertEquals("BatchingVisitables.getMin was wrong", 0L, (long) BatchingVisitables.getMin(visitor));
         assertEquals("BatchingVisitables.getMax was wrong", 3L, (long) BatchingVisitables.getMax(visitor));
 
-        BatchingVisitable<Pair<Long, Long>> pairedVisitable = ListVisitor.create(Lists.newArrayList(
-                Pair.create(0L, 0L),
-                Pair.create(1L, 0L),
-                Pair.create(0L, 1L),
-                Pair.create(1L, 1L)));
+        BatchingVisitable<Pair<Long, Long>> pairedVisitable = ListVisitor.create(
+                Lists.newArrayList(Pair.create(0L, 0L), Pair.create(1L, 0L), Pair.create(0L, 1L), Pair.create(1L, 1L)));
 
         Ordering<Pair<Long, Long>> ordering = Pair.compareLhSide();
-        assertEquals("BatchingVisitables.getMin was wrong", Pair.create(0L, 0L),
+        assertEquals(
+                "BatchingVisitables.getMin was wrong",
+                Pair.create(0L, 0L),
                 BatchingVisitables.getMin(pairedVisitable, ordering, null));
-        assertEquals("BatchingVisitables.getMax was wrong", Pair.create(1L, 0L),
+        assertEquals(
+                "BatchingVisitables.getMax was wrong",
+                Pair.create(1L, 0L),
                 BatchingVisitables.getMax(pairedVisitable, ordering, null));
     }
 
     @Test
     public void testEmpty() {
-        assertTrue("empty batching visitable should be empty!",
+        assertTrue(
+                "empty batching visitable should be empty!",
                 BatchingVisitables.isEmpty(BatchingVisitables.emptyBatchingVisitable()));
-        assertEquals("empty batching visitable should be empty!", 0,
+        assertEquals(
+                "empty batching visitable should be empty!",
+                0,
                 BatchingVisitables.count(BatchingVisitables.emptyBatchingVisitable()));
 
         BatchingVisitable<Long> bv = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
         assertFalse("non-empty batching visitable should not be empty!", BatchingVisitables.isEmpty(bv));
         assertEquals("visitable had wrong size", 4, BatchingVisitables.count(bv));
-        assertTrue("empty visitable should always be true, even when told to visit an always-false place",
+        assertTrue(
+                "empty visitable should always be true, even when told to visit an always-false place",
                 BatchingVisitables.emptyBatchingVisitable().batchAccept(1, AbortingVisitors.alwaysFalse()));
     }
 
@@ -152,12 +155,12 @@ public class BatchingVisitablesTest {
     @Test
     public void testBatchHints() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
-        Function<List<Long>, List<String>> trans = (input) -> {
+        Function<List<Long>, List<String>> trans = input -> {
             assertEquals("batched item had wrong size", 2, input.size());
             return Lists.transform(input, Functions.toStringFunction());
         };
-        BatchingVisitableView<String> visitable = BatchingVisitableView.of(visitor).transformBatch(trans)
-                .hintBatchSize(2);
+        BatchingVisitableView<String> visitable =
+                BatchingVisitableView.of(visitor).transformBatch(trans).hintBatchSize(2);
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
         visitable.batchAccept(10000, item -> {
             hasTripped.set(true);
@@ -219,10 +222,11 @@ public class BatchingVisitablesTest {
 
     @Test
     public void testUnique() {
-        BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(
-                0L, 1L, 1L, 2L, 2L, 2L, 3L, 4L, 5L, 5L, 6L, 7L, 7L));
+        BatchingVisitable<Long> visitor =
+                ListVisitor.create(Lists.newArrayList(0L, 1L, 1L, 2L, 2L, 2L, 3L, 4L, 5L, 5L, 6L, 7L, 7L));
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
-        assertEquals("unexpected result for unique view",
+        assertEquals(
+                "unexpected result for unique view",
                 ImmutableList.of(0L, 1L, 2L, 3L),
                 bv.unique().limit(4).immutableCopy());
     }
@@ -248,7 +252,8 @@ public class BatchingVisitablesTest {
         assertTrue("batchAccept should be true", limited.batchAccept(4, AbortingVisitors.batching(cv)));
         assertEquals("CountingVisitor had wrong count", 9, cv.count);
 
-        assertTrue("batchAccept should be trivially true after everything was skipped",
+        assertTrue(
+                "batchAccept should be trivially true after everything was skipped",
                 limited.skip(3).batchAccept(1, AbortingVisitors.alwaysFalse()));
 
         LimitVisitor<Long> lv = new LimitVisitor<>(3);
@@ -258,14 +263,25 @@ public class BatchingVisitablesTest {
         lv = new LimitVisitor<>(2);
         assertFalse("batchAccept should be false", limited.batchAccept(1, AbortingVisitors.batching(lv)));
 
-        assertFalse("batchAccept should be false", limited.hintBatchSize(10)
-                .batchAccept(1, AbortingVisitors.alwaysFalse()));
-        assertTrue("batchAccept should be trivially true after everything was skipped", limited.hintBatchSize(10).skip(3)
-                .batchAccept(1, AbortingVisitors.alwaysFalse()));
+        assertFalse(
+                "batchAccept should be false",
+                limited.hintBatchSize(10).batchAccept(1, AbortingVisitors.alwaysFalse()));
+        assertTrue(
+                "batchAccept should be trivially true after everything was skipped",
+                limited.hintBatchSize(10).skip(3).batchAccept(1, AbortingVisitors.alwaysFalse()));
 
-        assertEquals("smaller limits should precede larger limits", 2, limited.limit(2).limit(4).size());
-        assertEquals("smaller limits should precede larger limits", 2, limited.limit(4).limit(2).size());
-        assertEquals("limited size shouldn't be greater than the original size!", 3, limited.limit(4).size());
+        assertEquals(
+                "smaller limits should precede larger limits",
+                2,
+                limited.limit(2).limit(4).size());
+        assertEquals(
+                "smaller limits should precede larger limits",
+                2,
+                limited.limit(4).limit(2).size());
+        assertEquals(
+                "limited size shouldn't be greater than the original size!",
+                3,
+                limited.limit(4).size());
     }
 
     @Test
@@ -273,8 +289,9 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> limited = BatchingVisitableView.of(visitor).limit(3);
         BatchingVisitableView<Long> concat = BatchingVisitables.concat(limited, visitor);
-        assertTrue("concatenated batchAccept should be true", concat.batchAccept(2, AbortingVisitors
-                .batching(AbortingVisitors.alwaysTrue())));
+        assertTrue(
+                "concatenated batchAccept should be true",
+                concat.batchAccept(2, AbortingVisitors.batching(AbortingVisitors.alwaysTrue())));
     }
 
     static class CountingVisitor<T> implements AbortingVisitor<T, RuntimeException> {
@@ -341,10 +358,11 @@ public class BatchingVisitablesTest {
         long count = 0;
 
         @Override
-        protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
-                ConsistentVisitor<Long, K> bv)
+        protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, ConsistentVisitor<Long, K> bv)
                 throws K {
-            while (bv.visitOne(count++)) { /* */ }
+            while (bv.visitOne(count++)) {
+                /* */
+            }
         }
     }
 
@@ -381,9 +399,7 @@ public class BatchingVisitablesTest {
         }
 
         @Override
-        protected <K extends Exception> void batchAcceptSizeHint(
-                int batchSize,
-                ConsistentVisitor<T, K> bv) throws K {
+        protected <K extends Exception> void batchAcceptSizeHint(int batchSize, ConsistentVisitor<T, K> bv) throws K {
             int actualBatchSize = Math.max(2, batchSize / 2);
 
             for (List<T> subList : Lists.partition(listToVisit, actualBatchSize)) {
@@ -400,40 +416,49 @@ public class BatchingVisitablesTest {
     public void testVisitWhile() {
         List<Long> longList = Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L);
         BatchingVisitable<Long> visitable = ListVisitor.create(longList);
-        BatchingVisitableView<Long> view = BatchingVisitables.visitWhile(
-                BatchingVisitableView.of(visitable), (input) -> input.longValue() < 5L);
+        BatchingVisitableView<Long> view =
+                BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), input -> input.longValue() < 5L);
         assertEquals("visitWhile visited the wrong number of elements", 5L, view.size());
-        assertEquals("visitWhile visited the wrong element first", 0L, view.getFirst().longValue());
-        assertEquals("visitWhile visited the wrong element last", 4L, view.getLast().longValue());
-        assertTrue("visitWhile visited the wrong elements",
+        assertEquals(
+                "visitWhile visited the wrong element first",
+                0L,
+                view.getFirst().longValue());
+        assertEquals(
+                "visitWhile visited the wrong element last", 4L, view.getLast().longValue());
+        assertTrue(
+                "visitWhile visited the wrong elements",
                 view.immutableCopy().containsAll(ImmutableSet.of(0L, 1L, 2L, 3L, 4L)));
 
         visitable = ListVisitor.create(Lists.reverse(longList));
-        view = BatchingVisitables.visitWhile(
-                BatchingVisitableView.of(visitable), (input) -> input.longValue() >= 5L);
+        view = BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), input -> input.longValue() >= 5L);
         assertEquals("visitWhile visited the wrong number of elements", 5L, view.size());
-        assertEquals("visitWhile visited the wrong element first", 9L, view.getFirst().longValue());
-        assertEquals("visitWhile visited the wrong element last", 5L, view.getLast().longValue());
-        assertTrue("visitWhile visited the wrong elements",
+        assertEquals(
+                "visitWhile visited the wrong element first",
+                9L,
+                view.getFirst().longValue());
+        assertEquals(
+                "visitWhile visited the wrong element last", 5L, view.getLast().longValue());
+        assertTrue(
+                "visitWhile visited the wrong elements",
                 view.immutableCopy().containsAll(ImmutableSet.of(5L, 6L, 7L, 8L, 9L)));
     }
 
     @Test
     public void testFlatten() {
-        List<String> firstChars = Lists.newArrayList();
+        List<String> firstChars = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             firstChars.add("" + (char) ('a' + i));
         }
         BatchingVisitable<String> outerVisitable = BatchingVisitableFromIterable.create(firstChars);
-        BatchingVisitableView<BatchingVisitable<String>> bv = BatchingVisitables.transform(outerVisitable,
-                (prefix) -> {
-                    List<String> innerChars = Lists.newArrayList();
-                    for (int i = 0; i < 10; i++) {
-                        innerChars.add(prefix + (char) ('0' + i));
-                    }
-                    return BatchingVisitableFromIterable.create(innerChars);
-                });
-        UnmodifiableIterator<String> iter = BatchingVisitables.flatten(7, bv).immutableCopy().iterator();
+        BatchingVisitableView<BatchingVisitable<String>> bv = BatchingVisitables.transform(outerVisitable, prefix -> {
+            List<String> innerChars = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                innerChars.add(prefix + (char) ('0' + i));
+            }
+            return BatchingVisitableFromIterable.create(innerChars);
+        });
+        UnmodifiableIterator<String> iter =
+                BatchingVisitables.flatten(7, bv).immutableCopy().iterator();
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
                 assertEquals("unexpected flattened result", "" + (char) ('a' + i) + (char) ('0' + j), iter.next());

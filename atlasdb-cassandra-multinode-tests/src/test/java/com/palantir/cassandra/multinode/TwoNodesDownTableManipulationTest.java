@@ -15,11 +15,10 @@
  */
 package com.palantir.cassandra.multinode;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import org.junit.Test;
 
 public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTest {
 
@@ -31,8 +30,7 @@ public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTe
     @Test
     public void createTableThrowsAndDoesNotChangeCassandraSchema() {
         TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
-
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
     }
 }

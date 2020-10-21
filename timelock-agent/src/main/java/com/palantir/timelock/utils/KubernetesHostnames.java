@@ -15,6 +15,9 @@
  */
 package com.palantir.timelock.utils;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -23,13 +26,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 public final class KubernetesHostnames {
 
@@ -47,8 +45,8 @@ public final class KubernetesHostnames {
     private final Supplier<String> currentHostnameSupplier;
 
     /** The pattern for hostnames when running in a k8s statefulset. */
-    private static final Pattern POD_HOSTNAME_TEMPLATE_REGEX = Pattern.compile(
-            "(?<service>[a-z0-9\\-.]+)-(?<podId>\\d+)\\.\\k<service>"
+    private static final Pattern POD_HOSTNAME_TEMPLATE_REGEX =
+            Pattern.compile("(?<service>[a-z0-9\\-.]+)-(?<podId>\\d+)\\.\\k<service>"
                     + "\\.(?<namespace>[a-z0-9\\-.]+)\\.svc\\.cluster\\.local");
 
     @VisibleForTesting
@@ -70,7 +68,8 @@ public final class KubernetesHostnames {
         Matcher podTemplateMatcher = getHostnameComponents();
 
         int ourPodId = Integer.parseInt(podTemplateMatcher.group("podId"));
-        Preconditions.checkArgument(ourPodId < expectedClusterSize,
+        Preconditions.checkArgument(
+                ourPodId < expectedClusterSize,
                 "Current Pod ID %s indicates a cluster size greater than the expected %s.",
                 ourPodId,
                 expectedClusterSize);
@@ -92,5 +91,4 @@ public final class KubernetesHostnames {
         com.palantir.logsafe.Preconditions.checkState(matcher.matches(), "Not running in a k8s stateful set.");
         return matcher;
     }
-
 }

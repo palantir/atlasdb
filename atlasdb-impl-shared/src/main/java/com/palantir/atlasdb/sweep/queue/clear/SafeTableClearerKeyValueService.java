@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.sweep.queue.clear;
 
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.sweep.queue.ImmutableTimestampSupplier;
+import java.util.Set;
 
 public class SafeTableClearerKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;

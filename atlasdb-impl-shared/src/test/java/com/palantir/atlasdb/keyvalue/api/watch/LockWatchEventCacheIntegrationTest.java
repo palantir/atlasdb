@@ -16,24 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -58,6 +44,17 @@ import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class LockWatchEventCacheIntegrationTest {
     private static final String TABLE = "table";
@@ -71,28 +68,32 @@ public class LockWatchEventCacheIntegrationTest {
     private static final UUID COMMIT_UUID = UUID.fromString("203fcd7a-b3d7-4c2a-9d2c-3d61cde1ba59");
     private static final LockToken COMMIT_TOKEN = LockToken.of(COMMIT_UUID);
 
-    private static final LockWatchEvent WATCH_EVENT =
-            LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR)).build(4L);
-    private static final LockWatchEvent UNLOCK_EVENT = UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_2)).build(5L);
+    private static final LockWatchEvent WATCH_EVENT = LockWatchCreatedEvent.builder(
+                    ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR))
+            .build(4L);
+    private static final LockWatchEvent UNLOCK_EVENT =
+            UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_2)).build(5L);
     private static final LockWatchEvent LOCK_EVENT =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), COMMIT_TOKEN).build(6L);
     private static final UUID EVENT2_UUID = UUID.fromString("888fcd7a-b3d7-4d2a-9d2c-3d61cde1ba44");
-    private static final LockWatchEvent LOCK_EVENT_2 =
-            LockEvent.builder(ImmutableSet.of(DESCRIPTOR), LockToken.of(EVENT2_UUID)).build(7L);
+    private static final LockWatchEvent LOCK_EVENT_2 = LockEvent.builder(
+                    ImmutableSet.of(DESCRIPTOR), LockToken.of(EVENT2_UUID))
+            .build(7L);
 
     private static final UUID LEADER = UUID.fromString("470c855e-f77b-44df-b56a-14d3df085dbc");
-    private static final LockWatchStateUpdate.Success SUCCESS_2 = LockWatchStateUpdate.success(LEADER, 7L,
-            ImmutableList.of(LOCK_EVENT_2));
+    private static final LockWatchStateUpdate.Success SUCCESS_2 =
+            LockWatchStateUpdate.success(LEADER, 7L, ImmutableList.of(LOCK_EVENT_2));
     private static final LockWatchStateUpdate SNAPSHOT =
             LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
     private static final long SUCCESS_VERSION = 6L;
     private static final LockWatchStateUpdate SUCCESS = LockWatchStateUpdate.success(
-            LEADER,
-            SUCCESS_VERSION,
-            ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT));
+            LEADER, SUCCESS_VERSION, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT));
     private static final long START_TS = 1L;
-    private static final Set<TransactionUpdate> COMMIT_UPDATE = ImmutableSet.of(
-            ImmutableTransactionUpdate.builder().startTs(START_TS).commitTs(5L).writesToken(COMMIT_TOKEN).build());
+    private static final Set<TransactionUpdate> COMMIT_UPDATE = ImmutableSet.of(ImmutableTransactionUpdate.builder()
+            .startTs(START_TS)
+            .commitTs(5L)
+            .writesToken(COMMIT_TOKEN)
+            .build());
     private static final Set<Long> TIMESTAMPS = ImmutableSet.of(START_TS);
     private static final Set<Long> TIMESTAMPS_2 = ImmutableSet.of(16L);
     private static final String BASE = "src/test/resources/lockwatch-event-cache-output/";
@@ -105,7 +106,6 @@ public class LockWatchEventCacheIntegrationTest {
         boolean isDev() {
             return this.equals(Mode.DEV);
         }
-
     }
 
     private LockWatchEventCacheImpl eventCache;
@@ -175,12 +175,14 @@ public class LockWatchEventCacheIntegrationTest {
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
 
-        eventCache.processStartTransactionsUpdate(secondTimestamps, LockWatchStateUpdate.success(LEADER, 7L,
-                ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT, LOCK_EVENT_2)));
+        eventCache.processStartTransactionsUpdate(
+                secondTimestamps,
+                LockWatchStateUpdate.success(
+                        LEADER, 7L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT, LOCK_EVENT_2)));
         verifyStage();
 
-        eventCache.processStartTransactionsUpdate(thirdTimestamps, LockWatchStateUpdate.success(LEADER, 5L,
-                ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT)));
+        eventCache.processStartTransactionsUpdate(
+                thirdTimestamps, LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT)));
         verifyStage();
     }
 
@@ -190,15 +192,17 @@ public class LockWatchEventCacheIntegrationTest {
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
 
-        eventCache.processStartTransactionsUpdate(secondTimestamps, LockWatchStateUpdate.success(LEADER, 5L,
-                ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT)));
+        eventCache.processStartTransactionsUpdate(
+                secondTimestamps,
+                LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT)));
         verifyStage();
 
-        eventCache.processStartTransactionsUpdate(thirdTimestamps, LockWatchStateUpdate.success(LEADER, 7L,
-                ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT, LOCK_EVENT_2)));
+        eventCache.processStartTransactionsUpdate(
+                thirdTimestamps,
+                LockWatchStateUpdate.success(
+                        LEADER, 7L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT, LOCK_EVENT_2)));
         verifyStage();
     }
-
 
     @Test
     public void getCommitUpdateDoesNotContainCommitLocks() {
@@ -228,8 +232,8 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
         verifyStage();
 
-        LockWatchStateUpdate snapshot2 = LockWatchStateUpdate.snapshot(LEADER, 7L, ImmutableSet.of(DESCRIPTOR),
-                ImmutableSet.of());
+        LockWatchStateUpdate snapshot2 =
+                LockWatchStateUpdate.snapshot(LEADER, 7L, ImmutableSet.of(DESCRIPTOR), ImmutableSet.of());
         Set<Long> timestamps3 = ImmutableSet.of(123L, 1255L);
         eventCache.processStartTransactionsUpdate(timestamps3, snapshot2);
         verifyStage();
@@ -248,14 +252,16 @@ public class LockWatchEventCacheIntegrationTest {
 
         TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.empty());
         assertThat(results.clearCache()).isTrue();
-        assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(
-                LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE),
-                        ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2)).build(4L),
-                UNLOCK_EVENT,
-                LOCK_EVENT,
-                LOCK_EVENT_2);
+        assertThat(results.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events())
+                .containsExactly(
+                        LockWatchCreatedEvent.builder(
+                                        ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2))
+                                .build(4L),
+                        UNLOCK_EVENT,
+                        LOCK_EVENT,
+                        LOCK_EVENT_2);
     }
 
     @Test
@@ -263,21 +269,21 @@ public class LockWatchEventCacheIntegrationTest {
         setupInitialState();
         UUID newLeader = UUID.randomUUID();
         LockWatchVersion spuriousVersion = LockWatchVersion.of(newLeader, 99999L);
-        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS,
-                Optional.of(spuriousVersion));
+        TransactionsLockWatchUpdate results =
+                eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.of(spuriousVersion));
 
         assertThat(results.clearCache()).isTrue();
-        assertThat(results.startTsToSequence()).containsExactlyEntriesOf(
-                ImmutableMap.of(START_TS, LockWatchVersion.of(LEADER, 3L)));
-        assertThat(results.events()).containsExactly(
-                LockWatchCreatedEvent.fromSnapshot((LockWatchStateUpdate.Snapshot) SNAPSHOT));
+        assertThat(results.startTsToSequence())
+                .containsExactlyEntriesOf(ImmutableMap.of(START_TS, LockWatchVersion.of(LEADER, 3L)));
+        assertThat(results.events())
+                .containsExactly(LockWatchCreatedEvent.fromSnapshot((LockWatchStateUpdate.Snapshot) SNAPSHOT));
     }
 
     @Test
     public void leaderChangeClearsCaches() {
         setupInitialState();
-        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,
-                LockWatchStateUpdate.success(EVENT2_UUID, 4L, ImmutableList.of()));
+        eventCache.processStartTransactionsUpdate(
+                TIMESTAMPS_2, LockWatchStateUpdate.success(EVENT2_UUID, 4L, ImmutableList.of()));
         verifyStage();
     }
 
@@ -296,10 +302,11 @@ public class LockWatchEventCacheIntegrationTest {
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
 
-        LockWatchEvent earlyEvent = LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), COMMIT_TOKEN).build(2L);
+        LockWatchEvent earlyEvent =
+                LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), COMMIT_TOKEN).build(2L);
 
-        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(secondTimestamps,
-                LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(earlyEvent))))
+        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(
+                        secondTimestamps, LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(earlyEvent))))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Cannot process events before the oldest event. The transaction should be retried, "
                         + "although this should only happen very rarely.");
@@ -308,8 +315,10 @@ public class LockWatchEventCacheIntegrationTest {
     @Test
     public void nonContiguousEventsThrows() {
         setupInitialState();
-        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,
-                LockWatchStateUpdate.success(LEADER, 7L, ImmutableList.of(WATCH_EVENT, LOCK_EVENT, LOCK_EVENT_2))))
+        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(
+                        TIMESTAMPS_2,
+                        LockWatchStateUpdate.success(
+                                LEADER, 7L, ImmutableList.of(WATCH_EVENT, LOCK_EVENT, LOCK_EVENT_2))))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Events form a non-contiguous sequence");
     }
@@ -318,26 +327,29 @@ public class LockWatchEventCacheIntegrationTest {
     public void clientOnSameVersionAsCacheDoesNotThrow() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        assertThat(eventCache.getUpdateForTransactions(
-                TIMESTAMPS_2,
-                Optional.of(LockWatchVersion.of(LEADER, SUCCESS_VERSION))).events()).isEmpty();
+        assertThat(eventCache
+                        .getUpdateForTransactions(
+                                TIMESTAMPS_2, Optional.of(LockWatchVersion.of(LEADER, SUCCESS_VERSION)))
+                        .events())
+                .isEmpty();
     }
 
     @Test
     public void clientOnSameVersionAsTransactionDoesNotThrow() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        assertThat(eventCache.getUpdateForTransactions(
-                ImmutableSet.of(START_TS, 16L),
-                Optional.of(LockWatchVersion.of(LEADER, 3L))).events())
+        assertThat(eventCache
+                        .getUpdateForTransactions(
+                                ImmutableSet.of(START_TS, 16L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
+                        .events())
                 .containsExactly(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT);
     }
 
     @Test
     public void missedEventThrows() {
         setupInitialState();
-        assertThatLoggableExceptionThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2,
-                LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(UNLOCK_EVENT))))
+        assertThatLoggableExceptionThrownBy(() -> eventCache.processStartTransactionsUpdate(
+                        TIMESTAMPS_2, LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(UNLOCK_EVENT))))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("Events missing between last snapshot and this batch of events");
     }
@@ -346,8 +358,7 @@ public class LockWatchEventCacheIntegrationTest {
     public void newEventsStartingWithTheSameVersionAsCurrentDoesNotThrow() {
         setupInitialState();
         LockWatchEvent earlyLockEvent = LockWatchCreatedEvent.builder(
-                ImmutableSet.of(REFERENCE),
-                ImmutableSet.of(DESCRIPTOR))
+                        ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR))
                 .build(3L);
         LockWatchStateUpdate success =
                 LockWatchStateUpdate.success(LEADER, 4L, ImmutableList.of(earlyLockEvent, WATCH_EVENT));
@@ -362,10 +373,12 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
 
         assertThatThrownBy(() -> eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.empty()))
-                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Events do not enclose the required versions");
 
         assertThatThrownBy(() -> eventCache.getCommitUpdate(START_TS))
-                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("start or commit info not processed for start timestamp");
     }
 
     @Test
@@ -376,6 +389,16 @@ public class LockWatchEventCacheIntegrationTest {
         verifyStage();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
         verifyStage();
+    }
+
+    @Test
+    public void equalRangeDoesNotThrow() {
+        eventCache.processStartTransactionsUpdate(
+                TIMESTAMPS,
+                LockWatchStateUpdate.snapshot(LEADER, 10000L, ImmutableSet.of(DESCRIPTOR), ImmutableSet.of()));
+        assertThatCode(() -> eventCache.getUpdateForTransactions(
+                        TIMESTAMPS, Optional.of(LockWatchVersion.of(LEADER, 10000L))))
+                .doesNotThrowAnyException();
     }
 
     private void setupInitialState() {

@@ -15,28 +15,24 @@
  */
 package com.palantir.atlasdb.config;
 
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.palantir.refreshable.Refreshable;
 
 public final class ServerListConfigs {
     private ServerListConfigs() {
         // utilities
     }
 
-    public static Refreshable<ServerListConfig> parseInstallAndRuntimeConfigs(TimeLockClientConfig installClientConfig,
-            Refreshable<Optional<TimeLockRuntimeConfig>> runtimeConfig) {
-        return runtimeConfig
-                .map(config -> config.map(TimeLockRuntimeConfig::serversList)
-                        .orElseGet(installClientConfig::serversList));
+    public static Refreshable<ServerListConfig> parseInstallAndRuntimeConfigs(
+            TimeLockClientConfig installClientConfig, Refreshable<Optional<TimeLockRuntimeConfig>> runtimeConfig) {
+        return runtimeConfig.map(
+                config -> config.map(TimeLockRuntimeConfig::serversList).orElseGet(installClientConfig::serversList));
     }
 
     public static ServerListConfig namespaceUris(ServerListConfig config, String namespace) {
-        Set<String> serversWithNamespaces = config
-                .servers()
-                .stream()
+        Set<String> serversWithNamespaces = config.servers().stream()
                 .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + namespace)
                 .collect(Collectors.toSet());
         return ImmutableServerListConfig.builder()

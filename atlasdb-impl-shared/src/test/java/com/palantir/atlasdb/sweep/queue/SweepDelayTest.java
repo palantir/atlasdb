@@ -24,14 +24,13 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Test;
 
 public class SweepDelayTest {
     private static final SweepIterationResult SUCCESS_TOO_FAST = SweepIterationResults.success(1L);
     private static final SweepIterationResult SUCCESS_TOO_SLOW = SweepIterationResults.success(SWEEP_BATCH_SIZE);
-    private static final SweepIterationResult SUCCESS = SweepIterationResults
-            .success((BATCH_CELLS_LOW_THRESHOLD + SWEEP_BATCH_SIZE) / 2);
+    private static final SweepIterationResult SUCCESS =
+            SweepIterationResults.success((BATCH_CELLS_LOW_THRESHOLD + SWEEP_BATCH_SIZE) / 2);
     private static final long INITIAL_DELAY = 250L;
 
     private final AtomicLong metrics = new AtomicLong();
@@ -68,7 +67,8 @@ public class SweepDelayTest {
 
     @Test
     public void insufficientConsistencyReturnsBackoff() {
-        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency())).isEqualTo(BACKOFF);
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isEqualTo(BACKOFF);
         assertThat(metrics).hasValue(BACKOFF);
     }
 
@@ -118,7 +118,6 @@ public class SweepDelayTest {
         long nextPause = delay.getNextPause(SUCCESS);
         assertThat(nextPause).isGreaterThanOrEqualTo((long) (INITIAL_DELAY * 0.95));
         assertThat(nextPause).isLessThanOrEqualTo((long) (INITIAL_DELAY * 1.05));
-
     }
 
     private void sweepTwentyIterationsWithResult(SweepIterationResult result) {

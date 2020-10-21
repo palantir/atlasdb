@@ -17,10 +17,15 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.TestProxyUtils;
+import com.palantir.atlasdb.todo.ImmutableTodo;
+import com.palantir.atlasdb.todo.Todo;
+import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.timestamp.TimestampService;
 import java.io.File;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
@@ -31,13 +36,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.TestProxyUtils;
-import com.palantir.atlasdb.todo.ImmutableTodo;
-import com.palantir.atlasdb.todo.Todo;
-import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.timestamp.TimestampService;
-
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
 public class TimeLockMigrationEteTest {
@@ -46,10 +44,10 @@ public class TimeLockMigrationEteTest {
 
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
-    private static final TemporaryFolder TEMPORARY_FOLDER
-            = new TemporaryFolder(new File(System.getProperty("user.home")));
-    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE
-            = new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
+    private static final TemporaryFolder TEMPORARY_FOLDER =
+            new TemporaryFolder(new File(System.getProperty("user.home")));
+    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE =
+            new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
 
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
@@ -82,12 +80,14 @@ public class TimeLockMigrationEteTest {
         TodoResource todoClient = createEteClientFor(TodoResource.class);
 
         todoClient.addTodo(TODO);
-        softAssertions.assertThat(todoClient.getTodoList())
+        softAssertions
+                .assertThat(todoClient.getTodoList())
                 .as("contains one todo pre-migration")
                 .contains(TODO);
 
         long embeddedTimestamp = timestampClient.getFreshTimestamp();
-        softAssertions.assertThat(embeddedTimestamp)
+        softAssertions
+                .assertThat(embeddedTimestamp)
                 .as("can get a timestamp before migration")
                 .isNotNull();
 
@@ -95,12 +95,14 @@ public class TimeLockMigrationEteTest {
 
         assertTimeLockGivesHigherTimestampThan(embeddedTimestamp);
 
-        softAssertions.assertThat(todoClient.getTodoList())
+        softAssertions
+                .assertThat(todoClient.getTodoList())
                 .as("can still read todo after migration to TimeLock")
                 .contains(TODO);
 
         todoClient.addTodo(TODO_2);
-        softAssertions.assertThat(todoClient.getTodoList())
+        softAssertions
+                .assertThat(todoClient.getTodoList())
                 .as("can add a new todo using TimeLock")
                 .contains(TODO, TODO_2);
 
@@ -128,25 +130,28 @@ public class TimeLockMigrationEteTest {
 
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
-        softAssertions.assertThat(
-                (catchThrowable(timestampClient::getFreshTimestamp)).getMessage())
+        softAssertions
+                .assertThat((catchThrowable(timestampClient::getFreshTimestamp)).getMessage())
                 .contains("NOT_FOUND")
                 .as("no longer exposes an embedded timestamp service");
     }
 
     private void assertCanNeitherReadNorWrite() {
         TodoResource todoClient = createEteClientFor(TodoResource.class);
-        softAssertions.assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
+        softAssertions
+                .assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
                 .as("cannot write using embedded service after migration to TimeLock")
                 .hasMessageContaining("Connection refused");
-        softAssertions.assertThat(catchThrowable(todoClient::getTodoList))
+        softAssertions
+                .assertThat(catchThrowable(todoClient::getTodoList))
                 .as("cannot read using embedded service after migration to TimeLock")
                 .hasMessageContaining("Connection refused");
     }
 
     private void assertTimeLockGivesHigherTimestampThan(long timestamp) {
         long newTimestamp = createTimeLockTimestampClient().getFreshTimestamp();
-        softAssertions.assertThat(newTimestamp)
+        softAssertions
+                .assertThat(newTimestamp)
                 .as("timestamp was migrated to TimeLock")
                 .isGreaterThan(timestamp);
     }
@@ -181,18 +186,12 @@ public class TimeLockMigrationEteTest {
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(),
-                uri,
-                clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.empty(), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(),
-                uri,
-                TimestampService.class,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.empty(), uri, TimestampService.class, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 }

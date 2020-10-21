@@ -22,23 +22,21 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AsyncRetrierTest {
@@ -51,7 +49,8 @@ public class AsyncRetrierTest {
     private SettableFuture<Integer> future = SettableFuture.create();
     private Supplier<ListenableFuture<Integer>> replaceableFunction = () -> future;
 
-    @Mock private Supplier<ListenableFuture<Integer>> function;
+    @Mock
+    private Supplier<ListenableFuture<Integer>> function;
 
     private AsyncRetrier<Integer> retrier;
 

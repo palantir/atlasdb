@@ -17,11 +17,10 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import org.junit.Test;
 
 public class TableMetadataTest {
     private static final TableMetadata DEFAULT_TABLE_METADATA = TableMetadata.allDefault();
@@ -54,5 +53,4 @@ public class TableMetadataTest {
         TableMetadataPersistence.TableMetadata.Builder builder = tableMetadata.persistToProto();
         assertThat(TableMetadata.hydrateFromProto(builder.build())).isEqualTo(tableMetadata);
     }
-
 }

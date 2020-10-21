@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.Map;
-
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.codahale.metrics.Histogram;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import java.util.Map;
+import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe // Disruptor runs the batching function on just one thread.
 public final class BatchSizeRecorder {
@@ -35,7 +33,8 @@ public final class BatchSizeRecorder {
     }
 
     public static BatchSizeRecorder create(String safeLoggerIdentifier, Map<String, String> tags) {
-        Histogram histogram = SharedTaggedMetricRegistries.getSingleton().histogram(MetricName.builder()
+        Histogram histogram = SharedTaggedMetricRegistries.getSingleton()
+                .histogram(MetricName.builder()
                         .safeName(AUTOBATCHER_METER)
                         .putSafeTags("identifier", safeLoggerIdentifier)
                         .putAllSafeTags(tags)
@@ -46,5 +45,4 @@ public final class BatchSizeRecorder {
     public void markBatchProcessed(long batchSize) {
         histogram.update(batchSize);
     }
-
 }

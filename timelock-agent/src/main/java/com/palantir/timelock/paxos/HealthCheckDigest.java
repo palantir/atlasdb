@@ -16,11 +16,10 @@
 
 package com.palantir.timelock.paxos;
 
-import org.immutables.value.Value;
-
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface HealthCheckDigest {

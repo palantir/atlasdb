@@ -15,22 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.timestamp.TimestampService;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SweepStatsKeyValueServiceTest {
     private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);
@@ -45,40 +42,39 @@ public class SweepStatsKeyValueServiceTest {
     public void before() {
         isSweepEnabled = new AtomicBoolean(true);
         TimestampService timestampService = mock(TimestampService.class);
-        kvs = SweepStatsKeyValueService.create(delegate, timestampService,
+        kvs = SweepStatsKeyValueService.create(
+                delegate,
+                timestampService,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD,
-                () -> isSweepEnabled.get()
-        );
+                () -> isSweepEnabled.get());
     }
 
     @Test
     public void delegatesInitializationCheck() {
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
-        assertFalse(kvs.isInitialized());
-        assertTrue(kvs.isInitialized());
+        assertThat(kvs.isInitialized()).isFalse();
+        assertThat(kvs.isInitialized()).isTrue();
     }
 
     @Test
     public void deleteRangeAllCountsAsClearingTheTable() throws Exception {
         kvs.deleteRange(TABLE, RangeRequest.all());
-        assertTrue(kvs.hasBeenCleared(TABLE));
+        assertThat(kvs.hasBeenCleared(TABLE)).isTrue();
     }
 
     @Test
     public void testDisabled() {
         isSweepEnabled.set(false);
         kvs.deleteRange(TABLE, RangeRequest.all());
-        assertFalse(kvs.hasBeenCleared(TABLE));
+        assertThat(kvs.hasBeenCleared(TABLE)).isFalse();
     }
 
     @Test
     public void otherDeleteRangeDoesNotCountAsClearingTheTable() throws Exception {
         RangeRequest request = RangeRequest.builder().startRowInclusive(ROW).build();
         kvs.deleteRange(TABLE, request);
-        assertFalse(kvs.hasBeenCleared(TABLE));
+        assertThat(kvs.hasBeenCleared(TABLE)).isFalse();
     }
 }

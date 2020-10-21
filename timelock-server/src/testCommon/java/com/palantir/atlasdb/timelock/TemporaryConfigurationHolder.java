@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.util.Locale;
-
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
-
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.Locale;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
 
 public class TemporaryConfigurationHolder extends ExternalResource {
 
@@ -36,10 +34,7 @@ public class TemporaryConfigurationHolder extends ExternalResource {
 
     private File temporaryConfigFile;
 
-    TemporaryConfigurationHolder(
-            TemporaryFolder temporaryFolder,
-            String templateName,
-            TemplateVariables variables) {
+    TemporaryConfigurationHolder(TemporaryFolder temporaryFolder, String templateName, TemplateVariables variables) {
         this.temporaryFolder = temporaryFolder;
         this.templateName = templateName;
         this.variables = ImmutableTemplateVariables.copyOf(variables);
@@ -63,8 +58,10 @@ public class TemporaryConfigurationHolder extends ExternalResource {
     private void createTemporaryConfigFile() throws Exception {
         Template template = TEMPLATE_CONFIG.getTemplate(templateName);
         TemplateVariables variablesWithFolders = variables
-                .withDataDirectory(temporaryFolder.newFolder(appendPort("legacy")).getAbsolutePath())
-                .withSqliteDataDirectory(temporaryFolder.newFolder(appendPort("sqlite")).getAbsolutePath());
+                .withDataDirectory(
+                        temporaryFolder.newFolder(appendPort("legacy")).getAbsolutePath())
+                .withSqliteDataDirectory(
+                        temporaryFolder.newFolder(appendPort("sqlite")).getAbsolutePath());
         template.process(variablesWithFolders, new FileWriter(temporaryConfigFile));
     }
 
@@ -75,5 +72,4 @@ public class TemporaryConfigurationHolder extends ExternalResource {
     String getTemporaryConfigFileLocation() {
         return temporaryConfigFile.getPath();
     }
-
 }

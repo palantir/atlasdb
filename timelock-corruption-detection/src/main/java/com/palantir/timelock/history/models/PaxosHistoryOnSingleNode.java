@@ -16,14 +16,12 @@
 
 package com.palantir.timelock.history.models;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.paxos.NamespaceAndUseCase;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
-
-import com.google.common.collect.ImmutableMap;
-import com.palantir.paxos.NamespaceAndUseCase;
 
 @Value.Immutable
 public interface PaxosHistoryOnSingleNode {
@@ -42,12 +40,12 @@ public interface PaxosHistoryOnSingleNode {
     }
 
     default Map<Long, LearnedAndAcceptedValue> consolidateRecordsForSequenceRange(LearnerAndAcceptorRecords records) {
-        return records.getAllSequenceNumbers().stream().collect(
-                Collectors.toMap(Function.identity(), seq -> getLearnedAndAcceptedValues(records, seq)));
+        return records.getAllSequenceNumbers().stream()
+                .collect(Collectors.toMap(Function.identity(), seq -> getLearnedAndAcceptedValues(records, seq)));
     }
 
     default LearnedAndAcceptedValue getLearnedAndAcceptedValues(LearnerAndAcceptorRecords records, Long seq) {
-        return ImmutableLearnedAndAcceptedValue.of(records.getLearnedValueAtSeqIfExists(seq),
-                records.getAcceptedValueAtSeqIfExists(seq));
+        return ImmutableLearnedAndAcceptedValue.of(
+                records.getLearnedValueAtSeqIfExists(seq), records.getAcceptedValueAtSeqIfExists(seq));
     }
 }

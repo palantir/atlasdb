@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
+import java.nio.ByteBuffer;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
 
 public class TracingQueryRunner {
     private final Logger log;
@@ -59,7 +57,7 @@ public class TracingQueryRunner {
         return run(client, ImmutableSet.of(tableRef), action);
     }
 
-    public  <V> V trace(Action<V> action, CassandraClient client, Set<TableReference> tableRefs) throws TException {
+    public <V> V trace(Action<V> action, CassandraClient client, Set<TableReference> tableRefs) throws TException {
         ByteBuffer traceId = client.trace_next_query();
         Stopwatch stopwatch = Stopwatch.createStarted();
         boolean failed = false;
@@ -85,13 +83,15 @@ public class TracingQueryRunner {
     }
 
     private void logFailedCall(Set<TableReference> tableRefs) {
-        log.warn("A call to table(s) {} failed with an exception.",
+        log.warn(
+                "A call to table(s) {} failed with an exception.",
                 tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
         if (failed || duration > tracingPrefs.getMinimumDurationToTraceMillis()) {
-            log.info("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
+            log.info(
+                    "Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
                     failed ? "failed and " : "",
                     duration,

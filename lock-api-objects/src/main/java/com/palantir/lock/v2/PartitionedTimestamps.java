@@ -16,21 +16,21 @@
 
 package com.palantir.lock.v2;
 
-import java.util.stream.LongStream;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.primitives.Ints;
+import java.util.stream.LongStream;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutablePartitionedTimestamps.class)
 @JsonDeserialize(as = ImmutablePartitionedTimestamps.class)
 public interface PartitionedTimestamps {
     long start();
+
     int interval();
+
     int count();
 
     @JsonIgnore

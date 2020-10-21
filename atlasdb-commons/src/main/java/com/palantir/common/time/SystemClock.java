@@ -15,7 +15,6 @@
  */
 package com.palantir.common.time;
 
-
 /**
  * Simple clock implementation based on System.currentTimeMillis()
  *

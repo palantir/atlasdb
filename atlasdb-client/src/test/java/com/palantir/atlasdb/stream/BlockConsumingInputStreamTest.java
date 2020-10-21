@@ -25,16 +25,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class BlockConsumingInputStreamTest {
@@ -121,7 +119,7 @@ public class BlockConsumingInputStreamTest {
     @Test
     public void canReadSingleByte() throws IOException {
         int byteAsInt = dataStream.read();
-        byte[] readByte = { (byte) byteAsInt };
+        byte[] readByte = {(byte) byteAsInt};
         assertEquals("d", new String(readByte, StandardCharsets.UTF_8));
     }
 
@@ -255,7 +253,8 @@ public class BlockConsumingInputStreamTest {
 
         // Should fail, because reallyBigGetter.expectedBlockLength() * blocksInMemory = Integer.MAX_VALUE - 7.
         int blocksInMemory = 8;
-        assertTrue("Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.",
+        assertTrue(
+                "Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.",
                 (long) reallyBigGetter.expectedBlockLength() * (long) blocksInMemory
                         > StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
         BlockConsumingInputStream.create(reallyBigGetter, 9, blocksInMemory);
@@ -278,6 +277,7 @@ public class BlockConsumingInputStreamTest {
         // Should fail, because tooBigGetter.expectedBlockLength() * 1 = Integer.MAX_VALUE - 7.
         BlockConsumingInputStream.create(tooBigGetter, 2, 1);
     }
+
     @Test
     public void canLoadMultipleBlocksAtOnceAndAlsoFewerBlocksAtEnd() throws IOException {
         BlockGetter spiedGetter = Mockito.spy(singleByteConsumer);
@@ -297,5 +297,4 @@ public class BlockConsumingInputStreamTest {
         assertEquals(2, read);
         assertArrayEquals(expectedOutput.getBytes(StandardCharsets.UTF_8), chunk);
     }
-
 }

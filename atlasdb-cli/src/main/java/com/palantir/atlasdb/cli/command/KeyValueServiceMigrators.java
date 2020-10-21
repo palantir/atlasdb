@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import org.immutables.value.Value;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -28,10 +25,12 @@ import com.palantir.atlasdb.schema.TaskProgress;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
+import org.immutables.value.Value;
+import org.slf4j.LoggerFactory;
 
 public final class KeyValueServiceMigrators {
-    private static final OutputPrinter printer
-            = new OutputPrinter(LoggerFactory.getLogger(KeyValueServiceMigrator.class));
+    private static final OutputPrinter printer =
+            new OutputPrinter(LoggerFactory.getLogger(KeyValueServiceMigrator.class));
 
     static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
 
@@ -84,6 +83,7 @@ public final class KeyValueServiceMigrators {
     @Value.Immutable
     abstract static class MigratorSpec {
         public abstract AtlasDbServices fromServices();
+
         public abstract AtlasDbServices toServices();
 
         @Value.Default

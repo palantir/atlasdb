@@ -15,26 +15,24 @@
  */
 package com.palantir.lock.client;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LockRefresher implements AutoCloseable {
 
-    private final Logger log = LoggerFactory.getLogger(LockRefresher.class);
+    private static final Logger log = LoggerFactory.getLogger(LockRefresher.class);
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;
@@ -43,9 +41,7 @@ public class LockRefresher implements AutoCloseable {
     private ScheduledFuture<?> task;
 
     public LockRefresher(
-            ScheduledExecutorService executor,
-            TimelockService timelockService,
-            long refreshIntervalMillis) {
+            ScheduledExecutorService executor, TimelockService timelockService, long refreshIntervalMillis) {
         this.executor = executor;
         this.timelockService = timelockService;
 
@@ -54,10 +50,7 @@ public class LockRefresher implements AutoCloseable {
 
     private void scheduleRefresh(long refreshIntervalMillis) {
         task = executor.scheduleAtFixedRate(
-                this::refreshLocks,
-                refreshIntervalMillis,
-                refreshIntervalMillis,
-                TimeUnit.MILLISECONDS);
+                this::refreshLocks, refreshIntervalMillis, refreshIntervalMillis, TimeUnit.MILLISECONDS);
     }
 
     private void refreshLocks() {
@@ -71,12 +64,14 @@ public class LockRefresher implements AutoCloseable {
             Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
             tokensToRefresh.removeAll(refreshFailures);
             if (!refreshFailures.isEmpty()) {
-                log.info("Successfully refreshed {}, but failed to refresh {} lock tokens, "
+                log.info(
+                        "Successfully refreshed {}, but failed to refresh {} lock tokens, "
                                 + "most likely because they were lost on the server."
                                 + " The first (up to) 20 of these were {}.",
                         SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()),
                         SafeArg.of("numLockTokens", refreshFailures.size()),
-                        SafeArg.of("firstFailures",
+                        SafeArg.of(
+                                "firstFailures",
                                 Iterables.transform(Iterables.limit(refreshFailures, 20), LockToken::getRequestId)));
             }
         } catch (Throwable error) {

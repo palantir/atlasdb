@@ -25,13 +25,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SimpleLocksTest {
     private SingleLockService lockService;

@@ -16,11 +16,10 @@
 
 package com.palantir.timelock.history.util;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class UseCaseUtils {
     private static final Pattern PATTERN = Pattern.compile("^(.*)!(.*)$");
@@ -31,8 +30,7 @@ public final class UseCaseUtils {
 
     public static String getPaxosUseCasePrefix(String useCase) {
         Matcher matcher = PATTERN.matcher(useCase);
-        Preconditions.checkState(matcher.find(),
-                "Unexpected use case format", SafeArg.of("useCase", useCase));
+        Preconditions.checkState(matcher.find(), "Unexpected use case format", SafeArg.of("useCase", useCase));
         return matcher.group(1);
     }
 }

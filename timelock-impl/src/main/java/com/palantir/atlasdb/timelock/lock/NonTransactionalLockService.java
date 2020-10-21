@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import javax.ws.rs.BadRequestException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimplifyingLockService;
 import com.palantir.logsafe.UnsafeArg;
+import javax.ws.rs.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This lock service may be used as a LockService, for the purposes of advisory locking as well as for
@@ -48,7 +46,8 @@ public class NonTransactionalLockService extends SimplifyingLockService {
 
     @Override
     public Long getMinLockedInVersionId(String client) {
-        log.warn("Client {} attempted to getMinLockedInVersionId() on a non-transactional lock service!"
+        log.warn(
+                "Client {} attempted to getMinLockedInVersionId() on a non-transactional lock service!"
                         + " If you are using async timelock, this suggests that one of your AtlasDB clients still"
                         + " expects synchronous lock (i.e. is on a version of AtlasDB prior to 0.49.0). Please check"
                         + " that all AtlasDB clients are using AtlasDB >= 0.49.0.",

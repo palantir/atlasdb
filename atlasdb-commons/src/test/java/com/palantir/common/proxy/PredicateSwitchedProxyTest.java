@@ -22,7 +22,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
-
 import org.junit.Test;
 
 public class PredicateSwitchedProxyTest {
@@ -31,11 +30,8 @@ public class PredicateSwitchedProxyTest {
 
     private final AtomicBoolean atomicBoolean = new AtomicBoolean(false);
 
-    private final IntConsumer consumer = PredicateSwitchedProxy.newProxyInstance(
-            decorated,
-            delegate,
-            atomicBoolean::get,
-            IntConsumer.class);
+    private final IntConsumer consumer =
+            PredicateSwitchedProxy.newProxyInstance(decorated, delegate, atomicBoolean::get, IntConsumer.class);
 
     @Test
     public void dynamicallySwitchesCorrectlyForMethodsWithArguments() throws Exception {

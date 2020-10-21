@@ -22,6 +22,5 @@ public class PostconditionFailedException extends RuntimeException {
 
         super(clazz.getCanonicalName() + " has violated the autobatching coalescing invariant of an result entry "
                 + "existing for each request.");
-
     }
 }

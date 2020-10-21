@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.OptionalLong;
 import java.util.function.Function;
-
-import com.palantir.nexus.db.DBType;
 
 /**
  * A {@link PhysicalBoundStoreStrategy} is responsible for interaction between a timestamp bound store and the physical

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2016 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,13 @@
  */
 package com.palantir.db.oracle;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.BaseEncoding;
 import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.BaseEncoding;
-
 import oracle.jdbc.OracleConnection;
 import oracle.sql.ARRAY;
 import oracle.sql.ArrayDescriptor;
@@ -37,13 +35,11 @@ import oracle.sql.StructDescriptor;
 public class NativeOracleJdbcHandler implements JdbcHandler {
 
     @Override
-    public ArrayHandler createStructArray(
-            String structType,
-            String arrayType,
-            List<Object[]> elements) {
+    public ArrayHandler createStructArray(String structType, String arrayType, List<Object[]> elements) {
         return new ArrayHandler() {
             private ARRAY array = null;
 
+            @Override
             public ARRAY toOracleArray(Connection connection) throws SQLException {
                 OracleConnection oracleConnection = getOracleConnection(connection);
                 StructDescriptor sd = StructDescriptor.createDescriptor(structType, oracleConnection);

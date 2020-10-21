@@ -16,17 +16,14 @@
 
 package com.palantir.timelock.paxos;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.function.Function;
-
 import javax.sql.DataSource;
-
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings("FinalClass")
 public class PersistedSchemaVersion {

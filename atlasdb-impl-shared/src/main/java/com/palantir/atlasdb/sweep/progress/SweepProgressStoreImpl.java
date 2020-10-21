@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -40,10 +33,15 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SweepProgressStoreImpl implements SweepProgressStore {
 
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepProgressStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepProgressStore {
         @Override
         public SweepProgressStoreImpl delegate() {
             checkInitialized();
@@ -66,15 +64,15 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     private final KeyValueService kvs;
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .registerModule(new Jdk8Module())
-            .registerModule(new AfterburnerModule());
+    private static final ObjectMapper OBJECT_MAPPER =
+            new ObjectMapper().registerModule(new Jdk8Module()).registerModule(new AfterburnerModule());
 
     private static final String ROW_AND_COLUMN_NAME = "s";
     private static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toCachedBytes(ROW_AND_COLUMN_NAME);
 
     @VisibleForTesting
     static final Cell LEGACY_CELL = Cell.create(ROW_AND_COLUMN_NAME_BYTES, ROW_AND_COLUMN_NAME_BYTES);
+
     private static final byte[] FINISHED_TABLE = PtBytes.toBytes("Table finished");
 
     private static final TableMetadata SWEEP_PROGRESS_METADATA = TableMetadata.internal()
@@ -92,7 +90,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         return progressStore.wrapper.isInitialized() ? progressStore : progressStore.wrapper;
     }
 
-    private Optional<SweepProgress> loadLegacyProgress()  {
+    private Optional<SweepProgress> loadLegacyProgress() {
         Map<Cell, Value> entry = kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(LEGACY_CELL, 1L));
         return hydrateProgress(entry);
     }
@@ -115,27 +113,32 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         try {
             kvs.checkAndSet(casProgressRequest(cell, entry, newProgress));
         } catch (Exception e) {
-            log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
-                    + "persisted. This should not cause sweep issues unless the problem persists.", e);
+            log.warn(
+                    "Exception trying to persist sweep progress. The intermediate progress might not have been "
+                            + "persisted. This should not cause sweep issues unless the problem persists.",
+                    e);
         }
     }
 
-    private CheckAndSetRequest casProgressRequest(Cell cell, Map<Cell, Value> storedProgress,
-            SweepProgress newProgress) throws JsonProcessingException {
+    private CheckAndSetRequest casProgressRequest(Cell cell, Map<Cell, Value> storedProgress, SweepProgress newProgress)
+            throws JsonProcessingException {
         if (storedProgress.isEmpty()) {
             // Progress for this thread has never been stored
-            return CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
-                    progressToBytes(newProgress));
+            return CheckAndSetRequest.newCell(
+                    AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, progressToBytes(newProgress));
         }
 
         Value storedValue = Iterables.getOnlyElement(storedProgress.values());
         if (isFinishedTablePlaceholder(storedValue)) {
             // Last iteration, this thread finished a table
-            return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, FINISHED_TABLE,
-                    progressToBytes(newProgress));
+            return CheckAndSetRequest.singleCell(
+                    AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, FINISHED_TABLE, progressToBytes(newProgress));
         } else {
-            return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
-                    progressToBytes(hydrateProgress(storedProgress).get()), progressToBytes(newProgress));
+            return CheckAndSetRequest.singleCell(
+                    AtlasDbConstants.SWEEP_PROGRESS_TABLE,
+                    cell,
+                    progressToBytes(hydrateProgress(storedProgress).get()),
+                    progressToBytes(newProgress));
         }
     }
 
@@ -157,8 +160,10 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
                     AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, progressToBytes(progress), FINISHED_TABLE);
             kvs.checkAndSet(request);
         } catch (JsonProcessingException e) {
-            log.warn("Exception trying to clear sweep progress. "
-                    + "Sweep may continue examining the same range if the problem persists.", e);
+            log.warn(
+                    "Exception trying to clear sweep progress. "
+                            + "Sweep may continue examining the same range if the problem persists.",
+                    e);
         }
     }
 
@@ -172,8 +177,9 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     }
 
     private void moveToNewSchema(SweepProgress legacyProgress) {
-        log.info("Upgrading AtlasDB's sweep progress schema - sweep of table {} will resume where it left off when "
-                + "this table is next swept, but other tables may be swept in the meantime.",
+        log.info(
+                "Upgrading AtlasDB's sweep progress schema - sweep of table {} will resume where it left off when "
+                        + "this table is next swept, but other tables may be swept in the meantime.",
                 LoggingArgs.tableRef(legacyProgress.tableRef()));
         saveProgress(legacyProgress);
         clearLegacyProgress(legacyProgress);

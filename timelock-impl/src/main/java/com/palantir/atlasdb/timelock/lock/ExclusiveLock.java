@@ -15,18 +15,15 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.UUID;
-
-import javax.annotation.concurrent.GuardedBy;
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.UUID;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.NotThreadSafe;
 
 public class ExclusiveLock implements AsyncLock {
 
@@ -34,6 +31,7 @@ public class ExclusiveLock implements AsyncLock {
 
     @GuardedBy("this")
     private final LockRequestQueue queue = new LockRequestQueue();
+
     @GuardedBy("this")
     private UUID currentHolder = null;
 
@@ -107,18 +105,17 @@ public class ExclusiveLock implements AsyncLock {
     }
 
     @NotThreadSafe
-    private static class LockRequestQueue {
+    private static final class LockRequestQueue {
 
         @SuppressWarnings("checkstyle:illegaltype")
-        private final LinkedHashMap<UUID, LockRequest> queue = Maps.newLinkedHashMap();
+        private final LinkedHashMap<UUID, LockRequest> queue = new LinkedHashMap<>();
 
         public void enqueue(LockRequest request) {
             LockRequest existingRequest = queue.put(request.requestId, request);
             if (existingRequest != null) {
                 queue.put(request.requestId, existingRequest);
                 throw new LoggableIllegalStateException(
-                        "Cannot enqueue the same request id twice.",
-                        SafeArg.of("requestId", request.requestId));
+                        "Cannot enqueue the same request id twice.", SafeArg.of("requestId", request.requestId));
             }
         }
 

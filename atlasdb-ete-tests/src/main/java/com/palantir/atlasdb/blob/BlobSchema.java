@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.blob;
 
-import java.io.File;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -28,6 +23,9 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.UnsafeArg;
+import java.io.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlobSchema implements AtlasSchema {
     private static final Logger log = LoggerFactory.getLogger(BlobSchema.class);
@@ -55,17 +53,16 @@ public class BlobSchema implements AtlasSchema {
                 BlobSchema.class.getPackage().getName() + ".generated",
                 BLOB_NAMESPACE);
 
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("data", "Data", ValueType.VAR_LONG)
-                        .hashRowComponents()
-                        .tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
-                        .build());
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("hotspottyData", "HotspottyData", ValueType.VAR_SIGNED_LONG)
+        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("data", "Data", ValueType.VAR_LONG)
+                .hashRowComponents()
+                .tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
                 .build());
 
-        schema.addTableDefinition("auditedData", new TableDefinition() {{
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder("hotspottyData", "HotspottyData", ValueType.VAR_SIGNED_LONG).build());
+
+        schema.addTableDefinition("auditedData", new TableDefinition() {
+            {
                 allSafeForLoggingByDefault();
                 rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
@@ -74,11 +71,10 @@ public class BlobSchema implements AtlasSchema {
             }
         });
 
-        schema.addCleanupTask("auditedData", () ->
-                (tx, cells) -> {
-                    log.info("Deleted data items: [{}]", UnsafeArg.of("cells", cells));
-                    return false;
-                });
+        schema.addCleanupTask("auditedData", () -> (tx, cells) -> {
+            log.info("Deleted data items: [{}]", UnsafeArg.of("cells", cells));
+            return false;
+        });
 
         schema.validate();
         return schema;

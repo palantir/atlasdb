@@ -20,4 +20,6 @@ public interface Versionable {
      * Returns a version number.
      */
     long getVersion();
+
+    boolean equalsIgnoringVersion(Versionable other);
 }

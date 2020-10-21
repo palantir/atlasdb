@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,15 +24,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +36,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.junit.Before;
+import org.junit.Test;
 
 public class WriteInfoPartitionerTest {
     private static final TableReference NOTHING = getTableRef("nothing");
@@ -63,8 +60,9 @@ public class WriteInfoPartitionerTest {
     @Before
     public void setup() {
         partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
-        when(mockKvs.getMetadataForTable(any(TableReference.class))).thenAnswer(args ->
-                METADATA_MAP.getOrDefault(args.getArguments()[0], AtlasDbConstants.EMPTY_TABLE_METADATA));
+        when(mockKvs.getMetadataForTable(any(TableReference.class)))
+                .thenAnswer(args ->
+                        METADATA_MAP.getOrDefault(args.getArguments()[0], AtlasDbConstants.EMPTY_TABLE_METADATA));
     }
 
     @Test
@@ -85,7 +83,8 @@ public class WriteInfoPartitionerTest {
 
     @Test
     public void getStrategyReturnsCorrectStrategy() {
-        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, 0))).isEmpty();
+        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, 0)))
+                .isEmpty();
         assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(CONSERVATIVE, 10)))
                 .contains(SweeperStrategy.CONSERVATIVE);
         assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(THOROUGH, 100)))
@@ -148,11 +147,13 @@ public class WriteInfoPartitionerTest {
     @Test
     public void changingNumberOfPartitionsIsReflectedInPartitionInfo() {
         WriteInfo write = getWriteInfo(CONSERVATIVE, 1, 1, 100L);
-        PartitionInfo partition1 = Iterables.getOnlyElement(
-                partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
+        PartitionInfo partition1 = Iterables.getOnlyElement(partitioner
+                .partitionWritesByShardStrategyTimestamp(ImmutableList.of(write))
+                .keySet());
         numShards += 1;
-        PartitionInfo partition2 = Iterables.getOnlyElement(
-                partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
+        PartitionInfo partition2 = Iterables.getOnlyElement(partitioner
+                .partitionWritesByShardStrategyTimestamp(ImmutableList.of(write))
+                .keySet());
 
         assertThat(partition1.isConservative()).isEqualTo(partition2.isConservative());
         assertThat(partition1.timestamp()).isEqualTo(partition2.timestamp());

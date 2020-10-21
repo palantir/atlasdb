@@ -26,18 +26,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.sql.Connection;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.sql.Connection;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TableValueStyleCacheTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.test_table");
@@ -69,20 +67,19 @@ public class TableValueStyleCacheTest {
 
     @Test
     public void testGetTableSizeOneTimeHasCacheMiss() throws Exception {
-        assertThat(valueStyleCache.getTableType(
-                connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+        assertThat(
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
         verify(connectionSupplier, times(1)).get();
     }
 
-
     @Test
     public void testGetTableSizeForSameTableHitsCache() throws Exception {
-        assertThat(valueStyleCache.getTableType(
-                connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+        assertThat(
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
-        assertThat(valueStyleCache.getTableType(
-                connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+        assertThat(
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
 
         verify(connectionSupplier, times(1)).get();
@@ -90,12 +87,12 @@ public class TableValueStyleCacheTest {
 
     @Test
     public void testCacheInvalidationHitsConnectionAgain() throws Exception {
-        assertThat(valueStyleCache.getTableType(
-                connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+        assertThat(
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
         valueStyleCache.clearCacheForTable(TEST_TABLE);
-        assertThat(valueStyleCache.getTableType(
-                connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+        assertThat(
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
 
         verify(connectionSupplier, times(2)).get();
@@ -103,12 +100,11 @@ public class TableValueStyleCacheTest {
 
     @Test
     public void testCacheHandlesMultipleTableRequests() throws Exception {
-        assertThat(valueStyleCache.getTableType(
-                connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+        assertThat(
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
         assertThat(
-                valueStyleCache.getTableType(
-                        connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
 
         verify(connectionSupplier, times(2)).get();
@@ -116,25 +112,22 @@ public class TableValueStyleCacheTest {
 
     @Test
     public void testCacheInvalidatesOnlyOneTable() throws Exception {
-        assertThat(valueStyleCache.getTableType(
-                connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+        assertThat(
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
         assertThat(
-                valueStyleCache.getTableType(
-                        connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
         valueStyleCache.clearCacheForTable(TEST_TABLE);
 
         assertThat(
-                valueStyleCache.getTableType(
-                        connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
         verify(connectionSupplier, times(3)).get();
 
         // No additional fetch required
         assertThat(
-                valueStyleCache.getTableType(
-                        connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                valueStyleCache.getTableType(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
                 is(TableValueStyle.OVERFLOW));
         verify(connectionSupplier, times(3)).get();
     }

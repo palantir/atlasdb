@@ -20,10 +20,12 @@ import com.google.common.collect.Multimap;
 /*
  * All dynamic atlasdb tables should implement this interface.
  */
-public interface AtlasDbDynamicMutablePersistentTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
-            AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>,
-            AtlasDbMutablePersistentTable<ROW, COLUMN_VALUE, ROW_RESULT> {
+public interface AtlasDbDynamicMutablePersistentTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>
+        extends AtlasDbDynamicMutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT>,
+                AtlasDbMutablePersistentTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     void put(ROW row, Iterable<COLUMN_VALUE> values);
+
     void put(ROW row, COLUMN_VALUE... values);
+
     void touch(Multimap<ROW, COLUMN> cellsToTouch);
 }

@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
+import com.github.benmanes.caffeine.cache.Ticker;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.github.benmanes.caffeine.cache.Ticker;
 
 class FakeTicker implements Ticker {
 

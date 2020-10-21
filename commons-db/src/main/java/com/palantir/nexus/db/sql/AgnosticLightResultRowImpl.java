@@ -15,7 +15,11 @@
  */
 package com.palantir.nexus.db.sql;
 
-
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.DBType;
+import com.palantir.sql.Blobs;
+import com.palantir.sql.Clobs;
+import com.palantir.sql.ResultSets;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Blob;
@@ -23,14 +27,7 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Map;
-
 import org.joda.time.DateTime;
-
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
-import com.palantir.sql.Blobs;
-import com.palantir.sql.Clobs;
-import com.palantir.sql.ResultSets;
 
 public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implements AgnosticLightResultRow {
     private ResultSet results;
@@ -39,7 +36,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         super(type, columnMap);
         results = res;
     }
-
 
     @Override
     public Object getObject(int col) throws PalantirSqlException {
@@ -59,16 +55,16 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
      */
     @Override
     @Deprecated // use the get by colname variant instead
-    public byte [] getBlob(int col, int blobLength) throws PalantirSqlException {
-        if(dbType == DBType.ORACLE) {
+    public byte[] getBlob(int col, int blobLength) throws PalantirSqlException {
+        if (dbType == DBType.ORACLE) {
             Blob contentBlob = ResultSets.getBlob(results, col);
-            if (contentBlob == null || blobLength == 0){
+            if (contentBlob == null || blobLength == 0) {
                 return new byte[0];
             }
 
-            if (blobLength < 0){
+            if (blobLength < 0) {
                 // then we need to ask Oracle what it is
-                blobLength = (int)Blobs.length(contentBlob);
+                blobLength = (int) Blobs.length(contentBlob);
             }
 
             return Blobs.getBytes(contentBlob, 1L, blobLength);
@@ -81,8 +77,8 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
             return blob;
         }
 
-        assert false : "unsupported db type"; //$NON-NLS-1$
-        throw PalantirSqlException.create("unknown db type: " + dbType); //$NON-NLS-1$
+        assert false : "unsupported db type"; // $NON-NLS-1$
+        throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 
     @Override
@@ -90,7 +86,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     public byte[] getBytes(int col) throws PalantirSqlException {
         return ResultSets.getBytes(results, col);
     }
-
 
     /* (non-Javadoc)
      * @see com.palantir.nexus.db.AgnosticLightResultRowInterface#getBinaryInputStream(java.lang.String)
@@ -108,13 +103,15 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     @Override
     @Deprecated // use the get by colname variant instead
     protected String getClobString(int col, int clobLength) throws PalantirSqlException {
-        if(dbType == DBType.ORACLE) {
-            return ResultSets.getObject(results, col) == null ? null : Clobs.getString((Clob)ResultSets.getObject(results, col), clobLength);
+        if (dbType == DBType.ORACLE) {
+            return ResultSets.getObject(results, col) == null
+                    ? null
+                    : Clobs.getString((Clob) ResultSets.getObject(results, col), clobLength);
         } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
             return ResultSets.getString(results, col);
         }
-        assert false : "unknown db for getClobString"; //$NON-NLS-1$
-        throw PalantirSqlException.create("unknown db type: " + dbType); //$NON-NLS-1$
+        assert false : "unknown db for getClobString"; // $NON-NLS-1$
+        throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 
     @Override
@@ -132,16 +129,16 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     @Deprecated // use the get by colname variant instead
     protected long getLong(int col, long fallback) throws PalantirSqlException {
         Object retVal = ResultSets.getObject(results, col);
-        if(retVal == null) {
+        if (retVal == null) {
             return fallback;
         } else {
-            if(dbType == DBType.ORACLE) {
+            if (dbType == DBType.ORACLE) {
                 return ((BigDecimal) retVal).longValue();
-            } else if(dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
+            } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
                 return ResultSets.getLong(results, col);
             } else {
-                assert false : "getLong from unknown db type"; //$NON-NLS-1$
-                throw PalantirSqlException.create("unknown db type: " + dbType); //$NON-NLS-1$
+                assert false : "getLong from unknown db type"; // $NON-NLS-1$
+                throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
             }
         }
     }
@@ -149,7 +146,7 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     @Override
     @Deprecated // use the get by colname variant instead
     protected Long getLongObject(int col) throws PalantirSqlException {
-        if(ResultSets.getObject(results, col) == null) {
+        if (ResultSets.getObject(results, col) == null) {
             return null;
         }
         return getLong(col);
@@ -157,7 +154,7 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
 
     @Override
     protected boolean getBoolean(int col) throws PalantirSqlException {
-        if(ResultSets.getObject(results, col) == null) {
+        if (ResultSets.getObject(results, col) == null) {
             return false;
         }
         return ResultSets.getBoolean(results, col);
@@ -166,17 +163,17 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     @Override
     @Deprecated // use the get by colname variant instead
     protected int getInteger(int col) throws PalantirSqlException {
-        if(ResultSets.getObject(results, col) == null) {
+        if (ResultSets.getObject(results, col) == null) {
             return 0;
         }
 
-        if(dbType == DBType.ORACLE) {
+        if (dbType == DBType.ORACLE) {
             return ((BigDecimal) ResultSets.getObject(results, col)).intValue();
         } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
             return ResultSets.getInt(results, col);
         } else {
-            assert false : "unknown db type for getInteger"; //$NON-NLS-1$
-            throw PalantirSqlException.create("unknown db type: " + dbType); //$NON-NLS-1$
+            assert false : "unknown db type for getInteger"; // $NON-NLS-1$
+            throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
         }
     }
 
@@ -195,7 +192,9 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     @Deprecated // use the get by colname variant instead
     protected String getString(int col) throws PalantirSqlException {
         Object obj = ResultSets.getString(results, col);
-        if (obj == null) return ""; //$NON-NLS-1$
+        if (obj == null) {
+            return "";
+        } // $NON-NLS-1$
         return String.valueOf(obj);
     }
 
@@ -205,7 +204,7 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         if (rawObj == null) {
             return null;
         }
-//		return new DateTime(ResultSets.getTimestamp(col), extractDateTimeZone(rawObj));
+        //		return new DateTime(ResultSets.getTimestamp(col), extractDateTimeZone(rawObj));
         Timestamp timestamp = ResultSets.getTimestamp(results, col);
         return new DateTime(timestamp);
     }
@@ -227,7 +226,7 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     @Override
     @Deprecated // use the get by colname variant instead
     protected Double getDoubleObject(int col) throws PalantirSqlException {
-        if(ResultSets.getObject(results, col) == null) {
+        if (ResultSets.getObject(results, col) == null) {
             return null;
         }
         return getDouble(col);

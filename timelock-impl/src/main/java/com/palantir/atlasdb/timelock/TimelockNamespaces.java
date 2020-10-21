@@ -18,6 +18,13 @@ package com.palantir.atlasdb.timelock;
 
 import static java.util.stream.Collectors.toSet;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.paxos.Client;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,23 +32,18 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.palantir.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-
 public final class TimelockNamespaces {
-    @VisibleForTesting static final String ACTIVE_CLIENTS = "activeClients";
-    @VisibleForTesting static final String MAX_CLIENTS = "maxClients";
+    @VisibleForTesting
+    static final String ACTIVE_CLIENTS = "activeClients";
 
-    private static final Predicate<String> isValidName = Pattern.compile("^(?!tl$)[a-zA-Z0-9_-]+$").asPredicate();
+    @VisibleForTesting
+    static final String MAX_CLIENTS = "maxClients";
+
+    private static final Predicate<String> isValidName =
+            Pattern.compile("^(?!tl$)[a-zA-Z0-9_-]+$").asPredicate();
     private static final Logger log = LoggerFactory.getLogger(TimelockNamespaces.class);
 
     private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
@@ -49,9 +51,7 @@ public final class TimelockNamespaces {
     private final Supplier<Integer> maxNumberOfClients;
 
     public TimelockNamespaces(
-            MetricsManager metrics,
-            Function<String, TimeLockServices> factory,
-            Supplier<Integer> maxNumberOfClients) {
+            MetricsManager metrics, Function<String, TimeLockServices> factory, Supplier<Integer> maxNumberOfClients) {
         this.factory = factory;
         this.maxNumberOfClients = maxNumberOfClients;
         registerClientCapacityMetrics(metrics);
@@ -74,11 +74,11 @@ public final class TimelockNamespaces {
     }
 
     private TimeLockServices createNewClient(String namespace) {
-        Preconditions.checkArgument(isValidName.test(namespace),
-                "Invalid namespace", SafeArg.of("namespace", namespace));
-        Preconditions.checkArgument(!namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
-                "The client name '%s' is reserved for the leader election service, and may not be "
-                        + "used.",
+        Preconditions.checkArgument(
+                isValidName.test(namespace), "Invalid namespace", SafeArg.of("namespace", namespace));
+        Preconditions.checkArgument(
+                !namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+                "The client name '%s' is reserved for the leader election service, and may not be " + "used.",
                 PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
 
         if (getNumberOfActiveClients() >= getMaxNumberOfClients()) {

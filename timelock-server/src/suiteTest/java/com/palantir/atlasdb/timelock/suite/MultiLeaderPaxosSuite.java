@@ -18,33 +18,31 @@ package com.palantir.atlasdb.timelock.suite;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
-import java.util.Collection;
-
-import org.junit.Rule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Suite;
-
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.MultiLeaderMultiNodePaxosTimeLockIntegrationTest;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
+import java.util.Collection;
+import org.junit.Rule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Suite;
 
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses({
-        MultiNodePaxosTimeLockServerIntegrationTest.class,
-        MultiLeaderMultiNodePaxosTimeLockIntegrationTest.class
-        })
+    MultiNodePaxosTimeLockServerIntegrationTest.class,
+    MultiLeaderMultiNodePaxosTimeLockIntegrationTest.class
+})
 public final class MultiLeaderPaxosSuite {
 
     public static final TestableTimelockCluster MULTI_LEADER_PAXOS = new TestableTimelockCluster(
             "batched timestamp paxos multi leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9086, builder ->
-                    builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
-                            .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)));
+            generateThreeNodeTimelockCluster(9086, builder -> builder.clientPaxosBuilder(
+                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
+                    .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)));
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {
@@ -54,5 +52,4 @@ public final class MultiLeaderPaxosSuite {
     @Rule
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
-
 }

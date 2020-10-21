@@ -15,6 +15,14 @@
  */
 package com.palantir.processors;
 
+import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MapMaker;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -24,7 +32,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.FilerException;
@@ -45,23 +52,17 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 
-import com.google.auto.service.AutoService;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MapMaker;
-import com.google.common.collect.Sets;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeVariableName;
-
 @AutoService(Processor.class)
 public final class AutoDelegateProcessor extends AbstractProcessor {
     // We keep track of if this processor has been registered in a processing environment, to avoid registering it
     // twice. Therefore, we keep weak references to both the keys and the values, to avoid keeping such references in
     // memory unnecessarily.
-    private static final ConcurrentMap<ProcessingEnvironment, Processor> registeredProcessors =
-            new MapMaker().weakKeys().weakValues().concurrencyLevel(1).initialCapacity(1).makeMap();
+    private static final ConcurrentMap<ProcessingEnvironment, Processor> registeredProcessors = new MapMaker()
+            .weakKeys()
+            .weakValues()
+            .concurrencyLevel(1)
+            .initialCapacity(1)
+            .makeMap();
     private static final String PREFIX = "AutoDelegate_";
     private static final String DELEGATE_METHOD = "delegate";
 
@@ -135,8 +136,8 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     private static TypeElement validateAnnotatedElement(Element annotatedElement) throws ProcessingException {
         ElementKind kind = annotatedElement.getKind();
         if (kind != ElementKind.INTERFACE) {
-            throw new ProcessingException(annotatedElement, "Only interfaces can be annotated with @%s",
-                    AutoDelegate.class.getSimpleName());
+            throw new ProcessingException(
+                    annotatedElement, "Only interfaces can be annotated with @%s", AutoDelegate.class.getSimpleName());
         }
 
         return (TypeElement) annotatedElement;
@@ -152,8 +153,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
             if (methodElement.getModifiers().contains(Modifier.DEFAULT)
                     && methodElement.getAnnotation(DoDelegate.class) == null) {
-                throw new ProcessingException(annotatedElement, "Default methods must be annotated with "
-                        + "either @DoNotDelegate or @DoDelegate");
+                throw new ProcessingException(
+                        annotatedElement,
+                        "Default methods must be annotated with " + "either @DoNotDelegate or @DoDelegate");
             }
         }
     }
@@ -175,7 +177,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     private List<TypeElement> fetchSuperinterfaces(TypeElement baseInterface) {
         List<TypeMirror> interfacesQueue = new ArrayList<>(baseInterface.getInterfaces());
-        Set<TypeMirror> interfacesSet = Sets.newHashSet(interfacesQueue);
+        Set<TypeMirror> interfacesSet = new HashSet<>(interfacesQueue);
         List<TypeElement> superinterfaceElements = new ArrayList<>();
 
         for (int i = 0; i < interfacesQueue.size(); i++) {
@@ -183,8 +185,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             TypeElement superinterfaceType = ProcessorUtils.extractType(typeUtils, superinterfaceMirror);
             superinterfaceElements.add(superinterfaceType);
 
-            List<TypeMirror> newInterfaces = superinterfaceType.getInterfaces()
-                    .stream()
+            List<TypeMirror> newInterfaces = superinterfaceType.getInterfaces().stream()
                     .filter(newInterface -> !interfacesSet.contains(newInterface))
                     .collect(Collectors.toList());
             interfacesSet.addAll(newInterfaces);
@@ -197,8 +198,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     private void generateCode(TypeToExtend typeToExtend) throws IOException {
         String newTypeName = PREFIX + typeToExtend.getSimpleName();
         TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(newTypeName);
-        typeBuilder.addTypeVariables(typeToExtend.getTypeParameterElements()
-                .stream()
+        typeBuilder.addTypeVariables(typeToExtend.getTypeParameterElements().stream()
                 .map(TypeVariableName::get)
                 .collect(Collectors.toList()));
 
@@ -211,8 +211,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         typeBuilder.addSuperinterface(TypeName.get(typeMirror));
 
         // Add delegate method
-        MethodSpec.Builder delegateMethod = MethodSpec
-                .methodBuilder(DELEGATE_METHOD)
+        MethodSpec.Builder delegateMethod = MethodSpec.methodBuilder(DELEGATE_METHOD)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(TypeName.get(typeMirror));
         typeBuilder.addMethod(delegateMethod.build());
@@ -230,16 +229,13 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             for (int i = 0; i < methodElement.getParameters().size(); ++i) {
                 callArgs[i + 3] = methodElement.getParameters().get(i);
             }
-            MethodSpec.Builder method = MethodSpec
-                    .overriding(methodElement)
-                    .addStatement(callFormat, callArgs);
+            MethodSpec.Builder method = MethodSpec.overriding(methodElement).addStatement(callFormat, callArgs);
             method.addModifiers(Modifier.DEFAULT);
 
             typeBuilder.addMethod(method.build());
         }
 
-        JavaFile
-                .builder(typeToExtend.getPackageName(), typeBuilder.build())
+        JavaFile.builder(typeToExtend.getPackageName(), typeBuilder.build())
                 .build()
                 .writeTo(filer);
     }

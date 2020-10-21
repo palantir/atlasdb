@@ -16,7 +16,8 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 public enum TableValueStyle {
-    RAW(3), OVERFLOW(4);
+    RAW(3),
+    OVERFLOW(4);
 
     private final int id;
 

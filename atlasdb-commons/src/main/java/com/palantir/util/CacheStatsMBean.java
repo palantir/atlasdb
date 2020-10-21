@@ -24,34 +24,33 @@ import javax.management.MXBean;
 @MXBean
 public interface CacheStatsMBean {
 
-    public long getMissCount();
+    long getMissCount();
 
-    public long getPutCount();
+    long getPutCount();
 
-    public long getHitCount();
+    long getHitCount();
 
-    public int getSize();
+    int getSize();
 
-    public long getForcedGcCount();
+    long getForcedGcCount();
 
-    public String getName();
+    String getName();
 
-    public long getInverseHits();
+    long getInverseHits();
 
-    public long getInverseMisses();
+    long getInverseMisses();
 
-    public void clearCacheAndStats();
+    void clearCacheAndStats();
 
-    public long getLoadTimeFromMisses();
+    long getLoadTimeFromMisses();
 
-    public long getLoadTimeForCacheKey();
+    long getLoadTimeForCacheKey();
 
-    public float getCacheHitPercentage();
+    float getCacheHitPercentage();
 
-    public String getCacheClass();
+    String getCacheClass();
 
-    public int getMaxCacheSize();
+    int getMaxCacheSize();
 
-    public void setMaxCacheSize(int size);
-
+    void setMaxCacheSize(int size);
 }

@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Collections;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionLocksCondition implements AdvisoryLocksCondition {
 
@@ -39,11 +37,14 @@ public class TransactionLocksCondition implements AdvisoryLocksCondition {
 
     @Override
     public void throwIfConditionInvalid(long timestamp) {
-        if (lockService.refreshLockRefreshTokens(Collections.singleton(heldLock.getLockRefreshToken())).isEmpty()) {
-            log.warn("Lock service locks were no longer valid",
+        if (lockService
+                .refreshLockRefreshTokens(Collections.singleton(heldLock.getLockRefreshToken()))
+                .isEmpty()) {
+            log.warn(
+                    "Lock service locks were no longer valid",
                     UnsafeArg.of("invalidToken", heldLock.getLockRefreshToken()));
-            throw new TransactionLockTimeoutException("Provided transaction lock expired. Token: "
-                    + heldLock.getLockRefreshToken());
+            throw new TransactionLockTimeoutException(
+                    "Provided transaction lock expired. Token: " + heldLock.getLockRefreshToken());
         }
     }
 

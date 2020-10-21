@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Set;
 
 public interface JepsenLockClient<TOKEN> {
     TOKEN lock(String client, String lockName) throws InterruptedException;

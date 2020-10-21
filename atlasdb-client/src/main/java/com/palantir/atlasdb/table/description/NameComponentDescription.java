@@ -15,24 +15,27 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Set;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.logsafe.Preconditions;
+import java.util.HashSet;
+import java.util.Set;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class NameComponentDescription {
     final String componentName;
     final ValueType type;
     final ValueByteOrder order;
-    @Nullable final UniformRowNamePartitioner uniformPartitioner;
-    @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
+
+    @Nullable
+    final UniformRowNamePartitioner uniformPartitioner;
+
+    @Nullable
+    final ExplicitRowNamePartitioner explicitPartitioner;
+
     final LogSafety logSafety;
 
     public static NameComponentDescription of(String componentName, ValueType valueType) {
@@ -40,7 +43,11 @@ public final class NameComponentDescription {
     }
 
     public static NameComponentDescription safe(String componentName, ValueType valueType) {
-        return new Builder().componentName(componentName).type(valueType).logSafety(LogSafety.SAFE).build();
+        return new Builder()
+                .componentName(componentName)
+                .type(valueType)
+                .logSafety(LogSafety.SAFE)
+                .build();
     }
 
     /**
@@ -89,24 +96,26 @@ public final class NameComponentDescription {
         }
 
         public NameComponentDescription build() {
-            Preconditions.checkNotNull(componentName, "componentName must be set when building a NameComponentDescription");
+            Preconditions.checkNotNull(
+                    componentName, "componentName must be set when building a NameComponentDescription");
             Preconditions.checkNotNull(type, "type must be set when building a NameComponentDescription");
 
             if (uniformPartitioner == null && !uniformPartitionerExplicitlyNull) {
                 uniformPartitioner = new UniformRowNamePartitioner(type);
             }
 
-            return new NameComponentDescription(componentName, type, order,
-                    uniformPartitioner, explicitPartitioner, logSafety);
+            return new NameComponentDescription(
+                    componentName, type, order, uniformPartitioner, explicitPartitioner, logSafety);
         }
     }
 
-    private NameComponentDescription(String componentName,
-                                    ValueType type,
-                                    ValueByteOrder order,
-                                    UniformRowNamePartitioner uniform,
-                                    ExplicitRowNamePartitioner explicit,
-                                    LogSafety logSafety) {
+    private NameComponentDescription(
+            String componentName,
+            ValueType type,
+            ValueByteOrder order,
+            UniformRowNamePartitioner uniform,
+            ExplicitRowNamePartitioner explicit,
+            LogSafety logSafety) {
         this.componentName = componentName;
         this.type = type;
         this.order = order;
@@ -136,8 +145,8 @@ public final class NameComponentDescription {
     }
 
     public TableMetadataPersistence.NameComponentDescription.Builder persistToProto() {
-        TableMetadataPersistence.NameComponentDescription.Builder builder
-                = TableMetadataPersistence.NameComponentDescription.newBuilder();
+        TableMetadataPersistence.NameComponentDescription.Builder builder =
+                TableMetadataPersistence.NameComponentDescription.newBuilder();
         builder.setComponentName(componentName);
         builder.setType(type.persistToProto());
         builder.setOrder(getOrder());
@@ -188,7 +197,7 @@ public final class NameComponentDescription {
     }
 
     public NameComponentDescription withPartitioners(RowNamePartitioner... partitioners) {
-        Set<String> explicit = Sets.newHashSet();
+        Set<String> explicit = new HashSet<>();
         boolean hasUniform = false;
         for (RowNamePartitioner p : partitioners) {
             hasUniform |= p instanceof UniformRowNamePartitioner;
@@ -209,8 +218,8 @@ public final class NameComponentDescription {
 
     @Override
     public String toString() {
-        return "NameComponentDescription [componentName=" + componentName
-                + ", order=" + order + ", type=" + type + ", logSafety=" + logSafety + "]";
+        return "NameComponentDescription [componentName=" + componentName + ", order=" + order + ", type=" + type
+                + ", logSafety=" + logSafety + "]";
     }
 
     @Override

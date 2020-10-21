@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import java.util.Map;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 
 @State(Scope.Benchmark)
 public class KvsGetRowsBenchmarks {
@@ -37,14 +35,13 @@ public class KvsGetRowsBenchmarks {
     @Warmup(time = 5)
     @Measurement(time = 40)
     public Object getManyRowsWithGetRows(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        Map<Cell, Value> result = table.getKvs().getRows(
-                table.getTableRef(),
-                table.getRowList(),
-                ColumnSelection.all(),
-                Long.MAX_VALUE
-        );
-        Preconditions.checkState(result.size() == table.getRowList().size(),
-                "Should be %s rows, but were: %s", table.getRowList().size(), result.size());
+        Map<Cell, Value> result =
+                table.getKvs().getRows(table.getTableRef(), table.getRowList(), ColumnSelection.all(), Long.MAX_VALUE);
+        Preconditions.checkState(
+                result.size() == table.getRowList().size(),
+                "Should be %s rows, but were: %s",
+                table.getRowList().size(),
+                result.size());
         return result;
     }
 }

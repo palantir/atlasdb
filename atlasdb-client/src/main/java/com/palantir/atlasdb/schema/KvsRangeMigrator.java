@@ -15,14 +15,7 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.io.BaseEncoding;
@@ -45,6 +38,11 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.collect.Maps2;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KvsRangeMigrator implements RangeMigrator {
     private static final Logger log = LoggerFactory.getLogger(KvsRangeMigrator.class);
@@ -59,15 +57,16 @@ public class KvsRangeMigrator implements RangeMigrator {
     private final AbstractTaskCheckpointer checkpointer;
     private final Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransform;
 
-    KvsRangeMigrator(TableReference srcTable,
-                     TableReference destTable,
-                     int readBatchSize,
-                     TransactionManager readTxManager,
-                     TransactionManager txManager,
-                     KeyValueService writeKvs,
-                     long migrationTimestamp,
-                     AbstractTaskCheckpointer checkpointer,
-                     Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransform) {
+    KvsRangeMigrator(
+            TableReference srcTable,
+            TableReference destTable,
+            int readBatchSize,
+            TransactionManager readTxManager,
+            TransactionManager txManager,
+            KeyValueService writeKvs,
+            long migrationTimestamp,
+            AbstractTaskCheckpointer checkpointer,
+            Function<RowResult<byte[]>, Map<Cell, byte[]>> rowTransform) {
         this.srcTable = srcTable;
         this.destTable = destTable;
         this.readBatchSize = readBatchSize;
@@ -91,13 +90,13 @@ public class KvsRangeMigrator implements RangeMigrator {
         for (int rangeId = 0; rangeId < numRangeBoundaries; rangeId++) {
             byte[] checkpoint = getCheckpoint(rangeId, tx);
             if (checkpoint != null) {
-                log.info("({}/{}) Migration from table {} to table {} will start/resume at {}",
+                log.info(
+                        "({}/{}) Migration from table {} to table {} will start/resume at {}",
                         rangeId,
                         numRangeBoundaries,
                         srcTable,
                         destTable,
-                        PtBytes.encodeHexString(checkpoint)
-                );
+                        PtBytes.encodeHexString(checkpoint));
                 return;
             }
         }
@@ -120,9 +119,8 @@ public class KvsRangeMigrator implements RangeMigrator {
         return txManager.runTaskWithRetry(writeT -> copyOneTransactionFromReadTxManager(range, rangeId, writeT));
     }
 
-    private byte[] copyOneTransactionFromReadTxManager(final RangeRequest range,
-                                                       final long rangeId,
-                                                       final Transaction writeT) {
+    private byte[] copyOneTransactionFromReadTxManager(
+            final RangeRequest range, final long rangeId, final Transaction writeT) {
         if (readTxManager == txManager) {
             // don't wrap
             return copyOneTransactionInternal(range, rangeId, writeT, writeT);
@@ -132,10 +130,7 @@ public class KvsRangeMigrator implements RangeMigrator {
         }
     }
 
-    private byte[] copyOneTransactionInternal(RangeRequest range,
-                                              long rangeId,
-                                              Transaction readT,
-                                              Transaction writeT) {
+    private byte[] copyOneTransactionInternal(RangeRequest range, long rangeId, Transaction readT, Transaction writeT) {
         final long maxBytes = TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES / 2;
         byte[] start = getCheckpoint(rangeId, writeT);
         if (start == null) {
@@ -147,14 +142,17 @@ public class KvsRangeMigrator implements RangeMigrator {
         }
         RangeRequest rangeToUse = builder.build();
         if (log.isTraceEnabled()) {
-            log.trace("Copying table {} range {} from {}  to {}", srcTable, rangeId,
+            log.trace(
+                    "Copying table {} range {} from {}  to {}",
+                    srcTable,
+                    rangeId,
                     BaseEncoding.base16().lowerCase().encode(rangeToUse.getStartInclusive()),
                     BaseEncoding.base16().lowerCase().encode(rangeToUse.getEndExclusive()));
         }
 
         BatchingVisitable<RowResult<byte[]>> bv = readT.getRange(srcTable, rangeToUse);
 
-        Map<Cell, byte[]> writeMap = Maps.newHashMap();
+        Map<Cell, byte[]> writeMap = new HashMap<>();
         byte[] lastRow = internalCopyRange(bv, maxBytes, writeMap);
         if (log.isTraceEnabled() && (lastRow != null)) {
             log.trace("Copying {} bytes for range {} on table {}", lastRow.length, rangeId, srcTable);
@@ -180,9 +178,8 @@ public class KvsRangeMigrator implements RangeMigrator {
     }
 
     protected void retryWriteToKvs(Map<Cell, byte[]> writeMap) {
-        Multimap<Cell, Long> keys = Multimaps.forMap(Maps2.createConstantValueMap(
-                writeMap.keySet(),
-                migrationTimestamp));
+        Multimap<Cell, Long> keys =
+                Multimaps.forMap(Maps2.createConstantValueMap(writeMap.keySet(), migrationTimestamp));
         writeKvs.delete(destTable, keys);
         writeKvs.put(destTable, writeMap, migrationTimestamp);
     }
@@ -194,28 +191,31 @@ public class KvsRangeMigrator implements RangeMigrator {
         return RangeRequests.nextLexicographicName(lastRow);
     }
 
-    private byte[] internalCopyRange(BatchingVisitable<RowResult<byte[]>> bv,
-                                     final long maxBytes,
-                                     @Output final Map<Cell, byte[]> writeMap) {
+    private byte[] internalCopyRange(
+            BatchingVisitable<RowResult<byte[]>> bv, final long maxBytes, @Output final Map<Cell, byte[]> writeMap) {
         final Mutable<byte[]> lastRowName = Mutables.newMutable(null);
         final MutableLong bytesPut = new MutableLong(0L);
-        bv.batchAccept(readBatchSize, AbortingVisitors.batching(
-                // Replacing this with a lambda results in an unreported exception compile error
-                // even though no exception can be thrown :-(
-                new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-                    @Override
-                    public boolean visit(RowResult<byte[]> rr) throws RuntimeException {
-                        return KvsRangeMigrator.this.internalCopyRow(rr, maxBytes, writeMap, bytesPut, lastRowName);
-                    }
-                }));
+        bv.batchAccept(
+                readBatchSize,
+                AbortingVisitors.batching(
+                        // Replacing this with a lambda results in an unreported exception compile error
+                        // even though no exception can be thrown :-(
+                        new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
+                            @Override
+                            public boolean visit(RowResult<byte[]> rr) throws RuntimeException {
+                                return KvsRangeMigrator.this.internalCopyRow(
+                                        rr, maxBytes, writeMap, bytesPut, lastRowName);
+                            }
+                        }));
         return lastRowName.get();
     }
 
-    private boolean internalCopyRow(RowResult<byte[]> rr,
-                                    long maxBytes,
-                                    @Output Map<Cell, byte[]> writeMap,
-                                    @Output MutableLong bytesPut,
-                                    @Output Mutable<byte[]> lastRowName) {
+    private boolean internalCopyRow(
+            RowResult<byte[]> rr,
+            long maxBytes,
+            @Output Map<Cell, byte[]> writeMap,
+            @Output MutableLong bytesPut,
+            @Output Mutable<byte[]> lastRowName) {
         Map<Cell, byte[]> values = rowTransform.apply(rr);
         writeMap.putAll(values);
 

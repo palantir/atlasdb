@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
 import javax.annotation.concurrent.ThreadSafe;
-
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @ThreadSafe
 public class AsyncResult<T> {
@@ -51,9 +49,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void complete(T value) {
-        Preconditions.checkState(
-                future.complete(value),
-                "This result is already completed");
+        Preconditions.checkState(future.complete(value), "This result is already completed");
     }
 
     /**
@@ -63,9 +59,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void fail(Throwable error) {
-        Preconditions.checkState(
-                future.completeExceptionally(error),
-                "This result is already completed");
+        Preconditions.checkState(future.completeExceptionally(error), "This result is already completed");
     }
 
     /**
@@ -82,8 +76,7 @@ public class AsyncResult<T> {
      */
     public void timeout() {
         Preconditions.checkState(
-                future.completeExceptionally(new TimeoutException()),
-                "This result is already completed");
+                future.completeExceptionally(new TimeoutException()), "This result is already completed");
     }
 
     /** Returns whether this result has failed. Use {@link #getError} to retrieve the associated exception. */
@@ -201,8 +194,5 @@ public class AsyncResult<T> {
         }
     }
 
-    static class TimeoutException extends RuntimeException {
-
-    }
-
+    static class TimeoutException extends RuntimeException {}
 }

@@ -15,21 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
@@ -40,6 +25,18 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CassandraTimestampUtils {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampUtils.class);
@@ -55,6 +52,7 @@ public final class CassandraTimestampUtils {
 
     @VisibleForTesting
     static final String APPLIED_COLUMN = "[applied]";
+
     static final String COLUMN_NAME_COLUMN = "column1";
     static final String VALUE_COLUMN = "value";
 
@@ -64,9 +62,8 @@ public final class CassandraTimestampUtils {
 
     public static CqlQuery constructCheckAndSetMultipleQuery(Map<String, Pair<byte[], byte[]>> checkAndSetRequest) {
         ImmutableCqlSinglePartitionBatchQuery.Builder batchQueryBuilder = CqlSinglePartitionBatchQuery.builder();
-        checkAndSetRequest.forEach((columnName, value) ->
-                batchQueryBuilder.addIndividualQueryStatements(
-                        constructCheckAndSetQuery(columnName, value.getLhSide(), value.getRhSide())));
+        checkAndSetRequest.forEach((columnName, value) -> batchQueryBuilder.addIndividualQueryStatements(
+                constructCheckAndSetQuery(columnName, value.getLhSide(), value.getRhSide())));
         return batchQueryBuilder.build().toCqlQuery();
     }
 
@@ -132,23 +129,24 @@ public final class CassandraTimestampUtils {
     private static Set<Incongruency> getIncongruencies(CqlResult casResult, Map<String, Pair<byte[], byte[]>> casMap) {
         Map<String, byte[]> relevantCassandraState = getRelevantCassandraState(casResult, casMap);
         return casMap.entrySet().stream()
-                .filter(entry ->
-                        !Arrays.equals(relevantCassandraState.get(entry.getKey()), entry.getValue().getRhSide()))
-                .map(entry -> createIncongruency(relevantCassandraState, entry.getKey(), entry.getValue().getRhSide()))
+                .filter(entry -> !Arrays.equals(
+                        relevantCassandraState.get(entry.getKey()),
+                        entry.getValue().getRhSide()))
+                .map(entry -> createIncongruency(
+                        relevantCassandraState, entry.getKey(), entry.getValue().getRhSide()))
                 .collect(Collectors.toSet());
     }
 
     private static Map<String, byte[]> getRelevantCassandraState(
-            CqlResult casResult,
-            Map<String, Pair<byte[], byte[]>> casMap) {
+            CqlResult casResult, Map<String, Pair<byte[], byte[]>> casMap) {
         return casResult.getRows().stream()
-                    .filter(row -> {
-                        String columnName = getColumnNameFromRow(row);
-                        return casMap.containsKey(columnName);
-                    })
-                    .collect(Collectors.toMap(
-                            CassandraTimestampUtils::getColumnNameFromRow,
-                            row -> getNamedColumnValue(row.getColumns(), VALUE_COLUMN)));
+                .filter(row -> {
+                    String columnName = getColumnNameFromRow(row);
+                    return casMap.containsKey(columnName);
+                })
+                .collect(Collectors.toMap(
+                        CassandraTimestampUtils::getColumnNameFromRow,
+                        row -> getNamedColumnValue(row.getColumns(), VALUE_COLUMN)));
     }
 
     private static String getColumnNameFromRow(CqlRow row) {
@@ -156,9 +154,7 @@ public final class CassandraTimestampUtils {
     }
 
     private static Incongruency createIncongruency(
-            Map<String, byte[]> relevantCassandraState,
-            String columnName,
-            byte[] desiredValue) {
+            Map<String, byte[]> relevantCassandraState, String columnName, byte[] desiredValue) {
         return ImmutableIncongruency.builder()
                 .columnName(columnName)
                 .desiredState(desiredValue)
@@ -171,10 +167,9 @@ public final class CassandraTimestampUtils {
     }
 
     private static Column getNamedColumn(List<Column> columns, String columnName) {
-        return Iterables.getOnlyElement(
-                columns.stream()
-                        .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
-                        .collect(Collectors.toList()));
+        return Iterables.getOnlyElement(columns.stream()
+                .filter(column -> columnName.equals(PtBytes.toString(column.getName())))
+                .collect(Collectors.toList()));
     }
 
     private static CqlQuery constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
@@ -187,8 +182,8 @@ public final class CassandraTimestampUtils {
 
     private static CqlQuery constructInsertIfNotExistsQuery(String columnName, byte[] target) {
         return CqlQuery.builder()
-                .safeQueryFormat("INSERT INTO \"%s\" (key, column1, column2, value)"
-                        + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
+                .safeQueryFormat(
+                        "INSERT INTO \"%s\" (key, column1, column2, value)" + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
                 .addArgs(
                         LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
@@ -227,7 +222,9 @@ public final class CassandraTimestampUtils {
     @Value.Immutable
     interface Incongruency {
         String columnName();
+
         byte[] desiredState();
+
         @Nullable
         byte[] actualState();
     }

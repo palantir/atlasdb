@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -28,6 +23,10 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * The {@link InternalSchemaMetadataPayloadCodec} controls translation between the payload of a
@@ -43,6 +42,7 @@ public final class InternalSchemaMetadataPayloadCodec {
      */
     private static final Map<Integer, Function<byte[], InternalSchemaMetadata>> SUPPORTED_DECODERS =
             ImmutableMap.of(LATEST_VERSION, InternalSchemaMetadataPayloadCodec::decodeViaJson);
+
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
     private InternalSchemaMetadataPayloadCodec() {
@@ -59,16 +59,16 @@ public final class InternalSchemaMetadataPayloadCodec {
      */
     static InternalSchemaMetadata decode(VersionedInternalSchemaMetadata versionedInternalSchemaMetadata) {
         return tryDecode(versionedInternalSchemaMetadata)
-                .orElseThrow(() -> new SafeIllegalStateException("Could not decode persisted internal schema metadata -"
-                        + " unrecognized version. This may occur transiently during upgrades, but if it persists please"
-                        + " contact support.",
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "Could not decode persisted internal schema metadata - unrecognized version. This may occur"
+                                + " transiently during upgrades, but if it persists please contact support.",
                         SafeArg.of("internalSchemaMetadata", versionedInternalSchemaMetadata),
                         SafeArg.of("knownVersions", SUPPORTED_DECODERS.keySet())));
     }
 
     static Optional<InternalSchemaMetadata> tryDecode(VersionedInternalSchemaMetadata versionedInternalSchemaMetadata) {
-        Function<byte[], InternalSchemaMetadata> targetDeserializer
-                = SUPPORTED_DECODERS.get(versionedInternalSchemaMetadata.version());
+        Function<byte[], InternalSchemaMetadata> targetDeserializer =
+                SUPPORTED_DECODERS.get(versionedInternalSchemaMetadata.version());
         if (targetDeserializer == null) {
             return Optional.empty();
         }

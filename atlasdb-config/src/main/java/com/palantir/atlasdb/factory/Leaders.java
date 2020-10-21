@@ -15,24 +15,9 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -68,6 +53,20 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
+import java.net.URI;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public final class Leaders {
     private Leaders() {
@@ -78,14 +77,9 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and registers appropriate endpoints for that
      * service.
      */
-    public static LocalPaxosServices createAndRegisterLocalServices(MetricsManager metricsManager,
-            Consumer<Object> env,
-            LeaderConfig config,
-            UserAgent userAgent) {
-        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(
-                metricsManager,
-                config,
-                userAgent);
+    public static LocalPaxosServices createAndRegisterLocalServices(
+            MetricsManager metricsManager, Consumer<Object> env, LeaderConfig config, UserAgent userAgent) {
+        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(metricsManager, config, userAgent);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -94,10 +88,9 @@ public final class Leaders {
         return localPaxosServices;
     }
 
-    public static LocalPaxosServices createInstrumentedLocalServices(MetricsManager metricsManager,
-            LeaderConfig config,
-            UserAgent userAgent) {
-        Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
+    public static LocalPaxosServices createInstrumentedLocalServices(
+            MetricsManager metricsManager, LeaderConfig config, UserAgent userAgent) {
+        Set<String> remoteLeaderUris = new HashSet<>(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
         RemotePaxosServerSpec remotePaxosServerSpec = ImmutableRemotePaxosServerSpec.builder()
@@ -124,20 +117,18 @@ public final class Leaders {
         UUID leaderUuid = UUID.randomUUID();
 
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
-                metricsManager.getTaggedRegistry(),
-                leaderUuid.toString(),
-                leadershipObserver,
-                ImmutableList.of());
+                metricsManager.getTaggedRegistry(), leaderUuid.toString(), leadershipObserver, ImmutableList.of());
 
-        PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
+        PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(),
                 PaxosAcceptor.class,
                 PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath()));
-        PaxosLearner ourLearner = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
+        PaxosLearner ourLearner = AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(),
                 PaxosLearner.class,
                 PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath(), leadershipEventRecorder));
 
-        Optional<TrustContext> trustContext =
-                ServiceCreator.createTrustContext(config.sslConfiguration());
+        Optional<TrustContext> trustContext = ServiceCreator.createTrustContext(config.sslConfiguration());
 
         List<PaxosLearner> learners = createProxyAndLocalList(
                 ourLearner,
@@ -170,10 +161,7 @@ public final class Leaders {
                 PaxosConstants.CANCEL_REMAINING_CALLS);
 
         List<LeaderPingerContext<PingableLeader>> otherLeaders = generatePingables(
-                remotePaxosServerSpec.remoteLeaderUris(),
-                remotingClientConfig,
-                trustContext,
-                userAgent);
+                remotePaxosServerSpec.remoteLeaderUris(), remotingClientConfig, trustContext, userAgent);
 
         LeaderPinger leaderPinger = SingleLeaderPinger.createLegacy(
                 createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
@@ -196,16 +184,12 @@ public final class Leaders {
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrumentTimed(
-                metricsManager.getRegistry(),
-                LeaderElectionService.class,
-                uninstrumentedLeaderElectionService);
-        PingableLeader pingableLeader = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
-                PingableLeader.class,
-                new LocalPingableLeader(ourLearner, leaderUuid));
+                metricsManager.getRegistry(), LeaderElectionService.class, uninstrumentedLeaderElectionService);
+        PingableLeader pingableLeader = AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(), PingableLeader.class, new LocalPingableLeader(ourLearner, leaderUuid));
 
-        List<PingableLeader> remotePingableLeaders = otherLeaders.stream()
-                .map(LeaderPingerContext::pinger)
-                .collect(Collectors.toList());
+        List<PingableLeader> remotePingableLeaders =
+                otherLeaders.stream().map(LeaderPingerContext::pinger).collect(Collectors.toList());
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
@@ -216,10 +200,8 @@ public final class Leaders {
     }
 
     private static <T> Map<T, ExecutorService> createExecutorsForService(
-            MetricsManager metricsManager,
-            List<T> services,
-            String useCase) {
-        Map<T, ExecutorService> executors = Maps.newHashMap();
+            MetricsManager metricsManager, List<T> services, String useCase) {
+        Map<T, ExecutorService> executors = new HashMap<>();
         for (int index = 0; index < services.size(); index++) {
             String indexedUseCase = String.format("%s-%d", useCase, index);
             executors.put(services.get(index), createExecutor(metricsManager, indexedUseCase, services.size()));
@@ -256,9 +238,7 @@ public final class Leaders {
                                 .build()))
                 .collect(Collectors.toList());
 
-        return ImmutableList.copyOf(Iterables.concat(
-                remotes,
-                ImmutableList.of(localObject)));
+        return ImmutableList.copyOf(Iterables.concat(remotes, ImmutableList.of(localObject)));
     }
 
     public static List<LeaderPingerContext<PingableLeader>> generatePingables(
@@ -292,9 +272,13 @@ public final class Leaders {
     @Value.Immutable
     public interface LocalPaxosServices {
         PaxosAcceptor ourAcceptor();
+
         PaxosLearner ourLearner();
+
         LeaderElectionService leaderElectionService();
+
         PingableLeader localPingableLeader();
+
         Set<PingableLeader> remotePingableLeaders();
 
         @Value.Derived
@@ -311,8 +295,9 @@ public final class Leaders {
     @Value.Immutable
     public interface RemotePaxosServerSpec {
         Set<String> remoteLeaderUris();
+
         Set<String> remoteAcceptorUris();
+
         Set<String> remoteLearnerUris();
     }
-
 }

@@ -30,8 +30,8 @@ public class PersistentTimestampServiceMockingTest {
 
     private static final long INITIAL_TIMESTAMP = 12345L;
     private static final long TIMESTAMP = 100 * 1000;
-    private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP,
-            TIMESTAMP);
+    private static final TimestampRange SINGLE_TIMESTAMP_RANGE =
+            TimestampRange.createInclusiveRange(TIMESTAMP, TIMESTAMP);
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
@@ -77,4 +77,3 @@ public class PersistentTimestampServiceMockingTest {
         timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
     }
 }
-

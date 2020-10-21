@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
+import java.util.function.Supplier;
 
 public abstract class WrappingTransactionManager implements AutoDelegate_TransactionManager {
     private final TransactionManager delegate;
@@ -51,8 +50,8 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
         return (transaction, locks) -> task.execute(wrap(transaction), locks);
     }
 
-    private <T, C extends PreCommitCondition, E extends Exception> ConditionAwareTransactionTask<T, C, E>
-            wrapTask(ConditionAwareTransactionTask<T, C, E> task) {
+    private <T, C extends PreCommitCondition, E extends Exception> ConditionAwareTransactionTask<T, C, E> wrapTask(
+            ConditionAwareTransactionTask<T, C, E> task) {
         return (transaction, condition) -> task.execute(wrap(transaction), condition);
     }
 
@@ -62,8 +61,8 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionConflictException {
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
+            throws E, TransactionConflictException {
         return delegate().runTaskThrowOnConflict(wrapTask(task));
     }
 
@@ -74,17 +73,14 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
+            Iterable<HeldLocksToken> lockTokens, LockAwareTransactionTask<T, E> task)
             throws E, TransactionConflictException {
         return delegate().runTaskWithLocksThrowOnConflict(lockTokens, wrapTask(task));
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
+            Supplier<LockRequest> lockSupplier, LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
         return delegate().runTaskWithLocksWithRetry(lockSupplier, wrapTask(task));
     }
 
@@ -99,25 +95,19 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
-            Supplier<C> conditionSupplier,
-            ConditionAwareTransactionTask<T, C, E> task)
-            throws E {
+            Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
         return delegate().runTaskWithConditionWithRetry(conditionSupplier, wrapTask(task));
     }
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
-            C condition,
-            ConditionAwareTransactionTask<T, C, E> task)
-            throws E, TransactionFailedRetriableException {
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         return delegate().runTaskWithConditionThrowOnConflict(condition, wrapTask(task));
     }
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
-            C condition,
-            ConditionAwareTransactionTask<T, C, E> task)
-            throws E {
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         return delegate().runTaskWithConditionReadOnly(condition, wrapTask(task));
     }
 }

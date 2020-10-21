@@ -16,11 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
@@ -44,6 +39,10 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 class LockLeaseService {
     private final NamespacedConjureTimelockService delegate;
@@ -52,9 +51,7 @@ class LockLeaseService {
     private final BlockEnforcingLockService lockService;
 
     @VisibleForTesting
-    LockLeaseService(
-            NamespacedConjureTimelockService delegate,
-            UUID clientId) {
+    LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId) {
         this.delegate = delegate;
         this.clientId = clientId;
         this.time = new CoalescingSupplier<>(delegate::leaderTime);
@@ -78,23 +75,19 @@ class LockLeaseService {
                 .build();
         ConjureStartTransactionsResponse conjureResponse = delegate.startTransactions(request);
         StartTransactionResponseV4 response = StartTransactionResponseV4.of(
-                conjureResponse.getImmutableTimestamp(),
-                conjureResponse.getTimestamps(),
-                conjureResponse.getLease());
+                conjureResponse.getImmutableTimestamp(), conjureResponse.getTimestamps(), conjureResponse.getLease());
 
         Lease lease = response.lease();
-        LeasedLockToken leasedLockToken =
-                LeasedLockToken.of(ConjureLockToken.of(response.immutableTimestamp().getLock().getRequestId()), lease);
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(
+                ConjureLockToken.of(response.immutableTimestamp().getLock().getRequestId()), lease);
         long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
 
         return StartTransactionResponseV4.of(
-                LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
-                response.timestamps(),
-                lease);
+                LockImmutableTimestampResponse.of(immutableTs, leasedLockToken), response.timestamps(), lease);
     }
 
-    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<LockWatchVersion> maybeVersion,
-            int batchSize) {
+    ConjureStartTransactionsResponse startTransactionsWithWatches(
+            Optional<LockWatchVersion> maybeVersion, int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
@@ -138,9 +131,8 @@ class LockLeaseService {
         LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 
-        Set<LeasedLockToken> validByLease = allTokens.stream()
-                .filter(token -> token.isValid(leaderTime))
-                .collect(Collectors.toSet());
+        Set<LeasedLockToken> validByLease =
+                allTokens.stream().filter(token -> token.isValid(leaderTime)).collect(Collectors.toSet());
 
         Set<LeasedLockToken> toRefresh = Sets.difference(allTokens, validByLease);
         Set<LeasedLockToken> refreshedTokens = refreshTokens(toRefresh);
@@ -152,8 +144,8 @@ class LockLeaseService {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
-        Set<ConjureLockToken> unlocked =
-                delegate.unlock(ConjureUnlockRequest.of(serverTokens(leasedLockTokens))).getTokens();
+        Set<ConjureLockToken> unlocked = delegate.unlock(ConjureUnlockRequest.of(serverTokens(leasedLockTokens)))
+                .getTokens();
         return leasedLockTokens.stream()
                 .filter(leasedLockToken -> unlocked.contains(leasedLockToken.serverToken()))
                 .collect(Collectors.toSet());
@@ -164,8 +156,8 @@ class LockLeaseService {
             return leasedTokens;
         }
 
-        ConjureRefreshLocksResponse refreshLockResponse = delegate.refreshLocks(
-                ConjureRefreshLocksRequest.of(serverTokens(leasedTokens)));
+        ConjureRefreshLocksResponse refreshLockResponse =
+                delegate.refreshLocks(ConjureRefreshLocksRequest.of(serverTokens(leasedTokens)));
         Lease lease = refreshLockResponse.getLease();
 
         Set<LeasedLockToken> refreshedTokens = leasedTokens.stream()
@@ -180,16 +172,13 @@ class LockLeaseService {
     private static Set<LeasedLockToken> leasedTokens(Set<LockToken> tokens) {
         for (LockToken token : tokens) {
             Preconditions.checkArgument(
-                    token instanceof LeasedLockToken,
-                    "All lock tokens should be an instance of LeasedLockToken");
+                    token instanceof LeasedLockToken, "All lock tokens should be an instance of LeasedLockToken");
         }
         return (Set<LeasedLockToken>) (Set<?>) tokens;
     }
 
     private static Set<ConjureLockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
-        return leasedTokens.stream()
-                .map(LeasedLockToken::serverToken)
-                .collect(Collectors.toSet());
+        return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
     }
 
     private Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {

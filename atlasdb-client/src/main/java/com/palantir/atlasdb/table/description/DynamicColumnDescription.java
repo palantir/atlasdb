@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import javax.annotation.concurrent.Immutable;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class DynamicColumnDescription {
@@ -39,7 +37,8 @@ public class DynamicColumnDescription {
     }
 
     public TableMetadataPersistence.DynamicColumnDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.DynamicColumnDescription.newBuilder();
+        TableMetadataPersistence.DynamicColumnDescription.Builder builder =
+                TableMetadataPersistence.DynamicColumnDescription.newBuilder();
         builder.setColumnNameDesc(columnNameDesc.persistToProto());
         builder.setValue(value.persistToProto());
         return builder;

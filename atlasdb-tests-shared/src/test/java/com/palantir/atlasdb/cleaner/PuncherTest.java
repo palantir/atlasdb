@@ -17,20 +17,18 @@ package com.palantir.atlasdb.cleaner;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collection;
-import java.util.function.Supplier;
-
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.time.Clock;
+import java.util.Collection;
+import java.util.function.Supplier;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class PuncherTest {
@@ -42,17 +40,17 @@ public class PuncherTest {
         InMemoryKeyValueService cachingKvsPuncherStoreKvs = new InMemoryKeyValueService(false);
 
         InMemoryPuncherStore inMemoryPuncherStore = InMemoryPuncherStore.create();
-        PuncherStore puncherStore =
-                KeyValueServicePuncherStore.create(kvsPuncherStoreKvs);
+        PuncherStore puncherStore = KeyValueServicePuncherStore.create(kvsPuncherStoreKvs);
         CachingPuncherStore cachingInMemoryPuncherStore =
                 CachingPuncherStore.create(InMemoryPuncherStore.create(), GRANULARITY_MILLIS);
         CachingPuncherStore cachingKeyValueServicePuncherStore = CachingPuncherStore.create(
-                KeyValueServicePuncherStore.create(cachingKvsPuncherStoreKvs),
-                GRANULARITY_MILLIS);
-        Object[][] parameters = new Object[][] { { inMemoryPuncherStore, null },
-                { puncherStore, kvsPuncherStoreKvs },
-                { cachingInMemoryPuncherStore, null },
-                { cachingKeyValueServicePuncherStore, cachingKvsPuncherStoreKvs } };
+                KeyValueServicePuncherStore.create(cachingKvsPuncherStoreKvs), GRANULARITY_MILLIS);
+        Object[][] parameters = new Object[][] {
+            {inMemoryPuncherStore, null},
+            {puncherStore, kvsPuncherStoreKvs},
+            {cachingInMemoryPuncherStore, null},
+            {cachingKeyValueServicePuncherStore, cachingKvsPuncherStoreKvs}
+        };
         return ImmutableList.copyOf(parameters);
     }
 

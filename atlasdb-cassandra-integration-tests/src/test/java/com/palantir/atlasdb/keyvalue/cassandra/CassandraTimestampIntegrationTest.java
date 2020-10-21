@@ -15,16 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 @ShouldRetry
 public class CassandraTimestampIntegrationTest {
@@ -43,11 +44,11 @@ public class CassandraTimestampIntegrationTest {
         TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
         ts.storeUpperLimit(limit + 10);
-        Assert.assertEquals(limit + 10, ts.getUpperLimit());
+        assertThat(ts.getUpperLimit()).isEqualTo(limit + 10);
         ts.storeUpperLimit(limit + 20);
-        Assert.assertEquals(limit + 20, ts.getUpperLimit());
+        assertThat(ts.getUpperLimit()).isEqualTo(limit + 20);
         ts.storeUpperLimit(limit + 30);
-        Assert.assertEquals(limit + 30, ts.getUpperLimit());
+        assertThat(ts.getUpperLimit()).isEqualTo(limit + 30);
     }
 
     @Test
@@ -56,7 +57,7 @@ public class CassandraTimestampIntegrationTest {
         long limit = ts.getUpperLimit();
         ts.storeUpperLimit(limit + 10);
         ts.storeUpperLimit(limit + 20);
-        Assert.assertEquals(limit + 20, ts.getUpperLimit());
+        assertThat(ts.getUpperLimit()).isEqualTo(limit + 20);
     }
 
     @Test
@@ -64,29 +65,21 @@ public class CassandraTimestampIntegrationTest {
         TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         TimestampBoundStore ts2 = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
-        Assert.assertEquals(limit, ts2.getUpperLimit());
+        assertThat(ts2.getUpperLimit()).isEqualTo(limit);
         ts.storeUpperLimit(limit + 10);
-        Assert.assertEquals(limit + 10, ts.getUpperLimit());
-        Assert.assertEquals(limit + 10, ts2.getUpperLimit());
+        assertThat(ts.getUpperLimit()).isEqualTo(limit + 10);
+        assertThat(ts2.getUpperLimit()).isEqualTo(limit + 10);
 
         ts.storeUpperLimit(limit + 20);
-        try {
-            ts2.storeUpperLimit(limit + 20);
-            Assert.fail();
-        } catch (MultipleRunningTimestampServiceError e) {
-            // expected
-        }
-        Assert.assertEquals(limit + 20, ts.getUpperLimit());
-        Assert.assertEquals(limit + 20, ts2.getUpperLimit());
+        assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 20))
+                .isInstanceOf(MultipleRunningTimestampServiceError.class);
+        assertThat(ts.getUpperLimit()).isEqualTo(limit + 20);
+        assertThat(ts2.getUpperLimit()).isEqualTo(limit + 20);
 
         ts.storeUpperLimit(limit + 30);
-        Assert.assertEquals(limit + 30, ts.getUpperLimit());
+        assertThat(ts.getUpperLimit()).isEqualTo(limit + 30);
 
-        try {
-            ts2.storeUpperLimit(limit + 40);
-            Assert.fail();
-        } catch (MultipleRunningTimestampServiceError e) {
-            // expected
-        }
+        assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 40))
+                .isInstanceOf(MultipleRunningTimestampServiceError.class);
     }
 }

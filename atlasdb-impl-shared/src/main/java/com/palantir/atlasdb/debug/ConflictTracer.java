@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import java.util.Map;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -26,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
  */
 @Deprecated
 public interface ConflictTracer {
-    ConflictTracer NO_OP = (startTimestamp, keysToLoad, latestTimestamps, commitTimestamps) -> { };
+    ConflictTracer NO_OP = (startTimestamp, keysToLoad, latestTimestamps, commitTimestamps) -> {};
 
     void collect(
             long startTimestamp,

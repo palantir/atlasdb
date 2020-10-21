@@ -16,16 +16,18 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
 abstract class Token {
     @Nullable
     abstract byte[] row();
+
     @Nullable
     abstract byte[] col();
+
     abstract boolean shouldSkip();
 
-    public static final Token INITIAL = ImmutableToken.builder().shouldSkip(false).build();
+    public static final Token INITIAL =
+            ImmutableToken.builder().shouldSkip(false).build();
 }

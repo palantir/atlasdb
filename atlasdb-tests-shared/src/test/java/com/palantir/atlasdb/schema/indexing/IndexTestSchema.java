@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.schema.indexing;
 
-import java.io.File;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -26,6 +24,7 @@ import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.io.File;
 
 public class IndexTestSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new IndexTestSchema();
@@ -34,88 +33,95 @@ public class IndexTestSchema implements AtlasSchema {
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
     private static Schema generateSchema() {
-        Schema schema = new Schema("IndexTest",
+        Schema schema = new Schema(
+                "IndexTest",
                 IndexTest.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
 
-        schema.addTableDefinition("data", new TableDefinition() {{
-            rowName();
+        schema.addTableDefinition("data", new TableDefinition() {
+            {
+                rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
-            columns();
+                columns();
                 column("value", "v", ValueType.FIXED_LONG);
-        }});
+            }
+        });
 
-        schema.addIndexDefinition("index1", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("data");
-            rowName();
+        schema.addIndexDefinition("index1", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("data");
+                rowName();
                 componentFromColumn("value", ValueType.FIXED_LONG, "value", "_value");
-            dynamicColumns();
+                dynamicColumns();
                 componentFromRow("id", ValueType.FIXED_LONG);
-            rangeScanAllowed();
-        }});
+                rangeScanAllowed();
+            }
+        });
 
-        schema.addIndexDefinition("index2", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("data");
-            rowName();
+        schema.addIndexDefinition("index2", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("data");
+                rowName();
                 componentFromColumn("value", ValueType.FIXED_LONG, "value", "_value");
                 componentFromRow("id", ValueType.FIXED_LONG);
-            rangeScanAllowed();
-        }});
+                rangeScanAllowed();
+            }
+        });
 
-        schema.addIndexDefinition("index3", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("data");
-            rowName();
-                componentFromIterableColumn("value",
-                        ValueType.FIXED_LONG,
-                        ValueByteOrder.ASCENDING,
-                        "value",
-                        "ImmutableList.of(_value)");
-            rangeScanAllowed();
-        }});
+        schema.addIndexDefinition("index3", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("data");
+                rowName();
+                componentFromIterableColumn(
+                        "value", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
+                rangeScanAllowed();
+            }
+        });
 
-        schema.addIndexDefinition("index4", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("data");
-            rowName();
-                componentFromIterableColumn("value1",
-                        ValueType.FIXED_LONG,
-                        ValueByteOrder.ASCENDING,
-                        "value",
-                        "ImmutableList.of(_value)");
-                componentFromIterableColumn("value2",
-                        ValueType.FIXED_LONG,
-                        ValueByteOrder.ASCENDING,
-                        "value",
-                        "ImmutableList.of(_value)");
-            rangeScanAllowed();
-        }});
+        schema.addIndexDefinition("index4", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("data");
+                rowName();
+                componentFromIterableColumn(
+                        "value1", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
+                componentFromIterableColumn(
+                        "value2", ValueType.FIXED_LONG, ValueByteOrder.ASCENDING, "value", "ImmutableList.of(_value)");
+                rangeScanAllowed();
+            }
+        });
 
-        schema.addTableDefinition("two_columns", new TableDefinition() {{
-            rowName();
+        schema.addTableDefinition("two_columns", new TableDefinition() {
+            {
+                rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
-            columns();
+                columns();
                 column("foo", "f", ValueType.FIXED_LONG);
                 column("bar", "b", ValueType.FIXED_LONG);
-        }});
+            }
+        });
 
-        schema.addIndexDefinition("foo_to_id", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("two_columns");
-            rowName();
+        schema.addIndexDefinition("foo_to_id", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("two_columns");
+                rowName();
                 hashFirstRowComponent();
                 componentFromColumn("foo", ValueType.FIXED_LONG, "foo", "_value");
-            dynamicColumns();
+                dynamicColumns();
                 componentFromRow("id", ValueType.FIXED_LONG);
-        }});
+            }
+        });
 
-        schema.addIndexDefinition("foo_to_id_cond", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("two_columns");
-            onCondition("foo", "_value > 1");
-            rowName();
+        schema.addIndexDefinition("foo_to_id_cond", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("two_columns");
+                onCondition("foo", "_value > 1");
+                rowName();
                 componentFromColumn("foo", ValueType.FIXED_LONG, "foo", "_value");
-            dynamicColumns();
+                dynamicColumns();
                 componentFromRow("id", ValueType.FIXED_LONG);
-
-        }});
+            }
+        });
 
         return schema;
     }
@@ -124,7 +130,7 @@ public class IndexTestSchema implements AtlasSchema {
         return INDEX_TEST_SCHEMA;
     }
 
-    public static void main(String[]  args) throws Exception {
+    public static void main(String[] args) throws Exception {
         INDEX_TEST_SCHEMA.renderTables(new File("src/test/java"));
     }
 

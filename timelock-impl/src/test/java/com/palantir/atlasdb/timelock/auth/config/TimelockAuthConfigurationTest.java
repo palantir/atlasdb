@@ -16,13 +16,7 @@
 
 package com.palantir.atlasdb.timelock.auth.config;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.File;
-import java.io.IOException;
-
-import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -33,6 +27,9 @@ import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
 import com.palantir.atlasdb.timelock.auth.api.ImmutableCredentials;
 import com.palantir.lock.TimelockNamespace;
+import java.io.File;
+import java.io.IOException;
+import org.junit.Test;
 
 public class TimelockAuthConfigurationTest {
     private static final String TIMELOCK_AUTH_CONFIG = "timelock-auth-config";
@@ -48,17 +45,18 @@ public class TimelockAuthConfigurationTest {
             .password(BCryptedSecret.of("hashed-admin-secret"))
             .build();
 
-    private static final PrivilegesConfiguration CLIENT_PRIVILEGES_CONFIG = ImmutableClientPrivilegesConfiguration.builder()
-            .clientId(ClientId.of("client-1"))
-            .addNamespaces(TimelockNamespace.of("namespace-1"), TimelockNamespace.of("namespace-2"))
-            .build();
-    private static final PrivilegesConfiguration ADMIN_PRIVILEGES_CONFIG = ImmutableAdminPrivilegesConfiguration.builder()
-            .clientId(ClientId.of("admin-user-1"))
-            .build();
+    private static final PrivilegesConfiguration CLIENT_PRIVILEGES_CONFIG =
+            ImmutableClientPrivilegesConfiguration.builder()
+                    .clientId(ClientId.of("client-1"))
+                    .addNamespaces(TimelockNamespace.of("namespace-1"), TimelockNamespace.of("namespace-2"))
+                    .build();
+    private static final PrivilegesConfiguration ADMIN_PRIVILEGES_CONFIG =
+            ImmutableAdminPrivilegesConfiguration.builder()
+                    .clientId(ClientId.of("admin-user-1"))
+                    .build();
 
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory())
-            .registerModule(new Jdk8Module())
-            .registerModule(new GuavaModule());
+    private static final ObjectMapper mapper =
+            new ObjectMapper(new YAMLFactory()).registerModule(new Jdk8Module()).registerModule(new GuavaModule());
 
     @Test
     public void deserializedAsExpected() throws IOException {
@@ -78,7 +76,8 @@ public class TimelockAuthConfigurationTest {
     }
 
     private static File getConfigFile(String configFile) {
-        return new File(TimelockAuthConfiguration.class.getResource(
-                String.format("/%s.yml", configFile)).getPath());
+        return new File(TimelockAuthConfiguration.class
+                .getResource(String.format("/%s.yml", configFile))
+                .getPath());
     }
 }

@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.services;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.util.MetricsManager;
-
 import dagger.Module;
 import dagger.Provides;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class RawKeyValueServiceModule {
@@ -33,5 +31,4 @@ public class RawKeyValueServiceModule {
     public KeyValueService provideRawKeyValueService(ServicesConfig config, MetricsManager metricsManager) {
         return config.atlasDbSupplier(metricsManager).getKeyValueService();
     }
-
 }

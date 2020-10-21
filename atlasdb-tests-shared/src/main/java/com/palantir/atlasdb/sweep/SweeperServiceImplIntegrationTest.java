@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     private SweeperService sweeperService;

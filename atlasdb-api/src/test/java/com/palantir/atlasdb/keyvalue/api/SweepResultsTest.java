@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Optional;
-
-import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.encoding.PtBytes;
+import java.util.Optional;
+import org.junit.Test;
 
 public class SweepResultsTest {
     private static final SweepResults RESULTS = SweepResults.builder()
@@ -64,61 +62,61 @@ public class SweepResultsTest {
 
     @Test
     public void accumulateWithNextRowInOrder() {
-        Assert.assertThat(RESULTS.accumulateWith(OTHER_RESULTS), Matchers.equalTo(COMBINED_RESULTS_AND_OTHER));
+        assertThat(RESULTS.accumulateWith(OTHER_RESULTS)).isEqualTo(COMBINED_RESULTS_AND_OTHER);
     }
 
     @Test
     public void accumulateWithNextRowInOppositeOrder() {
-        Assert.assertThat(OTHER_RESULTS.accumulateWith(RESULTS), Matchers.equalTo(COMBINED_RESULTS_AND_OTHER));
+        assertThat(OTHER_RESULTS.accumulateWith(RESULTS)).isEqualTo(COMBINED_RESULTS_AND_OTHER);
     }
 
     @Test
     public void accumulateWithNoNextRowInOrder() {
-        Assert.assertThat(RESULTS.accumulateWith(RESULTS_NO_START_ROW),
-                Matchers.equalTo(SweepResults.builder()
+        assertThat(RESULTS.accumulateWith(RESULTS_NO_START_ROW))
+                .isEqualTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 3000L)
                         .staleValuesDeleted(100L + 300L)
                         .minSweptTimestamp(10L)
                         .timeInMillis(1L + 3L)
                         .timeSweepStarted(1_000L)
-                        .build()));
-
+                        .build());
     }
 
     @Test
     public void accumulateWithNoNextRowInOppositeOrder() {
-        Assert.assertThat(RESULTS_NO_START_ROW.accumulateWith(OTHER_RESULTS),
-                Matchers.equalTo(SweepResults.builder()
+        assertThat(RESULTS_NO_START_ROW.accumulateWith(OTHER_RESULTS))
+                .isEqualTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(2000L + 3000L)
                         .staleValuesDeleted(200L + 300L)
                         .minSweptTimestamp(20L)
                         .timeInMillis(2L + 3L)
                         .timeSweepStarted(10_000L)
-                        .build()));
+                        .build());
     }
 
     @Test
     public void accumulateAll() {
-        Assert.assertThat(RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS),
-                Matchers.equalTo(SweepResults.builder()
+        assertThat(RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS))
+                .isEqualTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 2000L + 3000L)
                         .staleValuesDeleted(100L + 200L + 300L)
                         .minSweptTimestamp(10L)
                         .timeInMillis(1L + 2L + 3L)
                         .timeSweepStarted(1_000L)
-                        .build()));
+                        .build());
     }
 
     @Test
     public void equalsIgnoresTimeSweepStarted() {
         SweepResults emptySweepResult = SweepResults.createEmptySweepResult(Optional.empty());
-        SweepResults laterEmptySweepResult = SweepResults.builder().from(emptySweepResult)
+        SweepResults laterEmptySweepResult = SweepResults.builder()
+                .from(emptySweepResult)
                 .timeSweepStarted(emptySweepResult.getTimeSweepStarted() + 1)
                 .build();
 
-        Assert.assertThat(emptySweepResult, Matchers.equalTo(laterEmptySweepResult));
+        assertThat(emptySweepResult).isEqualTo(laterEmptySweepResult);
     }
 }

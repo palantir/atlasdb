@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableOkEvent.class)
 @JsonDeserialize(as = ImmutableOkEvent.class)
@@ -45,7 +43,8 @@ public abstract class OkEvent implements Event {
     @Override
     public abstract long time();
 
-    @Override public abstract int process();
+    @Override
+    public abstract int process();
 
     @Nullable
     public abstract String value();

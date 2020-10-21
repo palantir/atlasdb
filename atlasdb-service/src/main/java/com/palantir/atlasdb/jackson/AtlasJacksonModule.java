@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import javax.inject.Inject;
-
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.palantir.atlasdb.api.RangeToken;
@@ -27,6 +25,7 @@ import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import javax.inject.Inject;
 
 public class AtlasJacksonModule {
     private final TableMetadataCache cache;

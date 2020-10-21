@@ -16,19 +16,22 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.util.Optional;
-
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
+import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.MultiSequenceTimestampSeriesProvider;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
 
 @AutoService(DbTimeLockFactory.class)
 public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
@@ -43,9 +46,7 @@ public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
 
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            LeaderConfig leaderConfig) {
+            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig) {
         return delegate.createRawKeyValueService(
                 metricsManager,
                 config,
@@ -58,16 +59,19 @@ public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs,
-            Optional<DbTimestampCreationSetting> dbTimestampCreationSetting,
-            boolean initializeAsync) {
-        return delegate.createManagedTimestampService(rawKvs, dbTimestampCreationSetting, initializeAsync);
+            KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync) {
+        return DbTimestampCreationSettings.caseOf(dbTimestampCreationSetting)
+                .multipleSeries((un, used) -> delegate.createManagedTimestampService(
+                        rawKvs, Optional.of(dbTimestampCreationSetting), initializeAsync))
+                .singleSeries(unused -> {
+                    throw new SafeIllegalStateException(
+                            "DB TimeLock cannot be used with" + " single series creation settings!");
+                });
     }
 
     @Override
-    public TimestampSeriesProvider createTimestampSeriesProvider(KeyValueService rawKvs, boolean initializeAsync) {
-        return () -> {
-            throw new UnsupportedOperationException("Not supported yet!");
-        };
+    public TimestampSeriesProvider createTimestampSeriesProvider(
+            KeyValueService rawKvs, TableReference tableReference, boolean initializeAsync) {
+        return MultiSequenceTimestampSeriesProvider.create(rawKvs, tableReference, initializeAsync);
     }
 }

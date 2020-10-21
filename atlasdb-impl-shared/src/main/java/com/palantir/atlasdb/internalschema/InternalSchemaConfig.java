@@ -16,15 +16,13 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 /**
  * An {@link InternalSchemaConfig} contains information that can be used for controlling how the internal schema
@@ -45,8 +43,9 @@ public abstract class InternalSchemaConfig {
 
     @Value.Check
     public void check() {
-        targetTransactionsSchemaVersion().ifPresent(version ->
-                Preconditions.checkState(TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS.contains(version),
+        targetTransactionsSchemaVersion()
+                .ifPresent(version -> Preconditions.checkState(
+                        TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS.contains(version),
                         "{} is not a recognised transactions schema version. Supported versions are {}",
                         SafeArg.of("configuredVersion", version),
                         SafeArg.of("supportedVersions", TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS)));

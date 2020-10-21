@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.paxos.Client;
 import java.util.Optional;
 import java.util.Set;
-
-import com.palantir.paxos.Client;
 
 /**
  * An {@link AcceptorCache} tracks the latest sequence numbers for each client it has seen so far.
@@ -89,7 +88,6 @@ public interface AcceptorCache {
      * @return a {@link AcceptorCacheDigest digest} containing the updates and a new cache key if any
      * @throws InvalidAcceptorCacheKeyException when {@code cacheKey} is missing or invalid
      */
-    Optional<AcceptorCacheDigest> updatesSinceCacheKey(AcceptorCacheKey cacheKey) throws
-            InvalidAcceptorCacheKeyException;
-
+    Optional<AcceptorCacheDigest> updatesSinceCacheKey(AcceptorCacheKey cacheKey)
+            throws InvalidAcceptorCacheKeyException;
 }

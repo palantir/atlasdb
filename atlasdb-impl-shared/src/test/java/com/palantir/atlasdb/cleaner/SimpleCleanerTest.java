@@ -53,5 +53,4 @@ public class SimpleCleanerTest {
         when(mockPuncher.isInitialized()).thenReturn(false);
         assertFalse(simpleCleaner.isInitialized());
     }
-
 }

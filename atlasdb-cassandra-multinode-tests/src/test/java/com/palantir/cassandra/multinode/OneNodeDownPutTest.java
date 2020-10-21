@@ -18,10 +18,6 @@ package com.palantir.cassandra.multinode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Map;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -31,6 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import java.util.Map;
+import org.junit.Test;
 
 public class OneNodeDownPutTest extends AbstractDegradedClusterTest {
     private static final Cell EMPTY_CELL = Cell.create(PtBytes.toBytes("empty"), FIRST_COLUMN);
@@ -74,16 +72,16 @@ public class OneNodeDownPutTest extends AbstractDegradedClusterTest {
         assertThatThrownBy(() -> getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, newContents)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
 
-        Map<Cell, Value> result = getTestKvs()
-                .get(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, AtlasDbConstants.TRANSACTION_TS));
+        Map<Cell, Value> result =
+                getTestKvs().get(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, AtlasDbConstants.TRANSACTION_TS));
         assertThat(result.get(NONEMPTY_CELL)).isNotEqualTo(Value.create(newContents, AtlasDbConstants.TRANSACTION_TS));
     }
 
     @Test
     public void canAddGarbageCollectionSentinelValues() {
         getTestKvs().addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(CELL_2_2));
-        Map<Cell, Long> latestTimestamp = getTestKvs()
-                .getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_2_2, Long.MAX_VALUE));
+        Map<Cell, Long> latestTimestamp =
+                getTestKvs().getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_2_2, Long.MAX_VALUE));
         assertThat(latestTimestamp.get(CELL_2_2)).isEqualTo(Value.INVALID_VALUE_TIMESTAMP);
     }
 

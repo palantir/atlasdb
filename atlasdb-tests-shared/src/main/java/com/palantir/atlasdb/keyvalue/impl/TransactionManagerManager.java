@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Optional;
 
 public interface TransactionManagerManager {
     /**

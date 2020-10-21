@@ -21,6 +21,9 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface LockWatchEventCache {
+
+    boolean isEnabled();
+
     /**
      * Returns the last known lock watch version for the cache.
      */
@@ -35,8 +38,8 @@ public interface LockWatchEventCache {
      * Updates the cache by providing a lock token, commit timestamp, and lock watch version at commit time for the
      * given start timestamps.
      */
-    void processGetCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates,
-            LockWatchStateUpdate update);
+    void processGetCommitTimestampsUpdate(
+            Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
 
     /**
      * Updates the cache with the update, and calculates the {@link CommitUpdate} taking into account all changes to
@@ -51,9 +54,7 @@ public interface LockWatchEventCache {
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
      * that version, and a map associating each start timestamp with its respective lock watch state version.
      */
-    TransactionsLockWatchUpdate getUpdateForTransactions(
-            Set<Long> startTimestamps,
-            Optional<LockWatchVersion> version);
+    TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps, Optional<LockWatchVersion> version);
 
     /**
      * Removes the given timestamp from the cache, along with all associated state. This may update the earliest

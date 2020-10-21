@@ -22,17 +22,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.UUID;
-import java.util.concurrent.Future;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
@@ -42,6 +31,15 @@ import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+import java.util.concurrent.Future;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CumulativeLeaderPingerTest {
@@ -54,6 +52,7 @@ public class CumulativeLeaderPingerTest {
 
     @Mock
     private BatchPingableLeader batchPingableLeader;
+
     private LeaderPingerContext<BatchPingableLeader> pingerWithContext;
 
     @Before
@@ -84,8 +83,7 @@ public class CumulativeLeaderPingerTest {
         LeaderPingResult result =
                 lastSuccessfulResult.result(CLIENT_WHO_IS_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
 
-        assertThat(result)
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(HOST_UUID, HOST_AND_PORT));
+        assertThat(result).isEqualTo(LeaderPingResults.pingReturnedTrue(HOST_UUID, HOST_AND_PORT));
     }
 
     @Test
@@ -97,17 +95,13 @@ public class CumulativeLeaderPingerTest {
         LeaderPingResult result =
                 lastSuccessfulResult.result(CLIENT_WHO_IS_NOT_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
 
-        assertThat(result)
-                .isEqualTo(LeaderPingResults.pingReturnedFalse());
+        assertThat(result).isEqualTo(LeaderPingResults.pingReturnedFalse());
     }
 
     @Test
     public void singleIterationUpdatesInMemoryReference() {
-        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
-                pingerWithContext,
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(1),
-                HOST_UUID);
+        CumulativeLeaderPinger cumulativeLeaderPinger =
+                new CumulativeLeaderPinger(pingerWithContext, Duration.ofSeconds(1), Duration.ofSeconds(1), HOST_UUID);
 
         Future<LeaderPingResult> clientWhoIsLed = cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
         Future<LeaderPingResult> clientWhoIsNotLed =
@@ -121,17 +115,13 @@ public class CumulativeLeaderPingerTest {
         assertThat(Futures.getUnchecked(clientWhoIsLed))
                 .isEqualTo(LeaderPingResults.pingReturnedTrue(HOST_UUID, HOST_AND_PORT));
 
-        assertThat(Futures.getUnchecked(clientWhoIsNotLed))
-                .isEqualTo(LeaderPingResults.pingReturnedFalse());
+        assertThat(Futures.getUnchecked(clientWhoIsNotLed)).isEqualTo(LeaderPingResults.pingReturnedFalse());
     }
 
     @Test
     public void getUnresolvedFutureUntilSingleIterationHasRun() {
-        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
-                pingerWithContext,
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(1),
-                HOST_UUID);
+        CumulativeLeaderPinger cumulativeLeaderPinger =
+                new CumulativeLeaderPinger(pingerWithContext, Duration.ofSeconds(1), Duration.ofSeconds(1), HOST_UUID);
 
         Future<LeaderPingResult> clientWhoIsLed = cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
 
@@ -151,11 +141,8 @@ public class CumulativeLeaderPingerTest {
 
     @Test
     public void getBackCachedResultIfTryingToPingTwice() {
-        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
-                pingerWithContext,
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(1),
-                HOST_UUID);
+        CumulativeLeaderPinger cumulativeLeaderPinger =
+                new CumulativeLeaderPinger(pingerWithContext, Duration.ofSeconds(1), Duration.ofSeconds(1), HOST_UUID);
 
         Future<LeaderPingResult> clientWhoIsLed = cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
 
@@ -179,11 +166,8 @@ public class CumulativeLeaderPingerTest {
 
     @Test
     public void secondIterationIncludesClientsFromPreviousIterations() {
-        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
-                pingerWithContext,
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(1),
-                HOST_UUID);
+        CumulativeLeaderPinger cumulativeLeaderPinger =
+                new CumulativeLeaderPinger(pingerWithContext, Duration.ofSeconds(1), Duration.ofSeconds(1), HOST_UUID);
 
         cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
 

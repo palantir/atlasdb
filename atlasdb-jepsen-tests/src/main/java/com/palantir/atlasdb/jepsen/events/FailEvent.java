@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableFailEvent.class)
 @JsonDeserialize(as = ImmutableFailEvent.class)
@@ -33,7 +32,8 @@ public abstract class FailEvent implements Event {
     @Override
     public abstract long time();
 
-    @Override public abstract int process();
+    @Override
+    public abstract int process();
 
     public abstract String error();
 

@@ -15,6 +15,9 @@
  */
 package com.palantir.paxos;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
+import com.palantir.logsafe.SafeArg;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Optional;
@@ -23,13 +26,8 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.leader.PaxosKnowledgeEventRecorder;
-import com.palantir.logsafe.SafeArg;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 
@@ -51,11 +49,12 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         return new PaxosLearnerImpl(state, log, eventRecorder);
     }
 
-    public static PaxosLearner newSplittingLearner(PaxosStorageParameters params,
+    public static PaxosLearner newSplittingLearner(
+            PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
             PaxosKnowledgeEventRecorder event) {
-        PaxosStateLog<PaxosValue> log = SplittingPaxosStateLog
-                .createWithMigration(params, PaxosValue.BYTES_HYDRATOR, legacyOperationMarkers, OptionalLong.empty());
+        PaxosStateLog<PaxosValue> log = SplittingPaxosStateLog.createWithMigration(
+                params, PaxosValue.BYTES_HYDRATOR, legacyOperationMarkers, OptionalLong.empty());
         return newLearner(log, event);
     }
 
@@ -63,9 +62,10 @@ public final class PaxosLearnerImpl implements PaxosLearner {
     final PaxosStateLog<PaxosValue> log;
     final PaxosKnowledgeEventRecorder eventRecorder;
 
-    private PaxosLearnerImpl(SortedMap<Long, PaxosValue> stateWithGreatestValueFromLog,
-                             PaxosStateLog<PaxosValue> log,
-                            PaxosKnowledgeEventRecorder eventRecorder) {
+    private PaxosLearnerImpl(
+            SortedMap<Long, PaxosValue> stateWithGreatestValueFromLog,
+            PaxosStateLog<PaxosValue> log,
+            PaxosKnowledgeEventRecorder eventRecorder) {
         this.state = stateWithGreatestValueFromLog;
         this.log = log;
         this.eventRecorder = eventRecorder;
@@ -90,9 +90,7 @@ public final class PaxosLearnerImpl implements PaxosLearner {
             }
             return Optional.ofNullable(state.get(seq));
         } catch (IOException e) {
-            logger.error("Unable to get corrupt learned value for sequence {}",
-                    SafeArg.of("sequence", seq),
-                    e);
+            logger.error("Unable to get corrupt learned value for sequence {}", SafeArg.of("sequence", seq), e);
             return Optional.empty();
         }
     }

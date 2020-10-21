@@ -20,18 +20,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.function.Function;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -46,6 +34,16 @@ import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitables;
+import java.util.Collection;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.function.Function;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ScrubberTest {
@@ -120,14 +118,16 @@ public class ScrubberTest {
         Cell cell3 = Cell.create(new byte[] {3}, new byte[] {4});
         TableReference tableRef = TableReference.createFromFullyQualifiedName("foo.bar");
         kvs.createTable(tableRef, new byte[] {});
-        kvs.putWithTimestamps(tableRef, ImmutableMultimap.<Cell, Value>builder()
-                .put(cell1, Value.create(new byte[] {3}, 10))
-                .put(cell1, Value.create(new byte[] {4}, 20))
-                .put(cell2, Value.create(new byte[] {4}, 30))
-                .put(cell2, Value.create(new byte[] {5}, 40))
-                .put(cell2, Value.create(new byte[] {6}, 50))
-                .put(cell3, Value.create(new byte[] {7}, 60))
-                .build());
+        kvs.putWithTimestamps(
+                tableRef,
+                ImmutableMultimap.<Cell, Value>builder()
+                        .put(cell1, Value.create(new byte[] {3}, 10))
+                        .put(cell1, Value.create(new byte[] {4}, 20))
+                        .put(cell2, Value.create(new byte[] {4}, 30))
+                        .put(cell2, Value.create(new byte[] {5}, 40))
+                        .put(cell2, Value.create(new byte[] {6}, 50))
+                        .put(cell3, Value.create(new byte[] {7}, 60))
+                        .build());
         transactions.putUnlessExists(10, 15);
         transactions.putUnlessExists(20, 25);
         transactions.putUnlessExists(30, 35);
@@ -140,14 +140,16 @@ public class ScrubberTest {
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell3, tableRef), 60, 100);
         scrubber.runBackgroundScrubTask(null);
 
-        List<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue = BatchingVisitables.copyToList(
-                scrubStore.getBatchingVisitableScrubQueue(Long.MAX_VALUE, null, null));
+        List<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue =
+                BatchingVisitables.copyToList(scrubStore.getBatchingVisitableScrubQueue(Long.MAX_VALUE, null, null));
         Assert.assertEquals(ImmutableList.of(), scrubQueue);
     }
 
-    private Scrubber getScrubber(KeyValueService keyValueService, ScrubberStore scrubberStore,
-            TransactionService transactionService) {
-        return Scrubber.create(keyValueService, scrubberStore,
+    private Scrubber getScrubber(
+            KeyValueService keyValueService, ScrubberStore scrubberStore, TransactionService transactionService) {
+        return Scrubber.create(
+                keyValueService,
+                scrubberStore,
                 () -> Long.MAX_VALUE, // background scrub frequency millis
                 () -> true, // scrub enabled
                 () -> 100L, // unreadable timestamp

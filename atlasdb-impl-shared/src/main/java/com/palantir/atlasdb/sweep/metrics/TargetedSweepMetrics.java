@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Gauge;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -52,6 +40,16 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class TargetedSweepMetrics {
@@ -96,8 +94,8 @@ public class TargetedSweepMetrics {
     }
 
     private static long getMillisForTimestampBoundedAtOneWeek(KeyValueService kvs, long ts, Clock clock) {
-        return KeyValueServicePuncherStore
-                .getMillisForTimestampIfNotPunchedBefore(kvs, ts, clock.getTimeMillis() - ONE_WEEK);
+        return KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
+                kvs, ts, clock.getTimeMillis() - ONE_WEEK);
     }
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
@@ -178,8 +176,12 @@ public class TargetedSweepMetrics {
         private final SlidingWindowMeanGauge batchSizeMean;
         private final CurrentValueMetric<Long> sweepDelayMetric;
 
-        private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
-                Clock wallClock, long recomputeMillis) {
+        private MetricsForStrategy(
+                MetricsManager manager,
+                String strategy,
+                Function<Long, Long> tsToMillis,
+                Clock wallClock,
+                long recomputeMillis) {
             tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
             this.manager = manager;
             enqueuedWrites = new AccumulatingValueMetric();
@@ -199,8 +201,7 @@ public class TargetedSweepMetrics {
 
         private void registerProgressMetrics(String strategy, TargetedSweepMetricPublicationFilter filter) {
             // This is kind of against the point of metrics-filter, but is needed for our filtering
-            AtlasDbMetricNames.TARGETED_SWEEP_PROGRESS_METRIC_NAMES
-                    .stream()
+            AtlasDbMetricNames.TARGETED_SWEEP_PROGRESS_METRIC_NAMES.stream()
                     .map(operationName -> MetricName.builder()
                             .safeName("targetedSweepProgress." + operationName)
                             .putSafeTags("strategy", strategy)
@@ -220,13 +221,12 @@ public class TargetedSweepMetrics {
         }
 
         private TargetedSweepMetricPublicationFilter createMetricPublicationFilter() {
-            return new TargetedSweepMetricPublicationFilter(
-                            ImmutableDecisionMetrics.builder()
-                                    .enqueuedWrites(enqueuedWrites::getValue)
-                                    .entriesRead(entriesRead::getValue)
-                                    .millisSinceLastSweptTs(
-                                            () -> Optional.ofNullable(millisSinceLastSwept.getValue()).orElse(0L))
-                                    .build());
+            return new TargetedSweepMetricPublicationFilter(ImmutableDecisionMetrics.builder()
+                    .enqueuedWrites(enqueuedWrites::getValue)
+                    .entriesRead(entriesRead::getValue)
+                    .millisSinceLastSweptTs(() ->
+                            Optional.ofNullable(millisSinceLastSwept.getValue()).orElse(0L))
+                    .build());
         }
 
         private AggregatingVersionedMetric<Long> createLastSweptTsMetric(long millis) {
@@ -325,7 +325,8 @@ public class TargetedSweepMetrics {
 
         @Value.Check
         default void check() {
-            Preconditions.checkState(millisBetweenRecomputingMetrics() >= 0,
+            Preconditions.checkState(
+                    millisBetweenRecomputingMetrics() >= 0,
                     "Cannot specify negative interval between metric computations!");
         }
 

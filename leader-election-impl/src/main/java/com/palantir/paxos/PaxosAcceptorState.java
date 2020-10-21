@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import com.google.common.base.Defaults;
+import com.google.common.base.Objects;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.base.Throwables;
@@ -52,10 +53,7 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         this.version = Defaults.defaultValue(long.class);
     }
 
-    private PaxosAcceptorState(PaxosProposalId pid,
-                               PaxosProposalId aid,
-                               PaxosValue val,
-                               long version) {
+    private PaxosAcceptorState(PaxosProposalId pid, PaxosProposalId aid, PaxosValue val, long version) {
         this.lastPromisedId = pid;
         this.lastAcceptedId = aid;
         this.lastAcceptedValue = val;
@@ -66,9 +64,7 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         return new PaxosAcceptorState(pid, lastAcceptedId, lastAcceptedValue, version + 1);
     }
 
-    public PaxosAcceptorState withState(PaxosProposalId pid,
-                                        PaxosProposalId aid,
-                                        PaxosValue val) {
+    public PaxosAcceptorState withState(PaxosProposalId pid, PaxosProposalId aid, PaxosValue val) {
         return new PaxosAcceptorState(pid, aid, val, version + 1);
     }
 
@@ -116,5 +112,26 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
 
     public PaxosValue getLastAcceptedValue() {
         return lastAcceptedValue;
+    }
+
+    @Override
+    public boolean equalsIgnoringVersion(Versionable obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        PaxosAcceptorState other = (PaxosAcceptorState) obj;
+        if (!Objects.equal(lastPromisedId, other.lastPromisedId)) {
+            return false;
+        }
+        if (!Objects.equal(lastAcceptedId, other.lastAcceptedId)) {
+            return false;
+        }
+        return Objects.equal(lastAcceptedValue, other.lastAcceptedValue);
     }
 }

@@ -16,12 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -29,21 +23,31 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = LockWatchStateUpdate.Success.class, name = LockWatchStateUpdate.Success.TYPE),
-        @JsonSubTypes.Type(value = LockWatchStateUpdate.Snapshot.class, name = LockWatchStateUpdate.Snapshot.TYPE)})
+    @JsonSubTypes.Type(value = LockWatchStateUpdate.Success.class, name = LockWatchStateUpdate.Success.TYPE),
+    @JsonSubTypes.Type(value = LockWatchStateUpdate.Snapshot.class, name = LockWatchStateUpdate.Snapshot.TYPE)
+})
 public interface LockWatchStateUpdate {
     UUID logId();
+
     <T> T accept(Visitor<T> visitor);
 
     static Success success(UUID logId, long version, List<LockWatchEvent> events) {
-        return ImmutableSuccess.builder().logId(logId).lastKnownVersion(version).events(events).build();
+        return ImmutableSuccess.builder()
+                .logId(logId)
+                .lastKnownVersion(version)
+                .events(events)
+                .build();
     }
 
-    static Snapshot snapshot(UUID logId, long version, Set<LockDescriptor> locked,
-            Set<LockWatchReference> lockWatches) {
+    static Snapshot snapshot(
+            UUID logId, long version, Set<LockDescriptor> locked, Set<LockWatchReference> lockWatches) {
         return ImmutableSnapshot.builder()
                 .logId(logId)
                 .lastKnownVersion(version)
@@ -63,7 +67,9 @@ public interface LockWatchStateUpdate {
     @JsonTypeName(Success.TYPE)
     interface Success extends LockWatchStateUpdate {
         String TYPE = "success";
+
         long lastKnownVersion();
+
         List<LockWatchEvent> events();
 
         @Override
@@ -85,8 +91,11 @@ public interface LockWatchStateUpdate {
     @JsonTypeName(Snapshot.TYPE)
     interface Snapshot extends LockWatchStateUpdate {
         String TYPE = "snapshot";
+
         long lastKnownVersion();
+
         Set<LockDescriptor> locked();
+
         Set<LockWatchReference> lockWatches();
 
         @Override
@@ -97,6 +106,7 @@ public interface LockWatchStateUpdate {
 
     interface Visitor<T> {
         T visit(Success success);
+
         T visit(Snapshot snapshot);
     }
 }

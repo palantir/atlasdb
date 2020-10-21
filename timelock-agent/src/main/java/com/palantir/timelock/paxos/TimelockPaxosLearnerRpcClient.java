@@ -16,9 +16,13 @@
 
 package com.palantir.timelock.paxos;
 
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
+import com.palantir.common.annotation.Inclusive;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosValue;
 import java.util.Collection;
 import java.util.Optional;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -27,22 +31,13 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
-import com.palantir.common.annotation.Inclusive;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosValue;
-
 /**
  * This interface is used internally by timelock to allow creating a single feign proxy where different clients and
  * different paxos use cases can be injected using {@link TimelockPaxosLearnerAdapter} to create
  * {@link PaxosLearner}s instead of creating a proxy per client and per use case. This reduces the resource allocation
  * when a new timelock node becomes the leader.
  */
-@Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
-        + "/{useCase}"
-        + "/{client}"
-        + "/learner")
+@Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE + "/{useCase}" + "/{client}" + "/learner")
 public interface TimelockPaxosLearnerRpcClient {
     @POST
     @Path("learn/{seq}")
@@ -65,8 +60,7 @@ public interface TimelockPaxosLearnerRpcClient {
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
     Optional<PaxosValue> getGreatestLearnedValue(
-            @PathParam("useCase") PaxosUseCase paxosUseCase,
-            @PathParam("client") String client);
+            @PathParam("useCase") PaxosUseCase paxosUseCase, @PathParam("client") String client);
 
     @GET
     @Path("learned-values-since/{seq}")

@@ -30,8 +30,7 @@ public class BlockLoader implements BlockGetter {
 
     @Override
     public void get(long firstBlock, long numBlocks, OutputStream destination) {
-        LongStream.range(firstBlock, firstBlock + numBlocks)
-                .forEach(i -> singleBlockLoader.accept(i, destination));
+        LongStream.range(firstBlock, firstBlock + numBlocks).forEach(i -> singleBlockLoader.accept(i, destination));
     }
 
     @Override

@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import java.nio.ByteBuffer;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
-
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
@@ -29,6 +24,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Preconditions;
+import java.nio.ByteBuffer;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
@@ -72,9 +71,11 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     @Override
     public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
-        return preparedStatement.bind()
+        return preparedStatement
+                .bind()
                 .setBytes("row", toReadOnlyByteBuffer(getQueryParameters.cell().getRowName()))
-                .setBytes("column", toReadOnlyByteBuffer(getQueryParameters.cell().getColumnName()))
+                .setBytes(
+                        "column", toReadOnlyByteBuffer(getQueryParameters.cell().getColumnName()))
                 .setLong("timestamp", getQueryParameters.queryTimestamp());
     }
 
@@ -112,8 +113,7 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
             return false;
         }
         GetQuerySpec that = (GetQuerySpec) other;
-        return cqlQueryContext.equals(that.cqlQueryContext)
-                && getQueryParameters.equals(that.getQueryParameters);
+        return cqlQueryContext.equals(that.cqlQueryContext) && getQueryParameters.equals(that.getQueryParameters);
     }
 
     @Override
@@ -121,18 +121,19 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         return Objects.hash(cqlQueryContext, getQueryParameters);
     }
 
-    private static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
+    private static final class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
 
         private volatile Value resultValue = null;
         private volatile boolean assigned = false;
 
         @Override
         public void accumulateRowStream(Stream<Row> rowStream) {
-            Preconditions.checkState(!assigned,
-                    "Multiple calls to accumulateRowStream, wrong usage of this implementation");
+            Preconditions.checkState(
+                    !assigned, "Multiple calls to accumulateRowStream, wrong usage of this implementation");
             // the query can only ever return one page with one row
             assigned = true;
-            resultValue = rowStream.findFirst().map(GetQueryAccumulator::parseValue).orElse(null);
+            resultValue =
+                    rowStream.findFirst().map(GetQueryAccumulator::parseValue).orElse(null);
         }
 
         @Override

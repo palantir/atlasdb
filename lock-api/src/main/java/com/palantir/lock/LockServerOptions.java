@@ -15,20 +15,17 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 /**
  * Provides the set of options which can be passed to the
@@ -36,9 +33,7 @@ import com.google.common.base.Objects;
  *
  * @author jtamer
  */
-
-@JsonDeserialize(builder =
-        LockServerOptions.SerializationProxy.class)
+@JsonDeserialize(builder = LockServerOptions.SerializationProxy.class)
 @Value.Immutable
 public class LockServerOptions implements Serializable {
     private static final long serialVersionUID = 2930574230723753879L;
@@ -147,7 +142,8 @@ public class LockServerOptions implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(isStandaloneServer(),
+        return Objects.hashCode(
+                isStandaloneServer(),
                 getMaxAllowedLockTimeout(),
                 getMaxAllowedClockDrift(),
                 getMaxAllowedBlockingDuration(),
@@ -173,8 +169,7 @@ public class LockServerOptions implements Serializable {
                 .toString();
     }
 
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }
 
@@ -208,23 +203,19 @@ public class LockServerOptions implements Serializable {
 
         SerializationProxy(LockServerOptions lockServerOptions) {
             isStandaloneServer = lockServerOptions.isStandaloneServer();
-            maxAllowedLockTimeout = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxAllowedLockTimeout());
-            maxAllowedClockDrift = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxAllowedClockDrift());
-            maxAllowedBlockingDuration = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxAllowedBlockingDuration());
-            maxNormalLockAge = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxNormalLockAge());
+            maxAllowedLockTimeout = SimpleTimeDuration.of(lockServerOptions.getMaxAllowedLockTimeout());
+            maxAllowedClockDrift = SimpleTimeDuration.of(lockServerOptions.getMaxAllowedClockDrift());
+            maxAllowedBlockingDuration = SimpleTimeDuration.of(lockServerOptions.getMaxAllowedBlockingDuration());
+            maxNormalLockAge = SimpleTimeDuration.of(lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
-            stuckTransactionTimeout = SimpleTimeDuration.of(
-                    lockServerOptions.getStuckTransactionTimeout());
+            stuckTransactionTimeout = SimpleTimeDuration.of(lockServerOptions.getStuckTransactionTimeout());
             lockStateLoggerDir = lockServerOptions.getLockStateLoggerDir();
             slowLogTriggerMillis = lockServerOptions.slowLogTriggerMillis();
         }
 
         @JsonCreator
-        SerializationProxy(@JsonProperty("isStandaloneServer") boolean isStandaloneServer,
+        SerializationProxy(
+                @JsonProperty("isStandaloneServer") boolean isStandaloneServer,
                 @JsonProperty("maxAllowedLockTimeout") SimpleTimeDuration maxAllowedLockTimeout,
                 @JsonProperty("maxAllowedClockDrift") SimpleTimeDuration maxAllowedClockDrift,
                 @JsonProperty("maxAllowedBlockingDuration") SimpleTimeDuration maxAllowedBlockingDuration,

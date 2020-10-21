@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface CellReference {
     TableReference tableRef();
+
     Cell cell();
 
     static CellReference of(TableReference tableRef, Cell cell) {

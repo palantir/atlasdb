@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Supplier;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -53,10 +48,14 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
@@ -64,9 +63,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final LockLog lockLog;
 
     public AsyncTimelockServiceImpl(
-            AsyncLockService lockService,
-            ManagedTimestampService timestampService,
-            LockLog lockLog) {
+            AsyncLockService lockService, ManagedTimestampService timestampService, LockLog lockLog) {
         this.lockService = lockService;
         this.timestampService = DelegatingClientAwareManagedTimestampService.createDefault(timestampService);
         this.lockLog = lockLog;
@@ -104,9 +101,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<LockResponseV2> lock(IdentifiedLockRequest request) {
         AsyncResult<Leased<LockToken>> result = lockService.lock(
-                request.getRequestId(),
-                request.getLockDescriptors(),
-                TimeLimit.of(request.getAcquireTimeoutMs()));
+                request.getRequestId(), request.getLockDescriptors(), TimeLimit.of(request.getAcquireTimeoutMs()));
         lockLog.registerRequest(request, result);
         SettableFuture<LockResponseV2> response = SettableFuture.create();
         result.onComplete(() -> {
@@ -115,7 +110,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
             } else if (result.isTimedOut()) {
                 response.set(LockResponseV2.timedOut());
             } else {
-                response.set(LockResponseV2.successful(result.get().value(), result.get().lease()));
+                response.set(LockResponseV2.successful(
+                        result.get().value(), result.get().lease()));
             }
         });
         return response;
@@ -124,9 +120,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<WaitForLocksResponse> waitForLocks(WaitForLocksRequest request) {
         AsyncResult<Void> result = lockService.waitForLocks(
-                request.getRequestId(),
-                request.getLockDescriptors(),
-                TimeLimit.of(request.getAcquireTimeoutMs()));
+                request.getRequestId(), request.getLockDescriptors(), TimeLimit.of(request.getAcquireTimeoutMs()));
         lockLog.registerRequest(request, result);
         SettableFuture<WaitForLocksResponse> response = SettableFuture.create();
         result.onComplete(() -> {
@@ -153,14 +147,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request) {
-        return StartAtlasDbTransactionResponse.of(
-                lockImmutableTimestamp(request),
-                getFreshTimestamp());
+        return StartAtlasDbTransactionResponse.of(lockImmutableTimestamp(request), getFreshTimestamp());
     }
 
     @Override
-    public StartAtlasDbTransactionResponseV3 startTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
+    public StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request) {
         StartTransactionResponseV4 startTransactionResponseV4 =
                 startTransactions(StartTransactionRequestV4.createForRequestor(request.requestorId(), 1));
 
@@ -191,7 +182,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private Leased<LockImmutableTimestampResponse> lockImmutableTimestampWithLease(UUID requestId) {
         long timestamp = timestampService.getFreshTimestamp();
 
-        Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(requestId, timestamp).get();
+        Leased<LockToken> leasedLock =
+                lockService.lockImmutableTimestamp(requestId, timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
         LockImmutableTimestampResponse lockImmutableTimestampResponse =
@@ -210,9 +202,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.getRequestId());
 
-        ValueAndLockWatchStateUpdate<PartitionedTimestamps> timestampsAndUpdate = lockService.getLockWatchingService()
-                .runTask(request.getLastKnownVersion().map(AsyncTimelockServiceImpl::fromConjure), () ->
-                        timestampService.getFreshTimestampsForClient(request.getRequestorId(), request.getNumTransactions()));
+        ValueAndLockWatchStateUpdate<PartitionedTimestamps> timestampsAndUpdate = lockService
+                .getLockWatchingService()
+                .runTask(
+                        request.getLastKnownVersion().map(AsyncTimelockServiceImpl::fromConjure),
+                        () -> timestampService.getFreshTimestampsForClient(
+                                request.getRequestorId(), request.getNumTransactions()));
 
         return ConjureStartTransactionsResponse.builder()
                 .immutableTimestamp(leasedLockImmutableTimestampResponse.value())

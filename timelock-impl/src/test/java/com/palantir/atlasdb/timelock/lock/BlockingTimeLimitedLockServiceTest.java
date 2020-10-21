@@ -44,8 +44,9 @@ public class BlockingTimeLimitedLockServiceTest {
     private static final long BLOCKING_TIME_LIMIT_MILLIS = 10L;
     private static final long TEST_CURRENT_TIME_MILLIS = 42L;
     private static final String CLIENT = "client";
-    private static final LockRequest LOCK_REQUEST
-            = LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of("lockId"), LockMode.WRITE)).build();
+    private static final LockRequest LOCK_REQUEST = LockRequest.builder(
+                    ImmutableSortedMap.of(StringLockDescriptor.of("lockId"), LockMode.WRITE))
+            .build();
 
     private final TimeLimiter acceptingLimiter = new FakeTimeLimiter();
     private final TimeLimiter timingOutLimiter = mock(TimeLimiter.class);

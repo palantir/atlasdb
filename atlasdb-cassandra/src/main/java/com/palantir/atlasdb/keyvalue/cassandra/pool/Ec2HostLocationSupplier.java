@@ -12,39 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Original Cassandra documentation license:
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Changes made from Cassandra original Ec2Snitch:
- * - Factored out partitioning logic.
- * - Reformatted and integrated with OkHttp instead of HTTPUrlConnection
  */
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import java.io.IOException;
-import java.util.function.Supplier;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.Preconditions;
-
+import java.io.IOException;
+import java.util.function.Supplier;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -58,20 +34,20 @@ import okhttp3.Response;
 public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
 
     /*
-        This is a supplier to avoid class loading races breaking downstream internal products.
-     */
+       This is a supplier to avoid class loading races breaking downstream internal products.
+    */
     private static final Supplier<OkHttpClient> client = Suppliers.memoize(() -> new OkHttpClient.Builder().build());
 
     @Override
     public HostLocation get() {
         try {
-            Response response = client.get().newCall(new Request.Builder()
-                    .get()
-                    .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
-                    .build())
+            Response response = client.get()
+                    .newCall(new Request.Builder()
+                            .get()
+                            .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
+                            .build())
                     .execute();
-            Preconditions.checkState(response.isSuccessful(),
-                    "Getting AWS host metadata was not successful");
+            Preconditions.checkState(response.isSuccessful(), "Getting AWS host metadata was not successful");
 
             return parseHostLocation(response.body().string());
         } catch (IOException e) {

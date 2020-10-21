@@ -23,11 +23,6 @@ import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -36,6 +31,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class OracleTableNameMapperTest {
     private static final String TEST_PREFIX = "a_";
@@ -52,25 +51,23 @@ public class OracleTableNameMapperTest {
     @Before
     public void setup() {
         connectionSupplier = mock(ConnectionSupplier.class);
-        oracleTableNameMapper =  new OracleTableNameMapper();
+        oracleTableNameMapper = new OracleTableNameMapper();
         SqlConnection sqlConnection = mock(SqlConnection.class);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
         resultSet = mock(AgnosticResultSet.class);
-        when(sqlConnection
-                .selectResultSetUnregisteredQuery(
+        when(sqlConnection.selectResultSetUnregisteredQuery(
                         startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE LOWER(short_table_name)"),
                         anyObject()))
                 .thenReturn(resultSet);
     }
-
 
     @Test
     public void shouldModifyTableNameForShortTableName() {
         when(resultSet.size()).thenReturn(0);
 
         TableReference tableRef = TableReference.create(Namespace.create("ns1"), "short");
-        String shortPrefixedTableName = oracleTableNameMapper
-                .getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
+        String shortPrefixedTableName =
+                oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
         assertThat(shortPrefixedTableName, is("a_ns__short_0000"));
     }
 
@@ -84,8 +81,7 @@ public class OracleTableNameMapperTest {
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-                "Cannot create any more tables with name starting with a_te__ThisIsAVeryLongT");
+        expectedException.expectMessage("Cannot create any more tables with name starting with a_te__ThisIsAVeryLongT");
         oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
     }
 

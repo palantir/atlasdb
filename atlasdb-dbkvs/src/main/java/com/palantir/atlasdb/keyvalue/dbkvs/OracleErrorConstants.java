@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 public final class OracleErrorConstants {
     private OracleErrorConstants() {
-        //utility class
+        // utility class
     }
 
     public static final String ORACLE_CONSTRAINT_VIOLATION_ERROR = "ORA-00001";

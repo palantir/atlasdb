@@ -17,40 +17,38 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-
-import java.net.InetSocketAddress;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import java.net.InetSocketAddress;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class CassandraAtlasDbFactoryTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
     private static final ImmutableSet<InetSocketAddress> SERVERS = ImmutableSet.of(new InetSocketAddress("foo", 42));
-    private static final CassandraCredentialsConfig CREDENTIALS =
-            ImmutableCassandraCredentialsConfig.builder()
-                    .username("username")
-                    .password("password")
-                    .build();
+    private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
+            .username("username")
+            .password("password")
+            .build();
 
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig
-                            .builder().addAllThriftHosts(SERVERS).build())
+                    .servers(ImmutableDefaultConfig.builder()
+                            .addAllThriftHosts(SERVERS)
+                            .build())
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig
-                            .builder().addAllThriftHosts(SERVERS).build())
+                    .servers(ImmutableDefaultConfig.builder()
+                            .addAllThriftHosts(SERVERS)
+                            .build())
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
@@ -63,24 +61,24 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void throwsWhenPreprocessingNonCassandraKvsConfig() {
         assertThatThrownBy(() -> {
-            KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
-            CassandraAtlasDbFactory.preprocessKvsConfig(keyValueServiceConfig, Optional::empty, Optional.empty());
-        })
+                    KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
+                    CassandraAtlasDbFactory.preprocessKvsConfig(
+                            keyValueServiceConfig, Optional::empty, Optional.empty());
+                })
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
-        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITHOUT_KEYSPACE, Optional::empty,
-                Optional.empty()))
+        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
+                        CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
-        assertThatThrownBy(
-                () -> CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional::empty,
-                        Optional.of(KEYSPACE_2)))
+        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
+                        CONFIG_WITH_KEYSPACE, Optional::empty, Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -93,28 +91,26 @@ public class CassandraAtlasDbFactoryTest {
 
     @Test
     public void resolvesConfigWithNamespaceIfNoKeyspaceProvided() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITHOUT_KEYSPACE, Optional::empty,
-                        Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void preservesOtherPropertiesOnResolvedConfigWithNamespace() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITHOUT_KEYSPACE, Optional::empty,
-                        Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
         assertThat(newConfig.servers())
-                .isEqualTo(ImmutableDefaultConfig
-                        .builder().addAllThriftHosts(SERVERS).build());
+                .isEqualTo(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(SERVERS)
+                        .build());
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
     }
 
     @Test
     public void resolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional::empty,
-                        Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                CONFIG_WITH_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
@@ -124,7 +120,9 @@ public class CassandraAtlasDbFactoryTest {
                 .preprocessKvsRuntimeConfig(Optional::empty)
                 .get();
 
-        assertEquals("Empty config should resolve to default", DEFAULT_CKVS_RUNTIME_CONFIG, returnedConfig);
+        assertThat(returnedConfig)
+                .describedAs("Empty config should resolve to default")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 
     @Test
@@ -137,13 +135,17 @@ public class CassandraAtlasDbFactoryTest {
             return Optional.of(INVALID_CKVS_RUNTIME_CONFIG);
         };
 
-        Supplier<CassandraKeyValueServiceRuntimeConfig> processedRuntimeConfig = new CassandraAtlasDbFactory()
-                .preprocessKvsRuntimeConfig(runtimeConfigSupplier);
+        Supplier<CassandraKeyValueServiceRuntimeConfig> processedRuntimeConfig =
+                new CassandraAtlasDbFactory().preprocessKvsRuntimeConfig(runtimeConfigSupplier);
         CassandraKeyValueServiceRuntimeConfig firstReturnedConfig = processedRuntimeConfig.get();
         CassandraKeyValueServiceRuntimeConfig secondReturnedConfig = processedRuntimeConfig.get();
 
-        assertEquals("First returned config should be valid", DEFAULT_CKVS_RUNTIME_CONFIG, firstReturnedConfig);
-        assertEquals("Second invalid config should be ignored", DEFAULT_CKVS_RUNTIME_CONFIG, secondReturnedConfig);
+        assertThat(firstReturnedConfig)
+                .describedAs("First returned config should be valid")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+        assertThat(secondReturnedConfig)
+                .describedAs("Second invalid config should be ignored")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 
     @Test
@@ -152,6 +154,8 @@ public class CassandraAtlasDbFactoryTest {
                 .preprocessKvsRuntimeConfig(() -> Optional.of(INVALID_CKVS_RUNTIME_CONFIG))
                 .get();
 
-        assertEquals("First invalid config should resolve to default", DEFAULT_CKVS_RUNTIME_CONFIG, returnedConfig);
+        assertThat(returnedConfig)
+                .describedAs("First invalid config should resolve to default")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 }

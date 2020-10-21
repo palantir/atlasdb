@@ -19,7 +19,6 @@ package com.palantir.atlasdb.debug;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -40,6 +39,5 @@ public interface LockDiagnosticInfoService {
     @POST
     @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
     Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(
-            @PathParam("namespace") String namespace,
-            Set<UUID> requestIds);
+            @PathParam("namespace") String namespace, Set<UUID> requestIds);
 }

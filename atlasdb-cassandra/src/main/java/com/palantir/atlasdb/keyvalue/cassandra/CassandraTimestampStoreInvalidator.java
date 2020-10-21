@@ -30,7 +30,8 @@ public final class CassandraTimestampStoreInvalidator implements TimestampStoreI
     }
 
     public static CassandraTimestampStoreInvalidator create(KeyValueService keyValueService) {
-        Preconditions.checkArgument(keyValueService instanceof CassandraKeyValueService,
+        Preconditions.checkArgument(
+                keyValueService instanceof CassandraKeyValueService,
                 "CassandraTimestampStoreInvalidator should be instantiated with a CassandraKeyValueService!");
         CassandraKeyValueService cassandraKeyValueService = (CassandraKeyValueService) keyValueService;
         return new CassandraTimestampStoreInvalidator(new CassandraTimestampBackupRunner(cassandraKeyValueService));

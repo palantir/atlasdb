@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import org.junit.Test;
 
 public class ConflictHandlersTest {
     @Test
@@ -28,7 +27,7 @@ public class ConflictHandlersTest {
         for (ConflictHandler conflictHandler : ConflictHandler.values()) {
             TableMetadataPersistence.TableConflictHandler proto = ConflictHandlers.persistToProto(conflictHandler);
             ConflictHandler convertedConflictHandler = ConflictHandlers.hydrateFromProto(proto);
-            assertEquals(conflictHandler, convertedConflictHandler);
+            assertThat(convertedConflictHandler).isEqualTo(conflictHandler);
         }
     }
 }

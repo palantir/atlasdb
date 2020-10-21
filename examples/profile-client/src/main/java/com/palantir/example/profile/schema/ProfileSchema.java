@@ -15,11 +15,7 @@
  */
 package com.palantir.example.profile.schema;
 
-import java.io.File;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.persister.JsonNodePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -33,6 +29,9 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.example.profile.protos.generated.ProfilePersistence;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class ProfileSchema implements AtlasSchema {
@@ -41,54 +40,67 @@ public class ProfileSchema implements AtlasSchema {
     private static final Schema PROFILE_SCHEMA = generateSchema();
 
     private static Schema generateSchema() {
-        Schema schema = new Schema("Profile",
+        Schema schema = new Schema(
+                "Profile",
                 ProfileSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
 
-        schema.addTableDefinition("user_profile", new TableDefinition() {{
-            allSafeForLoggingByDefault();
-            rowName();
+        schema.addTableDefinition("user_profile", new TableDefinition() {
+            {
+                allSafeForLoggingByDefault();
+                rowName();
                 rowComponent("id", ValueType.UUID);
-            columns();
+                columns();
                 column("metadata", "m", ProfilePersistence.UserProfile.class);
                 column("create", "c", CreationData.Persister.class);
                 column("json", "j", JsonNodePersister.class);
                 column("photo_stream_id", "p", ValueType.FIXED_LONG);
-        }});
+            }
+        });
 
-        schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("user_profile");
-            allSafeForLoggingByDefault();
-            rowName();
+        schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("user_profile");
+                allSafeForLoggingByDefault();
+                rowName();
                 componentFromColumn("birthday", ValueType.VAR_SIGNED_LONG, "metadata", "_value.getBirthEpochDay()");
-            dynamicColumns();
+                dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
-            rangeScanAllowed();
-            ignoreHotspottingChecks();
-        }});
+                rangeScanAllowed();
+                ignoreHotspottingChecks();
+            }
+        });
 
-        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("user_profile");
-            allSafeForLoggingByDefault();
-            rowName();
+        schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("user_profile");
+                allSafeForLoggingByDefault();
+                rowName();
                 componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
-            dynamicColumns();
+                dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
-            rangeScanAllowed();
-            ignoreHotspottingChecks();
-        }});
+                rangeScanAllowed();
+                ignoreHotspottingChecks();
+            }
+        });
 
-        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
-            onTable("user_profile");
-            allSafeForLoggingByDefault();
-            rowName();
-                componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json",
+        schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {
+            {
+                onTable("user_profile");
+                allSafeForLoggingByDefault();
+                rowName();
+                componentFromIterableColumn(
+                        "cookie",
+                        ValueType.STRING,
+                        ValueByteOrder.ASCENDING,
+                        "json",
                         "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
-            dynamicColumns();
+                dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
-            rangeScanAllowed();
-        }});
+                rangeScanAllowed();
+            }
+        });
 
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG)
@@ -100,7 +112,7 @@ public class ProfileSchema implements AtlasSchema {
 
     public static Iterable<String> getCookies(JsonNode node) {
         JsonNode cookies = node.get("cookies");
-        List<String> ret = Lists.newArrayList();
+        List<String> ret = new ArrayList<>();
         for (JsonNode cookie : cookies) {
             ret.add(cookie.asText());
         }
@@ -111,7 +123,7 @@ public class ProfileSchema implements AtlasSchema {
         return PROFILE_SCHEMA;
     }
 
-    public static void main(String[]  args) throws Exception {
+    public static void main(String[] args) throws Exception {
         PROFILE_SCHEMA.renderTables(new File("src/main/java"));
     }
 

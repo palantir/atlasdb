@@ -17,13 +17,6 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -38,6 +31,11 @@ import com.palantir.atlasdb.table.description.test.StringValue;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.BatchingVisitables;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
@@ -55,8 +53,8 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     protected Long getSingleRowFirstColumn(Transaction transaction, String rowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection firstColSelection = SchemaApiTestTable.getColumnSelection(
-                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
+        ColumnSelection firstColSelection =
+                SchemaApiTestTable.getColumnSelection(SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
         Optional<SchemaApiTestRowResult> result = table.getRow(SchemaApiTestRow.of(rowKey), firstColSelection);
         return result.get().getColumn1();
     }
@@ -65,25 +63,23 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     protected Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection firstColSelection = SchemaApiTestTable.getColumnSelection(
-                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
-        List<SchemaApiTestRowResult> result =
-                table.getRows(
-                        rowKeys.stream().map(SchemaApiTestRow::of).collect(Collectors.toList()),
-                        firstColSelection);
-        return result
-                .stream()
+        ColumnSelection firstColSelection =
+                SchemaApiTestTable.getColumnSelection(SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
+        List<SchemaApiTestRowResult> result = table.getRows(
+                rowKeys.stream().map(SchemaApiTestRow::of).collect(Collectors.toList()), firstColSelection);
+        return result.stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getRowName().getComponent1(),
                         SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
     }
 
     @Override
-    protected Map<String, StringValue> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, StringValue> getRangeSecondColumn(
+            Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
-                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
+        ColumnSelection secondColSelection =
+                SchemaApiTestTable.getColumnSelection(SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
 
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(SchemaApiTestRow.of(startRowKey).persistToBytes())
@@ -92,8 +88,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
                 .build();
 
         BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
-        return rangeRequestResult.immutableCopy()
-                .stream()
+        return rangeRequestResult.immutableCopy().stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getRowName().getComponent1(),
                         SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
@@ -104,8 +99,8 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
             Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
-                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
+        ColumnSelection secondColSelection =
+                SchemaApiTestTable.getColumnSelection(SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
 
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(SchemaApiTestRow.of(startRowKey).persistToBytes())
@@ -115,8 +110,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
                 .build();
 
         BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
-        return BatchingVisitables.take(rangeRequestResult, 2)
-                .stream()
+        return BatchingVisitables.take(rangeRequestResult, 2).stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getRowName().getComponent1(),
                         SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
@@ -141,14 +135,14 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
         byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(TEST_VALUE_INTEGER);
         byte[] component2Bytes = EncodingUtils.encodeVarString(TEST_VALUE_STRING);
-        long hashOfFirstTwoComponents =
-                Hashing.murmur3_128().hashBytes(EncodingUtils.add(component1Bytes, component2Bytes)).asLong();
+        long hashOfFirstTwoComponents = Hashing.murmur3_128()
+                .hashBytes(EncodingUtils.add(component1Bytes, component2Bytes))
+                .asLong();
         // The hash of the components is persisted as a FIXED_LONG of 8 bytes
         byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfFirstTwoComponents);
 
         byte[] persistedRow = testRow.persistToBytes();
-        assertThat(persistedRow)
-                .isEqualTo(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
+        assertThat(persistedRow).isEqualTo(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
         assertThat(HashComponentsTestTable.HashComponentsTestRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow))
                 .isEqualTo(testRow);
     }

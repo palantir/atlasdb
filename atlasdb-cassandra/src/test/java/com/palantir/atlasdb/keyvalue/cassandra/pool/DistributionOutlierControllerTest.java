@@ -22,16 +22,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.common.streams.KeyedStream;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
+import org.junit.Test;
 
 public class DistributionOutlierControllerTest {
     private static final double MIN_THRESHOLD = 0.1;
@@ -45,8 +43,8 @@ public class DistributionOutlierControllerTest {
         }
     };
 
-    private final DistributionOutlierController defaultController = new DistributionOutlierController(
-            clock, MIN_THRESHOLD, MAX_THRESHOLD);
+    private final DistributionOutlierController defaultController =
+            new DistributionOutlierController(clock, MIN_THRESHOLD, MAX_THRESHOLD);
 
     @Test
     public void returnsNullWhenNoDistributionPresent() {
@@ -112,8 +110,8 @@ public class DistributionOutlierControllerTest {
         Gauge<Long> otherGauge = () -> 100L;
         Gauge<Long> anotherGauge = () -> 100L;
 
-        Map<Gauge<Long>, MetricPublicationFilter> filters = registerAndCreatePublicationFilters(
-                Stream.of(lowGauge, otherGauge, anotherGauge));
+        Map<Gauge<Long>, MetricPublicationFilter> filters =
+                registerAndCreatePublicationFilters(Stream.of(lowGauge, otherGauge, anotherGauge));
         assertThat(filters.get(lowGauge).shouldPublish()).isTrue();
         assertThat(filters.get(otherGauge).shouldPublish()).isFalse();
         assertThat(filters.get(anotherGauge).shouldPublish()).isFalse();
@@ -125,8 +123,8 @@ public class DistributionOutlierControllerTest {
         Gauge<Long> otherGauge = () -> 100L;
         Gauge<Long> anotherGauge = () -> 100L;
 
-        Map<Gauge<Long>, MetricPublicationFilter> filters = registerAndCreatePublicationFilters(
-                Stream.of(highGauge, otherGauge, anotherGauge));
+        Map<Gauge<Long>, MetricPublicationFilter> filters =
+                registerAndCreatePublicationFilters(Stream.of(highGauge, otherGauge, anotherGauge));
         assertThat(filters.get(highGauge).shouldPublish()).isTrue();
         assertThat(filters.get(otherGauge).shouldPublish()).isFalse();
         assertThat(filters.get(anotherGauge).shouldPublish()).isFalse();
@@ -143,8 +141,8 @@ public class DistributionOutlierControllerTest {
         Gauge<Long> gaugeTwo = valueTwo::get;
         Gauge<Long> gaugeThree = valueThree::get;
 
-        Map<Gauge<Long>, MetricPublicationFilter> filters = registerAndCreatePublicationFilters(
-                Stream.of(gaugeOne, gaugeTwo, gaugeThree));
+        Map<Gauge<Long>, MetricPublicationFilter> filters =
+                registerAndCreatePublicationFilters(Stream.of(gaugeOne, gaugeTwo, gaugeThree));
 
         assertThat(defaultController.getMeanGauge().getValue()).isEqualTo(67.0);
         assertThat(filters.get(gaugeOne).shouldPublish()).isTrue();

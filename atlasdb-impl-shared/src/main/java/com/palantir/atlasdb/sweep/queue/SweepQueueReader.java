@@ -23,7 +23,8 @@ class SweepQueueReader {
     private final SweepableCells sweepableCells;
     private final IntSupplier maximumPartitionsInBatch;
 
-    SweepQueueReader(SweepableTimestamps sweepableTimestamps,
+    SweepQueueReader(
+            SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells,
             IntSupplier maximumPartitionsInBatch) {
         this.sweepableTimestamps = sweepableTimestamps;
@@ -37,8 +38,8 @@ class SweepQueueReader {
         for (int currentBatch = 0;
                 currentBatch < maximumPartitionsInBatch.getAsInt() && accumulator.shouldAcceptAdditionalBatch();
                 currentBatch++) {
-            Optional<Long> nextFinePartition = sweepableTimestamps.nextSweepableTimestampPartition(
-                    shardStrategy, previousProgress, sweepTs);
+            Optional<Long> nextFinePartition =
+                    sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, previousProgress, sweepTs);
             if (!nextFinePartition.isPresent()) {
                 return accumulator.toSweepBatch();
             }

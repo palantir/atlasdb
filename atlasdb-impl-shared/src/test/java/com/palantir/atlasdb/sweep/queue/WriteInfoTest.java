@@ -17,15 +17,14 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
+import org.junit.Test;
 
 public class WriteInfoTest {
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
-    private static final Cell CELL = Cell.create(new byte[]{1}, new byte[]{2});
+    private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {2});
     private static final long ZERO = 0L;
     private static final long ONE = 1L;
     private static final long TWO = 2L;
@@ -41,7 +40,8 @@ public class WriteInfoTest {
     @Test
     public void tombstoneStatusIsIgnoredForSharding() {
         assertThat(getWriteAt(ONE)).isNotEqualTo(getTombstoneAt(ONE));
-        assertThat(getWriteAt(ONE).toShard(SHARDS)).isEqualTo(getTombstoneAt(ONE).toShard(SHARDS));
+        assertThat(getWriteAt(ONE).toShard(SHARDS))
+                .isEqualTo(getTombstoneAt(ONE).toShard(SHARDS));
     }
 
     @Test
@@ -50,15 +50,20 @@ public class WriteInfoTest {
         assertThat(getTombstoneAt(ONE)).isNotEqualTo(getTombstoneAt(TWO));
 
         assertThat(getWriteAt(ONE).toShard(SHARDS)).isEqualTo(getWriteAt(TWO).toShard(SHARDS));
-        assertThat(getTombstoneAt(ONE).toShard(SHARDS)).isEqualTo(getTombstoneAt(TWO).toShard(SHARDS));
+        assertThat(getTombstoneAt(ONE).toShard(SHARDS))
+                .isEqualTo(getTombstoneAt(TWO).toShard(SHARDS));
     }
 
     @Test
     public void timestampToDeleteAtHigherForTombstoneAndThorough() {
-        assertThat(getWriteAt(ONE).toDelete(Sweeper.CONSERVATIVE).maxTimestampToDelete()).isEqualTo(ZERO);
-        assertThat(getWriteAt(ONE).toDelete(Sweeper.THOROUGH).maxTimestampToDelete()).isEqualTo(ZERO);
-        assertThat(getTombstoneAt(ONE).toDelete(Sweeper.CONSERVATIVE).maxTimestampToDelete()).isEqualTo(ZERO);
-        assertThat(getTombstoneAt(ONE).toDelete(Sweeper.THOROUGH).maxTimestampToDelete()).isEqualTo(ONE);
+        assertThat(getWriteAt(ONE).toDelete(Sweeper.CONSERVATIVE).maxTimestampToDelete())
+                .isEqualTo(ZERO);
+        assertThat(getWriteAt(ONE).toDelete(Sweeper.THOROUGH).maxTimestampToDelete())
+                .isEqualTo(ZERO);
+        assertThat(getTombstoneAt(ONE).toDelete(Sweeper.CONSERVATIVE).maxTimestampToDelete())
+                .isEqualTo(ZERO);
+        assertThat(getTombstoneAt(ONE).toDelete(Sweeper.THOROUGH).maxTimestampToDelete())
+                .isEqualTo(ONE);
     }
 
     private WriteInfo getWriteAt(long timestamp) {

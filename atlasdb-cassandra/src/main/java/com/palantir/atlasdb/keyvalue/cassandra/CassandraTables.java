@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.thrift.TException;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
 
 class CassandraTables {
     private final CassandraClientPool clientPool;
@@ -72,29 +70,27 @@ class CassandraTables {
     }
 
     private Set<String> getExistingLowerCased(String keyspace) throws TException {
-        return clientPool.runWithRetry((client) -> getExistingLowerCased(client, keyspace));
+        return clientPool.runWithRetry(client -> getExistingLowerCased(client, keyspace));
     }
 
     private Set<String> getExistingLowerCased(CassandraClient client, String keyspace) throws TException {
         return getTableNames(client, keyspace, cf -> cf.getName().toLowerCase());
     }
 
-    private Set<String> getTableNames(CassandraClient client, String keyspace,
-            Function<CfDef, String> nameGetter) throws TException {
+    private Set<String> getTableNames(CassandraClient client, String keyspace, Function<CfDef, String> nameGetter)
+            throws TException {
         try {
             CassandraKeyValueServices.waitForSchemaVersions(
-                    config.schemaMutationTimeoutMillis(),
-                    client,
-                    "before making a call to get all table names.");
+                    config.schemaMutationTimeoutMillis(), client, "before making a call to get all table names.");
         } catch (IllegalStateException e) {
-            throw new InsufficientConsistencyException("Could not reach a quorum of nodes agreeing on schema versions "
-                    + "before making a call to get all table names.", e);
+            throw new InsufficientConsistencyException(
+                    "Could not reach a quorum of nodes agreeing on schema versions "
+                            + "before making a call to get all table names.",
+                    e);
         }
 
         KsDef ks = client.describe_keyspace(keyspace);
 
-        return ks.getCf_defs().stream()
-                .map(nameGetter)
-                .collect(Collectors.toSet());
+        return ks.getCf_defs().stream().map(nameGetter).collect(Collectors.toSet());
     }
 }

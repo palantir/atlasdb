@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -25,6 +23,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
 import com.palantir.logsafe.Preconditions;
+import java.util.Map;
 
 public final class KvsReadBenchmark extends AbstractBenchmark {
 
@@ -34,8 +33,7 @@ public final class KvsReadBenchmark extends AbstractBenchmark {
     private final Cell cell = Cell.create(data, data);
     private final KeyValueService keyValueService;
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient) {
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients, int requestsPerClient) {
         return new KvsReadBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
     }
 
@@ -51,8 +49,10 @@ public final class KvsReadBenchmark extends AbstractBenchmark {
 
     @Override
     protected void performOneCall() {
-        byte[] result = keyValueService.get(TABLE, ImmutableMap.of(cell, 200L))
-                .get(cell).getContents();
+        byte[] result = keyValueService
+                .get(TABLE, ImmutableMap.of(cell, 200L))
+                .get(cell)
+                .getContents();
         Preconditions.checkState(result.length == data.length);
     }
 }

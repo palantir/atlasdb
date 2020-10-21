@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-import java.net.InetSocketAddress;
-
-import org.mockito.Mockito;
-
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import java.net.InetSocketAddress;
+import org.mockito.Mockito;
 
 public class MockKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 

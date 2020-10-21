@@ -21,7 +21,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,12 +46,10 @@ public class AnnotatedRunnableTest {
     @Test
     public void prependThreadName() throws Exception {
         AtomicBoolean hasRun = new AtomicBoolean(false);
-        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(
-                AnnotationType.PREPEND, "test thread name", () -> {
-                    assertThat(Thread.currentThread().getName(),
-                            is("test thread name AnnotatedRunnableTest"));
-                    hasRun.set(true);
-                });
+        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(AnnotationType.PREPEND, "test thread name", () -> {
+            assertThat(Thread.currentThread().getName(), is("test thread name AnnotatedRunnableTest"));
+            hasRun.set(true);
+        });
 
         runnable.run();
         assertThat(hasRun.get(), is(true));
@@ -61,12 +58,10 @@ public class AnnotatedRunnableTest {
     @Test
     public void appendThreadName() throws Exception {
         AtomicBoolean hasRun = new AtomicBoolean(false);
-        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(
-                AnnotationType.APPEND, "test thread name", () -> {
-                    assertThat(Thread.currentThread().getName(),
-                            is("AnnotatedRunnableTest test thread name"));
-                    hasRun.set(true);
-                });
+        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(AnnotationType.APPEND, "test thread name", () -> {
+            assertThat(Thread.currentThread().getName(), is("AnnotatedRunnableTest test thread name"));
+            hasRun.set(true);
+        });
 
         runnable.run();
         assertThat(hasRun.get(), is(true));
@@ -75,11 +70,10 @@ public class AnnotatedRunnableTest {
     @Test
     public void replaceThreadName() throws Exception {
         AtomicBoolean hasRun = new AtomicBoolean(false);
-        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(
-                AnnotationType.REPLACE, "test thread name", () -> {
-                    assertThat(Thread.currentThread().getName(), is("test thread name"));
-                    hasRun.set(true);
-                });
+        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(AnnotationType.REPLACE, "test thread name", () -> {
+            assertThat(Thread.currentThread().getName(), is("test thread name"));
+            hasRun.set(true);
+        });
 
         runnable.run();
         assertThat(hasRun.get(), is(true));
@@ -100,12 +94,10 @@ public class AnnotatedRunnableTest {
     @Test
     public void annotateError() {
         AtomicBoolean hasRun = new AtomicBoolean(false);
-        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(
-                AnnotationType.PREPEND, "test thread name", () -> {
-                    assertThat(Thread.currentThread().getName(),
-                            is("test thread name AnnotatedRunnableTest"));
-                    throw new OutOfMemoryError("test message");
-                });
+        Runnable runnable = AnnotatedRunnable.wrapWithThreadName(AnnotationType.PREPEND, "test thread name", () -> {
+            assertThat(Thread.currentThread().getName(), is("test thread name AnnotatedRunnableTest"));
+            throw new OutOfMemoryError("test message");
+        });
 
         try {
             runnable.run();
@@ -116,7 +108,8 @@ public class AnnotatedRunnableTest {
             assertThat(expected.getMessage(), is("test message"));
             assertThat(expected.getSuppressed().length, is(1));
             assertThat(expected.getSuppressed()[0], instanceOf(SuppressedException.class));
-            assertThat(expected.getSuppressed()[0].getMessage(),
+            assertThat(
+                    expected.getSuppressed()[0].getMessage(),
                     is("Error [java.lang.OutOfMemoryError: test message]"
                             + " occurred while processing thread (test thread name AnnotatedRunnableTest)"));
         }

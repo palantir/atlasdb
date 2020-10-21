@@ -17,13 +17,15 @@
 package com.palantir.paxos;
 
 import java.util.Map;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface InProgressResponseState<SERVICE, T> {
     Map<SERVICE, T> responses();
+
     int successes();
+
     int failures();
+
     int totalRequests();
 }

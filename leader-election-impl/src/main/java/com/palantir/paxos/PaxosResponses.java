@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class PaxosResponses<T extends PaxosResponse> {
     abstract int quorum();
+
     abstract List<T> responses();
 
     public static <T extends PaxosResponse> PaxosResponses<T> of(int quorum, List<T> responses) {
@@ -76,5 +76,4 @@ public abstract class PaxosResponses<T extends PaxosResponse> {
     protected boolean thereWereDisagreements() {
         return responses().stream().anyMatch(response -> !response.isSuccessful());
     }
-
 }

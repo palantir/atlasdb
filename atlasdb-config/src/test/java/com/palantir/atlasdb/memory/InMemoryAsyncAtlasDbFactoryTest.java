@@ -19,16 +19,14 @@ package com.palantir.atlasdb.memory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
+import org.junit.Test;
 
 public class InMemoryAsyncAtlasDbFactoryTest {
     private final AtlasDbFactory factory = new InMemoryAsyncAtlasDbFactory();
@@ -79,12 +77,6 @@ public class InMemoryAsyncAtlasDbFactoryTest {
 
     private KeyValueService createRawKeyValueService(boolean initializeAsync) {
         return factory.createRawKeyValueService(
-                null,
-                null,
-                Optional::empty,
-                null,
-                Optional.empty(),
-                null,
-                initializeAsync);
+                null, null, Optional::empty, null, Optional.empty(), null, initializeAsync);
     }
 }

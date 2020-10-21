@@ -16,12 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -29,11 +24,15 @@ import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 public class ClientScopedMetrics {
 
     private final TaggedMetricRegistry parentRegistry;
-    private final Map<Client, MetricsManager> clientScopedMetricRegistry = Maps.newConcurrentMap();
+    private final Map<Client, MetricsManager> clientScopedMetricRegistry = new ConcurrentHashMap<>();
 
     ClientScopedMetrics(TaggedMetricRegistry parentRegistry) {
         this.parentRegistry = parentRegistry;
@@ -56,5 +55,4 @@ public class ClientScopedMetrics {
         parentRegistry.addMetrics(AtlasDbMetricNames.TAG_CLIENT, client.value(), childRegistry);
         return MetricsManagers.of(new MetricRegistry(), childRegistry);
     }
-
 }

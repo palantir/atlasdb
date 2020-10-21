@@ -15,16 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
@@ -40,6 +31,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 // This class provides a temporary implementation of the new call using existing KVS calls,
 // so that we can make this change in several smaller commits.
@@ -51,22 +50,20 @@ public class GetCandidateCellsForSweepingShim {
     }
 
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-                TableReference tableRef,
-                CandidateCellForSweepingRequest request) {
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
         RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(request.startRowInclusive())
-                .batchHint(request.batchSizeHint().orElse(
-                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
+                .batchHint(request.batchSizeHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .build();
-        try (ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults = new ReleasableCloseable<>(
-                    getValues(tableRef, range, request.maxTimestampExclusive(), request.shouldCheckIfLatestValueIsEmpty()));
-             ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults = new ReleasableCloseable<>(
-                     keyValueService.getRangeOfTimestamps(tableRef, range, request.maxTimestampExclusive()))) {
+        try (ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults = new ReleasableCloseable<>(getValues(
+                        tableRef, range, request.maxTimestampExclusive(), request.shouldCheckIfLatestValueIsEmpty()));
+                ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults = new ReleasableCloseable<>(
+                        keyValueService.getRangeOfTimestamps(tableRef, range, request.maxTimestampExclusive()))) {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults.get());
 
             Iterator<List<RowResult<Set<Long>>>> tsBatches = Iterators.partition(tsResults.get(), range.getBatchHint());
             Iterator<List<CandidateCellForSweeping>> candidates = Iterators.transform(tsBatches, tsBatch -> {
-                List<CandidateCellForSweeping> candidateBatch = Lists.newArrayList();
+                List<CandidateCellForSweeping> candidateBatch = new ArrayList<>();
                 for (RowResult<Set<Long>> rr : tsBatch) {
                     for (Map.Entry<byte[], Set<Long>> e : rr.getColumns().entrySet()) {
                         byte[] colName = e.getKey();
@@ -101,10 +98,8 @@ public class GetCandidateCellsForSweepingShim {
         return closer;
     }
 
-    private ClosableIterator<RowResult<Value>> getValues(TableReference tableRef,
-                                                         RangeRequest range,
-                                                         long sweepTs,
-                                                         boolean checkIfLatestValueIsEmpty) {
+    private ClosableIterator<RowResult<Value>> getValues(
+            TableReference tableRef, RangeRequest range, long sweepTs, boolean checkIfLatestValueIsEmpty) {
         if (checkIfLatestValueIsEmpty) {
             return keyValueService.getRange(tableRef, range, sweepTs);
         } else {
@@ -154,5 +149,4 @@ public class GetCandidateCellsForSweepingShim {
             }
         }
     }
-
 }

@@ -15,15 +15,7 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -39,6 +31,13 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class KeyValueServiceValidator {
     private final TransactionManager validationFromTransactionManager;
@@ -56,14 +55,15 @@ public class KeyValueServiceValidator {
 
     private final KvsMigrationMessageProcessor messageProcessor;
 
-    public KeyValueServiceValidator(TransactionManager validationFromTransactionManager,
-                                    TransactionManager validationToTransactionManager,
-                                    KeyValueService validationFromKvs,
-                                    int threads,
-                                    int defaultBatchSize,
-                                    Map<TableReference, Integer> readBatchSizeOverrides,
-                                    KvsMigrationMessageProcessor messageProcessor,
-                                    Set<TableReference> unmigratableTables) {
+    public KeyValueServiceValidator(
+            TransactionManager validationFromTransactionManager,
+            TransactionManager validationToTransactionManager,
+            KeyValueService validationFromKvs,
+            int threads,
+            int defaultBatchSize,
+            Map<TableReference, Integer> readBatchSizeOverrides,
+            KvsMigrationMessageProcessor messageProcessor,
+            Set<TableReference> unmigratableTables) {
         this.validationFromTransactionManager = validationFromTransactionManager;
         this.validationToTransactionManager = validationToTransactionManager;
         this.validationFromKvs = validationFromKvs;
@@ -80,13 +80,13 @@ public class KeyValueServiceValidator {
     }
 
     public void validate(boolean logOnly) {
-        Set<TableReference> tables = KeyValueServiceValidators.getValidatableTableNames(
-                validationFromKvs, unmigratableTables);
+        Set<TableReference> tables =
+                KeyValueServiceValidators.getValidatableTableNames(validationFromKvs, unmigratableTables);
         try {
             validateTables(tables);
         } catch (Throwable t) {
-            KeyValueServiceMigratorUtils.processMessage(messageProcessor,
-                    "Validation failed.", t, KvsMigrationMessageLevel.ERROR);
+            KeyValueServiceMigratorUtils.processMessage(
+                    messageProcessor, "Validation failed.", t, KvsMigrationMessageLevel.ERROR);
             if (!logOnly) {
                 throw Throwables.throwUncheckedException(t);
             }
@@ -95,7 +95,7 @@ public class KeyValueServiceValidator {
 
     private void validateTables(Set<TableReference> tables) {
         ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
-        List<Future<Void>> futures = Lists.newArrayList();
+        List<Future<Void>> futures = new ArrayList<>();
         for (final TableReference table : tables) {
             Future<Void> future = executor.submit(() -> {
                 try {
@@ -118,15 +118,15 @@ public class KeyValueServiceValidator {
         while (nextRowName != null) {
             nextRowName = validateNextBatchOfRows(table, limit, nextRowName);
         }
-        KeyValueServiceMigratorUtils
-                .processMessage(messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
+        KeyValueServiceMigratorUtils.processMessage(
+                messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
 
     private byte[] validateNextBatchOfRows(TableReference table, int limit, byte[] nextRowName) {
         try {
             // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-            return validationFromTransactionManager.runTaskWithRetry(t1 ->
-                    validationToTransactionManager.runTaskWithRetry(t2 -> {
+            return validationFromTransactionManager.runTaskWithRetry(
+                    t1 -> validationToTransactionManager.runTaskWithRetry(t2 -> {
                         RangeRequest range = RangeRequest.builder()
                                 .batchHint(limit)
                                 .startRowInclusive(nextRowName)
@@ -138,18 +138,13 @@ public class KeyValueServiceValidator {
         }
     }
 
-    private byte[] validateAndGetNextRowName(TableReference table,
-                                             int limit,
-                                             Transaction t1,
-                                             Transaction t2,
-                                             RangeRequest range) {
-        BatchingVisitableView<RowResult<byte[]>> bv1 =
-                BatchingVisitableView.of(t1.getRange(table, range));
+    private byte[] validateAndGetNextRowName(
+            TableReference table, int limit, Transaction t1, Transaction t2, RangeRequest range) {
+        BatchingVisitableView<RowResult<byte[]>> bv1 = BatchingVisitableView.of(t1.getRange(table, range));
         List<RowResult<byte[]>> rrs1 = bv1.limit(limit).immutableCopy();
         Map<Cell, byte[]> cells1 = Cells.convertRowResultsToCells(rrs1);
 
-        BatchingVisitableView<RowResult<byte[]>> bv2 =
-                BatchingVisitableView.of(t2.getRange(table, range));
+        BatchingVisitableView<RowResult<byte[]>> bv2 = BatchingVisitableView.of(t2.getRange(table, range));
         List<RowResult<byte[]>> rrs2 = bv2.limit(limit).immutableCopy();
         Map<Cell, byte[]> cells2 = Cells.convertRowResultsToCells(rrs2);
 

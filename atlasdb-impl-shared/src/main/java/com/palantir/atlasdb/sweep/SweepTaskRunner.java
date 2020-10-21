@@ -15,21 +15,10 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -51,6 +40,15 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Sweeps one individual table.
@@ -72,7 +70,8 @@ public class SweepTaskRunner {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper) {
-        this(keyValueService,
+        this(
+                keyValueService,
                 unreadableTimestampSupplier,
                 immutableTimestampSupplier,
                 transactionService,
@@ -114,9 +113,7 @@ public class SweepTaskRunner {
         FULL
     }
 
-    public SweepResults dryRun(TableReference tableRef,
-                               SweepBatchConfig batchConfig,
-                               byte[] startRow) {
+    public SweepResults dryRun(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow) {
         return runInternal(tableRef, batchConfig, startRow, RunType.DRY);
     }
 
@@ -129,10 +126,7 @@ public class SweepTaskRunner {
     }
 
     private SweepResults runInternal(
-            TableReference tableRef,
-            SweepBatchConfig batchConfig,
-            byte[] startRow,
-            RunType runType) {
+            TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow, RunType runType) {
 
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
@@ -147,25 +141,25 @@ public class SweepTaskRunner {
         }
         byte[] tableMeta = keyValueService.getMetadataForTable(tableRef);
         if (tableMeta.length == 0) {
-            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
+            log.warn(
+                    "The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
                     LoggingArgs.tableRef("tableRef", tableRef));
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
-        SweepStrategy sweepStrategy =
-                SweepStrategy.from(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
+        SweepStrategy sweepStrategy = SweepStrategy.from(
+                TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
-        return maybeSweeper.map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
+        return maybeSweeper
+                .map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
                 .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
     }
 
-    private SweepResults doRun(TableReference tableRef,
-                               SweepBatchConfig batchConfig,
-                               byte[] startRow,
-                               RunType runType,
-                               Sweeper sweeper) {
+    private SweepResults doRun(
+            TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow, RunType runType, Sweeper sweeper) {
         Stopwatch watch = Stopwatch.createStarted();
         long timeSweepStarted = System.currentTimeMillis();
-        log.info("Beginning iteration of sweep for table {} starting at row {}",
+        log.info(
+                "Beginning iteration of sweep for table {} starting at row {}",
                 LoggingArgs.tableRef(tableRef),
                 UnsafeArg.of("startRow", PtBytes.encodeHexString(startRow)));
         // Earliest start timestamp of any currently open transaction, with two caveats:
@@ -189,11 +183,11 @@ public class SweepTaskRunner {
                 .build();
 
         SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(commitTsCache, sweeper, sweepTs);
-        try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
-                    tableRef, request)) {
+        try (ClosableIterator<List<CandidateCellForSweeping>> candidates =
+                keyValueService.getCandidateCellsForSweeping(tableRef, request)) {
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
-            Iterator<BatchOfCellsToSweep> batchesToSweep = getBatchesToSweep(
-                        candidates, batchConfig, sweepableCellFilter, limit);
+            Iterator<BatchOfCellsToSweep> batchesToSweep =
+                    getBatchesToSweep(candidates, batchConfig, sweepableCellFilter, limit);
             long totalCellTsPairsExamined = 0;
             long totalCellTsPairsDeleted = 0;
 
@@ -232,25 +226,24 @@ public class SweepTaskRunner {
     /**
      * Returns batches with at least batchConfig.deleteBatchSize blocks per batch.
      */
-    private Iterator<BatchOfCellsToSweep> getBatchesToSweep(Iterator<List<CandidateCellForSweeping>> candidates,
-                                                            SweepBatchConfig batchConfig,
-                                                            SweepableCellFilter sweepableCellFilter,
-                                                            ExaminedCellLimit limit) {
+    private Iterator<BatchOfCellsToSweep> getBatchesToSweep(
+            Iterator<List<CandidateCellForSweeping>> candidates,
+            SweepBatchConfig batchConfig,
+            SweepableCellFilter sweepableCellFilter,
+            ExaminedCellLimit limit) {
         Iterator<BatchOfCellsToSweep> cellsToSweep = Iterators.transform(
-                Iterators.filter(candidates, list -> !list.isEmpty()),
-                sweepableCellFilter::getCellsToSweep);
+                Iterators.filter(candidates, list -> !list.isEmpty()), sweepableCellFilter::getCellsToSweep);
         return new CellsToSweepPartitioningIterator(cellsToSweep, batchConfig.deleteBatchSize(), limit);
     }
 
     /**
      * Returns the number of blocks - (cell, timestamp) pairs - that were deleted.
      */
-    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType,
-            int deleteBatchSize) {
+    private int sweepBatch(TableReference tableRef, List<CellToSweep> batch, RunType runType, int deleteBatchSize) {
         int numberOfSweptCells = 0;
 
         Multimap<Cell, Long> currentBatch = ArrayListMultimap.create();
-        List<Cell> currentBatchSentinels = Lists.newArrayList();
+        List<Cell> currentBatchSentinels = new ArrayList<>();
 
         for (CellToSweep cell : batch) {
             if (cell.needsSentinel()) {
@@ -274,8 +267,8 @@ public class SweepTaskRunner {
 
                     currentBatch.clear();
                     currentBatchSentinels.clear();
-                    currentCellTimestamps = currentCellTimestamps.subList(
-                            numberOfTimestampsForThisBatch, currentCellTimestamps.size());
+                    currentCellTimestamps =
+                            currentCellTimestamps.subList(numberOfTimestampsForThisBatch, currentCellTimestamps.size());
                 }
                 currentBatch.putAll(cell.cell(), currentCellTimestamps);
             }

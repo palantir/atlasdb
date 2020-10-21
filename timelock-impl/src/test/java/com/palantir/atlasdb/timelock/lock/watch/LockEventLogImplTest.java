@@ -20,15 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -49,6 +40,13 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LockEventLogImplTest {
     private final AtomicReference<LockWatches> lockWatches = new AtomicReference<>(LockWatches.create());
@@ -58,10 +56,10 @@ public class LockEventLogImplTest {
 
     private static final UUID LOG_ID = UUID.randomUUID();
     private static final UUID STALE_LOG_ID = UUID.randomUUID();
-    private static final Optional<LockWatchVersion> NEGATIVE_VERSION_CURRENT_LOG_ID = Optional.of(
-            LockWatchVersion.of(LOG_ID, -1L));
-    private static final Optional<LockWatchVersion> FUTURE_VERSION_CURRENT_LOG_ID = Optional.of(
-            LockWatchVersion.of(LOG_ID, 100L));
+    private static final Optional<LockWatchVersion> NEGATIVE_VERSION_CURRENT_LOG_ID =
+            Optional.of(LockWatchVersion.of(LOG_ID, -1L));
+    private static final Optional<LockWatchVersion> FUTURE_VERSION_CURRENT_LOG_ID =
+            Optional.of(LockWatchVersion.of(LOG_ID, 100L));
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.table");
     private static final String TABLE = TABLE_REF.getQualifiedName();
     private static final LockDescriptor DESCRIPTOR = AtlasRowLockDescriptor.of(TABLE, PtBytes.toBytes("1"));
@@ -93,7 +91,8 @@ public class LockEventLogImplTest {
         LockWatchStateUpdate update = log.getLogDiff(NEGATIVE_VERSION_CURRENT_LOG_ID);
 
         LockWatchStateUpdate.Success success = UpdateVisitors.assertSuccess(update);
-        assertThat(success.events()).containsExactly(LockEvent.builder(locks, TOKEN).build(0L));
+        assertThat(success.events())
+                .containsExactly(LockEvent.builder(locks, TOKEN).build(0L));
     }
 
     @Test
@@ -114,10 +113,8 @@ public class LockEventLogImplTest {
         LockWatchStateUpdate update = log.getLogDiff(NEGATIVE_VERSION_CURRENT_LOG_ID);
 
         LockWatchStateUpdate.Success success = UpdateVisitors.assertSuccess(update);
-        assertThat(success.events()).containsExactly(
-                LockWatchCreatedEvent.builder(
-                        newWatches.references(),
-                        ImmutableSet.of(DESCRIPTOR_2))
+        assertThat(success.events())
+                .containsExactly(LockWatchCreatedEvent.builder(newWatches.references(), ImmutableSet.of(DESCRIPTOR_2))
                         .build(0L));
     }
 

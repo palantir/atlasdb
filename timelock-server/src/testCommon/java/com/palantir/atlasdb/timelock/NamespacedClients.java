@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
@@ -41,6 +39,7 @@ import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface NamespacedClients {
@@ -69,9 +68,7 @@ public interface NamespacedClients {
     @Value.Derived
     default TimelockService timelockService() {
         return RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient(),
-                namespacedConjureTimelockService(),
-                lockWatchEventCache());
+                namespacedTimelockRpcClient(), namespacedConjureTimelockService(), lockWatchEventCache());
     }
 
     @Value.Default
@@ -102,8 +99,7 @@ public interface NamespacedClients {
     @Value.Derived
     default LockService legacyLockService() {
         return RemoteLockServiceAdapter.create(
-                proxyFactory().createProxy(LockRpcClient.class, proxyMode()),
-                namespace());
+                proxyFactory().createProxy(LockRpcClient.class, proxyMode()), namespace());
     }
 
     @Value.Derived
@@ -114,8 +110,7 @@ public interface NamespacedClients {
     @Value.Derived
     default TimestampManagementService timestampManagementService() {
         return new RemoteTimestampManagementAdapter(
-                proxyFactory().createProxy(TimestampManagementRpcClient.class, proxyMode()),
-                namespace());
+                proxyFactory().createProxy(TimestampManagementRpcClient.class, proxyMode()), namespace());
     }
 
     default long getFreshTimestamp() {

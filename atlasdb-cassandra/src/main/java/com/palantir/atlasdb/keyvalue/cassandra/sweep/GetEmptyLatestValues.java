@@ -15,17 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class GetEmptyLatestValues {
 
@@ -52,7 +51,7 @@ public class GetEmptyLatestValues {
      * Returns the subset of {@link Cell}s whose latest values prior to {@code maxTimestampExclusive} are empty.
      */
     public Set<Cell> execute() {
-        Set<Cell> result = Sets.newHashSet();
+        Set<Cell> result = new HashSet<>();
         for (List<CellWithTimestamps> batch : Lists.partition(cellTimestamps, batchSize)) {
             result.addAll(getSingleBatch(batch));
         }
@@ -60,12 +59,9 @@ public class GetEmptyLatestValues {
     }
 
     private Set<Cell> getSingleBatch(List<CellWithTimestamps> batch) {
-        Set<Cell> cells = batch.stream()
-                .map(CellWithTimestamps::cell)
-                .collect(Collectors.toSet());
+        Set<Cell> cells = batch.stream().map(CellWithTimestamps::cell).collect(Collectors.toSet());
 
         Map<Cell, Value> valuesByCell = valuesLoader.getValues(table, cells, maxTimestampExclusive);
         return Maps.filterValues(valuesByCell, Value::isEmpty).keySet();
     }
-
 }

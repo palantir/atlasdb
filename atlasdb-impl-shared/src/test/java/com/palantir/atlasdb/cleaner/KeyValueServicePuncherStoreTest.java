@@ -22,17 +22,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.Map;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.util.Map;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class KeyValueServicePuncherStoreTest {
     private static final long TIMESTAMP_1 = 10L;
@@ -68,12 +66,14 @@ public class KeyValueServicePuncherStoreTest {
 
     @Test
     public void getTimestampForMillisReturnsTimestampIfQueryingPreciseClockTime() {
-        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.get(value)).isEqualTo(key));
+        PUNCHER_HISTORY.forEach(
+                (key, value) -> assertThat(puncherStore.get(value)).isEqualTo(key));
     }
 
     @Test
     public void getTimestampForMillisReturnsLastTimestampKnownToOccurBeforeQueriedTime() {
-        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.get(value + 1)).isEqualTo(key));
+        PUNCHER_HISTORY.forEach(
+                (key, value) -> assertThat(puncherStore.get(value + 1)).isEqualTo(key));
     }
 
     @Test
@@ -84,13 +84,14 @@ public class KeyValueServicePuncherStoreTest {
 
     @Test
     public void getMillisForTimestampReturnsClockTimeIfQueryingPreciseTimestamp() {
-        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.getMillisForTimestamp(key)).isEqualTo(value));
+        PUNCHER_HISTORY.forEach((key, value) ->
+                assertThat(puncherStore.getMillisForTimestamp(key)).isEqualTo(value));
     }
 
     @Test
     public void getMillisForTimestampReturnsLastTimeKnownToOccurBeforeQueriedTimestamp() {
-        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.getMillisForTimestamp(key + 1))
-                .isEqualTo(value));
+        PUNCHER_HISTORY.forEach((key, value) ->
+                assertThat(puncherStore.getMillisForTimestamp(key + 1)).isEqualTo(value));
     }
 
     @Test
@@ -125,8 +126,8 @@ public class KeyValueServicePuncherStoreTest {
         // Punched: (10, 100), (20, 200), (30, 300)
         // Arguments: (15, 150)
         // First ts punched before 150 is 10. 10 < 15, so we do the range scan and it returns 100.
-        assertThat(KeyValueServicePuncherStore
-                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_1_AND_2))
+        assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
+                        kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_1_AND_2))
                 .isEqualTo(WALL_CLOCK_1);
     }
 
@@ -137,8 +138,8 @@ public class KeyValueServicePuncherStoreTest {
         // Punched: (10, 100), (20, 200), (30, 300)
         // Arguments: (15, 99)
         // First ts punched before 99 is Long.MIN_VALUE. Long.MIN_VALUE < 15, so we range scan and it returns 100.
-        assertThat(KeyValueServicePuncherStore
-                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_1 - 1))
+        assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
+                        kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_1 - 1))
                 .isEqualTo(WALL_CLOCK_1);
     }
 
@@ -149,8 +150,8 @@ public class KeyValueServicePuncherStoreTest {
         // Punched: (10, 100), (20, 200), (30, 300)
         // Arguments: (15, -100)
         // Same as above, but verifying we don't error out due to negative number.
-        assertThat(KeyValueServicePuncherStore
-                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, -100L))
+        assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
+                        kvs, TIMESTAMP_BETWEEN_1_AND_2, -100L))
                 .isEqualTo(WALL_CLOCK_1);
     }
 
@@ -161,8 +162,8 @@ public class KeyValueServicePuncherStoreTest {
         // Punched: (10, 100), (20, 200), (30, 300)
         // Arguments: (15, 201)
         // First ts punched before 201 is 20. 20 > 15, so we don't range scan and return 201.
-        assertThat(KeyValueServicePuncherStore
-                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_2 + 1))
+        assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
+                        kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_2 + 1))
                 .isEqualTo(WALL_CLOCK_2 + 1);
         verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
         verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());

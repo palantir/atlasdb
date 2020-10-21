@@ -28,15 +28,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -57,6 +48,13 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SerializableTransactionManagerTest {
     private static final long THREE = 3L;
@@ -196,7 +194,7 @@ public class SerializableTransactionManagerTest {
         tickInitializingThread();
 
         assertTrue(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByCallbackFailure());
-        assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
+        assertThatThrownBy(() -> manager.runTaskWithRetry($ -> null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasCause(cause);
     }
@@ -265,8 +263,8 @@ public class SerializableTransactionManagerTest {
         tickerThread.shutdown();
     }
 
-    private TransactionManager getManagerWithCallback(boolean initializeAsync,
-            Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
+    private TransactionManager getManagerWithCallback(
+            boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
         return SerializableTransactionManager.create(
                 MetricsManagers.createForTests(),
                 mockKvs,
@@ -314,7 +312,7 @@ public class SerializableTransactionManagerTest {
         executorService.tick(1000, TimeUnit.MILLISECONDS);
     }
 
-    private static class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
+    private static final class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
         private volatile boolean successfullyInvoked = false;
         private volatile boolean block = true;
 
@@ -341,7 +339,7 @@ public class SerializableTransactionManagerTest {
         }
     }
 
-    private static class DeterministicSchedulerWithShutdownFlag extends DeterministicScheduler {
+    private static final class DeterministicSchedulerWithShutdownFlag extends DeterministicScheduler {
         private boolean hasShutdown = false;
 
         @Override

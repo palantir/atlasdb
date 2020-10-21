@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
-
 import org.junit.Test;
 
 public class OptionalResolverTest {
@@ -38,8 +37,7 @@ public class OptionalResolverTest {
 
     @Test
     public void throwsOnTwoNullOptionals() {
-        assertThatThrownBy(() -> OptionalResolver.resolve(null, null))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> OptionalResolver.resolve(null, null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -61,7 +59,8 @@ public class OptionalResolverTest {
 
     @Test
     public void resolvesToValueOnTwoEqualOptionals() {
-        assertThat(OptionalResolver.resolve(PRESENT_OPTIONAL_1, Optional.of(STRING_1))).isEqualTo(STRING_1);
+        assertThat(OptionalResolver.resolve(PRESENT_OPTIONAL_1, Optional.of(STRING_1)))
+                .isEqualTo(STRING_1);
     }
 
     @Test

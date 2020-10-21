@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.lmax.disruptor.EventHandler;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.tracing.RenderTracingRule;
 import com.palantir.tracing.Tracers;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TracingEventHandlerTest {
@@ -32,13 +31,11 @@ public class TracingEventHandlerTest {
     @Rule
     public RenderTracingRule renderTracingRule = new RenderTracingRule();
 
-
     private final EventHandler<BatchElement<Integer, Long>> delegate = new FutureCompletingEventHandler();
 
     @Test
     public void flushesHaveTraces() throws Exception {
-        TracingEventHandler<Integer, Long> tracingHandler =
-                new TracingEventHandler<>(delegate, 10);
+        TracingEventHandler<Integer, Long> tracingHandler = new TracingEventHandler<>(delegate, 10);
 
         DisruptorFuture<Long> eventFuture = Tracers.wrapListenableFuture("test", () -> {
             TestBatchElement element = new TestBatchElement();
@@ -53,10 +50,9 @@ public class TracingEventHandlerTest {
         eventFuture.get();
     }
 
-    private static class TestBatchElement implements BatchElement<Integer, Long> {
+    private static final class TestBatchElement implements BatchElement<Integer, Long> {
 
-        private final DisruptorFuture<Long> future =
-                new DisruptorFuture<>("test");
+        private final DisruptorFuture<Long> future = new DisruptorFuture<>("test");
 
         @Override
         public Integer argument() {

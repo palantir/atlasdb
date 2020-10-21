@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Random;
-
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Random;
 
 public final class Tables {
 
@@ -78,5 +77,4 @@ public final class Tables {
         }
         return map;
     }
-
 }

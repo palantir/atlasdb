@@ -16,5 +16,5 @@
 package com.palantir.common.visitor;
 
 public interface VisitorCheckedException<T, K extends Exception> {
-    public void visit(T obj) throws K;
+    void visit(T obj) throws K;
 }
