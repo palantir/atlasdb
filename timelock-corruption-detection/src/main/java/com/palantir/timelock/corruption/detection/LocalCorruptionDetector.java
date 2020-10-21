@@ -16,15 +16,14 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.handle.LocalCorruptionHandler;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class LocalCorruptionDetector implements CorruptionDetector {
     private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
@@ -61,7 +60,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private void killTimeLock() {
-        localCorruptionState = CorruptionStatus.CORRUPTION;
+        localCorruptionState = CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL;
         corruptionHandler.notifyRemoteServersOfCorruption();
     }
 
@@ -72,6 +71,6 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
 
     @Override
     public boolean hasDetectedCorruption() {
-        return localCorruptionState.hasCorruption();
+        return localCorruptionState.shootTimeLock();
     }
 }

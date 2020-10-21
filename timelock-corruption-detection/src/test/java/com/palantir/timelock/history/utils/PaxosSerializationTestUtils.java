@@ -33,14 +33,17 @@ public final class PaxosSerializationTestUtils {
         // no op
     }
 
-    public static Set<PaxosValue> writeToLogs(PaxosStateLog<PaxosAcceptorState> acceptorLog,
-            PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
-        return IntStream.rangeClosed(start, end).boxed().map(i -> {
-            PaxosValue paxosValue = createPaxosValueForRound(i);
-            writeAcceptorStateForLogAndRound(acceptorLog, i, Optional.of(paxosValue));
-            writePaxosValue(learnerLog, i, paxosValue);
-            return paxosValue;
-        }).collect(Collectors.toSet());
+    public static Set<PaxosValue> writeToLogs(
+            PaxosStateLog<PaxosAcceptorState> acceptorLog, PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
+        return IntStream.rangeClosed(start, end)
+                .boxed()
+                .map(i -> {
+                    PaxosValue paxosValue = createPaxosValueForRound(i);
+                    writeAcceptorStateForLogAndRound(acceptorLog, i, Optional.of(paxosValue));
+                    writePaxosValue(learnerLog, i, paxosValue);
+                    return paxosValue;
+                })
+                .collect(Collectors.toSet());
     }
 
     public static PaxosValue createAndWriteValueForLogAndRound(PaxosStateLog<PaxosValue> log, long round) {

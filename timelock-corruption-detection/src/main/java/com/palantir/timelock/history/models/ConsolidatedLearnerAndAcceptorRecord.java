@@ -19,7 +19,6 @@ package com.palantir.timelock.history.models;
 import static com.palantir.timelock.history.models.LearnedAndAcceptedValue.voidLearnedAndAcceptedValue;
 
 import java.util.Map;
-
 import org.immutables.value.Value;
 
 /**

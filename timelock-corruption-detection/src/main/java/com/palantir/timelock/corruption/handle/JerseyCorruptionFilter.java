@@ -16,12 +16,11 @@
 
 package com.palantir.timelock.corruption.handle;
 
+import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
-
-import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 
 @PreMatching
 public class JerseyCorruptionFilter implements ContainerRequestFilter {

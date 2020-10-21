@@ -16,21 +16,9 @@
 
 package com.palantir.timelock.history;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import static com.palantir.timelock.history.utils.PaxosSerializationTestUtils.createAndWriteValueForLogAndRound;
 import static com.palantir.timelock.history.utils.PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound;
-
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.IntStream;
-
-import javax.sql.DataSource;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
@@ -44,7 +32,14 @@ import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
-
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.IntStream;
+import javax.sql.DataSource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class SqliteHistoryQueriesTest {
     @Rule
@@ -125,9 +120,8 @@ public class SqliteHistoryQueriesTest {
     @Test
     public void canGetAllUniquePairsOfNamespaceAndClient() {
         IntStream.range(0, 100).forEach(i -> {
-            PaxosStateLog<PaxosValue> otherLog
-                    = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(Client.of("client" + i),
-                    USE_CASE_LEARNER), dataSource);
+            PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(
+                    ImmutableNamespaceAndUseCase.of(Client.of("client" + i), USE_CASE_LEARNER), dataSource);
             createAndWriteValueForLogAndRound(otherLog, 1L);
         });
         Set<NamespaceAndUseCase> allNamespaceAndUseCaseTuples =

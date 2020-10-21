@@ -35,9 +35,10 @@ public final class HistoryAnalyzer {
 
     public static List<CorruptionStatus> corruptionStateForNamespaceAndUseCase(
             CompletePaxosHistoryForNamespaceAndUseCase history) {
-        return Stream.of(learnersHaveLearnedSameValues(history),
-                learnedValueWasAcceptedByQuorum(history),
-                learnedValueIsGreatestAcceptedValue(history))
+        return Stream.of(
+                        learnersHaveLearnedSameValues(history),
+                        learnedValueWasAcceptedByQuorum(history),
+                        learnedValueIsGreatestAcceptedValue(history))
                 .filter(status -> status != CorruptionStatus.HEALTHY)
                 .collect(Collectors.toList());
     }
@@ -45,12 +46,12 @@ public final class HistoryAnalyzer {
     @VisibleForTesting
     static CorruptionStatus learnersHaveLearnedSameValues(CompletePaxosHistoryForNamespaceAndUseCase history) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
-        return history.getAllSequenceNumbers()
-                .stream()
-                .allMatch(seq -> {
+        return history.getAllSequenceNumbers().stream().allMatch(seq -> {
                     Set<PaxosValue> learnedValuesForRound = getLearnedValuesForRound(records, seq);
                     return learnedValuesForRound.size() <= 1;
-                }) ? CorruptionStatus.HEALTHY : CorruptionStatus.DIVERGED_LEARNERS;
+                })
+                ? CorruptionStatus.HEALTHY
+                : CorruptionStatus.DIVERGED_LEARNERS;
     }
 
     @VisibleForTesting
@@ -58,15 +59,14 @@ public final class HistoryAnalyzer {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         int quorum = getQuorumSize(records);
 
-        return history.getAllSequenceNumbers()
-                .stream()
-                .allMatch(seq -> isLearnedValueAcceptecByQuorum(records, quorum, seq))
-                ? CorruptionStatus.HEALTHY : CorruptionStatus.VALUE_LEARNED_WITHOUT_QUORUM;
+        return history.getAllSequenceNumbers().stream()
+                        .allMatch(seq -> isLearnedValueAcceptecByQuorum(records, quorum, seq))
+                ? CorruptionStatus.HEALTHY
+                : CorruptionStatus.VALUE_LEARNED_WITHOUT_QUORUM;
     }
 
     private static boolean isLearnedValueAcceptecByQuorum(
-            List<ConsolidatedLearnerAndAcceptorRecord> records,
-            int quorum, Long seq) {
+            List<ConsolidatedLearnerAndAcceptorRecord> records, int quorum, Long seq) {
         Optional<PaxosValue> optionalLearnedValue = getLearnedValue(records, seq);
         if (!optionalLearnedValue.isPresent()) {
             return true;
@@ -80,10 +80,10 @@ public final class HistoryAnalyzer {
     @VisibleForTesting
     static CorruptionStatus learnedValueIsGreatestAcceptedValue(CompletePaxosHistoryForNamespaceAndUseCase history) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
-        return history.getAllSequenceNumbers()
-                .stream()
-                .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq))
-                ? CorruptionStatus.HEALTHY : CorruptionStatus.DIVERGED_LEARNERS;
+        return history.getAllSequenceNumbers().stream()
+                        .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq))
+                ? CorruptionStatus.HEALTHY
+                : CorruptionStatus.ACCEPTED_VALUE_GREATER_THAN_LEARNED;
     }
 
     private static boolean learnedValueIsGreatestAcceptedValue(
@@ -95,8 +95,10 @@ public final class HistoryAnalyzer {
 
         byte[] greatestAcceptedValueData = getPaxosValueData(getGreatestAcceptedValueAtSequence(records, seq));
 
-        Preconditions.checkNotNull(greatestAcceptedValueData, "Value learned did have data while there"
-                + "was no data in any of the accepted states. This should never happen, contact support");
+        Preconditions.checkNotNull(
+                greatestAcceptedValueData,
+                "Value learned did have data while there"
+                        + "was no data in any of the accepted states. This should never happen, contact support");
         return PtBytes.toLong(greatestAcceptedValueData) <= PtBytes.toLong(learnedValueData);
     }
 
@@ -106,8 +108,8 @@ public final class HistoryAnalyzer {
         return values.isEmpty() ? Optional.empty() : Optional.of(Iterables.getOnlyElement(values));
     }
 
-    private static Set<PaxosValue> getLearnedValuesForRound(List<ConsolidatedLearnerAndAcceptorRecord> recordList,
-            Long seq) {
+    private static Set<PaxosValue> getLearnedValuesForRound(
+            List<ConsolidatedLearnerAndAcceptorRecord> recordList, Long seq) {
         return recordList.stream()
                 .map(consolidatedLearnerAndAcceptorRecord ->
                         consolidatedLearnerAndAcceptorRecord.get(seq).learnedValue())
@@ -120,15 +122,15 @@ public final class HistoryAnalyzer {
         return records.size() / 2 + 1;
     }
 
-    private static List<PaxosValue> getAcceptedValues(List<ConsolidatedLearnerAndAcceptorRecord> records, Long seq,
-            PaxosValue learnedValue) {
+    private static List<PaxosValue> getAcceptedValues(
+            List<ConsolidatedLearnerAndAcceptorRecord> records, Long seq, PaxosValue learnedValue) {
         return records.stream()
                 .map(record -> record.get(seq)
                         .acceptedValue()
                         .map(PaxosAcceptorData::getLastAcceptedValue)
                         .orElseGet(Optional::empty))
-                .filter(optionalPaxosValue ->
-                        optionalPaxosValue.isPresent() && optionalPaxosValue.get().equals(learnedValue))
+                .filter(optionalPaxosValue -> optionalPaxosValue.isPresent()
+                        && optionalPaxosValue.get().equals(learnedValue))
                 .map(Optional::get)
                 .collect(Collectors.toList());
     }
@@ -142,9 +144,8 @@ public final class HistoryAnalyzer {
                         .orElseGet(Optional::empty))
                 .filter(paxosValue -> getPaxosValueData(paxosValue) != null)
                 .map(Optional::get)
-                .max(Comparator.comparingLong(paxosValue ->  PtBytes.toLong(paxosValue.getData())));
+                .max(Comparator.comparingLong(paxosValue -> PtBytes.toLong(paxosValue.getData())));
     }
-
 
     // This method is only used for paxos rounds run for timestamp consensus (leader paxos rounds are strictly ignored).
     private static byte[] getPaxosValueData(Optional<PaxosValue> learnedValue) {
