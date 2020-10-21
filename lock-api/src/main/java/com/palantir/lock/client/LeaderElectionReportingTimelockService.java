@@ -106,7 +106,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         T response = method.get();
         Duration timeTaken = stopwatch.elapsed();
         if (updateLeaderIfNew(leaderExtractor, currentLeader, response)) {
-            logMetrics(timeTaken);
+            updateMetrics(timeTaken);
         }
         return response;
     }
@@ -122,7 +122,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         return election && (currentLeader != null);
     }
 
-    private void logMetrics(Duration timeTaken) {
+    private void updateMetrics(Duration timeTaken) {
         metrics.observedDuration().update(timeTaken.toNanos(), TimeUnit.NANOSECONDS);
     }
 }
