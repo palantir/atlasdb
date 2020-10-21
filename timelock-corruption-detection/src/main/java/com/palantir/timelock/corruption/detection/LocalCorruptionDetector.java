@@ -25,26 +25,31 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.handle.LocalCorruptionHandler;
+import com.palantir.timelock.history.PaxosLogHistoryProvider;
 
 public final class LocalCorruptionDetector implements CorruptionDetector {
     private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
     private static final String CORRUPTION_DETECTOR_THREAD_PREFIX = "timelock-corruption-detector";
-
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
+
     private final LocalCorruptionHandler corruptionHandler;
+    private final PaxosLogHistoryProvider historyProvider;
 
     private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
 
-    public static LocalCorruptionDetector create(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
-        LocalCorruptionDetector localCorruptionDetector = new LocalCorruptionDetector(corruptionNotifiers);
+    public static LocalCorruptionDetector create(PaxosLogHistoryProvider historyProvider,
+            List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+        LocalCorruptionDetector localCorruptionDetector = new LocalCorruptionDetector(historyProvider, corruptionNotifiers);
 
         //TODO(snanda) - uncomment when TL corruption detection goes live
         //timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
-    private LocalCorruptionDetector(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+    private LocalCorruptionDetector(PaxosLogHistoryProvider historyProvider,
+            List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+        this.historyProvider = historyProvider;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }
 
@@ -60,7 +65,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
-        //todo(snanda)
+//        return HistoryAnalyzer.runCorruptionCheckOnHistory(historyProvider.getHistory());
         return CorruptionHealthReport.defaultHealthyReport();
     }
 

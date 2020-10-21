@@ -75,9 +75,7 @@ import com.palantir.timelock.corruption.detection.CorruptionHealthReport;
 import com.palantir.timelock.corruption.handle.CorruptionNotifierResource;
 import com.palantir.timelock.corruption.handle.JerseyCorruptionFilter;
 import com.palantir.timelock.corruption.handle.UndertowCorruptionHandlerService;
-import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.remote.TimeLockPaxosHistoryProviderResource;
-import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timelock.management.ImmutableTimestampStorage;
@@ -251,8 +249,6 @@ public class TimeLockAgent {
                 namespace -> namespaces.get(namespace).getTimelockService();
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
-        LocalHistoryLoader localHistoryLoader =
-                LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(sqliteDataSource));
 
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
@@ -266,12 +262,13 @@ public class TimeLockAgent {
                     presentUndertowRegistrar,
                     ConjureLockV1Resource.undertow(redirectRetryTargeter(), lockServiceGetter));
             registerCorruptionHandlerWrappedService(
-                    presentUndertowRegistrar, TimeLockPaxosHistoryProviderResource.undertow(localHistoryLoader));
+                    presentUndertowRegistrar,
+                    TimeLockPaxosHistoryProviderResource.undertow(corruptionComponents.localHistoryLoader()));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
-            registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(localHistoryLoader));
+            registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
         }
     }
 
