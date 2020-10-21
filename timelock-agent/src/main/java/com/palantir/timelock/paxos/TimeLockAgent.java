@@ -124,8 +124,8 @@ public class TimeLockAgent {
 
         // Upgrading the schema version should generally happen BEFORE any migration has started. Keep this in
         // mind for any potential live migrations
-        PersistedSchemaVersion persistedSchemaVersion = PersistedSchemaVersion
-                .create(installationContext.sqliteDataSource());
+        PersistedSchemaVersion persistedSchemaVersion =
+                PersistedSchemaVersion.create(installationContext.sqliteDataSource());
         persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
         verifySchemaVersion(persistedSchemaVersion);
 
@@ -338,7 +338,8 @@ public class TimeLockAgent {
     }
 
     static void verifySchemaVersion(PersistedSchemaVersion persistedSchemaVersion) {
-        Preconditions.checkState(persistedSchemaVersion.getVersion() == SCHEMA_VERSION,
+        Preconditions.checkState(
+                persistedSchemaVersion.getVersion() == SCHEMA_VERSION,
                 "Persisted schema version does not match timelock's current schema version.",
                 SafeArg.of("current schema version", SCHEMA_VERSION),
                 SafeArg.of("persisted schema version", persistedSchemaVersion.getVersion()));

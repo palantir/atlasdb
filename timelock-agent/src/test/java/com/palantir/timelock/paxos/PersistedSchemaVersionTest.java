@@ -19,12 +19,11 @@ package com.palantir.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.paxos.SqliteConnections;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.paxos.SqliteConnections;
 
 public class PersistedSchemaVersionTest {
     @Rule
@@ -34,8 +33,8 @@ public class PersistedSchemaVersionTest {
 
     @Before
     public void setup() {
-        schemaVersion = PersistedSchemaVersion
-                .create(SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath()));
+        schemaVersion = PersistedSchemaVersion.create(
+                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath()));
     }
 
     @Test
