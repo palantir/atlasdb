@@ -145,7 +145,7 @@ public abstract class AbstractSchemaApiTest {
         verify(transaction, times(1)).getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
-        assertThat(argumentRows.size()).isEqualTo(2);
+        assertThat(argumentRows).hasSize(2);
         assertThat(argumentRows.get(0))
                 .usingComparator(UnsignedBytes.lexicographicalComparator())
                 .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));

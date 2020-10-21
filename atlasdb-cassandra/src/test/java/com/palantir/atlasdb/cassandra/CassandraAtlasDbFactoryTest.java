@@ -17,7 +17,6 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
@@ -121,7 +120,9 @@ public class CassandraAtlasDbFactoryTest {
                 .preprocessKvsRuntimeConfig(Optional::empty)
                 .get();
 
-        assertEquals("Empty config should resolve to default", DEFAULT_CKVS_RUNTIME_CONFIG, returnedConfig);
+        assertThat(returnedConfig)
+                .describedAs("Empty config should resolve to default")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 
     @Test
@@ -139,8 +140,12 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceRuntimeConfig firstReturnedConfig = processedRuntimeConfig.get();
         CassandraKeyValueServiceRuntimeConfig secondReturnedConfig = processedRuntimeConfig.get();
 
-        assertEquals("First returned config should be valid", DEFAULT_CKVS_RUNTIME_CONFIG, firstReturnedConfig);
-        assertEquals("Second invalid config should be ignored", DEFAULT_CKVS_RUNTIME_CONFIG, secondReturnedConfig);
+        assertThat(firstReturnedConfig)
+                .describedAs("First returned config should be valid")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+        assertThat(secondReturnedConfig)
+                .describedAs("Second invalid config should be ignored")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 
     @Test
@@ -149,6 +154,8 @@ public class CassandraAtlasDbFactoryTest {
                 .preprocessKvsRuntimeConfig(() -> Optional.of(INVALID_CKVS_RUNTIME_CONFIG))
                 .get();
 
-        assertEquals("First invalid config should resolve to default", DEFAULT_CKVS_RUNTIME_CONFIG, returnedConfig);
+        assertThat(returnedConfig)
+                .describedAs("First invalid config should resolve to default")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 }

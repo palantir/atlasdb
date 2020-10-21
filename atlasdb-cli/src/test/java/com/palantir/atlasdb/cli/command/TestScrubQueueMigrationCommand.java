@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -35,7 +37,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.util.SortedMap;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,17 +76,16 @@ public class TestScrubQueueMigrationCommand {
         BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> visitable =
                 scrubStore.getBatchingVisitableScrubQueue(
                         Long.MAX_VALUE, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY);
-        Assert.assertEquals(
-                ImmutableSortedMap.of(
+        assertThat(Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable)))
+                .isEqualTo(ImmutableSortedMap.of(
                         10L, ImmutableMultimap.of(foo, cell1, bar, cell1),
                         20L, ImmutableMultimap.of(baz, cell1),
                         30L, ImmutableMultimap.of(foo, cell2),
-                        40L, ImmutableMultimap.of(foo, cell3, bar, cell3, baz, cell3)),
-                Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable)));
+                        40L, ImmutableMultimap.of(foo, cell3, bar, cell3, baz, cell3)));
         String output = new String(baos.toByteArray());
-        Assert.assertTrue(output, output.contains("Starting iteration 2"));
-        Assert.assertTrue(output, output.contains("Moved 4 cells"));
-        Assert.assertTrue(output, output.contains("into 7 cells"));
-        Assert.assertTrue(output, output.contains("Finished all iterations"));
+        assertThat(output).describedAs(output).contains("Starting iteration 2");
+        assertThat(output).describedAs(output).contains("Moved 4 cells");
+        assertThat(output).describedAs(output).contains("into 7 cells");
+        assertThat(output).describedAs(output).contains("Finished all iterations");
     }
 }

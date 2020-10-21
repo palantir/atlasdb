@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
@@ -104,8 +103,8 @@ public class ProfilingKeyValueServiceTest {
     public void delegatesInitializationCheck() {
         when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
-        assertFalse(kvs.isInitialized());
-        assertTrue(kvs.isInitialized());
+        assertThat(kvs.isInitialized()).isFalse();
+        assertThat(kvs.isInitialized()).isTrue();
     }
 
     @Test

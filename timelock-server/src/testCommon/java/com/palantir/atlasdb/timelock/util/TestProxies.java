@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -30,6 +29,7 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
@@ -41,7 +41,7 @@ public class TestProxies {
 
     private final String baseUri;
     private final List<TimeLockServerHolder> servers;
-    private final ConcurrentMap<Object, Object> proxies = Maps.newConcurrentMap();
+    private final ConcurrentMap<Object, Object> proxies = new ConcurrentHashMap<>();
 
     public TestProxies(String baseUri, List<TestableTimelockServer> servers) {
         this.baseUri = baseUri;

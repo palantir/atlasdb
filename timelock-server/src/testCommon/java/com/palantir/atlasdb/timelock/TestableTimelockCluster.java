@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,7 +68,7 @@ public class TestableTimelockCluster implements TestRule {
     private final FailoverProxyFactory proxyFactory;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
+    private final Map<String, NamespacedClients> clientsByNamespace = new ConcurrentHashMap<>();
 
     public TestableTimelockCluster(String configFileTemplate, TemplateVariables... variables) {
         this(name(), configFileTemplate, variables);

@@ -114,7 +114,6 @@ allprojects {
                 'DoNotMock',
                 'ExtendsErrorOrThrowable',
                 'ImmutablesBuilderMissingInitialization',
-                'InputStreamSlowMultibyteRead',
                 'LogSafePreconditionsMessageFormat',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
@@ -123,7 +122,6 @@ allprojects {
                 'ReferenceEquality',
                 'ReturnValueIgnored',
                 'SafeLoggingExceptionMessageFormat',
-                'StreamOfEmpty',
                 'ValidateConstantMessage'
         options.errorprone.disable 'StrictUnusedVariable', 'JdkObsolete'
     }
