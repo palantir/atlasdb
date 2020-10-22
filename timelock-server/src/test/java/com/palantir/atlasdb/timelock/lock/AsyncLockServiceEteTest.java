@@ -62,7 +62,7 @@ public class AsyncLockServiceEteTest {
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
     private final HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks);
+    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
