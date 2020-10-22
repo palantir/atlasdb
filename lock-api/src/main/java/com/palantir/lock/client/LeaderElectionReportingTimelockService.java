@@ -127,6 +127,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 .p95(metricsSnapshot.get95thPercentile())
                 .mean(metricsSnapshot.getMean())
                 .count(SafeLong.of(metrics.observedDuration().getCount()))
+                .perceivedTime(calculateLastLeaderElectionDuration().map(duration -> SafeLong.of(duration.toNanos())))
                 .build();
         resetTimer();
         return electionStatistics;
@@ -206,7 +207,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
      * leadership election is then given by the duration between U_A and L, since L is the latest possible moment at
      * which another leader was elected while U_A is the earliest moment at which A could have lost leadership.
      */
-    public Optional<Duration> calculateLastLeaderElectionDuration() {
+    @VisibleForTesting
+    Optional<Duration> calculateLastLeaderElectionDuration() {
         Map<UUID, Instant> lowerBoundSnapshot = ImmutableMap.copyOf(leadershipLowerBound.entrySet());
         Map<UUID, Instant> upperBoundSnapshot = ImmutableMap.copyOf(leadershipUpperBound.entrySet());
 

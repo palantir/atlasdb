@@ -23,6 +23,7 @@ types:
           p95: double
           mean: double
           count: safelong
+          perceivedTime: optional<safelong>
 
 services:
   TimeLockClientFeedbackService:
