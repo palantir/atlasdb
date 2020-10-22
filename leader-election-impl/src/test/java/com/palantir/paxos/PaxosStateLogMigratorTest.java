@@ -386,6 +386,17 @@ public class PaxosStateLogMigratorTest {
     }
 
     @Test
+    public void doNotFailWhenAlreadyMigratedAndMigrateFromIncreasesButGreatestEntryIsMigrated() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.of(220));
+
+        assertThatCode(() -> migrateFrom(source, OptionalLong.of(300))).doesNotThrowAnyException();
+    }
+
+    @Test
     public void doNotFailWhenAlreadyMigratedAndSourceTruncatedFully() {
         long lowerBound = 10;
         long upperBound = 250;
