@@ -62,6 +62,9 @@ of the timestamp service as far as clients are concerned have been preserved.
 Step 4 (Optional): Cleanup on TimeLock
 --------------------------------------
 
+.. warning::
+    This section is written under the assumption you are using Paxos for timestamp bound persistence.
+
 TimeLock will continue to hold references to the old client in memory until it is next bounced, and the logs for
 previous rounds of the Paxos protocol will be preserved. Generally, these have a very small footprint and it's thus
 okay to leave them around.
