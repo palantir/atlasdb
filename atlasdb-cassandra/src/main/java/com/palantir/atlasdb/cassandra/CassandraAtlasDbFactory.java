@@ -18,9 +18,10 @@ package com.palantir.atlasdb.cassandra;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
@@ -28,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidato
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.timestamp.TimestampCreationParametersCheck;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -113,11 +113,13 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs, Optional<DbTimestampCreationSetting> creationParameters, boolean initializeAsync) {
+            KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync) {
         Preconditions.checkArgument(
-                TimestampCreationParametersCheck.areCreationParametersConsistentWithDefaults(creationParameters),
-                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp params found: "
-                        + creationParameters
+                tableReferenceOverride
+                        .map(AtlasDbConstants.TIMESTAMP_TABLE::equals)
+                        .orElse(true),
+                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table override found: "
+                        + tableReferenceOverride
                         + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"
                         + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
                         + " persistence. However, if you are need to persist the timestamp service state in the"
@@ -142,7 +144,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampStoreInvalidator createTimestampStoreInvalidator(
-            KeyValueService rawKvs, Optional<DbTimestampCreationSetting> unused) {
+            KeyValueService rawKvs, Optional<TableReference> unused) {
         return CassandraTimestampStoreInvalidator.create(rawKvs);
     }
 }

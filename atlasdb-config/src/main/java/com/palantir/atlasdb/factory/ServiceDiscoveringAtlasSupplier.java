@@ -17,9 +17,9 @@ package com.palantir.atlasdb.factory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
@@ -56,7 +56,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters,
+            Optional<TableReference> tableReferenceOverride,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
@@ -65,9 +65,9 @@ public class ServiceDiscoveringAtlasSupplier {
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
                 metricsManager, config, runtimeConfig, leaderConfig, namespace, timestampSupplier, initializeAsync));
         timestampService = () -> atlasFactory.createManagedTimestampService(
-                getKeyValueService(), dbTimestampCreationParameters, initializeAsync);
+                getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =
-                () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService(), dbTimestampCreationParameters);
+                () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService(), tableReferenceOverride);
     }
 
     public KeyValueService getKeyValueService() {
