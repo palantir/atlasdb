@@ -63,10 +63,14 @@ public final class SqlitePaxosStateLogHistory {
     }
 
     public LearnerAndAcceptorRecords getLearnerAndAcceptorLogsSince(
-            Client namespace, LearnerUseCase learnerUseCase, AcceptorUseCase acceptorUseCase, long seq) {
+            Client namespace,
+            LearnerUseCase learnerUseCase,
+            AcceptorUseCase acceptorUseCase,
+            long lowerBound,
+            long upperBound) {
         return execute(dao -> ImmutableLearnerAndAcceptorRecords.of(
-                dao.getLearnerLogsSince(namespace, learnerUseCase.value(), seq),
-                dao.getAcceptorLogsSince(namespace, acceptorUseCase.value(), seq)));
+                dao.getLearnerLogsSince(namespace, learnerUseCase.value(), lowerBound, upperBound),
+                dao.getAcceptorLogsSince(namespace, acceptorUseCase.value(), lowerBound, upperBound)));
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -82,16 +86,20 @@ public final class SqlitePaxosStateLogHistory {
         //         revisit this once we have the remote history providers set up. Also, we may have to make it
         // configurable to
         //         accommodate the rate at which logs are being published.
-        @SqlQuery("SELECT seq, val FROM paxosLog "
-                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
-                + "ORDER BY seq ASC LIMIT 500")
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >"
+                + " :lowerBound AND seq < :upperBound ORDER BY seq ASC LIMIT 500")
         Map<Long, PaxosValue> getLearnerLogsSince(
-                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("seq") long lowerBound,
+                @Bind("seq") long upperBound);
 
-        @SqlQuery("SELECT seq, val FROM paxosLog "
-                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
-                + "ORDER BY seq ASC LIMIT 500")
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >"
+                + " :lowerBound AND seq < :upperBound ORDER BY seq ASC LIMIT 500")
         Map<Long, PaxosAcceptorData> getAcceptorLogsSince(
-                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("seq") long lowerBound,
+                @Bind("seq") long upperBound);
     }
 }

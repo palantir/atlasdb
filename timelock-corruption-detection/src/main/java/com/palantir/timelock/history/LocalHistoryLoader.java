@@ -24,6 +24,7 @@ import com.palantir.timelock.history.models.ImmutablePaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import java.util.Map;
 
@@ -39,19 +40,21 @@ public final class LocalHistoryLoader {
         return new LocalHistoryLoader(sqlitePaxosStateLogHistory);
     }
 
-    public PaxosHistoryOnSingleNode getLocalPaxosHistory(Map<NamespaceAndUseCase, Long> lastVerifiedSequences) {
+    public PaxosHistoryOnSingleNode getLocalPaxosHistory(
+            Map<NamespaceAndUseCase, SequenceBounds> lastVerifiedSequences) {
         return ImmutablePaxosHistoryOnSingleNode.of(KeyedStream.stream(lastVerifiedSequences)
                 .map(this::loadLocalHistory)
                 .collectToMap());
     }
 
     @VisibleForTesting
-    LearnerAndAcceptorRecords loadLocalHistory(NamespaceAndUseCase namespaceAndUseCase, Long seq) {
+    LearnerAndAcceptorRecords loadLocalHistory(NamespaceAndUseCase namespaceAndUseCase, SequenceBounds bounds) {
         String paxosUseCasePrefix = namespaceAndUseCase.useCase();
         return sqlitePaxosStateLogHistory.getLearnerAndAcceptorLogsSince(
                 namespaceAndUseCase.namespace(),
                 LearnerUseCase.createLearnerUseCase(paxosUseCasePrefix),
                 AcceptorUseCase.createAcceptorUseCase(paxosUseCasePrefix),
-                seq);
+                bounds.lower(),
+                bounds.upper());
     }
 }

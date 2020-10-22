@@ -28,7 +28,8 @@ types:
       HistoryQuery:
         fields:
           namespaceAndUseCase: NamespaceAndUseCase
-          seq: Long
+          lowerBound: Long
+          upperBound: Long
       PaxosLogWithAcceptedAndLearnedValues:
         fields:
           acceptedState: optional<PaxosAcceptorData>
