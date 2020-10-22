@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -38,6 +37,9 @@ import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 import com.palantir.timelock.corruption.detection.LocalCorruptionDetector;
 import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
+import com.palantir.timelock.history.LocalHistoryLoader;
+import com.palantir.timelock.history.PaxosLogHistoryProvider;
+import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -50,6 +52,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.sql.DataSource;
 import org.immutables.value.Value;
 
 public final class PaxosResourcesFactory {
@@ -109,7 +112,7 @@ public final class PaxosResourcesFactory {
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
                 .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
-                .timeLockCorruptionComponents(timeLockCorruptionComponents(remoteClients))
+                .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }
 
@@ -155,7 +158,7 @@ public final class PaxosResourcesFactory {
                                 factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-                .timeLockCorruptionComponents(timeLockCorruptionComponents(remoteClients))
+                .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }
 
@@ -241,17 +244,27 @@ public final class PaxosResourcesFactory {
                 .timestampServiceFactory(timestampFactory);
     }
 
-    private static TimeLockCorruptionComponents timeLockCorruptionComponents(PaxosRemoteClients remoteClients) {
+
+    private static TimeLockCorruptionComponents timeLockCorruptionComponents(
+            DataSource dataSource, PaxosRemoteClients remoteClients) {
         RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
 
-        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(ImmutableList.of(
-                LocalCorruptionDetector.create(remoteClients.getRemoteCorruptionNotifiers()),
-                remoteCorruptionDetector));
+        PaxosLogHistoryProvider historyProvider =
+                new PaxosLogHistoryProvider(dataSource, remoteClients.getRemoteHistoryProviders());
+
+        LocalCorruptionDetector localCorruptionDetector = LocalCorruptionDetector.create(
+                historyProvider, remoteClients.getRemoteCorruptionNotifiers());
+
+        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(
+                localCorruptionDetector, remoteCorruptionDetector);
+
+        LocalHistoryLoader localHistoryLoader =
+                LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
 
         return TimeLockCorruptionComponents.builder()
                 .timeLockCorruptionHealthCheck(healthCheck)
                 .remoteCorruptionDetector(remoteCorruptionDetector)
-                .remoteHistoryProviders(remoteClients.getRemoteHistoryProviders())
+                .localHistoryLoader(localHistoryLoader)
                 .build();
     }
 

@@ -18,8 +18,12 @@ package com.palantir.timelock.corruption.detection;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
@@ -34,6 +38,24 @@ import java.util.stream.Stream;
 public final class HistoryAnalyzer {
     private HistoryAnalyzer() {
         // do not create instance of this class
+    }
+
+    public static CorruptionHealthReport corruptionStateForHistory(
+            List<CompletePaxosHistoryForNamespaceAndUseCase> history) {
+        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> statusNamespaceAndUseCase = LinkedHashMultimap.create();
+        for (CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase: history) {
+            ImmutableNamespaceAndUseCase namespaceAndUseCase = ImmutableNamespaceAndUseCase.builder().namespace(
+                    historyForNamespaceAndUseCase.namespace()).useCase(
+                    historyForNamespaceAndUseCase.useCase()).build();
+
+            for (CorruptionCheckViolation status : violatedCorruptionChecksForNamespaceAndUseCase(historyForNamespaceAndUseCase)) {
+                if (status.shootTimeLock() || status.raiseErrorAlert()) {
+                    statusNamespaceAndUseCase.put(status, namespaceAndUseCase);
+                }
+            }
+        }
+
+        return ImmutableCorruptionHealthReport.builder().statusesToNamespaceAndUseCase(statusNamespaceAndUseCase).build();
     }
 
     @VisibleForTesting
