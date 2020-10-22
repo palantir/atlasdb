@@ -23,15 +23,14 @@ public class CorruptionHealthCheck {
     private final LocalCorruptionDetector localCorruptionDetector;
     private final List<CorruptionDetector> localAndRemoteCorruptionDetectors;
 
-    public CorruptionHealthCheck(LocalCorruptionDetector localCorruptionDetector,
-            RemoteCorruptionDetector remoteCorruptionDetector) {
+    public CorruptionHealthCheck(
+            LocalCorruptionDetector localCorruptionDetector, RemoteCorruptionDetector remoteCorruptionDetector) {
         this.localCorruptionDetector = localCorruptionDetector;
         this.localAndRemoteCorruptionDetectors = ImmutableList.of(localCorruptionDetector, remoteCorruptionDetector);
     }
 
     public boolean shootTimeLock() {
-        return localAndRemoteCorruptionDetectors.stream()
-                .anyMatch(detector -> detector.shootTimeLock());
+        return localAndRemoteCorruptionDetectors.stream().anyMatch(detector -> detector.shootTimeLock());
     }
 
     public CorruptionHealthReport localCorruptionReport() {

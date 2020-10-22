@@ -40,10 +40,9 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
 
     public static LocalCorruptionDetector create(
-            PaxosLogHistoryProvider historyProvider,
-            List<TimeLockCorruptionNotifier> corruptionNotifiers) {
-        LocalCorruptionDetector localCorruptionDetector = new LocalCorruptionDetector(
-                historyProvider, corruptionNotifiers);
+            PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+        LocalCorruptionDetector localCorruptionDetector =
+                new LocalCorruptionDetector(historyProvider, corruptionNotifiers);
 
         //        TODO(snanda) - uncomment when TL corruption detection goes live
         //        timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
@@ -51,8 +50,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private LocalCorruptionDetector(
-            PaxosLogHistoryProvider historyProvider,
-            List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+            PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
         this.historyProvider = historyProvider;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }
@@ -69,7 +67,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
-        return HistoryAnalyzer.corruptionStateForHistory(historyProvider.getHistory());
+        return HistoryAnalyzer.corruptionHealthReportForHistory(historyProvider.getHistory());
     }
 
     private void processLocalHealthReport() {
@@ -81,7 +79,8 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
 
     CorruptionStatus getLocalCorruptionState(CorruptionHealthReport latestReport) {
         return latestReport.shootTimeLock()
-                ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL : localCorruptionState;
+                ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL
+                : localCorruptionState;
     }
 
     public CorruptionHealthReport corruptionHealthReport() {

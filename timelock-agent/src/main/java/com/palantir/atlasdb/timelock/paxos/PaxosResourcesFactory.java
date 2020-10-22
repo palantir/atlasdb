@@ -244,7 +244,6 @@ public final class PaxosResourcesFactory {
                 .timestampServiceFactory(timestampFactory);
     }
 
-
     private static TimeLockCorruptionComponents timeLockCorruptionComponents(
             DataSource dataSource, PaxosRemoteClients remoteClients) {
         RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
@@ -252,11 +251,11 @@ public final class PaxosResourcesFactory {
         PaxosLogHistoryProvider historyProvider =
                 new PaxosLogHistoryProvider(dataSource, remoteClients.getRemoteHistoryProviders());
 
-        LocalCorruptionDetector localCorruptionDetector = LocalCorruptionDetector.create(
-                historyProvider, remoteClients.getRemoteCorruptionNotifiers());
+        LocalCorruptionDetector localCorruptionDetector =
+                LocalCorruptionDetector.create(historyProvider, remoteClients.getRemoteCorruptionNotifiers());
 
-        CorruptionHealthCheck healthCheck = new CorruptionHealthCheck(
-                localCorruptionDetector, remoteCorruptionDetector);
+        CorruptionHealthCheck healthCheck =
+                new CorruptionHealthCheck(localCorruptionDetector, remoteCorruptionDetector);
 
         LocalHistoryLoader localHistoryLoader =
                 LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));

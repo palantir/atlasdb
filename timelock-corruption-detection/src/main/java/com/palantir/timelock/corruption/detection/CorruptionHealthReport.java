@@ -31,7 +31,9 @@ public interface CorruptionHealthReport {
     }
 
     static CorruptionHealthReport defaultHealthyReport() {
-        return CorruptionHealthReport.builder().statusesToNamespaceAndUseCase(ImmutableSetMultimap.of()).build();
+        return CorruptionHealthReport.builder()
+                .statusesToNamespaceAndUseCase(ImmutableSetMultimap.of())
+                .build();
     }
 
     default boolean shootTimeLock() {
