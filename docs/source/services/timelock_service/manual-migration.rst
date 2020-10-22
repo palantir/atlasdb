@@ -5,8 +5,11 @@ Manual Migration to Timelock Server
 
 .. warning::
 
-   This is not a recommended way to migrate to external timelock server. We have **automatic** migrations for Cassandra KVS in place.
-   Please contact the AtlasDB team before attempting the manual migration.
+   This is not a recommended way to migrate to external timelock server.
+   We now have automated migrations for both Cassandra and DbKVS in place that will run when a node is started with
+   the configuration to use TimeLock on versions of AtlasDB from 0.253.2 onwards. Please note that these automated
+   migrations still require the cluster to be brought to a complete shutdown before any nodes switch to using TimeLock.
+   If you are attempting a manual migration, please contact the AtlasDB team.
 
 This migration process must be run offline (that is, with no AtlasDB clients running during migration) and basically
 consists of the following steps:
