@@ -35,6 +35,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
@@ -230,6 +231,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<LeaderTime> leaderTime() {
         return Futures.immediateFuture(lockService.leaderTime());
+    }
+
+    @Override
+    public LeadershipId leaderId() {
+        return lockService.leaderTime().id();
     }
 
     @Override

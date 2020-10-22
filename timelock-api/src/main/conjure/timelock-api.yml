@@ -4,6 +4,10 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.LeaderTime
+    LeadershipId:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.LeadershipId
     NanoTime:
       base-type: safelong
       external:
@@ -36,11 +40,6 @@ types:
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
-      LeaderId:
-        fields:
-          id: uuid
-        docs: |
-          UUID that uniquely identifies a Timelock leader.
       ConjureIdentifiedVersion:
         fields:
           id: uuid
@@ -66,7 +65,7 @@ types:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
-          leaderId: LeaderId
+          leadershipId: LeadershipId
       ConjureLockDescriptor:
         alias: binary
       ConjureLockRequest:
@@ -83,7 +82,8 @@ types:
           lockToken: ConjureLockToken
           lease: Lease
       UnsuccessfulLockResponse:
-        fields: {}
+        fields:
+          leadershipId: LeadershipId
       ConjureLockResponse:
         union:
           successful: SuccessfulLockResponse
@@ -91,6 +91,7 @@ types:
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
+          leadershipId: LeadershipId
       ConjureRefreshLocksRequest:
         fields:
           tokens: set<ConjureLockToken>
@@ -104,6 +105,7 @@ types:
       ConjureUnlockResponse:
         fields:
           tokens: set<ConjureLockToken>
+          leadershipId: LeadershipId
       GetCommitTimestampsRequest:
         fields:
           numTimestamps: integer
@@ -116,8 +118,6 @@ types:
       LockWatchRequest:
         fields:
           references: set<LockWatchReference>
-
-
 
 services:
   ConjureTimelockService:

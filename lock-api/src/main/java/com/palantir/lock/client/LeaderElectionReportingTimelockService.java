@@ -23,6 +23,7 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse.Visitor;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -33,9 +34,12 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -85,22 +89,42 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
-        return delegate.refreshLocks(request);
+        return runTimed(
+                () -> delegate.refreshLocks(request),
+                response -> response.getLease().leaderTime().id().id());
     }
 
     @Override
     public ConjureWaitForLocksResponse waitForLocks(ConjureLockRequest request) {
-        return delegate.waitForLocks(request);
+        return runTimed(() -> delegate.waitForLocks(request), response -> response.getLeadershipId()
+                .id());
     }
 
     @Override
     public ConjureLockResponse lock(ConjureLockRequest request) {
-        return delegate.lock(request);
+        return runTimed(
+                () -> delegate.lock(request),
+                response -> response.accept(new Visitor<UUID>() {
+                    @Override
+                    public UUID visitSuccessful(SuccessfulLockResponse value) {
+                        return value.getLease().leaderTime().id().id();
+                    }
+
+                    @Override
+                    public UUID visitUnsuccessful(UnsuccessfulLockResponse value) {
+                        return value.getLeadershipId().id();
+                    }
+
+                    @Override
+                    public UUID visitUnknown(String unknownType) {
+                        throw new SafeIllegalStateException("Unknown lock response");
+                    }
+                }));
     }
 
     @Override
     public LeaderTime leaderTime() {
-        return delegate.leaderTime();
+        return runTimed(delegate::leaderTime, response -> response.id().id());
     }
 
     @Override
@@ -111,7 +135,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     @Override
     public ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request) {
-        return delegate.getFreshTimestamps(request);
+        return runTimed(() -> delegate.getFreshTimestamps(request), response -> response.getLeadershipId()
+                .id());
     }
 
     @Override

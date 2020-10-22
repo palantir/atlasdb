@@ -50,6 +50,7 @@ import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
 import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockResponseV2.Visitor;
 import com.palantir.lock.v2.LockToken;
@@ -93,12 +94,14 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<ConjureGetFreshTimestampsResponse> getFreshTimestamps(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
+
         return handleExceptions(() -> {
             ListenableFuture<TimestampRange> rangeFuture =
                     forNamespace(namespace).getFreshTimestampsAsync(request.getNumTimestamps());
             return Futures.transform(
                     rangeFuture,
-                    range -> ConjureGetFreshTimestampsResponse.of(range.getLowerBound(), range.getUpperBound()),
+                    range -> ConjureGetFreshTimestampsResponse.of(
+                            range.getLowerBound(), range.getUpperBound(), getLeadershipId(namespace)),
                     MoreExecutors.directExecutor());
         });
     }
@@ -125,7 +128,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     token -> token.accept(Visitor.of(
                             success -> ConjureLockResponse.successful(SuccessfulLockResponse.of(
                                     ConjureLockToken.of(success.getToken().getRequestId()), success.getLease())),
-                            failure -> ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()))),
+                            failure -> ConjureLockResponse.unsuccessful(
+                                    UnsuccessfulLockResponse.of(getLeadershipId(namespace))))),
                     MoreExecutors.directExecutor());
         });
     }
@@ -144,7 +148,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     forNamespace(namespace).waitForLocks(lockRequest);
             return Futures.transform(
                     tokenFuture,
-                    token -> ConjureWaitForLocksResponse.of(token.wasSuccessful()),
+                    token -> ConjureWaitForLocksResponse.of(token.wasSuccessful(), getLeadershipId(namespace)),
                     MoreExecutors.directExecutor());
         });
     }
@@ -172,8 +176,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
         return handleExceptions(() -> Futures.transform(
                 forNamespace(namespace).unlock(fromConjureLockTokens(request.getTokens())),
-                unlocked -> ConjureUnlockResponse.of(toConjureLockTokens(unlocked)),
+                unlocked -> ConjureUnlockResponse.of(toConjureLockTokens(unlocked), getLeadershipId(namespace)),
                 MoreExecutors.directExecutor()));
+    }
+
+    private LeadershipId getLeadershipId(String namespace) {
+        return forNamespace(namespace).leaderId();
     }
 
     private static Set<LockToken> fromConjureLockTokens(Set<ConjureLockToken> lockTokens) {

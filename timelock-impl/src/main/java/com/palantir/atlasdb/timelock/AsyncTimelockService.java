@@ -23,6 +23,7 @@ import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
@@ -72,4 +73,6 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
     ListenableFuture<LeaderTime> leaderTime();
 
     ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest);
+
+    LeadershipId leaderId();
 }
