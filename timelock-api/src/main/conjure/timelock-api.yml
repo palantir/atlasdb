@@ -36,6 +36,11 @@ types:
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
+      LeaderId:
+        fields:
+          id: uuid
+        docs: |
+          UUID that uniquely identifies a Timelock leader.
       ConjureIdentifiedVersion:
         fields:
           id: uuid
@@ -61,6 +66,7 @@ types:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
+          leaderId: LeaderId
       ConjureLockDescriptor:
         alias: binary
       ConjureLockRequest:
