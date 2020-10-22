@@ -27,7 +27,7 @@ public enum CorruptionStatus {
         this.shouldShootTimeLock = shouldShootTimeLock;
     }
 
-    public boolean shootTimeLock() {
+    public boolean shouldRejectRequests() {
         return shouldShootTimeLock;
     }
 }

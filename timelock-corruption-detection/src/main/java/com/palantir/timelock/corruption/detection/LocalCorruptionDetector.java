@@ -32,7 +32,6 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
-
     private final LocalCorruptionHandler corruptionHandler;
     private final PaxosLogHistoryProvider historyProvider;
 
@@ -72,13 +71,13 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
 
     private void processLocalHealthReport() {
         localCorruptionState = getLocalCorruptionState(localCorruptionReport);
-        if (localCorruptionState.shootTimeLock()) {
+        if (localCorruptionState.shouldRejectRequests()) {
             corruptionHandler.notifyRemoteServersOfCorruption();
         }
     }
 
     CorruptionStatus getLocalCorruptionState(CorruptionHealthReport latestReport) {
-        return latestReport.shootTimeLock()
+        return latestReport.shouldRejectRequests()
                 ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL
                 : localCorruptionState;
     }
@@ -88,7 +87,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     @Override
-    public boolean shootTimeLock() {
-        return localCorruptionState.shootTimeLock();
+    public boolean shouldRejectRequests() {
+        return localCorruptionState.shouldRejectRequests();
     }
 }
