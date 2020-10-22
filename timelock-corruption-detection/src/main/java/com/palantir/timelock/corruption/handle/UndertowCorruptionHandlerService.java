@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.corruption.detection;
+package com.palantir.timelock.corruption.handle;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.undertow.lib.Endpoint;
 import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.util.Headers;
 import io.undertow.util.StatusCodes;

@@ -23,6 +23,7 @@ import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
@@ -60,8 +61,8 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     private final AtomicReference<LockWatches> watches = new AtomicReference<>(LockWatches.create());
     private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
 
-    public LockWatchingServiceImpl(HeldLocksCollection heldLocksCollection) {
-        this(UUID.randomUUID(), heldLocksCollection);
+    public LockWatchingServiceImpl(HeldLocksCollection heldLocksCollection, LeadershipId leadershipId) {
+        this(leadershipId.id(), heldLocksCollection);
     }
 
     @VisibleForTesting

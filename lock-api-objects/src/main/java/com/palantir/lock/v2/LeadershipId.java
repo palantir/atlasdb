@@ -26,7 +26,7 @@ import org.immutables.value.Value;
 public abstract class LeadershipId {
     @JsonValue
     @Value.Parameter
-    abstract UUID id();
+    public abstract UUID id();
 
     @JsonCreator
     static LeadershipId create(UUID uuid) {

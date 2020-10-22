@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Lock lease service should short circuit on unlock
+  links:
+  - https://github.com/palantir/atlasdb/pull/5072

@@ -33,6 +33,7 @@ import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.sql.DataSource;
@@ -98,7 +99,7 @@ public class HistoryLoaderAndTransformerTest {
     @Test
     public void canHandleHistoryWithOnlyAcceptorLogs() {
         IntStream.range(0, 100).forEach(i -> {
-            PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(acceptorLog, i + 1);
+            PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(acceptorLog, i + 1, Optional.empty());
         });
 
         int lastVerified = 27;
@@ -118,7 +119,7 @@ public class HistoryLoaderAndTransformerTest {
     @Test
     public void canHandleHistoryWithOnlyLearnerLogs() {
         IntStream.range(0, 100).forEach(i -> {
-            PaxosSerializationTestUtils.writeValueForLogAndRound(learnerLog, i + 1);
+            PaxosSerializationTestUtils.createAndWriteValueForLogAndRound(learnerLog, i + 1);
         });
 
         int lastVerified = 52;

@@ -28,4 +28,8 @@ public interface LearnedAndAcceptedValue {
 
     @Value.Parameter
     Optional<PaxosAcceptorData> acceptedValue();
+
+    static LearnedAndAcceptedValue voidLearnedAndAcceptedValue() {
+        return ImmutableLearnedAndAcceptedValue.of(Optional.empty(), Optional.empty());
+    }
 }
