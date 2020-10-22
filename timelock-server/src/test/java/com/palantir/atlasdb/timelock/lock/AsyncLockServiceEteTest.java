@@ -29,7 +29,9 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
@@ -313,6 +315,13 @@ public class AsyncLockServiceEteTest {
     @Test
     public void clientSideLeasePeriodShouldBeLessThanServerSideLeasePeriod() {
         assertThat(LockLeaseContract.CLIENT_LEASE_TIMEOUT).isLessThan(LockLeaseContract.SERVER_LEASE_TIMEOUT);
+    }
+
+    @Test
+    public void leaderIdFromLockWatchingServiceIsSameAsLeaderClock() {
+        LeaderTime leaderTime = service.leaderTime();
+        LockWatchStateUpdate lockWatchUpdate = lockWatchingService.getWatchStateUpdate(Optional.empty());
+        assertThat(leaderTime.id().id().equals(lockWatchUpdate.logId()));
     }
 
     private static void waitForTimeout(TimeLimit timeout) {
