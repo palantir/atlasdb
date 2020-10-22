@@ -27,9 +27,9 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -69,8 +69,8 @@ public final class DbkvsPostgresTestSuite {
     @BeforeClass
     public static void waitUntilDbkvsIsUp() throws InterruptedException {
         Awaitility.await()
-                .atMost(Duration.ONE_MINUTE)
-                .pollInterval(Duration.ONE_SECOND)
+                .atMost(Duration.ofMinutes(1))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(canCreateKeyValueService());
     }
 
