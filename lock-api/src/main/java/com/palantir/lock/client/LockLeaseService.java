@@ -141,9 +141,12 @@ class LockLeaseService {
     }
 
     Set<LockToken> unlock(Set<LockToken> tokens) {
+        if (tokens.isEmpty()) {
+            return tokens;
+        }
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
-
+        
         Set<ConjureLockToken> unlocked = delegate.unlock(ConjureUnlockRequest.of(serverTokens(leasedLockTokens)))
                 .getTokens();
         return leasedLockTokens.stream()
