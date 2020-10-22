@@ -46,12 +46,14 @@ public final class HistoryAnalyzer {
     public static CorruptionHealthReport corruptionHealthReportForHistory(
             List<CompletePaxosHistoryForNamespaceAndUseCase> history) {
 
-        Map<NamespaceAndUseCase, CorruptionCheckViolation> collect = history.stream()
-                .collect(Collectors.toMap(
-                        HistoryAnalyzer::extractNamespaceAndUseCase,
-                        HistoryAnalyzer::violatedCorruptionChecksForNamespaceAndUseCase));
+        Map<NamespaceAndUseCase, CorruptionCheckViolation> namespaceAndUseCaseCorruptionCheckViolationMap =
+                history.stream()
+                        .collect(Collectors.toMap(
+                                HistoryAnalyzer::extractNamespaceAndUseCase,
+                                HistoryAnalyzer::violatedCorruptionChecksForNamespaceAndUseCase));
 
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> entryEntrySetMultimap = KeyedStream.stream(collect)
+        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> entryEntrySetMultimap = KeyedStream.stream(
+                        namespaceAndUseCaseCorruptionCheckViolationMap)
                 .mapEntries((k, v) -> Maps.immutableEntry(v, k))
                 .filterKeys(CorruptionCheckViolation::raiseErrorAlert)
                 .collectToSetMultimap();
