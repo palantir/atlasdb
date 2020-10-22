@@ -59,7 +59,7 @@ public final class HistoryAnalyzer {
                 .collectToSetMultimap();
 
         return ImmutableCorruptionHealthReport.builder()
-                .statusesToNamespaceAndUseCase(namespacesExhibitingViolations)
+                .violatingStatusesToNamespaceAndUseCase(namespacesExhibitingViolations)
                 .build();
     }
 
