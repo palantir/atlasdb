@@ -21,6 +21,7 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackS
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
+import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
@@ -28,6 +29,7 @@ import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -52,6 +54,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final String serviceName;
     private final String namespace;
     private final Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
+    private volatile Optional<LeaderElectionReportingTimelockService> timelock;
 
     private ScheduledFuture<?> task;
 
@@ -102,6 +105,10 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                 TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
                 TIMELOCK_CLIENT_FEEDBACK_REPORT_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);
+    }
+
+    public void registerLeaderElectionStatistics(LeaderElectionReportingTimelockService conjureTimelock) {
+        this.timelock = Optional.of(conjureTimelock);
     }
 
     private void reportClientFeedbackToService(
