@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
@@ -39,11 +40,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
 public class LeaderElectionReportingTimelockServiceTest {
     private static final UUID LEADER_1 = UUID.randomUUID();
+    private static final UUID LEADER_2 = UUID.randomUUID();
     private static final LockWatchStateUpdate UPDATE = LockWatchStateUpdate.success(LEADER_1, -1L, ImmutableList.of());
 
     private ConjureStartTransactionsRequest startTransactionsRequest = mock(ConjureStartTransactionsRequest.class);
@@ -120,13 +123,14 @@ public class LeaderElectionReportingTimelockServiceTest {
 
     @Test
     public void detectLeaderElectionWithFreshLeader() {
-        when(commitTimestampsResponse.getLockWatchUpdate())
-                .thenReturn(LockWatchStateUpdate.success(UUID.randomUUID(), 5L, ImmutableList.of()));
-        timelockService.startTransactions(startTransactionsRequest);
+        setResponseLeaders(LEADER_1, LEADER_1, LEADER_2);
+
+        getNextResponses(1);
         Instant conservativeFirstLeaderUpperBound = Instant.now();
-        timelockService.startTransactions(startTransactionsRequest);
+        getNextResponses(1);
         Instant conservativeSecondLeaderLowerBound = Instant.now();
-        timelockService.getCommitTimestamps(commitTimestampsRequest);
+        getNextResponses(1);
+
         Optional<Duration> estimatedDuration = timelockService.calculateLastLeaderElectionDuration();
         assertThat(estimatedDuration).isPresent();
         assertThat(estimatedDuration.get())
@@ -135,14 +139,14 @@ public class LeaderElectionReportingTimelockServiceTest {
 
     @Test
     public void detectLeaderElectionWithTwoLongTermLeaders() {
-        when(commitTimestampsResponse.getLockWatchUpdate())
-                .thenReturn(LockWatchStateUpdate.success(UUID.randomUUID(), 5L, ImmutableList.of()));
-        timelockService.startTransactions(startTransactionsRequest);
+        setResponseLeaders(LEADER_1, LEADER_1, LEADER_2, LEADER_2);
+
+        getNextResponses(1);
         Instant conservativeFirstLeaderUpperBound = Instant.now();
-        timelockService.startTransactions(startTransactionsRequest);
+        getNextResponses(1);
         Instant conservativeSecondLeaderLowerBound = Instant.now();
-        timelockService.getCommitTimestamps(commitTimestampsRequest);
-        timelockService.getCommitTimestamps(commitTimestampsRequest);
+        getNextResponses(2);
+
         Optional<Duration> estimatedDuration = timelockService.calculateLastLeaderElectionDuration();
         assertThat(estimatedDuration).isPresent();
         assertThat(estimatedDuration.get())
@@ -151,26 +155,31 @@ public class LeaderElectionReportingTimelockServiceTest {
 
     @Test
     public void detectFreshLeaderElectionWithTwoLongTurnLeaders() {
-        UUID secondLeader = UUID.randomUUID();
         UUID thirdLeader = UUID.randomUUID();
-        when(commitTimestampsResponse.getLockWatchUpdate())
-                .thenReturn(LockWatchStateUpdate.success(secondLeader, 5L, ImmutableList.of()))
-                .thenReturn(LockWatchStateUpdate.success(secondLeader, 5L, ImmutableList.of()))
-                .thenReturn(LockWatchStateUpdate.success(thirdLeader, 5L, ImmutableList.of()));
+        setResponseLeaders(LEADER_1, LEADER_1, LEADER_2, LEADER_2, thirdLeader);
 
-        timelockService.startTransactions(startTransactionsRequest);
-        timelockService.startTransactions(startTransactionsRequest);
-        timelockService.getCommitTimestamps(commitTimestampsRequest);
+        getNextResponses(3);
         Instant conservativeFirstLeaderUpperBound = Instant.now();
-        timelockService.getCommitTimestamps(commitTimestampsRequest);
-        Duration firstElectionDuration =
-                timelockService.calculateLastLeaderElectionDuration().get();
+        getNextResponses(1);
         Instant conservativeSecondLeaderLowerBound = Instant.now();
-        timelockService.getCommitTimestamps(commitTimestampsRequest);
+        getNextResponses(1);
+
         Optional<Duration> estimatedDuration = timelockService.calculateLastLeaderElectionDuration();
         assertThat(estimatedDuration).isPresent();
-        assertThat(estimatedDuration.get()).isNotEqualTo(firstElectionDuration);
         assertThat(estimatedDuration.get())
                 .isGreaterThan(Duration.between(conservativeFirstLeaderUpperBound, conservativeSecondLeaderLowerBound));
+    }
+
+    private void setResponseLeaders(UUID firstLeader, UUID... otherLeaders) {
+        LockWatchStateUpdate updateMock = mock(LockWatchStateUpdate.class);
+        when(startTransactionsResponse.getLockWatchUpdate()).thenReturn(updateMock);
+        when(updateMock.logId()).thenReturn(firstLeader, otherLeaders);
+    }
+
+    private void getNextResponses(int number) {
+        for (int i = 0; i < number; i++) {
+            timelockService.startTransactions(startTransactionsRequest);
+            Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+        }
     }
 }
