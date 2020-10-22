@@ -62,7 +62,7 @@ public class AsyncLockService implements Closeable {
         LeaderClock clock = LeaderClock.create();
 
         HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks);
+        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
         return new AsyncLockService(

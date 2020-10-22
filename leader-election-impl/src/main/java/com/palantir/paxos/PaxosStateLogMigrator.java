@@ -127,7 +127,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         long persistedCutoff = context.migrationState().getCutoff();
         long greatestSourceEntry = context.sourceLog().getGreatestLogEntry();
         Preconditions.checkState(
-                migrationCutoff <= persistedCutoff,
+                migrationCutoff <= persistedCutoff || context.migrateFrom().isPresent(),
                 "The migration to the destination state log was already performed in the past, but the "
                         + "persisted cutoff value does not match a newly calculated one. This indicates the source "
                         + "log has advanced since the migration was performed which could lead to data corruption if "
