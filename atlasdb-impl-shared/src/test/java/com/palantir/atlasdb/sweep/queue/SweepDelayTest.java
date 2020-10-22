@@ -60,28 +60,32 @@ public class SweepDelayTest {
 
     @Test
     public void unableToAcquireShardReturnsMaxPause() {
+        delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.unableToAcquireShard()))
                 .isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
-        assertThat(metrics).hasValue(DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
     public void insufficientConsistencyReturnsBackoff() {
+        delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
                 .isEqualTo(BACKOFF);
-        assertThat(metrics).hasValue(BACKOFF);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
     public void otherErrorReturnsMaxPause() {
+        delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.otherError())).isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
-        assertThat(metrics).hasValue(DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
     public void disabledReturnsBackoff() {
+        delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.disabled())).isEqualTo(BACKOFF);
-        assertThat(metrics).hasValue(BACKOFF);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
