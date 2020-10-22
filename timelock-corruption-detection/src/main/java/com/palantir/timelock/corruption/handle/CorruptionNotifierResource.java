@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.corruption.detection;
+package com.palantir.timelock.corruption.handle;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -22,6 +22,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifierEndpoints;
 import com.palantir.timelock.corruption.UndertowTimeLockCorruptionNotifier;
+import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class CorruptionNotifierResource implements UndertowTimeLockCorruptionNotifier {

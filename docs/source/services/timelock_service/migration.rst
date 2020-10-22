@@ -3,6 +3,11 @@
 Migration to Timelock Server
 ============================
 
+.. warning::
+    The scope of this document covers migrations of AtlasDB-using services from using an embedded timestamp and lock
+    service to using TimeLock. In particular, migrations of the timestamp bound persistence method are NOT covered
+    here, and attempting to do this procedure incorrectly runs a risk of **SEVERE DATA CORRUPTION**.
+
 Why Migration?
 --------------
 
@@ -19,10 +24,11 @@ Automated Migration
     nodes in step 4. Otherwise, there is a risk of **SEVERE DATA CORRUPTION** as timestamps may be given out of order.
 
 .. warning::
-    Automated migrations are only implemented for Cassandra. If you are using any other KVS, please follow the
-    instructions at :ref:`manual-timelock-migration`.
+    Automated migrations are only implemented for Cassandra, and from AtlasDB 0.253.2 onwards DbKVS.
+    If you are using any other KVS, please follow the instructions at :ref:`manual-timelock-migration`.
 
-1. Confirm that your AtlasDB installation is backed by Cassandra KVS.
+1. Confirm that your AtlasDB installation is backed by Cassandra KVS, or you are using DbKVS and your version of AtlasDB
+   is at least 0.253.2.
 2. (Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
    ``/timestamp/fresh-timestamp`` endpoint. This step is not strictly required, but may be useful for verification.
 3. Add the :ref:`Timelock client configuration <timelock-client-configuration>` to your service.

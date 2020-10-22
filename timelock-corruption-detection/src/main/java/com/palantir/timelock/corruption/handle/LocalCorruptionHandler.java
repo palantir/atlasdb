@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.corruption.detection;
+package com.palantir.timelock.corruption.handle;
 
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;

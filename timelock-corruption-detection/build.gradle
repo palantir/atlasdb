@@ -13,6 +13,8 @@ dependencies {
     conjureCompiler 'com.palantir.conjure:conjure'
     conjureJava 'com.palantir.conjure.java:conjure-java'
 
+    compile project(':atlasdb-api')
+
     compile project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
     compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
 
@@ -22,6 +24,9 @@ dependencies {
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
+
+    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testCompileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
