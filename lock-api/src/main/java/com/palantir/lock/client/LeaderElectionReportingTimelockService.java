@@ -31,6 +31,7 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -52,21 +53,24 @@ import javax.annotation.Nonnull;
 public class LeaderElectionReportingTimelockService implements NamespacedConjureTimelockService {
     private final NamespacedConjureTimelockService delegate;
     private final LeaderElectionMetrics metrics;
+    private final Clock clock;
     private volatile UUID leaderId = null;
     private Map<UUID, Instant> leadershipUpperBound = new ConcurrentHashMap<>();
     private Map<UUID, Instant> leadershipLowerBound = new ConcurrentHashMap<>();
 
     public LeaderElectionReportingTimelockService(
-            NamespacedConjureTimelockService delegate, TaggedMetricRegistry taggedMetricRegistry) {
+            NamespacedConjureTimelockService delegate, TaggedMetricRegistry taggedMetricRegistry, Clock clock) {
         this.delegate = delegate;
         this.metrics = LeaderElectionMetrics.of(taggedMetricRegistry);
+        this.clock = clock;
     }
 
     public static LeaderElectionReportingTimelockService create(
             ConjureTimelockService conjureTimelockService, String namespace) {
         return new LeaderElectionReportingTimelockService(
                 new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace),
-                new DefaultTaggedMetricRegistry());
+                new DefaultTaggedMetricRegistry(),
+                System::currentTimeMillis);
     }
 
     @Override
@@ -113,9 +117,9 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {
         UUID currentLeader = leaderId;
-        Instant startTime = Instant.now();
+        Instant startTime = clock.instant();
         T response = method.get();
-        Instant responseTime = Instant.now();
+        Instant responseTime = clock.instant();
         if (updateAndChangeLeaderIfNew(leaderExtractor, currentLeader, response, startTime, responseTime)) {
             updateMetrics(Duration.between(startTime, responseTime));
         }
