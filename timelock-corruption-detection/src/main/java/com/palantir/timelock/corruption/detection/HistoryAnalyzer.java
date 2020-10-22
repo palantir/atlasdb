@@ -31,9 +31,10 @@ import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndU
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,44 +46,44 @@ public final class HistoryAnalyzer {
     public static CorruptionHealthReport corruptionHealthReportForHistory(
             List<CompletePaxosHistoryForNamespaceAndUseCase> history) {
 
-        List<Entry<CorruptionCheckViolation, NamespaceAndUseCase>> collect = history.stream()
-                .map(HistoryAnalyzer::namespaceAndUseCaseMapToViolations)
-                .flatMap(List::stream)
-                .collect(Collectors.toList());
+        Map<NamespaceAndUseCase, CorruptionCheckViolation> collect = history.stream()
+                .collect(Collectors.toMap(
+                        HistoryAnalyzer::extractNamespaceAndUseCase,
+                        HistoryAnalyzer::violatedCorruptionChecksForNamespaceAndUseCase));
 
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase>
-                entryEntrySetMultimap = KeyedStream.of(collect)
-                .mapEntries((entry, unused) -> Maps.immutableEntry(entry.getKey(), entry.getValue()))
+        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> entryEntrySetMultimap = KeyedStream.stream(collect)
+                .mapEntries((k, v) -> Maps.immutableEntry(v, k))
+                .filterKeys(CorruptionCheckViolation::raiseErrorAlert)
                 .collectToSetMultimap();
 
-        return ImmutableCorruptionHealthReport.builder().statusesToNamespaceAndUseCase(entryEntrySetMultimap).build();
-    }
-
-    private static List<Entry<CorruptionCheckViolation, NamespaceAndUseCase>> namespaceAndUseCaseMapToViolations(
-            CompletePaxosHistoryForNamespaceAndUseCase history) {
-        NamespaceAndUseCase namespaceAndUseCase = extractNamespaceAndUseCase(history);
-        List<CorruptionCheckViolation> violations = violatedCorruptionChecksForNamespaceAndUseCase(history);
-        return violations.stream()
-                .map(violation -> Maps.immutableEntry(violation, namespaceAndUseCase))
-                .collect(Collectors.toList());
+        return ImmutableCorruptionHealthReport.builder()
+                .statusesToNamespaceAndUseCase(entryEntrySetMultimap)
+                .build();
     }
 
     private static NamespaceAndUseCase extractNamespaceAndUseCase(
             CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase) {
-        return ImmutableNamespaceAndUseCase.builder().namespace(
-                historyForNamespaceAndUseCase.namespace()).useCase(
-                historyForNamespaceAndUseCase.useCase()).build();
+        return ImmutableNamespaceAndUseCase.builder()
+                .namespace(historyForNamespaceAndUseCase.namespace())
+                .useCase(historyForNamespaceAndUseCase.useCase())
+                .build();
     }
 
     @VisibleForTesting
-    static List<CorruptionCheckViolation> violatedCorruptionChecksForNamespaceAndUseCase(
+    static CorruptionCheckViolation violatedCorruptionChecksForNamespaceAndUseCase(
             CompletePaxosHistoryForNamespaceAndUseCase history) {
-        return Stream.of(
-                        divergedLearners(history),
-                        learnedValueWithoutQuorum(history),
-                        greatestAcceptedValueNotLearned(history))
-                .filter(CorruptionCheckViolation::raiseErrorAlert)
-                .collect(Collectors.toList());
+        Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation> divergedLearnedCheck =
+                HistoryAnalyzer::divergedLearners;
+        Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation> learnedValueWithoutQuorum =
+                HistoryAnalyzer::learnedValueWithoutQuorum;
+        Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation> greatestAcceptedValueNotLearned =
+                HistoryAnalyzer::greatestAcceptedValueNotLearned;
+
+        return Stream.of(divergedLearnedCheck, learnedValueWithoutQuorum, greatestAcceptedValueNotLearned)
+                .map(check -> check.apply(history))
+                .filter(check -> check.raiseErrorAlert())
+                .findFirst()
+                .orElse(CorruptionCheckViolation.NONE);
     }
 
     @VisibleForTesting
