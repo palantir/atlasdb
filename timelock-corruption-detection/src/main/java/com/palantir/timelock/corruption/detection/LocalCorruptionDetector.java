@@ -32,7 +32,6 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
-
     private final LocalCorruptionHandler corruptionHandler;
     private final PaxosLogHistoryProvider historyProvider;
 

@@ -115,15 +115,15 @@ public class SqliteHistoryQueriesTest {
     @Test
     public void canGetAllLearnerAndAcceptorDiscontinuousLogsSince() {
         int startInclusive = 55;
-        long upperBound = 100L;
+        int upperBound = 100;
 
-        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, startInclusive, 100);
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, startInclusive, upperBound + 1);
 
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
                 ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
                 SequenceBounds.builder().lower(5L).upper(upperBound).build());
 
-        int expected = 100 - startInclusive;
+        int expected = upperBound - startInclusive;
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(expected);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(expected);
     }

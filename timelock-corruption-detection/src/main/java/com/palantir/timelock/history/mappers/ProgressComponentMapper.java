@@ -25,7 +25,6 @@ import org.jdbi.v3.core.statement.StatementContext;
 public class ProgressComponentMapper implements RowMapper<ProgressComponents> {
     @Override
     public ProgressComponents map(ResultSet rs, StatementContext ctx) throws SQLException {
-        // if (!rs.next()) { return Optional.empty(); }
         return ProgressComponents.builder()
                 .progressState(rs.getLong("seq"))
                 .progressLimit(rs.getLong("progressLimit"))
