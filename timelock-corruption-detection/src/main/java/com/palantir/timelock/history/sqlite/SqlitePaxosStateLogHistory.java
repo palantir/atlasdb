@@ -18,6 +18,7 @@ package com.palantir.timelock.history.sqlite;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLog;
@@ -73,9 +74,18 @@ public final class SqlitePaxosStateLogHistory {
                 dao.getAcceptorLogsSince(namespace, acceptorUseCase.value(), lowerBound, upperBound)));
     }
 
+    public long getGreatestLogEntry(Client client, String useCase) {
+        return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
     }
+
+    private <T> T executeSqlitePaxosStateLogQuery(Function<SqlitePaxosStateLog.Queries, T> call) {
+        return jdbi.withExtension(SqlitePaxosStateLog.Queries.class, call::apply);
+    }
+
 
     public interface Queries {
         @SqlQuery("SELECT DISTINCT namespace, useCase FROM paxosLog")

@@ -29,14 +29,12 @@ import com.palantir.timelock.history.models.ImmutableLearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.models.SequenceBounds;
-import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
@@ -46,19 +44,17 @@ public class PaxosLogHistoryProvider {
     private static final Logger log = LoggerFactory.getLogger(PaxosLogHistoryProvider.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-    private static final int MAX_ROWS_ALLOWED = 500;
 
-    private final LogVerificationProgressState logVerificationProgressState;
     private final LocalHistoryLoader localHistoryLoader;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
     private final List<TimeLockPaxosHistoryProvider> remoteHistoryProviders;
-    private Map<NamespaceAndUseCase, Long> verificationProgressStateCache = new ConcurrentHashMap<>();
+    private final PaxosLogHistoryProgressTracker progressTracker;
 
     public PaxosLogHistoryProvider(DataSource dataSource, List<TimeLockPaxosHistoryProvider> remoteHistoryProviders) {
         this.remoteHistoryProviders = remoteHistoryProviders;
         this.sqlitePaxosStateLogHistory = SqlitePaxosStateLogHistory.create(dataSource);
-        this.logVerificationProgressState = LogVerificationProgressState.create(dataSource);
         this.localHistoryLoader = LocalHistoryLoader.create(this.sqlitePaxosStateLogHistory);
+        this.progressTracker = new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory);
     }
 
     private Set<NamespaceAndUseCase> getNamespaceAndUseCaseTuples() {
@@ -67,20 +63,6 @@ public class PaxosLogHistoryProvider {
                         namespaceAndUseCase.namespace(),
                         UseCaseUtils.getPaxosUseCasePrefix(namespaceAndUseCase.useCase())))
                 .collect(Collectors.toSet());
-    }
-
-    private SequenceBounds getOrInsertVerificationState(NamespaceAndUseCase namespaceAndUseCase) {
-        long lastVerifiedSeq =
-                verificationProgressStateCache.computeIfAbsent(namespaceAndUseCase, this::getLastVerifiedSeqFromLogs);
-        return SequenceBounds.builder()
-                .lower(lastVerifiedSeq)
-                .upper(lastVerifiedSeq + MAX_ROWS_ALLOWED)
-                .build();
-    }
-
-    private long getLastVerifiedSeqFromLogs(NamespaceAndUseCase namespaceAndUseCase) {
-        return logVerificationProgressState.getLastVerifiedSeq(
-                namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
     }
 
     //     TODO(snanda): Refactor the two parts on translating PaxosHistoryOnRemote to
@@ -100,7 +82,7 @@ public class PaxosLogHistoryProvider {
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistoryList = consolidateAndGetHistoriesAcrossAllNodes(
                 lastVerifiedSequences, localPaxosHistory, historyFromAllRemotes);
 
-        updateProgressState(lastVerifiedSequences);
+        progressTracker.updateProgressState(lastVerifiedSequences);
 
         return completeHistoryList;
     }
@@ -138,7 +120,7 @@ public class PaxosLogHistoryProvider {
 
     private Map<NamespaceAndUseCase, SequenceBounds> getNamespaceAndUseCaseToLastVerifiedSeqMap() {
         return KeyedStream.of(getNamespaceAndUseCaseTuples().stream())
-                .map(this::getOrInsertVerificationState)
+                .map(progressTracker::getPaxosLogSequenceBounds)
                 .collectToMap();
     }
 
@@ -222,13 +204,5 @@ public class PaxosLogHistoryProvider {
             NamespaceAndUseCase namespaceAndUseCase, SequenceBounds bounds) {
         return Maps.immutableEntry(
                 namespaceAndUseCase, HistoryQuery.of(namespaceAndUseCase, bounds.lower(), bounds.upper()));
-    }
-
-    private void updateProgressState(Map<NamespaceAndUseCase, SequenceBounds> namespaceAndUseCaseSequenceBoundsMap) {
-        namespaceAndUseCaseSequenceBoundsMap.forEach((key, value) -> {
-            long lastVerifiedSequence = value.upper();
-            verificationProgressStateCache.put(key, lastVerifiedSequence);
-            logVerificationProgressState.updateProgress(key.namespace(), key.useCase(), lastVerifiedSequence);
-        });
     }
 }

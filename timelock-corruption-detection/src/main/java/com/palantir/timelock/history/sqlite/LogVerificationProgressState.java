@@ -17,7 +17,9 @@
 package com.palantir.timelock.history.sqlite;
 
 import com.palantir.paxos.Client;
-import java.util.OptionalLong;
+import com.palantir.timelock.history.mappers.ProgressComponentMapper;
+import com.palantir.timelock.history.models.ProgressComponents;
+import java.util.Optional;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
@@ -39,7 +41,8 @@ public final class LogVerificationProgressState {
 
     public static LogVerificationProgressState create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
+        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class).registerImmutable(ProgressComponents.class);
+        jdbi.registerRowMapper(new ProgressComponentMapper());
         LogVerificationProgressState state = new LogVerificationProgressState(jdbi);
         state.initialize();
         return state;
@@ -49,20 +52,23 @@ public final class LogVerificationProgressState {
         execute(LogVerificationProgressState.Queries::createVerificationProgressStateTable);
     }
 
-    public void updateProgress(Client client, String useCase, long seq) {
-        execute(dao -> dao.updateProgress(client, useCase, seq));
-    }
 
-    public long getLastVerifiedSeq(Client client, String useCase) {
+    public ProgressComponents resetProgressState(Client client, String useCase, long greatestLogSeq) {
         return execute(dao -> {
-            OptionalLong lastVerifiedSeq = dao.getLastVerifiedSeq(client, useCase);
-            return lastVerifiedSeq.orElseGet(() -> setInitialProgress(client, useCase));
+            dao.updateProgressStateAndProgressLimit(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
+            return ProgressComponents.builder().progressState(INITIAL_PROGRESS).progressLimit(greatestLogSeq).build();
         });
     }
 
-    private long setInitialProgress(Client client, String useCase) {
-        updateProgress(client, useCase, INITIAL_PROGRESS);
-        return INITIAL_PROGRESS;
+    public void updateProgress(Client client, String useCase, long seq) {
+        execute(dao -> {
+            dao.updateProgress(client, useCase, seq);
+            return null;
+        });
+    }
+
+    public Optional<ProgressComponents> getProgressComponents(Client client, String useCase) {
+        return execute(dao -> dao.getProgressComponents(client, useCase));
     }
 
     private <T> T execute(Function<LogVerificationProgressState.Queries, T> call) {
@@ -70,17 +76,25 @@ public final class LogVerificationProgressState {
     }
 
     public interface Queries {
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS logVerificationProgress (namespace TEXT, useCase TEXT, seq BIGINT,"
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS logVerificationProgress (namespace TEXT, useCase TEXT, seq BIGINT, "
+                + "progressLimit BIGINT, "
                 + "PRIMARY KEY(namespace, useCase))")
         boolean createVerificationProgressStateTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, seq) VALUES"
-                + " (:namespace.value, :useCase, :seq)")
+        @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, seq, progressLimit) VALUES"
+                + " (:namespace.value, :useCase, :seq, :progressLimit)")
+        boolean updateProgressStateAndProgressLimit(
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase,
+                @Bind("seq") long seq, @Bind("progressLimit") long progressLimit);
+
+        @SqlUpdate("UPDATE logVerificationProgress SET seq = :seq "
+                + "WHERE namespace = :namespace.value AND useCase = :useCase")
         boolean updateProgress(
                 @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
 
-        @SqlQuery("SELECT seq FROM logVerificationProgress "
+        @SqlQuery("SELECT seq, progressLimit FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
-        OptionalLong getLastVerifiedSeq(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+        Optional<ProgressComponents> getProgressComponents(@BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase);
     }
 }

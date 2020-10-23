@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqliteConnections;
+import com.palantir.timelock.history.models.ProgressComponents;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import javax.sql.DataSource;
 import org.junit.Before;
@@ -45,12 +46,30 @@ public class LogVerificationStateTest {
 
     @Test
     public void initialStateIsAbsent() {
-        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isEqualTo(-1L);
+        assertThat(log.getProgressComponents(CLIENT, USE_CASE)).isEmpty();
+    }
+
+    @Test
+    public void canResetState() {
+        long greatestLogSeq = 55L;
+        ProgressComponents progress = log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
+
+        assertThat(progress.progressState()).isEqualTo(-1L);
+        assertThat(progress.progressLimit()).isEqualTo(greatestLogSeq);
     }
 
     @Test
     public void canUpdateState() {
-        log.updateProgress(CLIENT, USE_CASE, 5L);
-        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isEqualTo(5L);
+        long greatestLogSeq = 7L;
+        long progressState = 5L;
+
+        log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
+
+        assertThat(log.getProgressComponents(CLIENT, USE_CASE))
+                .hasValue(ProgressComponents.builder().progressLimit(greatestLogSeq).progressState(-1L).build());
+
+        log.updateProgress(CLIENT, USE_CASE, progressState);
+        assertThat(log.getProgressComponents(CLIENT, USE_CASE))
+                .hasValue(ProgressComponents.builder().progressLimit(greatestLogSeq).progressState(progressState).build());
     }
 }
