@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import com.codahale.metrics.Gauge;
+import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowWeightedMeanGauge;
 import com.palantir.conjure.java.lib.SafeLong;
@@ -26,22 +26,20 @@ public final class LeaderElectionMetricAggregator {
     private final SlidingWindowWeightedMeanGauge weightedGaugeP99;
     private final SlidingWindowWeightedMeanGauge weightedGaugeP95;
     private final SlidingWindowWeightedMeanGauge weightedGaugeMean;
-    private volatile long lastElectionTime = 0L;
+    private final CurrentValueMetric<Long> lastElectionTime;
 
     public LeaderElectionMetricAggregator(MetricsManager metricsManager) {
         weightedGaugeP99 = SlidingWindowWeightedMeanGauge.create();
         weightedGaugeP95 = SlidingWindowWeightedMeanGauge.create();
         weightedGaugeMean = SlidingWindowWeightedMeanGauge.create();
-        Gauge<Long> actualElectionGauge = () -> lastElectionTime;
-
+        lastElectionTime = new CurrentValueMetric<>();
         metricsManager.registerMetric(
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactMean", weightedGaugeMean);
         metricsManager.registerMetric(
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactP95", weightedGaugeP95);
         metricsManager.registerMetric(
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactP99", weightedGaugeP99);
-        metricsManager.registerMetric(
-                LeaderElectionMetricAggregator.class, "leaderElectionDuration", actualElectionGauge);
+        metricsManager.registerMetric(LeaderElectionMetricAggregator.class, "leaderElectionDuration", lastElectionTime);
     }
 
     void report(LeaderElectionStatistics statistics) {
@@ -49,7 +47,7 @@ public final class LeaderElectionMetricAggregator {
         weightedGaugeMean.update(statistics.getMean(), count);
         weightedGaugeP95.update(statistics.getP95(), count);
         weightedGaugeP99.update(statistics.getP99(), count);
-        lastElectionTime =
-                statistics.getPerceivedTime().map(SafeLong::longValue).orElse(0L);
+        lastElectionTime.setValue(
+                statistics.getPerceivedTime().map(SafeLong::longValue).orElse(0L));
     }
 }
