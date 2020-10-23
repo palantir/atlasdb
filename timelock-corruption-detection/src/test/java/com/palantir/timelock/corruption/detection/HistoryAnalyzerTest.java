@@ -84,14 +84,14 @@ public class HistoryAnalyzerTest {
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
 
-        assertThat(HistoryAnalyzer.violatedCorruptionChecksForNamespaceAndUseCase(
+        assertThat(HistoryAnalyzer.corruptionCheckViolationLevelForNamespaceAndUseCase(
                         Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
 
         assertThat(HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
-                        .statusesToNamespaceAndUseCase()
-                        .size())
-                .isEqualTo(0);
+                        .violatingStatusesToNamespaceAndUseCase()
+                        .isEmpty())
+                .isTrue();
     }
 
     @Test
@@ -109,7 +109,8 @@ public class HistoryAnalyzerTest {
                 .isEqualTo(CorruptionCheckViolation.DIVERGED_LEARNERS);
 
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> setMultimap =
-                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll).statusesToNamespaceAndUseCase();
+                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
+                        .violatingStatusesToNamespaceAndUseCase();
         assertThat(setMultimap.keySet()).containsExactly(CorruptionCheckViolation.DIVERGED_LEARNERS);
     }
 
@@ -124,7 +125,8 @@ public class HistoryAnalyzerTest {
                 .isEqualTo(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
 
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> setMultimap =
-                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll).statusesToNamespaceAndUseCase();
+                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
+                        .violatingStatusesToNamespaceAndUseCase();
         assertThat(setMultimap.keySet()).containsExactly(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
     }
 
@@ -147,7 +149,8 @@ public class HistoryAnalyzerTest {
                 .isEqualTo(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
 
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> setMultimap =
-                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll).statusesToNamespaceAndUseCase();
+                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
+                        .violatingStatusesToNamespaceAndUseCase();
         assertThat(setMultimap.keySet()).containsExactly(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
     }
 

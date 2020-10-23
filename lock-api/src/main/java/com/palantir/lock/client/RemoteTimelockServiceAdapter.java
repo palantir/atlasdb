@@ -18,14 +18,12 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -57,17 +55,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
         return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
-    }
-
-    public static RemoteTimelockServiceAdapter create(
-            TimelockRpcClient rpcClient,
-            ConjureTimelockService conjureClient,
-            String timelockNamespace,
-            LockWatchEventCache lockWatchEventCache) {
-        return create(
-                new NamespacedTimelockRpcClient(rpcClient, timelockNamespace),
-                new NamespacedConjureTimelockService(conjureClient, timelockNamespace),
-                lockWatchEventCache);
     }
 
     @Override

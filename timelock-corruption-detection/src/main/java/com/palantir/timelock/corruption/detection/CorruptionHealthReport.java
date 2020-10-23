@@ -24,7 +24,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface CorruptionHealthReport {
     @Value.Parameter
-    SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> statusesToNamespaceAndUseCase();
+    SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> violatingStatusesToNamespaceAndUseCase();
 
     static ImmutableCorruptionHealthReport.Builder builder() {
         return ImmutableCorruptionHealthReport.builder();
@@ -32,11 +32,12 @@ public interface CorruptionHealthReport {
 
     static CorruptionHealthReport defaultHealthyReport() {
         return CorruptionHealthReport.builder()
-                .statusesToNamespaceAndUseCase(ImmutableSetMultimap.of())
+                .violatingStatusesToNamespaceAndUseCase(ImmutableSetMultimap.of())
                 .build();
     }
 
-    default boolean shootTimeLock() {
-        return statusesToNamespaceAndUseCase().keySet().stream().anyMatch(CorruptionCheckViolation::shootTimeLock);
+    default boolean shouldRejectRequests() {
+        return violatingStatusesToNamespaceAndUseCase().keySet().stream()
+                .anyMatch(CorruptionCheckViolation::shouldRejectRequests);
     }
 }

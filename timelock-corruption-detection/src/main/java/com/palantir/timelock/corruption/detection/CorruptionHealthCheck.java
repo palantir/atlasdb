@@ -16,21 +16,18 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import com.google.common.collect.ImmutableList;
-import java.util.List;
-
 public class CorruptionHealthCheck {
     private final LocalCorruptionDetector localCorruptionDetector;
-    private final List<CorruptionDetector> localAndRemoteCorruptionDetectors;
+    private final RemoteCorruptionDetector remoteCorruptionDetector;
 
     public CorruptionHealthCheck(
             LocalCorruptionDetector localCorruptionDetector, RemoteCorruptionDetector remoteCorruptionDetector) {
         this.localCorruptionDetector = localCorruptionDetector;
-        this.localAndRemoteCorruptionDetectors = ImmutableList.of(localCorruptionDetector, remoteCorruptionDetector);
+        this.remoteCorruptionDetector = remoteCorruptionDetector;
     }
 
-    public boolean shootTimeLock() {
-        return localAndRemoteCorruptionDetectors.stream().anyMatch(detector -> detector.shootTimeLock());
+    public boolean shouldRejectRequests() {
+        return localCorruptionDetector.shouldRejectRequests() || remoteCorruptionDetector.shouldRejectRequests();
     }
 
     public CorruptionHealthReport localCorruptionReport() {

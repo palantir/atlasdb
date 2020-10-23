@@ -17,6 +17,7 @@
 package com.palantir.timelock.corruption.detection;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -36,7 +37,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class HistoryAnalyzer {
     private HistoryAnalyzer() {
@@ -50,16 +50,16 @@ public final class HistoryAnalyzer {
                 history.stream()
                         .collect(Collectors.toMap(
                                 HistoryAnalyzer::extractNamespaceAndUseCase,
-                                HistoryAnalyzer::violatedCorruptionChecksForNamespaceAndUseCase));
+                                HistoryAnalyzer::corruptionCheckViolationLevelForNamespaceAndUseCase));
 
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> entryEntrySetMultimap = KeyedStream.stream(
+        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> namespacesExhibitingViolations = KeyedStream.stream(
                         namespaceAndUseCaseCorruptionCheckViolationMap)
                 .mapEntries((k, v) -> Maps.immutableEntry(v, k))
                 .filterKeys(CorruptionCheckViolation::raiseErrorAlert)
                 .collectToSetMultimap();
 
         return ImmutableCorruptionHealthReport.builder()
-                .statusesToNamespaceAndUseCase(entryEntrySetMultimap)
+                .violatingStatusesToNamespaceAndUseCase(namespacesExhibitingViolations)
                 .build();
     }
 
@@ -72,16 +72,14 @@ public final class HistoryAnalyzer {
     }
 
     @VisibleForTesting
-    static CorruptionCheckViolation violatedCorruptionChecksForNamespaceAndUseCase(
+    static CorruptionCheckViolation corruptionCheckViolationLevelForNamespaceAndUseCase(
             CompletePaxosHistoryForNamespaceAndUseCase history) {
-        Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation> divergedLearnedCheck =
-                HistoryAnalyzer::divergedLearners;
-        Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation> learnedValueWithoutQuorum =
-                HistoryAnalyzer::learnedValueWithoutQuorum;
-        Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation> greatestAcceptedValueNotLearned =
-                HistoryAnalyzer::greatestAcceptedValueNotLearned;
-
-        return Stream.of(divergedLearnedCheck, learnedValueWithoutQuorum, greatestAcceptedValueNotLearned)
+        List<Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation>> violationChecks =
+                ImmutableList.of(
+                        HistoryAnalyzer::divergedLearners,
+                        HistoryAnalyzer::learnedValueWithoutQuorum,
+                        HistoryAnalyzer::greatestAcceptedValueNotLearned);
+        return violationChecks.stream()
                 .map(check -> check.apply(history))
                 .filter(check -> check.raiseErrorAlert())
                 .findFirst()
