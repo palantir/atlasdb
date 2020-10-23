@@ -38,8 +38,10 @@ import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
+import com.palantir.timelock.history.models.ImmutableSequenceBounds;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnerUseCase;
+import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
@@ -62,6 +64,8 @@ public class PaxosLogHistoryProviderTest {
 
     private static final Client CLIENT = Client.of("client");
     private static final String USE_CASE = "useCase";
+    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE);
+
     private static final String USE_CASE_LEARNER =
             LearnerUseCase.createLearnerUseCase(USE_CASE).value();
     private static final String USE_CASE_ACCEPTOR =
@@ -74,6 +78,7 @@ public class PaxosLogHistoryProviderTest {
     private LocalHistoryLoader history;
     private PaxosLogHistoryProvider paxosLogHistoryProvider;
     private LogVerificationProgressState verificationProgressState;
+    private PaxosLogHistoryProgressTracker progressTracker;
 
     @Before
     public void setup() {
@@ -86,6 +91,7 @@ public class PaxosLogHistoryProviderTest {
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
 
         verificationProgressState = LogVerificationProgressState.create(dataSource);
+        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SqlitePaxosStateLogHistory.create(dataSource));
         paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource, ImmutableList.of(remote));
     }
 
@@ -95,8 +101,8 @@ public class PaxosLogHistoryProviderTest {
 
         int lastVerified = -1;
 
-        List<HistoryQuery> historyQueries = ImmutableList.of(
-                HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries =
+                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified, lastVerified + 500));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -123,8 +129,8 @@ public class PaxosLogHistoryProviderTest {
 
         int lastVerified = -1;
 
-        List<HistoryQuery> historyQueries = ImmutableList.of(
-                HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries =
+                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified, lastVerified + 500));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -156,10 +162,12 @@ public class PaxosLogHistoryProviderTest {
                 .filter(val -> val.getRound() >= lastVerified)
                 .collect(Collectors.toSet());
 
-        verificationProgressState.updateProgress(CLIENT, USE_CASE, lastVerified);
+        progressTracker.updateProgressStateForNamespaceAndUseCase(
+                NAMESPACE_AND_USE_CASE, ImmutableSequenceBounds.of(-1, 17));
+        SequenceBounds bounds = ImmutableSequenceBounds.of(17, 500);
 
-        List<HistoryQuery> historyQueries = ImmutableList.of(
-                HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries =
+                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, bounds.lower(), bounds.upper()));
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
