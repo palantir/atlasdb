@@ -19,6 +19,7 @@ package com.palantir.timelock.history;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.models.ProgressComponents;
 import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
@@ -94,8 +95,8 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     private Optional<ProgressComponents> resetIfRequired(
-            NamespaceAndUseCase key, SequenceBounds value, ProgressComponents progressComponents) {
-        if (value.upper() <= progressComponents.progressLimit()) {
+            NamespaceAndUseCase key, SequenceBounds value, ProgressComponents currentProgressState) {
+        if (value.upper() <= currentProgressState.progressLimit()) {
             return Optional.empty();
         }
         return Optional.of(verificationProgressStateCache.put(
@@ -106,6 +107,6 @@ public class PaxosLogHistoryProgressTracker {
 
     private long getLatestSequenceForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
         return sqlitePaxosStateLogHistory.getGreatestLogEntry(
-                namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
+                namespaceAndUseCase.namespace(), LearnerUseCase.createLearnerUseCase(namespaceAndUseCase.useCase()));
     }
 }

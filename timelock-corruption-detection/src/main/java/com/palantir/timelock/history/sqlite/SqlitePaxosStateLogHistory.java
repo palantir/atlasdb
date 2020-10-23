@@ -63,19 +63,19 @@ public final class SqlitePaxosStateLogHistory {
         return execute(Queries::getAllNamespaceAndUseCaseTuples);
     }
 
-    public LearnerAndAcceptorRecords getLearnerAndAcceptorLogsSince(
+    public LearnerAndAcceptorRecords getLearnerAndAcceptorLogsInRange(
             Client namespace,
             LearnerUseCase learnerUseCase,
             AcceptorUseCase acceptorUseCase,
             long lowerBound,
             long upperBound) {
         return execute(dao -> ImmutableLearnerAndAcceptorRecords.of(
-                dao.getLearnerLogsSince(namespace, learnerUseCase.value(), lowerBound, upperBound),
-                dao.getAcceptorLogsSince(namespace, acceptorUseCase.value(), lowerBound, upperBound)));
+                dao.getLearnerLogsInRange(namespace, learnerUseCase.value(), lowerBound, upperBound),
+                dao.getAcceptorLogsInRange(namespace, acceptorUseCase.value(), lowerBound, upperBound)));
     }
 
-    public long getGreatestLogEntry(Client client, String useCase) {
-        return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase))
+    public long getGreatestLogEntry(Client client, LearnerUseCase useCase) {
+        return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase.value()))
                 .orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
@@ -98,7 +98,7 @@ public final class SqlitePaxosStateLogHistory {
         //         accommodate the rate at which logs are being published.
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
                 + " :lowerBound AND seq < :upperBound")
-        Map<Long, PaxosValue> getLearnerLogsSince(
+        Map<Long, PaxosValue> getLearnerLogsInRange(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("lowerBound") long lowerBound,
@@ -106,7 +106,7 @@ public final class SqlitePaxosStateLogHistory {
 
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
                 + " :lowerBound AND seq < :upperBound")
-        Map<Long, PaxosAcceptorData> getAcceptorLogsSince(
+        Map<Long, PaxosAcceptorData> getAcceptorLogsInRange(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("lowerBound") long lowerBound,
