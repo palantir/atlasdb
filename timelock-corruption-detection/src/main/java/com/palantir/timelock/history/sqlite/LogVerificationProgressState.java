@@ -41,7 +41,9 @@ public final class LogVerificationProgressState {
 
     public static LogVerificationProgressState create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class).registerImmutable(ProgressComponents.class);
+        jdbi.getConfig(JdbiImmutables.class)
+                .registerImmutable(Client.class)
+                .registerImmutable(ProgressComponents.class);
         jdbi.registerRowMapper(new ProgressComponentMapper());
         LogVerificationProgressState state = new LogVerificationProgressState(jdbi);
         state.initialize();
@@ -52,11 +54,13 @@ public final class LogVerificationProgressState {
         execute(LogVerificationProgressState.Queries::createVerificationProgressStateTable);
     }
 
-
     public ProgressComponents resetProgressState(Client client, String useCase, long greatestLogSeq) {
         return execute(dao -> {
             dao.updateProgressStateAndProgressLimit(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
-            return ProgressComponents.builder().progressState(INITIAL_PROGRESS).progressLimit(greatestLogSeq).build();
+            return ProgressComponents.builder()
+                    .progressState(INITIAL_PROGRESS)
+                    .progressLimit(greatestLogSeq)
+                    .build();
         });
     }
 
@@ -84,8 +88,10 @@ public final class LogVerificationProgressState {
         @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, seq, progressLimit) VALUES"
                 + " (:namespace.value, :useCase, :seq, :progressLimit)")
         boolean updateProgressStateAndProgressLimit(
-                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase,
-                @Bind("seq") long seq, @Bind("progressLimit") long progressLimit);
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("seq") long seq,
+                @Bind("progressLimit") long progressLimit);
 
         @SqlUpdate("UPDATE logVerificationProgress SET seq = :seq "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
@@ -94,7 +100,7 @@ public final class LogVerificationProgressState {
 
         @SqlQuery("SELECT seq, progressLimit FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
-        Optional<ProgressComponents> getProgressComponents(@BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase);
+        Optional<ProgressComponents> getProgressComponents(
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 }

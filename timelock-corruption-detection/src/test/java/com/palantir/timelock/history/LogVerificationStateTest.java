@@ -35,12 +35,12 @@ public class LogVerificationStateTest {
     private static final Client CLIENT = Client.of("tom");
     private static final String USE_CASE = "useCase1";
 
-    private DataSource dataSource;
     private LogVerificationProgressState log;
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        DataSource dataSource =
+                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         log = LogVerificationProgressState.create(dataSource);
     }
 
@@ -66,10 +66,16 @@ public class LogVerificationStateTest {
         log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
 
         assertThat(log.getProgressComponents(CLIENT, USE_CASE))
-                .hasValue(ProgressComponents.builder().progressLimit(greatestLogSeq).progressState(-1L).build());
+                .hasValue(ProgressComponents.builder()
+                        .progressLimit(greatestLogSeq)
+                        .progressState(-1L)
+                        .build());
 
         log.updateProgress(CLIENT, USE_CASE, progressState);
         assertThat(log.getProgressComponents(CLIENT, USE_CASE))
-                .hasValue(ProgressComponents.builder().progressLimit(greatestLogSeq).progressState(progressState).build());
+                .hasValue(ProgressComponents.builder()
+                        .progressLimit(greatestLogSeq)
+                        .progressState(progressState)
+                        .build());
     }
 }

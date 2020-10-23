@@ -28,6 +28,7 @@ public class ProgressComponentMapper implements RowMapper<ProgressComponents> {
         // if (!rs.next()) { return Optional.empty(); }
         return ProgressComponents.builder()
                 .progressState(rs.getLong("seq"))
-                .progressLimit(rs.getLong("progressLimit")).build();
+                .progressLimit(rs.getLong("progressLimit"))
+                .build();
     }
 }

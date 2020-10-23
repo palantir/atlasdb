@@ -75,7 +75,8 @@ public final class SqlitePaxosStateLogHistory {
     }
 
     public long getGreatestLogEntry(Client client, String useCase) {
-        return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase)).orElse(PaxosAcceptor.NO_LOG_ENTRY);
+        return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase))
+                .orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -85,7 +86,6 @@ public final class SqlitePaxosStateLogHistory {
     private <T> T executeSqlitePaxosStateLogQuery(Function<SqlitePaxosStateLog.Queries, T> call) {
         return jdbi.withExtension(SqlitePaxosStateLog.Queries.class, call::apply);
     }
-
 
     public interface Queries {
         @SqlQuery("SELECT DISTINCT namespace, useCase FROM paxosLog")
