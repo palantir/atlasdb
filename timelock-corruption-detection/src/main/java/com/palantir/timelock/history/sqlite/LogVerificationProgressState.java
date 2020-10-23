@@ -65,10 +65,7 @@ public final class LogVerificationProgressState {
     }
 
     public void updateProgress(Client client, String useCase, long seq) {
-        execute(dao -> {
-            dao.updateProgress(client, useCase, seq);
-            return null;
-        });
+        execute(dao -> dao.updateProgress(client, useCase, seq));
     }
 
     public Optional<ProgressComponents> getProgressComponents(Client client, String useCase) {
