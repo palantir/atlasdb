@@ -144,10 +144,25 @@ public class LeaderElectionReportingTimelockServiceTest {
 
     /**
      * [ A ]
+     *       [  A  ]
+     *           [ B ]
+     *       <=======>
+     */
+    @Test
+    public void detectLeaderElectionWithSimpleOverlap() {
+        executeCalls(
+                ImmutableSingleCall.of(0L, 1L, LEADER_1),
+                ImmutableSingleCall.of(3L, 10L, LEADER_1),
+                ImmutableSingleCall.of(6L, 15L, LEADER_2));
+        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
+    }
+
+    /**
+     * [ A ]
      *           [ A ]
      *       [     A     ]
      *                  [ B ]
-     *           <=============>
+     *           <==========>
      */
     @Test
     public void detectLeaderElectionWithFreshLeaderOverlappingRequests() {
@@ -185,7 +200,7 @@ public class LeaderElectionReportingTimelockServiceTest {
      *                   <=========>
      */
     @Test
-    public void detectFreshLeaderElectionWithTwoLongTurnLeaders() {
+    public void detectFreshLeaderElectionWithTwoLongTermLeaders() {
         executeCalls(
                 ImmutableSingleCall.of(0L, 1L, LEADER_1),
                 ImmutableSingleCall.of(3L, 6L, LEADER_1),
