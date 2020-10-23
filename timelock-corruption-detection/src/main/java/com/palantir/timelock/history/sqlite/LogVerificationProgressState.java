@@ -17,7 +17,6 @@
 package com.palantir.timelock.history.sqlite;
 
 import com.palantir.paxos.Client;
-import com.palantir.timelock.history.mappers.ProgressComponentMapper;
 import com.palantir.timelock.history.models.ProgressComponents;
 import java.util.Optional;
 import java.util.function.Function;
@@ -44,7 +43,6 @@ public final class LogVerificationProgressState {
         jdbi.getConfig(JdbiImmutables.class)
                 .registerImmutable(Client.class)
                 .registerImmutable(ProgressComponents.class);
-        jdbi.registerRowMapper(new ProgressComponentMapper());
         LogVerificationProgressState state = new LogVerificationProgressState(jdbi);
         state.initialize();
         return state;
@@ -58,7 +56,7 @@ public final class LogVerificationProgressState {
         return execute(dao -> {
             dao.updateProgressStateAndProgressLimit(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
             return ProgressComponents.builder()
-                    .progressState(INITIAL_PROGRESS)
+                    .seq(INITIAL_PROGRESS)
                     .progressLimit(greatestLogSeq)
                     .build();
         });
