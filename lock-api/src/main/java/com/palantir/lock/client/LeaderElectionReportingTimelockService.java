@@ -133,20 +133,6 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         return electionStatistics;
     }
 
-    private static Instant max(Instant first, @Nonnull Instant second) {
-        if (first == null) {
-            return second;
-        }
-        return first.isAfter(second) ? first : second;
-    }
-
-    private static Instant min(Instant first, @Nonnull Instant second) {
-        if (first == null) {
-            return second;
-        }
-        return first.isBefore(second) ? first : second;
-    }
-
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {
         UUID currentLeader = leaderId;
         Instant startTime = clock.instant();
@@ -178,34 +164,44 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     /**
      * Estimating the duration of leader election:
-     * <p>
-     * If a request is sent out at time T_1, and a response arrives at time T_2 with the id of leader A, we can deduce
-     * three things: 1. A could not have lost leadership before T_1 if it was the leader before it (upper bound) 2. A
-     * must have gained leadership before T_2 (lower bound) 3. A was the leader at least in some point in the interval
-     * [T_1, T_2] Although from just one request, the lower bound is greater than the upper bound, after multiple
-     * responses that is generally not going to be the case anymore.
-     * <p>
-     * Ordering leaderships: Let L_A and U_A be the lower and upper bound, respectively, of leader A, and let L_B and
-     * U_B be the respective bounds of leader B. We distinguish 3 cases: 1. (L_A < U_A && L_B < U_B): for both leaders
-     * there is an interval of guaranteed leadership, which by definitions cannot overlap. It is therefore trivial to
-     * order leadership of A and B. 2. (w.l.o.g. L_A < U_A && L_B >= U_B): a) if U_B > U_A, A was the leader before B b)
-     * if L_B < L_A, B was the leader before A c) otherwise, we cannot determine the ordering 3. (L_A >= U_A && L_B >=
-     * U_B): a) if U_B > L_A, A was the leader before B b) if U_A > L_B, B was the leader before A c) otherwise, we
-     * cannot determine the ordering
-     * <p>
-     * Last leader election: Given that the lower and upper bound for a leader are updated with each response from that
-     * leader, it is unlikely the upper bound for a leader A will be lower than the lower bound except in the initial
-     * moments after leadership has been acquired. We will therefore observe the last two leaderships where the older
-     * leader A has had enough data points so that L_A < U_A. We will call these leaders long term leaders. We will
-     * therefore consider either case 1) or case 2a) (when leadership was just gained) from above. Note that 2c) cannot
-     * happen because we ignore such case, which is also both extremely unlikely and useless for this type of estimate.
+     *
+     * If a request is sent out at time T_1, and a response arrives at time T_2 with the id of leader A, we can
+     * deduce three things:
+     *   1. A could not have lost leadership before T_1 if it was the leader before it (upper bound)
+     *   2. A must have gained leadership before T_2 (lower bound)
+     *   3. A was the leader at least in some point in the interval [T_1, T_2]
+     * Although from just one request, the lower bound is greater than the upper bound, after multiple responses that
+     * is generally not going to be the case anymore.
+     *
+     * Ordering leaderships:
+     * Let L_A and U_A be the lower and upper bound, respectively, of leader A, and let L_B and U_B be the respective
+     * bounds of leader B. We distinguish 3 cases:
+     *   1. (L_A < U_A && L_B < U_B): for both leaders there is an interval of guaranteed leadership, which by
+     *   definitions cannot overlap. It is therefore trivial to order leadership of A and B.
+     *   2. (w.l.o.g. L_A < U_A && L_B >= U_B):
+     *      a) if U_B > U_A, A was the leader before B
+     *      b) if L_B < L_A, B was the leader before A
+     *      c) otherwise, we cannot determine the ordering
+     *   3. (L_A >= U_A && L_B >= U_B):
+     *      a) if U_B > L_A, A was the leader before B
+     *      b) if U_A > L_B, B was the leader before A
+     *      c) otherwise, we cannot determine the ordering
+     *
+     * Last leader election:
+     * Given that the lower and upper bound for a leader are updated with each response from that leader, it is
+     * unlikely the upper bound for a leader A will be lower than the lower bound except in the initial moments after
+     * leadership has been acquired. We will therefore observe the last two leaderships where the older leader A has
+     * had enough data points so that L_A < U_A. We will call these leaders long term leaders. We will therefore
+     * consider either case 1) or case 2a) (when leadership was just gained) from above. Note that 2c) cannot happen
+     * because we ignore such case, which is also both extremely unlikely and useless for this type of estimate.
      * There may be multiple leaders after A if only the last one was leader for long enough for its upper bound to
      * exceed the lower bound.
-     * <p>
-     * Calculating the estimate: Let A be the previous leader as described above and let L be the minimal lower bound of
-     * all considered leaders that gained leadership after A. The estimated (over-approximated) duration of the
-     * leadership election is then given by the duration between U_A and L, since L is the latest possible moment at
-     * which another leader was elected while U_A is the earliest moment at which A could have lost leadership.
+     *
+     * Calculating the estimate:
+     * Let A be the previous leader as described above and let L be the minimal lower bound of all considered leaders
+     * that gained leadership after A. The estimated (over-approximated) duration of the leadership election is then
+     * given by the duration between U_A and L, since L is the latest possible moment at which another leader was
+     * elected while U_A is the earliest moment at which A could have lost leadership.
      */
     @VisibleForTesting
     Optional<Duration> calculateLastLeaderElectionDuration() {
@@ -274,6 +270,20 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
             UUID previousLeader,
             UUID nextLeader) {
         return Duration.between(upperBoundSnapshot.get(previousLeader), lowerBoundSnapshot.get(nextLeader));
+    }
+
+    private static Instant max(Instant first, @Nonnull Instant second) {
+        if (first == null) {
+            return second;
+        }
+        return first.isAfter(second) ? first : second;
+    }
+
+    private static Instant min(Instant first, @Nonnull Instant second) {
+        if (first == null) {
+            return second;
+        }
+        return first.isBefore(second) ? first : second;
     }
 
     private void updateMetrics(Duration timeTaken) {
