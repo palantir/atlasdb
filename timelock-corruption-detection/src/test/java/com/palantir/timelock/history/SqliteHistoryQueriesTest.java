@@ -29,6 +29,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
+import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
@@ -67,7 +68,9 @@ public class SqliteHistoryQueriesTest {
     public void canGetAllLearnerLogsSince() {
         IntStream.rangeClosed(1, 100).forEach(i -> createAndWriteValueForLogAndRound(learnerLog, i));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
-                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
+                SequenceBounds.builder().lower(5L).upper(100L).build());
+
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(0);
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
     }
@@ -77,7 +80,9 @@ public class SqliteHistoryQueriesTest {
         long round = 1;
         createAndWriteValueForLogAndRound(learnerLog, round);
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
-                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 0L);
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
+                SequenceBounds.builder().lower(0L).upper(100L).build());
+
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(0);
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(1);
 
@@ -90,7 +95,8 @@ public class SqliteHistoryQueriesTest {
     public void canGetAllAcceptorLogsSince() {
         IntStream.rangeClosed(1, 100).forEach(i -> writeAcceptorStateForLogAndRound(acceptorLog, i, Optional.empty()));
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
-                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
+                SequenceBounds.builder().lower(5L).upper(100L).build());
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(0);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
     }
@@ -99,7 +105,9 @@ public class SqliteHistoryQueriesTest {
     public void canGetAllLearnerAndAcceptorLogsSince() {
         PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 100);
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
-                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
+                SequenceBounds.builder().lower(5L).upper(100L).build());
+
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
     }
@@ -107,12 +115,15 @@ public class SqliteHistoryQueriesTest {
     @Test
     public void canGetAllLearnerAndAcceptorDiscontinuousLogsSince() {
         int startInclusive = 55;
+        long upperBound = 100L;
+
         PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, startInclusive, 100);
 
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
-                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)), 5L);
+                ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
+                SequenceBounds.builder().lower(5L).upper(upperBound).build());
 
-        int expected = 100 - startInclusive + 1;
+        int expected = 100 - startInclusive;
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(expected);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(expected);
     }

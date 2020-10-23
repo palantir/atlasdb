@@ -46,7 +46,7 @@ public class PaxosLogHistoryProvider {
     private static final Logger log = LoggerFactory.getLogger(PaxosLogHistoryProvider.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-    private static final long ALLOWED_OVERLAP = 10;
+    private static final int MAX_ROWS_ALLOWED = 500;
 
     private final LogVerificationProgressState logVerificationProgressState;
     private final LocalHistoryLoader localHistoryLoader;
@@ -72,10 +72,9 @@ public class PaxosLogHistoryProvider {
     private SequenceBounds getOrInsertVerificationState(NamespaceAndUseCase namespaceAndUseCase) {
         long lastVerifiedSeq =
                 verificationProgressStateCache.computeIfAbsent(namespaceAndUseCase, this::getLastVerifiedSeqFromLogs);
-        // todo (snanda)
         return SequenceBounds.builder()
                 .lower(lastVerifiedSeq)
-                .upper(lastVerifiedSeq + 500)
+                .upper(lastVerifiedSeq + MAX_ROWS_ALLOWED)
                 .build();
     }
 
@@ -95,22 +94,15 @@ public class PaxosLogHistoryProvider {
 
         List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
-        // update progress before moving forward?
-        updateProgressState(lastVerifiedSequences);
-
         List<ConsolidatedPaxosHistoryOnSingleNode> historyFromAllRemotes =
                 buildHistoryFromRemoteResponses(rawHistoryFromAllRemotes);
 
-        return consolidateAndGetHistoriesAcrossAllNodes(
+        List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistoryList = consolidateAndGetHistoriesAcrossAllNodes(
                 lastVerifiedSequences, localPaxosHistory, historyFromAllRemotes);
-    }
 
-    private void updateProgressState(Map<NamespaceAndUseCase, SequenceBounds> namespaceAndUseCaseSequenceBoundsMap) {
-        namespaceAndUseCaseSequenceBoundsMap.forEach((key, value) -> {
-            long lastVerifiedSequence = value.upper() - ALLOWED_OVERLAP;
-            verificationProgressStateCache.put(key, lastVerifiedSequence);
-            logVerificationProgressState.updateProgress(key.namespace(), key.useCase(), lastVerifiedSequence);
-        });
+        updateProgressState(lastVerifiedSequences);
+
+        return completeHistoryList;
     }
 
     private List<CompletePaxosHistoryForNamespaceAndUseCase> consolidateAndGetHistoriesAcrossAllNodes(
@@ -230,5 +222,13 @@ public class PaxosLogHistoryProvider {
             NamespaceAndUseCase namespaceAndUseCase, SequenceBounds bounds) {
         return Maps.immutableEntry(
                 namespaceAndUseCase, HistoryQuery.of(namespaceAndUseCase, bounds.lower(), bounds.upper()));
+    }
+
+    private void updateProgressState(Map<NamespaceAndUseCase, SequenceBounds> namespaceAndUseCaseSequenceBoundsMap) {
+        namespaceAndUseCaseSequenceBoundsMap.forEach((key, value) -> {
+            long lastVerifiedSequence = value.upper();
+            verificationProgressStateCache.put(key, lastVerifiedSequence);
+            logVerificationProgressState.updateProgress(key.namespace(), key.useCase(), lastVerifiedSequence);
+        });
     }
 }

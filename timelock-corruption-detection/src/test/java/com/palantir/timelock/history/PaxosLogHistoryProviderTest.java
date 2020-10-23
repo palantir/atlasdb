@@ -95,8 +95,8 @@ public class PaxosLogHistoryProviderTest {
 
         int lastVerified = -1;
 
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+        List<HistoryQuery> historyQueries = ImmutableList.of(
+                HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified, lastVerified + 500));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -123,8 +123,8 @@ public class PaxosLogHistoryProviderTest {
 
         int lastVerified = -1;
 
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+        List<HistoryQuery> historyQueries = ImmutableList.of(
+                HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified, lastVerified + 500));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -153,13 +153,13 @@ public class PaxosLogHistoryProviderTest {
         int lastVerified = 17;
 
         Set<PaxosValue> expectedPaxosValues = paxosValues.stream()
-                .filter(val -> val.getRound() > lastVerified)
+                .filter(val -> val.getRound() >= lastVerified)
                 .collect(Collectors.toSet());
 
         verificationProgressState.updateProgress(CLIENT, USE_CASE, lastVerified);
 
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+        List<HistoryQuery> historyQueries = ImmutableList.of(
+                HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified, lastVerified + 500));
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
@@ -171,7 +171,7 @@ public class PaxosLogHistoryProviderTest {
                 Iterables.getOnlyElement(completeHistory);
 
         assertSanityWithValuesOfFetchedRecords(
-                historyForNamespaceAndUseCase, CLIENT, USE_CASE, 100 - lastVerified, expectedPaxosValues);
+                historyForNamespaceAndUseCase, CLIENT, USE_CASE, 100 - lastVerified + 1, expectedPaxosValues);
     }
 
     @Test
@@ -180,7 +180,7 @@ public class PaxosLogHistoryProviderTest {
         Set<NamespaceAndUseCase> allNamespaceAndUseCases = expected.keySet();
 
         List<HistoryQuery> historyQueries = allNamespaceAndUseCases.stream()
-                .map(namespaceAndUseCase -> HistoryQuery.of(namespaceAndUseCase, -1))
+                .map(namespaceAndUseCase -> HistoryQuery.of(namespaceAndUseCase, -1, 500))
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
