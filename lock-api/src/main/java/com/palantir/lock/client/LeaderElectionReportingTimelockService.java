@@ -152,45 +152,42 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
      *   1. A could not have lost leadership before T_1 if it was the leader before it (upper bound)
      *   2. A must have gained leadership before T_2 (lower bound)
      *   3. A was the leader at least in some point in the interval [T_1, T_2]
-     * Although from just one request, the lower bound is greater than the upper bound, after multiple responses that
-     * is generally not going to be the case anymore.
-     *
-     * Ordering leaderships:
-     * Let L_A and U_A be the lower and upper bound, respectively, of leader A, and let L_B and U_B be the respective
-     * bounds of leader B. We distinguish 3 cases:
-     *   1. (L_A < U_A && L_B < U_B): for both leaders there is an interval of guaranteed leadership, which by
-     *   definitions cannot overlap. It is therefore trivial to order leadership of A and B.
-     *   2. (w.l.o.g. L_A < U_A && L_B >= U_B):
-     *      a) if U_B > U_A, A was the leader before B
-     *      b) if L_B < L_A, B was the leader before A
-     *      c) otherwise, we cannot determine the ordering
-     *   3. (L_A >= U_A && L_B >= U_B):
-     *      a) if U_B > L_A, A was the leader before B
-     *      b) if U_A > L_B, B was the leader before A
-     *      c) otherwise, we cannot determine the ordering
+     * T_1 is the upper bound in the sense that if we know that A was the leader before T_1, we know for certain it was
+     * still the leader until T_1. Similarly, T_2 is the lower bound in the sense that if A was not the leader at any
+     * point after T_2, it was certainly the leader at T_2. This is slightly counter-intuitive with just a single
+     * request, since T_1 < T_2, but as soon as another response is received such that T_1' > T_2, we can determine an
+     * interval [T_2, T_1'] when A was definitely the leader. Let us denote this interval by [L_A, U_A] and call A a
+     * long term leader.
      *
      * Last leader election:
      * Given that the lower and upper bound for a leader are updated with each response from that leader, it is
-     * unlikely the upper bound for a leader A will be lower than the lower bound except in the initial moments after
-     * leadership has been acquired. We will therefore observe the last two leaderships where the older leader A has
-     * had enough data points so that L_A < U_A. We will call these leaders long term leaders. We will therefore
-     * consider either case 1) or case 2a) (when leadership was just gained) from above. Note that 2c) cannot happen
-     * because we ignore such case, which is also both extremely unlikely and useless for this type of estimate.
-     * There may be multiple leaders after A if only the last one was leader for long enough for its upper bound to
-     * exceed the lower bound.
+     * unlikely that any leader is not going to be a long term leader except in the initial moments after leadership
+     * has been acquired. We will therefore observe the last two leaderships where the older leader A has had enough
+     * data points so that L_A < U_A, while the newer leader B is allowed to not have become a long term leader yet.
+     *
+     * Ordering leaderships:
+     * Let A be a long term leader and let B another leader. We distinguish 2 cases:
+     *   1. (B is a long term leader): for both leaders there is an interval of guaranteed leadership, which by
+     *   definition cannot overlap. It is therefore trivial to order leadership of A and B.
+     *   2. (B is not a long term leader yet, i.e., L_B >= U_B):
+     *      a) if U_B > U_A, A was the leader before B
+     *      b) if L_B < L_A, B was the leader before A
+     *      c) otherwise, we cannot determine the ordering
      *
      * Calculating the estimate:
-     * Let A be the previous leader as described above and let L be the minimal lower bound of all considered leaders
-     * that gained leadership after A. The estimated (over-approximated) duration of the leadership election is then
+     * Let A be a long term leader let L be the minimal lower bound of all leaders that became leaders after A as
+     * described in 1) and 2b). The estimated (over-approximated) duration of the leadership election is then
      * given by the duration between U_A and L, since L is the latest possible moment at which another leader was
-     * elected while U_A is the earliest moment at which A could have lost leadership.
+     * elected while U_A is the earliest moment at which A could have lost leadership. This method will always return
+     * the duration of the most recent such interval.
      */
     public Optional<Duration> calculateLastLeaderElectionDuration() {
-        Map<UUID, Instant> lowerBoundSnapshot = ImmutableMap.copyOf(leadershipLowerBound.entrySet());
-        Map<UUID, Instant> upperBoundSnapshot = ImmutableMap.copyOf(leadershipUpperBound.entrySet());
+        Map<UUID, Instant> lowerBounds = ImmutableMap.copyOf(leadershipLowerBound.entrySet());
+        Map<UUID, Instant> upperBounds = ImmutableMap.copyOf(leadershipUpperBound.entrySet());
 
-        Set<UUID> leaders = leadersWithBothBounds(lowerBoundSnapshot, upperBoundSnapshot);
-        List<UUID> sortedLongTermLeaders = orderedLongTermLeaders(lowerBoundSnapshot, upperBoundSnapshot, leaders);
+        Set<UUID> leaders = leadersWithBothBounds(lowerBounds, upperBounds);
+        List<UUID> sortedLongTermLeaders = orderedLongTermLeaders(lowerBounds, upperBounds, leaders);
+        clearOldLongTermLeaders(sortedLongTermLeaders);
 
         if (sortedLongTermLeaders.isEmpty()) {
             return Optional.empty();
@@ -198,59 +195,53 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
         UUID lastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 1);
 
-        // case 2a
-        Optional<UUID> firstNextShortTermLeader = leaders.stream()
-                .filter(id -> upperBoundSnapshot.get(id).isAfter(upperBoundSnapshot.get(lastLongTermLeader)))
-                .min(Comparator.comparing(lowerBoundSnapshot::get));
-        if (firstNextShortTermLeader.isPresent()) {
-            clearOldLongTermLeadersExcept(sortedLongTermLeaders, 1);
-            return Optional.of(estimateElectionDuration(
-                    lowerBoundSnapshot, upperBoundSnapshot, lastLongTermLeader, firstNextShortTermLeader.get()));
+        Optional<Duration> result = durationToNextLeader(lowerBounds, upperBounds, leaders, lastLongTermLeader);
+        if (result.isPresent()) {
+            return result;
         }
 
         if (sortedLongTermLeaders.size() == 1) {
             return Optional.empty();
         }
 
-        // case 1
-        clearOldLongTermLeadersExcept(sortedLongTermLeaders, 2);
-        return Optional.of(estimateElectionDuration(
-                lowerBoundSnapshot,
-                upperBoundSnapshot,
-                sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 2),
-                lastLongTermLeader));
+        UUID secondToLastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 2);
+        return durationToNextLeader(lowerBounds, upperBounds, leaders, secondToLastLongTermLeader);
     }
 
-    private Set<UUID> leadersWithBothBounds(
-            Map<UUID, Instant> lowerBoundSnapshot, Map<UUID, Instant> upperBoundSnapshot) {
-        return upperBoundSnapshot.keySet().stream()
-                .filter(lowerBoundSnapshot::containsKey)
-                .collect(Collectors.toSet());
+    private Set<UUID> leadersWithBothBounds(Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds) {
+        return upperBounds.keySet().stream().filter(lowerBounds::containsKey).collect(Collectors.toSet());
     }
 
     private List<UUID> orderedLongTermLeaders(
-            Map<UUID, Instant> lowerBoundSnapshot,
-            Map<UUID, Instant> upperBoundSnapshot,
-            Set<UUID> leadersWithBothBounds) {
+            Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds, Set<UUID> leadersWithBothBounds) {
         return leadersWithBothBounds.stream()
-                .filter(id -> upperBoundSnapshot.get(id).isAfter(lowerBoundSnapshot.get(id)))
-                .sorted(Comparator.comparing(lowerBoundSnapshot::get))
+                .filter(id -> upperBounds.get(id).isAfter(lowerBounds.get(id)))
+                .sorted(Comparator.comparing(lowerBounds::get))
                 .collect(Collectors.toList());
     }
 
-    private void clearOldLongTermLeadersExcept(List<UUID> sortedLongTermLeaders, int numberToRetain) {
-        for (int i = 0; i < sortedLongTermLeaders.size() - numberToRetain; i++) {
+    private void clearOldLongTermLeaders(List<UUID> sortedLongTermLeaders) {
+        for (int i = 0; i < sortedLongTermLeaders.size() - 2; i++) {
             leadershipLowerBound.remove(sortedLongTermLeaders.get(i));
             leadershipUpperBound.remove(sortedLongTermLeaders.get(i));
         }
     }
 
+    private Optional<Duration> durationToNextLeader(
+            Map<UUID, Instant> lowerBounds,
+            Map<UUID, Instant> upperBounds,
+            Set<UUID> leaders,
+            UUID lastLongTermLeader) {
+        Optional<UUID> firstNextShortTermLeader = leaders.stream()
+                .filter(id -> upperBounds.get(id).isAfter(upperBounds.get(lastLongTermLeader)))
+                .min(Comparator.comparing(lowerBounds::get));
+        return firstNextShortTermLeader.map(
+                nextLeader -> estimateElectionDuration(lowerBounds, upperBounds, lastLongTermLeader, nextLeader));
+    }
+
     private Duration estimateElectionDuration(
-            Map<UUID, Instant> lowerBoundSnapshot,
-            Map<UUID, Instant> upperBoundSnapshot,
-            UUID previousLeader,
-            UUID nextLeader) {
-        return Duration.between(upperBoundSnapshot.get(previousLeader), lowerBoundSnapshot.get(nextLeader));
+            Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds, UUID previousLeader, UUID nextLeader) {
+        return Duration.between(upperBounds.get(previousLeader), lowerBounds.get(nextLeader));
     }
 
     private static Instant max(Instant first, @Nonnull Instant second) {
