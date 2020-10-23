@@ -86,20 +86,20 @@ public final class SqlitePaxosStateLogHistory {
         //         revisit this once we have the remote history providers set up. Also, we may have to make it
         // configurable to
         //         accommodate the rate at which logs are being published.
-        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >"
-                + " :lowerBound AND seq < :upperBound ORDER BY seq ASC LIMIT 500")
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
+                + " :lowerBound AND seq < :upperBound")
         Map<Long, PaxosValue> getLearnerLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
-                @Bind("seq") long lowerBound,
-                @Bind("seq") long upperBound);
+                @Bind("lowerBound") long lowerBound,
+                @Bind("upperBound") long upperBound);
 
-        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >"
-                + " :lowerBound AND seq < :upperBound ORDER BY seq ASC LIMIT 500")
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
+                + " :lowerBound AND seq < :upperBound")
         Map<Long, PaxosAcceptorData> getAcceptorLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
-                @Bind("seq") long lowerBound,
-                @Bind("seq") long upperBound);
+                @Bind("lowerBound") long lowerBound,
+                @Bind("upperBound") long upperBound);
     }
 }

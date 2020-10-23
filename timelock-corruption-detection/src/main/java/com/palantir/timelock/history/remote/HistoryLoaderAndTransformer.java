@@ -23,8 +23,10 @@ import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
+import com.palantir.timelock.history.models.ImmutableSequenceBounds;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import com.palantir.timelock.history.models.SequenceBounds;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,8 +38,11 @@ public final class HistoryLoaderAndTransformer {
 
     public static List<LogsForNamespaceAndUseCase> getLogsForHistoryQueries(
             LocalHistoryLoader localHistoryLoader, List<HistoryQuery> historyQueries) {
-        Map<NamespaceAndUseCase, Long> lastVerifiedSequences = historyQueries.stream()
-                .collect(Collectors.toMap(HistoryQuery::getNamespaceAndUseCase, HistoryQuery::getSeq, Math::min));
+        Map<NamespaceAndUseCase, SequenceBounds> lastVerifiedSequences = historyQueries.stream()
+                .collect(Collectors.toMap(
+                        HistoryQuery::getNamespaceAndUseCase,
+                        HistoryLoaderAndTransformer::sequenceBounds,
+                        HistoryLoaderAndTransformer::seqBoundsCollisionResolver));
 
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
@@ -45,6 +50,17 @@ public final class HistoryLoaderAndTransformer {
                 .mapEntries(HistoryLoaderAndTransformer::processHistory)
                 .values()
                 .collect(Collectors.toList());
+    }
+
+    private static SequenceBounds seqBoundsCollisionResolver(SequenceBounds bound1, SequenceBounds bound2) {
+        return bound1.lower() < bound2.lower() ? bound1 : bound2;
+    }
+
+    private static ImmutableSequenceBounds sequenceBounds(HistoryQuery query) {
+        return SequenceBounds.builder()
+                .lower(query.getLowerBound())
+                .upper(query.getUpperBound())
+                .build();
     }
 
     private static Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(
