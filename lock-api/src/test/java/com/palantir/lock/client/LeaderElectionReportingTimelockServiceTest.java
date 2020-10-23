@@ -50,6 +50,7 @@ import org.mockito.stubbing.OngoingStubbing;
 public class LeaderElectionReportingTimelockServiceTest {
     private static final UUID LEADER_1 = UUID.randomUUID();
     private static final UUID LEADER_2 = UUID.randomUUID();
+    private static final UUID LEADER_3 = UUID.randomUUID();
     private static final LockWatchStateUpdate UPDATE = LockWatchStateUpdate.success(LEADER_1, -1L, ImmutableList.of());
 
     private ConjureStartTransactionsRequest startTransactionsRequest = mock(ConjureStartTransactionsRequest.class);
@@ -129,14 +130,26 @@ public class LeaderElectionReportingTimelockServiceTest {
         assertThat(timelockService.calculateLastLeaderElectionDuration()).isNotPresent();
     }
 
+    /**
+     * [ A ]
+     *       [ A ]
+     *             [ B ]
+     *       <=========>
+     */
     @Test
     public void detectLeaderElectionWithFreshLeader() {
         executeCalls(
                 SingleCall.of(0L, 1L, LEADER_1), SingleCall.of(3L, 6L, LEADER_1), SingleCall.of(10L, 15L, LEADER_2));
-
         assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
     }
 
+    /**
+     * [ A ]
+     *           [ A ]
+     *       [     A     ]
+     *                     [ B ]
+     *           <=============>
+     */
     @Test
     public void detectLeaderElectionWithFreshLeaderOverlappingRequests() {
         executeCalls(
@@ -144,10 +157,16 @@ public class LeaderElectionReportingTimelockServiceTest {
                 SingleCall.of(6L, 10L, LEADER_1),
                 SingleCall.of(3L, 15L, LEADER_1),
                 SingleCall.of(14L, 21L, LEADER_2));
-
         assertExpectedDuration(Instant.ofEpochMilli(6L), Instant.ofEpochMilli(21L));
     }
 
+    /**
+     * [ A ]
+     *       [ A ]
+     *             [ B ]
+     *                   [ B ]
+     *       <=========>
+     */
     @Test
     public void detectLeaderElectionWithTwoLongTermLeaders() {
         executeCalls(
@@ -155,21 +174,114 @@ public class LeaderElectionReportingTimelockServiceTest {
                 SingleCall.of(3L, 6L, LEADER_1),
                 SingleCall.of(10L, 15L, LEADER_2),
                 SingleCall.of(21L, 28L, LEADER_2));
-
         assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
     }
 
+    /**
+     * [ A ]
+     *       [ A ]
+     *             [ B ]
+     *                   [ B ]
+     *                         [ C ]
+     *             <===============>
+     */
     @Test
     public void detectFreshLeaderElectionWithTwoLongTurnLeaders() {
-        UUID leader3 = UUID.randomUUID();
         executeCalls(
                 SingleCall.of(0L, 1L, LEADER_1),
                 SingleCall.of(3L, 6L, LEADER_1),
                 SingleCall.of(10L, 15L, LEADER_2),
                 SingleCall.of(21L, 28L, LEADER_2),
-                SingleCall.of(36L, 45L, leader3));
-
+                SingleCall.of(36L, 45L, LEADER_3));
         assertExpectedDuration(Instant.ofEpochMilli(21L), Instant.ofEpochMilli(45L));
+    }
+
+    /**
+     * [ A ]
+     *       [ A ]
+     *                [ B ]
+     *             [    A    ]
+     *             <======>
+     */
+    @Test
+    public void updateOldLeaderUpperBoundWithNewRequests() {
+        executeCalls(
+                ImmutableSingleCall.of(0L, 1L, LEADER_1),
+                ImmutableSingleCall.of(3L, 6L, LEADER_1),
+                ImmutableSingleCall.of(15L, 21L, LEADER_2),
+                ImmutableSingleCall.of(10L, 28L, LEADER_1));
+        assertExpectedDuration(Instant.ofEpochMilli(10L), Instant.ofEpochMilli(21L));
+    }
+
+    /**
+     * [ A ]
+     *       [ A ]
+     *             [ B ]
+     *                   [ C ]
+     *                         [ C ]
+     *       <=========>
+     */
+    @Test
+    public void detectFirstLeaderElectionFromLongTermLeader() {
+        executeCalls(
+                ImmutableSingleCall.of(0L, 1L, LEADER_1),
+                ImmutableSingleCall.of(3L, 6L, LEADER_1),
+                ImmutableSingleCall.of(10L, 15L, LEADER_2),
+                ImmutableSingleCall.of(21L, 28L, LEADER_3),
+                ImmutableSingleCall.of(36L, 45L, LEADER_3));
+        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
+    }
+
+    /**
+     * [ A ]
+     *       [ A ]
+     *             [       B       ]
+     *                [ C ]
+     *                      [ C ]
+     *       <===========>
+     */
+    @Test
+    public void detectFirstLeaderElectionFromLongTermLeaderWithSlowRequest() {
+        executeCalls(
+                ImmutableSingleCall.of(0L, 1L, LEADER_1),
+                ImmutableSingleCall.of(3L, 6L, LEADER_1),
+                ImmutableSingleCall.of(10L, 45L, LEADER_2),
+                ImmutableSingleCall.of(15L, 21L, LEADER_3),
+                ImmutableSingleCall.of(28L, 36L, LEADER_3));
+        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(21L));
+    }
+
+    /**
+     * [ A ]
+     *       [        B       ]
+     *          [ C ]
+     *                 [ C ]
+     */
+    @Test
+    public void doNotCalculateLeadershipBeforeFirstLongTermLeader() {
+        executeCalls(
+                ImmutableSingleCall.of(0L, 1L, LEADER_1),
+                ImmutableSingleCall.of(3L, 36L, LEADER_2),
+                ImmutableSingleCall.of(10L, 15L, LEADER_3),
+                ImmutableSingleCall.of(21L, 28L, LEADER_3));
+        assertThat(timelockService.calculateLastLeaderElectionDuration()).isEmpty();
+    }
+
+    /**
+     * [ A ]
+     *       [        A       ]
+     *          [ C ]
+     *                 [ C ]
+     *       <======>
+     */
+    @Test
+    public void detectWhenOldLeaderBecomesLongTerm() {
+        executeCalls(
+                ImmutableSingleCall.of(0L, 1L, LEADER_1),
+                ImmutableSingleCall.of(3L, 36L, LEADER_1),
+                ImmutableSingleCall.of(10L, 15L, LEADER_3),
+                ImmutableSingleCall.of(21L, 28L, LEADER_3));
+        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
     }
 
     @Test
