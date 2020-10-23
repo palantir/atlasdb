@@ -21,13 +21,13 @@ public enum CorruptionStatus {
     DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL(true),
     DEFINITIVE_CORRUPTION_DETECTED_BY_REMOTE(true);
 
-    private final boolean shouldShootTimeLock;
+    private final boolean shouldRejectRequests;
 
-    CorruptionStatus(boolean shouldShootTimeLock) {
-        this.shouldShootTimeLock = shouldShootTimeLock;
+    CorruptionStatus(boolean shouldRejectRequests) {
+        this.shouldRejectRequests = shouldRejectRequests;
     }
 
-    public boolean shootTimeLock() {
-        return shouldShootTimeLock;
+    public boolean shouldRejectRequests() {
+        return shouldRejectRequests;
     }
 }

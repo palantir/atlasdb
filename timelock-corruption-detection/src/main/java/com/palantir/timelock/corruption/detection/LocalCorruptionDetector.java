@@ -20,6 +20,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.handle.LocalCorruptionHandler;
+import com.palantir.timelock.history.PaxosLogHistoryProvider;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,45 +33,61 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
     private final LocalCorruptionHandler corruptionHandler;
+    private final PaxosLogHistoryProvider historyProvider;
 
     private volatile CorruptionStatus localCorruptionState = CorruptionStatus.HEALTHY;
+    private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
 
-    public static LocalCorruptionDetector create(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
-        LocalCorruptionDetector localCorruptionDetector = new LocalCorruptionDetector(corruptionNotifiers);
+    public static LocalCorruptionDetector create(
+            PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+        LocalCorruptionDetector localCorruptionDetector =
+                new LocalCorruptionDetector(historyProvider, corruptionNotifiers);
 
         //        TODO(snanda) - uncomment when TL corruption detection goes live
         //        timeLockLocalCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
-    private LocalCorruptionDetector(List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+    private LocalCorruptionDetector(
+            PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+        this.historyProvider = historyProvider;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }
 
     private void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(
                 () -> {
-                    if (detectedSignsOfCorruption()) {
-                        killTimeLock();
-                    }
+                    localCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();
+                    processLocalHealthReport();
                 },
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
                 TimeUnit.SECONDS);
     }
 
-    private void killTimeLock() {
-        localCorruptionState = CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL;
-        corruptionHandler.notifyRemoteServersOfCorruption();
+    private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
+        return HistoryAnalyzer.corruptionHealthReportForHistory(historyProvider.getHistory());
     }
 
-    private boolean detectedSignsOfCorruption() {
-        // no op for now
-        return false;
+    private void processLocalHealthReport() {
+        localCorruptionState = getLocalCorruptionState(localCorruptionReport);
+        if (localCorruptionState.shouldRejectRequests()) {
+            corruptionHandler.notifyRemoteServersOfCorruption();
+        }
+    }
+
+    CorruptionStatus getLocalCorruptionState(CorruptionHealthReport latestReport) {
+        return latestReport.shouldRejectRequests()
+                ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL
+                : localCorruptionState;
+    }
+
+    public CorruptionHealthReport corruptionHealthReport() {
+        return localCorruptionReport;
     }
 
     @Override
-    public boolean hasDetectedCorruption() {
-        return localCorruptionState.shootTimeLock();
+    public boolean shouldRejectRequests() {
+        return localCorruptionState.shouldRejectRequests();
     }
 }
