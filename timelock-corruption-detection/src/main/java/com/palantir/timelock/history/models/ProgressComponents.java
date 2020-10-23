@@ -21,7 +21,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface ProgressComponents {
     @Value.Parameter
-    long progressState();
+    long seq();
 
     @Value.Parameter
     long progressLimit();

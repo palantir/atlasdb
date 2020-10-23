@@ -45,8 +45,8 @@ public class PaxosLogHistoryProgressTracker {
     public SequenceBounds getPaxosLogSequenceBounds(NamespaceAndUseCase namespaceAndUseCase) {
         ProgressComponents progress = getOrPopulateProgressComponents(namespaceAndUseCase);
         return SequenceBounds.builder()
-                .lower(progress.progressState())
-                .upper(progress.progressState() + MAX_ROWS_ALLOWED)
+                .lower(progress.seq())
+                .upper(progress.seq() + MAX_ROWS_ALLOWED)
                 .build();
     }
 
@@ -86,7 +86,7 @@ public class PaxosLogHistoryProgressTracker {
             ProgressComponents progressComponents) {
         ProgressComponents progressState = ProgressComponents.builder()
                 .progressLimit(progressComponents.progressLimit())
-                .progressState(value.upper())
+                .seq(value.upper())
                 .build();
         verificationProgressStateCache.put(key, progressState);
         logVerificationProgressState.updateProgress(key.namespace(), key.useCase(), lastVerifiedSequence);
