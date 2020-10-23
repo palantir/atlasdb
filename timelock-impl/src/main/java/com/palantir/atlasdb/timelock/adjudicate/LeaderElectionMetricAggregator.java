@@ -26,20 +26,21 @@ public final class LeaderElectionMetricAggregator {
     private final SlidingWindowWeightedMeanGauge weightedGaugeP99;
     private final SlidingWindowWeightedMeanGauge weightedGaugeP95;
     private final SlidingWindowWeightedMeanGauge weightedGaugeMean;
-    private final CurrentValueMetric<Long> lastElectionTime;
+    private final CurrentValueMetric<Long> leaderElectionEstimate;
 
     public LeaderElectionMetricAggregator(MetricsManager metricsManager) {
         weightedGaugeP99 = SlidingWindowWeightedMeanGauge.create();
         weightedGaugeP95 = SlidingWindowWeightedMeanGauge.create();
         weightedGaugeMean = SlidingWindowWeightedMeanGauge.create();
-        lastElectionTime = new CurrentValueMetric<>();
+        leaderElectionEstimate = new CurrentValueMetric<>();
         metricsManager.registerMetric(
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactMean", weightedGaugeMean);
         metricsManager.registerMetric(
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactP95", weightedGaugeP95);
         metricsManager.registerMetric(
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactP99", weightedGaugeP99);
-        metricsManager.registerMetric(LeaderElectionMetricAggregator.class, "leaderElectionDuration", lastElectionTime);
+        metricsManager.registerMetric(
+                LeaderElectionMetricAggregator.class, "leaderElectionEstimate", leaderElectionEstimate);
     }
 
     void report(LeaderElectionStatistics statistics) {
@@ -47,7 +48,7 @@ public final class LeaderElectionMetricAggregator {
         weightedGaugeMean.update(statistics.getMean(), count);
         weightedGaugeP95.update(statistics.getP95(), count);
         weightedGaugeP99.update(statistics.getP99(), count);
-        lastElectionTime.setValue(
-                statistics.getPerceivedTime().map(SafeLong::longValue).orElse(0L));
+        leaderElectionEstimate.setValue(
+                statistics.getDurationEstimate().map(SafeLong::longValue).orElse(0L));
     }
 }

@@ -120,19 +120,20 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 .logId());
     }
 
-    public LeaderElectionStatistics statistics() {
-        return statisticsWithRegistry(new DefaultTaggedMetricRegistry());
+    public LeaderElectionStatistics getStatistics() {
+        return getStatisticsAndSetRegistryTo(new DefaultTaggedMetricRegistry());
     }
 
     @VisibleForTesting
-    LeaderElectionStatistics statisticsWithRegistry(TaggedMetricRegistry metricRegistry) {
+    LeaderElectionStatistics getStatisticsAndSetRegistryTo(TaggedMetricRegistry metricRegistry) {
         Snapshot metricsSnapshot = metrics.observedDuration().getSnapshot();
         LeaderElectionStatistics electionStatistics = LeaderElectionStatistics.builder()
                 .p99(metricsSnapshot.get99thPercentile())
                 .p95(metricsSnapshot.get95thPercentile())
                 .mean(metricsSnapshot.getMean())
-                .count(SafeLong.of(metrics.observedDuration().getCount()))
-                .perceivedTime(calculateLastLeaderElectionDuration().map(duration -> SafeLong.of(duration.toNanos())))
+                .count(SafeLong.of(metricsSnapshot.size()))
+                .durationEstimate(
+                        calculateLastLeaderElectionDuration().map(duration -> SafeLong.of(duration.toNanos())))
                 .build();
         metrics = LeaderElectionMetrics.of(metricRegistry);
         return electionStatistics;

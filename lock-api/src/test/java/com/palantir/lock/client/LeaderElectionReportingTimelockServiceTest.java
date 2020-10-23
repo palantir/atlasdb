@@ -300,12 +300,12 @@ public class LeaderElectionReportingTimelockServiceTest {
         TaggedMetricRegistry newMockedRegistry = mock(TaggedMetricRegistry.class);
         Timer newMockedTimer = mock(Timer.class);
         when(newMockedRegistry.timer(any())).thenReturn(newMockedTimer);
-        timelockService.statisticsWithRegistry(newMockedRegistry);
+        timelockService.getStatisticsAndSetRegistryTo(newMockedRegistry);
 
         verify(mockedRegistry, atLeastOnce()).timer(any());
         verify(mockedTimer).update(anyLong(), any());
         verify(mockedTimer).getSnapshot();
-        verify(mockedTimer).getCount();
+        verify(mockedSnapshot).size();
 
         timelockService.startTransactions(startTransactionsRequest);
         timelockService.startTransactions(startTransactionsRequest);
