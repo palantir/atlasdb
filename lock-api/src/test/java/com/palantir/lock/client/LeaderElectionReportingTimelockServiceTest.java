@@ -20,10 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.Timer;
@@ -41,7 +43,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.immutables.value.Value;
-import org.immutables.value.Value.Parameter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.OngoingStubbing;
@@ -59,6 +60,7 @@ public class LeaderElectionReportingTimelockServiceTest {
     private TaggedMetricRegistry mockedRegistry = mock(TaggedMetricRegistry.class);
     private Timer mockedTimer = mock(Timer.class);
     private Clock mockedClock = mock(Clock.class);
+    private com.codahale.metrics.Snapshot mockedSnapshot = mock(com.codahale.metrics.Snapshot.class);
 
     private LeaderElectionReportingTimelockService timelockService;
 
@@ -70,6 +72,7 @@ public class LeaderElectionReportingTimelockServiceTest {
         when(mockedRegistry.timer(any())).thenReturn(mockedTimer);
         when(mockedClock.instant()).thenCallRealMethod();
         when(mockedClock.getTimeMillis()).thenReturn(1L);
+        when(mockedTimer.getSnapshot()).thenReturn(mockedSnapshot);
 
         when(startTransactionsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
         when(commitTimestampsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
@@ -129,9 +132,7 @@ public class LeaderElectionReportingTimelockServiceTest {
     @Test
     public void detectLeaderElectionWithFreshLeader() {
         executeCalls(
-                ImmutableSingleCall.of(0L, 1L, LEADER_1),
-                ImmutableSingleCall.of(3L, 6L, LEADER_1),
-                ImmutableSingleCall.of(10L, 15L, LEADER_2));
+                SingleCall.of(0L, 1L, LEADER_1), SingleCall.of(3L, 6L, LEADER_1), SingleCall.of(10L, 15L, LEADER_2));
 
         assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
     }
@@ -139,10 +140,10 @@ public class LeaderElectionReportingTimelockServiceTest {
     @Test
     public void detectLeaderElectionWithFreshLeaderOverlappingRequests() {
         executeCalls(
-                ImmutableSingleCall.of(0L, 1L, LEADER_1),
-                ImmutableSingleCall.of(6L, 10L, LEADER_1),
-                ImmutableSingleCall.of(3L, 15L, LEADER_1),
-                ImmutableSingleCall.of(14L, 21L, LEADER_2));
+                SingleCall.of(0L, 1L, LEADER_1),
+                SingleCall.of(6L, 10L, LEADER_1),
+                SingleCall.of(3L, 15L, LEADER_1),
+                SingleCall.of(14L, 21L, LEADER_2));
 
         assertExpectedDuration(Instant.ofEpochMilli(6L), Instant.ofEpochMilli(21L));
     }
@@ -150,10 +151,10 @@ public class LeaderElectionReportingTimelockServiceTest {
     @Test
     public void detectLeaderElectionWithTwoLongTermLeaders() {
         executeCalls(
-                ImmutableSingleCall.of(0L, 1L, LEADER_1),
-                ImmutableSingleCall.of(3L, 6L, LEADER_1),
-                ImmutableSingleCall.of(10L, 15L, LEADER_2),
-                ImmutableSingleCall.of(21L, 28L, LEADER_2));
+                SingleCall.of(0L, 1L, LEADER_1),
+                SingleCall.of(3L, 6L, LEADER_1),
+                SingleCall.of(10L, 15L, LEADER_2),
+                SingleCall.of(21L, 28L, LEADER_2));
 
         assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
     }
@@ -162,13 +163,45 @@ public class LeaderElectionReportingTimelockServiceTest {
     public void detectFreshLeaderElectionWithTwoLongTurnLeaders() {
         UUID leader3 = UUID.randomUUID();
         executeCalls(
-                ImmutableSingleCall.of(0L, 1L, LEADER_1),
-                ImmutableSingleCall.of(3L, 6L, LEADER_1),
-                ImmutableSingleCall.of(10L, 15L, LEADER_2),
-                ImmutableSingleCall.of(21L, 28L, LEADER_2),
-                ImmutableSingleCall.of(36L, 45L, leader3));
+                SingleCall.of(0L, 1L, LEADER_1),
+                SingleCall.of(3L, 6L, LEADER_1),
+                SingleCall.of(10L, 15L, LEADER_2),
+                SingleCall.of(21L, 28L, LEADER_2),
+                SingleCall.of(36L, 45L, leader3));
 
         assertExpectedDuration(Instant.ofEpochMilli(21L), Instant.ofEpochMilli(45L));
+    }
+
+    @Test
+    public void statisticsCausesMetricRegistryToBeReset() {
+        LockWatchStateUpdate.Snapshot secondUpdate =
+                LockWatchStateUpdate.snapshot(UUID.randomUUID(), 1L, ImmutableSet.of(), ImmutableSet.of());
+        LockWatchStateUpdate thirdUpdate = LockWatchStateUpdate.success(UUID.randomUUID(), 5L, ImmutableList.of());
+        when(startTransactionsResponse.getLockWatchUpdate())
+                .thenReturn(UPDATE)
+                .thenReturn(secondUpdate)
+                .thenReturn(secondUpdate)
+                .thenReturn(thirdUpdate);
+        timelockService.startTransactions(startTransactionsRequest);
+        timelockService.startTransactions(startTransactionsRequest);
+
+        TaggedMetricRegistry newMockedRegistry = mock(TaggedMetricRegistry.class);
+        Timer newMockedTimer = mock(Timer.class);
+        when(newMockedRegistry.timer(any())).thenReturn(newMockedTimer);
+        timelockService.statisticsWithRegistry(newMockedRegistry);
+
+        verify(mockedRegistry, atLeastOnce()).timer(any());
+        verify(mockedTimer).update(anyLong(), any());
+        verify(mockedTimer).getSnapshot();
+        verify(mockedTimer).getCount();
+
+        timelockService.startTransactions(startTransactionsRequest);
+        timelockService.startTransactions(startTransactionsRequest);
+
+        verify(newMockedRegistry, atLeastOnce()).timer(any());
+        verify(newMockedTimer).update(anyLong(), any());
+        verifyNoMoreInteractions(mockedRegistry);
+        verifyNoMoreInteractions(mockedTimer);
     }
 
     private void executeCalls(SingleCall firstCall, SingleCall... otherCalls) {
@@ -197,13 +230,17 @@ public class LeaderElectionReportingTimelockServiceTest {
 
     @Value.Immutable
     interface SingleCall {
-        @Parameter
+        @Value.Parameter
         long requestMillis();
 
-        @Parameter
+        @Value.Parameter
         long responseMillis();
 
-        @Parameter
+        @Value.Parameter
         UUID responseLeader();
+
+        static SingleCall of(long requestMillis, long responseMillis, UUID responseLeader) {
+            return ImmutableSingleCall.of(requestMillis, responseMillis, responseLeader);
+        }
     }
 }

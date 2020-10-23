@@ -121,6 +121,11 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     }
 
     public LeaderElectionStatistics statistics() {
+        return statisticsWithRegistry(new DefaultTaggedMetricRegistry());
+    }
+
+    @VisibleForTesting
+    LeaderElectionStatistics statisticsWithRegistry(TaggedMetricRegistry metricRegistry) {
         Snapshot metricsSnapshot = metrics.observedDuration().getSnapshot();
         LeaderElectionStatistics electionStatistics = LeaderElectionStatistics.builder()
                 .p99(metricsSnapshot.get99thPercentile())
@@ -129,7 +134,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 .count(SafeLong.of(metrics.observedDuration().getCount()))
                 .perceivedTime(calculateLastLeaderElectionDuration().map(duration -> SafeLong.of(duration.toNanos())))
                 .build();
-        resetTimer();
+        metrics = LeaderElectionMetrics.of(metricRegistry);
         return electionStatistics;
     }
 
@@ -288,9 +293,5 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     private void updateMetrics(Duration timeTaken) {
         metrics.observedDuration().update(timeTaken.toNanos(), TimeUnit.NANOSECONDS);
-    }
-
-    private void resetTimer() {
-        metrics = LeaderElectionMetrics.of(new DefaultTaggedMetricRegistry());
     }
 }
