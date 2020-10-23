@@ -146,7 +146,7 @@ public class LeaderElectionReportingTimelockServiceTest {
      * [ A ]
      *           [ A ]
      *       [     A     ]
-     *                     [ B ]
+     *                  [ B ]
      *           <=============>
      */
     @Test
@@ -182,7 +182,7 @@ public class LeaderElectionReportingTimelockServiceTest {
      *             [ B ]
      *                   [ B ]
      *                         [ C ]
-     *             <===============>
+     *                   <=========>
      */
     @Test
     public void detectFreshLeaderElectionWithTwoLongTurnLeaders() {
@@ -237,7 +237,7 @@ public class LeaderElectionReportingTimelockServiceTest {
      *             [       B       ]
      *                [ C ]
      *                      [ C ]
-     *       <===========>
+     *       <============>
      */
     @Test
     public void detectFirstLeaderElectionFromLongTermLeaderWithSlowRequest() {

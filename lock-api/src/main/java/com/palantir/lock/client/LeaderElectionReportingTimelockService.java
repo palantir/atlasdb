@@ -196,12 +196,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         UUID lastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 1);
 
         Optional<Duration> result = durationToNextLeader(lowerBounds, upperBounds, leaders, lastLongTermLeader);
-        if (result.isPresent()) {
+        if (result.isPresent() || sortedLongTermLeaders.size() == 1) {
             return result;
-        }
-
-        if (sortedLongTermLeaders.size() == 1) {
-            return Optional.empty();
         }
 
         UUID secondToLastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 2);
