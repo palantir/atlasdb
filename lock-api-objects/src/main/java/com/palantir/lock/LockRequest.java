@@ -84,8 +84,7 @@ public final class LockRequest implements Serializable {
     @Nullable
     private final Long versionId;
 
-    @Nullable
-    private volatile Integer hashCode;
+    private transient int hashCode;
 
     private final String creatingThreadName;
 
@@ -206,10 +205,13 @@ public final class LockRequest implements Serializable {
 
     @Override
     public int hashCode() {
-        if (hashCode == null) {
-            hashCode = Objects.hash(lockMap, lockTimeout, lockGroupBehavior, blockingMode, blockingDuration, versionId);
+        int tempHashCode = hashCode;
+        if (tempHashCode == 0) {
+            tempHashCode =
+                    Objects.hash(lockMap, lockTimeout, lockGroupBehavior, blockingMode, blockingDuration, versionId);
+            hashCode = tempHashCode;
         }
-        return hashCode;
+        return tempHashCode;
     }
 
     public static void setLocalServerName(String serverName) {
