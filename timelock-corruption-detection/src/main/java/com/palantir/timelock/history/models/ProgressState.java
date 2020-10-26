@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.history.models;
 
-import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import org.immutables.value.Value;
 
@@ -33,14 +32,13 @@ public interface ProgressState {
     }
 
     default boolean shouldResetProgressState() {
-        if (initStateOrInactiveClient() || lastVerifiedSeq() < greatestSeqNumberToBeVerified()) {
+        if (initState() || lastVerifiedSeq() < greatestSeqNumberToBeVerified()) {
             return false;
         }
         return true;
     }
 
-    default boolean initStateOrInactiveClient() {
-        return lastVerifiedSeq() == LogVerificationProgressState.INITIAL_PROGRESS
-                || greatestSeqNumberToBeVerified() == PaxosAcceptor.NO_LOG_ENTRY;
+    default boolean initState() {
+        return lastVerifiedSeq() == LogVerificationProgressState.INITIAL_PROGRESS;
     }
 }
