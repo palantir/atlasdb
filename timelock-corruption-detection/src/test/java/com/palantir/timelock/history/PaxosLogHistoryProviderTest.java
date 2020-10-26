@@ -97,7 +97,8 @@ public class PaxosLogHistoryProviderTest {
 
         int lastVerified = -1;
 
-        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+        List<HistoryQuery> historyQueries =
+                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -125,7 +126,8 @@ public class PaxosLogHistoryProviderTest {
 
         int lastVerified = -1;
 
-        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+        List<HistoryQuery> historyQueries =
+                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
