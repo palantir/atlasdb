@@ -42,7 +42,7 @@ public final class HistoryLoaderAndTransformer {
                 .collect(Collectors.toMap(
                         HistoryQuery::getNamespaceAndUseCase,
                         HistoryLoaderAndTransformer::sequenceBounds,
-                        HistoryLoaderAndTransformer::seqBoundsCollisionResolver));
+                        HistoryLoaderAndTransformer::minimalLowerBoundResolver));
 
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
@@ -52,7 +52,7 @@ public final class HistoryLoaderAndTransformer {
                 .collect(Collectors.toList());
     }
 
-    private static SequenceBounds seqBoundsCollisionResolver(SequenceBounds bound1, SequenceBounds bound2) {
+    private static SequenceBounds minimalLowerBoundResolver(SequenceBounds bound1, SequenceBounds bound2) {
         return bound1.lowerInclusive() < bound2.lowerInclusive() ? bound1 : bound2;
     }
 

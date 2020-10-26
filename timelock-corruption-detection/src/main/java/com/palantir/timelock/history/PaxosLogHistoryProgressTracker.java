@@ -51,8 +51,7 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     public void updateProgressState(Map<NamespaceAndUseCase, SequenceBounds> namespaceAndUseCaseSequenceBoundsMap) {
-        namespaceAndUseCaseSequenceBoundsMap.forEach((namespaceAndUseCase, bounds) ->
-                updateProgressStateForNamespaceAndUseCase(namespaceAndUseCase, bounds));
+        namespaceAndUseCaseSequenceBoundsMap.forEach(this::updateProgressStateForNamespaceAndUseCase);
     }
 
     private boolean shouldResetProgressState(NamespaceAndUseCase namespaceAndUseCase) {
