@@ -166,7 +166,6 @@ allprojects {
                 'PublicConstructorForAbstractClass',
                 'RawTypes',
                 'ReadReturnValueIgnored',
-                'RedundantMethodReference',
                 'ReferenceEquality',
                 'ReturnValueIgnored',
                 'ReverseDnsLookup',
