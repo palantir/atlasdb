@@ -121,7 +121,6 @@ allprojects {
                 'CheckReturnValue',
                 'ClassNewInstance',
                 'CloseableProvides',
-                'CollectionStreamForEach',
                 'DangerousCompletableFutureUsage',
                 'DefaultCharset',
                 'DnsLookup',
