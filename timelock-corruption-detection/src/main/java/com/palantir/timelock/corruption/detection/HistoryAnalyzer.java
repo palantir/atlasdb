@@ -81,7 +81,7 @@ public final class HistoryAnalyzer {
                         HistoryAnalyzer::greatestAcceptedValueNotLearned);
         return violationChecks.stream()
                 .map(check -> check.apply(history))
-                .filter(check -> check.raiseErrorAlert())
+                .filter(CorruptionCheckViolation::raiseErrorAlert)
                 .findFirst()
                 .orElse(CorruptionCheckViolation.NONE);
     }

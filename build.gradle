@@ -144,7 +144,6 @@ allprojects {
                 'InvalidThrows',
                 'JavaTimeDefaultTimeZone',
                 'JdkObsolete',
-                'LambdaMethodReference',
                 'LogSafePreconditionsMessageFormat',
                 'MathAbsoluteRandom',
                 'MissingFail',
