@@ -157,7 +157,6 @@ allprojects {
                 'NonAtomicVolatileUpdate',
                 'NullOptional',
                 'OperatorPrecedence',
-                'OptionalFlatMapOfNullable',
                 'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
