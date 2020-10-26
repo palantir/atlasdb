@@ -17,19 +17,18 @@ types:
           p99: double
           oneMin: double
           errorRate: optional<double>
-      DurationEstimate:
+      LeaderElectionDuration:
         fields:
           oldLeader: uuid
           newLeader: uuid
-          duration: safeLong
-
+          duration: safelong
       LeaderElectionStatistics:
         fields:
           p99: double
           p95: double
           mean: double
           count: safelong
-          durationEstimate: DurationEstimate
+          durationEstimate: optional<LeaderElectionDuration>
 
 services:
   TimeLockClientFeedbackService:

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.adjudicate;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowWeightedMeanGauge;
-import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 
 public final class LeaderElectionMetricAggregator {
@@ -48,7 +47,6 @@ public final class LeaderElectionMetricAggregator {
         weightedGaugeMean.update(statistics.getMean(), count);
         weightedGaugeP95.update(statistics.getP95(), count);
         weightedGaugeP99.update(statistics.getP99(), count);
-        leaderElectionEstimate.setValue(
-                statistics.getDurationEstimate().map(SafeLong::longValue).orElse(0L));
+        leaderElectionEstimate.setValue(0L);
     }
 }
