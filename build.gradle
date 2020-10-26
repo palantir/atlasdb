@@ -119,7 +119,6 @@ allprojects {
                 'CatchBlockLogException',
                 'CatchFail',
                 'CheckReturnValue',
-                'ClassCanBeStatic',
                 'ClassNewInstance',
                 'CloseableProvides',
                 'CollectionStreamForEach',
