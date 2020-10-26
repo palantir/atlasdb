@@ -16,3 +16,8 @@ dependencies {
 }
 
 project.tasks.idea.dependsOn('generateProto')
+
+// Avoid flagging generated code
+tasks.withType(JavaCompile) {
+    options.errorprone.enabled = false
+}
