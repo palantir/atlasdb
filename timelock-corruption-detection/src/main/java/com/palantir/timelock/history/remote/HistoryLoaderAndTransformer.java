@@ -23,7 +23,6 @@ import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
-import com.palantir.timelock.history.models.ImmutableSequenceBounds;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.models.SequenceBounds;
@@ -56,7 +55,7 @@ public final class HistoryLoaderAndTransformer {
         return bound1.lowerInclusive() < bound2.lowerInclusive() ? bound1 : bound2;
     }
 
-    private static ImmutableSequenceBounds sequenceBounds(HistoryQuery query) {
+    private static SequenceBounds sequenceBounds(HistoryQuery query) {
         return SequenceBounds.builder()
                 .lowerInclusive(query.getLowerBound())
                 .upperInclusive(query.getUpperBound())
