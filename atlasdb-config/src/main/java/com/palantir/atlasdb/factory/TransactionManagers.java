@@ -296,6 +296,7 @@ public abstract class TransactionManagers {
         return ImmutableTransactionManagers.builder();
     }
 
+    @SuppressWarnings("immutables:incompat")
     @VisibleForTesting
     static Consumer<Runnable> runAsync = task -> {
         Thread thread = new Thread(task);

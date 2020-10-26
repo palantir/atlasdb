@@ -185,6 +185,7 @@ public class CoalescingBatchingEventHandlerTests {
         int value();
     }
 
+    @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestBatchElement extends BatchElement<Request, Response> {
 
