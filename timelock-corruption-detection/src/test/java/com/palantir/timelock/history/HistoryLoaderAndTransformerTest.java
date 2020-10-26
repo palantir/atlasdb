@@ -31,6 +31,7 @@ import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.utils.HistoryQueryUtils;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import java.util.Optional;
@@ -73,8 +74,7 @@ public class HistoryLoaderAndTransformerTest {
     public void canFetchLogsForQuery() {
         writeToLogs(1, 100);
         int lastVerified = 27;
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
@@ -88,7 +88,8 @@ public class HistoryLoaderAndTransformerTest {
 
         List<HistoryQuery> queries = IntStream.range(0, 10)
                 .boxed()
-                .map(idx -> HistoryQuery.of(NAMESPACE_AND_USE_CASE, minLastVerified + idx, minLastVerified + 500))
+                .map(idx -> HistoryQueryUtils.unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(
+                        NAMESPACE_AND_USE_CASE, minLastVerified))
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
@@ -104,8 +105,7 @@ public class HistoryLoaderAndTransformerTest {
         });
 
         int lastVerified = 27;
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -125,8 +125,7 @@ public class HistoryLoaderAndTransformerTest {
         });
 
         int lastVerified = 52;
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -142,8 +141,7 @@ public class HistoryLoaderAndTransformerTest {
     @Test
     public void canHandleHistoryWithNoLogs() {
         int lastVerified = 102;
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -158,8 +156,7 @@ public class HistoryLoaderAndTransformerTest {
 
         writeToLogs(firstSeqWithLog, 100);
 
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, lastVerified, lastVerified + 500));
+        List<HistoryQuery> historyQueries = ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
