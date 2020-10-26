@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.history;
 
-import static com.palantir.timelock.history.models.SequenceBounds.MAX_ROWS_ALLOWED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.paxos.Client;
@@ -54,27 +53,27 @@ public class PaxosLogHistoryProgressTrackerTest {
     @Test
     public void getsInitialStateBoundsWhenNoDataInDB() {
         SequenceBounds paxosLogSequenceBounds = progressTracker.getPaxosLogSequenceBounds(NAMESPACE_AND_USE_CASE);
-        assertThat(paxosLogSequenceBounds.lowerInclusive()).isEqualTo(-1L);
-        assertThat(paxosLogSequenceBounds.upperInclusive()).isEqualTo(-1L + MAX_ROWS_ALLOWED);
+        assertThat(paxosLogSequenceBounds).isEqualTo(SequenceBounds.getBoundsSinceLastVerified(-1L));
     }
 
     @Test
     public void getsCorrectStateBoundsWhenDataInDBButNotInCache() {
         long greatestLogSeq = 7L;
-        long progressState = 3L;
+        long lastVerified = 3L;
 
         log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
-        log.updateProgress(CLIENT, USE_CASE, progressState);
+        log.updateProgress(CLIENT, USE_CASE, lastVerified);
 
         SequenceBounds paxosLogSequenceBounds = progressTracker.getPaxosLogSequenceBounds(NAMESPACE_AND_USE_CASE);
-        assertThat(paxosLogSequenceBounds.lowerInclusive()).isEqualTo(progressState);
-        assertThat(paxosLogSequenceBounds.upperInclusive()).isEqualTo(progressState + MAX_ROWS_ALLOWED);
+        assertThat(paxosLogSequenceBounds).isEqualTo(SequenceBounds.getBoundsSinceLastVerified(lastVerified));
     }
 
     @Test
     public void canUpdateProgressState() {
         long greatestLogSeq = 100L;
         long upper = 50L;
+        long lastVerified = 50L;
+
         SequenceBounds bounds = SequenceBounds.builder()
                 .lowerInclusive(5L)
                 .upperInclusive(upper)
@@ -84,23 +83,21 @@ public class PaxosLogHistoryProgressTrackerTest {
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);
 
         SequenceBounds paxosLogSequenceBounds = progressTracker.getPaxosLogSequenceBounds(NAMESPACE_AND_USE_CASE);
-        assertThat(paxosLogSequenceBounds.lowerInclusive()).isEqualTo(upper);
-        assertThat(paxosLogSequenceBounds.upperInclusive()).isEqualTo(upper + MAX_ROWS_ALLOWED);
+        assertThat(paxosLogSequenceBounds).isEqualTo(SequenceBounds.getBoundsSinceLastVerified(lastVerified));
     }
 
     @Test
     public void canResetProgressStateIfRequired() {
         long greatestLogSeq = 100L;
+        log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
+
         SequenceBounds bounds = SequenceBounds.builder()
                 .lowerInclusive(1L)
                 .upperInclusive(greatestLogSeq + 1)
                 .build();
 
-        log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);
-
         SequenceBounds paxosLogSequenceBounds = progressTracker.getPaxosLogSequenceBounds(NAMESPACE_AND_USE_CASE);
-        assertThat(paxosLogSequenceBounds.lowerInclusive()).isEqualTo(-1L);
-        assertThat(paxosLogSequenceBounds.upperInclusive()).isEqualTo(-1L + MAX_ROWS_ALLOWED);
+        assertThat(paxosLogSequenceBounds).isEqualTo(SequenceBounds.getBoundsSinceLastVerified(-1L));
     }
 }

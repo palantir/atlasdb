@@ -56,7 +56,7 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     private boolean shouldResetProgressState(NamespaceAndUseCase namespaceAndUseCase) {
-        ProgressState progressState = getOrPopulateProgressComponents(namespaceAndUseCase);
+        ProgressState progressState = getOrPopulateProgressState(namespaceAndUseCase);
         if (initStateOrInactiveClient(progressState)
                 || progressState.lastVerifiedSeq() < progressState.greatestSeqNumberToBeVerified()) {
             return false;
@@ -69,7 +69,7 @@ public class PaxosLogHistoryProgressTracker {
                 || state.greatestSeqNumberToBeVerified() == PaxosAcceptor.NO_LOG_ENTRY;
     }
 
-    private ProgressState getOrPopulateProgressComponents(NamespaceAndUseCase namespaceAndUseCase) {
+    private ProgressState getOrPopulateProgressState(NamespaceAndUseCase namespaceAndUseCase) {
         return verificationProgressStateCache.computeIfAbsent(namespaceAndUseCase, this::getLastVerifiedSeqFromLogs);
     }
 
@@ -78,20 +78,20 @@ public class PaxosLogHistoryProgressTracker {
         String useCase = namespaceAndUseCase.useCase();
 
         return logVerificationProgressState
-                .getProgressComponents(client, useCase)
+                .getProgressState(client, useCase)
                 .orElseGet(() -> logVerificationProgressState.resetProgressState(
                         client, useCase, getLatestLearnedSequenceForNamespaceAndUseCase(namespaceAndUseCase)));
     }
 
     @VisibleForTesting
     void updateProgressStateForNamespaceAndUseCase(NamespaceAndUseCase key, SequenceBounds value) {
-        updateProgressInDbThroughCache(key, value.upperInclusive(), getOrPopulateProgressComponents(key));
+        updateProgressInDbThroughCache(key, value.upperInclusive(), getOrPopulateProgressState(key));
     }
 
     private ProgressState updateProgressInDbThroughCache(
-            NamespaceAndUseCase key, long lastVerifiedSequence, ProgressState progressComponents) {
+            NamespaceAndUseCase key, long lastVerifiedSequence, ProgressState state) {
         ProgressState progressState = ProgressState.builder()
-                .greatestSeqNumberToBeVerified(progressComponents.greatestSeqNumberToBeVerified())
+                .greatestSeqNumberToBeVerified(state.greatestSeqNumberToBeVerified())
                 .lastVerifiedSeq(lastVerifiedSequence)
                 .build();
         verificationProgressStateCache.put(key, progressState);

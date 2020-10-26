@@ -52,7 +52,7 @@ public final class LogVerificationProgressState {
 
     public ProgressState resetProgressState(Client client, String useCase, long greatestLogSeq) {
         return execute(dao -> {
-            dao.updateProgressStateAndProgressLimit(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
+            dao.updateProgressStateAndGreatestSeqNumberToBeVerified(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
             return ProgressState.builder()
                     .lastVerifiedSeq(INITIAL_PROGRESS)
                     .greatestSeqNumberToBeVerified(greatestLogSeq)
@@ -60,12 +60,12 @@ public final class LogVerificationProgressState {
         });
     }
 
-    public void updateProgress(Client client, String useCase, long seq) {
-        execute(dao -> dao.updateProgress(client, useCase, seq));
+    public void updateProgress(Client client, String useCase, long lastVerifiedSeq) {
+        execute(dao -> dao.updateProgress(client, useCase, lastVerifiedSeq));
     }
 
-    public Optional<ProgressState> getProgressComponents(Client client, String useCase) {
-        return execute(dao -> dao.getProgressComponents(client, useCase));
+    public Optional<ProgressState> getProgressState(Client client, String useCase) {
+        return execute(dao -> dao.getProgressState(client, useCase));
     }
 
     private <T> T execute(Function<LogVerificationProgressState.Queries, T> call) {
@@ -73,27 +73,29 @@ public final class LogVerificationProgressState {
     }
 
     public interface Queries {
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS logVerificationProgress (namespace TEXT, useCase TEXT, seq BIGINT, "
-                + "progressLimit BIGINT, "
-                + "PRIMARY KEY(namespace, useCase))")
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS logVerificationProgress (namespace TEXT, useCase TEXT, lastVerifiedSeq"
+                + " BIGINT, greatestSeqNumberToBeVerified BIGINT, PRIMARY KEY(namespace, useCase))")
         boolean createVerificationProgressStateTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, seq, progressLimit) VALUES"
-                + " (:namespace.value, :useCase, :seq, :progressLimit)")
-        boolean updateProgressStateAndProgressLimit(
+        @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, lastVerifiedSeq,"
+                + " greatestSeqNumberToBeVerified) VALUES (:namespace.value, :useCase, :lastVerifiedSeq,"
+                + " :greatestSeqNumberToBeVerified)")
+        boolean updateProgressStateAndGreatestSeqNumberToBeVerified(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
-                @Bind("seq") long seq,
-                @Bind("progressLimit") long progressLimit);
+                @Bind("lastVerifiedSeq") long lastVerifiedSeq,
+                @Bind("greatestSeqNumberToBeVerified") long greatestSeqNumberToBeVerified);
 
-        @SqlUpdate("UPDATE logVerificationProgress SET seq = :seq "
+        @SqlUpdate("UPDATE logVerificationProgress SET lastVerifiedSeq = :lastVerifiedSeq "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
         boolean updateProgress(
-                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("lastVerifiedSeq") long lastVerifiedSeq);
 
-        @SqlQuery("SELECT seq, progressLimit FROM logVerificationProgress "
+        @SqlQuery("SELECT lastVerifiedSeq, greatestSeqNumberToBeVerified FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
-        Optional<ProgressState> getProgressComponents(
+        Optional<ProgressState> getProgressState(
                 @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 }
