@@ -184,7 +184,6 @@ allprojects {
                 'UndefinedEquals',
                 'UnnecessaryAnonymousClass',
                 'UnnecessaryLambda',
-                'UnusedMethod',
                 'UseCorrectAssertInTests',
                 'ValidateConstantMessage',
                 'VisibleForTestingPackagePrivate'

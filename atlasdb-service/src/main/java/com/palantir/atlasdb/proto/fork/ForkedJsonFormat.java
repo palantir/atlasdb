@@ -1337,34 +1337,6 @@ public final class ForkedJsonFormat {
         return builder.toString();
     }
 
-    /*
-     * Is this an octal digit?
-     */
-    private static boolean isOctal(char ch) {
-        return ('0' <= ch) && (ch <= '7');
-    }
-
-    /*
-     * Is this a hex digit?
-     */
-    private static boolean isHex(char ch) {
-        return (('0' <= ch) && (ch <= '9')) || (('a' <= ch) && (ch <= 'f')) || (('A' <= ch) && (ch <= 'F'));
-    }
-
-    /**
-     * Interpret a character as a digit (in any base up to 36) and return the numeric value. This is
-     * like {@code Character.digit()} but we don't accept non-ASCII digits.
-     */
-    private static int digitValue(char ch) {
-        if (('0' <= ch) && (ch <= '9')) {
-            return ch - '0';
-        } else if (('a' <= ch) && (ch <= 'z')) {
-            return ch - 'a' + 10;
-        } else {
-            return ch - 'A' + 10;
-        }
-    }
-
     /**
      * Parse a 32-bit signed integer from the text. Unlike the Java standard {@code
      * Integer.parseInt()}, this function recognizes the prefixes "0x" and "0" to signify
