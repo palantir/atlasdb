@@ -54,7 +54,7 @@ public final class LocalHistoryLoader {
                 namespaceAndUseCase.namespace(),
                 LearnerUseCase.createLearnerUseCase(paxosUseCasePrefix),
                 AcceptorUseCase.createAcceptorUseCase(paxosUseCasePrefix),
-                bounds.lower(),
-                bounds.upper());
+                bounds.lowerInclusive(),
+                bounds.upperInclusive());
     }
 }
