@@ -160,7 +160,6 @@ allprojects {
                 'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
-                'PreferBuiltInConcurrentKeySet',
                 'PreferListsPartition',
                 'PreferSafeLoggableExceptions',
                 'PreferSafeLoggingPreconditions',
