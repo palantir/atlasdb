@@ -24,7 +24,7 @@ public class RemoteCorruptionDetector implements CorruptionDetector {
     }
 
     @Override
-    public boolean hasDetectedCorruption() {
-        return remoteCorruptionState.shootTimeLock();
+    public boolean shouldRejectRequests() {
+        return remoteCorruptionState.shouldRejectRequests();
     }
 }

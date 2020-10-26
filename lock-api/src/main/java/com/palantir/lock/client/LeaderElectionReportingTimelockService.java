@@ -62,8 +62,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     private Map<UUID, Instant> leadershipUpperBound = new ConcurrentHashMap<>();
     private Map<UUID, Instant> leadershipLowerBound = new ConcurrentHashMap<>();
 
-    @VisibleForTesting
-    LeaderElectionReportingTimelockService(
+    public LeaderElectionReportingTimelockService(
             NamespacedConjureTimelockService delegate, TaggedMetricRegistry taggedMetricRegistry, Clock clock) {
         this.delegate = delegate;
         this.metrics = LeaderElectionMetrics.of(taggedMetricRegistry);
@@ -199,7 +198,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
      *      c) otherwise, we cannot determine the ordering
      *
      * Calculating the estimate:
-     * Let A be a long term leader let L be the minimal lower bound of all leaders that became leaders after A as
+     * Let A be a long term leader and let L be the minimal lower bound of all leaders that became leaders after A as
      * described in 1) and 2b). The estimated (over-approximated) duration of the leadership election is then
      * given by the duration between U_A and L, since L is the latest possible moment at which another leader was
      * elected while U_A is the earliest moment at which A could have lost leadership. This method will always return
@@ -220,12 +219,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         UUID lastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 1);
 
         Optional<Duration> result = durationToNextLeader(lowerBounds, upperBounds, leaders, lastLongTermLeader);
-        if (result.isPresent()) {
+        if (result.isPresent() || sortedLongTermLeaders.size() == 1) {
             return result;
-        }
-
-        if (sortedLongTermLeaders.size() == 1) {
-            return Optional.empty();
         }
 
         UUID secondToLastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 2);
