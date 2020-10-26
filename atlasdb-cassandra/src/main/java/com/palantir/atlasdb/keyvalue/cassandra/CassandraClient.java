@@ -56,7 +56,7 @@ public interface CassandraClient extends Closeable {
      */
     boolean isValid();
 
-    String describe_snitch() throws org.apache.thrift.TException;
+    String describe_snitch() throws TException;
 
     @Timed
     Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
@@ -65,7 +65,7 @@ public interface CassandraClient extends Closeable {
             List<ByteBuffer> keys,
             SlicePredicate predicate,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
     Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
@@ -73,7 +73,7 @@ public interface CassandraClient extends Closeable {
             TableReference tableRef,
             List<KeyPredicate> keyPredicates,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
     List<KeySlice> get_range_slices(
@@ -82,20 +82,19 @@ public interface CassandraClient extends Closeable {
             SlicePredicate predicate,
             KeyRange range,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
     void batch_mutate(
             String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
     ColumnOrSuperColumn get(
             TableReference tableReference, ByteBuffer key, byte[] column, ConsistencyLevel consistency_level)
-            throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException,
-                    org.apache.thrift.TException;
+            throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException;
 
     @Timed
     CASResult cas(
@@ -105,7 +104,7 @@ public interface CassandraClient extends Closeable {
             List<Column> updates,
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
     CASResult put_unless_exists(
@@ -114,11 +113,11 @@ public interface CassandraClient extends Closeable {
             List<Column> updates,
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
-                    org.apache.thrift.TException;
+                    TException;
 
     @Timed
     void remove(
@@ -127,7 +126,7 @@ public interface CassandraClient extends Closeable {
             byte[] row,
             long timestamp,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     TProtocol getOutputProtocol();
 

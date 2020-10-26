@@ -182,7 +182,6 @@ allprojects {
                 'TooManyArguments',
                 'TypeParameterUnusedInFormals',
                 'UndefinedEquals',
-                'UnnecessarilyQualified',
                 'UnnecessaryAnonymousClass',
                 'UnnecessaryLambda',
                 'UnnecessaryParentheses',
