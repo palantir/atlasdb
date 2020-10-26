@@ -144,6 +144,7 @@ public class GetSuspectedLeaderWithUuidTests {
         return new GetSuspectedLeaderWithUuid(executors, clientAwareLeaders, LOCAL_UUID, Duration.ofSeconds(1));
     }
 
+    @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestBatchElement extends BatchElement<UUID, Optional<ClientAwareLeaderPinger>> {
 

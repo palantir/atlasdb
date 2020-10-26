@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
+@SuppressWarnings("immutables:subtype")
 @Value.Immutable
 abstract class SingleLeaderNetworkClientFactories
         implements NetworkClientFactories, Dependencies.NetworkClientFactories {

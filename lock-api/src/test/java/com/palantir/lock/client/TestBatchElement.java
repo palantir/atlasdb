@@ -20,6 +20,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import org.immutables.value.Value;
 
+@SuppressWarnings("immutables:subtype")
 @Value.Immutable
 public interface TestBatchElement<A, R> extends BatchElement<A, R> {
     @Override

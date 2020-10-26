@@ -31,21 +31,21 @@ public class OutputPrinter implements OutputStateLogger {
     @Override
     public void info(String message, Arg... args) {
         String infoMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-        logger.info(message, args);
+        logger.info(message, (Object[]) args);
         System.out.println(infoMessage);
     }
 
     @Override
     public void warn(String message, Arg... args) {
         String warnMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-        logger.warn(message, args);
+        logger.warn(message, (Object[]) args);
         System.err.println(warnMessage);
     }
 
     @Override
     public void error(final String message, Arg... args) {
         String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-        logger.error(message, args);
+        logger.error(message, (Object[]) args);
         System.err.println(errorMessage);
     }
 }
