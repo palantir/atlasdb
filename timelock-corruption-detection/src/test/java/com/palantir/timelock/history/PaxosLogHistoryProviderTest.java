@@ -166,8 +166,8 @@ public class PaxosLogHistoryProviderTest {
                 NAMESPACE_AND_USE_CASE, ImmutableSequenceBounds.of(-1, 17));
         SequenceBounds bounds = ImmutableSequenceBounds.of(17, 500);
 
-        List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(NAMESPACE_AND_USE_CASE, bounds.lowerInclusive(), bounds.upperInclusive()));
+        List<HistoryQuery> historyQueries = ImmutableList.of(
+                HistoryQuery.of(NAMESPACE_AND_USE_CASE, bounds.lowerInclusive(), bounds.upperInclusive()));
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 

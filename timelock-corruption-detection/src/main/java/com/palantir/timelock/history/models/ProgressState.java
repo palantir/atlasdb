@@ -24,7 +24,7 @@ public interface ProgressState {
     long lastVerifiedSeq();
 
     @Value.Parameter
-    long progressLimit();
+    long greatestSeqNumberToBeVerified();
 
     static ImmutableProgressState.Builder builder() {
         return ImmutableProgressState.builder();

@@ -30,7 +30,7 @@ import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 public final class LogVerificationProgressState {
-    private static final long INITIAL_PROGRESS = -1L;
+    public static final long INITIAL_PROGRESS = -1L;
 
     private final Jdbi jdbi;
 
@@ -40,9 +40,7 @@ public final class LogVerificationProgressState {
 
     public static LogVerificationProgressState create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class)
-                .registerImmutable(Client.class)
-                .registerImmutable(ProgressState.class);
+        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class).registerImmutable(ProgressState.class);
         LogVerificationProgressState state = new LogVerificationProgressState(jdbi);
         state.initialize();
         return state;
@@ -57,7 +55,7 @@ public final class LogVerificationProgressState {
             dao.updateProgressStateAndProgressLimit(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
             return ProgressState.builder()
                     .lastVerifiedSeq(INITIAL_PROGRESS)
-                    .progressLimit(greatestLogSeq)
+                    .greatestSeqNumberToBeVerified(greatestLogSeq)
                     .build();
         });
     }
