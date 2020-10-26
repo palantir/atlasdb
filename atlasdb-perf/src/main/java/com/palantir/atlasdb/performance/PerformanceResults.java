@@ -110,13 +110,8 @@ public class PerformanceResults {
             Multiset<Double> rawResults = (Multiset<Double>) field.get(statistics);
             return downSample(rawResults);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            String msg = new StringBuilder()
-                    .append("Could not get values from statistics !")
-                    .append("\n\t statistics.class = ")
-                    .append(statistics.getClass().getName())
-                    .append("\n\t statistics.size = ")
-                    .append(statistics.getN())
-                    .toString();
+            String msg = "Could not get values from statistics !\n\t statistics.class = "
+                    + statistics.getClass().getName() + "\n\t statistics.size = " + statistics.getN();
             throw new RuntimeException(msg, e);
         }
     }

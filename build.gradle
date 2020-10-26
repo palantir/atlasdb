@@ -175,7 +175,6 @@ allprojects {
                 'Slf4jThrowable',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
-                'StringBuilderConstantParameters',
                 'StringSplitter',
                 'ThreadPriorityCheck',
                 'ThrowError',
