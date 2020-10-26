@@ -160,7 +160,6 @@ allprojects {
                 'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
-                'PreferListsPartition',
                 'PreferSafeLoggableExceptions',
                 'PreferSafeLoggingPreconditions',
                 'ProtectedMembersInFinalClass',
