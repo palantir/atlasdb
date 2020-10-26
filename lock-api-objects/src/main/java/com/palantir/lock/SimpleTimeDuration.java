@@ -23,7 +23,6 @@ import com.palantir.logsafe.Preconditions;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -141,7 +140,7 @@ public final class SimpleTimeDuration implements TimeDuration, Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(toNanos());
+        return Long.hashCode(toNanos());
     }
 
     @Override
