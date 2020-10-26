@@ -18,8 +18,8 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
 import com.palantir.logsafe.Preconditions;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.Validate;
 
@@ -78,7 +78,7 @@ public final class Namespace {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name);
+        return Objects.hash(name);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class Namespace {
             return false;
         }
         Namespace other = (Namespace) obj;
-        return Objects.equal(name, other.name);
+        return Objects.equals(name, other.name);
     }
 
     @Override

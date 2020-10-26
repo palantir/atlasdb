@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -31,6 +30,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -200,15 +200,14 @@ public final class LockRequest implements Serializable {
                 && lockTimeout.equals(other.lockTimeout)
                 && (lockGroupBehavior == other.lockGroupBehavior)
                 && (blockingMode == other.blockingMode)
-                && Objects.equal(blockingDuration, other.blockingDuration)
-                && Objects.equal(versionId, other.versionId);
+                && Objects.equals(blockingDuration, other.blockingDuration)
+                && Objects.equals(versionId, other.versionId);
     }
 
     @Override
     public int hashCode() {
         if (hashCode == null) {
-            hashCode = Objects.hashCode(
-                    lockMap, lockTimeout, lockGroupBehavior, blockingMode, blockingDuration, versionId);
+            hashCode = Objects.hash(lockMap, lockTimeout, lockGroupBehavior, blockingMode, blockingDuration, versionId);
         }
         return hashCode;
     }

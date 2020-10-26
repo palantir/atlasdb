@@ -16,12 +16,12 @@
 package com.palantir.paxos;
 
 import com.google.common.base.Defaults;
-import com.google.common.base.Objects;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
+import java.util.Objects;
 
 /**
  * The logged state (per round) for a paxos acceptor.
@@ -126,12 +126,12 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
             return false;
         }
         PaxosAcceptorState other = (PaxosAcceptorState) obj;
-        if (!Objects.equal(lastPromisedId, other.lastPromisedId)) {
+        if (!Objects.equals(lastPromisedId, other.lastPromisedId)) {
             return false;
         }
-        if (!Objects.equal(lastAcceptedId, other.lastAcceptedId)) {
+        if (!Objects.equals(lastAcceptedId, other.lastAcceptedId)) {
             return false;
         }
-        return Objects.equal(lastAcceptedValue, other.lastAcceptedValue);
+        return Objects.equals(lastAcceptedValue, other.lastAcceptedValue);
     }
 }

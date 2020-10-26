@@ -18,12 +18,12 @@ package com.palantir.lock;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.palantir.logsafe.Preconditions;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -98,12 +98,12 @@ public final class LockClient implements Serializable {
         if (!(obj instanceof LockClient)) {
             return false;
         }
-        return Objects.equal(clientId, ((LockClient) obj).clientId);
+        return Objects.equals(clientId, ((LockClient) obj).clientId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(clientId);
+        return Objects.hash(clientId);
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {

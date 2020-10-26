@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.logsafe.Preconditions;
 import java.io.InvalidObjectException;
@@ -28,6 +27,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -160,7 +160,7 @@ public final class LockResponse implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(token, lockHolders, isBlockAndRelease);
+        return Objects.hash(token, lockHolders, isBlockAndRelease);
     }
 
     public String toString(long currentTimeMillis) {
