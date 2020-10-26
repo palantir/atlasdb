@@ -72,7 +72,7 @@ public class SqliteHistoryQueriesTest {
                 SequenceBounds.builder().lowerInclusive(5L).upperInclusive(100L).build());
 
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(0);
-        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
+        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(100 - 5 + 1);
     }
 
     @Test
@@ -98,7 +98,7 @@ public class SqliteHistoryQueriesTest {
                 ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
                 SequenceBounds.builder().lowerInclusive(5L).upperInclusive(100L).build());
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(0);
-        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
+        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(100 - 5 + 1);
     }
 
     @Test
@@ -108,25 +108,25 @@ public class SqliteHistoryQueriesTest {
                 ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
                 SequenceBounds.builder().lowerInclusive(5L).upperInclusive(100L).build());
 
-        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(95);
-        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(95);
+        assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(100 - 5 + 1);
+        assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(100 - 5 + 1);
     }
 
     @Test
     public void canGetAllLearnerAndAcceptorDiscontinuousLogsSince() {
         int startInclusive = 55;
-        int upperBound = 100;
+        int upperInclusive = 100;
 
-        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, startInclusive, upperBound + 1);
+        PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, startInclusive, upperInclusive + 1);
 
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
                 ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
                 SequenceBounds.builder()
                         .lowerInclusive(5L)
-                        .upperInclusive(upperBound)
+                        .upperInclusive(upperInclusive)
                         .build());
 
-        int expected = upperBound - startInclusive;
+        int expected = upperInclusive - startInclusive + 1;
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(expected);
         assertThat(learnerAndAcceptorRecords.acceptorRecords().size()).isEqualTo(expected);
     }
