@@ -20,6 +20,8 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface SequenceBounds {
+    int MAX_ROWS_ALLOWED = 500;
+
     @Value.Parameter
     long lowerInclusive();
 
@@ -28,5 +30,16 @@ public interface SequenceBounds {
 
     static ImmutableSequenceBounds.Builder builder() {
         return ImmutableSequenceBounds.builder();
+    }
+
+    static SequenceBounds getBoundsSinceLastVerified(long lastVerified) {
+        return SequenceBounds.builder()
+                .lowerInclusive(lastVerified + 1)
+                .upperInclusive(upperInclusiveSinceLastVerified(lastVerified))
+                .build();
+    }
+
+    static long upperInclusiveSinceLastVerified(long lastVerified) {
+        return lastVerified + MAX_ROWS_ALLOWED;
     }
 }

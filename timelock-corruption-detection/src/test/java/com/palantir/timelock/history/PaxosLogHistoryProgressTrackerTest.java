@@ -16,7 +16,7 @@
 
 package com.palantir.timelock.history;
 
-import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
+import static com.palantir.timelock.history.models.SequenceBounds.MAX_ROWS_ALLOWED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.paxos.Client;
@@ -75,7 +75,10 @@ public class PaxosLogHistoryProgressTrackerTest {
     public void canUpdateProgressState() {
         long greatestLogSeq = 100L;
         long upper = 50L;
-        SequenceBounds bounds = SequenceBounds.builder().lowerInclusive(5L).upperInclusive(upper).build();
+        SequenceBounds bounds = SequenceBounds.builder()
+                .lowerInclusive(5L)
+                .upperInclusive(upper)
+                .build();
 
         log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);
@@ -88,8 +91,10 @@ public class PaxosLogHistoryProgressTrackerTest {
     @Test
     public void canResetProgressStateIfRequired() {
         long greatestLogSeq = 100L;
-        SequenceBounds bounds =
-                SequenceBounds.builder().lowerInclusive(1L).upperInclusive(greatestLogSeq + 1).build();
+        SequenceBounds bounds = SequenceBounds.builder()
+                .lowerInclusive(1L)
+                .upperInclusive(greatestLogSeq + 1)
+                .build();
 
         log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);

@@ -203,6 +203,7 @@ public class PaxosLogHistoryProvider {
     private Map.Entry<NamespaceAndUseCase, HistoryQuery> buildHistoryQuery(
             NamespaceAndUseCase namespaceAndUseCase, SequenceBounds bounds) {
         return Maps.immutableEntry(
-                namespaceAndUseCase, HistoryQuery.of(namespaceAndUseCase, bounds.lowerInclusive(), bounds.upperInclusive()));
+                namespaceAndUseCase,
+                HistoryQuery.of(namespaceAndUseCase, bounds.lowerInclusive(), bounds.upperInclusive()));
     }
 }

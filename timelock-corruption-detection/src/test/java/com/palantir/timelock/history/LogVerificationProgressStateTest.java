@@ -55,7 +55,7 @@ public class LogVerificationProgressStateTest {
         ProgressState progress = log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
 
         assertThat(progress.lastVerifiedSeq()).isEqualTo(-1L);
-        assertThat(progress.progressLimit()).isEqualTo(greatestLogSeq);
+        assertThat(progress.greatestSeqNumberToBeVerified()).isEqualTo(greatestLogSeq);
     }
 
     @Test
@@ -67,14 +67,14 @@ public class LogVerificationProgressStateTest {
 
         assertThat(log.getProgressComponents(CLIENT, USE_CASE))
                 .hasValue(ProgressState.builder()
-                        .progressLimit(greatestLogSeq)
+                        .greatestSeqNumberToBeVerified(greatestLogSeq)
                         .lastVerifiedSeq(-1L)
                         .build());
 
         log.updateProgress(CLIENT, USE_CASE, progressState);
         assertThat(log.getProgressComponents(CLIENT, USE_CASE))
                 .hasValue(ProgressState.builder()
-                        .progressLimit(greatestLogSeq)
+                        .greatestSeqNumberToBeVerified(greatestLogSeq)
                         .lastVerifiedSeq(progressState)
                         .build());
     }
