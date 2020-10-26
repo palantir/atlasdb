@@ -112,7 +112,6 @@ allprojects {
         options.errorprone.disable 'AlmostJavadoc', 
                 'AnnotateFormatMethod',
                 'ArrayAsKeyOfSetOrMap',
-                'AssertEqualsArgumentOrderChecker',
                 'AssertionFailureIgnored',
                 'ByteBufferBackingArray',
                 'CacheLoaderNull',

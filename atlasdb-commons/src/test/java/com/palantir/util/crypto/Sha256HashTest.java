@@ -26,7 +26,7 @@ public class Sha256HashTest {
     @Test
     public void testSha256() throws Exception {
         MessageDigest digest = Sha256Hash.getMessageDigest();
-        Assert.assertEquals(digest.getAlgorithm(), "SHA-256");
+        Assert.assertEquals("SHA-256", digest.getAlgorithm());
         Assert.assertNotSame(Sha256Hash.getMessageDigest(), digest);
         byte[] result = digest.digest("Hello World".getBytes(Charsets.UTF_8));
         Assert.assertEquals(
