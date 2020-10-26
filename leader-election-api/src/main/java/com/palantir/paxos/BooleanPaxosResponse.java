@@ -48,7 +48,7 @@ public class BooleanPaxosResponse implements PaxosResponse {
 
     @Override
     public int hashCode() {
-        return Objects.hash(ack);
+        return Objects.hashCode(ack);
     }
 
     @Override

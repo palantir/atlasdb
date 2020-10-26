@@ -103,7 +103,7 @@ public final class LockClient implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientId);
+        return Objects.hashCode(clientId);
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {

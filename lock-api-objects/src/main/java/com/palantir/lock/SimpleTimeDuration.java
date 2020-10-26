@@ -141,7 +141,7 @@ public final class SimpleTimeDuration implements TimeDuration, Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(toNanos());
+        return Objects.hashCode(toNanos());
     }
 
     @Override
