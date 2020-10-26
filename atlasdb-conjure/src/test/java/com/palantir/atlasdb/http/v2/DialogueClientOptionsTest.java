@@ -99,9 +99,11 @@ public class DialogueClientOptionsTest {
         PartialServiceConfiguration partialServiceConfiguration =
                 servicesConfigBlock.services().get(SERVICE_NAME);
         assertThat(partialServiceConfiguration.readTimeout()).contains(ClientOptionsConstants.LONG_READ_TIMEOUT);
+        assertThat(partialServiceConfiguration.writeTimeout()).contains(ClientOptionsConstants.LONG_READ_TIMEOUT);
 
         PartialServiceConfiguration otherPartialServiceConfiguration =
                 servicesConfigBlock.services().get(otherServiceName);
         assertThat(otherPartialServiceConfiguration.readTimeout()).contains(ClientOptionsConstants.SHORT_READ_TIMEOUT);
+        assertThat(otherPartialServiceConfiguration.writeTimeout()).contains(ClientOptionsConstants.SHORT_READ_TIMEOUT);
     }
 }

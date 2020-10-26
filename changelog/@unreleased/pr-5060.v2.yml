@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Match dialogue read/write timeout.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5060
