@@ -46,7 +46,7 @@ public class LogVerificationProgressStateTest {
 
     @Test
     public void initialStateIsAbsent() {
-        assertThat(log.getProgressComponents(CLIENT, USE_CASE)).isEmpty();
+        assertThat(log.getProgressState(CLIENT, USE_CASE)).isEmpty();
     }
 
     @Test
@@ -65,14 +65,14 @@ public class LogVerificationProgressStateTest {
 
         log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
 
-        assertThat(log.getProgressComponents(CLIENT, USE_CASE))
+        assertThat(log.getProgressState(CLIENT, USE_CASE))
                 .hasValue(ProgressState.builder()
                         .greatestSeqNumberToBeVerified(greatestLogSeq)
                         .lastVerifiedSeq(-1L)
                         .build());
 
         log.updateProgress(CLIENT, USE_CASE, progressState);
-        assertThat(log.getProgressComponents(CLIENT, USE_CASE))
+        assertThat(log.getProgressState(CLIENT, USE_CASE))
                 .hasValue(ProgressState.builder()
                         .greatestSeqNumberToBeVerified(greatestLogSeq)
                         .lastVerifiedSeq(progressState)

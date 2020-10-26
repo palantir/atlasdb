@@ -121,7 +121,10 @@ public class SqliteHistoryQueriesTest {
 
         LearnerAndAcceptorRecords learnerAndAcceptorRecords = history.loadLocalHistory(
                 ImmutableNamespaceAndUseCase.of(CLIENT, UseCaseUtils.getPaxosUseCasePrefix(USE_CASE_LEARNER)),
-                SequenceBounds.builder().lowerInclusive(5L).upperInclusive(upperBound).build());
+                SequenceBounds.builder()
+                        .lowerInclusive(5L)
+                        .upperInclusive(upperBound)
+                        .build());
 
         int expected = upperBound - startInclusive;
         assertThat(learnerAndAcceptorRecords.learnerRecords().size()).isEqualTo(expected);
