@@ -432,7 +432,7 @@ public final class StackTraceUtils {
         }
 
         private String createHeader(String serverName) {
-            header = "Trace of " + serverName + " taken at " + (new Date()).toString();
+            header = "Trace of " + serverName + " taken at " + new Date().toString();
             StringBuilder dashes = new StringBuilder();
             for (int i = 0; i < header.length(); i++) {
                 dashes.append("-");

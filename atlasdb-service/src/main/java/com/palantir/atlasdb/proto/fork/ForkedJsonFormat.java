@@ -137,7 +137,7 @@ public final class ForkedJsonFormat {
             // We special-case MessageSet elements for compatibility with proto1.
             if (field.getContainingType().getOptions().getMessageSetWireFormat()
                     && (field.getType() == FieldDescriptor.Type.MESSAGE)
-                    && (field.isOptional())
+                    && field.isOptional()
                     // object equality
                     && (field.getExtensionScope() == field.getMessageType())) {
                 generator.print(field.getMessageType().getFullName());
