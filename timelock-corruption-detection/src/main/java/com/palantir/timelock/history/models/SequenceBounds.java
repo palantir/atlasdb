@@ -35,11 +35,7 @@ public interface SequenceBounds {
     static SequenceBounds getBoundsSinceLastVerified(long lastVerified) {
         return SequenceBounds.builder()
                 .lowerInclusive(lastVerified + 1)
-                .upperInclusive(upperInclusiveSinceLastVerified(lastVerified))
+                .upperInclusive(lastVerified + MAX_ROWS_ALLOWED)
                 .build();
-    }
-
-    static long upperInclusiveSinceLastVerified(long lastVerified) {
-        return lastVerified + MAX_ROWS_ALLOWED;
     }
 }
