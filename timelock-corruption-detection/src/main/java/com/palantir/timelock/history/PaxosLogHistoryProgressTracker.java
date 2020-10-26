@@ -20,7 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
-import com.palantir.timelock.history.models.ProgressComponents;
+import com.palantir.timelock.history.models.ProgressState;
 import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
@@ -35,7 +35,7 @@ public class PaxosLogHistoryProgressTracker {
     private final LogVerificationProgressState logVerificationProgressState;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
 
-    private Map<NamespaceAndUseCase, ProgressComponents> verificationProgressStateCache = new ConcurrentHashMap<>();
+    private Map<NamespaceAndUseCase, ProgressState> verificationProgressStateCache = new ConcurrentHashMap<>();
 
     public PaxosLogHistoryProgressTracker(
             DataSource dataSource, SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory) {
@@ -44,10 +44,10 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     public SequenceBounds getPaxosLogSequenceBounds(NamespaceAndUseCase namespaceAndUseCase) {
-        ProgressComponents progress = getOrPopulateProgressComponents(namespaceAndUseCase);
+        ProgressState progress = getOrPopulateProgressComponents(namespaceAndUseCase);
         return SequenceBounds.builder()
-                .lower(progress.seq())
-                .upper(progress.seq() + MAX_ROWS_ALLOWED)
+                .lowerInclusive(progress.lastVerifiedSeq())
+                .upperInclusive(progress.lastVerifiedSeq() + MAX_ROWS_ALLOWED)
                 .build();
     }
 
@@ -56,56 +56,56 @@ public class PaxosLogHistoryProgressTracker {
                 updateProgressStateForNamespaceAndUseCase(namespaceAndUseCase, bounds));
     }
 
-    private ProgressComponents getOrPopulateProgressComponents(NamespaceAndUseCase namespaceAndUseCase) {
+    private ProgressState getOrPopulateProgressComponents(NamespaceAndUseCase namespaceAndUseCase) {
         return verificationProgressStateCache.computeIfAbsent(namespaceAndUseCase, this::getLastVerifiedSeqFromLogs);
     }
 
-    private ProgressComponents getLastVerifiedSeqFromLogs(NamespaceAndUseCase namespaceAndUseCase) {
+    private ProgressState getLastVerifiedSeqFromLogs(NamespaceAndUseCase namespaceAndUseCase) {
         Client client = namespaceAndUseCase.namespace();
         String useCase = namespaceAndUseCase.useCase();
 
         return logVerificationProgressState
                 .getProgressComponents(client, useCase)
                 .orElseGet(() -> logVerificationProgressState.resetProgressState(
-                        client, useCase, getLatestSequenceForNamespaceAndUseCase(namespaceAndUseCase)));
+                        client, useCase, getLatestLearnedSequenceForNamespaceAndUseCase(namespaceAndUseCase)));
     }
 
     @VisibleForTesting
     void updateProgressStateForNamespaceAndUseCase(NamespaceAndUseCase key, SequenceBounds value) {
-        long lastVerifiedSequence = value.upper();
+        long lastVerifiedSequence = value.upperInclusive();
 
-        ProgressComponents currentProgressState = getOrPopulateProgressComponents(key);
+        ProgressState currentProgressState = getOrPopulateProgressComponents(key);
         resetIfRequired(key, value, currentProgressState)
                 .orElseGet(
                         () -> updateProgressInDbThroughCache(key, value, lastVerifiedSequence, currentProgressState));
     }
 
-    private ProgressComponents updateProgressInDbThroughCache(
+    private ProgressState updateProgressInDbThroughCache(
             NamespaceAndUseCase key,
             SequenceBounds value,
             long lastVerifiedSequence,
-            ProgressComponents progressComponents) {
-        ProgressComponents progressState = ProgressComponents.builder()
+            ProgressState progressComponents) {
+        ProgressState progressState = ProgressState.builder()
                 .progressLimit(progressComponents.progressLimit())
-                .seq(value.upper())
+                .lastVerifiedSeq(value.upperInclusive())
                 .build();
         verificationProgressStateCache.put(key, progressState);
         logVerificationProgressState.updateProgress(key.namespace(), key.useCase(), lastVerifiedSequence);
         return progressState;
     }
 
-    private Optional<ProgressComponents> resetIfRequired(
-            NamespaceAndUseCase key, SequenceBounds value, ProgressComponents currentProgressState) {
-        if (value.upper() <= currentProgressState.progressLimit()) {
+    private Optional<ProgressState> resetIfRequired(
+            NamespaceAndUseCase key, SequenceBounds value, ProgressState currentProgressState) {
+        if (value.upperInclusive() <= currentProgressState.progressLimit()) {
             return Optional.empty();
         }
         return Optional.of(verificationProgressStateCache.put(
                 key,
                 logVerificationProgressState.resetProgressState(
-                        key.namespace(), key.useCase(), getLatestSequenceForNamespaceAndUseCase(key))));
+                        key.namespace(), key.useCase(), getLatestLearnedSequenceForNamespaceAndUseCase(key))));
     }
 
-    private long getLatestSequenceForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
+    private long getLatestLearnedSequenceForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
         return sqlitePaxosStateLogHistory.getGreatestLogEntry(
                 namespaceAndUseCase.namespace(), LearnerUseCase.createLearnerUseCase(namespaceAndUseCase.useCase()));
     }

@@ -21,10 +21,10 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface SequenceBounds {
     @Value.Parameter
-    long lower();
+    long lowerInclusive();
 
     @Value.Parameter
-    long upper();
+    long upperInclusive();
 
     static ImmutableSequenceBounds.Builder builder() {
         return ImmutableSequenceBounds.builder();

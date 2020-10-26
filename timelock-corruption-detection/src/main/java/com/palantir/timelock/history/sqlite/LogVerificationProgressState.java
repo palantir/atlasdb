@@ -17,7 +17,7 @@
 package com.palantir.timelock.history.sqlite;
 
 import com.palantir.paxos.Client;
-import com.palantir.timelock.history.models.ProgressComponents;
+import com.palantir.timelock.history.models.ProgressState;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.sql.DataSource;
@@ -42,7 +42,7 @@ public final class LogVerificationProgressState {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class)
                 .registerImmutable(Client.class)
-                .registerImmutable(ProgressComponents.class);
+                .registerImmutable(ProgressState.class);
         LogVerificationProgressState state = new LogVerificationProgressState(jdbi);
         state.initialize();
         return state;
@@ -52,11 +52,11 @@ public final class LogVerificationProgressState {
         execute(LogVerificationProgressState.Queries::createVerificationProgressStateTable);
     }
 
-    public ProgressComponents resetProgressState(Client client, String useCase, long greatestLogSeq) {
+    public ProgressState resetProgressState(Client client, String useCase, long greatestLogSeq) {
         return execute(dao -> {
             dao.updateProgressStateAndProgressLimit(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
-            return ProgressComponents.builder()
-                    .seq(INITIAL_PROGRESS)
+            return ProgressState.builder()
+                    .lastVerifiedSeq(INITIAL_PROGRESS)
                     .progressLimit(greatestLogSeq)
                     .build();
         });
@@ -66,7 +66,7 @@ public final class LogVerificationProgressState {
         execute(dao -> dao.updateProgress(client, useCase, seq));
     }
 
-    public Optional<ProgressComponents> getProgressComponents(Client client, String useCase) {
+    public Optional<ProgressState> getProgressComponents(Client client, String useCase) {
         return execute(dao -> dao.getProgressComponents(client, useCase));
     }
 
@@ -95,7 +95,7 @@ public final class LogVerificationProgressState {
 
         @SqlQuery("SELECT seq, progressLimit FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
-        Optional<ProgressComponents> getProgressComponents(
+        Optional<ProgressState> getProgressComponents(
                 @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 }

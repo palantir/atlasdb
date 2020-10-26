@@ -53,13 +53,13 @@ public final class HistoryLoaderAndTransformer {
     }
 
     private static SequenceBounds seqBoundsCollisionResolver(SequenceBounds bound1, SequenceBounds bound2) {
-        return bound1.lower() < bound2.lower() ? bound1 : bound2;
+        return bound1.lowerInclusive() < bound2.lowerInclusive() ? bound1 : bound2;
     }
 
     private static ImmutableSequenceBounds sequenceBounds(HistoryQuery query) {
         return SequenceBounds.builder()
-                .lower(query.getLowerBound())
-                .upper(query.getUpperBound())
+                .lowerInclusive(query.getLowerBound())
+                .upperInclusive(query.getUpperBound())
                 .build();
     }
 

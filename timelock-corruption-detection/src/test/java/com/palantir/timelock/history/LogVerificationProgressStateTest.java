@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqliteConnections;
-import com.palantir.timelock.history.models.ProgressComponents;
+import com.palantir.timelock.history.models.ProgressState;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import javax.sql.DataSource;
 import org.junit.Before;
@@ -28,7 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class LogVerificationStateTest {
+public class LogVerificationProgressStateTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -52,9 +52,9 @@ public class LogVerificationStateTest {
     @Test
     public void canResetState() {
         long greatestLogSeq = 55L;
-        ProgressComponents progress = log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
+        ProgressState progress = log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
 
-        assertThat(progress.seq()).isEqualTo(-1L);
+        assertThat(progress.lastVerifiedSeq()).isEqualTo(-1L);
         assertThat(progress.progressLimit()).isEqualTo(greatestLogSeq);
     }
 
@@ -66,16 +66,16 @@ public class LogVerificationStateTest {
         log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
 
         assertThat(log.getProgressComponents(CLIENT, USE_CASE))
-                .hasValue(ProgressComponents.builder()
+                .hasValue(ProgressState.builder()
                         .progressLimit(greatestLogSeq)
-                        .seq(-1L)
+                        .lastVerifiedSeq(-1L)
                         .build());
 
         log.updateProgress(CLIENT, USE_CASE, progressState);
         assertThat(log.getProgressComponents(CLIENT, USE_CASE))
-                .hasValue(ProgressComponents.builder()
+                .hasValue(ProgressState.builder()
                         .progressLimit(greatestLogSeq)
-                        .seq(progressState)
+                        .lastVerifiedSeq(progressState)
                         .build());
     }
 }

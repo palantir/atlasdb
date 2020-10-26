@@ -19,14 +19,14 @@ package com.palantir.timelock.history.models;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ProgressComponents {
+public interface ProgressState {
     @Value.Parameter
-    long seq();
+    long lastVerifiedSeq();
 
     @Value.Parameter
     long progressLimit();
 
-    static ImmutableProgressComponents.Builder builder() {
-        return ImmutableProgressComponents.builder();
+    static ImmutableProgressState.Builder builder() {
+        return ImmutableProgressState.builder();
     }
 }
