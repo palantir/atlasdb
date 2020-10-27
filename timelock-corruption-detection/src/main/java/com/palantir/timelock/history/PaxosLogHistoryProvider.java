@@ -67,12 +67,14 @@ public class PaxosLogHistoryProvider {
     //     TODO(snanda): Refactor the two parts on translating PaxosHistoryOnRemote to
     //      CompletePaxosHistoryForNamespaceAndUseCase to a separate component
     public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() {
-        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences =
-                getNamespaceAndUseCaseToLastVerifiedSeqMap();
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified =
+                getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap();
 
-        PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
+        PaxosHistoryOnSingleNode localPaxosHistory =
+                localHistoryLoader.getLocalPaxosHistory(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
 
-        List<HistoryQuery> historyQueries = getHistoryQueryListForRemoteServers(lastVerifiedSequences);
+        List<HistoryQuery> historyQueries =
+                getHistoryQueryListForRemoteServers(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
 
         List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
@@ -80,18 +82,18 @@ public class PaxosLogHistoryProvider {
                 buildHistoryFromRemoteResponses(rawHistoryFromAllRemotes);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistoryList = consolidateAndGetHistoriesAcrossAllNodes(
-                lastVerifiedSequences, localPaxosHistory, historyFromAllRemotes);
+                namespaceAndUseCaseWiseSequenceRangeToBeVerified, localPaxosHistory, historyFromAllRemotes);
 
-        progressTracker.updateProgressState(lastVerifiedSequences);
+        progressTracker.updateProgressState(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
 
         return completeHistoryList;
     }
 
     private List<CompletePaxosHistoryForNamespaceAndUseCase> consolidateAndGetHistoriesAcrossAllNodes(
-            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences,
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified,
             PaxosHistoryOnSingleNode localPaxosHistory,
             List<ConsolidatedPaxosHistoryOnSingleNode> historyFromAllRemotes) {
-        return lastVerifiedSequences.keySet().stream()
+        return namespaceAndUseCaseWiseSequenceRangeToBeVerified.keySet().stream()
                 .map(namespaceAndUseCase ->
                         buildCompleteHistory(namespaceAndUseCase, localPaxosHistory, historyFromAllRemotes))
                 .collect(Collectors.toList());
@@ -111,14 +113,14 @@ public class PaxosLogHistoryProvider {
     }
 
     private List<HistoryQuery> getHistoryQueryListForRemoteServers(
-            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences) {
-        return KeyedStream.stream(lastVerifiedSequences)
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified) {
+        return KeyedStream.stream(namespaceAndUseCaseWiseSequenceRangeToBeVerified)
                 .mapEntries(this::buildHistoryQuery)
                 .values()
                 .collect(Collectors.toList());
     }
 
-    private Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> getNamespaceAndUseCaseToLastVerifiedSeqMap() {
+    private Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap() {
         return KeyedStream.of(getNamespaceAndUseCaseTuples().stream())
                 .map(progressTracker::getPaxosLogSequenceBounds)
                 .collectToMap();

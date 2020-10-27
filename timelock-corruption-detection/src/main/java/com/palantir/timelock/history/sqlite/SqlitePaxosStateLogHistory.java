@@ -22,6 +22,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.HistoryQuerySequenceBounds;
 import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.mappers.AcceptorPaxosRoundMapper;
 import com.palantir.timelock.history.mappers.LearnerPaxosRoundMapper;
@@ -67,11 +68,18 @@ public final class SqlitePaxosStateLogHistory {
             Client namespace,
             LearnerUseCase learnerUseCase,
             AcceptorUseCase acceptorUseCase,
-            long lowerBound,
-            long upperBound) {
+            HistoryQuerySequenceBounds querySequenceBounds) {
         return execute(dao -> ImmutableLearnerAndAcceptorRecords.of(
-                dao.getLearnerLogsInRange(namespace, learnerUseCase.value(), lowerBound, upperBound),
-                dao.getAcceptorLogsInRange(namespace, acceptorUseCase.value(), lowerBound, upperBound)));
+                dao.getLearnerLogsInRange(
+                        namespace,
+                        learnerUseCase.value(),
+                        querySequenceBounds.getLowerBoundInclusive(),
+                        querySequenceBounds.getUpperBoundInclusive()),
+                dao.getAcceptorLogsInRange(
+                        namespace,
+                        acceptorUseCase.value(),
+                        querySequenceBounds.getLowerBoundInclusive(),
+                        querySequenceBounds.getUpperBoundInclusive())));
     }
 
     public long getGreatestLogEntry(Client client, LearnerUseCase useCase) {
@@ -97,19 +105,19 @@ public final class SqlitePaxosStateLogHistory {
         // configurable to
         //         accommodate the rate at which logs are being published.
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
-                + " :lowerBound AND seq <= :upperBound")
+                + " :lowerBoundInclusive AND seq <= :upperBound")
         Map<Long, PaxosValue> getLearnerLogsInRange(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
-                @Bind("lowerBound") long lowerBound,
+                @Bind("lowerBoundInclusive") long lowerBoundInclusive,
                 @Bind("upperBound") long upperBound);
 
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
-                + " :lowerBound AND seq <= :upperBound")
+                + " :lowerBoundInclusive AND seq <= :upperBoundInclusive")
         Map<Long, PaxosAcceptorData> getAcceptorLogsInRange(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
-                @Bind("lowerBound") long lowerBound,
-                @Bind("upperBound") long upperBound);
+                @Bind("lowerBoundInclusive") long lowerBoundInclusive,
+                @Bind("upperBoundInclusive") long upperBoundInclusive);
     }
 }
