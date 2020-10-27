@@ -271,7 +271,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
                     "Should only index successfully stored streams.");
 
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(metadata.getHash())) {
                 hash = new Sha256Hash(metadata.getHash().toByteArray());
             }
             DataStreamHashAidxTable.DataStreamHashAidxRow hashRow = DataStreamHashAidxTable.DataStreamHashAidxRow.of(hash);
@@ -306,7 +306,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
             }
             ByteString streamHash = e.getValue().getHash();
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (streamHash != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(streamHash)) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
                 log.error("Empty hash for stream {}", streamId);

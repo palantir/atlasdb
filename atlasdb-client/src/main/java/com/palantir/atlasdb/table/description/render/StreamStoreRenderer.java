@@ -573,7 +573,7 @@ public class StreamStoreRenderer {
                         line("        \"Should only index successfully stored streams.\");");
                         line();
                         line("Sha256Hash hash = Sha256Hash.EMPTY;");
-                        line("if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {");
+                        line("if (!ByteString.EMPTY.equals(metadata.getHash())) {");
                         {
                             line("hash = new Sha256Hash(metadata.getHash().toByteArray());");
                         }
@@ -634,7 +634,7 @@ public class StreamStoreRenderer {
 
                         line("ByteString streamHash = e.getValue().getHash();");
                         line("Sha256Hash hash = Sha256Hash.EMPTY;");
-                        line("if (streamHash != com.google.protobuf.ByteString.EMPTY) {");
+                        line("if (!ByteString.EMPTY.equals(streamHash)) {");
                         {
                             line("hash = new Sha256Hash(streamHash.toByteArray());");
                         }
