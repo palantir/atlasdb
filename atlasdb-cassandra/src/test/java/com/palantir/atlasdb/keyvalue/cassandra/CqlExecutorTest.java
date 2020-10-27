@@ -100,7 +100,11 @@ public class CqlExecutorTest {
                 return false;
             }
 
-            String actualQuery = PtBytes.toString(argument.array());
+            int position = argument.position();
+            byte[] data = new byte[argument.remaining()];
+            argument.get(data);
+            argument.position(position);
+            String actualQuery = PtBytes.toString(data);
             return expected.equals(actualQuery);
         };
     }
