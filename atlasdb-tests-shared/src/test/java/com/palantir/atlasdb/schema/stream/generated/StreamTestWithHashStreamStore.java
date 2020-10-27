@@ -12,6 +12,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -139,8 +141,8 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         StreamTestWithHashStreamMetadataTable mdTable = tables.getStreamTestWithHashStreamMetadataTable(t);
         Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
 
-        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
-        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
+        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = new HashMap<>();
+        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = new HashMap<>();
         for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
             long streamId = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -161,7 +163,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
+        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -204,7 +206,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         }
         StreamTestWithHashStreamMetadataTable table = tables.getStreamTestWithHashStreamMetadataTable(t);
         Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = Maps.newHashMap();
+        Map<Long, StreamMetadata> ret = new HashMap<>();
         for (Map.Entry<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -220,7 +222,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         Set<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMap();
+        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
         for (StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow r : m.keySet()) {
             for (StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -233,7 +235,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         }
         Map<Long, StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());
 
-        Map<Sha256Hash, Long> ret = Maps.newHashMap();
+        Map<Sha256Hash, Long> ret = new HashMap<>();
         for (Map.Entry<Long, StreamMetadata> e : metadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 continue;
@@ -246,7 +248,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     }
 
     private Set<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow> rows = Sets.newHashSet();
+        Set<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow> rows = new HashSet<>();
         for (Sha256Hash h : hashes) {
             rows.add(StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow.of(h));
         }
@@ -254,7 +256,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     }
 
     private Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
-        Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> rows = Sets.newHashSet();
+        Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(id));
         }
@@ -290,14 +292,14 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         if (streamIds.isEmpty()) {
             return;
         }
-        Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> smRows = Sets.newHashSet();
+        Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> smRows = new HashSet<>();
         Multimap<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn> shToDelete = HashMultimap.create();
         for (Long streamId : streamIds) {
             smRows.add(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(streamId));
         }
         StreamTestWithHashStreamMetadataTable table = tables.getStreamTestWithHashStreamMetadataTable(t);
         Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(smRows);
-        Set<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        Set<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow> streamValueToDelete = new HashSet<>();
         for (Entry<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             Long streamId = e.getKey().getId();
             long blocks = getNumberOfBlocksFromMetadata(e.getValue());
@@ -356,7 +358,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
         StreamTestWithHashStreamMetadataTable metaTable = tables.getStreamTestWithHashStreamMetadataTable(t);
-        Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> rows = Sets.newHashSet();
+        Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(id));
         }
@@ -403,7 +405,9 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link FileOutputStream}
      * {@link Functions}
      * {@link Generated}
+     * {@link HashMap}
      * {@link HashMultimap}
+     * {@link HashSet}
      * {@link IOException}
      * {@link ImmutableMap}
      * {@link ImmutableSet}
