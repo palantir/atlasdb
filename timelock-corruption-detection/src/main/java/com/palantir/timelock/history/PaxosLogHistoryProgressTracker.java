@@ -41,7 +41,8 @@ public class PaxosLogHistoryProgressTracker {
         this.sqlitePaxosStateLogHistory = sqlitePaxosStateLogHistory;
     }
 
-    public HistoryQuerySequenceBounds getPaxosLogSequenceBounds(NamespaceAndUseCase namespaceAndUseCase) {
+    public HistoryQuerySequenceBounds getNextPaxosLogSequenceRangeToBeVerified(
+            NamespaceAndUseCase namespaceAndUseCase) {
         ProgressState progressState = getOrPopulateProgressState(namespaceAndUseCase);
 
         if (progressState.shouldResetProgressState()) {
@@ -52,8 +53,8 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     public void updateProgressState(
-            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseSequenceBoundsMap) {
-        namespaceAndUseCaseSequenceBoundsMap.forEach(this::updateProgressStateForNamespaceAndUseCase);
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseLoadedSequenceRange) {
+        namespaceAndUseCaseWiseLoadedSequenceRange.forEach(this::updateProgressStateForNamespaceAndUseCase);
     }
 
     private ProgressState getOrPopulateProgressState(NamespaceAndUseCase namespaceAndUseCase) {

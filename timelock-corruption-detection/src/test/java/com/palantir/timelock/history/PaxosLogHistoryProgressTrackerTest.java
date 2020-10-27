@@ -41,17 +41,18 @@ public class PaxosLogHistoryProgressTrackerTest {
     private static final Client CLIENT = Client.of("tom");
     private static final String USE_CASE = "useCase1";
     private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE);
+    private static final SqlitePaxosStateLogHistory SQLITE_PAXOS_STATE_LOG_HISTORY =
+            mock(SqlitePaxosStateLogHistory.class);
 
     private PaxosLogHistoryProgressTracker progressTracker;
     private LogVerificationProgressState log;
-    private static final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory = mock(SqlitePaxosStateLogHistory.class);
 
     @Before
     public void setup() {
         DataSource dataSource =
                 SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         log = LogVerificationProgressState.create(dataSource);
-        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory);
+        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SQLITE_PAXOS_STATE_LOG_HISTORY);
     }
 
     @Test
@@ -64,7 +65,7 @@ public class PaxosLogHistoryProgressTrackerTest {
         long greatestLogSeq = 7L;
         long lastVerified = 3L;
 
-        when(sqlitePaxosStateLogHistory.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
+        when(SQLITE_PAXOS_STATE_LOG_HISTORY.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
         log.updateProgress(CLIENT, USE_CASE, lastVerified);
 
         assertSanityOfFetchedHistoryQuerySeqBounds(lastVerified + 1, lastVerified + MAX_ROWS_ALLOWED);
@@ -81,7 +82,7 @@ public class PaxosLogHistoryProgressTrackerTest {
                 .upperBoundInclusive(upper)
                 .build();
 
-        when(sqlitePaxosStateLogHistory.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
+        when(SQLITE_PAXOS_STATE_LOG_HISTORY.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);
 
         assertSanityOfFetchedHistoryQuerySeqBounds(lastVerified + 1, lastVerified + MAX_ROWS_ALLOWED);
@@ -90,7 +91,7 @@ public class PaxosLogHistoryProgressTrackerTest {
     @Test
     public void canResetProgressStateIfRequired() {
         long greatestLogSeq = 100L;
-        when(sqlitePaxosStateLogHistory.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
+        when(SQLITE_PAXOS_STATE_LOG_HISTORY.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
 
         HistoryQuerySequenceBounds bounds = HistoryQuerySequenceBounds.builder()
                 .lowerBoundInclusive(1L)
@@ -103,7 +104,7 @@ public class PaxosLogHistoryProgressTrackerTest {
 
     public void assertSanityOfFetchedHistoryQuerySeqBounds(long lowerBoundInclusive, long upperBoundInclusive) {
         HistoryQuerySequenceBounds paxosLogSequenceBounds =
-                progressTracker.getPaxosLogSequenceBounds(NAMESPACE_AND_USE_CASE);
+                progressTracker.getNextPaxosLogSequenceRangeToBeVerified(NAMESPACE_AND_USE_CASE);
         assertThat(paxosLogSequenceBounds.getLowerBoundInclusive()).isEqualTo(lowerBoundInclusive);
         assertThat(paxosLogSequenceBounds.getUpperBoundInclusive()).isEqualTo(upperBoundInclusive);
     }
