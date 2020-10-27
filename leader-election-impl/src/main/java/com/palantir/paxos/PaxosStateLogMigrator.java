@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.immutables.value.Value;
+import org.immutables.value.Value.Default;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,14 +68,14 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             context.migrationState().setCutoff(cutoff);
             context.migrationState().migrateToMigratedState();
             if (context.skipValidationAndTruncateSourceIfMigrated()) {
-                context.sourceLog().truncate(context.sourceLog().getGreatestLogEntry());
+                context.sourceLog().truncateAllRounds();
             }
             return cutoff;
         } else {
             if (!context.skipValidationAndTruncateSourceIfMigrated()) {
                 validateConsistency(context);
             } else {
-                context.sourceLog().truncate(context.sourceLog().getGreatestLogEntry());
+                context.sourceLog().truncateAllRounds();
             }
         }
         return context.migrationState().getCutoff();
@@ -183,7 +184,10 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
 
         NamespaceAndUseCase namespaceAndUseCase();
 
-        boolean skipValidationAndTruncateSourceIfMigrated();
+        @Default
+        default boolean skipValidationAndTruncateSourceIfMigrated() {
+            return false;
+        }
     }
 
     private static final class LogReader<V extends Persistable & Versionable> {
