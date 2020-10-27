@@ -82,6 +82,7 @@ public class LeaderElectionDurationAccumulatorTest {
     }
 
     @Test
+    @SuppressWarnings("ExecutorSubmitRunnableFutureIgnored")
     public void testInterleavingNoPause() throws InterruptedException {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(3);
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 300);
@@ -98,6 +99,7 @@ public class LeaderElectionDurationAccumulatorTest {
     }
 
     @Test
+    @SuppressWarnings("ExecutorSubmitRunnableFutureIgnored")
     public void testInterleavingWithPause() throws InterruptedException {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(3);
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 300);
@@ -114,18 +116,17 @@ public class LeaderElectionDurationAccumulatorTest {
     }
 
     @Test
+    @SuppressWarnings("ExecutorSubmitRunnableFutureIgnored")
     public void testManyUpdatesForSameLeaders() throws InterruptedException {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(50);
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 5_000);
-        List<Integer> durations = IntStream.range(0, 100).map(x -> x * 100).boxed().collect(Collectors.toList());
+        List<Integer> durations =
+                IntStream.range(0, 100).map(x -> x * 100).boxed().collect(Collectors.toList());
         Collections.shuffle(durations);
 
-        durations.forEach(duration -> executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_2,
-                100, duration)));
+        durations.forEach(duration ->
+                executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_2, 50, duration)));
 
-        for(int i = 0; i < 100; i++) {
-            executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_2, 100, 1));
-        }
         executorService.shutdown();
         executorService.awaitTermination(1, TimeUnit.MINUTES);
 

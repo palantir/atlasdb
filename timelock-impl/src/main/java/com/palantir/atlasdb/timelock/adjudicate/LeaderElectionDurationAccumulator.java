@@ -43,12 +43,14 @@ public class LeaderElectionDurationAccumulator {
         if (oldLeaderElections.contains(leadersContext)) {
             return;
         }
-        currentlySoaking.compute(leadersContext, (context, previous) -> increaseConfidence(context, previous,
-                duration.getDuration().longValue()));
+        currentlySoaking.compute(
+                leadersContext,
+                (context, previous) -> increaseConfidence(
+                        context, previous, duration.getDuration().longValue()));
     }
 
-    private ModifiableSoakingDuration increaseConfidence(LeadersContext context, ModifiableSoakingDuration previousDuration,
-            long duration) {
+    private ModifiableSoakingDuration increaseConfidence(
+            LeadersContext context, ModifiableSoakingDuration previousDuration, long duration) {
         if (oldLeaderElections.contains(context)) {
             return null;
         }
@@ -73,6 +75,7 @@ public class LeaderElectionDurationAccumulator {
     interface LeadersContext {
         @Parameter
         UUID previous();
+
         @Parameter
         UUID next();
 
@@ -85,6 +88,7 @@ public class LeaderElectionDurationAccumulator {
     interface SoakingDuration {
         @Parameter
         long value();
+
         @Parameter
         int count();
     }
