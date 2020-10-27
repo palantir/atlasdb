@@ -6,7 +6,6 @@ protobuf {
   protoc {
     artifact = "com.google.protobuf:protoc:${libVersions.protoc}"
   }
-  generatedFilesBaseDir = "$projectDir/src"
 }
 
 dependencies {
@@ -14,8 +13,3 @@ dependencies {
 }
 
 project.tasks.idea.dependsOn('generateProto')
-
-// Avoid flagging generated code
-tasks.withType(JavaCompile) {
-    options.errorprone.enabled = false
-}
