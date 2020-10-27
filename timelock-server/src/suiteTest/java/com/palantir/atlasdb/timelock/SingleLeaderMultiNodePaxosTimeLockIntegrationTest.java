@@ -23,10 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
@@ -34,7 +32,6 @@ import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.Client;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -141,18 +138,6 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
         assertThat(sequenceNumbers).isSorted();
         assertThat(ImmutableSet.copyOf(sequenceNumbers)).hasSameSizeAs(sequenceNumbers);
-    }
-
-    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
-        nonLeader
-                .serverHolder()
-                .wireMock()
-                .register(WireMock.any(WireMock.anyUrl())
-                        .atPriority(Integer.MAX_VALUE - 1)
-                        .willReturn(WireMock.serviceUnavailable()
-                                .withFixedDelay(
-                                        Ints.checkedCast(Duration.ofSeconds(2).toMillis())))
-                        .build());
     }
 
     private static long getSequenceForServerUsingBatchedEndpoint(TestableTimelockServer server) {

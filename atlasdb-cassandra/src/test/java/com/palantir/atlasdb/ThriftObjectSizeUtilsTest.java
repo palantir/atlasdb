@@ -156,7 +156,7 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForMutationWithDeletionContainingNonEmptySlicePredicate() {
-        long deletionSize = (Long.BYTES) + NULL_SIZE + (TEST_NAME.getBytes().length + NULL_SIZE);
+        long deletionSize = Long.BYTES + NULL_SIZE + (TEST_NAME.getBytes().length + NULL_SIZE);
         assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
                         .setDeletion(new Deletion()
                                 .setPredicate(new SlicePredicate()

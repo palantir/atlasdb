@@ -105,7 +105,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
                 .build();
         Gauge<Integer> cacheSizeGauge =
                 () -> this.cacheDescriptor.get().currentSize().intValue();
-        taggedMetricRegistry.gauge(CACHE_SIZE, cacheSizeGauge);
+        taggedMetricRegistry.registerWithReplacement(CACHE_SIZE, cacheSizeGauge);
     }
 
     @Override

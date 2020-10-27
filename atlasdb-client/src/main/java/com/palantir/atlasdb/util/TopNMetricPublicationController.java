@@ -19,7 +19,6 @@ package com.palantir.atlasdb.util;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -29,6 +28,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -51,7 +51,7 @@ public final class TopNMetricPublicationController<T> {
     TopNMetricPublicationController(Comparator<T> comparator, int maxPermittedRank, Duration refreshInterval) {
         this.comparator = comparator;
         this.maxPermittedRank = maxPermittedRank;
-        this.gauges = Sets.newConcurrentHashSet();
+        this.gauges = ConcurrentHashMap.newKeySet();
         this.publishableGauges = Suppliers.memoizeWithExpiration(
                 this::getEligibleGauges, refreshInterval.toNanos(), TimeUnit.NANOSECONDS);
     }

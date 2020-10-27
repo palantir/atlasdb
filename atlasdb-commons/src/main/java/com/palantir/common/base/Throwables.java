@@ -244,7 +244,7 @@ public final class Throwables {
             Thread t = entry.getKey();
             StackTraceElement elements[] = entry.getValue();
 
-            printWriter.println((new StringBuilder()).append(t));
+            printWriter.println(new StringBuilder().append(t));
             printStackTrace(printWriter, elements);
             printWriter.println();
         }
@@ -255,10 +255,7 @@ public final class Throwables {
     private static void printStackTrace(PrintWriter printwriter, StackTraceElement elements[]) {
         synchronized (printwriter) {
             for (int i = 0; i < elements.length; i++) {
-                printwriter.println((new StringBuilder())
-                        .append("\tat ")
-                        .append(elements[i])
-                        .toString());
+                printwriter.println("\tat " + elements[i]);
             }
         }
     }

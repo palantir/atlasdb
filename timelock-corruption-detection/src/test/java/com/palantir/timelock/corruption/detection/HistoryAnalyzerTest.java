@@ -80,7 +80,7 @@ public class HistoryAnalyzerTest {
     @Test
     public void correctlyPassesIfThereIsNotCorruption() {
         writeLogsOnServer(localStateLogComponents, 1, 10);
-        remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1, 10));
+        remoteStateLogComponents.forEach(server -> writeLogsOnServer(server, 1, 10));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
 
@@ -100,9 +100,8 @@ public class HistoryAnalyzerTest {
                 localStateLogComponents.learnerLog(),
                 1,
                 PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 1));
-        remoteStateLogComponents.stream()
-                .forEach(server -> PaxosSerializationTestUtils.writePaxosValue(
-                        server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
+        remoteStateLogComponents.forEach(server -> PaxosSerializationTestUtils.writePaxosValue(
+                server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
@@ -133,7 +132,7 @@ public class HistoryAnalyzerTest {
     @Test
     public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
         writeLogsOnServer(localStateLogComponents, 1, 5);
-        remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1, 5));
+        remoteStateLogComponents.forEach(server -> writeLogsOnServer(server, 1, 5));
 
         PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(
                 localStateLogComponents.acceptorLog(),

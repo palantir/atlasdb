@@ -17,7 +17,7 @@
 package com.palantir.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
@@ -101,7 +101,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 "Reading {} entries from file backed paxos state log took {}.",
                 SafeArg.of("numEntries", roundsToMigrate.size()),
                 SafeArg.of("duration", Duration.between(start, afterRead)));
-        Iterables.partition(roundsToMigrate, BATCH_SIZE)
+        Lists.partition(roundsToMigrate, BATCH_SIZE)
                 .forEach(batch -> writeBatchRetryingUpToFiveTimes(destinationLog, batch));
         log.info(
                 "Writing {} entries to sqlite backed paxos state log took {}.",

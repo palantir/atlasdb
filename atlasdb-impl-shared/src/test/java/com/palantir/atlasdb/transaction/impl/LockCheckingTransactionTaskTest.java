@@ -61,7 +61,7 @@ public class LockCheckingTransactionTaskTest {
 
     @Test
     public void shouldReturnResultOfDelegate() throws Exception {
-        assertEquals(wrappingTask.execute(transaction), "result");
+        assertEquals("result", wrappingTask.execute(transaction));
     }
 
     @Test
