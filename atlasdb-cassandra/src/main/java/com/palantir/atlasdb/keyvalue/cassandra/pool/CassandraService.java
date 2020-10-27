@@ -277,7 +277,7 @@ public class CassandraService implements AutoCloseable {
         }
 
         Optional<InetSocketAddress> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
-        return randomLivingHost.flatMap(host -> Optional.ofNullable(pools.get(host)));
+        return randomLivingHost.map(pools::get);
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {

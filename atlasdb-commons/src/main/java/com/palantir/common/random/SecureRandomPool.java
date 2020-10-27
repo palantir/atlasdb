@@ -68,7 +68,7 @@ public class SecureRandomPool {
     }
 
     public SecureRandom getSecureRandom() {
-        int i = (int) (Math.abs(next.getAndIncrement() % pool.size()));
+        int i = (int) Math.abs(next.getAndIncrement() % pool.size());
         return pool.get(i);
     }
 

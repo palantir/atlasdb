@@ -17,7 +17,6 @@ package com.palantir.common.base;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -32,6 +31,7 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 public final class BatchingVisitables {
@@ -372,7 +372,7 @@ public final class BatchingVisitables {
 
                             Object itemKey = function.apply(item);
 
-                            if (!hasVisitedFirst || !Objects.equal(itemKey, lastVisited)) {
+                            if (!hasVisitedFirst || !Objects.equals(itemKey, lastVisited)) {
                                 if (!v.visitOne(item)) {
                                     return false;
                                 }

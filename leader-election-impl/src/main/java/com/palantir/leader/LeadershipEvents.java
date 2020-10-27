@@ -20,7 +20,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.sls.versions.OrderableSlsVersion;
-import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.List;
 import javax.annotation.concurrent.ThreadSafe;
@@ -106,9 +105,5 @@ class LeadershipEvents {
         } else {
             return ArrayUtils.add(contextArgs, arg);
         }
-    }
-
-    private static MetricName withName(String name) {
-        return MetricName.builder().safeName(name).build();
     }
 }

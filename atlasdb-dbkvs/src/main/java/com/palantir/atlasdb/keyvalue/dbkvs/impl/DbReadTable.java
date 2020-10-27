@@ -29,9 +29,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 public class DbReadTable {
     private static final int MAX_ROW_COLUMN_RANGES_FETCH_SIZE = 1000;
@@ -150,35 +147,6 @@ public class DbReadTable {
 
     public boolean hasOverflowValues() {
         return queryFactory.hasOverflowValues();
-    }
-
-    private static <T> Future<T> getSupplierFuture(Supplier<T> supplier) {
-        return new Future<T>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-
-            @Override
-            public boolean isDone() {
-                return true;
-            }
-
-            @Override
-            public T get() {
-                return supplier.get();
-            }
-
-            @Override
-            public T get(long timeout, TimeUnit unit) {
-                return get();
-            }
-        };
     }
 
     private boolean isSingleton(Iterable<?> iterable) {

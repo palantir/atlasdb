@@ -76,7 +76,7 @@ public class StreamCompressionTests {
     public void testCanDecompressGzipAsLz4() throws IOException {
         byte[] data = new byte[1_000_000];
         fillWithIncompressibleData(data);
-        assertThat(ByteStreams.toByteArray(LZ4.decompress((GZIP.compress(new ByteArrayInputStream(data))))))
+        assertThat(ByteStreams.toByteArray(LZ4.decompress(GZIP.compress(new ByteArrayInputStream(data)))))
                 .isEqualTo(data);
     }
 
