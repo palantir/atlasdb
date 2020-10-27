@@ -27,8 +27,10 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.Test;
 
-// Note - All tests only induce and detect one type of corruption check violation ->
-// CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED
+/**
+ * This class performs integration tests by inducing and detecting corruption in one or more series.
+ * Note - All tests only induce and detect one type of corruption check violation -> ACCEPTED_VALUE_GREATER_THAN_LEARNED
+ */
 public class CorruptionDetectionIntegrationTest extends TimeLockCorruptionTestSetup {
 
     @Test
