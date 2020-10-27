@@ -163,7 +163,8 @@ public class PaxosLogHistoryProviderTest {
 
         progressTracker.updateProgressStateForNamespaceAndUseCase(
                 DEFAULT_NAMESPACE_AND_USE_CASE, HistoryQuerySequenceBounds.of(-1, lastVerified));
-        HistoryQuerySequenceBounds bounds = progressTracker.getPaxosLogSequenceBounds(DEFAULT_NAMESPACE_AND_USE_CASE);
+        HistoryQuerySequenceBounds bounds =
+                progressTracker.getNextPaxosLogSequenceRangeToBeVerified(DEFAULT_NAMESPACE_AND_USE_CASE);
 
         List<HistoryQuery> historyQueries =
                 ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(bounds.getLowerBoundInclusive()));

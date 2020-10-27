@@ -122,7 +122,7 @@ public class PaxosLogHistoryProvider {
 
     private Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap() {
         return KeyedStream.of(getNamespaceAndUseCaseTuples().stream())
-                .map(progressTracker::getPaxosLogSequenceBounds)
+                .map(progressTracker::getNextPaxosLogSequenceRangeToBeVerified)
                 .collectToMap();
     }
 
