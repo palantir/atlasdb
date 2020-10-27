@@ -105,12 +105,12 @@ public class SqlitePaxosStateLogHistory {
         // configurable to
         //         accommodate the rate at which logs are being published.
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
-                + " :lowerBoundInclusive AND seq <= :upperBound")
+                + " :lowerBoundInclusive AND seq <= :upperBoundInclusive")
         Map<Long, PaxosValue> getLearnerLogsInRange(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
                 @Bind("lowerBoundInclusive") long lowerBoundInclusive,
-                @Bind("upperBound") long upperBound);
+                @Bind("upperBoundInclusive") long upperBoundInclusive);
 
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
                 + " :lowerBoundInclusive AND seq <= :upperBoundInclusive")
