@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.models.ProgressState;
-import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import java.util.Map;
@@ -28,6 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 
 public class PaxosLogHistoryProgressTracker {
+    @VisibleForTesting
+    static final int MAX_ROWS_ALLOWED = 500;
+
     private final LogVerificationProgressState logVerificationProgressState;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
 
@@ -39,17 +41,18 @@ public class PaxosLogHistoryProgressTracker {
         this.sqlitePaxosStateLogHistory = sqlitePaxosStateLogHistory;
     }
 
-    public SequenceBounds getPaxosLogSequenceBounds(NamespaceAndUseCase namespaceAndUseCase) {
+    public HistoryQuerySequenceBounds getPaxosLogSequenceBounds(NamespaceAndUseCase namespaceAndUseCase) {
         ProgressState progressState = getOrPopulateProgressState(namespaceAndUseCase);
 
         if (progressState.shouldResetProgressState()) {
             progressState = resetProgressState(namespaceAndUseCase);
         }
 
-        return SequenceBounds.getBoundsSinceLastVerified(progressState.lastVerifiedSeq());
+        return sequenceBoundsForNextHistoryQuery(progressState.lastVerifiedSeq());
     }
 
-    public void updateProgressState(Map<NamespaceAndUseCase, SequenceBounds> namespaceAndUseCaseSequenceBoundsMap) {
+    public void updateProgressState(
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseSequenceBoundsMap) {
         namespaceAndUseCaseSequenceBoundsMap.forEach(this::updateProgressStateForNamespaceAndUseCase);
     }
 
@@ -65,9 +68,10 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     @VisibleForTesting
-    void updateProgressStateForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase, SequenceBounds bounds) {
+    void updateProgressStateForNamespaceAndUseCase(
+            NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds bounds) {
         updateProgressInDbThroughCache(
-                namespaceAndUseCase, bounds.upperInclusive(), getOrPopulateProgressState(namespaceAndUseCase));
+                namespaceAndUseCase, bounds.getUpperBoundInclusive(), getOrPopulateProgressState(namespaceAndUseCase));
     }
 
     private ProgressState updateProgressInDbThroughCache(
@@ -101,5 +105,9 @@ public class PaxosLogHistoryProgressTracker {
                 .lastVerifiedSeq(lastVerifiedSeq)
                 .greatestSeqNumberToBeVerified(getLatestLearnedSequenceForNamespaceAndUseCase(namespaceAndUseCase))
                 .build();
+    }
+
+    private HistoryQuerySequenceBounds sequenceBoundsForNextHistoryQuery(long lastVerified) {
+        return HistoryQuerySequenceBounds.of(lastVerified + 1, lastVerified + MAX_ROWS_ALLOWED);
     }
 }
