@@ -40,21 +40,20 @@ public final class LocalHistoryLoader {
     }
 
     public PaxosHistoryOnSingleNode getLocalPaxosHistory(
-            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences) {
-        return ImmutablePaxosHistoryOnSingleNode.of(KeyedStream.stream(lastVerifiedSequences)
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified) {
+        return ImmutablePaxosHistoryOnSingleNode.of(KeyedStream.stream(namespaceAndUseCaseWiseSequenceRangeToBeVerified)
                 .map(this::loadLocalHistory)
                 .collectToMap());
     }
 
     @VisibleForTesting
     LearnerAndAcceptorRecords loadLocalHistory(
-            NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds bounds) {
+            NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds sequenceRangeToBeVerified) {
         String paxosUseCasePrefix = namespaceAndUseCase.useCase();
         return sqlitePaxosStateLogHistory.getLearnerAndAcceptorLogsInRange(
                 namespaceAndUseCase.namespace(),
                 LearnerUseCase.createLearnerUseCase(paxosUseCasePrefix),
                 AcceptorUseCase.createAcceptorUseCase(paxosUseCasePrefix),
-                bounds.getLowerBoundInclusive(),
-                bounds.getUpperBoundInclusive());
+                sequenceRangeToBeVerified);
     }
 }

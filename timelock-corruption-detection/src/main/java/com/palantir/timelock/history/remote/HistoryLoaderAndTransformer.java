@@ -37,13 +37,15 @@ public final class HistoryLoaderAndTransformer {
 
     public static List<LogsForNamespaceAndUseCase> getLogsForHistoryQueries(
             LocalHistoryLoader localHistoryLoader, List<HistoryQuery> historyQueries) {
-        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences = historyQueries.stream()
-                .collect(Collectors.toMap(
-                        HistoryQuery::getNamespaceAndUseCase,
-                        HistoryQuery::getSequenceBounds,
-                        HistoryLoaderAndTransformer::minimalLowerBoundResolver));
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified =
+                historyQueries.stream()
+                        .collect(Collectors.toMap(
+                                HistoryQuery::getNamespaceAndUseCase,
+                                HistoryQuery::getSequenceBounds,
+                                HistoryLoaderAndTransformer::minimalLowerBoundResolver));
 
-        PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
+        PaxosHistoryOnSingleNode localPaxosHistory =
+                localHistoryLoader.getLocalPaxosHistory(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
 
         return KeyedStream.stream(localPaxosHistory.history())
                 .mapEntries(HistoryLoaderAndTransformer::processHistory)
