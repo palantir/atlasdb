@@ -116,7 +116,8 @@ public class PaxosTimestampBoundStoreTest {
                     SqliteConnections.getPooledDataSource(Paths.get(root, i + "sqlite")),
                     UUID.randomUUID(),
                     true,
-                    OrderableSlsVersion.valueOf("0.0.0"));
+                    OrderableSlsVersion.valueOf("0.0.0"),
+                    false);
 
             AtomicBoolean failureController = new AtomicBoolean(false);
             failureToggles.add(failureController);

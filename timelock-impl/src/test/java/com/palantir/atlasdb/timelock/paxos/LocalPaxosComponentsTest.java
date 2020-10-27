@@ -134,7 +134,8 @@ public class LocalPaxosComponentsTest {
                 sqlite,
                 UUID.randomUUID(),
                 canCreateNewClients,
-                DEFAULT_TIME_LOCK_VERSION);
+                DEFAULT_TIME_LOCK_VERSION,
+                false);
     }
 
     public LocalPaxosComponents createPaxosComponents(
@@ -146,6 +147,7 @@ public class LocalPaxosComponentsTest {
                 sqlite,
                 UUID.randomUUID(),
                 canCreateNewClients,
-                timeLockVersion);
+                timeLockVersion,
+                false);
     }
 }

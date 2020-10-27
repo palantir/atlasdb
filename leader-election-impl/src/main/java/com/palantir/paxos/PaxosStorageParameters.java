@@ -27,4 +27,6 @@ public interface PaxosStorageParameters {
     DataSource sqliteDataSource();
 
     Optional<String> fileBasedLogDirectory();
+
+    boolean skipConsistencyCheckAndTruncateOldPaxosLog();
 }

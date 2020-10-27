@@ -212,11 +212,6 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     public void truncate(long toDeleteInclusive) {
         lock.writeLock().lock();
         try {
-            long greatestLogEntry = getGreatestLogEntry();
-            if (greatestLogEntry >= 0) {
-                // We never want to remove our most recent entry
-                toDeleteInclusive = Math.min(greatestLogEntry - 1, toDeleteInclusive);
-            }
             File dir = new File(path);
             List<File> files = getLogEntries(dir);
             files.sort(nameAsLongComparator());
