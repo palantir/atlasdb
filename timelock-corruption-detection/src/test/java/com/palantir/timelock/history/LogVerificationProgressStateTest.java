@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqliteConnections;
-import com.palantir.timelock.history.models.ProgressState;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import javax.sql.DataSource;
 import org.junit.Before;
@@ -35,47 +34,23 @@ public class LogVerificationProgressStateTest {
     private static final Client CLIENT = Client.of("tom");
     private static final String USE_CASE = "useCase1";
 
+    private DataSource dataSource;
     private LogVerificationProgressState log;
 
     @Before
     public void setup() {
-        DataSource dataSource =
-                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         log = LogVerificationProgressState.create(dataSource);
     }
 
     @Test
     public void initialStateIsAbsent() {
-        assertThat(log.getProgressState(CLIENT, USE_CASE)).isEmpty();
-    }
-
-    @Test
-    public void canResetState() {
-        long greatestLogSeq = 55L;
-        ProgressState progress = log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
-
-        assertThat(progress.lastVerifiedSeq()).isEqualTo(-1L);
-        assertThat(progress.greatestSeqNumberToBeVerified()).isEqualTo(greatestLogSeq);
+        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isEqualTo(-1L);
     }
 
     @Test
     public void canUpdateState() {
-        long greatestLogSeq = 7L;
-        long progressState = 5L;
-
-        log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
-
-        assertThat(log.getProgressState(CLIENT, USE_CASE))
-                .hasValue(ProgressState.builder()
-                        .greatestSeqNumberToBeVerified(greatestLogSeq)
-                        .lastVerifiedSeq(-1L)
-                        .build());
-
-        log.updateProgress(CLIENT, USE_CASE, progressState);
-        assertThat(log.getProgressState(CLIENT, USE_CASE))
-                .hasValue(ProgressState.builder()
-                        .greatestSeqNumberToBeVerified(greatestLogSeq)
-                        .lastVerifiedSeq(progressState)
-                        .build());
+        log.updateProgress(CLIENT, USE_CASE, 5L);
+        assertThat(log.getLastVerifiedSeq(CLIENT, USE_CASE)).isEqualTo(5L);
     }
 }

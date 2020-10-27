@@ -17,7 +17,6 @@
 package com.palantir.timelock.history;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.models.ProgressState;
@@ -55,17 +54,14 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     private ProgressState getOrPopulateProgressState(NamespaceAndUseCase namespaceAndUseCase) {
-        return verificationProgressStateCache.computeIfAbsent(namespaceAndUseCase, this::getLastVerifiedSeqFromLogs);
+        return verificationProgressStateCache.computeIfAbsent(
+                namespaceAndUseCase, this::progressStatusForNamespaceAndUseCase);
     }
 
-    private ProgressState getLastVerifiedSeqFromLogs(NamespaceAndUseCase namespaceAndUseCase) {
-        Client client = namespaceAndUseCase.namespace();
-        String useCase = namespaceAndUseCase.useCase();
-
-        return logVerificationProgressState
-                .getProgressState(client, useCase)
-                .orElseGet(() -> logVerificationProgressState.resetProgressState(
-                        client, useCase, getLatestLearnedSequenceForNamespaceAndUseCase(namespaceAndUseCase)));
+    private ProgressState progressStatusForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
+        long lastVerifiedSeq = logVerificationProgressState.getLastVerifiedSeq(
+                namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
+        return buildProgressStatusWithLastVerifiedSeqForNamespaceAndUseCase(namespaceAndUseCase, lastVerifiedSeq);
     }
 
     @VisibleForTesting
@@ -75,22 +71,21 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     private ProgressState updateProgressInDbThroughCache(
-            NamespaceAndUseCase namespaceAndUseCase, long lastVerifiedSequence, ProgressState state) {
-        ProgressState progressState = ProgressState.builder()
-                .greatestSeqNumberToBeVerified(state.greatestSeqNumberToBeVerified())
+            NamespaceAndUseCase namespaceAndUseCase, long lastVerifiedSequence, ProgressState currentState) {
+        ProgressState newProgressState = ProgressState.builder()
+                .greatestSeqNumberToBeVerified(currentState.greatestSeqNumberToBeVerified())
                 .lastVerifiedSeq(lastVerifiedSequence)
                 .build();
-        verificationProgressStateCache.put(namespaceAndUseCase, progressState);
+        verificationProgressStateCache.put(namespaceAndUseCase, newProgressState);
         logVerificationProgressState.updateProgress(
                 namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase(), lastVerifiedSequence);
-        return progressState;
+        return newProgressState;
     }
 
     private ProgressState resetProgressState(NamespaceAndUseCase namespaceAndUseCase) {
-        ProgressState resetProgressState = logVerificationProgressState.resetProgressState(
-                namespaceAndUseCase.namespace(),
-                namespaceAndUseCase.useCase(),
-                getLatestLearnedSequenceForNamespaceAndUseCase(namespaceAndUseCase));
+        logVerificationProgressState.setInitialProgress(namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
+        ProgressState resetProgressState = buildProgressStatusWithLastVerifiedSeqForNamespaceAndUseCase(
+                namespaceAndUseCase, LogVerificationProgressState.INITIAL_PROGRESS);
         verificationProgressStateCache.put(namespaceAndUseCase, resetProgressState);
         return resetProgressState;
     }
@@ -98,5 +93,13 @@ public class PaxosLogHistoryProgressTracker {
     private long getLatestLearnedSequenceForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
         return sqlitePaxosStateLogHistory.getGreatestLogEntry(
                 namespaceAndUseCase.namespace(), LearnerUseCase.createLearnerUseCase(namespaceAndUseCase.useCase()));
+    }
+
+    private ProgressState buildProgressStatusWithLastVerifiedSeqForNamespaceAndUseCase(
+            NamespaceAndUseCase namespaceAndUseCase, long lastVerifiedSeq) {
+        return ProgressState.builder()
+                .lastVerifiedSeq(lastVerifiedSeq)
+                .greatestSeqNumberToBeVerified(getLatestLearnedSequenceForNamespaceAndUseCase(namespaceAndUseCase))
+                .build();
     }
 }
