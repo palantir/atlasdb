@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -26,6 +25,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.SafeArg;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.cassandra.thrift.CfDef;
 import org.slf4j.Logger;
@@ -169,7 +169,7 @@ final class ColumnFamilyDefinitions {
                     clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
             return false;
         }
-        if (!Objects.equal(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
+        if (!Objects.equals(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
             // consider equal "com.whatever.LevelledCompactionStrategy" and "LevelledCompactionStrategy"
             if (clientSide.compaction_strategy != null
                     && clusterSide.compaction_strategy != null
@@ -228,7 +228,7 @@ final class ColumnFamilyDefinitions {
     }
 
     private static boolean optionsMapsFunctionallyEqual(Map<String, String> client, Map<String, String> cluster) {
-        if (Objects.equal(client, cluster)) {
+        if (Objects.equals(client, cluster)) {
             return true;
         }
 
