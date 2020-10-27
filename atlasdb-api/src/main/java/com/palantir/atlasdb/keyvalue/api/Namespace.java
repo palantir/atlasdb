@@ -78,7 +78,7 @@ public final class Namespace {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name);
+        return 31 + Objects.hashCode(name);
     }
 
     @Override
