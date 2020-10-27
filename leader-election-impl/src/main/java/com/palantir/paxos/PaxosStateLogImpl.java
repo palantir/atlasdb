@@ -17,6 +17,7 @@ package com.palantir.paxos;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -212,13 +213,18 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     public void truncate(long toDeleteInclusive) {
         lock.writeLock().lock();
         try {
+            long greatestLogEntry = getGreatestLogEntry();
+            if (greatestLogEntry >= 0) {
+                // We never want to remove our most recent entry
+                toDeleteInclusive = Math.min(greatestLogEntry - 1, toDeleteInclusive);
+            }
             File dir = new File(path);
             List<File> files = getLogEntries(dir);
             files.sort(nameAsLongComparator());
             for (File file : files) {
                 long fileSeq = getSeqFromFilename(file);
                 if (fileSeq <= toDeleteInclusive) {
-                    if (file.delete()) {
+                    if (!file.delete()) {
                         log.warn("failed to delete log file {}", file.getAbsolutePath());
                     }
                 } else {
@@ -230,10 +236,24 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
     }
 
+    @Override
+    public void truncateAllRounds() {
+        lock.writeLock().lock();
+        try {
+            File dir = new File(path);
+            boolean success = getLogEntries(dir).stream().map(File::delete).reduce(true, (x, y) -> x && y);
+            if (!success) {
+                log.warn("failed to delete all log files.");
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     private List<File> getLogEntries(File dir) {
         File[] files = dir.listFiles();
         if (files == null) {
-            return null;
+            return ImmutableList.of();
         }
         return new ArrayList<>(Collections2.filter(Arrays.asList(files), nameIsALongPredicate()));
     }

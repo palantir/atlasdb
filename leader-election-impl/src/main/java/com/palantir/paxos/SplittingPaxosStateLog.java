@@ -148,6 +148,11 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
         log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
     }
 
+    @Override
+    public void truncateAllRounds() {
+        log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
+    }
+
     @Value.Immutable
     interface SplittingParameters<V extends Persistable & Versionable> {
         PaxosStateLog<V> legacyLog();

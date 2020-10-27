@@ -137,14 +137,13 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
 
     @Override
     public String toString() {
-        return new StringBuilder("PaxosAcceptorState [")
-                .append("lastPromisedId=")
-                .append(lastPromisedId)
-                .append(", lastAcceptedId=")
-                .append(lastAcceptedId)
-                .append(", lastAcceptedValue=")
-                .append(lastAcceptedValue)
-                .append("]")
-                .toString();
+        return "PaxosAcceptorState ["
+                + "lastPromisedId="
+                + lastPromisedId
+                + ", lastAcceptedId="
+                + lastAcceptedId
+                + ", lastAcceptedValue="
+                + lastAcceptedValue
+                + "]";
     }
 }
