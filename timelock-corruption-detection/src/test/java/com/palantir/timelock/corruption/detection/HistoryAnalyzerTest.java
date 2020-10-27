@@ -18,15 +18,14 @@ package com.palantir.timelock.corruption.detection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.SetMultimap;
-import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import org.junit.Test;
 
-public class HistoryAnalyzerTest extends CorruptionDetectionEteSetup {
+public class HistoryAnalyzerTest extends TimeLockCorruptionTestSetup {
 
     @Test
     public void correctlyPassesIfThereIsNotCorruption() {
@@ -39,10 +38,7 @@ public class HistoryAnalyzerTest extends CorruptionDetectionEteSetup {
                         Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
 
-        assertThat(HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
-                        .violatingStatusesToNamespaceAndUseCase()
-                        .isEmpty())
-                .isTrue();
+        assertDetectedViolations(ImmutableSet.of(), ImmutableSet.of());
     }
 
     @Test
@@ -58,10 +54,7 @@ public class HistoryAnalyzerTest extends CorruptionDetectionEteSetup {
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.DIVERGED_LEARNERS);
 
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> setMultimap =
-                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
-                        .violatingStatusesToNamespaceAndUseCase();
-        assertThat(setMultimap.keySet()).containsExactly(CorruptionCheckViolation.DIVERGED_LEARNERS);
+        assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.DIVERGED_LEARNERS));
     }
 
     @Test
@@ -74,15 +67,13 @@ public class HistoryAnalyzerTest extends CorruptionDetectionEteSetup {
         assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
 
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> setMultimap =
-                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
-                        .violatingStatusesToNamespaceAndUseCase();
-        assertThat(setMultimap.keySet()).containsExactly(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
+        assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM));
     }
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
-        induceGreaterAcceptedValueCorruption(1, 5, 5);
+        writeLogsOnLocalAndRemote(1, 10);
+        induceGreaterAcceptedValueCorruption(localStateLogComponents, 5);
 
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
@@ -93,9 +84,6 @@ public class HistoryAnalyzerTest extends CorruptionDetectionEteSetup {
         assertThat(HistoryAnalyzer.greatestAcceptedValueNotLearned(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
 
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> setMultimap =
-                HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll)
-                        .violatingStatusesToNamespaceAndUseCase();
-        assertThat(setMultimap.keySet()).containsExactly(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
+        assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
     }
 }
