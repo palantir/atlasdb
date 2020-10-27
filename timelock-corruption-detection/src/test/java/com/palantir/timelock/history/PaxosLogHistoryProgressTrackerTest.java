@@ -17,6 +17,9 @@
 package com.palantir.timelock.history;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
@@ -41,13 +44,14 @@ public class PaxosLogHistoryProgressTrackerTest {
 
     private PaxosLogHistoryProgressTracker progressTracker;
     private LogVerificationProgressState log;
+    private static final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory = mock(SqlitePaxosStateLogHistory.class);
 
     @Before
     public void setup() {
         DataSource dataSource =
                 SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         log = LogVerificationProgressState.create(dataSource);
-        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SqlitePaxosStateLogHistory.create(dataSource));
+        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory);
     }
 
     @Test
@@ -61,7 +65,7 @@ public class PaxosLogHistoryProgressTrackerTest {
         long greatestLogSeq = 7L;
         long lastVerified = 3L;
 
-        log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
+        when(sqlitePaxosStateLogHistory.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
         log.updateProgress(CLIENT, USE_CASE, lastVerified);
 
         SequenceBounds paxosLogSequenceBounds = progressTracker.getPaxosLogSequenceBounds(NAMESPACE_AND_USE_CASE);
@@ -79,7 +83,7 @@ public class PaxosLogHistoryProgressTrackerTest {
                 .upperInclusive(upper)
                 .build();
 
-        log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
+        when(sqlitePaxosStateLogHistory.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);
 
         SequenceBounds paxosLogSequenceBounds = progressTracker.getPaxosLogSequenceBounds(NAMESPACE_AND_USE_CASE);
@@ -89,7 +93,7 @@ public class PaxosLogHistoryProgressTrackerTest {
     @Test
     public void canResetProgressStateIfRequired() {
         long greatestLogSeq = 100L;
-        log.resetProgressState(CLIENT, USE_CASE, greatestLogSeq);
+        when(sqlitePaxosStateLogHistory.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
 
         SequenceBounds bounds = SequenceBounds.builder()
                 .lowerInclusive(1L)

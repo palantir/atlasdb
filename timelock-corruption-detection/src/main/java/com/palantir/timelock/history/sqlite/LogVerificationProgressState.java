@@ -17,8 +17,7 @@
 package com.palantir.timelock.history.sqlite;
 
 import com.palantir.paxos.Client;
-import com.palantir.timelock.history.models.ProgressState;
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
@@ -40,7 +39,7 @@ public final class LogVerificationProgressState {
 
     public static LogVerificationProgressState create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class).registerImmutable(ProgressState.class);
+        jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
         LogVerificationProgressState state = new LogVerificationProgressState(jdbi);
         state.initialize();
         return state;
@@ -50,22 +49,20 @@ public final class LogVerificationProgressState {
         execute(LogVerificationProgressState.Queries::createVerificationProgressStateTable);
     }
 
-    public ProgressState resetProgressState(Client client, String useCase, long greatestLogSeq) {
+    public void updateProgress(Client client, String useCase, long seq) {
+        execute(dao -> dao.updateProgress(client, useCase, seq));
+    }
+
+    public long getLastVerifiedSeq(Client client, String useCase) {
         return execute(dao -> {
-            dao.updateProgressStateAndGreatestSeqNumberToBeVerified(client, useCase, INITIAL_PROGRESS, greatestLogSeq);
-            return ProgressState.builder()
-                    .lastVerifiedSeq(INITIAL_PROGRESS)
-                    .greatestSeqNumberToBeVerified(greatestLogSeq)
-                    .build();
+            OptionalLong lastVerifiedSeq = dao.getLastVerifiedSeq(client, useCase);
+            return lastVerifiedSeq.orElseGet(() -> setInitialProgress(client, useCase));
         });
     }
 
-    public void updateProgress(Client client, String useCase, long lastVerifiedSeq) {
-        execute(dao -> dao.updateProgress(client, useCase, lastVerifiedSeq));
-    }
-
-    public Optional<ProgressState> getProgressState(Client client, String useCase) {
-        return execute(dao -> dao.getProgressState(client, useCase));
+    public long setInitialProgress(Client client, String useCase) {
+        updateProgress(client, useCase, INITIAL_PROGRESS);
+        return INITIAL_PROGRESS;
     }
 
     private <T> T execute(Function<LogVerificationProgressState.Queries, T> call) {
@@ -73,29 +70,17 @@ public final class LogVerificationProgressState {
     }
 
     public interface Queries {
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS logVerificationProgress (namespace TEXT, useCase TEXT, lastVerifiedSeq"
-                + " BIGINT, greatestSeqNumberToBeVerified BIGINT, PRIMARY KEY(namespace, useCase))")
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS logVerificationProgress (namespace TEXT, useCase TEXT, seq BIGINT,"
+                + "PRIMARY KEY(namespace, useCase))")
         boolean createVerificationProgressStateTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, lastVerifiedSeq,"
-                + " greatestSeqNumberToBeVerified) VALUES (:namespace.value, :useCase, :lastVerifiedSeq,"
-                + " :greatestSeqNumberToBeVerified)")
-        boolean updateProgressStateAndGreatestSeqNumberToBeVerified(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("lastVerifiedSeq") long lastVerifiedSeq,
-                @Bind("greatestSeqNumberToBeVerified") long greatestSeqNumberToBeVerified);
-
-        @SqlUpdate("UPDATE logVerificationProgress SET lastVerifiedSeq = :lastVerifiedSeq "
-                + "WHERE namespace = :namespace.value AND useCase = :useCase")
+        @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, seq) VALUES"
+                + " (:namespace.value, :useCase, :seq)")
         boolean updateProgress(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("lastVerifiedSeq") long lastVerifiedSeq);
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
 
-        @SqlQuery("SELECT lastVerifiedSeq, greatestSeqNumberToBeVerified FROM logVerificationProgress "
+        @SqlQuery("SELECT seq FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")
-        Optional<ProgressState> getProgressState(
-                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
+        OptionalLong getLastVerifiedSeq(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
     }
 }
