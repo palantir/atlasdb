@@ -16,9 +16,9 @@
 
 package com.palantir.timelock.history;
 
-import static com.palantir.timelock.history.utils.HistoryQueryUtils.DEFAULT_CLIENT;
-import static com.palantir.timelock.history.utils.HistoryQueryUtils.DEFAULT_NAMESPACE_AND_USE_CASE;
-import static com.palantir.timelock.history.utils.HistoryQueryUtils.DEFAULT_USE_CASE;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_CLIENT;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_NAMESPACE_AND_USE_CASE;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_USE_CASE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -32,7 +32,7 @@ import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.timelock.history.utils.HistoryQueryUtils;
+import com.palantir.timelock.history.utils.HistoryQueries;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import java.util.Optional;
@@ -74,7 +74,7 @@ public class HistoryLoaderAndTransformerTest {
         writeToLogs(1, 100);
         int lastVerified = 27;
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
@@ -88,7 +88,7 @@ public class HistoryLoaderAndTransformerTest {
 
         List<HistoryQuery> queries = IntStream.range(0, 10)
                 .boxed()
-                .map(idx -> HistoryQueryUtils.unboundedHistoryQuerySinceSeq(minLastVerified))
+                .map(idx -> HistoryQueries.unboundedHistoryQuerySinceSeq(minLastVerified))
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
@@ -105,7 +105,7 @@ public class HistoryLoaderAndTransformerTest {
 
         int lastVerified = 27;
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -126,7 +126,7 @@ public class HistoryLoaderAndTransformerTest {
 
         int lastVerified = 52;
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -143,7 +143,7 @@ public class HistoryLoaderAndTransformerTest {
     public void canHandleHistoryWithNoLogs() {
         int lastVerified = 102;
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -159,7 +159,7 @@ public class HistoryLoaderAndTransformerTest {
         writeToLogs(firstSeqWithLog, 100);
 
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
         List<LogsForNamespaceAndUseCase> paxosHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 

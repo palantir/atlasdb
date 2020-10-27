@@ -28,7 +28,6 @@ import com.palantir.timelock.history.models.ImmutableCompletePaxosHistoryForName
 import com.palantir.timelock.history.models.ImmutableLearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
-import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.tokens.auth.AuthHeader;
@@ -68,7 +67,8 @@ public class PaxosLogHistoryProvider {
     //     TODO(snanda): Refactor the two parts on translating PaxosHistoryOnRemote to
     //      CompletePaxosHistoryForNamespaceAndUseCase to a separate component
     public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() {
-        Map<NamespaceAndUseCase, SequenceBounds> lastVerifiedSequences = getNamespaceAndUseCaseToLastVerifiedSeqMap();
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences =
+                getNamespaceAndUseCaseToLastVerifiedSeqMap();
 
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
 
@@ -88,7 +88,7 @@ public class PaxosLogHistoryProvider {
     }
 
     private List<CompletePaxosHistoryForNamespaceAndUseCase> consolidateAndGetHistoriesAcrossAllNodes(
-            Map<NamespaceAndUseCase, SequenceBounds> lastVerifiedSequences,
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences,
             PaxosHistoryOnSingleNode localPaxosHistory,
             List<ConsolidatedPaxosHistoryOnSingleNode> historyFromAllRemotes) {
         return lastVerifiedSequences.keySet().stream()
@@ -111,14 +111,14 @@ public class PaxosLogHistoryProvider {
     }
 
     private List<HistoryQuery> getHistoryQueryListForRemoteServers(
-            Map<NamespaceAndUseCase, SequenceBounds> lastVerifiedSequences) {
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences) {
         return KeyedStream.stream(lastVerifiedSequences)
                 .mapEntries(this::buildHistoryQuery)
                 .values()
                 .collect(Collectors.toList());
     }
 
-    private Map<NamespaceAndUseCase, SequenceBounds> getNamespaceAndUseCaseToLastVerifiedSeqMap() {
+    private Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> getNamespaceAndUseCaseToLastVerifiedSeqMap() {
         return KeyedStream.of(getNamespaceAndUseCaseTuples().stream())
                 .map(progressTracker::getPaxosLogSequenceBounds)
                 .collectToMap();
@@ -201,9 +201,7 @@ public class PaxosLogHistoryProvider {
     }
 
     private Map.Entry<NamespaceAndUseCase, HistoryQuery> buildHistoryQuery(
-            NamespaceAndUseCase namespaceAndUseCase, SequenceBounds bounds) {
-        return Maps.immutableEntry(
-                namespaceAndUseCase,
-                HistoryQuery.of(namespaceAndUseCase, bounds.lowerInclusive(), bounds.upperInclusive()));
+            NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds bounds) {
+        return Maps.immutableEntry(namespaceAndUseCase, HistoryQuery.of(namespaceAndUseCase, bounds));
     }
 }

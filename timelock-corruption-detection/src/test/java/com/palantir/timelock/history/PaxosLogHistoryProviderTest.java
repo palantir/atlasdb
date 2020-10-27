@@ -16,9 +16,9 @@
 
 package com.palantir.timelock.history;
 
-import static com.palantir.timelock.history.utils.HistoryQueryUtils.DEFAULT_CLIENT;
-import static com.palantir.timelock.history.utils.HistoryQueryUtils.DEFAULT_NAMESPACE_AND_USE_CASE;
-import static com.palantir.timelock.history.utils.HistoryQueryUtils.DEFAULT_USE_CASE;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_CLIENT;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_NAMESPACE_AND_USE_CASE;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_USE_CASE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,13 +41,11 @@ import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
-import com.palantir.timelock.history.models.ImmutableSequenceBounds;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnerUseCase;
-import com.palantir.timelock.history.models.SequenceBounds;
 import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.timelock.history.utils.HistoryQueryUtils;
+import com.palantir.timelock.history.utils.HistoryQueries;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +96,7 @@ public class PaxosLogHistoryProviderTest {
         int lastVerified = -1;
 
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -127,7 +125,7 @@ public class PaxosLogHistoryProviderTest {
         int lastVerified = -1;
 
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -164,11 +162,11 @@ public class PaxosLogHistoryProviderTest {
                 .collect(Collectors.toSet());
 
         progressTracker.updateProgressStateForNamespaceAndUseCase(
-                DEFAULT_NAMESPACE_AND_USE_CASE, ImmutableSequenceBounds.of(-1, lastVerified));
-        SequenceBounds bounds = progressTracker.getPaxosLogSequenceBounds(DEFAULT_NAMESPACE_AND_USE_CASE);
+                DEFAULT_NAMESPACE_AND_USE_CASE, HistoryQuerySequenceBounds.of(-1, lastVerified));
+        HistoryQuerySequenceBounds bounds = progressTracker.getPaxosLogSequenceBounds(DEFAULT_NAMESPACE_AND_USE_CASE);
 
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQueryUtils.unboundedHistoryQuerySinceSeq(bounds.lowerInclusive()));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(bounds.getLowerBoundInclusive()));
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
@@ -194,7 +192,7 @@ public class PaxosLogHistoryProviderTest {
 
         List<HistoryQuery> historyQueries = allNamespaceAndUseCases.stream()
                 .map(namespaceAndUseCase ->
-                        HistoryQueryUtils.unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(namespaceAndUseCase, -1))
+                        HistoryQueries.unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(namespaceAndUseCase, -1))
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> remoteHistory =

@@ -20,12 +20,12 @@ import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.HistoryQuery;
+import com.palantir.timelock.history.HistoryQuerySequenceBounds;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
-import com.palantir.timelock.history.models.SequenceBounds;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,10 +37,10 @@ public final class HistoryLoaderAndTransformer {
 
     public static List<LogsForNamespaceAndUseCase> getLogsForHistoryQueries(
             LocalHistoryLoader localHistoryLoader, List<HistoryQuery> historyQueries) {
-        Map<NamespaceAndUseCase, SequenceBounds> lastVerifiedSequences = historyQueries.stream()
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> lastVerifiedSequences = historyQueries.stream()
                 .collect(Collectors.toMap(
                         HistoryQuery::getNamespaceAndUseCase,
-                        HistoryLoaderAndTransformer::sequenceBounds,
+                        HistoryQuery::getSequenceBounds,
                         HistoryLoaderAndTransformer::minimalLowerBoundResolver));
 
         PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
@@ -51,15 +51,9 @@ public final class HistoryLoaderAndTransformer {
                 .collect(Collectors.toList());
     }
 
-    private static SequenceBounds minimalLowerBoundResolver(SequenceBounds bound1, SequenceBounds bound2) {
-        return bound1.lowerInclusive() < bound2.lowerInclusive() ? bound1 : bound2;
-    }
-
-    private static SequenceBounds sequenceBounds(HistoryQuery query) {
-        return SequenceBounds.builder()
-                .lowerInclusive(query.getLowerBound())
-                .upperInclusive(query.getUpperBound())
-                .build();
+    private static HistoryQuerySequenceBounds minimalLowerBoundResolver(
+            HistoryQuerySequenceBounds bound1, HistoryQuerySequenceBounds bound2) {
+        return bound1.getLowerBoundInclusive() < bound2.getLowerBoundInclusive() ? bound1 : bound2;
     }
 
     private static Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(
