@@ -97,7 +97,7 @@ public class AsyncInitializerTest {
 
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(RuntimeException.class)
-                .withFailMessage("Failed initializing");
+                .hasMessage("Failed initializing");
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
