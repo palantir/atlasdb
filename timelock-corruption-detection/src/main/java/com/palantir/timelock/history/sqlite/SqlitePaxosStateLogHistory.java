@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.history.sqlite;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosAcceptor;
@@ -43,11 +42,10 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 
-public class SqlitePaxosStateLogHistory {
+public final class SqlitePaxosStateLogHistory {
     private final Jdbi jdbi;
 
-    @VisibleForTesting
-    SqlitePaxosStateLogHistory(Jdbi jdbi) {
+    private SqlitePaxosStateLogHistory(Jdbi jdbi) {
         this.jdbi = jdbi;
     }
 
