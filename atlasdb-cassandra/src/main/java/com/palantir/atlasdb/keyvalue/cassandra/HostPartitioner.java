@@ -21,6 +21,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.logsafe.Preconditions;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -59,6 +60,9 @@ final class HostPartitioner {
         }
         ListMultimap<InetSocketAddress, V> valuesByHost = ArrayListMultimap.create();
         for (ByteBuffer key : partitionedByKey.keySet()) {
+            Preconditions.checkState(key.hasArray(), "Expected an array backed buffer");
+            Preconditions.checkState(key.arrayOffset() == 0, "Buffer array must have no offset");
+            Preconditions.checkState(key.limit() == key.array().length, "Array length must match the limit");
             InetSocketAddress host = clientPool.getRandomHostForKey(key.array());
             valuesByHost.putAll(host, partitionedByKey.get(key));
         }

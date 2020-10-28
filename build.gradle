@@ -113,7 +113,6 @@ allprojects {
                 'AnnotateFormatMethod',
                 'ArrayAsKeyOfSetOrMap',
                 'AssertionFailureIgnored',
-                'ByteBufferBackingArray',
                 'CacheLoaderNull',
                 'CatchBlockLogException',
                 'CatchFail',
