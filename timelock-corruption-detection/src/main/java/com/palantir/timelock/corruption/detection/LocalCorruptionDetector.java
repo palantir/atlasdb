@@ -49,6 +49,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
 
     private LocalCorruptionDetector(
             PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+
         this.historyProvider = historyProvider;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }

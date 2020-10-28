@@ -16,6 +16,9 @@
 
 package com.palantir.timelock.history;
 
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_CLIENT;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_NAMESPACE_AND_USE_CASE;
+import static com.palantir.timelock.history.utils.HistoryQueries.DEFAULT_USE_CASE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,8 +44,8 @@ import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
-import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import com.palantir.timelock.history.utils.HistoryQueries;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import java.util.Map;
@@ -60,12 +63,10 @@ public class PaxosLogHistoryProviderTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final Client CLIENT = Client.of("client");
-    private static final String USE_CASE = "useCase";
     private static final String USE_CASE_LEARNER =
-            LearnerUseCase.createLearnerUseCase(USE_CASE).value();
+            LearnerUseCase.createLearnerUseCase(DEFAULT_USE_CASE).value();
     private static final String USE_CASE_ACCEPTOR =
-            AcceptorUseCase.createAcceptorUseCase(USE_CASE).value();
+            AcceptorUseCase.createAcceptorUseCase(DEFAULT_USE_CASE).value();
 
     private TimeLockPaxosHistoryProvider remote;
     private DataSource dataSource;
@@ -73,19 +74,18 @@ public class PaxosLogHistoryProviderTest {
     private PaxosStateLog<PaxosAcceptorState> acceptorLog;
     private LocalHistoryLoader history;
     private PaxosLogHistoryProvider paxosLogHistoryProvider;
-    private LogVerificationProgressState verificationProgressState;
+    private PaxosLogHistoryProgressTracker progressTracker;
 
     @Before
     public void setup() {
         remote = mock(TimeLockPaxosHistoryProvider.class);
         dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
 
-        learnerLog = createLearnerLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER));
-        acceptorLog = createAcceptorLog(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR));
+        learnerLog = createLearnerLog(ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, USE_CASE_LEARNER));
+        acceptorLog = createAcceptorLog(ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, USE_CASE_ACCEPTOR));
 
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
-
-        verificationProgressState = LogVerificationProgressState.create(dataSource);
+        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SqlitePaxosStateLogHistory.create(dataSource));
         paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource, ImmutableList.of(remote));
     }
 
@@ -96,7 +96,7 @@ public class PaxosLogHistoryProviderTest {
         int lastVerified = -1;
 
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -107,8 +107,9 @@ public class PaxosLogHistoryProviderTest {
 
         CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase =
                 Iterables.getOnlyElement(completeHistory);
-        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
-        assertSanityWithValuesOfFetchedRecords(historyForNamespaceAndUseCase, CLIENT, USE_CASE, 100, paxosValues);
+        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(DEFAULT_CLIENT);
+        assertSanityWithValuesOfFetchedRecords(
+                historyForNamespaceAndUseCase, DEFAULT_CLIENT, DEFAULT_USE_CASE, 100, paxosValues);
     }
 
     @Test
@@ -124,7 +125,7 @@ public class PaxosLogHistoryProviderTest {
         int lastVerified = -1;
 
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(lastVerified));
 
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
@@ -135,9 +136,13 @@ public class PaxosLogHistoryProviderTest {
 
         CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase =
                 Iterables.getOnlyElement(completeHistory);
-        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(CLIENT);
+        assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(DEFAULT_CLIENT);
         assertSanityWithValuesOfFetchedRecords(
-                historyForNamespaceAndUseCase, CLIENT, USE_CASE, (54 - 7 + 1) + (127 - 98 + 1), paxosValues);
+                historyForNamespaceAndUseCase,
+                DEFAULT_CLIENT,
+                DEFAULT_USE_CASE,
+                (54 - 7 + 1) + (127 - 98 + 1),
+                paxosValues);
     }
 
     @Test
@@ -156,10 +161,13 @@ public class PaxosLogHistoryProviderTest {
                 .filter(val -> val.getRound() > lastVerified)
                 .collect(Collectors.toSet());
 
-        verificationProgressState.updateProgress(CLIENT, USE_CASE, lastVerified);
+        progressTracker.updateProgressStateForNamespaceAndUseCase(
+                DEFAULT_NAMESPACE_AND_USE_CASE, HistoryQuerySequenceBounds.of(-1, lastVerified));
+        HistoryQuerySequenceBounds bounds =
+                progressTracker.getNextPaxosLogSequenceRangeToBeVerified(DEFAULT_NAMESPACE_AND_USE_CASE);
 
         List<HistoryQuery> historyQueries =
-                ImmutableList.of(HistoryQuery.of(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE), lastVerified));
+                ImmutableList.of(HistoryQueries.unboundedHistoryQuerySinceSeq(bounds.getLowerBoundInclusive()));
         List<LogsForNamespaceAndUseCase> remoteHistory =
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(history, historyQueries);
 
@@ -171,7 +179,11 @@ public class PaxosLogHistoryProviderTest {
                 Iterables.getOnlyElement(completeHistory);
 
         assertSanityWithValuesOfFetchedRecords(
-                historyForNamespaceAndUseCase, CLIENT, USE_CASE, 100 - lastVerified, expectedPaxosValues);
+                historyForNamespaceAndUseCase,
+                DEFAULT_CLIENT,
+                DEFAULT_USE_CASE,
+                100 - lastVerified,
+                expectedPaxosValues);
     }
 
     @Test
@@ -180,7 +192,8 @@ public class PaxosLogHistoryProviderTest {
         Set<NamespaceAndUseCase> allNamespaceAndUseCases = expected.keySet();
 
         List<HistoryQuery> historyQueries = allNamespaceAndUseCases.stream()
-                .map(namespaceAndUseCase -> HistoryQuery.of(namespaceAndUseCase, -1))
+                .map(namespaceAndUseCase ->
+                        HistoryQueries.unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(namespaceAndUseCase, -1))
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> remoteHistory =

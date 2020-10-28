@@ -29,7 +29,7 @@ import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 public final class LogVerificationProgressState {
-    private static final long INITIAL_PROGRESS = -1L;
+    public static final long INITIAL_PROGRESS = -1L;
 
     private final Jdbi jdbi;
 
@@ -60,7 +60,7 @@ public final class LogVerificationProgressState {
         });
     }
 
-    private long setInitialProgress(Client client, String useCase) {
+    public long setInitialProgress(Client client, String useCase) {
         updateProgress(client, useCase, INITIAL_PROGRESS);
         return INITIAL_PROGRESS;
     }
