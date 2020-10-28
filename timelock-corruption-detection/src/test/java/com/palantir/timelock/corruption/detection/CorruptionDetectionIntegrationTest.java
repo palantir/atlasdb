@@ -87,8 +87,8 @@ public class CorruptionDetectionIntegrationTest extends TimeLockCorruptionTestSe
     @Test
     public void detectCorruptionForMultipleCorruptSeries() {
         // We create 7 series and write logs to each of these in the range [1, 500]. We then corrupt series 6 & 7.
-        IntStream.rangeClosed(1, 7).boxed().forEach(ind -> createSeriesWithPaxosLogs(ind));
-        IntStream.rangeClosed(6, 7).boxed().forEach(ind -> corruptSeries(ind));
+        IntStream.rangeClosed(1, 7).boxed().forEach(this::createSeriesWithPaxosLogs);
+        IntStream.rangeClosed(6, 7).boxed().forEach(this::corruptSeries);
 
         assertDetectedViolations(
                 ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED),

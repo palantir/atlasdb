@@ -75,7 +75,6 @@ public class HistoryAnalyzerTest extends TimeLockCorruptionTestSetup {
         writeLogsOnLocalAndRemote(1, 10);
         induceGreaterAcceptedValueCorruption(localStateLogComponents, 5);
 
-
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);

@@ -154,7 +154,7 @@ public abstract class TimeLockCorruptionTestSetup {
 
     protected void writeLogsOnLocalAndRemote(
             List<StateLogComponents> servers, int startingLogSeq, int latestLogSequence) {
-        servers.stream().forEach(server -> writeLogsOnServer(server, startingLogSeq, latestLogSequence));
+        servers.forEach(server -> writeLogsOnServer(server, startingLogSeq, latestLogSequence));
     }
 
     protected SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> getViolationsToNamespaceToUseCaseMultimap() {
