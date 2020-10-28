@@ -247,7 +247,11 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
 
     private static void deleteLogFile(File file) {
         if (!file.delete()) {
-            log.warn("Failed to delete log file {}", SafeArg.of("path", file.getAbsolutePath()));
+            log.warn(
+                    "Failed to delete log file for sequence {}, use case {}, and client {}.",
+                    SafeArg.of("sequence", file.getName()),
+                    SafeArg.of("use case", file.getParentFile().getName()),
+                    SafeArg.of("client", file.getParentFile().getParentFile().getName()));
         }
     }
 
