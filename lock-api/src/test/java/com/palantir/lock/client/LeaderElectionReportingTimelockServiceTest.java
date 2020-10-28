@@ -20,10 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.Timer;
@@ -60,6 +62,7 @@ public class LeaderElectionReportingTimelockServiceTest {
     private TaggedMetricRegistry mockedRegistry = mock(TaggedMetricRegistry.class);
     private Timer mockedTimer = mock(Timer.class);
     private Clock mockedClock = mock(Clock.class);
+    private com.codahale.metrics.Snapshot mockedSnapshot = mock(com.codahale.metrics.Snapshot.class);
 
     private LeaderElectionReportingTimelockService timelockService;
 
@@ -71,6 +74,7 @@ public class LeaderElectionReportingTimelockServiceTest {
         when(mockedRegistry.timer(any())).thenReturn(mockedTimer);
         when(mockedClock.instant()).thenCallRealMethod();
         when(mockedClock.getTimeMillis()).thenReturn(1L);
+        when(mockedTimer.getSnapshot()).thenReturn(mockedSnapshot);
 
         when(startTransactionsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
         when(commitTimestampsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
@@ -316,6 +320,38 @@ public class LeaderElectionReportingTimelockServiceTest {
         }
     }
 
+    @Test
+    public void statisticsCausesMetricRegistryToBeReset() {
+        LockWatchStateUpdate.Snapshot secondUpdate =
+                LockWatchStateUpdate.snapshot(UUID.randomUUID(), 1L, ImmutableSet.of(), ImmutableSet.of());
+        LockWatchStateUpdate thirdUpdate = LockWatchStateUpdate.success(UUID.randomUUID(), 5L, ImmutableList.of());
+        when(startTransactionsResponse.getLockWatchUpdate())
+                .thenReturn(UPDATE)
+                .thenReturn(secondUpdate)
+                .thenReturn(secondUpdate)
+                .thenReturn(thirdUpdate);
+        timelockService.startTransactions(startTransactionsRequest);
+        timelockService.startTransactions(startTransactionsRequest);
+
+        TaggedMetricRegistry newMockedRegistry = mock(TaggedMetricRegistry.class);
+        Timer newMockedTimer = mock(Timer.class);
+        when(newMockedRegistry.timer(any())).thenReturn(newMockedTimer);
+        timelockService.getStatisticsAndSetRegistryTo(newMockedRegistry);
+
+        verify(mockedRegistry, atLeastOnce()).timer(any());
+        verify(mockedTimer).update(anyLong(), any());
+        verify(mockedTimer).getSnapshot();
+        verify(mockedSnapshot).size();
+
+        timelockService.startTransactions(startTransactionsRequest);
+        timelockService.startTransactions(startTransactionsRequest);
+
+        verify(newMockedRegistry, atLeastOnce()).timer(any());
+        verify(newMockedTimer).update(anyLong(), any());
+        verifyNoMoreInteractions(mockedRegistry);
+        verifyNoMoreInteractions(mockedTimer);
+    }
+
     private void assertExpectedDuration(Instant instant, Instant instant2) {
         Optional<Duration> estimatedDuration = timelockService.calculateLastLeaderElectionDuration();
         assertThat(estimatedDuration).isPresent();
@@ -332,5 +368,9 @@ public class LeaderElectionReportingTimelockServiceTest {
 
         @Parameter
         UUID responseLeader();
+
+        static SingleCall of(long requestMillis, long responseMillis, UUID responseLeader) {
+            return ImmutableSingleCall.of(requestMillis, responseMillis, responseLeader);
+        }
     }
 }

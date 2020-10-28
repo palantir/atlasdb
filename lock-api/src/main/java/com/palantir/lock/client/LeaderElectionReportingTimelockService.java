@@ -16,6 +16,8 @@
 
 package com.palantir.lock.client;
 
+import com.codahale.metrics.Snapshot;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -32,7 +34,9 @@ import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.Clock;
+import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
@@ -52,7 +56,7 @@ import javax.annotation.Nonnull;
 
 public class LeaderElectionReportingTimelockService implements NamespacedConjureTimelockService {
     private final NamespacedConjureTimelockService delegate;
-    private final LeaderElectionMetrics metrics;
+    private volatile LeaderElectionMetrics metrics;
     private final Clock clock;
     private volatile UUID leaderId = null;
     private Map<UUID, Instant> leadershipUpperBound = new ConcurrentHashMap<>();
@@ -113,6 +117,25 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return runTimed(() -> delegate.startTransactions(request), response -> response.getLockWatchUpdate()
                 .logId());
+    }
+
+    public LeaderElectionStatistics getStatistics() {
+        return getStatisticsAndSetRegistryTo(new DefaultTaggedMetricRegistry());
+    }
+
+    @VisibleForTesting
+    LeaderElectionStatistics getStatisticsAndSetRegistryTo(TaggedMetricRegistry metricRegistry) {
+        Snapshot metricsSnapshot = metrics.observedDuration().getSnapshot();
+        LeaderElectionStatistics electionStatistics = LeaderElectionStatistics.builder()
+                .p99(metricsSnapshot.get99thPercentile())
+                .p95(metricsSnapshot.get95thPercentile())
+                .mean(metricsSnapshot.getMean())
+                .count(SafeLong.of(metricsSnapshot.size()))
+                .durationEstimate(
+                        calculateLastLeaderElectionDuration().map(duration -> SafeLong.of(duration.toNanos())))
+                .build();
+        metrics = LeaderElectionMetrics.of(metricRegistry);
+        return electionStatistics;
     }
 
     private <T> T runTimed(Supplier<T> method, Function<T, UUID> leaderExtractor) {
