@@ -224,9 +224,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             for (File file : files) {
                 long fileSeq = getSeqFromFilename(file);
                 if (fileSeq <= toDeleteInclusive) {
-                    if (!file.delete()) {
-                        log.warn("failed to delete log file {}", file.getAbsolutePath());
-                    }
+                    deleteLogFile(file);
                 } else {
                     break;
                 }
@@ -241,12 +239,15 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         lock.writeLock().lock();
         try {
             File dir = new File(path);
-            boolean success = getLogEntries(dir).stream().map(File::delete).reduce(true, (x, y) -> x && y);
-            if (!success) {
-                log.warn("failed to delete all log files.");
-            }
+            getLogEntries(dir).forEach(PaxosStateLogImpl::deleteLogFile);
         } finally {
             lock.writeLock().unlock();
+        }
+    }
+
+    private static void deleteLogFile(File file) {
+        if (!file.delete()) {
+            log.warn("Failed to delete log file {}", SafeArg.of("path", file.getAbsolutePath()));
         }
     }
 
