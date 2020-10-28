@@ -176,7 +176,9 @@ public final class PaxosResourcesFactory {
                 install.sqliteDataSource(),
                 install.nodeUuid(),
                 install.install().paxos().canCreateNewClients(),
-                install.timeLockVersion());
+                install.timeLockVersion(),
+                install.install()
+                        .iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog());
 
         NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
                 .useCase(PaxosUseCase.TIMESTAMP)

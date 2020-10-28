@@ -134,4 +134,16 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         }
         return Objects.equals(lastAcceptedValue, other.lastAcceptedValue);
     }
+
+    @Override
+    public String toString() {
+        return "PaxosAcceptorState ["
+                + "lastPromisedId="
+                + lastPromisedId
+                + ", lastAcceptedId="
+                + lastAcceptedId
+                + ", lastAcceptedValue="
+                + lastAcceptedValue
+                + "]";
+    }
 }

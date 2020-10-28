@@ -67,6 +67,7 @@ public class LocalPaxosComponents {
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
     private final OrderableSlsVersion timeLockVersion;
+    private final boolean skipConsistencyCheckAndTruncateOldPaxosLog;
 
     private LocalPaxosComponents(
             TimelockPaxosMetrics metrics,
@@ -75,7 +76,8 @@ public class LocalPaxosComponents {
             DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients,
-            OrderableSlsVersion timeLockVersion) {
+            OrderableSlsVersion timeLockVersion,
+            boolean skipConsistencyCheckAndTruncateOldPaxosLog) {
         this.metrics = metrics;
         this.paxosUseCase = paxosUseCase;
         this.baseLogDirectory = legacyLogDirectory;
@@ -86,6 +88,7 @@ public class LocalPaxosComponents {
         this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
         this.canCreateNewClients = canCreateNewClients;
         this.timeLockVersion = timeLockVersion;
+        this.skipConsistencyCheckAndTruncateOldPaxosLog = skipConsistencyCheckAndTruncateOldPaxosLog;
     }
 
     public static LocalPaxosComponents createWithBlockingMigration(
@@ -95,7 +98,8 @@ public class LocalPaxosComponents {
             DataSource sqliteDataSource,
             UUID leaderUuid,
             boolean canCreateNewClients,
-            OrderableSlsVersion timeLockVersion) {
+            OrderableSlsVersion timeLockVersion,
+            boolean skipConsistencyCheckAndTruncateOldPaxosLog) {
         LocalPaxosComponents components = new LocalPaxosComponents(
                 metrics,
                 paxosUseCase,
@@ -103,7 +107,8 @@ public class LocalPaxosComponents {
                 sqliteDataSource,
                 leaderUuid,
                 canCreateNewClients,
-                timeLockVersion);
+                timeLockVersion,
+                skipConsistencyCheckAndTruncateOldPaxosLog);
 
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
         PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
@@ -202,6 +207,7 @@ public class LocalPaxosComponents {
                 .fileBasedLogDirectory(learnerLogDir.toString())
                 .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, learnerUseCase))
+                .skipConsistencyCheckAndTruncateOldPaxosLog(skipConsistencyCheckAndTruncateOldPaxosLog)
                 .build();
     }
 
@@ -216,6 +222,7 @@ public class LocalPaxosComponents {
                 .fileBasedLogDirectory(acceptorLogDir.toString())
                 .sqliteDataSource(sqliteDataSource)
                 .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(client, acceptorUseCase))
+                .skipConsistencyCheckAndTruncateOldPaxosLog(skipConsistencyCheckAndTruncateOldPaxosLog)
                 .build();
     }
 
