@@ -42,10 +42,10 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 
-public class SqlitePaxosStateLogHistory {
+public final class SqlitePaxosStateLogHistory {
     private final Jdbi jdbi;
 
-    private SqlitePaxosStateLogHistory(Jdbi jdbi) {
+    SqlitePaxosStateLogHistory(Jdbi jdbi) {
         this.jdbi = jdbi;
     }
 
