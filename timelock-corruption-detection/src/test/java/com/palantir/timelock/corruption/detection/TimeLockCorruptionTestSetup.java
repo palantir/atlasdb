@@ -16,11 +16,7 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -29,45 +25,46 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.Constants;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.history.models.AcceptorUseCase;
-import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.remote.TimeLockPaxosHistoryProviderResource;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
-import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
-import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
-import org.junit.Before;
 import org.junit.Rule;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
-public abstract class TimeLockCorruptionTestSetup {
+public class TimeLockCorruptionTestSetup extends ExternalResource {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
-
-    private static final Client CLIENT = Client.of("client");
-    private static final String USE_CASE = "useCase";
-    protected static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE =
-            ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE);
 
     private DataSource localDataSource;
     private DataSource remoteDataSource1;
     private DataSource remoteDataSource2;
+    private PaxosLogHistoryProvider paxosLogHistoryProvider;
 
-    protected StateLogComponents localStateLogComponents;
-    protected List<StateLogComponents> remoteStateLogComponents;
-    protected PaxosLogHistoryProvider paxosLogHistoryProvider;
+    private StateLogComponents defaultLocalServer;
+    private List<StateLogComponents> defaultRemoteServerList;
 
-    @Before
-    public void setup() throws IOException {
+    @Override
+    public Statement apply(Statement base, Description description) {
+        return RuleChain.outerRule(tempFolder).apply(base, description);
+    }
+
+    @Override
+    protected void before() throws Throwable {
+        tempFolder.create();
+
         localDataSource = SqliteConnections.getPooledDataSource(
                 tempFolder.newFolder("randomFile1").toPath());
         remoteDataSource1 = SqliteConnections.getPooledDataSource(
@@ -75,17 +72,22 @@ public abstract class TimeLockCorruptionTestSetup {
         remoteDataSource2 = SqliteConnections.getPooledDataSource(
                 tempFolder.newFolder("randomFile3").toPath());
 
-        localStateLogComponents = createLogComponentsForServer(localDataSource);
-        remoteStateLogComponents = ImmutableList.of(
+        defaultLocalServer = createLogComponentsForServer(localDataSource);
+        defaultRemoteServerList = ImmutableList.of(
                 createLogComponentsForServer(remoteDataSource1), createLogComponentsForServer(remoteDataSource2));
-        paxosLogHistoryProvider = new PaxosLogHistoryProvider(
-                localStateLogComponents.dataSource(),
-                remoteStateLogComponents.stream()
-                        .map(StateLogComponents::serverHistoryProvider)
+        paxosLogHistoryProvider = paxosLogHistoryProvider();
+    }
+
+    private PaxosLogHistoryProvider paxosLogHistoryProvider() {
+        return new PaxosLogHistoryProvider(
+                localDataSource,
+                defaultRemoteServerList.stream()
+                        .map(StateLogComponents::dataSource)
+                        .map(this::getHistoryProviderResource)
                         .collect(Collectors.toList()));
     }
 
-    protected List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(
+    public List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(
             NamespaceAndUseCase namespaceAndUseCase) {
         return ImmutableList.of(
                 createLogComponentsForServer(localDataSource, namespaceAndUseCase),
@@ -93,16 +95,30 @@ public abstract class TimeLockCorruptionTestSetup {
                 createLogComponentsForServer(remoteDataSource2, namespaceAndUseCase));
     }
 
-    // utils
-    protected Set<PaxosValue> writeLogsOnServer(StateLogComponents server, int start, int end) {
-        return PaxosSerializationTestUtils.writeToLogs(server.acceptorLog(), server.learnerLog(), start, end);
+    public List<StateLogComponents> getDefaultServerList() {
+        return ImmutableList.<StateLogComponents>builder()
+                .add(defaultLocalServer)
+                .addAll(defaultRemoteServerList)
+                .build();
     }
 
-    protected StateLogComponents createLogComponentsForServer(DataSource dataSource) {
-        return createLogComponentsForServer(dataSource, NAMESPACE_AND_USE_CASE);
+    public PaxosLogHistoryProvider getPaxosLogHistoryProvider() {
+        return paxosLogHistoryProvider;
     }
 
-    protected StateLogComponents createLogComponentsForServer(
+    public StateLogComponents getDefaultLocalServer() {
+        return defaultLocalServer;
+    }
+
+    public List<StateLogComponents> getDefaultRemoteServerList() {
+        return defaultRemoteServerList;
+    }
+
+    private StateLogComponents createLogComponentsForServer(DataSource dataSource) {
+        return createLogComponentsForServer(dataSource, Constants.DEFAULT_NAMESPACE_AND_USE_CASE);
+    }
+
+    private StateLogComponents createLogComponentsForServer(
             DataSource dataSource, NamespaceAndUseCase namespaceAndUseCase) {
 
         Client client = namespaceAndUseCase.namespace();
@@ -120,60 +136,17 @@ public abstract class TimeLockCorruptionTestSetup {
                         AcceptorUseCase.createAcceptorUseCase(paxosUseCase).value()),
                 dataSource);
 
-        LocalHistoryLoader history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
-        TimeLockPaxosHistoryProvider serverHistoryProvider = TimeLockPaxosHistoryProviderResource.jersey(history);
         return StateLogComponents.builder()
                 .dataSource(dataSource)
                 .learnerLog(learnerLog)
                 .acceptorLog(acceptorLog)
-                .history(history)
-                .serverHistoryProvider(serverHistoryProvider)
                 .build();
     }
 
-    protected void induceGreaterAcceptedValueCorruption(int corruptSeq) {
-        induceGreaterAcceptedValueCorruption(localStateLogComponents, corruptSeq);
-    }
 
-    protected void induceGreaterAcceptedValueCorruption(StateLogComponents server, int corruptSeq) {
-        PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(
-                server.acceptorLog(),
-                corruptSeq,
-                Optional.of(PaxosSerializationTestUtils.createPaxosValueForRoundAndData(corruptSeq, corruptSeq + 1)));
-    }
-
-    protected void writeLogsOnLocalAndRemote(int startingLogSeq, int latestLogSequence) {
-        writeLogsOnLocalAndRemote(
-                ImmutableList.<StateLogComponents>builder()
-                        .add(localStateLogComponents)
-                        .addAll(remoteStateLogComponents)
-                        .build(),
-                startingLogSeq,
-                latestLogSequence);
-    }
-
-    protected void writeLogsOnLocalAndRemote(
-            List<StateLogComponents> servers, int startingLogSeq, int latestLogSequence) {
-        servers.forEach(server -> writeLogsOnServer(server, startingLogSeq, latestLogSequence));
-    }
-
-    protected SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> getViolationsToNamespaceToUseCaseMultimap() {
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        return HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll).violatingStatusesToNamespaceAndUseCase();
-    }
-
-    protected void assertDetectedViolations(Set<CorruptionCheckViolation> detectedViolations) {
-        assertDetectedViolations(detectedViolations, ImmutableSet.of(NAMESPACE_AND_USE_CASE));
-    }
-
-    protected void assertDetectedViolations(
-            Set<CorruptionCheckViolation> detectedViolations,
-            Set<NamespaceAndUseCase> namespaceAndUseCasesWithViolation) {
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
-                getViolationsToNamespaceToUseCaseMultimap();
-        assertThat(violationsToNamespaceToUseCaseMultimap.keySet()).hasSameElementsAs(detectedViolations);
-        assertThat(violationsToNamespaceToUseCaseMultimap.values())
-                .hasSameElementsAs(namespaceAndUseCasesWithViolation);
+    private TimeLockPaxosHistoryProvider getHistoryProviderResource(DataSource dataSource) {
+        return TimeLockPaxosHistoryProviderResource.jersey(
+                LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource)));
     }
 
     @Value.Immutable
@@ -183,10 +156,6 @@ public abstract class TimeLockCorruptionTestSetup {
         PaxosStateLog<PaxosValue> learnerLog();
 
         PaxosStateLog<PaxosAcceptorState> acceptorLog();
-
-        LocalHistoryLoader history();
-
-        TimeLockPaxosHistoryProvider serverHistoryProvider();
 
         static ImmutableStateLogComponents.Builder builder() {
             return ImmutableStateLogComponents.builder();

@@ -19,69 +19,74 @@ package com.palantir.timelock.corruption.detection;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.StateLogComponents;
 import java.util.List;
 import java.util.stream.IntStream;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * This class performs integration tests by inducing and detecting corruption in one or more series.
  * Note - All tests only induce and detect one type of corruption check violation -> ACCEPTED_VALUE_GREATER_THAN_LEARNED
  */
-public class CorruptionDetectionIntegrationTest extends TimeLockCorruptionTestSetup {
+public class CorruptionDetectionIntegrationTest {
+    @Rule
+    public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
 
     @Test
     public void detectCorruptionForLogAtSeqAtBatchEnd() {
         // We write logs in range - [1, 500]. The first range of sequences for corruption detection = [0, 499] since
         // this range is computed from INITIAL_PROGRESS = -1.
-        writeLogsOnLocalAndRemote(1, 500);
-        induceGreaterAcceptedValueCorruption(499);
-        assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
+        helper.writeLogsOnDefaultLocalAndRemote(1, 500);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(499);
+        helper.assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
     }
 
     @Test
     public void detectCorruptionForLogSeqInLaterBatches() {
-        writeLogsOnLocalAndRemote(1, 1000);
-        induceGreaterAcceptedValueCorruption(599);
+        helper.writeLogsOnDefaultLocalAndRemote(1, 1000);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(599);
 
         // No signs of corruption in the first batch
-        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
-                getViolationsToNamespaceToUseCaseMultimap();
+        Multimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
+                helper.getViolationsToNamespaceToUseCaseMultimap();
         assertThat(violationsToNamespaceToUseCaseMultimap.isEmpty()).isTrue();
 
         // Detects signs of corruption in the second batch
-        assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
+        helper.assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
     }
 
     @Test
     public void detectCorruptionForLogSeqAtStartOfSecondBatch() {
         // We write logs in range - [1, 1000]. The first range of sequences for corruption detection = [0, 499] since
         // this range is computed from INITIAL_PROGRESS = -1, which makes range of the second batch = [500, 999].
-        writeLogsOnLocalAndRemote(1, 1000);
-        induceGreaterAcceptedValueCorruption(500);
+        helper.writeLogsOnDefaultLocalAndRemote(1, 1000);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(500);
 
         // No signs of corruption in the first batch
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
-                getViolationsToNamespaceToUseCaseMultimap();
+                helper.getViolationsToNamespaceToUseCaseMultimap();
         assertThat(violationsToNamespaceToUseCaseMultimap.isEmpty()).isTrue();
 
         // Detects signs of corruption in the second batch
-        assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
+        helper.assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
     }
 
     @Test
     public void resetsLastVerifiedOnceGreatestKnownSeqInMemoryIsVerified() {
-        writeLogsOnLocalAndRemote(1, 400);
+        helper.writeLogsOnDefaultLocalAndRemote(1, 400);
 
         // No signs of corruption
-        assertDetectedViolations(ImmutableSet.of(), ImmutableSet.of());
+        helper.assertDetectedViolations(ImmutableSet.of(), ImmutableSet.of());
 
-        induceGreaterAcceptedValueCorruption(250);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(250);
         // Detects signs of corruption in the now corrupt first batch of logs
-        assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
+        helper.assertDetectedViolations(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
     }
 
     @Test
@@ -90,20 +95,21 @@ public class CorruptionDetectionIntegrationTest extends TimeLockCorruptionTestSe
         IntStream.rangeClosed(1, 7).boxed().forEach(this::createSeriesWithPaxosLogs);
         IntStream.rangeClosed(6, 7).boxed().forEach(this::corruptSeries);
 
-        assertDetectedViolations(
+        helper.assertDetectedViolations(
                 ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED),
                 ImmutableSet.of(namespaceAndUseCaseForIndex(6), namespaceAndUseCaseForIndex(7)));
     }
 
     private void createSeriesWithPaxosLogs(Integer namespaceAndUseCaseIndex) {
         NamespaceAndUseCase namespaceAndUseCase = namespaceAndUseCaseForIndex(namespaceAndUseCaseIndex);
-        writeLogsOnLocalAndRemote(createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase), 1, 500);
+        helper.writeLogsOnLocalAndRemote(
+                helper.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase), 1, 500);
     }
 
     private void corruptSeries(Integer namespaceAndUseCaseIndex) {
         NamespaceAndUseCase namespaceAndUseCase = namespaceAndUseCaseForIndex(namespaceAndUseCaseIndex);
-        List<StateLogComponents> components = createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase);
-        induceGreaterAcceptedValueCorruption(components.get(0), 499);
+        List<StateLogComponents> components = helper.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase);
+        helper.induceGreaterAcceptedValueCorruption(components.get(0), 499);
     }
 
     private NamespaceAndUseCase namespaceAndUseCaseForIndex(Integer ind) {

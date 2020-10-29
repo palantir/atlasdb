@@ -16,20 +16,16 @@
 
 package com.palantir.timelock.history.utils;
 
-import com.palantir.paxos.Client;
-import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.timelock.Constants;
 import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.HistoryQuerySequenceBounds;
 
 public class HistoryQueries {
-    public static final Client DEFAULT_CLIENT = Client.of("client");
-    public static final String DEFAULT_USE_CASE = "useCase";
-    public static final NamespaceAndUseCase DEFAULT_NAMESPACE_AND_USE_CASE =
-            ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, DEFAULT_USE_CASE);
 
     public static HistoryQuery unboundedHistoryQuerySinceSeq(long seqLowerBound) {
-        return unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(DEFAULT_NAMESPACE_AND_USE_CASE, seqLowerBound);
+        return unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(
+                Constants.DEFAULT_NAMESPACE_AND_USE_CASE, seqLowerBound);
     }
 
     public static HistoryQuery unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(
