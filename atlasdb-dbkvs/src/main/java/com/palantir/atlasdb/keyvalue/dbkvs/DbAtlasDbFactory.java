@@ -82,9 +82,12 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
+        Preconditions.checkArgument(
+                tableReferenceOverride.map(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE::equals).orElse(false),
+                "Cannot specify the DB TimeLock timestamp table as a timestamp table override!");
         Preconditions.checkArgument(
                 rawKvs instanceof ConnectionManagerAwareDbKvs,
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s",
