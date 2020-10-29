@@ -33,7 +33,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-public class TimeLockCorruptionDetectionHelper implements TestRule {
+public final class TimeLockCorruptionDetectionHelper implements TestRule {
     private TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 
     Set<PaxosValue> writeLogsOnDefaultLocalServer(int start, int end) {
@@ -49,7 +49,7 @@ public class TimeLockCorruptionDetectionHelper implements TestRule {
     }
 
     void induceGreaterAcceptedValueCorruption(StateLogComponents server, int corruptSeq) {
-        PaxosSerializationTestUtils.wqqqq:riteAcceptorStateForLogAndRound(
+        PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(
                 server.acceptorLog(),
                 corruptSeq,
                 Optional.of(PaxosSerializationTestUtils.createPaxosValueForRoundAndData(corruptSeq, corruptSeq + 1)));
@@ -73,8 +73,15 @@ public class TimeLockCorruptionDetectionHelper implements TestRule {
         return timeLockCorruptionTestSetup.getPaxosLogHistoryProvider().getHistory();
     }
 
-    void assertDetectedViolations(Set<CorruptionCheckViolation> detectedViolations) {
-        assertDetectedViolations(detectedViolations, ImmutableSet.of(Constants.DEFAULT_NAMESPACE_AND_USE_CASE));
+    void assertAcceptedValueGreaterThanLearnedValue() {
+        assertViolationsDetectedForNamespaceAndUsecases(
+                ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED),
+                ImmutableSet.of(Constants.DEFAULT_NAMESPACE_AND_USE_CASE));
+    }
+
+    void assertViolationsDetected(Set<CorruptionCheckViolation> detectedViolations) {
+        assertViolationsDetectedForNamespaceAndUsecases(
+                detectedViolations, ImmutableSet.of(Constants.DEFAULT_NAMESPACE_AND_USE_CASE));
     }
 
     List<StateLogComponents> getDefaultRemoteServerList() {
@@ -85,7 +92,7 @@ public class TimeLockCorruptionDetectionHelper implements TestRule {
         return timeLockCorruptionTestSetup.getDefaultLocalServer();
     }
 
-    void assertDetectedViolations(
+    void assertViolationsDetectedForNamespaceAndUsecases(
             Set<CorruptionCheckViolation> detectedViolations,
             Set<NamespaceAndUseCase> namespaceAndUseCasesWithViolation) {
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =

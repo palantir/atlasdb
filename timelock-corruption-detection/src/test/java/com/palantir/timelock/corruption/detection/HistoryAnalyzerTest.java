@@ -26,61 +26,58 @@ import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class HistoryAnalyzerTest {
+public final class HistoryAnalyzerTest {
     @Rule
-    public TimeLockCorruptionDetectionHelper timeLockCorruptionDetectionHelper =
-            new TimeLockCorruptionDetectionHelper();
+    public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
 
     @Test
     public void correctlyPassesIfThereIsNotCorruption() {
-        timeLockCorruptionDetectionHelper.writeLogsOnDefaultLocalAndRemote(1, 10);
+        helper.writeLogsOnDefaultLocalAndRemote(1, 10);
 
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = timeLockCorruptionDetectionHelper.getHistory();
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
 
         assertThat(HistoryAnalyzer.corruptionCheckViolationLevelForNamespaceAndUseCase(
                         Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
 
-        timeLockCorruptionDetectionHelper.assertDetectedViolations(ImmutableSet.of(), ImmutableSet.of());
+        helper.assertViolationsDetectedForNamespaceAndUsecases(ImmutableSet.of(), ImmutableSet.of());
     }
 
     @Test
     public void detectCorruptionIfDifferentValuesAreLearnedInSameRound() {
         PaxosSerializationTestUtils.writePaxosValue(
-                timeLockCorruptionDetectionHelper.getDefaultLocalServer().learnerLog(),
+                helper.getDefaultLocalServer().learnerLog(),
                 1,
                 PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 1));
-        timeLockCorruptionDetectionHelper.getDefaultRemoteServerList().stream()
+        helper.getDefaultRemoteServerList().stream()
                 .forEach(server -> PaxosSerializationTestUtils.writePaxosValue(
                         server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = timeLockCorruptionDetectionHelper.getHistory();
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.DIVERGED_LEARNERS);
 
-        timeLockCorruptionDetectionHelper.assertDetectedViolations(
-                ImmutableSet.of(CorruptionCheckViolation.DIVERGED_LEARNERS));
+        helper.assertViolationsDetected(ImmutableSet.of(CorruptionCheckViolation.DIVERGED_LEARNERS));
     }
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotAcceptedByQuorum() {
-        timeLockCorruptionDetectionHelper.writeLogsOnDefaultLocalServer(1, 10);
+        helper.writeLogsOnDefaultLocalServer(1, 10);
 
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = timeLockCorruptionDetectionHelper.getHistory();
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
         assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
 
-        timeLockCorruptionDetectionHelper.assertDetectedViolations(
-                ImmutableSet.of(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM));
+        helper.assertViolationsDetected(ImmutableSet.of(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM));
     }
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
-        timeLockCorruptionDetectionHelper.writeLogsOnDefaultLocalAndRemote(1, 10);
-        timeLockCorruptionDetectionHelper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(5);
+        helper.writeLogsOnDefaultLocalAndRemote(1, 10);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(5);
 
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = timeLockCorruptionDetectionHelper.getHistory();
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
         assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
@@ -88,7 +85,6 @@ public class HistoryAnalyzerTest {
         assertThat(HistoryAnalyzer.greatestAcceptedValueNotLearned(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
 
-        timeLockCorruptionDetectionHelper.assertDetectedViolations(
-                ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
+        helper.assertViolationsDetected(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
     }
 }

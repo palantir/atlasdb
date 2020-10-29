@@ -44,7 +44,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-public class TimeLockCorruptionTestSetup implements TestRule {
+public final class TimeLockCorruptionTestSetup implements TestRule {
     private TemporaryFolder tempFolder = new TemporaryFolder();
     private DataSource localDataSource;
     private DataSource remoteDataSource1;
@@ -153,7 +153,6 @@ public class TimeLockCorruptionTestSetup implements TestRule {
                 .acceptorLog(acceptorLog)
                 .build();
     }
-
 
     private TimeLockPaxosHistoryProvider getHistoryProviderResource(DataSource dataSource) {
         return TimeLockPaxosHistoryProviderResource.jersey(
