@@ -29,17 +29,12 @@ import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.Rule;
-import org.junit.rules.ExternalResource;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
-public class TimeLockCorruptionDetectionHelper extends ExternalResource {
-    @Rule
-    public TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
-
-    @Override
-    public void before() throws Throwable {
-        timeLockCorruptionTestSetup.before();
-    }
+public class TimeLockCorruptionDetectionHelper implements TestRule {
+    private TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 
     Set<PaxosValue> writeLogsOnDefaultLocalServer(int start, int end) {
         return writeLogsOnServer(timeLockCorruptionTestSetup.getDefaultLocalServer(), start, end);
@@ -54,7 +49,7 @@ public class TimeLockCorruptionDetectionHelper extends ExternalResource {
     }
 
     void induceGreaterAcceptedValueCorruption(StateLogComponents server, int corruptSeq) {
-        PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(
+        PaxosSerializationTestUtils.wqqqq:riteAcceptorStateForLogAndRound(
                 server.acceptorLog(),
                 corruptSeq,
                 Optional.of(PaxosSerializationTestUtils.createPaxosValueForRoundAndData(corruptSeq, corruptSeq + 1)));
@@ -103,5 +98,10 @@ public class TimeLockCorruptionDetectionHelper extends ExternalResource {
     public List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(
             NamespaceAndUseCase namespaceAndUseCase) {
         return timeLockCorruptionTestSetup.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase);
+    }
+
+    @Override
+    public Statement apply(Statement base, Description description) {
+        return timeLockCorruptionTestSetup.apply(base, description);
     }
 }

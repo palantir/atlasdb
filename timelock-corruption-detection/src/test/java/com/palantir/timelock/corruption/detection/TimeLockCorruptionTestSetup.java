@@ -37,17 +37,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
-import org.junit.Rule;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-public class TimeLockCorruptionTestSetup extends ExternalResource {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
-
+public class TimeLockCorruptionTestSetup implements TestRule {
+    private TemporaryFolder tempFolder = new TemporaryFolder();
     private DataSource localDataSource;
     private DataSource remoteDataSource1;
     private DataSource remoteDataSource2;
@@ -58,13 +56,26 @@ public class TimeLockCorruptionTestSetup extends ExternalResource {
 
     @Override
     public Statement apply(Statement base, Description description) {
-        return RuleChain.outerRule(tempFolder).apply(base, description);
+        return RuleChain.outerRule(tempFolder)
+                .around(new ExternalResource() {
+                    @Override
+                    protected void before() {
+                        try {
+                            setup();
+                        } catch (Throwable throwable) {
+                            // no op
+                        }
+                    }
+
+                    @Override
+                    protected void after() {
+                        // no op
+                    }
+                })
+                .apply(base, description);
     }
 
-    @Override
-    protected void before() throws Throwable {
-        tempFolder.create();
-
+    private void setup() throws Throwable {
         localDataSource = SqliteConnections.getPooledDataSource(
                 tempFolder.newFolder("randomFile1").toPath());
         remoteDataSource1 = SqliteConnections.getPooledDataSource(
