@@ -17,7 +17,6 @@ package com.palantir.atlasdb.ete;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 import java.util.List;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
@@ -26,10 +25,11 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    TodoEteTest.class,
-    TimestampManagementEteTest.class,
-    CoordinationEteTest.class,
-    LockWithTimelockEteTest.class
+    // TodoEteTest.class,
+    // TimestampManagementEteTest.class,
+    // CoordinationEteTest.class,
+    // LockWithTimelockEteTest.class
+    LockWatchEteTest.class
 })
 public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

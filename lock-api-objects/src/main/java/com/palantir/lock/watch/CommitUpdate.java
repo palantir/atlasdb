@@ -16,15 +16,32 @@
 
 package com.palantir.lock.watch;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate.InvalidateAll;
+import com.palantir.lock.watch.CommitUpdate.InvalidateSome;
 import java.util.Set;
 import org.immutables.value.Value;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = InvalidateAll.class, name = InvalidateAll.TYPE),
+        @JsonSubTypes.Type(value = InvalidateSome.class, name = InvalidateSome.TYPE),
+})
 public interface CommitUpdate {
     <T> T accept(Visitor<T> visitor);
 
     @Value.Immutable
+    @JsonSerialize(as = ImmutableInvalidateAll.class)
+    @JsonDeserialize(as = ImmutableInvalidateAll.class)
+    @JsonTypeName(InvalidateAll.TYPE)
     interface InvalidateAll extends CommitUpdate {
+        String TYPE = "invalidateAll";
+
         @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.invalidateAll();
@@ -32,7 +49,12 @@ public interface CommitUpdate {
     }
 
     @Value.Immutable
+    @JsonSerialize(as = ImmutableInvalidateSome.class)
+    @JsonDeserialize(as = ImmutableInvalidateSome.class)
+    @JsonTypeName(InvalidateSome.TYPE)
     interface InvalidateSome extends CommitUpdate {
+        String TYPE = "invalidateSome";
+
         Set<LockDescriptor> invalidatedLocks();
 
         @Override
