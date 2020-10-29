@@ -40,7 +40,7 @@ public final class HistoryAnalyzerTest {
                         Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
 
-        helper.assertViolationsDetectedForNamespaceAndUsecases(ImmutableSet.of(), ImmutableSet.of());
+        helper.assertNoCorruptionViolations();
     }
 
     @Test

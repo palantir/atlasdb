@@ -16,10 +16,7 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
@@ -52,9 +49,7 @@ public final class CorruptionDetectionIntegrationTest {
         helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(599);
 
         // No signs of corruption in the first batch
-        Multimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
-                helper.getViolationsToNamespaceToUseCaseMultimap();
-        assertThat(violationsToNamespaceToUseCaseMultimap.isEmpty()).isTrue();
+        helper.assertNoCorruptionViolations();
 
         // Detects signs of corruption in the second batch
         helper.assertAcceptedValueGreaterThanLearnedValue();
@@ -68,9 +63,7 @@ public final class CorruptionDetectionIntegrationTest {
         helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(500);
 
         // No signs of corruption in the first batch
-        Multimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
-                helper.getViolationsToNamespaceToUseCaseMultimap();
-        assertThat(violationsToNamespaceToUseCaseMultimap.isEmpty()).isTrue();
+        helper.assertNoCorruptionViolations();
 
         // Detects signs of corruption in the second batch
         helper.assertAcceptedValueGreaterThanLearnedValue();
@@ -81,7 +74,7 @@ public final class CorruptionDetectionIntegrationTest {
         helper.writeLogsOnDefaultLocalAndRemote(1, 400);
 
         // No signs of corruption
-        helper.assertViolationsDetectedForNamespaceAndUsecases(ImmutableSet.of(), ImmutableSet.of());
+        helper.assertNoCorruptionViolations();
 
         helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(250);
         // Detects signs of corruption in the now corrupt first batch of logs
@@ -94,7 +87,7 @@ public final class CorruptionDetectionIntegrationTest {
         IntStream.rangeClosed(1, 7).boxed().forEach(this::createSeriesWithPaxosLogs);
         IntStream.rangeClosed(6, 7).boxed().forEach(this::corruptSeries);
 
-        helper.assertViolationsDetectedForNamespaceAndUsecases(
+        helper.assertViolationsDetectedForNamespaceAndUseCases(
                 ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED),
                 ImmutableSet.of(namespaceAndUseCaseForIndex(6), namespaceAndUseCaseForIndex(7)));
     }
