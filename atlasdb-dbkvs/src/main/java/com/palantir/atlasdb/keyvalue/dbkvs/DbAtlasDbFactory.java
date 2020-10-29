@@ -86,7 +86,9 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         }
 
         Preconditions.checkArgument(
-                tableReferenceOverride.map(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE::equals).orElse(false),
+                tableReferenceOverride
+                        .map(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE::equals)
+                        .orElse(false),
                 "Cannot specify the DB TimeLock timestamp table as a timestamp table override!");
         Preconditions.checkArgument(
                 rawKvs instanceof ConnectionManagerAwareDbKvs,
