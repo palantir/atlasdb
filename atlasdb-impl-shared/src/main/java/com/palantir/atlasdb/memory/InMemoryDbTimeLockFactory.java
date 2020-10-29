@@ -18,7 +18,6 @@ package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -51,10 +50,8 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync) {
-        return DbTimestampCreationSettings.caseOf(dbTimestampCreationSetting)
-                .multipleSeries((unusedTableRef, series) ->
-                        services.computeIfAbsent(series, unused -> new InMemoryTimestampService()))
-                .singleSeries(unused -> new InMemoryTimestampService());
+        return services.computeIfAbsent(
+                dbTimestampCreationSetting.timestampSeries(), (unused) -> new InMemoryTimestampService());
     }
 
     @Override

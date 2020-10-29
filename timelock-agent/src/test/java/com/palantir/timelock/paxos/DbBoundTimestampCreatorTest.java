@@ -19,7 +19,7 @@ package com.palantir.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.paxos.Client;
 import org.junit.Test;
@@ -31,11 +31,11 @@ public class DbBoundTimestampCreatorTest {
     @Test
     public void timestampCreationParametersMaintainClientName() {
         assertThat(DbBoundTimestampCreator.getTimestampCreationParameters(CLIENT_1))
-                .isEqualTo(DbTimestampCreationSettings.multipleSeries(
+                .isEqualTo(DbTimestampCreationSetting.of(
                         AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, TimestampSeries.of(CLIENT_1.value())));
 
         assertThat(DbBoundTimestampCreator.getTimestampCreationParameters(CLIENT_2))
-                .isEqualTo(DbTimestampCreationSettings.multipleSeries(
+                .isEqualTo(DbTimestampCreationSetting.of(
                         AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, TimestampSeries.of(CLIENT_2.value())));
     }
 }

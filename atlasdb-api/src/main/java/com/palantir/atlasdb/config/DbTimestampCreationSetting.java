@@ -18,25 +18,18 @@ package com.palantir.atlasdb.config;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
-import java.util.Optional;
-import org.derive4j.Data;
+import org.immutables.value.Value;
 
-@Data
-public abstract class DbTimestampCreationSetting {
-    public interface Cases<R> {
-        R multipleSeries(TableReference tableReference, TimestampSeries series);
+@Value.Immutable
+public interface DbTimestampCreationSetting {
+    TableReference tableReference();
 
-        R singleSeries(Optional<TableReference> tableReferenceOverride);
+    TimestampSeries timestampSeries();
+
+    static DbTimestampCreationSetting of(TableReference tableReference, TimestampSeries series) {
+        return ImmutableDbTimestampCreationSetting.builder()
+                .tableReference(tableReference)
+                .timestampSeries(series)
+                .build();
     }
-
-    public abstract <R> R match(Cases<R> cases);
-
-    @Override
-    public abstract int hashCode();
-
-    @Override
-    public abstract boolean equals(Object obj);
-
-    @Override
-    public abstract String toString();
 }
