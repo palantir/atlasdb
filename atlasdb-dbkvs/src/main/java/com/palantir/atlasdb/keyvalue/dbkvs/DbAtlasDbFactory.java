@@ -86,7 +86,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         }
 
         Preconditions.checkArgument(
-                tableReferenceOverride
+                !tableReferenceOverride
                         .map(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE::equals)
                         .orElse(false),
                 "Cannot specify the DB TimeLock timestamp table as a timestamp table override!");
