@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.timelock.Constants;
+import com.palantir.timelock.TimelockCorruptionTestConstants;
 import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.StateLogComponents;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
@@ -36,8 +36,8 @@ import org.junit.runners.model.Statement;
 public final class TimeLockCorruptionDetectionHelper implements TestRule {
     private TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 
-    Set<PaxosValue> writeLogsOnDefaultLocalServer(int start, int end) {
-        return writeLogsOnServer(timeLockCorruptionTestSetup.getDefaultLocalServer(), start, end);
+    Set<PaxosValue> writeLogsOnDefaultLocalServer(int startInclusive, int endInclusive) {
+        return writeLogsOnServer(timeLockCorruptionTestSetup.getDefaultLocalServer(), startInclusive, endInclusive);
     }
 
     void writeLogsOnDefaultLocalAndRemote(int startingLogSeq, int latestLogSequence) {
@@ -45,12 +45,12 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
                 timeLockCorruptionTestSetup.getDefaultServerList(), startingLogSeq, latestLogSequence);
     }
 
-    Set<PaxosValue> writeLogsOnServer(StateLogComponents server, int start, int end) {
-        return PaxosSerializationTestUtils.writeToLogs(server.acceptorLog(), server.learnerLog(), start, end);
+    private Set<PaxosValue> writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
+        return PaxosSerializationTestUtils.writeToLogs(server.acceptorLog(), server.learnerLog(), startInclusive, endInclusive);
     }
 
     void writeLogsOnLocalAndRemote(List<StateLogComponents> servers, int startingLogSeq, int latestLogSequence) {
-        servers.stream().forEach(server -> writeLogsOnServer(server, startingLogSeq, latestLogSequence));
+        servers.forEach(server -> writeLogsOnServer(server, startingLogSeq, latestLogSequence));
     }
 
     StateLogComponents getDefaultLocalServer() {
@@ -77,40 +77,38 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
     }
 
     void assertNoCorruptionViolations() {
-        assertViolationsDetectedForNamespaceAndUseCases(ImmutableSet.of(), ImmutableSet.of());
+        assertThat(getViolationsToNamespaceToUseCaseMultimap().isEmpty()).isTrue();
     }
 
     void assertAcceptedValueGreaterThanLearnedValue() {
-        assertViolationsDetectedForNamespaceAndUseCases(
-                ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED),
-                ImmutableSet.of(Constants.DEFAULT_NAMESPACE_AND_USE_CASE));
+        assertViolationDetectedForNamespaceAndUseCases(
+                CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED,
+                ImmutableSet.of(TimelockCorruptionTestConstants.DEFAULT_NAMESPACE_AND_USE_CASE));
     }
 
-    void assertViolationsDetected(Set<CorruptionCheckViolation> detectedViolations) {
-        assertViolationsDetectedForNamespaceAndUseCases(
-                detectedViolations, ImmutableSet.of(Constants.DEFAULT_NAMESPACE_AND_USE_CASE));
+    void assertViolationDetected(CorruptionCheckViolation expectedViolation) {
+        assertViolationDetectedForNamespaceAndUseCases(
+                expectedViolation, ImmutableSet.of(TimelockCorruptionTestConstants.DEFAULT_NAMESPACE_AND_USE_CASE));
     }
 
-    void assertViolationsDetectedForNamespaceAndUseCases(
-            Set<CorruptionCheckViolation> detectedViolations,
-            Set<NamespaceAndUseCase> namespaceAndUseCasesWithViolation) {
-
+    void assertViolationDetectedForNamespaceAndUseCases(
+            CorruptionCheckViolation expectedViolation,
+            Set<NamespaceAndUseCase> expectedNamespaceAndUseCasesWithViolation) {
         Multimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
                 getViolationsToNamespaceToUseCaseMultimap();
 
-        assertThat(violationsToNamespaceToUseCaseMultimap.keySet()).hasSameElementsAs(detectedViolations);
+        assertThat(violationsToNamespaceToUseCaseMultimap.keySet()).isEqualTo(expectedViolation);
         assertThat(violationsToNamespaceToUseCaseMultimap.values())
-                .hasSameElementsAs(namespaceAndUseCasesWithViolation);
+                .hasSameElementsAs(expectedNamespaceAndUseCasesWithViolation);
     }
 
     private Multimap<CorruptionCheckViolation, NamespaceAndUseCase> getViolationsToNamespaceToUseCaseMultimap() {
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = getHistory();
-        return HistoryAnalyzer.corruptionHealthReportForHistory(historyForAll).violatingStatusesToNamespaceAndUseCase();
+        return HistoryAnalyzer.corruptionHealthReportForHistory(getHistory()).violatingStatusesToNamespaceAndUseCase();
     }
 
-    public List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(
+    List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(
             NamespaceAndUseCase namespaceAndUseCase) {
-        return timeLockCorruptionTestSetup.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase);
+        return timeLockCorruptionTestSetup.createStatLogForNamespaceAndUseCase(namespaceAndUseCase);
     }
 
     @Override

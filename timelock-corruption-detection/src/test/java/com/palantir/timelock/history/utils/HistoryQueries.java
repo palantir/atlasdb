@@ -17,7 +17,7 @@
 package com.palantir.timelock.history.utils;
 
 import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.timelock.Constants;
+import com.palantir.timelock.TimelockCorruptionTestConstants;
 import com.palantir.timelock.history.HistoryQuery;
 import com.palantir.timelock.history.HistoryQuerySequenceBounds;
 
@@ -25,7 +25,7 @@ public class HistoryQueries {
 
     public static HistoryQuery unboundedHistoryQuerySinceSeq(long seqLowerBound) {
         return unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(
-                Constants.DEFAULT_NAMESPACE_AND_USE_CASE, seqLowerBound);
+                TimelockCorruptionTestConstants.DEFAULT_NAMESPACE_AND_USE_CASE, seqLowerBound);
     }
 
     public static HistoryQuery unboundedHistoryQuerySinceSeqForNamespaceAndUseCase(

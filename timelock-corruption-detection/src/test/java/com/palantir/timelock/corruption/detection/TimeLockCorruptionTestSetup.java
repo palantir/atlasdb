@@ -25,7 +25,7 @@ import com.palantir.paxos.PaxosStateLog;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
-import com.palantir.timelock.Constants;
+import com.palantir.timelock.TimelockCorruptionTestConstants;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
@@ -63,7 +63,7 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
                         try {
                             setup();
                         } catch (Throwable throwable) {
-                            // no op
+                            throw new RuntimeException("Failed on startup", throwable);
                         }
                     }
 
@@ -94,11 +94,11 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
                 localDataSource,
                 defaultRemoteServerList.stream()
                         .map(StateLogComponents::dataSource)
-                        .map(this::getHistoryProviderResource)
+                        .map(TimeLockCorruptionTestSetup::getHistoryProviderResource)
                         .collect(Collectors.toList()));
     }
 
-    public List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(
+    public List<StateLogComponents> createStatLogForNamespaceAndUseCase(
             NamespaceAndUseCase namespaceAndUseCase) {
         return ImmutableList.of(
                 createLogComponentsForServer(localDataSource, namespaceAndUseCase),
@@ -125,11 +125,11 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
         return defaultRemoteServerList;
     }
 
-    private StateLogComponents createLogComponentsForServer(DataSource dataSource) {
-        return createLogComponentsForServer(dataSource, Constants.DEFAULT_NAMESPACE_AND_USE_CASE);
+    private static StateLogComponents createLogComponentsForServer(DataSource dataSource) {
+        return createLogComponentsForServer(dataSource, TimelockCorruptionTestConstants.DEFAULT_NAMESPACE_AND_USE_CASE);
     }
 
-    private StateLogComponents createLogComponentsForServer(
+    private static StateLogComponents createLogComponentsForServer(
             DataSource dataSource, NamespaceAndUseCase namespaceAndUseCase) {
 
         Client client = namespaceAndUseCase.namespace();
@@ -154,7 +154,7 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
                 .build();
     }
 
-    private TimeLockPaxosHistoryProvider getHistoryProviderResource(DataSource dataSource) {
+    private static TimeLockPaxosHistoryProvider getHistoryProviderResource(DataSource dataSource) {
         return TimeLockPaxosHistoryProviderResource.jersey(
                 LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource)));
     }

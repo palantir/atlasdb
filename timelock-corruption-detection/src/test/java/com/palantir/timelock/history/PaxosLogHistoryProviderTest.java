@@ -16,9 +16,9 @@
 
 package com.palantir.timelock.history;
 
-import static com.palantir.timelock.Constants.DEFAULT_CLIENT;
-import static com.palantir.timelock.Constants.DEFAULT_NAMESPACE_AND_USE_CASE;
-import static com.palantir.timelock.Constants.DEFAULT_USE_CASE;
+import static com.palantir.timelock.TimelockCorruptionTestConstants.DEFAULT_CLIENT;
+import static com.palantir.timelock.TimelockCorruptionTestConstants.DEFAULT_NAMESPACE_AND_USE_CASE;
+import static com.palantir.timelock.TimelockCorruptionTestConstants.DEFAULT_USE_CASE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

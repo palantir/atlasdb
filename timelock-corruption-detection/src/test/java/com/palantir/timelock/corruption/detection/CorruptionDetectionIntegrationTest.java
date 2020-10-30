@@ -28,7 +28,7 @@ import org.junit.Test;
 
 /**
  * This class performs integration tests by inducing and detecting corruption in one or more series.
- * Note - All tests only induce and detect one type of corruption check violation -> ACCEPTED_VALUE_GREATER_THAN_LEARNED
+ * All tests only induce and detect ACCEPTED_VALUE_GREATER_THAN_LEARNED corruption.
  */
 public final class CorruptionDetectionIntegrationTest {
     @Rule
@@ -36,7 +36,7 @@ public final class CorruptionDetectionIntegrationTest {
 
     @Test
     public void detectCorruptionForLogAtBatchEnd() {
-        // We write logs in range - [1, 500]. The first range of sequences for corruption detection = [0, 499] since
+        // We write logs in range [1, 500]. The first range of sequences for corruption detection = [0, 499] since
         // this range is computed from INITIAL_PROGRESS = -1.
         helper.writeLogsOnDefaultLocalAndRemote(1, 500);
         helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(499);
@@ -57,7 +57,7 @@ public final class CorruptionDetectionIntegrationTest {
 
     @Test
     public void detectCorruptionForLogAtStartOfSecondBatch() {
-        // We write logs in range - [1, 1000]. The first range of sequences for corruption detection = [0, 499] since
+        // We write logs in range [1, 1000]. The first range of sequences for corruption detection = [0, 499] since
         // this range is computed from INITIAL_PROGRESS = -1, which makes range of the second batch = [500, 999].
         helper.writeLogsOnDefaultLocalAndRemote(1, 1000);
         helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(500);
@@ -87,24 +87,24 @@ public final class CorruptionDetectionIntegrationTest {
         IntStream.rangeClosed(1, 7).boxed().forEach(this::createSeriesWithPaxosLogs);
         IntStream.rangeClosed(6, 7).boxed().forEach(this::corruptSeries);
 
-        helper.assertViolationsDetectedForNamespaceAndUseCases(
-                ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED),
+        helper.assertViolationDetectedForNamespaceAndUseCases(
+                CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED,
                 ImmutableSet.of(namespaceAndUseCaseForIndex(6), namespaceAndUseCaseForIndex(7)));
     }
 
-    private void createSeriesWithPaxosLogs(Integer namespaceAndUseCaseIndex) {
+    private void createSeriesWithPaxosLogs(int namespaceAndUseCaseIndex) {
         NamespaceAndUseCase namespaceAndUseCase = namespaceAndUseCaseForIndex(namespaceAndUseCaseIndex);
         helper.writeLogsOnLocalAndRemote(
                 helper.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase), 1, 500);
     }
 
-    private void corruptSeries(Integer namespaceAndUseCaseIndex) {
+    private void corruptSeries(int namespaceAndUseCaseIndex) {
         NamespaceAndUseCase namespaceAndUseCase = namespaceAndUseCaseForIndex(namespaceAndUseCaseIndex);
         List<StateLogComponents> components = helper.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase);
         helper.induceGreaterAcceptedValueCorruption(components.get(0), 499);
     }
 
-    private NamespaceAndUseCase namespaceAndUseCaseForIndex(Integer ind) {
-        return ImmutableNamespaceAndUseCase.of(Client.of("client_" + ind), "client");
+    private static NamespaceAndUseCase namespaceAndUseCaseForIndex(int index) {
+        return ImmutableNamespaceAndUseCase.of(Client.of("client_" + index), "client");
     }
 }

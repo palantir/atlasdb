@@ -34,8 +34,8 @@ public final class PaxosSerializationTestUtils {
     }
 
     public static Set<PaxosValue> writeToLogs(
-            PaxosStateLog<PaxosAcceptorState> acceptorLog, PaxosStateLog<PaxosValue> learnerLog, int start, int end) {
-        return IntStream.rangeClosed(start, end)
+            PaxosStateLog<PaxosAcceptorState> acceptorLog, PaxosStateLog<PaxosValue> learnerLog, int startInclusive, int endInclusive) {
+        return IntStream.rangeClosed(startInclusive, endInclusive)
                 .boxed()
                 .map(i -> {
                     PaxosValue paxosValue = createPaxosValueForRound(i);

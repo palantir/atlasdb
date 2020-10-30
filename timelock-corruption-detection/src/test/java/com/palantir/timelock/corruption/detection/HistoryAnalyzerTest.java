@@ -18,7 +18,6 @@ package com.palantir.timelock.corruption.detection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
@@ -49,14 +48,14 @@ public final class HistoryAnalyzerTest {
                 helper.getDefaultLocalServer().learnerLog(),
                 1,
                 PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 1));
-        helper.getDefaultRemoteServerList().stream()
+        helper.getDefaultRemoteServerList()
                 .forEach(server -> PaxosSerializationTestUtils.writePaxosValue(
                         server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.DIVERGED_LEARNERS);
 
-        helper.assertViolationsDetected(ImmutableSet.of(CorruptionCheckViolation.DIVERGED_LEARNERS));
+        helper.assertViolationDetected(CorruptionCheckViolation.DIVERGED_LEARNERS);
     }
 
     @Test
@@ -69,7 +68,7 @@ public final class HistoryAnalyzerTest {
         assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
 
-        helper.assertViolationsDetected(ImmutableSet.of(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM));
+        helper.assertViolationDetected(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
     }
 
     @Test
@@ -85,6 +84,6 @@ public final class HistoryAnalyzerTest {
         assertThat(HistoryAnalyzer.greatestAcceptedValueNotLearned(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
 
-        helper.assertViolationsDetected(ImmutableSet.of(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED));
+        helper.assertViolationDetected(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
     }
 }

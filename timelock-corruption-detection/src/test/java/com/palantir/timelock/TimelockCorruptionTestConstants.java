@@ -20,7 +20,7 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 
-public class Constants {
+public class TimelockCorruptionTestConstants {
     public static final String DEFAULT_USE_CASE = "useCase";
     public static final Client DEFAULT_CLIENT = Client.of("client");
     public static final NamespaceAndUseCase DEFAULT_NAMESPACE_AND_USE_CASE =

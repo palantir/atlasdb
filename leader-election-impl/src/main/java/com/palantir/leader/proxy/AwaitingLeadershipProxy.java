@@ -43,6 +43,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -52,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
+    private final ConcurrentMap<Class, Supplier> delegateSupplierMap = new ConcurrentHashMap<>();
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
