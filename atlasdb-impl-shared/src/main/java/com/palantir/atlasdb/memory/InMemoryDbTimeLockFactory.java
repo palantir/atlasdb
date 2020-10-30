@@ -51,7 +51,7 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync) {
         return services.computeIfAbsent(
-                dbTimestampCreationSetting.timestampSeries(), (unused) -> new InMemoryTimestampService());
+                dbTimestampCreationSetting.timestampSeries(), _series -> new InMemoryTimestampService());
     }
 
     @Override
