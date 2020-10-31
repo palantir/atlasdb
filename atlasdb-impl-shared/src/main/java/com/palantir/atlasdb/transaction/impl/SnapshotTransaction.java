@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static java.util.stream.Collectors.toList;
+
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
@@ -39,6 +41,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -106,6 +109,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -381,9 +385,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
-        return Maps.transformEntries(
-                getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection),
-                (row, iterator) -> BatchingVisitableFromIterable.create(iterator));
+        return KeyedStream.stream(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection))
+                .map(BatchingVisitableFromIterable::create)
+                .collectToMap();
     }
 
     @Override
@@ -431,6 +435,58 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilteredResults;
     }
 
+    @Override
+    public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, Iterable<byte[]> inputRows, BatchColumnRangeSelection columnRangeSelection) {
+        checkGetPreconditions(tableRef);
+        Iterable<byte[]> rows = Streams.stream(inputRows)
+                .map(ByteBuffer::wrap)
+                .distinct()
+                .map(ByteBuffer::array)
+                .collect(toList());
+        if (Iterables.isEmpty(rows)) {
+            return Collections.emptyIterator();
+        }
+        hasReads = true;
+        int size = Iterables.size(rows);
+        int batchSize = Math.max(
+                Math.min(100, columnRangeSelection.getBatchHint()), columnRangeSelection.getBatchHint() / size);
+        BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
+                columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol(), batchSize);
+        Map<byte[], RowColumnRangeIterator> rawResults =
+                keyValueService.getRowsColumnRange(tableRef, rows, perBatchSelection, getStartTimestamp());
+
+        Iterator<Map.Entry<Cell, Value>> cells = mergeColumnFirst(rawResults.values());
+        Iterator<Map.Entry<Cell, Value>> postFilterIterator =
+                getRowColumnRangePostFiltered(tableRef, cells, columnRangeSelection.getBatchHint());
+        Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
+                postFilterIterator,
+                entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
+        Iterator<Map.Entry<Cell, byte[]>> localWrites =
+                getSortedColumnsLocalWrites(tableRef, rows, columnRangeSelection);
+
+        Iterator<Map.Entry<Cell, byte[]>> merged = IteratorUtils.mergeIterators(
+                localWrites,
+                remoteWrites,
+                Comparator.comparing(entry -> entry.getKey(), Cell.columnFirstComparator),
+                com.palantir.util.Pair::getLhSide);
+
+        return filterDeletedValues(merged, tableRef);
+    }
+
+    protected <V> Iterator<Map.Entry<Cell, V>> mergeColumnFirst(
+            Iterable<? extends Iterator<Map.Entry<Cell, V>>> iterators) {
+        Comparator<Map.Entry<Cell, V>> comp = Comparator.comparing(Map.Entry::getKey, Cell.columnFirstComparator);
+        return Iterators.mergeSorted(iterators, comp);
+    }
+
+    private Iterator<Map.Entry<Cell, byte[]>> getSortedColumnsLocalWrites(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columns) {
+        return mergeColumnFirst(Iterables.transform(rows, row -> getLocalWritesForColumnRange(tableRef, columns, row)
+                .entrySet()
+                .iterator()));
+    }
+
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -453,7 +509,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
-            RowColumnRangeIterator rawIterator) {
+            Iterator<Map.Entry<Cell, Value>> rawIterator) {
         Iterator<Map.Entry<Cell, Value>> postFilterIterator =
                 getRowColumnRangePostFiltered(tableRef, rawIterator, batchColumnRangeSelection.getBatchHint());
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(postFilterIterator);
@@ -490,7 +546,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
-            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
+            TableReference tableRef, Iterator<Map.Entry<Cell, Value>> iterator, int batchHint) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
             ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
             batch.forEach(rawBuilder::put);

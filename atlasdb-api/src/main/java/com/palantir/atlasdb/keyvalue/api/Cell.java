@@ -27,6 +27,7 @@ import com.palantir.logsafe.UnsafeArg;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Comparator;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,9 @@ import org.slf4j.LoggerFactory;
 public final class Cell implements Serializable, Comparable<Cell> {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(Cell.class);
+    private static final Comparator<Cell> columnComparator = PtBytes.BYTES_COMPARATOR.onResultOf(Cell::getColumnName);
+    private static final Comparator<Cell> rowComparator = PtBytes.BYTES_COMPARATOR.onResultOf(Cell::getRowName);
+    public static final Comparator<Cell> columnFirstComparator = columnComparator.thenComparing(rowComparator);
 
     // Oracle has an upper bound on RAW types of 2000.
     public static final int MAX_NAME_LENGTH = 1500;

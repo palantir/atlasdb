@@ -129,6 +129,13 @@ public class ReadTransaction extends ForwardingTransaction {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
+    @Override
+    public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection selection) {
+        checkTableName(tableRef);
+        return delegate().getSortedColumns(tableRef, rows, selection);
+    }
+
     private void checkTableName(TableReference tableRef) {
         SweepStrategy sweepStrategy = sweepStrategies.get(tableRef);
         Preconditions.checkState(
