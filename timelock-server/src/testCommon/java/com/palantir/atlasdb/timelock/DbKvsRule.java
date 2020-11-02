@@ -33,7 +33,6 @@ import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
 import org.awaitility.Durations;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
