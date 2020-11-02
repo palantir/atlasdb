@@ -82,6 +82,17 @@ public final class CorruptionDetectionIntegrationTest {
     }
 
     @Test
+    public void canDetectCorruptionForLargeNumberOfLogs() {
+        helper.writeLogsOnDefaultLocalAndRemote(1, 10000);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(9600);
+
+        for (int i = 0; i < 19; i++) {
+            helper.assertNoCorruptionViolations();
+        }
+        helper.assertAcceptedValueGreaterThanLearnedValue();
+    }
+
+    @Test
     public void detectCorruptionForMultipleCorruptSeries() {
         // We create 7 series and write logs to each of these in the range [1, 500]. We then corrupt series 6 & 7.
         IntStream.rangeClosed(1, 7).boxed().forEach(this::createSeriesWithPaxosLogs);
