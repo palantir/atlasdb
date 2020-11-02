@@ -43,12 +43,12 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         writeLogsOnLocalAndRemote(timeLockCorruptionTestSetup.getDefaultServerList(), startInclusive, endInclusive);
     }
 
-    private void writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
+    private static void writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
         PaxosSerializationTestUtils.writeToLogs(
                 server.acceptorLog(), server.learnerLog(), startInclusive, endInclusive);
     }
 
-    void writeLogsOnLocalAndRemote(List<StateLogComponents> servers, int startingLogSeq, int latestLogSequence) {
+    static void writeLogsOnLocalAndRemote(List<StateLogComponents> servers, int startingLogSeq, int latestLogSequence) {
         servers.forEach(server -> writeLogsOnServer(server, startingLogSeq, latestLogSequence));
     }
 
@@ -64,7 +64,7 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         induceGreaterAcceptedValueCorruption(timeLockCorruptionTestSetup.getDefaultLocalServer(), corruptSeq);
     }
 
-    void induceGreaterAcceptedValueCorruption(StateLogComponents server, int corruptSeq) {
+    static void induceGreaterAcceptedValueCorruption(StateLogComponents server, int corruptSeq) {
         PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(
                 server.acceptorLog(),
                 corruptSeq,
