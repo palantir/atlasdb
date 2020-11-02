@@ -57,7 +57,7 @@ public class LeaderElectionReportingTimelockServiceTest {
     private static final UUID LEADER_2 = UUID.randomUUID();
     private static final UUID LEADER_3 = UUID.randomUUID();
     private static final LockWatchStateUpdate UPDATE = LockWatchStateUpdate.success(LEADER_1, -1L, ImmutableList.of());
-    private static final Lease LEASE = Lease.of(LeaderTime.of(L))
+    private static final Lease LEASE = Lease.of(LeaderTime.of())
 
     private ConjureStartTransactionsRequest startTransactionsRequest = mock(ConjureStartTransactionsRequest.class);
     private ConjureStartTransactionsResponse startTransactionsResponse = mock(ConjureStartTransactionsResponse.class);
