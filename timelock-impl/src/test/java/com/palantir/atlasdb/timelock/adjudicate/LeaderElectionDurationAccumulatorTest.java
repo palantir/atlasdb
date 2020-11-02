@@ -48,6 +48,7 @@ public class LeaderElectionDurationAccumulatorTest {
     public void nothingConsumedWithFewUpdates() {
         leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 4, 1);
         leaderElectionResultsWithDurationInRandomOrder(LEADER_2, LEADER_3, 4, 5);
+
         verifyNoInteractions(mockConsumer);
     }
 
@@ -61,10 +62,10 @@ public class LeaderElectionDurationAccumulatorTest {
 
     @Test
     public void consumeOnlyOnceUsingMinFromFirstFiveUpdates() {
-        leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 5, 5);
+        leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 5, 15);
         leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 10, 1);
 
-        verify(mockConsumer).accept(5L);
+        verify(mockConsumer).accept(15L);
         verifyNoMoreInteractions(mockConsumer);
     }
 
@@ -75,9 +76,9 @@ public class LeaderElectionDurationAccumulatorTest {
         leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 5, 1);
         leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_3, 5, 7);
 
-        verify(mockConsumer).accept(7L);
         verify(mockConsumer).accept(10L);
         verify(mockConsumer).accept(15L);
+        verify(mockConsumer).accept(7L);
         verifyNoMoreInteractions(mockConsumer);
     }
 
@@ -120,11 +121,10 @@ public class LeaderElectionDurationAccumulatorTest {
     public void testManyUpdatesForSameLeaders() throws InterruptedException {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(50);
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 5_000);
-        List<Integer> durations =
-                IntStream.range(0, 100).map(x -> x * 100).boxed().collect(Collectors.toList());
-        Collections.shuffle(durations);
+        List<Integer> durationBuckets = IntStream.range(0, 100).map(x -> x * 100).boxed().collect(Collectors.toList());
+        Collections.shuffle(durationBuckets);
 
-        durations.forEach(duration ->
+        durationBuckets.forEach(duration ->
                 executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_2, 50, duration)));
 
         executorService.shutdown();

@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.timelock.adjudicate;
 
 import com.google.common.collect.Sets;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.feedback.LeaderElectionDuration;
 import java.util.Map;
 import java.util.Set;
@@ -27,48 +29,58 @@ import org.immutables.value.Value;
 import org.immutables.value.Value.Parameter;
 
 public class LeaderElectionDurationAccumulator {
-    private Set<LeadersContext> oldLeaderElections = Sets.newConcurrentHashSet();
+    private Set<LeadersContext> alreadyReportedLeaderElections = Sets.newConcurrentHashSet();
     private Map<LeadersContext, ModifiableSoakingDuration> currentlySoaking = new ConcurrentHashMap<>();
 
     private final LongConsumer consumer;
     private final int updatesToAchieveConfidence;
 
+    /**
+     * This class accumulates {@link LeaderElectionDuration}s by tracking the shortest duration observed for each pair
+     * of leader ids until updatesToAchieveConfidence have been received for that pair. Once that occurs, the
+     * final duration is consumed by the consumer, and further updates for the leader id pair are ignored.
+     *
+     * @param updatesToAchieveConfidence required number of updates to before the results are reported, must be
+     *                                   greater than 1
+     */
     public LeaderElectionDurationAccumulator(LongConsumer consumer, int updatesToAchieveConfidence) {
         this.consumer = consumer;
         this.updatesToAchieveConfidence = updatesToAchieveConfidence;
+        Preconditions.checkArgument(updatesToAchieveConfidence > 1,
+                "Number of required updates must be greater than 1.",
+                SafeArg.of("updatesToAchieveConfidence", updatesToAchieveConfidence));
     }
 
     public void add(LeaderElectionDuration duration) {
         LeadersContext leadersContext = LeadersContext.of(duration.getOldLeader(), duration.getNewLeader());
-        if (oldLeaderElections.contains(leadersContext)) {
+        if (alreadyReportedLeaderElections.contains(leadersContext)) {
             return;
         }
         currentlySoaking.compute(
                 leadersContext,
-                (context, previous) -> increaseConfidence(
-                        context, previous, duration.getDuration().longValue()));
+                (context, previous) -> increaseConfidence(context, previous, duration.getDuration().longValue()));
     }
 
     private ModifiableSoakingDuration increaseConfidence(
-            LeadersContext context, ModifiableSoakingDuration previousDuration, long duration) {
-        if (oldLeaderElections.contains(context)) {
+            LeadersContext context, ModifiableSoakingDuration accumulatedSoakingDuration, long duration) {
+        if (alreadyReportedLeaderElections.contains(context)) {
             return null;
         }
-        if (previousDuration == null) {
+        if (accumulatedSoakingDuration == null) {
             return ModifiableSoakingDuration.create(duration, 1);
         }
-        long oldValue = previousDuration.value();
-        if (oldValue > duration) {
-            previousDuration.setValue(duration);
+        long accumulatedDuration = accumulatedSoakingDuration.value();
+        if (accumulatedDuration > duration) {
+            accumulatedSoakingDuration.setValue(duration);
         }
-        int currentCount = previousDuration.count() + 1;
+        int currentCount = accumulatedSoakingDuration.count() + 1;
         if (currentCount >= updatesToAchieveConfidence) {
-            oldLeaderElections.add(context);
-            consumer.accept(previousDuration.value());
+            alreadyReportedLeaderElections.add(context);
+            consumer.accept(accumulatedSoakingDuration.value());
             return null;
         }
-        previousDuration.setCount(currentCount);
-        return previousDuration;
+        accumulatedSoakingDuration.setCount(currentCount);
+        return accumulatedSoakingDuration;
     }
 
     @Value.Immutable
