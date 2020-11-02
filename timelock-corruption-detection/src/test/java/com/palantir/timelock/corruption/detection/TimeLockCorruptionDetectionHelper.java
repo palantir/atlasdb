@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.paxos.NamespaceAndUseCase;
-import com.palantir.paxos.PaxosValue;
 import com.palantir.timelock.TimelockCorruptionTestConstants;
 import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.StateLogComponents;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
@@ -36,17 +35,17 @@ import org.junit.runners.model.Statement;
 public final class TimeLockCorruptionDetectionHelper implements TestRule {
     private TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 
-    Set<PaxosValue> writeLogsOnDefaultLocalServer(int startInclusive, int endInclusive) {
-        return writeLogsOnServer(timeLockCorruptionTestSetup.getDefaultLocalServer(), startInclusive, endInclusive);
+    void writeLogsOnDefaultLocalServer(int startInclusive, int endInclusive) {
+        writeLogsOnServer(timeLockCorruptionTestSetup.getDefaultLocalServer(), startInclusive, endInclusive);
     }
 
-    void writeLogsOnDefaultLocalAndRemote(int startingLogSeq, int latestLogSequence) {
-        writeLogsOnLocalAndRemote(
-                timeLockCorruptionTestSetup.getDefaultServerList(), startingLogSeq, latestLogSequence);
+    void writeLogsOnDefaultLocalAndRemote(int startInclusive, int endInclusive) {
+        writeLogsOnLocalAndRemote(timeLockCorruptionTestSetup.getDefaultServerList(), startInclusive, endInclusive);
     }
 
-    private Set<PaxosValue> writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
-        return PaxosSerializationTestUtils.writeToLogs(server.acceptorLog(), server.learnerLog(), startInclusive, endInclusive);
+    private void writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
+        PaxosSerializationTestUtils.writeToLogs(
+                server.acceptorLog(), server.learnerLog(), startInclusive, endInclusive);
     }
 
     void writeLogsOnLocalAndRemote(List<StateLogComponents> servers, int startingLogSeq, int latestLogSequence) {
@@ -97,7 +96,7 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         Multimap<CorruptionCheckViolation, NamespaceAndUseCase> violationsToNamespaceToUseCaseMultimap =
                 getViolationsToNamespaceToUseCaseMultimap();
 
-        assertThat(violationsToNamespaceToUseCaseMultimap.keySet()).isEqualTo(expectedViolation);
+        assertThat(violationsToNamespaceToUseCaseMultimap.keySet()).containsExactly(expectedViolation);
         assertThat(violationsToNamespaceToUseCaseMultimap.values())
                 .hasSameElementsAs(expectedNamespaceAndUseCasesWithViolation);
     }
@@ -106,8 +105,7 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         return HistoryAnalyzer.corruptionHealthReportForHistory(getHistory()).violatingStatusesToNamespaceAndUseCase();
     }
 
-    List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(
-            NamespaceAndUseCase namespaceAndUseCase) {
+    List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
         return timeLockCorruptionTestSetup.createStatLogForNamespaceAndUseCase(namespaceAndUseCase);
     }
 

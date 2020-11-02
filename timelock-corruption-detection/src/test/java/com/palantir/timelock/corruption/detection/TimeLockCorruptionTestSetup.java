@@ -98,30 +98,29 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
                         .collect(Collectors.toList()));
     }
 
-    public List<StateLogComponents> createStatLogForNamespaceAndUseCase(
-            NamespaceAndUseCase namespaceAndUseCase) {
+    List<StateLogComponents> createStatLogForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
         return ImmutableList.of(
                 createLogComponentsForServer(localDataSource, namespaceAndUseCase),
                 createLogComponentsForServer(remoteDataSource1, namespaceAndUseCase),
                 createLogComponentsForServer(remoteDataSource2, namespaceAndUseCase));
     }
 
-    public List<StateLogComponents> getDefaultServerList() {
+    List<StateLogComponents> getDefaultServerList() {
         return ImmutableList.<StateLogComponents>builder()
                 .add(defaultLocalServer)
                 .addAll(defaultRemoteServerList)
                 .build();
     }
 
-    public PaxosLogHistoryProvider getPaxosLogHistoryProvider() {
+    PaxosLogHistoryProvider getPaxosLogHistoryProvider() {
         return paxosLogHistoryProvider;
     }
 
-    public StateLogComponents getDefaultLocalServer() {
+    StateLogComponents getDefaultLocalServer() {
         return defaultLocalServer;
     }
 
-    public List<StateLogComponents> getDefaultRemoteServerList() {
+    List<StateLogComponents> getDefaultRemoteServerList() {
         return defaultRemoteServerList;
     }
 
