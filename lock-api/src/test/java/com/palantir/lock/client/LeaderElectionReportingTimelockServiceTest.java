@@ -31,11 +31,15 @@ import static org.mockito.Mockito.when;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.Clock;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
@@ -53,9 +57,12 @@ public class LeaderElectionReportingTimelockServiceTest {
     private static final UUID LEADER_2 = UUID.randomUUID();
     private static final UUID LEADER_3 = UUID.randomUUID();
     private static final LockWatchStateUpdate UPDATE = LockWatchStateUpdate.success(LEADER_1, -1L, ImmutableList.of());
+    private static final Lease LEASE = Lease.of(LeaderTime.of(L))
 
     private ConjureStartTransactionsRequest startTransactionsRequest = mock(ConjureStartTransactionsRequest.class);
     private ConjureStartTransactionsResponse startTransactionsResponse = mock(ConjureStartTransactionsResponse.class);
+    private ConjureRefreshLocksRequest refreshLocksRequest = mock(ConjureRefreshLocksRequest.class);
+    private ConjureRefreshLocksResponse refreshLocksResponse = mock(ConjureRefreshLocksResponse.class);
     private GetCommitTimestampsRequest commitTimestampsRequest = mock(GetCommitTimestampsRequest.class);
     private GetCommitTimestampsResponse commitTimestampsResponse = mock(GetCommitTimestampsResponse.class);
     private NamespacedConjureTimelockService mockedDelegate = mock(NamespacedConjureTimelockService.class);
@@ -78,6 +85,7 @@ public class LeaderElectionReportingTimelockServiceTest {
 
         when(startTransactionsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
         when(commitTimestampsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
+        when(refreshLocksResponse.getLease())
     }
 
     @Test
@@ -129,6 +137,14 @@ public class LeaderElectionReportingTimelockServiceTest {
 
         timelockService.getCommitTimestamps(commitTimestampsRequest);
         assertThat(timelockService.calculateLastLeaderElectionDuration()).isNotPresent();
+    }
+
+    @Test
+    public void verifyEndpointsRunTimed() {
+        timelockService.startTransactions(startTransactionsRequest);
+        timelockService.getCommitTimestamps(commitTimestampsRequest);
+        timelockService.leaderTime();
+        timelockService.refreshLocks()
     }
 
     /**
