@@ -43,11 +43,6 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         writeLogsOnLocalAndRemote(timeLockCorruptionTestSetup.getDefaultServerList(), startInclusive, endInclusive);
     }
 
-    private static void writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
-        PaxosSerializationTestUtils.writeToLogs(
-                server.acceptorLog(), server.learnerLog(), startInclusive, endInclusive);
-    }
-
     static void writeLogsOnLocalAndRemote(List<StateLogComponents> servers, int startingLogSeq, int latestLogSequence) {
         servers.forEach(server -> writeLogsOnServer(server, startingLogSeq, latestLogSequence));
     }
@@ -99,6 +94,11 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         assertThat(violationsToNamespaceToUseCaseMultimap.keySet()).containsExactly(expectedViolation);
         assertThat(violationsToNamespaceToUseCaseMultimap.values())
                 .hasSameElementsAs(expectedNamespaceAndUseCasesWithViolation);
+    }
+
+    private static void writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
+        PaxosSerializationTestUtils.writeToLogs(
+                server.acceptorLog(), server.learnerLog(), startInclusive, endInclusive);
     }
 
     private Multimap<CorruptionCheckViolation, NamespaceAndUseCase> getViolationsToNamespaceToUseCaseMultimap() {
