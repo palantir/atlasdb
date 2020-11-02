@@ -15,7 +15,7 @@ buildscript {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
         classpath 'com.netflix.nebula:gradle-info-plugin:7.1.4'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:17.2.1'
-        classpath 'com.palantir.baseline:gradle-baseline-java:3.43.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:3.44.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
@@ -31,7 +31,7 @@ buildscript {
 plugins {
     id 'com.github.johnrengelman.shadow' version '5.1.0'
     id 'com.palantir.configuration-resolver' version '0.4.0'
-    id 'com.palantir.consistent-versions' version '1.17.3'
+    id 'com.palantir.consistent-versions' version '1.26.1'
     id 'org.unbroken-dome.test-sets' version '2.1.1'
     id 'com.google.protobuf' version '0.8.10'
 }
@@ -107,23 +107,84 @@ allprojects {
     }
 
     tasks.withType(JavaCompile) {
+        options.compilerArgs += ['-Werror']
         // temporarily relax constraints until we can fix all violations
-        options.errorprone.warn 'CatchBlockLogException',
+        options.errorprone.disable 'AlmostJavadoc', 
+                'AnnotateFormatMethod',
+                'ArrayAsKeyOfSetOrMap',
+                'AssertionFailureIgnored',
+                'CacheLoaderNull',
+                'CatchBlockLogException',
+                'CatchFail',
                 'CheckReturnValue',
+                'ClassNewInstance',
+                'CloseableProvides',
                 'DangerousCompletableFutureUsage',
+                'DefaultCharset',
+                'DnsLookup',
                 'DoNotMock',
+                'EmptyBlockTag',
+                'EqualsGetClass',
                 'ExtendsErrorOrThrowable',
+                'Finally',
+                'FutureReturnValueIgnored',
+                'GetClassOnEnum',
+                'HidingField',
+                'ImmutableEnumChecker',
                 'ImmutablesBuilderMissingInitialization',
+                'InconsistentCapitalization',
+                'InlineFormatString',
+                'IntLongMath',
+                'InvalidBlockTag',
+                'InvalidInlineTag',
+                'InvalidLink',
+                'InvalidParam',
+                'InvalidThrows',
+                'JavaTimeDefaultTimeZone',
+                'JdkObsolete',
                 'LogSafePreconditionsMessageFormat',
+                'MathAbsoluteRandom',
+                'MissingFail',
+                'MissingSummary',
+                'MixedMutabilityReturnType',
+                'MockitoInternalUsage',
+                'ModifiedButNotUsed',
+                'ModifyCollectionInEnhancedForLoop',
+                'MutableConstantField',
+                'NarrowingCompoundAssignment',
+                'NonAtomicVolatileUpdate',
+                'NullOptional',
+                'OperatorPrecedence',
+                'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
+                'PreferSafeLoggableExceptions',
                 'PreferSafeLoggingPreconditions',
+                'ProtectedMembersInFinalClass',
+                'PublicConstructorForAbstractClass',
+                'RawTypes',
                 'ReadReturnValueIgnored',
                 'ReferenceEquality',
                 'ReturnValueIgnored',
+                'ReverseDnsLookup',
                 'SafeLoggingExceptionMessageFormat',
-                'ValidateConstantMessage'
-        options.errorprone.disable 'StrictUnusedVariable', 'JdkObsolete'
+                'ShortCircuitBoolean',
+                'Slf4jLogsafeArgs',
+                'Slf4jThrowable',
+                'StaticAssignmentInConstructor',
+                'StrictUnusedVariable',
+                'StringSplitter',
+                'ThreadPriorityCheck',
+                'ThrowError',
+                'ThrowSpecificity',
+                'TooManyArguments',
+                'TypeParameterUnusedInFormals',
+                'UndefinedEquals',
+                'UnnecessaryAnonymousClass',
+                'UnnecessaryLambda',
+                'UseCorrectAssertInTests',
+                'ValidateConstantMessage',
+                'VisibleForTestingPackagePrivate'
     }
 }
 

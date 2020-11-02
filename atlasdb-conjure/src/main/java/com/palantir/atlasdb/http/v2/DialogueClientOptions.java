@@ -19,6 +19,7 @@ package com.palantir.atlasdb.http.v2;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -40,6 +41,9 @@ public final class DialogueClientOptions {
 
     private static PartialServiceConfiguration toPartialServiceConfiguration(
             ServerListConfig serverListConfig, AuxiliaryRemotingParameters remotingParameters) {
+        HumanReadableDuration clientTimeout = remotingParameters.shouldUseExtendedTimeout()
+                ? ClientOptionsConstants.LONG_READ_TIMEOUT
+                : ClientOptionsConstants.SHORT_READ_TIMEOUT;
         return populateConfigurationWithAtlasDbDefaults()
                 .addAllUris(serverListConfig.servers())
                 .proxyConfiguration(serverListConfig.proxyConfiguration())
@@ -50,10 +54,8 @@ public final class DialogueClientOptions {
                         remotingParameters.definitiveRetryIndication()
                                 ? ClientOptionsConstants.STANDARD_MAX_RETRIES
                                 : ClientOptionsConstants.NO_RETRIES)
-                .readTimeout(
-                        remotingParameters.shouldUseExtendedTimeout()
-                                ? ClientOptionsConstants.LONG_READ_TIMEOUT
-                                : ClientOptionsConstants.SHORT_READ_TIMEOUT)
+                .readTimeout(clientTimeout)
+                .writeTimeout(clientTimeout)
                 .build();
     }
 

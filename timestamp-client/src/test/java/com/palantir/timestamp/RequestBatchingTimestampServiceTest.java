@@ -114,6 +114,7 @@ public final class RequestBatchingTimestampServiceTest {
         return TimestampRange.createInclusiveRange(start, end - 1);
     }
 
+    @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestBatchElement extends BatchElement<Integer, TimestampRange> {}
 

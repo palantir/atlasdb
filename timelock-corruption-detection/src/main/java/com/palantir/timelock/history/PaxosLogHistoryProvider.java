@@ -28,14 +28,12 @@ import com.palantir.timelock.history.models.ImmutableCompletePaxosHistoryForName
 import com.palantir.timelock.history.models.ImmutableLearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
-import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
@@ -46,17 +44,16 @@ public class PaxosLogHistoryProvider {
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
-    private final LogVerificationProgressState logVerificationProgressState;
     private final LocalHistoryLoader localHistoryLoader;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
     private final List<TimeLockPaxosHistoryProvider> remoteHistoryProviders;
-    private Map<NamespaceAndUseCase, Long> verificationProgressStateCache = new ConcurrentHashMap<>();
+    private final PaxosLogHistoryProgressTracker progressTracker;
 
     public PaxosLogHistoryProvider(DataSource dataSource, List<TimeLockPaxosHistoryProvider> remoteHistoryProviders) {
         this.remoteHistoryProviders = remoteHistoryProviders;
         this.sqlitePaxosStateLogHistory = SqlitePaxosStateLogHistory.create(dataSource);
-        this.logVerificationProgressState = LogVerificationProgressState.create(dataSource);
         this.localHistoryLoader = LocalHistoryLoader.create(this.sqlitePaxosStateLogHistory);
+        this.progressTracker = new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory);
     }
 
     private Set<NamespaceAndUseCase> getNamespaceAndUseCaseTuples() {
@@ -67,34 +64,36 @@ public class PaxosLogHistoryProvider {
                 .collect(Collectors.toSet());
     }
 
-    private Long getOrInsertVerificationState(NamespaceAndUseCase namespaceAndUseCase) {
-        return logVerificationProgressState.getLastVerifiedSeq(
-                namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
-    }
-
     //     TODO(snanda): Refactor the two parts on translating PaxosHistoryOnRemote to
     //      CompletePaxosHistoryForNamespaceAndUseCase to a separate component
     public List<CompletePaxosHistoryForNamespaceAndUseCase> getHistory() {
-        Map<NamespaceAndUseCase, Long> lastVerifiedSequences = getNamespaceAndUseCaseToLastVerifiedSeqMap();
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified =
+                getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap();
 
-        PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
+        PaxosHistoryOnSingleNode localPaxosHistory =
+                localHistoryLoader.getLocalPaxosHistory(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
 
-        List<HistoryQuery> historyQueries = getHistoryQueryListForRemoteServers(lastVerifiedSequences);
+        List<HistoryQuery> historyQueries =
+                getHistoryQueryListForRemoteServers(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
 
         List<PaxosHistoryOnRemote> rawHistoryFromAllRemotes = getHistoriesFromRemoteServers(historyQueries);
 
         List<ConsolidatedPaxosHistoryOnSingleNode> historyFromAllRemotes =
                 buildHistoryFromRemoteResponses(rawHistoryFromAllRemotes);
 
-        return consolidateAndGetHistoriesAcrossAllNodes(
-                lastVerifiedSequences, localPaxosHistory, historyFromAllRemotes);
+        List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistoryList = consolidateAndGetHistoriesAcrossAllNodes(
+                namespaceAndUseCaseWiseSequenceRangeToBeVerified, localPaxosHistory, historyFromAllRemotes);
+
+        progressTracker.updateProgressState(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
+
+        return completeHistoryList;
     }
 
     private List<CompletePaxosHistoryForNamespaceAndUseCase> consolidateAndGetHistoriesAcrossAllNodes(
-            Map<NamespaceAndUseCase, Long> lastVerifiedSequences,
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified,
             PaxosHistoryOnSingleNode localPaxosHistory,
             List<ConsolidatedPaxosHistoryOnSingleNode> historyFromAllRemotes) {
-        return lastVerifiedSequences.keySet().stream()
+        return namespaceAndUseCaseWiseSequenceRangeToBeVerified.keySet().stream()
                 .map(namespaceAndUseCase ->
                         buildCompleteHistory(namespaceAndUseCase, localPaxosHistory, historyFromAllRemotes))
                 .collect(Collectors.toList());
@@ -114,17 +113,16 @@ public class PaxosLogHistoryProvider {
     }
 
     private List<HistoryQuery> getHistoryQueryListForRemoteServers(
-            Map<NamespaceAndUseCase, Long> lastVerifiedSequences) {
-        return KeyedStream.stream(lastVerifiedSequences)
+            Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified) {
+        return KeyedStream.stream(namespaceAndUseCaseWiseSequenceRangeToBeVerified)
                 .mapEntries(this::buildHistoryQuery)
                 .values()
                 .collect(Collectors.toList());
     }
 
-    private Map<NamespaceAndUseCase, Long> getNamespaceAndUseCaseToLastVerifiedSeqMap() {
+    private Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap() {
         return KeyedStream.of(getNamespaceAndUseCaseTuples().stream())
-                .map(namespaceAndUseCase -> verificationProgressStateCache.computeIfAbsent(
-                        namespaceAndUseCase, this::getOrInsertVerificationState))
+                .map(progressTracker::getNextPaxosLogSequenceRangeToBeVerified)
                 .collectToMap();
     }
 
@@ -205,7 +203,7 @@ public class PaxosLogHistoryProvider {
     }
 
     private Map.Entry<NamespaceAndUseCase, HistoryQuery> buildHistoryQuery(
-            NamespaceAndUseCase namespaceAndUseCase, Long seq) {
-        return Maps.immutableEntry(namespaceAndUseCase, HistoryQuery.of(namespaceAndUseCase, seq));
+            NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds bounds) {
+        return Maps.immutableEntry(namespaceAndUseCase, HistoryQuery.of(namespaceAndUseCase, bounds));
     }
 }

@@ -160,7 +160,7 @@ public interface TransactionManager extends AutoCloseable {
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             com.google.common.base.Supplier<LockRequest> guavaSupplier, LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException, LockAcquisitionException {
-        Supplier<LockRequest> javaSupplier = guavaSupplier::get;
+        Supplier<LockRequest> javaSupplier = guavaSupplier;
         return runTaskWithLocksWithRetry(javaSupplier, task);
     }
 
@@ -198,7 +198,7 @@ public interface TransactionManager extends AutoCloseable {
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
             LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException, LockAcquisitionException {
-        Supplier<LockRequest> javaSupplier = guavaSupplier::get;
+        Supplier<LockRequest> javaSupplier = guavaSupplier;
         return runTaskWithLocksWithRetry(lockTokens, javaSupplier, task);
     }
 
@@ -248,7 +248,7 @@ public interface TransactionManager extends AutoCloseable {
     @Timed
     default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             com.google.common.base.Supplier<C> guavaSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
-        Supplier<C> javaSupplier = guavaSupplier::get;
+        Supplier<C> javaSupplier = guavaSupplier;
         return runTaskWithConditionWithRetry(javaSupplier, task);
     }
 

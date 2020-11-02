@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
+@SuppressWarnings("immutables:subtype")
 @Value.Immutable
 abstract class BatchingNetworkClientFactories implements NetworkClientFactories, Dependencies.NetworkClientFactories {
 

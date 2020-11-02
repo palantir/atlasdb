@@ -37,6 +37,11 @@ public interface TimeLockInstallConfiguration {
 
     ClusterConfiguration cluster();
 
+    @Value.Default
+    default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
+        return false;
+    }
+
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
      * @deprecated Remove this once PDS-95791 is resolved.

@@ -25,12 +25,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
@@ -38,7 +35,6 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.time.Duration;
@@ -76,32 +72,12 @@ public class DbTimestampStoreInvalidatorCreationTest {
     }
 
     @Test
-    public void doesNotInvalidateMultiSeriesTable() {
-        assertThatThrownBy(() -> storeUpperLimitAndGetTimestampStoreInvalidator(Optional.of(
-                        DbTimestampCreationSettings.multipleSeries(otherTable, TimestampSeries.of("test")))))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Invalidator must only be called by embedded DB timeLock that does not support "
-                        + "multi series timestamp store. This is unexpected, please contact support.");
-    }
-
-    @Test
     public void canInvalidatorForSingleSeriesTable() {
-        TimestampStoreInvalidator timestampStoreInvalidator = storeUpperLimitAndGetTimestampStoreInvalidator(
-                Optional.of(DbTimestampCreationSettings.singleSeries(Optional.of(otherTable))));
+        TimestampStoreInvalidator timestampStoreInvalidator =
+                storeUpperLimitAndGetTimestampStoreInvalidator(Optional.of(otherTable));
         assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(TIMESTAMP_1);
 
         assertBoundNotReadableAfterBeingPoisoned(otherStore);
-    }
-
-    @Test
-    public void invalidatesDefaultTableForDefaultSingleSeries() {
-        TimestampStoreInvalidator timestampStoreInvalidator = storeUpperLimitAndGetTimestampStoreInvalidator(
-                Optional.of(DbTimestampCreationSettings.singleSeries(Optional.empty())));
-
-        assertThat(timestampStoreInvalidator.backupAndInvalidate()).isEqualTo(NO_OP_FAST_FORWARD_TIMESTAMP);
-
-        assertStoreNotPoisoned(otherStore);
-        assertBoundNotReadableAfterBeingPoisoned(defaultStore);
     }
 
     @Test
@@ -132,24 +108,23 @@ public class DbTimestampStoreInvalidatorCreationTest {
     }
 
     private TimestampStoreInvalidator storeUpperLimitAndGetTimestampStoreInvalidator(
-            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
+            Optional<TableReference> tableReference) {
         otherStore.storeUpperLimit(TIMESTAMP_1);
         otherStore.getUpperLimit();
         ServiceDiscoveringAtlasSupplier atlasSupplier =
-                createAtlasSupplier(DbkvsPostgresTestSuite.getKvsConfig(), dbTimestampCreationParameters);
+                createAtlasSupplier(DbkvsPostgresTestSuite.getKvsConfig(), tableReference);
         return atlasSupplier.getTimestampStoreInvalidator();
     }
 
     private ServiceDiscoveringAtlasSupplier createAtlasSupplier(
-            KeyValueServiceConfig providedKvsConfig,
-            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
+            KeyValueServiceConfig providedKvsConfig, Optional<TableReference> tableReference) {
         return new ServiceDiscoveringAtlasSupplier(
                 metrics,
                 providedKvsConfig,
                 Optional::empty,
                 leaderConfig,
                 Optional.empty(),
-                dbTimestampCreationParameters,
+                tableReference,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }

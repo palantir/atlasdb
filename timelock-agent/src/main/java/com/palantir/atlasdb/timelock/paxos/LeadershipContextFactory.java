@@ -65,7 +65,10 @@ public abstract class LeadershipContextFactory
                 install().sqliteDataSource(),
                 leaderUuid(),
                 install().install().paxos().canCreateNewClients(),
-                install().timeLockVersion());
+                install().timeLockVersion(),
+                install()
+                        .install()
+                        .iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog());
     }
 
     @Override

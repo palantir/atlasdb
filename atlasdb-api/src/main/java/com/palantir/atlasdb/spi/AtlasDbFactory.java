@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.spi;
 
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -62,12 +62,10 @@ public interface AtlasDbFactory {
             boolean initializeAsync);
 
     ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs,
-            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters,
-            boolean initializeAsync);
+            KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync);
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(
-            KeyValueService rawKvs, Optional<DbTimestampCreationSetting> dbTimestampCreationParameters) {
+            KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride) {
         return () -> {
             log.warn("AtlasDB doesn't yet support automated migration for KVS type {}.", getType());
             return NO_OP_FAST_FORWARD_TIMESTAMP;

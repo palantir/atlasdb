@@ -60,11 +60,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import java.nio.ByteBuffer;
@@ -1957,6 +1960,22 @@ public abstract class AbstractKeyValueServiceTest {
     public void createTableShouldBeIdempotent() {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
+    @Test
+    public void createTableShouldBeIdempotentCC() {
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(TEST_TABLE, new TableDefinition() {
+            {
+                rowName();
+                rowComponent("row", ValueType.BLOB);
+                columns();
+                column("col", "c", ValueType.BLOB);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+                sweepStrategy(SweepStrategy.THOROUGH);
+            }
+        }.toTableMetadata().persistToBytes());
+        System.out.println(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(keyValueService.getMetadataForTable(TEST_TABLE)));
     }
 
     @Test

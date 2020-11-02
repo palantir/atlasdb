@@ -65,7 +65,7 @@ public interface FullDiagnosticDigest<T> {
 
     @JsonDeserialize(as = ImmutableCompletedTransactionDigest.class)
     @JsonSerialize(as = ImmutableCompletedTransactionDigest.class)
-    @org.immutables.value.Value.Immutable
+    @Value.Immutable
     interface CompletedTransactionDigest<T> {
         long startTimestamp();
 
@@ -84,7 +84,7 @@ public interface FullDiagnosticDigest<T> {
 
     @JsonDeserialize(as = ImmutableLockDigest.class)
     @JsonSerialize(as = ImmutableLockDigest.class)
-    @org.immutables.value.Value.Immutable
+    @Value.Immutable
     interface LockDigest {
         Map<LockState, Instant> lockStates();
 

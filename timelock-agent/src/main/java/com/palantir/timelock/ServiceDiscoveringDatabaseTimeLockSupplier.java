@@ -19,7 +19,6 @@ package com.palantir.timelock;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -61,10 +60,7 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
 
     public synchronized ManagedTimestampService getManagedTimestampService(DbTimestampCreationSetting setting) {
         Preconditions.checkState(
-                DbTimestampCreationSettings.caseOf(setting)
-                        .multipleSeries((tableReference, series) ->
-                                tableReference.equals(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE))
-                        .otherwise_(false),
+                setting.tableReference().equals(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE),
                 "Attempted to create a managed timestamp service in db timelock that was not the normal db timelock"
                         + " timestamp table! This is unexpected, and we are prohibiting this creation for safety.",
                 SafeArg.of("setting", setting));

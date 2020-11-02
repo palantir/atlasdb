@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
+import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -33,7 +33,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.junit.Test;
 
@@ -53,34 +52,25 @@ public class ServiceDiscoveringDatabaseTimeLockSupplierTest {
 
     @Test
     public void canGetTimestampServiceForDifferentSeries() {
-        assertThatCode(() -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSettings.multipleSeries(
-                        AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, SERIES)))
+        assertThatCode(() -> timeLockSupplier.getManagedTimestampService(
+                        DbTimestampCreationSetting.of(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, SERIES)))
                 .doesNotThrowAnyException();
-        assertThatCode(() -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSettings.multipleSeries(
+        assertThatCode(() -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSetting.of(
                         AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, TimestampSeries.of("serieses??"))))
                 .doesNotThrowAnyException();
-        assertThatCode(() -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSettings.multipleSeries(
+        assertThatCode(() -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSetting.of(
                         AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, TimestampSeries.of("serien"))))
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void throwsIfGettingTimestampServiceForNonstandardTable() {
-        assertCreationOfTimestampServiceNotAllowed(
-                () -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSettings.multipleSeries(
-                        TableReference.createFromFullyQualifiedName("namespace.table"), SERIES)));
-        assertCreationOfTimestampServiceNotAllowed(
-                () -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSettings.multipleSeries(
-                        TableReference.createFromFullyQualifiedName("i.cannot"), SERIES)));
         assertCreationOfTimestampServiceNotAllowed(() -> timeLockSupplier.getManagedTimestampService(
-                DbTimestampCreationSettings.multipleSeries(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE, SERIES)));
-    }
-
-    @Test
-    public void throwsIfGettingTimestampServiceForSingleSeriesSettings() {
-        assertCreationOfTimestampServiceNotAllowed(
-                () -> timeLockSupplier.getManagedTimestampService(DbTimestampCreationSettings.singleSeries(
-                        Optional.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE))));
+                DbTimestampCreationSetting.of(TableReference.createFromFullyQualifiedName("namespace.table"), SERIES)));
+        assertCreationOfTimestampServiceNotAllowed(() -> timeLockSupplier.getManagedTimestampService(
+                DbTimestampCreationSetting.of(TableReference.createFromFullyQualifiedName("i.cannot"), SERIES)));
+        assertCreationOfTimestampServiceNotAllowed(() -> timeLockSupplier.getManagedTimestampService(
+                DbTimestampCreationSetting.of(AtlasDbConstants.LEGACY_TIMELOCK_TIMESTAMP_TABLE, SERIES)));
     }
 
     @Test

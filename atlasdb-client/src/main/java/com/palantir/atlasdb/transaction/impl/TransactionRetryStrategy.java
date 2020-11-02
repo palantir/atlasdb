@@ -158,7 +158,7 @@ public final class TransactionRetryStrategy {
     }
 
     @JsonCreator
-    private static TransactionRetryStrategy of(Strategies strategy) {
+    static TransactionRetryStrategy of(Strategies strategy) {
         return strategy.strategy;
     }
 

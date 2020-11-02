@@ -117,6 +117,8 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
                 .migrationState(migrationState)
+                .namespaceAndUseCase(ImmutableNamespaceAndUseCase.of(Client.of("client"), "UseCase"))
+                .skipValidationAndTruncateSourceIfMigrated(false)
                 .build());
     }
 

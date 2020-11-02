@@ -24,7 +24,6 @@ import com.palantir.timelock.history.PaxosLogHistoryProvider;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public final class LocalCorruptionDetector implements CorruptionDetector {
     private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
@@ -50,30 +49,9 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
 
     private LocalCorruptionDetector(
             PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+
         this.historyProvider = historyProvider;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
-    }
-
-    private void scheduleWithFixedDelay() {
-        executor.scheduleWithFixedDelay(
-                () -> {
-                    localCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();
-                    processLocalHealthReport();
-                },
-                TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
-                TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
-                TimeUnit.SECONDS);
-    }
-
-    private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
-        return HistoryAnalyzer.corruptionHealthReportForHistory(historyProvider.getHistory());
-    }
-
-    private void processLocalHealthReport() {
-        localCorruptionState = getLocalCorruptionState(localCorruptionReport);
-        if (localCorruptionState.shouldRejectRequests()) {
-            corruptionHandler.notifyRemoteServersOfCorruption();
-        }
     }
 
     CorruptionStatus getLocalCorruptionState(CorruptionHealthReport latestReport) {

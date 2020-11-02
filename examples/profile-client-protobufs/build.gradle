@@ -8,7 +8,6 @@ protobuf {
   protoc {
     artifact = "com.google.protobuf:protoc:${libVersions.protoc}"
   }
-  generatedFilesBaseDir = "$projectDir/src"
 }
 
 dependencies {

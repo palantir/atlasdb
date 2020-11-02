@@ -35,7 +35,7 @@ public class AsyncInitializerTest {
     private static final int ASYNC_INIT_DELAY = 10;
     private static final int FIVE = 5;
 
-    private class AlwaysFailingInitializer extends AsyncInitializer {
+    private static class AlwaysFailingInitializer extends AsyncInitializer {
         volatile int initializationAttempts = 0;
         DeterministicSchedulerShutdownAware deterministicScheduler;
 
@@ -97,7 +97,7 @@ public class AsyncInitializerTest {
 
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(RuntimeException.class)
-                .withFailMessage("Failed initializing");
+                .hasMessage("Failed initializing");
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");

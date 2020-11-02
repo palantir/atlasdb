@@ -86,12 +86,18 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
                 .hydrator(hydrator)
                 .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, params.sqliteDataSource()))
                 .migrateFrom(migrateFrom)
+                .namespaceAndUseCase(namespaceUseCase)
+                .skipValidationAndTruncateSourceIfMigrated(params.skipConsistencyCheckAndTruncateOldPaxosLog())
                 .build();
 
         log.info(
                 "Starting migration for namespace and use case {} if migration has not run before.",
                 SafeArg.of("namespaceAndUseCase", params.namespaceAndUseCase()));
         long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
+
+        if (params.skipConsistencyCheckAndTruncateOldPaxosLog()) {
+            return migrationContext.destinationLog();
+        }
 
         SplittingParameters<V> splittingParameters = ImmutableSplittingParameters.<V>builder()
                 .legacyLog(migrationContext.sourceLog())
@@ -139,6 +145,11 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
      */
     @Override
     public void truncate(long toDeleteInclusive) {
+        log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
+    }
+
+    @Override
+    public void truncateAllRounds() {
         log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
     }
 

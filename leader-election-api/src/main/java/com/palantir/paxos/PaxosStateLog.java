@@ -70,4 +70,6 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
      * @param toDeleteInclusive the upper bound sequence number (inclusive)
      */
     void truncate(long toDeleteInclusive);
+
+    void truncateAllRounds();
 }
