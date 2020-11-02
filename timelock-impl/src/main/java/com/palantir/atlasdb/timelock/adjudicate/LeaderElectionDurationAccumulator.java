@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import com.google.common.collect.Sets;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.feedback.LeaderElectionDuration;
@@ -29,7 +28,7 @@ import org.immutables.value.Value;
 import org.immutables.value.Value.Parameter;
 
 public class LeaderElectionDurationAccumulator {
-    private Set<LeadersContext> alreadyReportedLeaderElections = Sets.newConcurrentHashSet();
+    private Set<LeadersContext> alreadyReportedLeaderElections = ConcurrentHashMap.newKeySet();
     private Map<LeadersContext, ModifiableSoakingDuration> currentlySoaking = new ConcurrentHashMap<>();
 
     private final LongConsumer consumer;
@@ -46,7 +45,8 @@ public class LeaderElectionDurationAccumulator {
     public LeaderElectionDurationAccumulator(LongConsumer consumer, int updatesToAchieveConfidence) {
         this.consumer = consumer;
         this.updatesToAchieveConfidence = updatesToAchieveConfidence;
-        Preconditions.checkArgument(updatesToAchieveConfidence > 1,
+        Preconditions.checkArgument(
+                updatesToAchieveConfidence > 1,
                 "Number of required updates must be greater than 1.",
                 SafeArg.of("updatesToAchieveConfidence", updatesToAchieveConfidence));
     }
@@ -58,7 +58,8 @@ public class LeaderElectionDurationAccumulator {
         }
         currentlySoaking.compute(
                 leadersContext,
-                (context, previous) -> increaseConfidence(context, previous, duration.getDuration().longValue()));
+                (context, previous) -> increaseConfidence(
+                        context, previous, duration.getDuration().longValue()));
     }
 
     private ModifiableSoakingDuration increaseConfidence(

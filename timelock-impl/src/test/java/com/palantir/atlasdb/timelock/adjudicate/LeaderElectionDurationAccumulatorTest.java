@@ -121,7 +121,8 @@ public class LeaderElectionDurationAccumulatorTest {
     public void testManyUpdatesForSameLeaders() throws InterruptedException {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(50);
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 5_000);
-        List<Integer> durationBuckets = IntStream.range(0, 100).map(x -> x * 100).boxed().collect(Collectors.toList());
+        List<Integer> durationBuckets =
+                IntStream.range(0, 100).map(x -> x * 100).boxed().collect(Collectors.toList());
         Collections.shuffle(durationBuckets);
 
         durationBuckets.forEach(duration ->
