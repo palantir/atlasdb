@@ -34,6 +34,7 @@ import java.sql.Connection;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
+import org.awaitility.Durations;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -70,8 +71,8 @@ public class DbKvsRule implements TestRule {
 
     private void waitUntilDbkvsIsUp() {
         Awaitility.await()
-                .atMost(Duration.ONE_MINUTE)
-                .pollInterval(Duration.ONE_SECOND)
+                .atMost(Durations.ONE_MINUTE)
+                .pollInterval(Durations.ONE_SECOND)
                 .until(canCreateKeyValueService());
     }
 
