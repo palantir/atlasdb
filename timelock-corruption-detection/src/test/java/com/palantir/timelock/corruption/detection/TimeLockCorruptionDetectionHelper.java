@@ -35,6 +35,11 @@ import org.junit.runners.model.Statement;
 public final class TimeLockCorruptionDetectionHelper implements TestRule {
     private TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 
+    @Override
+    public Statement apply(Statement base, Description description) {
+        return timeLockCorruptionTestSetup.apply(base, description);
+    }
+
     void writeLogsOnDefaultLocalServer(int startInclusive, int endInclusive) {
         writeLogsOnServer(timeLockCorruptionTestSetup.getDefaultLocalServer(), startInclusive, endInclusive);
     }
@@ -96,6 +101,10 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
                 .hasSameElementsAs(expectedNamespaceAndUseCasesWithViolation);
     }
 
+    List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
+        return timeLockCorruptionTestSetup.createStatLogForNamespaceAndUseCase(namespaceAndUseCase);
+    }
+
     private static void writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
         PaxosSerializationTestUtils.writeToLogs(
                 server.acceptorLog(), server.learnerLog(), startInclusive, endInclusive);
@@ -103,14 +112,5 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
 
     private Multimap<CorruptionCheckViolation, NamespaceAndUseCase> getViolationsToNamespaceToUseCaseMultimap() {
         return HistoryAnalyzer.corruptionHealthReportForHistory(getHistory()).violatingStatusesToNamespaceAndUseCase();
-    }
-
-    List<StateLogComponents> createStatLogComponentsForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {
-        return timeLockCorruptionTestSetup.createStatLogForNamespaceAndUseCase(namespaceAndUseCase);
-    }
-
-    @Override
-    public Statement apply(Statement base, Description description) {
-        return timeLockCorruptionTestSetup.apply(base, description);
     }
 }

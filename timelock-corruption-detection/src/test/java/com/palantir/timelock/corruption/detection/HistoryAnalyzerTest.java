@@ -31,7 +31,7 @@ public final class HistoryAnalyzerTest {
 
     @Test
     public void correctlyPassesIfThereIsNotCorruption() {
-        helper.writeLogsOnDefaultLocalAndRemote(1, 10);
+        helper.writeLogsOnDefaultLocalAndRemote(67, 298);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
 
@@ -60,7 +60,7 @@ public final class HistoryAnalyzerTest {
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotAcceptedByQuorum() {
-        helper.writeLogsOnDefaultLocalServer(1, 10);
+        helper.writeLogsOnDefaultLocalServer(5, 500);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
@@ -73,8 +73,8 @@ public final class HistoryAnalyzerTest {
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
-        helper.writeLogsOnDefaultLocalAndRemote(1, 10);
-        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(5);
+        helper.writeLogsOnDefaultLocalAndRemote(9, 453);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(432);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
