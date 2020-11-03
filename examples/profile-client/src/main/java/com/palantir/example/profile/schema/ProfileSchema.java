@@ -28,6 +28,7 @@ import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.example.profile.protos.generated.ProfilePersistence;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
