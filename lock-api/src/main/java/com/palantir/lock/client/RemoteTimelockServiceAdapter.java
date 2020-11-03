@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.lock.CommitTimestampGetter;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -46,7 +47,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
-        this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
+        this.commitTimestampGetter = BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
 

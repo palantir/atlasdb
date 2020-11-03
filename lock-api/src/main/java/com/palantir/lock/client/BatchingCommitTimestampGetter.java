@@ -23,6 +23,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.lock.CommitTimestampGetter;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -36,18 +37,18 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.immutables.value.Value;
 
-final class CommitTimestampGetter implements AutoCloseable {
+final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     private final DisruptorAutobatcher<Request, Long> autobatcher;
 
-    private CommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
+    private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
-    public static CommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
+    public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
         DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .build();
-        return new CommitTimestampGetter(autobatcher);
+        return new BatchingCommitTimestampGetter(autobatcher);
     }
 
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
