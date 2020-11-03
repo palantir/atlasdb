@@ -31,12 +31,17 @@ import static org.mockito.Mockito.when;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.Clock;
-import com.palantir.conjure.java.lib.SafeLong;
+import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.timelock.feedback.LeaderElectionDuration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -50,13 +55,17 @@ import org.junit.Test;
 import org.mockito.stubbing.OngoingStubbing;
 
 public class LeaderElectionReportingTimelockServiceTest {
-    private static final UUID LEADER_1 = UUID.randomUUID();
+    private static final LeaderTime LEADER_1_TIME = LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(999L));
+    private static final UUID LEADER_1 = LEADER_1_TIME.id().id();
     private static final UUID LEADER_2 = UUID.randomUUID();
     private static final UUID LEADER_3 = UUID.randomUUID();
     private static final LockWatchStateUpdate UPDATE = LockWatchStateUpdate.success(LEADER_1, -1L, ImmutableList.of());
+    private static final Lease LEASE = Lease.of(LEADER_1_TIME, Duration.ZERO);
 
     private ConjureStartTransactionsRequest startTransactionsRequest = mock(ConjureStartTransactionsRequest.class);
     private ConjureStartTransactionsResponse startTransactionsResponse = mock(ConjureStartTransactionsResponse.class);
+    private ConjureRefreshLocksRequest refreshLocksRequest = mock(ConjureRefreshLocksRequest.class);
+    private ConjureRefreshLocksResponse refreshLocksResponse = mock(ConjureRefreshLocksResponse.class);
     private GetCommitTimestampsRequest commitTimestampsRequest = mock(GetCommitTimestampsRequest.class);
     private GetCommitTimestampsResponse commitTimestampsResponse = mock(GetCommitTimestampsResponse.class);
     private NamespacedConjureTimelockService mockedDelegate = mock(NamespacedConjureTimelockService.class);
@@ -72,6 +81,8 @@ public class LeaderElectionReportingTimelockServiceTest {
         timelockService = new LeaderElectionReportingTimelockService(mockedDelegate, mockedRegistry, mockedClock);
         when(mockedDelegate.startTransactions(any())).thenReturn(startTransactionsResponse);
         when(mockedDelegate.getCommitTimestamps(any())).thenReturn(commitTimestampsResponse);
+        when(mockedDelegate.leaderTime()).thenReturn(LEADER_1_TIME);
+        when(mockedDelegate.refreshLocks(refreshLocksRequest)).thenReturn(refreshLocksResponse);
         when(mockedRegistry.timer(any())).thenReturn(mockedTimer);
         when(mockedClock.instant()).thenCallRealMethod();
         when(mockedClock.getTimeMillis()).thenReturn(1L);
@@ -79,6 +90,7 @@ public class LeaderElectionReportingTimelockServiceTest {
 
         when(startTransactionsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
         when(commitTimestampsResponse.getLockWatchUpdate()).thenReturn(UPDATE);
+        when(refreshLocksResponse.getLease()).thenReturn(LEASE);
     }
 
     @Test
@@ -130,6 +142,26 @@ public class LeaderElectionReportingTimelockServiceTest {
 
         timelockService.getCommitTimestamps(commitTimestampsRequest);
         assertThat(timelockService.calculateLastLeaderElectionDuration()).isNotPresent();
+    }
+
+    @Test
+    public void verifyLeaderTimeRunsWithTiming() {
+        verifyEndpointRunsWithTiming(timelockService::leaderTime);
+    }
+
+    @Test
+    public void verifyRefreshLocksRunsWithTiming() {
+        verifyEndpointRunsWithTiming(() -> timelockService.refreshLocks(refreshLocksRequest));
+    }
+
+    @Test
+    public void verifyStartTransactionsRunsWithTiming() {
+        verifyEndpointRunsWithTiming(() -> timelockService.startTransactions(startTransactionsRequest));
+    }
+
+    @Test
+    public void verifyGetCommitTimestampsRunsWithTiming() {
+        verifyEndpointRunsWithTiming(() -> timelockService.getCommitTimestamps(commitTimestampsRequest));
     }
 
     /**
@@ -303,6 +335,11 @@ public class LeaderElectionReportingTimelockServiceTest {
         assertExpectedDurationAndLeaders(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L), LEADER_1, LEADER_3);
     }
 
+    private void verifyEndpointRunsWithTiming(Runnable endpointCall) {
+        endpointCall.run();
+        verify(mockedClock, times(2)).instant();
+    }
+
     private void executeCalls(SingleCall firstCall, SingleCall... otherCalls) {
         LockWatchStateUpdate updateMock = mock(LockWatchStateUpdate.class);
         when(startTransactionsResponse.getLockWatchUpdate()).thenReturn(updateMock);
@@ -356,8 +393,7 @@ public class LeaderElectionReportingTimelockServiceTest {
     private void assertExpectedDurationAndLeaders(Instant instant, Instant instant2, UUID oldLeader, UUID newLeader) {
         LeaderElectionDuration estimate =
                 timelockService.calculateLastLeaderElectionDuration().get();
-        assertThat(estimate.getDuration())
-                .isEqualTo(SafeLong.of(Duration.between(instant, instant2).toNanos()));
+        assertThat(estimate.getDuration()).isEqualTo(Duration.between(instant, instant2));
         assertThat(estimate.getOldLeader()).isEqualTo(oldLeader);
         assertThat(estimate.getNewLeader()).isEqualTo(newLeader);
     }

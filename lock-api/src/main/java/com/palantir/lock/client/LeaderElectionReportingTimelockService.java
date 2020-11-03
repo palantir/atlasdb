@@ -85,7 +85,9 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
-        return delegate.refreshLocks(request);
+        return runTimed(
+                () -> delegate.refreshLocks(request),
+                response -> response.getLease().leaderTime().id().id());
     }
 
     @Override
@@ -100,7 +102,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
     @Override
     public LeaderTime leaderTime() {
-        return delegate.leaderTime();
+        return runTimed(delegate::leaderTime, response -> response.id().id());
     }
 
     @Override
