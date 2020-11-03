@@ -43,10 +43,10 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.timelock.feedback.LeaderElectionDuration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Parameter;
@@ -176,7 +176,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(0L, 1L, LEADER_1),
                 ImmutableSingleCall.of(3L, 6L, LEADER_1),
                 ImmutableSingleCall.of(10L, 15L, LEADER_2));
-        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L), LEADER_1, LEADER_2);
     }
 
     /**
@@ -191,7 +191,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(0L, 1L, LEADER_1),
                 ImmutableSingleCall.of(3L, 10L, LEADER_1),
                 ImmutableSingleCall.of(6L, 15L, LEADER_2));
-        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L), LEADER_1, LEADER_2);
     }
 
     /**
@@ -208,7 +208,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(6L, 10L, LEADER_1),
                 ImmutableSingleCall.of(3L, 15L, LEADER_1),
                 ImmutableSingleCall.of(14L, 21L, LEADER_2));
-        assertExpectedDuration(Instant.ofEpochMilli(6L), Instant.ofEpochMilli(21L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(6L), Instant.ofEpochMilli(21L), LEADER_1, LEADER_2);
     }
 
     /**
@@ -225,7 +225,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(3L, 6L, LEADER_1),
                 ImmutableSingleCall.of(10L, 15L, LEADER_2),
                 ImmutableSingleCall.of(21L, 28L, LEADER_2));
-        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L), LEADER_1, LEADER_2);
     }
 
     /**
@@ -244,7 +244,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(10L, 15L, LEADER_2),
                 ImmutableSingleCall.of(21L, 28L, LEADER_2),
                 ImmutableSingleCall.of(36L, 45L, LEADER_3));
-        assertExpectedDuration(Instant.ofEpochMilli(21L), Instant.ofEpochMilli(45L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(21L), Instant.ofEpochMilli(45L), LEADER_2, LEADER_3);
     }
 
     /**
@@ -261,7 +261,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(3L, 6L, LEADER_1),
                 ImmutableSingleCall.of(15L, 21L, LEADER_2),
                 ImmutableSingleCall.of(10L, 28L, LEADER_1));
-        assertExpectedDuration(Instant.ofEpochMilli(10L), Instant.ofEpochMilli(21L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(10L), Instant.ofEpochMilli(21L), LEADER_1, LEADER_2);
     }
 
     /**
@@ -280,7 +280,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(10L, 15L, LEADER_2),
                 ImmutableSingleCall.of(21L, 28L, LEADER_3),
                 ImmutableSingleCall.of(36L, 45L, LEADER_3));
-        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L), LEADER_1, LEADER_2);
     }
 
     /**
@@ -299,7 +299,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(10L, 45L, LEADER_2),
                 ImmutableSingleCall.of(15L, 21L, LEADER_3),
                 ImmutableSingleCall.of(28L, 36L, LEADER_3));
-        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(21L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(21L), LEADER_1, LEADER_3);
     }
 
     /**
@@ -332,7 +332,7 @@ public class LeaderElectionReportingTimelockServiceTest {
                 ImmutableSingleCall.of(3L, 36L, LEADER_1),
                 ImmutableSingleCall.of(10L, 15L, LEADER_3),
                 ImmutableSingleCall.of(21L, 28L, LEADER_3));
-        assertExpectedDuration(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L));
+        assertExpectedDurationAndLeaders(Instant.ofEpochMilli(3L), Instant.ofEpochMilli(15L), LEADER_1, LEADER_3);
     }
 
     private void verifyEndpointRunsWithTiming(Runnable endpointCall) {
@@ -390,10 +390,12 @@ public class LeaderElectionReportingTimelockServiceTest {
         verifyNoMoreInteractions(mockedTimer);
     }
 
-    private void assertExpectedDuration(Instant instant, Instant instant2) {
-        Optional<Duration> estimatedDuration = timelockService.calculateLastLeaderElectionDuration();
-        assertThat(estimatedDuration).isPresent();
-        assertThat(estimatedDuration.get()).isEqualTo(Duration.between(instant, instant2));
+    private void assertExpectedDurationAndLeaders(Instant instant, Instant instant2, UUID oldLeader, UUID newLeader) {
+        LeaderElectionDuration estimate =
+                timelockService.calculateLastLeaderElectionDuration().get();
+        assertThat(estimate.getDuration()).isEqualTo(Duration.between(instant, instant2));
+        assertThat(estimate.getOldLeader()).isEqualTo(oldLeader);
+        assertThat(estimate.getNewLeader()).isEqualTo(newLeader);
     }
 
     @Value.Immutable

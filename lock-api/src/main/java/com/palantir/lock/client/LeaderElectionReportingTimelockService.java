@@ -36,6 +36,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.timelock.feedback.LeaderElectionDuration;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -133,8 +134,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 .p95(metricsSnapshot.get95thPercentile())
                 .mean(metricsSnapshot.getMean())
                 .count(SafeLong.of(metricsSnapshot.size()))
-                .durationEstimate(
-                        calculateLastLeaderElectionDuration().map(duration -> SafeLong.of(duration.toNanos())))
+                .durationEstimate(calculateLastLeaderElectionDuration())
                 .build();
         metrics = LeaderElectionMetrics.of(metricRegistry);
         return electionStatistics;
@@ -206,7 +206,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
      * elected while U_A is the earliest moment at which A could have lost leadership. This method will always return
      * the duration of the most recent such interval.
      */
-    public Optional<Duration> calculateLastLeaderElectionDuration() {
+    public Optional<LeaderElectionDuration> calculateLastLeaderElectionDuration() {
         Map<UUID, Instant> lowerBounds = ImmutableMap.copyOf(leadershipLowerBound.entrySet());
         Map<UUID, Instant> upperBounds = ImmutableMap.copyOf(leadershipUpperBound.entrySet());
 
@@ -220,7 +220,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
 
         UUID lastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 1);
 
-        Optional<Duration> result = durationToNextLeader(lowerBounds, upperBounds, leaders, lastLongTermLeader);
+        Optional<LeaderElectionDuration> result =
+                durationToNextLeader(lowerBounds, upperBounds, leaders, lastLongTermLeader);
         if (result.isPresent() || sortedLongTermLeaders.size() == 1) {
             return result;
         }
@@ -248,7 +249,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         }
     }
 
-    private Optional<Duration> durationToNextLeader(
+    private Optional<LeaderElectionDuration> durationToNextLeader(
             Map<UUID, Instant> lowerBounds,
             Map<UUID, Instant> upperBounds,
             Set<UUID> leaders,
@@ -256,8 +257,11 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         Optional<UUID> firstNextShortTermLeader = leaders.stream()
                 .filter(id -> upperBounds.get(id).isAfter(upperBounds.get(lastLongTermLeader)))
                 .min(Comparator.comparing(lowerBounds::get));
-        return firstNextShortTermLeader.map(
-                nextLeader -> estimateElectionDuration(lowerBounds, upperBounds, lastLongTermLeader, nextLeader));
+        return firstNextShortTermLeader.map(newLeader -> LeaderElectionDuration.builder()
+                .oldLeader(lastLongTermLeader)
+                .newLeader(newLeader)
+                .duration(estimateElectionDuration(lowerBounds, upperBounds, lastLongTermLeader, newLeader))
+                .build());
     }
 
     private Duration estimateElectionDuration(
