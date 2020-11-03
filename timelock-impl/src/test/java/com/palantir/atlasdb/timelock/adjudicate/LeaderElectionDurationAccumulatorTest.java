@@ -123,8 +123,10 @@ public class LeaderElectionDurationAccumulatorTest {
         int numBuckets = 100;
         int requestsPerBucket = 50;
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, numBuckets * requestsPerBucket);
-        List<Integer> durationBuckets =
-                IntStream.range(0, numBuckets).map(x -> x * numBuckets).boxed().collect(Collectors.toList());
+        List<Integer> durationBuckets = IntStream.range(0, numBuckets)
+                .map(x -> x * requestsPerBucket)
+                .boxed()
+                .collect(Collectors.toList());
         Collections.shuffle(durationBuckets);
 
         durationBuckets.forEach(duration -> executorService.submit(
@@ -141,14 +143,14 @@ public class LeaderElectionDurationAccumulatorTest {
         List<Long> durations = LongStream.range(min, min + number).boxed().collect(Collectors.toList());
         Collections.shuffle(durations);
         durations.forEach(
-                dur -> accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, Duration.ofSeconds(dur))));
+                dur -> accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, Duration.ofNanos(dur))));
     }
 
     private void leaderElectionResultsWithPause(UUID oldLeader, UUID newLeader, int number, int min) {
         List<Long> durations = LongStream.range(min, min + number).boxed().collect(Collectors.toList());
         Collections.shuffle(durations);
         durations.forEach(dur -> {
-            accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, Duration.ofSeconds(dur)));
+            accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, Duration.ofNanos(dur)));
             Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
         });
     }
