@@ -37,7 +37,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final NamespacedConjureTimelockService conjureTimelockService;
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
-    private final CommitTimestampGetter commitTimestampGetter;
+    private final ICommitTimestampGetter commitTimestampGetter;
 
     private RemoteTimelockServiceAdapter(
             NamespacedTimelockRpcClient rpcClient,
@@ -50,11 +50,31 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         this.conjureTimelockService = conjureTimelockService;
     }
 
+    private RemoteTimelockServiceAdapter(
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureTimelockService,
+            LockWatchEventCache lockWatchEventCache,
+            ICommitTimestampGetter commitTimestampGetter) {
+        this.rpcClient = rpcClient;
+        this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
+        this.commitTimestampGetter = commitTimestampGetter;
+        this.conjureTimelockService = conjureTimelockService;
+    }
+
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
         return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
+    }
+
+    public static RemoteTimelockServiceAdapter create(
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureClient,
+            LockWatchEventCache lockWatchEventCache,
+            ICommitTimestampGetter commitTimestampGetter) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache, commitTimestampGetter);
     }
 
     @Override

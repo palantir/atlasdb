@@ -23,6 +23,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.lock.client.CommitTimestampGetter.Request;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -34,23 +35,21 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.immutables.value.Value;
 
-final class CommitTimestampGetter implements ICommitTimestampGetter {
+public class CrossClientBatchingCommitTimestampGetter implements AutoCloseable {
     private final DisruptorAutobatcher<Request, Long> autobatcher;
 
-    private CommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
+    public CrossClientBatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
-    public static CommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
+    public static CrossClientBatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
         DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
-                .safeLoggablePurpose("get-commit-timestamp")
+                .safeLoggablePurpose("commit-timestamp")
                 .build();
-        return new CommitTimestampGetter(autobatcher);
+        return new CrossClientBatchingCommitTimestampGetter(autobatcher);
     }
 
-    @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableRequest.builder()
                 .startTs(startTs)
@@ -86,27 +85,21 @@ final class CommitTimestampGetter implements ICommitTimestampGetter {
                 .boxed()
                 .collect(Collectors.toList());
         List<TransactionUpdate> transactionUpdates = Streams.zip(
-                        timestamps.stream(),
-                        requests.stream(),
-                        (commitTs, batchElement) -> ImmutableTransactionUpdate.builder()
-                                .startTs(batchElement.argument().startTs())
-                                .commitTs(commitTs)
-                                .writesToken(batchElement.argument().commitLocksToken())
-                                .build())
+                timestamps.stream(),
+                requests.stream(),
+                (commitTs, batchElement) -> ImmutableTransactionUpdate.builder()
+                        .startTs(batchElement.argument().startTs())
+                        .commitTs(commitTs)
+                        .writesToken(batchElement.argument().commitLocksToken())
+                        .build())
                 .collect(Collectors.toList());
         cache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
         return timestamps;
     }
 
+
     @Override
     public void close() {
         autobatcher.close();
-    }
-
-    @Value.Immutable
-    interface Request {
-        long startTs();
-
-        LockToken commitLocksToken();
     }
 }

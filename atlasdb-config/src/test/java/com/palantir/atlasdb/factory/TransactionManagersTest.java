@@ -346,6 +346,7 @@ public class TransactionManagersTest {
                         USER_AGENT,
                         Optional.empty(),
                         reloadingFactory,
+                        Optional.empty(),
                         Optional.empty());
 
         LockRequest lockRequest = LockRequest.builder(
