@@ -92,7 +92,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
     }
 
     // utils
-    private InDbTimestampBoundStore getStore(TableReference tableReference, String tablePrefix) {
+    private TimestampBoundStore getStore(TableReference tableReference, String tablePrefix) {
         return InDbTimestampBoundStore.create(kvs.getConnectionManager(), tableReference, tablePrefix);
     }
 

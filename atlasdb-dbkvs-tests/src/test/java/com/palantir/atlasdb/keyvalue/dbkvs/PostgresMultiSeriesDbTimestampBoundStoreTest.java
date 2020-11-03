@@ -82,7 +82,7 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
         assertThat(store.getUpperLimit()).isEqualTo(ONE_BILLION);
     }
 
-    private InDbTimestampBoundStore createDbTimestampBoundStore(TimestampSeries series) {
+    private TimestampBoundStore createDbTimestampBoundStore(TimestampSeries series) {
         return InDbTimestampBoundStore.createForMultiSeries(
                 kvs.getConnectionManager(), AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, series);
     }

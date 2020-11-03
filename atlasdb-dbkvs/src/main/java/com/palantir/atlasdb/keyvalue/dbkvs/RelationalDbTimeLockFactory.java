@@ -34,6 +34,7 @@ import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
+import com.palantir.timestamp.TimestampBoundStore;
 import java.util.Optional;
 
 @AutoService(DbTimeLockFactory.class)
@@ -69,8 +70,13 @@ public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
                 rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
-        return PersistentTimestampServiceImpl.create(multiSeries(
-                dbkvs, dbTimestampCreationSetting.tableReference(), dbTimestampCreationSetting.timestampSeries()));
+        return PersistentTimestampServiceImpl.create(
+                multiSeries(
+                        dbkvs,
+                        dbTimestampCreationSetting.tableReference(),
+                        dbTimestampCreationSetting.timestampSeries(),
+                        initializeAsync),
+                initializeAsync);
     }
 
     @Override
@@ -79,8 +85,12 @@ public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
         return MultiSequenceTimestampSeriesProvider.create(rawKvs, tableReference, initializeAsync);
     }
 
-    private static InDbTimestampBoundStore multiSeries(
-            ConnectionManagerAwareDbKvs dbkvs, TableReference tableRef, TimestampSeries series) {
-        return InDbTimestampBoundStore.createForMultiSeries(dbkvs.getConnectionManager(), tableRef, series);
+    private static TimestampBoundStore multiSeries(
+            ConnectionManagerAwareDbKvs dbkvs,
+            TableReference tableRef,
+            TimestampSeries series,
+            boolean initializeAsync) {
+        return InDbTimestampBoundStore.createForMultiSeries(
+                dbkvs.getConnectionManager(), tableRef, series, initializeAsync);
     }
 }
