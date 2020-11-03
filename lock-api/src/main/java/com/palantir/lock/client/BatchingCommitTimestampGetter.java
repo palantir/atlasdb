@@ -23,7 +23,6 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.lock.CommitTimestampGetter;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;

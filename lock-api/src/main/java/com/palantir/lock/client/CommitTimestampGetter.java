@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock;
+package com.palantir.lock.client;
 
 import com.palantir.lock.v2.LockToken;
 
