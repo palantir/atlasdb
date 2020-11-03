@@ -48,7 +48,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.util.function.Supplier;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
+import org.awaitility.Durations;
 
 public final class SweepTestUtils {
     private SweepTestUtils() {}
@@ -111,7 +111,7 @@ public final class SweepTestUtils {
     private static void tearDownTables(KeyValueService kvs) {
         // do not truncate the targeted sweep table identifier tables
         Schemas.truncateTablesAndIndexes(TargetedSweepSchema.schemaWithoutTableIdentifierTables(), kvs);
-        Awaitility.await().timeout(Duration.FIVE_MINUTES).until(() -> {
+        Awaitility.await().timeout(Durations.FIVE_MINUTES).until(() -> {
             kvs.getAllTableNames().stream()
                     .filter(ref -> !TargetedSweepSchema.INSTANCE
                             .getLatestSchema()
