@@ -46,7 +46,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-public final class CommitTimestampGetterTest {
+public final class BatchingCommitTimestampGetterTest {
 
     private static final LockWatchStateUpdate UPDATE_1 = LockWatchStateUpdate.success(
             UUID.randomUUID(),
@@ -66,15 +66,15 @@ public final class CommitTimestampGetterTest {
 
     private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
     private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
-    private final Consumer<List<BatchElement<CommitTimestampGetter.Request, Long>>> batchProcessor =
-            CommitTimestampGetter.consumer(lockLeaseService, cache);
+    private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request, Long>>> batchProcessor =
+            BatchingCommitTimestampGetter.consumer(lockLeaseService, cache);
 
     @Test
     public void consumerFillsTheWholeBatch() {
-        CommitTimestampGetter.Request request1 = request(1, UUID.randomUUID());
-        CommitTimestampGetter.Request request2 = request(2, UUID.randomUUID());
-        CommitTimestampGetter.Request request3 = request(3, UUID.randomUUID());
-        CommitTimestampGetter.Request request4 = request(4, UUID.randomUUID());
+        BatchingCommitTimestampGetter.Request request1 = request(1, UUID.randomUUID());
+        BatchingCommitTimestampGetter.Request request2 = request(2, UUID.randomUUID());
+        BatchingCommitTimestampGetter.Request request3 = request(3, UUID.randomUUID());
+        BatchingCommitTimestampGetter.Request request4 = request(4, UUID.randomUUID());
 
         when(cache.lastKnownVersion()).thenReturn(IDENTIFIED_VERSION_1).thenReturn(IDENTIFIED_VERSION_2);
         whenGetCommitTimestamps(IDENTIFIED_VERSION_1, 4, 5, 6, UPDATE_1);
@@ -105,9 +105,9 @@ public final class CommitTimestampGetterTest {
                         .build());
     }
 
-    private List<Long> processBatch(CommitTimestampGetter.Request... requests) {
-        List<BatchElement<CommitTimestampGetter.Request, Long>> elements = Arrays.stream(requests)
-                .map(request -> ImmutableTestBatchElement.<CommitTimestampGetter.Request, Long>builder()
+    private List<Long> processBatch(BatchingCommitTimestampGetter.Request... requests) {
+        List<BatchElement<BatchingCommitTimestampGetter.Request, Long>> elements = Arrays.stream(requests)
+                .map(request -> ImmutableTestBatchElement.<BatchingCommitTimestampGetter.Request, Long>builder()
                         .argument(request)
                         .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                         .build())
@@ -116,14 +116,14 @@ public final class CommitTimestampGetterTest {
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 
-    private CommitTimestampGetter.Request request(long startTs, UUID lockToken) {
+    private BatchingCommitTimestampGetter.Request request(long startTs, UUID lockToken) {
         return ImmutableRequest.builder()
                 .startTs(startTs)
                 .commitLocksToken(LockToken.of(lockToken))
                 .build();
     }
 
-    private TransactionUpdate transactionUpdate(CommitTimestampGetter.Request request, long commitTs) {
+    private TransactionUpdate transactionUpdate(BatchingCommitTimestampGetter.Request request, long commitTs) {
         return ImmutableTransactionUpdate.builder()
                 .startTs(request.startTs())
                 .commitTs(commitTs)

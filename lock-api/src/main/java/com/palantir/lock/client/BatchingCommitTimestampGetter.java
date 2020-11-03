@@ -23,7 +23,6 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.lock.client.CommitTimestampGetter.Request;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -35,21 +34,23 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import org.immutables.value.Value;
 
-public class CrossClientBatchingCommitTimestampGetter implements AutoCloseable {
+final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     private final DisruptorAutobatcher<Request, Long> autobatcher;
 
-    public CrossClientBatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
+    private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
-    public static CrossClientBatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
+    public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
         DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
-                .safeLoggablePurpose("commit-timestamp")
+                .safeLoggablePurpose("get-commit-timestamp")
                 .build();
-        return new CrossClientBatchingCommitTimestampGetter(autobatcher);
+        return new BatchingCommitTimestampGetter(autobatcher);
     }
 
+    @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableRequest.builder()
                 .startTs(startTs)
@@ -85,21 +86,27 @@ public class CrossClientBatchingCommitTimestampGetter implements AutoCloseable {
                 .boxed()
                 .collect(Collectors.toList());
         List<TransactionUpdate> transactionUpdates = Streams.zip(
-                timestamps.stream(),
-                requests.stream(),
-                (commitTs, batchElement) -> ImmutableTransactionUpdate.builder()
-                        .startTs(batchElement.argument().startTs())
-                        .commitTs(commitTs)
-                        .writesToken(batchElement.argument().commitLocksToken())
-                        .build())
+                        timestamps.stream(),
+                        requests.stream(),
+                        (commitTs, batchElement) -> ImmutableTransactionUpdate.builder()
+                                .startTs(batchElement.argument().startTs())
+                                .commitTs(commitTs)
+                                .writesToken(batchElement.argument().commitLocksToken())
+                                .build())
                 .collect(Collectors.toList());
         cache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
         return timestamps;
     }
 
-
     @Override
     public void close() {
         autobatcher.close();
+    }
+
+    @Value.Immutable
+    interface Request {
+        long startTs();
+
+        LockToken commitLocksToken();
     }
 }

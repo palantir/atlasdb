@@ -19,5 +19,5 @@ package com.palantir.lock.client;
 import com.palantir.lock.watch.LockWatchEventCache;
 
 public interface CommitTimestampGetterFactory {
-    ICommitTimestampGetter create(LockWatchEventCache lockWatchEventCache);
+    CommitTimestampGetter create(LockWatchEventCache lockWatchEventCache);
 }

@@ -1195,11 +1195,8 @@ public abstract class TransactionManagers {
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
-        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = getRemoteTimelockServiceAdapter(
-                namespacedTimelockRpcClient,
-                namespacedConjureTimelockService,
-                lockWatchEventCache,
-                factory);
+        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
+                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, factory);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -1213,17 +1210,6 @@ public abstract class TransactionManagers {
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
-    }
-
-    private static RemoteTimelockServiceAdapter getRemoteTimelockServiceAdapter(
-            NamespacedTimelockRpcClient namespacedTimelockRpcClient,
-            LeaderElectionReportingTimelockService namespacedConjureTimelockService,
-            LockWatchEventCache lockWatchEventCache,
-            Optional<CommitTimestampGetterFactory> factory) {
-        return factory.map(f -> RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, f.create(lockWatchEventCache)))
-                .orElseGet(() -> RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache));
     }
 
     private static LockAndTimestampServices createRawLeaderServices(
