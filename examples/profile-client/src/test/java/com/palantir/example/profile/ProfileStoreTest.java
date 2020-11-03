@@ -25,7 +25,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
-import com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile;
 import com.palantir.example.profile.schema.ProfileSchema;
 import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserPhotosStreamValueTable;

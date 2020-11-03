@@ -1,4 +1,10 @@
 types:
+  imports:
+    Duration:
+      base-type: any
+      external:
+        java: java.time.Duration
+
   definitions:
     default-package: com.palantir.timelock.feedback
     objects:
@@ -21,7 +27,7 @@ types:
         fields:
           oldLeader: uuid
           newLeader: uuid
-          duration: safelong
+          duration: Duration
       LeaderElectionStatistics:
         fields:
           p99: double

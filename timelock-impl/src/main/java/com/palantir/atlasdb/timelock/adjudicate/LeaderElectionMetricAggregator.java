@@ -24,6 +24,7 @@ import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import java.util.concurrent.TimeUnit;
 
 public final class LeaderElectionMetricAggregator {
+    private static final int CONFIDENCE_THRESHOLD = 10;
     private final SlidingWindowWeightedMeanGauge weightedGaugeP99;
     private final SlidingWindowWeightedMeanGauge weightedGaugeP95;
     private final SlidingWindowWeightedMeanGauge weightedGaugeMean;
@@ -43,7 +44,8 @@ public final class LeaderElectionMetricAggregator {
                 LeaderElectionMetricAggregator.class,
                 "leaderElectionDurationEstimate",
                 () -> new Histogram(new SlidingTimeWindowArrayReservoir(5, TimeUnit.MINUTES)));
-        leaderElectionDurationAccumulator = new LeaderElectionDurationAccumulator(leaderElectionHistogram::update, 10);
+        leaderElectionDurationAccumulator =
+                new LeaderElectionDurationAccumulator(leaderElectionHistogram::update, CONFIDENCE_THRESHOLD);
     }
 
     void report(LeaderElectionStatistics statistics) {

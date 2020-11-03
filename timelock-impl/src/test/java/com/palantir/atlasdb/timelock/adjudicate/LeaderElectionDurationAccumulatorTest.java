@@ -23,8 +23,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.timelock.feedback.LeaderElectionDuration;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -72,13 +72,13 @@ public class LeaderElectionDurationAccumulatorTest {
     @Test
     public void consumeOnceForEachLeaderPair() {
         leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 5, 10);
-        leaderElectionResultsWithDurationInRandomOrder(LEADER_2, LEADER_3, 5, 15);
+        leaderElectionResultsWithDurationInRandomOrder(LEADER_2, LEADER_3, 5, 25);
         leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 5, 1);
-        leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_3, 5, 7);
+        leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_3, 5, 37);
 
         verify(mockConsumer).accept(10L);
-        verify(mockConsumer).accept(15L);
-        verify(mockConsumer).accept(7L);
+        verify(mockConsumer).accept(25L);
+        verify(mockConsumer).accept(37L);
         verifyNoMoreInteractions(mockConsumer);
     }
 
@@ -88,14 +88,14 @@ public class LeaderElectionDurationAccumulatorTest {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(3);
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 300);
         executorService.submit(() -> leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_2, 300, 1));
-        executorService.submit(() -> leaderElectionResultsWithDurationInRandomOrder(LEADER_2, LEADER_3, 300, 17));
-        executorService.submit(() -> leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_3, 300, 76));
+        executorService.submit(() -> leaderElectionResultsWithDurationInRandomOrder(LEADER_2, LEADER_3, 300, 1017));
+        executorService.submit(() -> leaderElectionResultsWithDurationInRandomOrder(LEADER_1, LEADER_3, 300, 2076));
         executorService.shutdown();
         executorService.awaitTermination(1, TimeUnit.MINUTES);
 
         verify(mockConsumer).accept(1L);
-        verify(mockConsumer).accept(17L);
-        verify(mockConsumer).accept(76L);
+        verify(mockConsumer).accept(1017L);
+        verify(mockConsumer).accept(2076L);
         verifyNoMoreInteractions(mockConsumer);
     }
 
@@ -105,14 +105,14 @@ public class LeaderElectionDurationAccumulatorTest {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(3);
         accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 300);
         executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_2, 300, 1));
-        executorService.submit(() -> leaderElectionResultsWithPause(LEADER_2, LEADER_3, 300, 17));
-        executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_3, 300, 76));
+        executorService.submit(() -> leaderElectionResultsWithPause(LEADER_2, LEADER_3, 300, 1017));
+        executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_3, 300, 2076));
         executorService.shutdown();
         executorService.awaitTermination(1, TimeUnit.MINUTES);
 
         verify(mockConsumer).accept(1L);
-        verify(mockConsumer).accept(17L);
-        verify(mockConsumer).accept(76L);
+        verify(mockConsumer).accept(1017L);
+        verify(mockConsumer).accept(2076L);
         verifyNoMoreInteractions(mockConsumer);
     }
 
@@ -120,13 +120,15 @@ public class LeaderElectionDurationAccumulatorTest {
     @SuppressWarnings("ExecutorSubmitRunnableFutureIgnored")
     public void testManyUpdatesForSameLeaders() throws InterruptedException {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(50);
-        accumulator = new LeaderElectionDurationAccumulator(mockConsumer, 5_000);
+        int numBuckets = 100;
+        int requestsPerBucket = 50;
+        accumulator = new LeaderElectionDurationAccumulator(mockConsumer, numBuckets * requestsPerBucket);
         List<Integer> durationBuckets =
-                IntStream.range(0, 100).map(x -> x * 100).boxed().collect(Collectors.toList());
+                IntStream.range(0, numBuckets).map(x -> x * numBuckets).boxed().collect(Collectors.toList());
         Collections.shuffle(durationBuckets);
 
-        durationBuckets.forEach(duration ->
-                executorService.submit(() -> leaderElectionResultsWithPause(LEADER_1, LEADER_2, 50, duration)));
+        durationBuckets.forEach(duration -> executorService.submit(
+                () -> leaderElectionResultsWithPause(LEADER_1, LEADER_2, requestsPerBucket, duration)));
 
         executorService.shutdown();
         executorService.awaitTermination(1, TimeUnit.MINUTES);
@@ -138,14 +140,15 @@ public class LeaderElectionDurationAccumulatorTest {
     private void leaderElectionResultsWithDurationInRandomOrder(UUID oldLeader, UUID newLeader, int number, int min) {
         List<Long> durations = LongStream.range(min, min + number).boxed().collect(Collectors.toList());
         Collections.shuffle(durations);
-        durations.forEach(dur -> accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, SafeLong.of(dur))));
+        durations.forEach(
+                dur -> accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, Duration.ofSeconds(dur))));
     }
 
     private void leaderElectionResultsWithPause(UUID oldLeader, UUID newLeader, int number, int min) {
         List<Long> durations = LongStream.range(min, min + number).boxed().collect(Collectors.toList());
         Collections.shuffle(durations);
         durations.forEach(dur -> {
-            accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, SafeLong.of(dur)));
+            accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, Duration.ofSeconds(dur)));
             Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
         });
     }

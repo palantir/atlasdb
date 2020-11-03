@@ -19,19 +19,19 @@ package com.palantir.atlasdb.timelock.adjudicate;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.feedback.LeaderElectionDuration;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongConsumer;
 import org.immutables.value.Value;
-import org.immutables.value.Value.Parameter;
 
 public class LeaderElectionDurationAccumulator {
-    private Set<LeadersContext> alreadyReportedLeaderElections = ConcurrentHashMap.newKeySet();
-    private Map<LeadersContext, ModifiableSoakingDuration> currentlySoaking = new ConcurrentHashMap<>();
+    private final Set<LeadersContext> alreadyReportedLeaderElections = ConcurrentHashMap.newKeySet();
+    private final Map<LeadersContext, SoakingDuration> currentlySoaking = new ConcurrentHashMap<>();
 
-    private final LongConsumer consumer;
+    private final LongConsumer updateConsumer;
     private final int updatesToAchieveConfidence;
 
     /**
@@ -42,8 +42,8 @@ public class LeaderElectionDurationAccumulator {
      * @param updatesToAchieveConfidence required number of updates to before the results are reported, must be
      *                                   greater than 1
      */
-    public LeaderElectionDurationAccumulator(LongConsumer consumer, int updatesToAchieveConfidence) {
-        this.consumer = consumer;
+    public LeaderElectionDurationAccumulator(LongConsumer updateConsumer, int updatesToAchieveConfidence) {
+        this.updateConsumer = updateConsumer;
         this.updatesToAchieveConfidence = updatesToAchieveConfidence;
         Preconditions.checkArgument(
                 updatesToAchieveConfidence > 1,
@@ -51,58 +51,67 @@ public class LeaderElectionDurationAccumulator {
                 SafeArg.of("updatesToAchieveConfidence", updatesToAchieveConfidence));
     }
 
-    public void add(LeaderElectionDuration duration) {
-        LeadersContext leadersContext = LeadersContext.of(duration.getOldLeader(), duration.getNewLeader());
-        if (alreadyReportedLeaderElections.contains(leadersContext)) {
-            return;
+    public void add(LeaderElectionDuration electionDuration) {
+        LeadersContext leadersContext = LeadersContext.builder()
+                .oldLeader(electionDuration.getOldLeader())
+                .newLeader(electionDuration.getNewLeader())
+                .build();
+        if (!alreadyReportedLeaderElections.contains(leadersContext)) {
+            currentlySoaking.compute(
+                    leadersContext,
+                    (context, previous) -> increaseConfidence(context, previous, electionDuration.getDuration()));
         }
-        currentlySoaking.compute(
-                leadersContext,
-                (context, previous) -> increaseConfidence(
-                        context, previous, duration.getDuration().longValue()));
     }
 
-    private ModifiableSoakingDuration increaseConfidence(
-            LeadersContext context, ModifiableSoakingDuration accumulatedSoakingDuration, long duration) {
+    private SoakingDuration increaseConfidence(
+            LeadersContext context, SoakingDuration accumulatedSoakingDuration, Duration duration) {
         if (alreadyReportedLeaderElections.contains(context)) {
             return null;
         }
+
         if (accumulatedSoakingDuration == null) {
-            return ModifiableSoakingDuration.create(duration, 1);
+            return SoakingDuration.create(duration);
         }
-        long accumulatedDuration = accumulatedSoakingDuration.value();
-        if (accumulatedDuration > duration) {
-            accumulatedSoakingDuration.setValue(duration);
-        }
-        int currentCount = accumulatedSoakingDuration.count() + 1;
-        if (currentCount >= updatesToAchieveConfidence) {
+
+        SoakingDuration updatedDuration = accumulatedSoakingDuration.updateDuration(duration);
+        if (updatedDuration.count() >= updatesToAchieveConfidence) {
             alreadyReportedLeaderElections.add(context);
-            consumer.accept(accumulatedSoakingDuration.value());
+            updateConsumer.accept(updatedDuration.sampleMinimum());
             return null;
         }
-        accumulatedSoakingDuration.setCount(currentCount);
-        return accumulatedSoakingDuration;
+
+        return updatedDuration;
     }
 
     @Value.Immutable
     interface LeadersContext {
-        @Parameter
-        UUID previous();
-
-        @Parameter
-        UUID next();
-
-        static LeadersContext of(UUID previous, UUID next) {
-            return ImmutableLeadersContext.of(previous, next);
+        static ImmutableLeadersContext.Builder builder() {
+            return ImmutableLeadersContext.builder();
         }
+
+        UUID oldLeader();
+
+        UUID newLeader();
     }
 
-    @Value.Modifiable
+    @Value.Immutable
     interface SoakingDuration {
-        @Parameter
-        long value();
+        long sampleMinimum();
 
-        @Parameter
         int count();
+
+        static SoakingDuration create(Duration duration) {
+            return ImmutableSoakingDuration.builder()
+                    .sampleMinimum(duration.toNanos())
+                    .count(1)
+                    .build();
+        }
+
+        default SoakingDuration updateDuration(Duration newDuration) {
+            return ImmutableSoakingDuration.builder()
+                    .count(count() + 1)
+                    .sampleMinimum(Math.min(sampleMinimum(), newDuration.toNanos()))
+                    .build();
+        }
     }
 }

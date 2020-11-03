@@ -42,7 +42,6 @@ import com.palantir.timelock.feedback.LeaderElectionDuration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Parameter;
@@ -354,13 +353,13 @@ public class LeaderElectionReportingTimelockServiceTest {
         verifyNoMoreInteractions(mockedTimer);
     }
 
-    private void assertExpectedDurationAndLeaders(Instant instant, Instant instant2, UUID old, UUID next) {
-        Optional<LeaderElectionDuration> estimate = timelockService.calculateLastLeaderElectionDuration();
-        assertThat(estimate).isPresent();
-        assertThat(estimate.get().getDuration())
+    private void assertExpectedDurationAndLeaders(Instant instant, Instant instant2, UUID oldLeader, UUID newLeader) {
+        LeaderElectionDuration estimate =
+                timelockService.calculateLastLeaderElectionDuration().get();
+        assertThat(estimate.getDuration())
                 .isEqualTo(SafeLong.of(Duration.between(instant, instant2).toNanos()));
-        assertThat(estimate.get().getOldLeader()).isEqualTo(old);
-        assertThat(estimate.get().getNewLeader()).isEqualTo(next);
+        assertThat(estimate.getOldLeader()).isEqualTo(oldLeader);
+        assertThat(estimate.getNewLeader()).isEqualTo(newLeader);
     }
 
     @Value.Immutable

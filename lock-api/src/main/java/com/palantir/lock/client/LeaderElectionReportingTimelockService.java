@@ -258,8 +258,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         return firstNextShortTermLeader.map(newLeader -> LeaderElectionDuration.builder()
                 .oldLeader(lastLongTermLeader)
                 .newLeader(newLeader)
-                .duration(SafeLong.of(estimateElectionDuration(lowerBounds, upperBounds, lastLongTermLeader, newLeader)
-                        .toNanos()))
+                .duration(estimateElectionDuration(lowerBounds, upperBounds, lastLongTermLeader, newLeader))
                 .build());
     }
 
