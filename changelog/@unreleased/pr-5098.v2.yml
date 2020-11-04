@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Wire through the leader election metrics to Timelock.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5098

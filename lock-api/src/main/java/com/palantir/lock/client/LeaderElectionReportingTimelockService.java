@@ -63,7 +63,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     private Map<UUID, Instant> leadershipUpperBound = new ConcurrentHashMap<>();
     private Map<UUID, Instant> leadershipLowerBound = new ConcurrentHashMap<>();
 
-    public LeaderElectionReportingTimelockService(
+    @VisibleForTesting
+    LeaderElectionReportingTimelockService(
             NamespacedConjureTimelockService delegate, TaggedMetricRegistry taggedMetricRegistry, Clock clock) {
         this.delegate = delegate;
         this.metrics = LeaderElectionMetrics.of(taggedMetricRegistry);
@@ -206,7 +207,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
      * elected while U_A is the earliest moment at which A could have lost leadership. This method will always return
      * the duration of the most recent such interval.
      */
-    public Optional<LeaderElectionDuration> calculateLastLeaderElectionDuration() {
+    @VisibleForTesting
+    Optional<LeaderElectionDuration> calculateLastLeaderElectionDuration() {
         Map<UUID, Instant> lowerBounds = ImmutableMap.copyOf(leadershipLowerBound.entrySet());
         Map<UUID, Instant> upperBounds = ImmutableMap.copyOf(leadershipUpperBound.entrySet());
 
@@ -230,18 +232,6 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         return durationToNextLeader(lowerBounds, upperBounds, leaders, secondToLastLongTermLeader);
     }
 
-    private Set<UUID> leadersWithBothBounds(Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds) {
-        return upperBounds.keySet().stream().filter(lowerBounds::containsKey).collect(Collectors.toSet());
-    }
-
-    private List<UUID> orderedLongTermLeaders(
-            Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds, Set<UUID> leadersWithBothBounds) {
-        return leadersWithBothBounds.stream()
-                .filter(id -> upperBounds.get(id).isAfter(lowerBounds.get(id)))
-                .sorted(Comparator.comparing(lowerBounds::get))
-                .collect(Collectors.toList());
-    }
-
     private void clearOldLongTermLeaders(List<UUID> sortedLongTermLeaders) {
         for (int i = 0; i < sortedLongTermLeaders.size() - 2; i++) {
             leadershipLowerBound.remove(sortedLongTermLeaders.get(i));
@@ -249,7 +239,23 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         }
     }
 
-    private Optional<LeaderElectionDuration> durationToNextLeader(
+    private void updateMetrics(Duration timeTaken) {
+        metrics.observedDuration().update(timeTaken.toNanos(), TimeUnit.NANOSECONDS);
+    }
+
+    private static Set<UUID> leadersWithBothBounds(Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds) {
+        return upperBounds.keySet().stream().filter(lowerBounds::containsKey).collect(Collectors.toSet());
+    }
+
+    private static List<UUID> orderedLongTermLeaders(
+            Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds, Set<UUID> leadersWithBothBounds) {
+        return leadersWithBothBounds.stream()
+                .filter(id -> upperBounds.get(id).isAfter(lowerBounds.get(id)))
+                .sorted(Comparator.comparing(lowerBounds::get))
+                .collect(Collectors.toList());
+    }
+
+    private static Optional<LeaderElectionDuration> durationToNextLeader(
             Map<UUID, Instant> lowerBounds,
             Map<UUID, Instant> upperBounds,
             Set<UUID> leaders,
@@ -264,7 +270,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 .build());
     }
 
-    private Duration estimateElectionDuration(
+    private static Duration estimateElectionDuration(
             Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds, UUID previousLeader, UUID nextLeader) {
         return Duration.between(upperBounds.get(previousLeader), lowerBounds.get(nextLeader));
     }
@@ -281,9 +287,5 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
             return second;
         }
         return first.isBefore(second) ? first : second;
-    }
-
-    private void updateMetrics(Duration timeTaken) {
-        metrics.observedDuration().update(timeTaken.toNanos(), TimeUnit.NANOSECONDS);
     }
 }
