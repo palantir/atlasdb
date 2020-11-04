@@ -16,8 +16,7 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.lock.v2.LockToken;
-
-public interface CommitTimestampGetter extends ExceptionHandlingAutoCloseable {
-    long getCommitTimestamp(long startTs, LockToken commitLocksToken);
+public interface ExceptionHandlingAutoCloseable extends AutoCloseable {
+    @Override
+    void close();
 }
