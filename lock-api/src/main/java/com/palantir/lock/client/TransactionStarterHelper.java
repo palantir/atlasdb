@@ -47,8 +47,15 @@ public final class TransactionStarterHelper {
         return ImmutableSet.copyOf(Sets.union(resultLockTokenShares, resultLockTokens));
     }
 
-    static Set<LockToken> reduceForRefresh(Set<LockTokenShare> lockTokenShares) {
-        return lockTokenShares.stream().map(LockTokenShare::sharedLockToken).collect(Collectors.toSet());
+    static Set<LockTokenShare> filterLockTokenShares(Set<LockToken> tokens) {
+        return tokens.stream()
+                .filter(TransactionStarterHelper::isLockTokenShare)
+                .map(LockTokenShare.class::cast)
+                .collect(Collectors.toSet());
+    }
+
+    static Set<LockToken> filterOutTokenShares(Set<LockToken> tokens) {
+        return tokens.stream().filter(t -> !isLockTokenShare(t)).collect(Collectors.toSet());
     }
 
     /**
@@ -73,17 +80,6 @@ public final class TransactionStarterHelper {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
-    }
-
-    static Set<LockTokenShare> filterLockTokenShares(Set<LockToken> tokens) {
-        return tokens.stream()
-                .filter(TransactionStarterHelper::isLockTokenShare)
-                .map(LockTokenShare.class::cast)
-                .collect(Collectors.toSet());
-    }
-
-    static Set<LockToken> filterOutTokenShares(Set<LockToken> tokens) {
-        return tokens.stream().filter(t -> !isLockTokenShare(t)).collect(Collectors.toSet());
     }
 
     private static boolean isLockTokenShare(LockToken lockToken) {

@@ -40,21 +40,21 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BatchingTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
+public class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
     private final DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher;
 
-    public BatchingTransactionStarter(
+    public BatchingIdentifiedAtlasDbTransactionStarter(
             DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
-    static BatchingTransactionStarter create(
+    static BatchingIdentifiedAtlasDbTransactionStarter create(
             LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
                 Autobatchers.independent(consumer(lockLeaseService, lockWatchEventCache))
                         .safeLoggablePurpose("transaction-starter")
                         .build();
-        return new BatchingTransactionStarter(autobatcher);
+        return new BatchingIdentifiedAtlasDbTransactionStarter(autobatcher);
     }
 
     @Override

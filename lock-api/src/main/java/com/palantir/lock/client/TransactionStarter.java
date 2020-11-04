@@ -32,13 +32,14 @@ import java.util.stream.Collectors;
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
-class TransactionStarter implements AutoCloseable {
+final class TransactionStarter implements AutoCloseable {
     private final LockLeaseService lockLeaseService;
-    private final BatchingTransactionStarter batchingTransactionStarter;
+    private final IdentifiedAtlasDbTransactionStarter batchingTransactionStarter;
 
     private TransactionStarter(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         this.lockLeaseService = lockLeaseService;
-        this.batchingTransactionStarter = BatchingTransactionStarter.create(lockLeaseService, lockWatchEventCache);
+        this.batchingTransactionStarter =
+                BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, lockWatchEventCache);
     }
 
     static TransactionStarter create(LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
@@ -53,8 +54,8 @@ class TransactionStarter implements AutoCloseable {
         Set<LockTokenShare> lockTokenShares = TransactionStarterHelper.filterLockTokenShares(tokens);
         Set<LockToken> lockTokens = TransactionStarterHelper.filterOutTokenShares(tokens);
 
-        Set<LockToken> refreshedTokens = lockLeaseService.refreshLockLeases(
-                Sets.union(TransactionStarterHelper.reduceForRefresh(lockTokenShares), lockTokens));
+        Set<LockToken> refreshedTokens =
+                lockLeaseService.refreshLockLeases(Sets.union(reduceForRefresh(lockTokenShares), lockTokens));
 
         Set<LockToken> resultLockTokenShares = lockTokenShares.stream()
                 .filter(t -> refreshedTokens.contains(t.sharedLockToken()))
@@ -67,6 +68,10 @@ class TransactionStarter implements AutoCloseable {
 
     Set<LockToken> unlock(Set<LockToken> tokens) {
         return TransactionStarterHelper.unlock(tokens, lockLeaseService);
+    }
+
+    private static Set<LockToken> reduceForRefresh(Set<LockTokenShare> lockTokenShares) {
+        return lockTokenShares.stream().map(LockTokenShare::sharedLockToken).collect(Collectors.toSet());
     }
 
     @Override
