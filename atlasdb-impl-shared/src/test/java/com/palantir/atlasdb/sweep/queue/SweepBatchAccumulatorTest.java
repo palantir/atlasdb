@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class SweepBatchAccumulatorTest {
+    private static final int BATCH_SIZE = 100;
     private static final long SWEEP_TIMESTAMP = 3141592L;
     private static final long PROGRESS_TIMESTAMP = 16180L;
     private static final TableReference TABLE_REFERENCE_1 = TableReference.createWithEmptyNamespace("table");
@@ -52,7 +53,7 @@ public class SweepBatchAccumulatorTest {
 
     @Before
     public void setUp() {
-        accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
+        accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, BATCH_SIZE, PROGRESS_TIMESTAMP);
     }
 
     @Test
