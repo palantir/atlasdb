@@ -50,6 +50,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
         return new BatchingCommitTimestampGetter(autobatcher);
     }
 
+    @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableRequest.builder()
                 .startTs(startTs)

@@ -19,13 +19,12 @@ package com.palantir.lock.client;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
 
-public class CoalescingLeaderTimeGetter implements LeaderTimeGetter {
+public final class CoalescingLeaderTimeGetter implements LeaderTimeGetter {
     private final CoalescingSupplier<LeaderTime> time;
 
     private CoalescingLeaderTimeGetter(CoalescingSupplier<LeaderTime> time) {
         this.time = time;
     }
-
 
     public static LeaderTimeGetter create(NamespacedConjureTimelockService delegate) {
         return new CoalescingLeaderTimeGetter(new CoalescingSupplier<>(delegate::leaderTime));
