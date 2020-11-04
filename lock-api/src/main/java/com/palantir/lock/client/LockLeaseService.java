@@ -27,7 +27,6 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -47,15 +46,15 @@ import java.util.stream.Collectors;
 class LockLeaseService {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
-    private final CoalescingSupplier<LeaderTime> time;
     private final BlockEnforcingLockService lockService;
+    private final LeaderTimeGetter leaderTimeGetter;
 
     @VisibleForTesting
     LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId) {
         this.delegate = delegate;
         this.clientId = clientId;
-        this.time = new CoalescingSupplier<>(delegate::leaderTime);
         this.lockService = BlockEnforcingLockService.create(delegate);
+        this.leaderTimeGetter = CoalescingLeaderTimeGetter.create(delegate);
     }
 
     static LockLeaseService create(NamespacedConjureTimelockService conjureTimelock) {
@@ -128,7 +127,7 @@ class LockLeaseService {
             return uncastedTokens;
         }
 
-        LeaderTime leaderTime = time.get();
+        LeaderTime leaderTime = leaderTimeGetter.getLeaderTime();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 
         Set<LeasedLockToken> validByLease =
