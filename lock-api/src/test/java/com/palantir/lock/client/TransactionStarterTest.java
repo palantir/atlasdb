@@ -173,7 +173,8 @@ public class TransactionStarterTest {
                                 .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                                 .build())
                 .collect(toList());
-        BatchingTransactionStarter.consumer(lockLeaseService, lockWatchEventCache).accept(elements);
+        BatchingIdentifiedAtlasDbTransactionStarter.consumer(lockLeaseService, lockWatchEventCache)
+                .accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 
