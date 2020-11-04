@@ -229,4 +229,18 @@ public class SweepBatchAccumulatorTest {
                 SweepBatch.of(ImmutableList.of(WRITE_INFO_1), NO_DEDICATED_ROWS, SWEEP_TIMESTAMP - 1));
         assertThat(accumulator.shouldAcceptAdditionalBatch()).isFalse();
     }
+
+    @Test
+    public void rejectsBatchesOnceCellLimitIsReached() {
+        accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, 3, PROGRESS_TIMESTAMP);
+        accumulator.accumulateBatch(
+                SweepBatch.of(ImmutableList.of(WRITE_INFO_1), NO_DEDICATED_ROWS, PROGRESS_TIMESTAMP + 177));
+        accumulator.accumulateBatch(
+                SweepBatch.of(ImmutableList.of(WRITE_INFO_2), NO_DEDICATED_ROWS, PROGRESS_TIMESTAMP + 288));
+
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isTrue();
+        accumulator.accumulateBatch(
+                SweepBatch.of(ImmutableList.of(WRITE_INFO_1), NO_DEDICATED_ROWS, PROGRESS_TIMESTAMP + 577));
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isFalse();
+    }
 }

@@ -17,23 +17,23 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Optional;
 import java.util.function.IntSupplier;
+import org.immutables.value.Value.Immutable;
 
-class SweepQueueReader {
+public class SweepQueueReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
     private final ReadBatchingRuntimeConfig runtime;
 
     SweepQueueReader(
-            SweepableTimestamps sweepableTimestamps,
-            SweepableCells sweepableCells,
-            ReadBatchingRuntimeConfig runtime) {
+            SweepableTimestamps sweepableTimestamps, SweepableCells sweepableCells, ReadBatchingRuntimeConfig runtime) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
         this.runtime = runtime;
     }
 
     SweepBatchWithPartitionInfo getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(sweepTs, runtime.cellsThreshold().getAsInt(), lastSweptTs);
+        SweepBatchAccumulator accumulator =
+                new SweepBatchAccumulator(sweepTs, runtime.cellsThreshold().getAsInt(), lastSweptTs);
         long previousProgress = lastSweptTs;
         for (int currentBatch = 0;
                 currentBatch < runtime.maximumPartitions().getAsInt() && accumulator.shouldAcceptAdditionalBatch();
@@ -51,8 +51,15 @@ class SweepQueueReader {
         return accumulator.toSweepBatch();
     }
 
-    interface ReadBatchingRuntimeConfig {
+    @Immutable
+    public interface ReadBatchingRuntimeConfig {
+        ReadBatchingRuntimeConfig DEFAULT = ImmutableReadBatchingRuntimeConfig.builder()
+                .maximumPartitions(() -> 1)
+                .cellsThreshold(() -> SweepQueueUtils.SWEEP_BATCH_SIZE)
+                .build();
+
         IntSupplier maximumPartitions();
+
         IntSupplier cellsThreshold();
     }
 }

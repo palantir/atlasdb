@@ -121,7 +121,8 @@ public abstract class TargetedSweepRuntimeConfig {
 
     @Value.Check
     public void checkBatchCellThreshold() {
-        Preconditions.checkArgument(batchCellThreshold() <= SweepQueueUtils.SWEEP_BATCH_SIZE,
+        Preconditions.checkArgument(
+                batchCellThreshold() <= SweepQueueUtils.SWEEP_BATCH_SIZE,
                 "This configuration can only be used to reduce the batch size from the default max value.",
                 SafeArg.of("config batch size", batchCellThreshold()),
                 SafeArg.of("default max batch size", SweepQueueUtils.SWEEP_BATCH_SIZE));

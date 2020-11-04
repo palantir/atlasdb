@@ -21,6 +21,7 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
+import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
@@ -69,7 +70,11 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
         return SweepQueue.createWriter(
-                mock(TargetedSweepMetrics.class), keyValueService, timelockService, () -> 128, () -> 1);
+                mock(TargetedSweepMetrics.class),
+                keyValueService,
+                timelockService,
+                () -> 128,
+                ReadBatchingRuntimeConfig.DEFAULT);
     }
 
     @Override
