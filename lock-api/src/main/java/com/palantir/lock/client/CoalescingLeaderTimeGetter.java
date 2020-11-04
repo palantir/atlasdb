@@ -18,20 +18,21 @@ package com.palantir.lock.client;
 
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
+import java.util.function.Supplier;
 
 public final class CoalescingLeaderTimeGetter implements LeaderTimeGetter {
-    private final CoalescingSupplier<LeaderTime> time;
+    private final CoalescingSupplier<LeaderTime> leaderTimeSupplier;
 
-    private CoalescingLeaderTimeGetter(CoalescingSupplier<LeaderTime> time) {
-        this.time = time;
+    private CoalescingLeaderTimeGetter(CoalescingSupplier<LeaderTime> leaderTimeSupplier) {
+        this.leaderTimeSupplier = leaderTimeSupplier;
     }
 
-    public static LeaderTimeGetter create(NamespacedConjureTimelockService delegate) {
-        return new CoalescingLeaderTimeGetter(new CoalescingSupplier<>(delegate::leaderTime));
+    public static LeaderTimeGetter create(Supplier<LeaderTime> timeSupplier) {
+        return new CoalescingLeaderTimeGetter(new CoalescingSupplier<>(timeSupplier));
     }
 
     @Override
     public LeaderTime getLeaderTime() {
-        return time.get();
+        return leaderTimeSupplier.get();
     }
 }

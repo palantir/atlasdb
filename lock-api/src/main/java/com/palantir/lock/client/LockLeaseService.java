@@ -54,7 +54,7 @@ class LockLeaseService {
         this.delegate = delegate;
         this.clientId = clientId;
         this.lockService = BlockEnforcingLockService.create(delegate);
-        this.leaderTimeGetter = CoalescingLeaderTimeGetter.create(delegate);
+        this.leaderTimeGetter = CoalescingLeaderTimeGetter.create(delegate::leaderTime);
     }
 
     static LockLeaseService create(NamespacedConjureTimelockService conjureTimelock) {
