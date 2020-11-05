@@ -1,0 +1,26 @@
+types:
+  imports:
+    LeaderTime:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.LeaderTime
+  definitions:
+    default-package: com.palantir.atlasdb.timelock.api
+    objects:
+      NamespacedLeaderTime:
+        fields:
+          namespace: string
+          leaderTime: LeaderTime
+
+services:
+  CrossClientBatchedConjureTimelockService:
+    name: Cross Client Batched Timelock Service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.batch.api
+    base-path: /tl/batch
+    endpoints:
+      leaderTimes:
+        http: POST /lts
+        args:
+          namespaces: list<string>
+        returns: list<NamespacedLeaderTime>
