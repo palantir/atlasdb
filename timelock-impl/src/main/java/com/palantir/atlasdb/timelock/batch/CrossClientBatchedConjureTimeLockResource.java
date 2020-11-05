@@ -35,7 +35,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class CrossClientBatchedConjureTimeLockResource implements UndertowCrossClientBatchedConjureTimelockService {
+public final class CrossClientBatchedConjureTimeLockResource
+        implements UndertowCrossClientBatchedConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
 
