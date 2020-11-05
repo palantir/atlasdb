@@ -79,14 +79,16 @@ public final class CrossClientBatchedConjureTimeLockResource
             getNamespacedGetCommitTimestampsResponseListenableFuture(NamespacedGetCommitTimestampsRequest request) {
         ListenableFuture<GetCommitTimestampsResponse> commitTimestamps = forNamespace(request.getNamespace())
                 .getCommitTimestamps(
-                        request.getGetCommitTimestampsRequest().getNumTimestamps(),
-                        request.getGetCommitTimestampsRequest()
-                                .getLastKnownVersion()
-                                .map(this::toIdentifiedVersion));
+                        request.getNumTimestamps(),
+                        request.getLastKnownVersion().map(this::toIdentifiedVersion));
         return Futures.transform(
                 commitTimestamps,
-                commitTimestampsResponse ->
-                        NamespacedGetCommitTimestampsResponse.of(request.getNamespace(), commitTimestampsResponse),
+                commitTimestampsResponse -> NamespacedGetCommitTimestampsResponse.builder()
+                        .namespace(request.getNamespace())
+                        .inclusiveLower(commitTimestampsResponse.getInclusiveLower())
+                        .inclusiveUpper(commitTimestampsResponse.getInclusiveUpper())
+                        .lockWatchUpdate(commitTimestampsResponse.getLockWatchUpdate())
+                        .build(),
                 MoreExecutors.directExecutor());
     }
 
