@@ -31,6 +31,7 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -47,7 +48,7 @@ public final class CrossClientBatchedConjureTimeLockResource
     }
 
     @Override
-    public ListenableFuture<List<NamespacedLeaderTime>> leaderTimes(AuthHeader authHeader, List<String> namespaces) {
+    public ListenableFuture<List<NamespacedLeaderTime>> leaderTimes(AuthHeader authHeader, Set<String> namespaces) {
         List<ListenableFuture<NamespacedLeaderTime>> futures = namespaces.stream()
                 .map(this::getNamespacedLeaderTimeListenableFuture)
                 .collect(Collectors.toList());

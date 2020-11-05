@@ -50,7 +50,7 @@ services:
       leaderTimes:
         http: POST /lts
         args:
-          namespaces: list<string>
+          namespaces: set<string>
         returns: list<NamespacedLeaderTime>
         docs: |
           Cross client batched version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes.
