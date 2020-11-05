@@ -51,7 +51,6 @@ public class CrossClientBatchedConjureTimeLockResource implements UndertowCrossC
                 .map(this::getNamespacedLeaderTimeListenableFuture)
                 .collect(Collectors.toList());
 
-        // todo(snanda) failing the entire batch right now
         return handleExceptions(() -> Futures.allAsList(futures));
     }
 
@@ -89,7 +88,6 @@ public class CrossClientBatchedConjureTimeLockResource implements UndertowCrossC
                 MoreExecutors.directExecutor());
     }
 
-    // todo (snanda) refactor copy pasted code
     private AsyncTimelockService forNamespace(String namespace) {
         return timelockServices.apply(namespace);
     }

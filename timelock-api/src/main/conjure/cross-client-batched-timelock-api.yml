@@ -53,11 +53,11 @@ services:
           namespaces: list<string>
         returns: list<NamespacedLeaderTime>
         docs: |
-          Cross client batched version of {@link ConjureTimelockService#leaderTime()} endpoint for acquiring leaderTimes.
+          Cross client batched version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes.
       getCommitTimestamps:
         http: POST /gcts
         args:
           requests: list<NamespacedGetCommitTimestampsRequest>
         returns: list<NamespacedGetCommitTimestampsResponse>
         docs: |
-          Cross client batched version of {@link ConjureTimelockService#getCommitTimestamps()} for acquiring commit timestamps.
+          Cross client batched version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps.
