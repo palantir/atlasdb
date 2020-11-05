@@ -43,7 +43,7 @@ public final class TimelockNamespaces {
     static final String MAX_CLIENTS = "maxClients";
 
     private static final Predicate<String> isValidName =
-            Pattern.compile("^(?!tl$)[a-zA-Z0-9_-]+$").asPredicate();
+            Pattern.compile("^(?!((tl|lw)$))[a-zA-Z0-9_-]+$").asPredicate();
     private static final Logger log = LoggerFactory.getLogger(TimelockNamespaces.class);
 
     private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
