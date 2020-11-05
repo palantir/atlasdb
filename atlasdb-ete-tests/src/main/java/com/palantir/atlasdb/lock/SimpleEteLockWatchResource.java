@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Map;
 import java.util.Optional;
@@ -47,7 +48,7 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     public static final String TABLE = "watch";
 
     private static final Logger log = LoggerFactory.getLogger(SimpleEteLockWatchResource.class);
-    private static final TableReference LOCK_WATCH_TABLE = TableReference.create(Namespace.create("lock"), TABLE);
+    public static final TableReference LOCK_WATCH_TABLE = TableReference.create(Namespace.create("lock"), TABLE);
     private static final byte[] VALUE = PtBytes.toBytes("value");
     private static final byte[] COLUMN = PtBytes.toBytes("b");
 
@@ -98,6 +99,14 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     @Override
     public TransactionsLockWatchUpdate getUpdate(GetLockWatchUpdateRequest updateRequest) {
         return lockWatchManager.getUpdateForTransactions(updateRequest.startTimestamps(), updateRequest.version());
+    }
+
+    @Override
+    public LockWatchVersion getVersion(TransactionId transactionId) {
+        return lockWatchManager
+                .getUpdateForTransactions(ImmutableSet.of(transactionId.startTs()), Optional.empty())
+                .startTsToSequence()
+                .get(transactionId.startTs());
     }
 
     private Map<Cell, byte[]> getValueMap(Set<String> rows) {

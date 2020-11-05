@@ -29,6 +29,7 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import java.util.Set;
@@ -64,10 +65,11 @@ public class LockWatchEteTest {
 
     @Test
     public void bleh() {
-        seedCache();
+        LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
         TransactionId firstTxn = lockWatcher.startTransaction();
         lockWatcher.write(WriteRequest.of(firstTxn, ROW_1, ROW_2));
+        LockWatchVersion firstVersion = lockWatcher.getVersion(firstTxn);
         lockWatcher.endTransaction(firstTxn);
 
         TransactionId secondTxn = lockWatcher.startTransaction();
@@ -75,19 +77,28 @@ public class LockWatchEteTest {
         TransactionId fourthTxn = lockWatcher.startTransaction();
 
         lockWatcher.write(WriteRequest.of(thirdTxn, row(3)));
+        LockWatchVersion thirdVersion = lockWatcher.getVersion(thirdTxn);
         lockWatcher.endTransaction(thirdTxn);
 
         TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
                 ImmutableSet.of(secondTxn.startTs(), fourthTxn.startTs()), Optional.empty()));
 
         assertThat(update.clearCache()).isTrue();
-        System.out.println(update);
+        assertThat(update.startTsToSequence().get(secondTxn.startTs()).version())
+                .isEqualTo(baseVersion.version() + 4);
+        assertThat(update.startTsToSequence().get(fourthTxn.startTs()).version())
+                .isEqualTo(baseVersion.version() + 6);
     }
 
-    private void seedCache() {
+    private LockWatchVersion seedCacheAndGetVersion() {
         TransactionId txn = lockWatcher.startTransaction();
         lockWatcher.write(WriteRequest.of(txn, "seed"));
         lockWatcher.endTransaction(txn);
+
+        TransactionId emptyTxn = lockWatcher.startTransaction();
+        LockWatchVersion version = lockWatcher.getVersion(emptyTxn);
+        lockWatcher.endTransaction(emptyTxn);
+        return version;
     }
 
     private static Set<LockDescriptor> extractDescriptors(CommitUpdate commitUpdate) {
@@ -109,6 +120,7 @@ public class LockWatchEteTest {
     }
 
     private static LockDescriptor getDescriptor(String row) {
-        return AtlasRowLockDescriptor.of(SimpleEteLockWatchResource.TABLE, PtBytes.toBytes(row));
+        return AtlasRowLockDescriptor.of(
+                SimpleEteLockWatchResource.LOCK_WATCH_TABLE.getQualifiedName(), PtBytes.toBytes(row));
     }
 }

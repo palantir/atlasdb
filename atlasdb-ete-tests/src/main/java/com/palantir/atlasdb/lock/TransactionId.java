@@ -27,6 +27,6 @@ public interface TransactionId {
     long startTs();
 
     static TransactionId of(long startTs) {
-        return ImmutableTransactionId.builder().id(startTs).build();
+        return ImmutableTransactionId.builder().startTs(startTs).build();
     }
 }
