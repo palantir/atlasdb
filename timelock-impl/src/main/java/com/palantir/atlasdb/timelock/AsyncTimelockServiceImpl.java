@@ -152,6 +152,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            // no op
+        }
         StartTransactionResponseV4 startTransactionResponseV4 =
                 startTransactions(StartTransactionRequestV4.createForRequestor(request.requestorId(), 1));
 
@@ -229,6 +234,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public ListenableFuture<LeaderTime> leaderTime() {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            // no op
+        }
         return Futures.immediateFuture(lockService.leaderTime());
     }
 
