@@ -26,7 +26,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
-import com.palantir.atlasdb.timelock.batch.api.UndertowCrossClientBatchedConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class CrossClientBatchedConjureTimeLockResource
-        implements UndertowCrossClientBatchedConjureTimelockService {
+        implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
 
@@ -50,7 +50,7 @@ public final class CrossClientBatchedConjureTimeLockResource
     @Override
     public ListenableFuture<List<NamespacedLeaderTime>> leaderTimes(AuthHeader authHeader, Set<String> namespaces) {
         List<ListenableFuture<NamespacedLeaderTime>> futures = namespaces.stream()
-                .map(this::getNamespacedLeaderTimeListenableFuture)
+                .map(this::getNamespacedLeaderTimeListenableFutures)
                 .collect(Collectors.toList());
 
         return handleExceptions(() -> Futures.allAsList(futures));
@@ -60,15 +60,15 @@ public final class CrossClientBatchedConjureTimeLockResource
     public ListenableFuture<List<NamespacedGetCommitTimestampsResponse>> getCommitTimestamps(
             AuthHeader authHeader, List<NamespacedGetCommitTimestampsRequest> requests) {
         List<ListenableFuture<NamespacedGetCommitTimestampsResponse>> futures = requests.stream()
-                .map(this::getNamespacedGetCommitTimestampsResponseListenableFuture)
+                .map(this::getNamespacedGetCommitTimestampsResponseListenableFutures)
                 .collect(Collectors.toList());
 
         return handleExceptions(() -> Futures.allAsList(futures));
     }
 
-    private ListenableFuture<NamespacedLeaderTime> getNamespacedLeaderTimeListenableFuture(String namespace) {
+    private ListenableFuture<NamespacedLeaderTime> getNamespacedLeaderTimeListenableFutures(String namespace) {
         ListenableFuture<LeaderTime> leaderTimeListenableFuture =
-                forNamespace(namespace).leaderTime();
+                getServiceForNamespace(namespace).leaderTime();
         return Futures.transform(
                 leaderTimeListenableFuture,
                 leaderTime -> NamespacedLeaderTime.of(namespace, leaderTime),
@@ -76,8 +76,8 @@ public final class CrossClientBatchedConjureTimeLockResource
     }
 
     private ListenableFuture<NamespacedGetCommitTimestampsResponse>
-            getNamespacedGetCommitTimestampsResponseListenableFuture(NamespacedGetCommitTimestampsRequest request) {
-        ListenableFuture<GetCommitTimestampsResponse> commitTimestamps = forNamespace(request.getNamespace())
+    getNamespacedGetCommitTimestampsResponseListenableFutures(NamespacedGetCommitTimestampsRequest request) {
+        ListenableFuture<GetCommitTimestampsResponse> commitTimestamps = getServiceForNamespace(request.getNamespace())
                 .getCommitTimestamps(
                         request.getNumTimestamps(),
                         request.getLastKnownVersion().map(this::toIdentifiedVersion));
@@ -92,7 +92,7 @@ public final class CrossClientBatchedConjureTimeLockResource
                 MoreExecutors.directExecutor());
     }
 
-    private AsyncTimelockService forNamespace(String namespace) {
+    private AsyncTimelockService getServiceForNamespace(String namespace) {
         return timelockServices.apply(namespace);
     }
 

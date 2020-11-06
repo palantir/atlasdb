@@ -194,10 +194,10 @@ services:
         args:
           namespace: string
           request: LockWatchRequest
-  CrossClientBatchedConjureTimelockService:
-    name: Cross Client Batched Timelock Service
+  MultiClientConjureTimelockService:
+    name: Multi Client Timelock Service
     default-auth: header
-    package: com.palantir.atlasdb.timelock.batch.api
+    package: com.palantir.atlasdb.timelock.api
     base-path: /tl/batch
     endpoints:
       leaderTimes:
@@ -206,11 +206,11 @@ services:
           namespaces: set<string>
         returns: list<NamespacedLeaderTime>
         docs: |
-          Cross client batched version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes.
+          Version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes for a set of namespaces.
       getCommitTimestamps:
         http: POST /gcts
         args:
           requests: list<NamespacedGetCommitTimestampsRequest>
         returns: list<NamespacedGetCommitTimestampsResponse>
         docs: |
-          Cross client batched version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps.
+          Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
