@@ -172,6 +172,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            // no op
+        }
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 
@@ -200,10 +205,20 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<ConjureStartTransactionsResponse> startTransactionsWithWatches(
             ConjureStartTransactionsRequest request) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            // no op
+        }
         return Futures.immediateFuture(startTransactionsWithWatchesSync(request));
     }
 
     private ConjureStartTransactionsResponse startTransactionsWithWatchesSync(ConjureStartTransactionsRequest request) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            // no op
+        }
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.getRequestId());
 
