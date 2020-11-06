@@ -146,6 +146,14 @@ public class TimelockNamespacesTest {
         assertMaxClientsIs(77);
     }
 
+    @Test
+    public void pathsForTimelockAndLockWatchServicesAreNotValid() {
+        assertThat(TimelockNamespaces.isValidName.test("tl")).isFalse();
+        assertThat(TimelockNamespaces.isValidName.test("lw")).isFalse();
+        assertThat(TimelockNamespaces.isValidName.test("tlblah")).isTrue();
+        assertThat(TimelockNamespaces.isValidName.test("lwbleh")).isTrue();
+    }
+
     private void createMaximumNumberOfClients() {
         for (int i = 0; i < DEFAULT_MAX_NUMBER_OF_CLIENTS; i++) {
             namespaces.get(uniqueClient());
