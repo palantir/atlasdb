@@ -1,24 +1,5 @@
 type: improvement
 improvement:
-  description: |-
-    [RC only] | Induce badness on TL
-
-    **Goals (and why)**:
-
-    **Implementation Description (bullets)**:
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-
-    **Concerns (what feedback would you like?)**:
-
-    **Where should we start reviewing?**:
-
-    **Priority (whenever / two weeks / yesterday)**:
-
-    <!---
-    Please remember to:
-    - Add any necessary release notes (including breaking changes)
-    - Make sure the documentation is up to date for your change
-    --->
+  description: '[RC only] | Induce badness on TL'
   links:
   - https://github.com/palantir/atlasdb/pull/5103
