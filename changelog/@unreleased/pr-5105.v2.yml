@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: |-
+    Adds a CacheWarming option that can control how the SweepStrategyManager
+    cache is warmed on initialization. The possible options are FULL,
+    LIMITED, and NONE. FULL remains the default (so default behavior is not
+    changing). LIMITED causes only a max of 50 tables to be used for warming
+    the cache. NONE skips warming the cache.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5105
