@@ -110,12 +110,12 @@ public class LockWatchEteTest {
         return version;
     }
 
-    private static Set<LockDescriptor> filterDescriptors(Set<LockDescriptor> descriptors, TableReference table) {
+    private Set<LockDescriptor> filterDescriptors(Set<LockDescriptor> descriptors) {
         return descriptors.stream()
                 .filter(desc -> AtlasLockDescriptorUtils.tryParseTableRef(desc)
                         .get()
                         .tableRef()
-                        .equals(table))
+                        .equals(tableReference))
                 .collect(Collectors.toSet());
     }
 
