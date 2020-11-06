@@ -212,16 +212,6 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void getCommitUpdateDoesNotContainCommitLocks() {
-        setupInitialState();
-        eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
-        verifyStage();
-
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS);
-        assertThat(commitUpdate.accept(new CommitUpdateVisitor())).containsExactlyInAnyOrder(DESCRIPTOR);
-    }
-
-    @Test
     public void getCommitUpdateIsInvalidatedAllIfEventsHaveBeenDeleted() {
         eventCache = createEventCache(2);
         setupInitialState();
