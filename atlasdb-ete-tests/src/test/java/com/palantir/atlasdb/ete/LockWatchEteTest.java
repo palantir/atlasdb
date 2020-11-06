@@ -181,7 +181,9 @@ public class LockWatchEteTest {
 
     private LockWatchVersion getCurrentVersion() {
         TransactionId emptyTxn = lockWatcher.startTransaction();
-        LockWatchVersion version = lockWatcher.getVersion(emptyTxn);
+        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(
+                GetLockWatchUpdateRequest.of(ImmutableSet.of(emptyTxn.startTs()), Optional.empty()));
+        LockWatchVersion version = update.startTsToSequence().get(emptyTxn.startTs());
         lockWatcher.endTransaction(emptyTxn);
         return version;
     }

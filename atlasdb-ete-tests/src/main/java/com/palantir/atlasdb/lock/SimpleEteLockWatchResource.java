@@ -33,7 +33,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Map;
 import java.util.Optional;
@@ -90,14 +89,6 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     @Override
     public TransactionsLockWatchUpdate getUpdate(GetLockWatchUpdateRequest updateRequest) {
         return lockWatchManager.getUpdateForTransactions(updateRequest.startTimestamps(), updateRequest.version());
-    }
-
-    @Override
-    public LockWatchVersion getVersion(TransactionId transactionId) {
-        return lockWatchManager
-                .getUpdateForTransactions(ImmutableSet.of(transactionId.startTs()), Optional.empty())
-                .startTsToSequence()
-                .get(transactionId.startTs());
     }
 
     @Override

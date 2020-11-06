@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.lock;
 
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import javax.ws.rs.Consumes;
@@ -49,12 +48,6 @@ public interface EteLockWatchResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     TransactionsLockWatchUpdate getUpdate(GetLockWatchUpdateRequest updateRequest);
-
-    @POST
-    @Path("get-version")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    LockWatchVersion getVersion(TransactionId transactionId);
 
     @POST
     @Path("set-table")
