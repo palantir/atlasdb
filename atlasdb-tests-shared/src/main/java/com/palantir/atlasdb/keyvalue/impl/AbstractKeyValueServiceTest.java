@@ -82,8 +82,10 @@ import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -606,6 +608,28 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testGetLimitedTableNames() {
+        Set<TableReference> tableRefs = IntStream.range(0, 3)
+                .mapToObj(i -> TableReference.create(TEST_TABLE.getNamespace(), "limited_tables_test" + i))
+                .collect(Collectors.toSet());
+        try {
+            keyValueService.createTables(Maps.toMap(tableRefs, unused -> AtlasDbConstants.GENERIC_TABLE_METADATA));
+            List<TableReference> limitedTables = ImmutableList.copyOf(keyValueService.getLimitedTableNames(2));
+            Assertions.assertThat(limitedTables)
+                    .describedAs("limitedTables should not have all tables")
+                    .hasSize(2);
+            Set<TableReference> allTables = keyValueService.getAllTableNames();
+            Assertions.assertThat(allTables)
+                    .hasSizeGreaterThan(2)
+                    .describedAs("limitedTables should be a subset of allTables")
+                    .containsAll(limitedTables);
+        } finally {
+            // other tests might not want extra tables to exist, so clean up the ones created for this test
+            keyValueService.dropTables(tableRefs);
+        }
+    }
+
+    @Test
     public void testTableMetadata() {
         assertEquals(
                 AtlasDbConstants.GENERIC_TABLE_METADATA.length, keyValueService.getMetadataForTable(TEST_TABLE).length);
@@ -614,6 +638,28 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.putMetadataForTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertTrue(Arrays.equals(
                 AtlasDbConstants.GENERIC_TABLE_METADATA, keyValueService.getMetadataForTable(TEST_TABLE)));
+    }
+
+    @Test
+    public void testLimitedTableMetadata() {
+        Set<TableReference> tableRefs = IntStream.range(0, 3)
+                .mapToObj(i -> TableReference.create(TEST_TABLE.getNamespace(), "limited_meta_test" + i))
+                .collect(Collectors.toSet());
+        try {
+            keyValueService.createTables(Maps.toMap(tableRefs, unused -> AtlasDbConstants.GENERIC_TABLE_METADATA));
+            Map<TableReference, byte[]> limitedMetadata = keyValueService.getLimitedMetadataForTables(2);
+            Assertions.assertThat(limitedMetadata)
+                    .describedAs("limitedMetadata should not contain all tables")
+                    .hasSize(2);
+            Map<TableReference, byte[]> allMetadata = keyValueService.getMetadataForTables();
+            Assertions.assertThat(allMetadata)
+                    .hasSizeGreaterThan(2)
+                    .describedAs("limitedMetadata is a subset of allMetadata")
+                    .containsAllEntriesOf(limitedMetadata);
+        } finally {
+            // other tests might not want extra tables to exist, so clean up the ones created for this test
+            keyValueService.dropTables(tableRefs);
+        }
     }
 
     @Test

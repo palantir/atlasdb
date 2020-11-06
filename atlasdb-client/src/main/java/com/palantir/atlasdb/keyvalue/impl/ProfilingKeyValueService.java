@@ -235,6 +235,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
+        return maybeLog(() -> delegate.getLimitedTableNames(maxResults), logTime("getLimitedTableNames"));
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         return maybeLog(
                 () -> delegate.getAllTimestamps(tableRef, cells, timestamp),
@@ -269,6 +274,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         return maybeLog(delegate::getMetadataForTables, logTime("getMetadataForTables"));
+    }
+
+    @Override
+    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
+        return maybeLog(() -> delegate.getLimitedMetadataForTables(maxResults), logTime("getLimitedMetadataForTables"));
     }
 
     @Override

@@ -91,6 +91,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
+import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
@@ -1138,6 +1139,26 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
+    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
+        if (maxResults <= 0) {
+            return Collections.emptyList();
+        }
+        return run(conn -> {
+            try (AgnosticLightResultSet rows = conn.selectLightResultSetUnregisteredQuery(
+                    "SELECT table_name FROM " + config.metadataTable().getQualifiedName())) {
+                List<TableReference> ret = new ArrayList<>();
+                for (AgnosticResultRow row : rows) {
+                    ret.add(TableReference.createUnsafe(row.getString("table_name")));
+                    if (ret.size() >= maxResults) {
+                        break;
+                    }
+                }
+                return ret;
+            }
+        });
+    }
+
+    @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         return runMetadata(tableRef, DbMetadataTable::getMetadata);
     }
@@ -1160,6 +1181,26 @@ public final class DbKvs extends AbstractKeyValueService {
                 ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));
             }
             return ret;
+        });
+    }
+
+    @Override
+    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
+        if (maxResults <= 0) {
+            return Collections.emptyMap();
+        }
+        return run(conn -> {
+            try (AgnosticLightResultSet rows = conn.selectLightResultSetUnregisteredQuery(
+                    "SELECT table_name, value FROM " + config.metadataTable().getQualifiedName())) {
+                Map<TableReference, byte[]> ret = new HashMap<>();
+                for (AgnosticResultRow row : rows) {
+                    ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));
+                    if (ret.size() >= maxResults) {
+                        break;
+                    }
+                }
+                return ret;
+            }
         });
     }
 

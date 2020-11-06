@@ -196,6 +196,23 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
+        Set<TableReference> ret = new HashSet<>();
+        for (KeyValueService delegate : delegates) {
+            // Note that this looks suboptimal, but there could be some overlap to the tables in each delegate.
+            // If there is some overlap, we should at least reach maxResults (or the true total) by requesting
+            // maxResults from each underlying KVS.
+            for (TableReference tableRef : delegate.getLimitedTableNames(maxResults)) {
+                ret.add(tableRef);
+                if (ret.size() >= maxResults) {
+                    return ret;
+                }
+            }
+        }
+        return ret;
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         return getDelegate(tableRef).getAllTimestamps(tableRef, cells, timestamp);
     }
@@ -245,6 +262,27 @@ public final class TableSplittingKeyValueService implements KeyValueService {
             crossDelegateTableMetadata.putAll(delegate.getMetadataForTables());
         }
         return crossDelegateTableMetadata;
+    }
+
+    @Override
+    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
+        Map<TableReference, byte[]> ret = new HashMap<>();
+        for (KeyValueService delegate : getDelegates()) {
+            // Note that this looks suboptimal, but there could be some overlap to the tables in each delegate.
+            // If there is some overlap, we should at least reach maxResults (or the true total) by requesting
+            // maxResults from each underlying KVS.
+            for (Map.Entry<TableReference, byte[]> entry :
+                    delegate.getLimitedMetadataForTables(maxResults).entrySet()) {
+                TableReference tableRef = entry.getKey();
+                byte[] metadata = entry.getValue();
+
+                ret.put(tableRef, metadata);
+                if (ret.size() >= maxResults) {
+                    return ret;
+                }
+            }
+        }
+        return ret;
     }
 
     @Override

@@ -525,6 +525,14 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     Set<TableReference> getAllTableNames();
 
     /**
+     * Returns a list of up to {@code maxResults} tables stored in this key value service.
+     *
+     * This should be preferred over {@link #getAllTableNames()} if possible because the number of tables may be
+     * unbounded.
+     */
+    Iterable<TableReference> getLimitedTableNames(int maxResults);
+
+    /**
      * Gets the metadata for a given table. Also useful for checking to see if a table exists.
      *
      * @return a byte array representing the metadata for the table. Array is empty if no table
@@ -542,6 +550,14 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     Map<TableReference, byte[]> getMetadataForTables();
+
+    /**
+     * Gets the metadata for up to {@code maxResults} tables.
+     *
+     * This should be preferred over {@link #getMetadataForTables()} if possible because the number of tables may be
+     * unbounded.
+     */
+    Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults);
 
     @Idempotent
     void putMetadataForTable(TableReference tableRef, byte[] metadata);

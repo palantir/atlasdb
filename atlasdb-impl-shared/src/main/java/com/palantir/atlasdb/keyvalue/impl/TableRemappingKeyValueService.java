@@ -175,6 +175,12 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
+        Set<TableReference> internalTableRefs = Sets.newHashSet(delegate().getLimitedTableNames(maxResults));
+        return tableMapper.generateMapToFullTableNames(internalTableRefs).values();
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         try {
             return delegate().getAllTimestamps(tableMapper.getMappedTableName(tableRef), keys, timestamp);
@@ -219,7 +225,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> tableMetadata = delegate().getMetadataForTables();
+        return transformTableMetadata(delegate().getMetadataForTables());
+    }
+
+    @Override
+    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
+        return transformTableMetadata(delegate().getLimitedMetadataForTables(maxResults));
+    }
+
+    private Map<TableReference, byte[]> transformTableMetadata(Map<TableReference, byte[]> tableMetadata) {
         Map<TableReference, TableReference> metadataNamesToFullTableNames =
                 tableMapper.generateMapToFullTableNames(tableMetadata.keySet());
         Map<TableReference, byte[]> fullTableNameToBytes =

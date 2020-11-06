@@ -222,6 +222,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("getLimitedTableNames()")) {
+            return delegate().getLimitedTableNames(maxResults);
+        }
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace(
@@ -280,6 +288,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("getMetadataForTables()")) {
             return delegate().getMetadataForTables();
+        }
+    }
+
+    @Override
+    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("getLimitedMetadataForTables()")) {
+            return delegate().getLimitedMetadataForTables(maxResults);
         }
     }
 

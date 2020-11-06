@@ -936,9 +936,24 @@ public final class JdbcKeyValueService implements KeyValueService {
         return run(this::getAllTableNames);
     }
 
+    @Override
+    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
+        return run(ctx -> getLimitedTableNames(ctx, maxResults));
+    }
+
     private Set<TableReference> getAllTableNames(DSLContext ctx) {
         Result<? extends Record> records =
                 ctx.select(TABLE_NAME).from(METADATA_TABLE).fetch();
+        return getTableRefsForRecords(records);
+    }
+
+    private Set<TableReference> getLimitedTableNames(DSLContext ctx, int maxResults) {
+        Result<? extends Record> records =
+                ctx.select(TABLE_NAME).from(METADATA_TABLE).limit(maxResults).fetch();
+        return getTableRefsForRecords(records);
+    }
+
+    private static Set<TableReference> getTableRefsForRecords(Result<? extends Record> records) {
         Set<TableReference> tableRefs = Sets.newHashSetWithExpectedSize(records.size());
         for (Record record : records) {
             tableRefs.add(TableReference.createUnsafe(record.getValue(TABLE_NAME)));
@@ -962,12 +977,27 @@ public final class JdbcKeyValueService implements KeyValueService {
         return run(ctx -> {
             Result<? extends Record> records =
                     ctx.select(TABLE_NAME, METADATA).from(METADATA_TABLE).fetch();
-            Map<TableReference, byte[]> metadata = Maps.newHashMapWithExpectedSize(records.size());
-            for (Record record : records) {
-                metadata.put(TableReference.createUnsafe(record.getValue(TABLE_NAME)), record.getValue(METADATA));
-            }
-            return metadata;
+            return getMetadataForRecords(records);
         });
+    }
+
+    @Override
+    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
+        return run(ctx -> {
+            Result<? extends Record> records = ctx.select(TABLE_NAME, METADATA)
+                    .from(METADATA_TABLE)
+                    .limit(maxResults)
+                    .fetch();
+            return getMetadataForRecords(records);
+        });
+    }
+
+    private static Map<TableReference, byte[]> getMetadataForRecords(Result<? extends Record> records) {
+        Map<TableReference, byte[]> metadata = Maps.newHashMapWithExpectedSize(records.size());
+        for (Record record : records) {
+            metadata.put(TableReference.createUnsafe(record.getValue(TABLE_NAME)), record.getValue(METADATA));
+        }
+        return metadata;
     }
 
     @Override

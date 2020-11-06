@@ -556,6 +556,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return ImmutableSet.copyOf(tables.keySet());
     }
 
+    @Override
+    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
+        return tables.keySet().stream().limit(maxResults)::iterator;
+    }
+
     private byte[] copyOf(byte[] contents) {
         return Arrays.copyOf(contents, contents.length);
     }

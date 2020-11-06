@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,6 +26,7 @@ import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +36,18 @@ public final class SweepStrategyManagers {
         //
     }
 
+    public enum CacheWarming {
+        FULL,
+        LIMITED,
+        NONE,
+        ;
+    }
+
     public static SweepStrategyManager createDefault(KeyValueService kvs) {
+        return create(kvs, CacheWarming.FULL);
+    }
+
+    public static SweepStrategyManager create(KeyValueService kvs, CacheWarming cacheWarming) {
         // Wrap in a RecomputingSupplier for its logic to protect against concurrent initialization
         RecomputingSupplier<LoadingCache<TableReference, SweepStrategy>> sweepStrategySupplierLoadingCache =
                 RecomputingSupplier.create(() -> {
@@ -45,9 +56,8 @@ public final class SweepStrategyManagers {
                             .expireAfterAccess(1, TimeUnit.DAYS)
                             .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
 
-                    // On async initialization, add all tables to optimize for cases when using mostly non-dynamic
-                    // tables.
-                    cache.putAll(getSweepStrategies(kvs));
+                    // On async initialization, add a possibly limited number of tables to the cache.
+                    cache.putAll(getSweepStrategiesForWarmingCache(kvs, cacheWarming));
 
                     return cache;
                 });
@@ -84,9 +94,18 @@ public final class SweepStrategyManagers {
         return tableRef -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
     }
 
-    private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
-        return ImmutableMap.copyOf(
-                Maps.transformValues(kvs.getMetadataForTables(), SweepStrategyManagers::getSweepStrategy));
+    private static Map<TableReference, SweepStrategy> getSweepStrategiesForWarmingCache(
+            KeyValueService kvs, CacheWarming cacheWarming) {
+        switch (cacheWarming) {
+            case FULL:
+                return Maps.transformValues(kvs.getMetadataForTables(), SweepStrategyManagers::getSweepStrategy);
+            case LIMITED:
+                return Maps.transformValues(
+                        kvs.getLimitedMetadataForTables(50), SweepStrategyManagers::getSweepStrategy);
+            case NONE:
+            default:
+                return Collections.emptyMap();
+        }
     }
 
     private static SweepStrategy getSweepStrategy(byte[] tableMeta) {
