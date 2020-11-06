@@ -51,9 +51,9 @@ import org.slf4j.LoggerFactory;
 public class LockWatchEteTest {
     private static final Logger log = LoggerFactory.getLogger(LockWatchEteTest.class);
 
+    private static final String SEED = "seed";
     private static final String ROW_1 = row(1);
     private static final String ROW_2 = row(2);
-    public static final String SEED = "seed";
 
     private final EteLockWatchResource lockWatcher = EteSetup.createClientToSingleNode(EteLockWatchResource.class);
 
@@ -80,7 +80,7 @@ public class LockWatchEteTest {
     }
 
     @Test
-    public void multipleTransactionVersionsReturnsSnapshotAndAllRecentUpdates() {
+    public void multipleTransactionVersionsReturnsSnapshotAndAllRecentEvents() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
         writeValues(ROW_1, ROW_2);
@@ -101,6 +101,31 @@ public class LockWatchEteTest {
                 .containsExactlyInAnyOrderElementsOf(getDescriptors(SEED, ROW_1, ROW_2, row(3)));
         assertThat(unlockedDescriptors(update.events()))
                 .containsExactlyInAnyOrderElementsOf(getDescriptors(SEED, ROW_1, ROW_2, row(3)));
+        assertThat(watchDescriptors(update.events())).isEmpty();
+
+        lockWatcher.endTransaction(secondTxn);
+        lockWatcher.endTransaction(fourthTxn);
+    }
+
+    @Test
+    public void upToDateVersionReturnsOnlyNecessaryEvents() {
+        LockWatchVersion baseVersion = seedCacheAndGetVersion();
+
+        writeValues(ROW_1);
+        TransactionId firstTxn = lockWatcher.startTransaction();
+        writeValues(ROW_2);
+        LockWatchVersion currentVersion = getCurrentVersion();
+        writeValues(row(3));
+        TransactionId secondTxn = lockWatcher.startTransaction();
+
+        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
+                ImmutableSet.of(firstTxn.startTs(), secondTxn.startTs()), Optional.of(currentVersion)));
+
+        assertThat(update.clearCache()).isFalse();
+        assertThat(update.startTsToSequence().get(firstTxn.startTs())).isEqualTo(baseVersion.version() + 2);
+        assertThat(update.startTsToSequence().get(secondTxn.startTs())).isEqualTo(currentVersion.version() + 2);
+        assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
+        assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
         assertThat(watchDescriptors(update.events())).isEmpty();
     }
 
@@ -135,6 +160,10 @@ public class LockWatchEteTest {
         lockWatcher.write(WriteRequest.of(txn, SEED));
         lockWatcher.endTransaction(txn);
 
+        return getCurrentVersion();
+    }
+
+    private LockWatchVersion getCurrentVersion() {
         TransactionId emptyTxn = lockWatcher.startTransaction();
         LockWatchVersion version = lockWatcher.getVersion(emptyTxn);
         lockWatcher.endTransaction(emptyTxn);
@@ -200,7 +229,7 @@ public class LockWatchEteTest {
     }
 
     private static class UnlockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        static final LockEventVisitor INSTANCE = new LockEventVisitor();
+        static final UnlockEventVisitor INSTANCE = new UnlockEventVisitor();
 
         @Override
         public Set<LockDescriptor> visit(LockEvent lockEvent) {
@@ -219,7 +248,7 @@ public class LockWatchEteTest {
     }
 
     private static class WatchEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        static final LockEventVisitor INSTANCE = new LockEventVisitor();
+        static final WatchEventVisitor INSTANCE = new WatchEventVisitor();
 
         @Override
         public Set<LockDescriptor> visit(LockEvent lockEvent) {
