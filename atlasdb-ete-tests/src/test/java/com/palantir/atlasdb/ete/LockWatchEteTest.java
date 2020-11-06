@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.lock.EteLockWatchResource;
 import com.palantir.atlasdb.lock.GetLockWatchUpdateRequest;
 import com.palantir.atlasdb.lock.SimpleEteLockWatchResource;
@@ -33,6 +35,9 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,10 +48,14 @@ public class LockWatchEteTest {
     private static final String ROW_1 = row(1);
     private static final String ROW_2 = row(2);
 
-    private static final LockDescriptor DESCRIPTOR_1 = getDescriptor(ROW_1);
-    private static final LockDescriptor DESCRIPTOR_2 = getDescriptor(ROW_2);
-
     private final EteLockWatchResource lockWatcher = EteSetup.createClientToSingleNode(EteLockWatchResource.class);
+
+    private TableReference tableReference;
+
+    @Before
+    public void before() {
+        createTable();
+    }
 
     @Test
     public void commitUpdatesDoNotContainTheirOwnCommitLocks() {
@@ -56,11 +65,11 @@ public class LockWatchEteTest {
         TransactionId secondTxn = lockWatcher.startTransaction();
         lockWatcher.write(WriteRequest.of(secondTxn, ROW_2));
 
-        CommitUpdate firstUpdate = lockWatcher.endTransaction(firstTxn);
-        CommitUpdate secondUpdate = lockWatcher.endTransaction(secondTxn);
+        CommitUpdate firstUpdate = lockWatcher.endTransaction(firstTxn).get();
+        CommitUpdate secondUpdate = lockWatcher.endTransaction(secondTxn).get();
 
         assertThat(extractDescriptors(firstUpdate)).isEmpty();
-        assertThat(extractDescriptors(secondUpdate)).containsExactlyInAnyOrder(DESCRIPTOR_1);
+        assertThat(extractDescriptors(secondUpdate)).containsExactlyInAnyOrder(getDescriptor(ROW_1));
     }
 
     @Test
@@ -101,6 +110,15 @@ public class LockWatchEteTest {
         return version;
     }
 
+    private static Set<LockDescriptor> filterDescriptors(Set<LockDescriptor> descriptors, TableReference table) {
+        return descriptors.stream()
+                .filter(desc -> AtlasLockDescriptorUtils.tryParseTableRef(desc)
+                        .get()
+                        .tableRef()
+                        .equals(table))
+                .collect(Collectors.toSet());
+    }
+
     private static Set<LockDescriptor> extractDescriptors(CommitUpdate commitUpdate) {
         return commitUpdate.accept(new Visitor<Set<LockDescriptor>>() {
             @Override
@@ -119,8 +137,13 @@ public class LockWatchEteTest {
         return "row" + index;
     }
 
-    private static LockDescriptor getDescriptor(String row) {
-        return AtlasRowLockDescriptor.of(
-                SimpleEteLockWatchResource.LOCK_WATCH_TABLE.getQualifiedName(), PtBytes.toBytes(row));
+    private void createTable() {
+        String tableName = UUID.randomUUID().toString().substring(0, 16);
+        lockWatcher.setTable(tableName);
+        this.tableReference = TableReference.create(SimpleEteLockWatchResource.NAMESPACE, tableName);
+    }
+
+    private LockDescriptor getDescriptor(String row) {
+        return AtlasRowLockDescriptor.of(this.tableReference.getQualifiedName(), PtBytes.toBytes(row));
     }
 }

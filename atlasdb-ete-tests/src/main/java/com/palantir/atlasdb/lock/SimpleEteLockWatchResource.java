@@ -45,10 +45,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SimpleEteLockWatchResource implements EteLockWatchResource {
-    public static final String TABLE = "watch";
-
+    public static final Namespace NAMESPACE = Namespace.create("lock");
     private static final Logger log = LoggerFactory.getLogger(SimpleEteLockWatchResource.class);
-    public static final TableReference LOCK_WATCH_TABLE = TableReference.create(Namespace.create("lock"), TABLE);
     private static final byte[] VALUE = PtBytes.toBytes("value");
     private static final byte[] COLUMN = PtBytes.toBytes("b");
 
@@ -56,14 +54,21 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     private final ExposedLockWatchManager lockWatchManager;
     private final Map<TransactionId, TransactionAndCondition> activeTransactions = new ConcurrentHashMap<>();
 
+    private String table = "watch";
+    private TableReference lockWatchTable = TableReference.create(NAMESPACE, table);
+
     public SimpleEteLockWatchResource(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
+        createTable();
+        lockWatchManager = new ExposedLockWatchManager(transactionManager.getLockWatchManager());
+    }
+
+    private void createTable() {
         KeyValueService keyValueService = transactionManager.getKeyValueService();
-        keyValueService.createTable(LOCK_WATCH_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(lockWatchTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
         transactionManager
                 .getLockWatchManager()
-                .registerWatches(ImmutableSet.of(LockWatchReferences.entireTable(LOCK_WATCH_TABLE.getQualifiedName())));
-        lockWatchManager = new ExposedLockWatchManager(transactionManager.getLockWatchManager());
+                .registerWatches(ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName())));
     }
 
     @Override
@@ -78,13 +83,13 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     }
 
     @Override
-    public CommitUpdate endTransaction(TransactionId transactionId) {
+    public Optional<CommitUpdate> endTransaction(TransactionId transactionId) {
         log.info("I am ending transaction");
         TransactionAndCondition txnAndCondition = activeTransactions.remove(transactionId);
         commit(txnAndCondition);
         txnAndCondition.condition().cleanup();
         log.info("Transaction completed!");
-        return txnAndCondition.condition().getCommitUpdate();
+        return Optional.ofNullable(txnAndCondition.condition().getCommitUpdate());
     }
 
     @Override
@@ -92,7 +97,7 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
         log.info("I have now started the write");
         Transaction transaction = activeTransactions.get(writeRequest.id()).transaction();
         Map<Cell, byte[]> byteValues = getValueMap(writeRequest.rows());
-        transaction.put(LOCK_WATCH_TABLE, byteValues);
+        transaction.put(lockWatchTable, byteValues);
         log.info("I have now finished the write");
     }
 
@@ -107,6 +112,13 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
                 .getUpdateForTransactions(ImmutableSet.of(transactionId.startTs()), Optional.empty())
                 .startTsToSequence()
                 .get(transactionId.startTs());
+    }
+
+    @Override
+    public void setTable(String tableName) {
+        table = tableName.replace("\"", "");
+        lockWatchTable = TableReference.create(NAMESPACE, table);
+        createTable();
     }
 
     private Map<Cell, byte[]> getValueMap(Set<String> rows) {
