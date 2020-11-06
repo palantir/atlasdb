@@ -45,15 +45,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LockWatchEteTest {
-    private static final Logger log = LoggerFactory.getLogger(LockWatchEteTest.class);
-
     private static final String SEED = "seed";
     private static final String ROW_1 = row(1);
     private static final String ROW_2 = row(2);
+    private static final String ROW_3 = row(3);
 
     private final EteLockWatchResource lockWatcher = EteSetup.createClientToSingleNode(EteLockWatchResource.class);
 
@@ -61,7 +58,9 @@ public class LockWatchEteTest {
 
     @Before
     public void before() {
-        createTable();
+        String tableName = UUID.randomUUID().toString().substring(0, 16).replace("-", "X");
+        lockWatcher.setTable(tableName);
+        this.tableReference = TableReference.create(SimpleEteLockWatchResource.NAMESPACE, tableName);
     }
 
     @Test
@@ -75,8 +74,9 @@ public class LockWatchEteTest {
         CommitUpdate firstUpdate = lockWatcher.endTransaction(firstTxn).get();
         CommitUpdate secondUpdate = lockWatcher.endTransaction(secondTxn).get();
 
-        assertThat(extractDescriptors(firstUpdate)).isEmpty();
-        assertThat(extractDescriptors(secondUpdate)).containsExactlyInAnyOrderElementsOf(getDescriptors(ROW_1));
+        assertThat(extractDescriptorsFromUpdate(firstUpdate)).isEmpty();
+        assertThat(extractDescriptorsFromUpdate(secondUpdate))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(ROW_1));
     }
 
     @Test
@@ -108,6 +108,22 @@ public class LockWatchEteTest {
     }
 
     @Test
+    public void commitUpdateInvalidatesAllWhenTooFarBehind() {
+        seedCacheAndGetVersion();
+
+        TransactionId txn = lockWatcher.startTransaction();
+        lockWatcher.write(WriteRequest.of(txn, row(9999)));
+
+        // Need to write more than 1000 to force lock watch event cache to retention old values
+        for (int i = 0; i < 1_005; ++i) {
+            writeValues(row(i));
+        }
+
+        CommitUpdate update = lockWatcher.endTransaction(txn).get();
+        assertThat(isInvalidateAll(update)).isTrue();
+    }
+
+    @Test
     public void upToDateVersionReturnsOnlyNecessaryEvents() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
@@ -115,7 +131,7 @@ public class LockWatchEteTest {
         TransactionId firstTxn = lockWatcher.startTransaction();
         writeValues(ROW_2);
         LockWatchVersion currentVersion = getCurrentVersion();
-        writeValues(row(3));
+        writeValues(ROW_3);
         TransactionId secondTxn = lockWatcher.startTransaction();
 
         TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
@@ -133,6 +149,14 @@ public class LockWatchEteTest {
         TransactionId txn = lockWatcher.startTransaction();
         lockWatcher.write(WriteRequest.of(txn, rows));
         lockWatcher.endTransaction(txn);
+    }
+
+    private LockWatchVersion seedCacheAndGetVersion() {
+        TransactionId txn = lockWatcher.startTransaction();
+        lockWatcher.write(WriteRequest.of(txn, SEED));
+        lockWatcher.endTransaction(txn);
+
+        return getCurrentVersion();
     }
 
     private Set<LockDescriptor> lockedDescriptors(Collection<LockWatchEvent> events) {
@@ -155,14 +179,6 @@ public class LockWatchEteTest {
                 .collect(Collectors.toSet()));
     }
 
-    private LockWatchVersion seedCacheAndGetVersion() {
-        TransactionId txn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(txn, SEED));
-        lockWatcher.endTransaction(txn);
-
-        return getCurrentVersion();
-    }
-
     private LockWatchVersion getCurrentVersion() {
         TransactionId emptyTxn = lockWatcher.startTransaction();
         LockWatchVersion version = lockWatcher.getVersion(emptyTxn);
@@ -179,7 +195,17 @@ public class LockWatchEteTest {
                 .collect(Collectors.toSet());
     }
 
-    private static Set<LockDescriptor> extractDescriptors(CommitUpdate commitUpdate) {
+    private Set<LockDescriptor> getDescriptors(String... rows) {
+        return Stream.of(rows)
+                .map(row -> AtlasRowLockDescriptor.of(this.tableReference.getQualifiedName(), PtBytes.toBytes(row)))
+                .collect(Collectors.toSet());
+    }
+
+    private static String row(int index) {
+        return "row" + index;
+    }
+
+    private static Set<LockDescriptor> extractDescriptorsFromUpdate(CommitUpdate commitUpdate) {
         return commitUpdate.accept(new Visitor<Set<LockDescriptor>>() {
             @Override
             public Set<LockDescriptor> invalidateAll() {
@@ -193,20 +219,18 @@ public class LockWatchEteTest {
         });
     }
 
-    private static String row(int index) {
-        return "row" + index;
-    }
+    private static boolean isInvalidateAll(CommitUpdate update) {
+        return update.accept(new Visitor<Boolean>() {
+            @Override
+            public Boolean invalidateAll() {
+                return true;
+            }
 
-    private void createTable() {
-        String tableName = UUID.randomUUID().toString().substring(0, 16).replace("-", "X");
-        lockWatcher.setTable(tableName);
-        this.tableReference = TableReference.create(SimpleEteLockWatchResource.NAMESPACE, tableName);
-    }
-
-    private Set<LockDescriptor> getDescriptors(String... rows) {
-        return Stream.of(rows)
-                .map(row -> AtlasRowLockDescriptor.of(this.tableReference.getQualifiedName(), PtBytes.toBytes(row)))
-                .collect(Collectors.toSet());
+            @Override
+            public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                return false;
+            }
+        });
     }
 
     private static class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {

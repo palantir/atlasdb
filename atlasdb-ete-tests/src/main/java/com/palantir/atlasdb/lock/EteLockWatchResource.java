@@ -31,7 +31,6 @@ public interface EteLockWatchResource {
     @POST
     @Path("start-transaction")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     TransactionId startTransaction();
 
     @POST
@@ -42,7 +41,6 @@ public interface EteLockWatchResource {
 
     @POST
     @Path("write")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     void write(WriteRequest writeRequest);
 
@@ -60,7 +58,6 @@ public interface EteLockWatchResource {
 
     @POST
     @Path("set-table")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     void setTable(String tableName);
 }

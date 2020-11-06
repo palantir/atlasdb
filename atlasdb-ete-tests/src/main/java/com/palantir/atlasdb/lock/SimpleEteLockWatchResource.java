@@ -41,12 +41,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SimpleEteLockWatchResource implements EteLockWatchResource {
     public static final Namespace NAMESPACE = Namespace.create("lock");
-    private static final Logger log = LoggerFactory.getLogger(SimpleEteLockWatchResource.class);
     private static final byte[] VALUE = PtBytes.toBytes("value");
     private static final byte[] COLUMN = PtBytes.toBytes("b");
 
@@ -60,15 +57,7 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     public SimpleEteLockWatchResource(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
         createTable();
-        lockWatchManager = new ExposedLockWatchManager(transactionManager.getLockWatchManager());
-    }
-
-    private void createTable() {
-        KeyValueService keyValueService = transactionManager.getKeyValueService();
-        keyValueService.createTable(lockWatchTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        transactionManager
-                .getLockWatchManager()
-                .registerWatches(ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName())));
+        this.lockWatchManager = new ExposedLockWatchManager(transactionManager.getLockWatchManager());
     }
 
     @Override
@@ -84,21 +73,18 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
 
     @Override
     public Optional<CommitUpdate> endTransaction(TransactionId transactionId) {
-        log.info("I am ending transaction");
         TransactionAndCondition txnAndCondition = activeTransactions.remove(transactionId);
-        commit(txnAndCondition);
+        txnAndCondition.transaction().commit();
+        txnAndCondition.transaction().finish(unused -> null);
         txnAndCondition.condition().cleanup();
-        log.info("Transaction completed!");
         return Optional.ofNullable(txnAndCondition.condition().getCommitUpdate());
     }
 
     @Override
     public void write(WriteRequest writeRequest) {
-        log.info("I have now started the write");
         Transaction transaction = activeTransactions.get(writeRequest.id()).transaction();
         Map<Cell, byte[]> byteValues = getValueMap(writeRequest.rows());
         transaction.put(lockWatchTable, byteValues);
-        log.info("I have now finished the write");
     }
 
     @Override
@@ -121,21 +107,20 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
         createTable();
     }
 
+    private void createTable() {
+        KeyValueService keyValueService = transactionManager.getKeyValueService();
+        keyValueService.createTable(lockWatchTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        transactionManager
+                .getLockWatchManager()
+                .registerWatches(ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName())));
+    }
+
     private Map<Cell, byte[]> getValueMap(Set<String> rows) {
         return KeyedStream.of(rows)
                 .mapKeys(PtBytes::toBytes)
                 .mapKeys(row -> Cell.create(row, COLUMN))
                 .map(unused -> VALUE)
                 .collectToMap();
-    }
-
-    private void commit(TransactionAndCondition txnAndCondition) {
-        txnAndCondition.transaction().commit();
-        txnAndCondition.transaction().finish(unused -> null);
-    }
-
-    private CommitUpdate getCommitUpdateInternal(long startTs) {
-        return lockWatchManager.getCommitUpdate(startTs);
     }
 
     @Value.Immutable
@@ -152,8 +137,7 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
         CommitUpdateCondition condition();
     }
 
-    class CommitUpdateCondition implements PreCommitCondition {
-
+    private final class CommitUpdateCondition implements PreCommitCondition {
         private final AtomicReference<CommitUpdate> commitUpdate = new AtomicReference<>();
         private Optional<Long> startTs = Optional.empty();
 
@@ -169,8 +153,8 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
 
         @Override
         public void throwIfConditionInvalid(long timestamp) {
-            if (startTs.map(ts -> ts != timestamp).orElse(false)) {
-                commitUpdate.set(getCommitUpdateInternal(startTs.get()));
+            if (startTs.filter(ts -> ts != timestamp).isPresent()) {
+                commitUpdate.set(lockWatchManager.getCommitUpdate(startTs.get()));
             }
         }
     }
