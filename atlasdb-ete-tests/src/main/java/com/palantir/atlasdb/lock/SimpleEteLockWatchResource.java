@@ -125,19 +125,18 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
 
     @Value.Immutable
     interface TransactionAndCondition {
-
-        static TransactionAndCondition of(OpenTransaction transaction, CommitUpdateCondition condition) {
-            return ImmutableTransactionAndCondition.of(transaction, condition);
-        }
-
         @Value.Parameter
         OpenTransaction transaction();
 
         @Value.Parameter
         CommitUpdateCondition condition();
+
+        static TransactionAndCondition of(OpenTransaction transaction, CommitUpdateCondition condition) {
+            return ImmutableTransactionAndCondition.of(transaction, condition);
+        }
     }
 
-    private final class CommitUpdateCondition implements PreCommitCondition {
+    class CommitUpdateCondition implements PreCommitCondition {
         private final AtomicReference<CommitUpdate> commitUpdate = new AtomicReference<>();
         private Optional<Long> startTs = Optional.empty();
 
