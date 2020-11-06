@@ -31,12 +31,18 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.lock.watch.UnlockEvent;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -47,6 +53,7 @@ public class LockWatchEteTest {
 
     private static final String ROW_1 = row(1);
     private static final String ROW_2 = row(2);
+    public static final String SEED = "seed";
 
     private final EteLockWatchResource lockWatcher = EteSetup.createClientToSingleNode(EteLockWatchResource.class);
 
@@ -69,39 +76,63 @@ public class LockWatchEteTest {
         CommitUpdate secondUpdate = lockWatcher.endTransaction(secondTxn).get();
 
         assertThat(extractDescriptors(firstUpdate)).isEmpty();
-        assertThat(extractDescriptors(secondUpdate)).containsExactlyInAnyOrder(getDescriptor(ROW_1));
+        assertThat(extractDescriptors(secondUpdate)).containsExactlyInAnyOrderElementsOf(getDescriptors(ROW_1));
     }
 
     @Test
-    public void bleh() {
+    public void multipleTransactionVersionsReturnsSnapshotAndAllRecentUpdates() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
-        TransactionId firstTxn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(firstTxn, ROW_1, ROW_2));
-        LockWatchVersion firstVersion = lockWatcher.getVersion(firstTxn);
-        lockWatcher.endTransaction(firstTxn);
-
+        writeValues(ROW_1, ROW_2);
         TransactionId secondTxn = lockWatcher.startTransaction();
-        TransactionId thirdTxn = lockWatcher.startTransaction();
-        TransactionId fourthTxn = lockWatcher.startTransaction();
 
-        lockWatcher.write(WriteRequest.of(thirdTxn, row(3)));
-        LockWatchVersion thirdVersion = lockWatcher.getVersion(thirdTxn);
-        lockWatcher.endTransaction(thirdTxn);
+        writeValues(row(3));
+        TransactionId fourthTxn = lockWatcher.startTransaction();
 
         TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
                 ImmutableSet.of(secondTxn.startTs(), fourthTxn.startTs()), Optional.empty()));
 
         assertThat(update.clearCache()).isTrue();
         assertThat(update.startTsToSequence().get(secondTxn.startTs()).version())
-                .isEqualTo(baseVersion.version() + 4);
+                .isEqualTo(baseVersion.version() + 2);
         assertThat(update.startTsToSequence().get(fourthTxn.startTs()).version())
-                .isEqualTo(baseVersion.version() + 6);
+                .isEqualTo(baseVersion.version() + 4);
+        assertThat(lockedDescriptors(update.events()))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(SEED, ROW_1, ROW_2, row(3)));
+        assertThat(unlockedDescriptors(update.events()))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(SEED, ROW_1, ROW_2, row(3)));
+        assertThat(watchDescriptors(update.events())).isEmpty();
+    }
+
+    private void writeValues(String... rows) {
+        TransactionId txn = lockWatcher.startTransaction();
+        lockWatcher.write(WriteRequest.of(txn, rows));
+        lockWatcher.endTransaction(txn);
+    }
+
+    private Set<LockDescriptor> lockedDescriptors(Collection<LockWatchEvent> events) {
+        return getDescriptorsFromLockWatchEvent(events, LockEventVisitor.INSTANCE);
+    }
+
+    private Set<LockDescriptor> unlockedDescriptors(Collection<LockWatchEvent> events) {
+        return getDescriptorsFromLockWatchEvent(events, UnlockEventVisitor.INSTANCE);
+    }
+
+    private Set<LockDescriptor> watchDescriptors(Collection<LockWatchEvent> events) {
+        return getDescriptorsFromLockWatchEvent(events, WatchEventVisitor.INSTANCE);
+    }
+
+    private Set<LockDescriptor> getDescriptorsFromLockWatchEvent(
+            Collection<LockWatchEvent> events, LockWatchEvent.Visitor<Set<LockDescriptor>> visitor) {
+        return filterDescriptors(events.stream()
+                .map(event -> event.accept(visitor))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet()));
     }
 
     private LockWatchVersion seedCacheAndGetVersion() {
         TransactionId txn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(txn, "seed"));
+        lockWatcher.write(WriteRequest.of(txn, SEED));
         lockWatcher.endTransaction(txn);
 
         TransactionId emptyTxn = lockWatcher.startTransaction();
@@ -138,12 +169,71 @@ public class LockWatchEteTest {
     }
 
     private void createTable() {
-        String tableName = UUID.randomUUID().toString().substring(0, 16);
+        String tableName = UUID.randomUUID().toString().substring(0, 16).replace("-", "X");
         lockWatcher.setTable(tableName);
         this.tableReference = TableReference.create(SimpleEteLockWatchResource.NAMESPACE, tableName);
     }
 
-    private LockDescriptor getDescriptor(String row) {
-        return AtlasRowLockDescriptor.of(this.tableReference.getQualifiedName(), PtBytes.toBytes(row));
+    private Set<LockDescriptor> getDescriptors(String... rows) {
+        return Stream.of(rows)
+                .map(row -> AtlasRowLockDescriptor.of(this.tableReference.getQualifiedName(), PtBytes.toBytes(row)))
+                .collect(Collectors.toSet());
+    }
+
+    private static class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        static final LockEventVisitor INSTANCE = new LockEventVisitor();
+
+        @Override
+        public Set<LockDescriptor> visit(LockEvent lockEvent) {
+            return lockEvent.lockDescriptors();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return ImmutableSet.of();
+        }
+    }
+
+    private static class UnlockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        static final LockEventVisitor INSTANCE = new LockEventVisitor();
+
+        @Override
+        public Set<LockDescriptor> visit(LockEvent lockEvent) {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+            return unlockEvent.lockDescriptors();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return ImmutableSet.of();
+        }
+    }
+
+    private static class WatchEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        static final LockEventVisitor INSTANCE = new LockEventVisitor();
+
+        @Override
+        public Set<LockDescriptor> visit(LockEvent lockEvent) {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return lockWatchCreatedEvent.lockDescriptors();
+        }
     }
 }
