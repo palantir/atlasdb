@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: '[RC only] | Induce badness on TL'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5103
