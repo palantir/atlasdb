@@ -642,6 +642,11 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testLimitedTableMetadata() {
+        // The CassandraKeyValueServiceIntegraionTest test does some really strange things with creating a lot of tables
+        // and messing up metadata. This line is just needed to make this test pass there.
+        // If the CassandraKeyValueServiceIntegrationTest correctly cleaned up after itself, this would not be needed.
+        keyValueService.dropTables(keyValueService.getAllTableNames());
+
         Set<TableReference> tableRefs = IntStream.range(0, 3)
                 .mapToObj(i -> TableReference.create(TEST_TABLE.getNamespace(), "limited_meta_test" + i))
                 .collect(Collectors.toSet());
