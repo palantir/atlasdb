@@ -189,6 +189,13 @@ public class MetricsManager {
         return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
     }
 
+    public Histogram registerOrGetHistogram(Class clazz, String metricName, Supplier<Histogram> histogramSupplier) {
+        String fullyQualifiedHistogramName = MetricRegistry.name(clazz, metricName);
+        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName, histogramSupplier::get);
+        registerMetricName(fullyQualifiedHistogramName);
+        return histogram;
+    }
+
     private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
         Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
         registerMetricName(fullyQualifiedHistogramName);

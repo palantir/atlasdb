@@ -36,6 +36,7 @@ import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
+import org.awaitility.Durations;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
@@ -65,7 +66,7 @@ public abstract class EteSetup {
     private static Duration waitDuration;
 
     public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
+        return setupComposition(eteClass, composeFile, availableClientNames, Durations.TWO_MINUTES);
     }
 
     public static RuleChain setupComposition(
@@ -75,7 +76,7 @@ public abstract class EteSetup {
 
     public static RuleChain setupComposition(
             Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
+        return setupComposition(eteClass, composeFile, availableClientNames, Durations.TWO_MINUTES, environment);
     }
 
     public static RuleChain setupComposition(
@@ -90,7 +91,7 @@ public abstract class EteSetup {
 
     public static RuleChain setupCompositionWithTimelock(
             Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
-        waitDuration = Duration.TWO_MINUTES;
+        waitDuration = Durations.TWO_MINUTES;
         return setup(eteClass, composeFile, availableClientNames, environment, true);
     }
 
@@ -157,7 +158,7 @@ public abstract class EteSetup {
                 Awaitility.await()
                         .ignoreExceptions()
                         .atMost(waitDuration)
-                        .pollInterval(Duration.ONE_SECOND)
+                        .pollInterval(Durations.ONE_SECOND)
                         .until(serversAreReady());
             }
         };
