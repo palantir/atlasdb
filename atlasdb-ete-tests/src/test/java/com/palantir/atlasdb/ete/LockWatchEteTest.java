@@ -108,20 +108,6 @@ public final class LockWatchEteTest {
     }
 
     @Test
-    public void commitUpdateInvalidatesAllWhenTooFarBehind() {
-        seedCacheAndGetVersion();
-
-        TransactionId txn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(txn, row(9999)));
-
-        // Need to write more than 1000 to force lock watch event cache to retention old values
-        lockWatcher.writeArbitrary(1_005L);
-
-        CommitUpdate update = lockWatcher.endTransaction(txn).get();
-        assertThat(isInvalidateAll(update)).isTrue();
-    }
-
-    @Test
     public void upToDateVersionReturnsOnlyNecessaryEvents() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
@@ -136,8 +122,9 @@ public final class LockWatchEteTest {
                 ImmutableSet.of(firstTxn.startTs(), secondTxn.startTs()), Optional.of(currentVersion)));
 
         assertThat(update.clearCache()).isFalse();
-        assertThat(update.startTsToSequence().get(firstTxn.startTs())).isEqualTo(baseVersion.version() + 2);
-        assertThat(update.startTsToSequence().get(secondTxn.startTs())).isEqualTo(currentVersion.version() + 2);
+        assertThat(update.startTsToSequence().get(firstTxn.startTs()).version()).isEqualTo(baseVersion.version() + 2);
+        assertThat(update.startTsToSequence().get(secondTxn.startTs()).version())
+                .isEqualTo(currentVersion.version() + 2);
         assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
         assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
         assertThat(watchDescriptors(update.events())).isEmpty();
@@ -205,8 +192,8 @@ public final class LockWatchEteTest {
         return "row" + index;
     }
 
-    private static Set<LockDescriptor> extractDescriptorsFromUpdate(CommitUpdate commitUpdate) {
-        return commitUpdate.accept(new Visitor<Set<LockDescriptor>>() {
+    private Set<LockDescriptor> extractDescriptorsFromUpdate(CommitUpdate commitUpdate) {
+        return filterDescriptors(commitUpdate.accept(new Visitor<Set<LockDescriptor>>() {
             @Override
             public Set<LockDescriptor> invalidateAll() {
                 return ImmutableSet.of();
@@ -216,7 +203,7 @@ public final class LockWatchEteTest {
             public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
                 return invalidatedLocks;
             }
-        });
+        }));
     }
 
     private static boolean isInvalidateAll(CommitUpdate update) {

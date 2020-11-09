@@ -98,15 +98,6 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
         createTable();
     }
 
-    @Override
-    public void writeArbitrary(Long count) {
-        for (int i = 0; i < count; ++i) {
-            TransactionId txn = startTransaction();
-            write(WriteRequest.of(txn, String.valueOf(i)));
-            endTransaction(txn);
-        }
-    }
-
     private void createTable() {
         KeyValueService keyValueService = transactionManager.getKeyValueService();
         keyValueService.createTable(lockWatchTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
