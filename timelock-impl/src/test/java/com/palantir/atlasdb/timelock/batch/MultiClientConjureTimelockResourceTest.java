@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.batch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
+import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
@@ -63,7 +65,7 @@ public class MultiClientConjureTimelockResourceTest {
     }
 
     @Test
-    public void canGetLeaderTimes() {
+    public void canGetLeaderTimesForMultipleClients() {
         when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
         Set<String> namespaces = ImmutableSet.of("client1", "client2");
         assertThat(Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
@@ -71,7 +73,7 @@ public class MultiClientConjureTimelockResourceTest {
     }
 
     @Test
-    public void canGetCommitTimestamps() {
+    public void canGetCommitTimestampsForMultipleClients() {
         GetCommitTimestampsResponse getCommitTimestampsResponse = GetCommitTimestampsResponse.of(
                 COMMIT_TS_LOWER_INCLUSIVE, COMMIT_TS_UPPER_INCLUSIVE, lockWatchStateUpdate);
 
@@ -82,6 +84,16 @@ public class MultiClientConjureTimelockResourceTest {
         assertThat(Futures.getUnchecked(
                         resource.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
                 .isEqualTo(getGetCommitTimestampsResponseList(namespaces));
+    }
+
+    @Test
+    public void requestThrowsIfAnyQueryFails() {
+        when(timelockService.leaderTime())
+                .thenReturn(Futures.immediateFuture(leaderTime))
+                .thenThrow(new BlockingTimeoutException(""));
+        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
+                .isInstanceOf(BlockingTimeoutException.class);
     }
 
     private List<NamespacedGetCommitTimestampsResponse> getGetCommitTimestampsResponseList(Set<String> namespaces) {
