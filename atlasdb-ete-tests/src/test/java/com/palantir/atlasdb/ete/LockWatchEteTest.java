@@ -115,7 +115,7 @@ public final class LockWatchEteTest {
         lockWatcher.write(WriteRequest.of(txn, row(9999)));
 
         // Need to write more than 1000 to force lock watch event cache to retention old values
-        lockWatcher.writeArbitrary(1_005);
+        lockWatcher.writeArbitrary(1_005L);
 
         CommitUpdate update = lockWatcher.endTransaction(txn).get();
         assertThat(isInvalidateAll(update)).isTrue();

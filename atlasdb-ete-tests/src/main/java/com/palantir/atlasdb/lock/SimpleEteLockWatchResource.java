@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
 
-public class SimpleEteLockWatchResource implements EteLockWatchResource {
+public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     public static final Namespace NAMESPACE = Namespace.create("lock");
     private static final byte[] VALUE = PtBytes.toBytes("value");
     private static final byte[] COLUMN = PtBytes.toBytes("b");
@@ -99,7 +99,7 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     }
 
     @Override
-    public void writeArbitrary(long count) {
+    public void writeArbitrary(Long count) {
         for (int i = 0; i < count; ++i) {
             TransactionId txn = startTransaction();
             write(WriteRequest.of(txn, String.valueOf(i)));
