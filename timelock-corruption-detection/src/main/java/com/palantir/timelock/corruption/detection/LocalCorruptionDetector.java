@@ -43,7 +43,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
         LocalCorruptionDetector localCorruptionDetector =
                 new LocalCorruptionDetector(historyProvider, corruptionNotifiers);
 
-        localCorruptionDetector.scheduleWithFixedDelay();
+        // localCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
