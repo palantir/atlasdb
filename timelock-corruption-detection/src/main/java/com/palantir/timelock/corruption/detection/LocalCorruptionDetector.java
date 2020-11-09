@@ -21,13 +21,11 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.handle.LocalCorruptionHandler;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public final class LocalCorruptionDetector implements CorruptionDetector {
-    private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
+    // private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
     private static final String CORRUPTION_DETECTOR_THREAD_PREFIX = "timelock-corruption-detector";
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
@@ -54,34 +52,34 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }
 
-    private void scheduleWithFixedDelay() {
-        executor.scheduleWithFixedDelay(
-                () -> {
-                    localCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();
-                    processLocalHealthReport();
-                },
-                TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
-                TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
-                TimeUnit.SECONDS);
-    }
+    // private void scheduleWithFixedDelay() {
+    //     executor.scheduleWithFixedDelay(
+    //             () -> {
+    //                 localCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();
+    //                 processLocalHealthReport();
+    //             },
+    //             TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
+    //             TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
+    //             TimeUnit.SECONDS);
+    // }
+    //
+    // private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
+    //     return HistoryAnalyzer.corruptionHealthReportForHistory(historyProvider.getHistory());
+    // }
+    //
+    // private void processLocalHealthReport() {
+    //     localCorruptionState = getLocalCorruptionState(localCorruptionReport);
+    //     if (localCorruptionState.shouldRejectRequests()) {
+    //         corruptionHandler.notifyRemoteServersOfCorruption();
+    //     }
+    // }
 
-    private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
-        return HistoryAnalyzer.corruptionHealthReportForHistory(historyProvider.getHistory());
-    }
-
-    private void processLocalHealthReport() {
-        localCorruptionState = getLocalCorruptionState(localCorruptionReport);
-        if (localCorruptionState.shouldRejectRequests()) {
-            corruptionHandler.notifyRemoteServersOfCorruption();
-        }
-    }
-
-    CorruptionStatus getLocalCorruptionState(CorruptionHealthReport latestReport) {
-        return latestReport.shouldRejectRequests()
-                ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL
-                : localCorruptionState;
-    }
-
+    // CorruptionStatus getLocalCorruptionState(CorruptionHealthReport latestReport) {
+    //     return latestReport.shouldRejectRequests()
+    //             ? CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL
+    //             : localCorruptionState;
+    // }
+    //
     public CorruptionHealthReport corruptionHealthReport() {
         return localCorruptionReport;
     }
