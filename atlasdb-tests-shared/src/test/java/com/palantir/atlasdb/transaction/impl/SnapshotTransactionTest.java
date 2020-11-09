@@ -125,6 +125,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
@@ -1273,6 +1274,32 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Assertions.assertThat(cells).isEqualTo(expectedCells);
 
         keyValueService.truncateTable(TABLE);
+    }
+
+    @Test
+    public void testGetRowsColumnRangeIteratorHasNextDoesNotPullValueFromSeparateIterator() {
+        byte[] row = "foo".getBytes();
+        Cell firstCell = Cell.create(row, "a".getBytes());
+        Cell secondCell = Cell.create(row, "b".getBytes());
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
+            return null;
+        });
+
+        Cell readCell = serializableTxManager.runTaskWithRetry(tx -> {
+            Map<byte[], Iterator<Entry<Cell, byte[]>>> rowsColumnRangeIterator = tx.getRowsColumnRangeIterator(
+                    TABLE,
+                    ImmutableList.of(row),
+                    BatchColumnRangeSelection.create(null, null,
+                            10));
+            Iterator<Entry<Cell, byte[]>> iterator1 = rowsColumnRangeIterator.get(row);
+            Iterator<Entry<Cell, byte[]>> iterator2 = rowsColumnRangeIterator.get(row);
+            Assertions.assertThat(iterator1.hasNext()).isTrue();
+            return iterator2.next().getKey();
+        });
+        Assertions.assertThat(readCell).isEqualTo(firstCell);
     }
 
     @Test
