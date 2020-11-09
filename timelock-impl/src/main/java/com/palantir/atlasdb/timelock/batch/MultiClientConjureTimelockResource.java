@@ -16,9 +16,11 @@
 
 package com.palantir.atlasdb.timelock.batch;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
@@ -36,14 +38,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public final class CrossClientBatchedConjureTimeLockResource
-        implements UndertowMultiClientConjureTimelockService {
+public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
 
-    private CrossClientBatchedConjureTimeLockResource(
-            ConjureResourceExceptionHandler exceptionHandler, Function<String, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = exceptionHandler;
+    @VisibleForTesting
+    MultiClientConjureTimelockResource(
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
@@ -76,18 +78,18 @@ public final class CrossClientBatchedConjureTimeLockResource
     }
 
     private ListenableFuture<NamespacedGetCommitTimestampsResponse>
-    getNamespacedGetCommitTimestampsResponseListenableFutures(NamespacedGetCommitTimestampsRequest request) {
+            getNamespacedGetCommitTimestampsResponseListenableFutures(NamespacedGetCommitTimestampsRequest request) {
         ListenableFuture<GetCommitTimestampsResponse> commitTimestamps = getServiceForNamespace(request.getNamespace())
                 .getCommitTimestamps(
                         request.getNumTimestamps(),
                         request.getLastKnownVersion().map(this::toIdentifiedVersion));
         return Futures.transform(
                 commitTimestamps,
-                commitTimestampsResponse -> NamespacedGetCommitTimestampsResponse.builder()
+                response -> NamespacedGetCommitTimestampsResponse.builder()
                         .namespace(request.getNamespace())
-                        .inclusiveLower(commitTimestampsResponse.getInclusiveLower())
-                        .inclusiveUpper(commitTimestampsResponse.getInclusiveUpper())
-                        .lockWatchUpdate(commitTimestampsResponse.getLockWatchUpdate())
+                        .inclusiveLower(response.getInclusiveLower())
+                        .inclusiveUpper(response.getInclusiveUpper())
+                        .lockWatchUpdate(response.getLockWatchUpdate())
                         .build(),
                 MoreExecutors.directExecutor());
     }
