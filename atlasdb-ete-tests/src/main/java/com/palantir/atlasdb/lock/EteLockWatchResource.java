@@ -53,4 +53,9 @@ public interface EteLockWatchResource {
     @Path("set-table")
     @Consumes(MediaType.APPLICATION_JSON)
     void setTable(String tableName);
+
+    @POST
+    @Path("write-arbitrary")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void writeArbitrary(long count);
 }

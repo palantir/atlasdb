@@ -46,7 +46,7 @@ import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LockWatchEteTest {
+public final class LockWatchEteTest {
     private static final String SEED = "seed";
     private static final String ROW_1 = row(1);
     private static final String ROW_2 = row(2);
@@ -115,9 +115,7 @@ public class LockWatchEteTest {
         lockWatcher.write(WriteRequest.of(txn, row(9999)));
 
         // Need to write more than 1000 to force lock watch event cache to retention old values
-        for (int i = 0; i < 1_005; ++i) {
-            writeValues(row(i));
-        }
+        lockWatcher.writeArbitrary(1_005);
 
         CommitUpdate update = lockWatcher.endTransaction(txn).get();
         assertThat(isInvalidateAll(update)).isTrue();
