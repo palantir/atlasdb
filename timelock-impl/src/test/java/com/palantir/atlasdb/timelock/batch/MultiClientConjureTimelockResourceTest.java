@@ -36,6 +36,9 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,8 +49,6 @@ public class MultiClientConjureTimelockResourceTest {
     private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
-
-    private static final String NAMESPACE = "test";
     private static final int COMMIT_TS_LOWER_INCLUSIVE = 1;
     private static final int COMMIT_TS_UPPER_INCLUSIVE = 5;
 
@@ -59,33 +60,54 @@ public class MultiClientConjureTimelockResourceTest {
     @Before
     public void before() {
         resource = new MultiClientConjureTimelockResource(TARGETER, unused -> timelockService);
-        when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
-
-        when(timelockService.getCommitTimestamps(anyInt(), any()))
-                .thenReturn(Futures.immediateFuture(GetCommitTimestampsResponse.of(
-                        COMMIT_TS_LOWER_INCLUSIVE, COMMIT_TS_UPPER_INCLUSIVE, lockWatchStateUpdate)));
     }
 
     @Test
     public void canGetLeaderTimes() {
-        assertThat(Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, ImmutableSet.of(NAMESPACE))))
-                .containsExactly(NamespacedLeaderTime.of(NAMESPACE, leaderTime));
+        when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
+        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        assertThat(Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
+                .isEqualTo(getLeaderTimesForNamespaces(namespaces));
     }
 
     @Test
     public void canGetCommitTimestamps() {
-        assertThat(Futures.getUnchecked(resource.getCommitTimestamps(
-                        AUTH_HEADER,
-                        ImmutableList.of(NamespacedGetCommitTimestampsRequest.builder()
-                                .namespace(NAMESPACE)
-                                .numTimestamps(4)
-                                .build()))))
-                .containsExactly(NamespacedGetCommitTimestampsResponse.builder()
-                        .namespace(NAMESPACE)
+        GetCommitTimestampsResponse getCommitTimestampsResponse = GetCommitTimestampsResponse.of(
+                COMMIT_TS_LOWER_INCLUSIVE, COMMIT_TS_UPPER_INCLUSIVE, lockWatchStateUpdate);
+
+        when(timelockService.getCommitTimestamps(anyInt(), any()))
+                .thenReturn(Futures.immediateFuture(getCommitTimestampsResponse));
+
+        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        assertThat(Futures.getUnchecked(
+                        resource.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
+                .isEqualTo(getGetCommitTimestampsResponseList(namespaces));
+    }
+
+    private List<NamespacedGetCommitTimestampsResponse> getGetCommitTimestampsResponseList(Set<String> namespaces) {
+        return namespaces.stream()
+                .map(namespace -> NamespacedGetCommitTimestampsResponse.builder()
+                        .namespace(namespace)
                         .inclusiveLower(COMMIT_TS_LOWER_INCLUSIVE)
                         .inclusiveUpper(COMMIT_TS_UPPER_INCLUSIVE)
                         .lockWatchUpdate(lockWatchStateUpdate)
-                        .build());
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private List<NamespacedGetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
+        return namespaces.stream()
+                .map(namespace -> NamespacedGetCommitTimestampsRequest.builder()
+                        .namespace(namespace)
+                        .numTimestamps(4)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private List<NamespacedLeaderTime> getLeaderTimesForNamespaces(Set<String> namespaces) {
+        return namespaces.stream()
+                .map(namespace -> NamespacedLeaderTime.of(namespace, leaderTime))
+                .collect(Collectors.toList());
     }
 
     private static URL url(String url) {
