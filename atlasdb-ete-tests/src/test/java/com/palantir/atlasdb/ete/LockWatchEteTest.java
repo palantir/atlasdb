@@ -235,7 +235,7 @@ public class LockWatchEteTest {
         });
     }
 
-    private static class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+    private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         static final LockEventVisitor INSTANCE = new LockEventVisitor();
 
         @Override
@@ -254,7 +254,7 @@ public class LockWatchEteTest {
         }
     }
 
-    private static class UnlockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+    private static final class UnlockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         static final UnlockEventVisitor INSTANCE = new UnlockEventVisitor();
 
         @Override
@@ -273,7 +273,7 @@ public class LockWatchEteTest {
         }
     }
 
-    private static class WatchEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+    private static final class WatchEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         static final WatchEventVisitor INSTANCE = new WatchEventVisitor();
 
         @Override
