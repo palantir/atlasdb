@@ -206,20 +206,6 @@ public final class LockWatchEteTest {
         }));
     }
 
-    private static boolean isInvalidateAll(CommitUpdate update) {
-        return update.accept(new Visitor<Boolean>() {
-            @Override
-            public Boolean invalidateAll() {
-                return true;
-            }
-
-            @Override
-            public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                return false;
-            }
-        });
-    }
-
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         static final LockEventVisitor INSTANCE = new LockEventVisitor();
 
