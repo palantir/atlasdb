@@ -31,6 +31,7 @@ public class PaxosLeadershipToken implements LeadershipToken {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality") // explicitly checking identity
     public boolean sameAs(LeadershipToken obj) {
         if ((obj == null) || (obj.getClass() != this.getClass())) {
             return false;
