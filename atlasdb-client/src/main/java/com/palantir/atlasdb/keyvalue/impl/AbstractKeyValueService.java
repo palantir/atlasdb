@@ -135,15 +135,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return builder.build();
     }
 
-    @Override
-    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
-        ImmutableMap.Builder<TableReference, byte[]> builder = ImmutableMap.builder();
-        for (TableReference table : getLimitedTableNames(maxResults)) {
-            builder.put(table, getMetadataForTable(table));
-        }
-        return builder.build();
-    }
-
     protected int getMultiPutBatchCount() {
         return AtlasDbPerformanceConstants.MAX_BATCH_SIZE;
     }

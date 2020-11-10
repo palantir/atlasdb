@@ -38,7 +38,6 @@ public final class SweepStrategyManagers {
 
     public enum CacheWarming {
         FULL,
-        LIMITED,
         NONE,
         ;
     }
@@ -56,7 +55,7 @@ public final class SweepStrategyManagers {
                             .expireAfterAccess(1, TimeUnit.DAYS)
                             .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
 
-                    // On async initialization, add a possibly limited number of tables to the cache.
+                    // Possibly warm the cache.
                     cache.putAll(getSweepStrategiesForWarmingCache(kvs, cacheWarming));
 
                     return cache;
@@ -99,9 +98,6 @@ public final class SweepStrategyManagers {
         switch (cacheWarming) {
             case FULL:
                 return Maps.transformValues(kvs.getMetadataForTables(), SweepStrategyManagers::getSweepStrategy);
-            case LIMITED:
-                return Maps.transformValues(
-                        kvs.getLimitedMetadataForTables(50), SweepStrategyManagers::getSweepStrategy);
             case NONE:
             default:
                 return Collections.emptyMap();

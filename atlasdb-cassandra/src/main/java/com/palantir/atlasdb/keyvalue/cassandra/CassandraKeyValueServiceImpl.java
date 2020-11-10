@@ -1481,16 +1481,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .collect(Collectors.toSet());
     }
 
-    @Override
-    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
-        // Note: This is not optimal since getTableReferencesWithoutFiltering() loads *all* names, even though it
-        // returns a Stream. Getting a partial list of table names might not be possible with cassandra thrift.
-        return cassandraTables
-                .getTableReferencesWithoutFiltering()
-                .filter(tr -> !HiddenTables.isHidden(tr))
-                .limit(maxResults)::iterator;
-    }
-
     /**
      * Gets the metadata for a given table. Also useful for checking to see if a table exists. Requires a quorum of
      * Cassandra nodes to be reachable.

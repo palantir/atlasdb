@@ -191,11 +191,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Iterable<TableReference> getLimitedTableNames(int maxResults) {
-        return delegate1.getLimitedTableNames(maxResults);
-    }
-
-    @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         return delegate1.getMetadataForTable(tableRef);
     }
@@ -203,11 +198,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         return delegate1.getMetadataForTables();
-    }
-
-    @Override
-    public Map<TableReference, byte[]> getLimitedMetadataForTables(int maxResults) {
-        return delegate1.getLimitedMetadataForTables(maxResults);
     }
 
     @Override
