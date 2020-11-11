@@ -85,8 +85,9 @@ public class PaxosLogHistoryProviderTest {
         acceptorLog = createAcceptorLog(ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, USE_CASE_ACCEPTOR));
 
         history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
-        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SqlitePaxosStateLogHistory.create(dataSource));
-        paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource, ImmutableList.of(remote));
+        progressTracker = new PaxosLogHistoryProgressTracker(
+                dataSource, SqlitePaxosStateLogHistory.create(dataSource), Optional.empty());
+        paxosLogHistoryProvider = new PaxosLogHistoryProvider(dataSource, ImmutableList.of(remote), Optional.empty());
     }
 
     @Test

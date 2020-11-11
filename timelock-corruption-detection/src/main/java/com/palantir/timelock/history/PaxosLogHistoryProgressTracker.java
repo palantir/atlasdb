@@ -23,22 +23,27 @@ import com.palantir.timelock.history.models.ProgressState;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 
 public class PaxosLogHistoryProgressTracker {
     @VisibleForTesting
-    static final int MAX_ROWS_ALLOWED = 500;
+    static final int DEFAULT_MAX_ROWS_ALLOWED = 500;
 
     private final LogVerificationProgressState logVerificationProgressState;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
+    private final int maxRowsAllowed;
 
     private Map<NamespaceAndUseCase, ProgressState> verificationProgressStateCache = new ConcurrentHashMap<>();
 
     public PaxosLogHistoryProgressTracker(
-            DataSource dataSource, SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory) {
+            DataSource dataSource,
+            SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory,
+            Optional<Integer> maxRowsAllowed) {
         this.logVerificationProgressState = LogVerificationProgressState.create(dataSource);
         this.sqlitePaxosStateLogHistory = sqlitePaxosStateLogHistory;
+        this.maxRowsAllowed = maxRowsAllowed.orElse(DEFAULT_MAX_ROWS_ALLOWED);
     }
 
     public HistoryQuerySequenceBounds getNextPaxosLogSequenceRangeToBeVerified(
@@ -109,6 +114,6 @@ public class PaxosLogHistoryProgressTracker {
     }
 
     private HistoryQuerySequenceBounds sequenceBoundsForNextHistoryQuery(long lastVerified) {
-        return HistoryQuerySequenceBounds.of(lastVerified + 1, lastVerified + MAX_ROWS_ALLOWED);
+        return HistoryQuerySequenceBounds.of(lastVerified + 1, lastVerified + maxRowsAllowed);
     }
 }

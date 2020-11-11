@@ -33,6 +33,7 @@ import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
@@ -49,11 +50,15 @@ public class PaxosLogHistoryProvider {
     private final List<TimeLockPaxosHistoryProvider> remoteHistoryProviders;
     private final PaxosLogHistoryProgressTracker progressTracker;
 
-    public PaxosLogHistoryProvider(DataSource dataSource, List<TimeLockPaxosHistoryProvider> remoteHistoryProviders) {
+    public PaxosLogHistoryProvider(
+            DataSource dataSource,
+            List<TimeLockPaxosHistoryProvider> remoteHistoryProviders,
+            Optional<Integer> maxRowsAllowed) {
         this.remoteHistoryProviders = remoteHistoryProviders;
         this.sqlitePaxosStateLogHistory = SqlitePaxosStateLogHistory.create(dataSource);
         this.localHistoryLoader = LocalHistoryLoader.create(this.sqlitePaxosStateLogHistory);
-        this.progressTracker = new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory);
+        this.progressTracker =
+                new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory, maxRowsAllowed);
     }
 
     private Set<NamespaceAndUseCase> getNamespaceAndUseCaseTuples() {

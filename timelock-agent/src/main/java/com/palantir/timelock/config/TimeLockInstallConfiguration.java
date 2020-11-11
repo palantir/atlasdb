@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.paxos.Client;
 import java.util.Map;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -36,6 +37,8 @@ public interface TimeLockInstallConfiguration {
     PaxosInstallConfiguration paxos();
 
     ClusterConfiguration cluster();
+
+    Optional<CorruptionCheckConfig> corruptionConfig();
 
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {

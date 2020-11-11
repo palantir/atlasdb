@@ -34,6 +34,7 @@ import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.remote.TimeLockPaxosHistoryProviderResource;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
@@ -95,7 +96,8 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
                 defaultRemoteServerList.stream()
                         .map(StateLogComponents::dataSource)
                         .map(TimeLockCorruptionTestSetup::getHistoryProviderResource)
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList()),
+                Optional.of(500));
     }
 
     List<StateLogComponents> createStatLogForNamespaceAndUseCase(NamespaceAndUseCase namespaceAndUseCase) {

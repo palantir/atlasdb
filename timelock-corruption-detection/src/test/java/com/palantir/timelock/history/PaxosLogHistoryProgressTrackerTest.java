@@ -16,7 +16,7 @@
 
 package com.palantir.timelock.history;
 
-import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
+import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.DEFAULT_MAX_ROWS_ALLOWED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -28,6 +28,7 @@ import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import java.util.Optional;
 import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Rule;
@@ -52,7 +53,8 @@ public class PaxosLogHistoryProgressTrackerTest {
         DataSource dataSource =
                 SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         log = LogVerificationProgressState.create(dataSource);
-        progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SQLITE_PAXOS_STATE_LOG_HISTORY);
+        progressTracker =
+                new PaxosLogHistoryProgressTracker(dataSource, SQLITE_PAXOS_STATE_LOG_HISTORY, Optional.empty());
     }
 
     @Test
@@ -68,7 +70,7 @@ public class PaxosLogHistoryProgressTrackerTest {
         when(SQLITE_PAXOS_STATE_LOG_HISTORY.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
         log.updateProgress(CLIENT, USE_CASE, lastVerified);
 
-        assertSanityOfFetchedHistoryQuerySeqBounds(lastVerified + 1, lastVerified + MAX_ROWS_ALLOWED);
+        assertSanityOfFetchedHistoryQuerySeqBounds(lastVerified + 1, lastVerified + DEFAULT_MAX_ROWS_ALLOWED);
     }
 
     @Test
@@ -85,7 +87,7 @@ public class PaxosLogHistoryProgressTrackerTest {
         when(SQLITE_PAXOS_STATE_LOG_HISTORY.getGreatestLogEntry(any(), any())).thenReturn(greatestLogSeq);
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);
 
-        assertSanityOfFetchedHistoryQuerySeqBounds(lastVerified + 1, lastVerified + MAX_ROWS_ALLOWED);
+        assertSanityOfFetchedHistoryQuerySeqBounds(lastVerified + 1, lastVerified + DEFAULT_MAX_ROWS_ALLOWED);
     }
 
     @Test
