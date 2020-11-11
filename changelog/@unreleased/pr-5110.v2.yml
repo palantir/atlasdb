@@ -1,0 +1,15 @@
+type: improvement
+improvement:
+  description: "add a fake client on startup to fix healthcheck getting stuck \n\n**Goals
+    (and why)**:\nCurrently a non-leader timelock node gets stuck in REPAIRING healthstate
+    upon restart. This happens because of two things -- (1) we don't create the timelock
+    services until an endpoint is hit (2) The clients are sticky, and stick to a node.
+    \n\n**Implementation Description (bullets)**:\n- Create a fake client on startup
+    to populate something in the database and clear the healthcheck\n\n**Testing (What
+    was existing testing like?  What have you done to improve it?)**:\n- Testing with
+    an RC on dev stack\n\n**Concerns (what feedback would you like?)**:\nOverhead
+    of creating a fake client.\n\nOther edge cases I may have missed\n\n**Where should
+    we start reviewing?**:\n\n**Priority (whenever / two weeks / yesterday)**:\nThis
+    week"
+  links:
+  - https://github.com/palantir/atlasdb/pull/5110
