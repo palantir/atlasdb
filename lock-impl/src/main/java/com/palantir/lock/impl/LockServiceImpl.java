@@ -337,7 +337,7 @@ public final class LockServiceImpl
     // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         com.palantir.logsafe.Preconditions.checkNotNull(client);
-        com.palantir.logsafe.Preconditions.checkArgument(!client.equals(INTERNAL_LOCK_GRANT_CLIENT));
+        com.palantir.logsafe.Preconditions.checkArgument(!INTERNAL_LOCK_GRANT_CLIENT.equals(client));
         Preconditions.checkArgument(
                 request.getLockTimeout().compareTo(maxAllowedLockTimeout) <= 0,
                 "Requested lock timeout (%s) is greater than maximum allowed lock timeout (%s)",
@@ -907,7 +907,7 @@ public final class LockServiceImpl
     @Override
     public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
         com.palantir.logsafe.Preconditions.checkNotNull(client);
-        com.palantir.logsafe.Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
+        com.palantir.logsafe.Preconditions.checkArgument(!INTERNAL_LOCK_GRANT_CLIENT.equals(client));
         com.palantir.logsafe.Preconditions.checkNotNull(grant);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
@@ -941,7 +941,7 @@ public final class LockServiceImpl
     @Override
     public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
         com.palantir.logsafe.Preconditions.checkNotNull(client);
-        com.palantir.logsafe.Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
+        com.palantir.logsafe.Preconditions.checkArgument(!INTERNAL_LOCK_GRANT_CLIENT.equals(client));
         com.palantir.logsafe.Preconditions.checkNotNull(grantId);
         HeldLocksGrant grant = new HeldLocksGrant(grantId);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
@@ -970,7 +970,7 @@ public final class LockServiceImpl
     private void changeOwner(
             LockCollection<? extends ClientAwareReadWriteLock> locks, LockClient oldClient, LockClient newClient) {
         com.palantir.logsafe.Preconditions.checkArgument(
-                (oldClient == INTERNAL_LOCK_GRANT_CLIENT) != (newClient == INTERNAL_LOCK_GRANT_CLIENT));
+                INTERNAL_LOCK_GRANT_CLIENT.equals(oldClient) != INTERNAL_LOCK_GRANT_CLIENT.equals(newClient));
         Collection<KnownClientLock> locksToRollback = new LinkedList<>();
         try {
             for (Map.Entry<? extends ClientAwareReadWriteLock, LockMode> entry : locks.entries()) {

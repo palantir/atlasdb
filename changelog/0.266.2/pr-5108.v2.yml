@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Fix MaskedValue Jackson 2.12-snapshot compatibility
+  links:
+  - https://github.com/palantir/atlasdb/pull/5108

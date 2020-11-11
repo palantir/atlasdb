@@ -21,6 +21,7 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.ImmutableInvalidateAll;
@@ -35,6 +36,7 @@ import com.palantir.lock.watch.UnlockEvent;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -103,15 +105,22 @@ interface ClientLogEvents {
     class Builder extends ImmutableClientLogEvents.Builder {}
 
     final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        private final LockToken commitLocksToken;
+        private final Optional<UUID> commitRequestId;
 
         private LockEventVisitor(LockToken commitLocksToken) {
-            this.commitLocksToken = commitLocksToken;
+            if (commitLocksToken instanceof LeasedLockToken) {
+                commitRequestId = Optional.of(
+                        ((LeasedLockToken) commitLocksToken).serverToken().getRequestId());
+            } else {
+                commitRequestId = Optional.empty();
+            }
         }
 
         @Override
         public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            if (lockEvent.lockToken().equals(commitLocksToken)) {
+            if (commitRequestId
+                    .filter(requestId -> requestId.equals(lockEvent.lockToken().getRequestId()))
+                    .isPresent()) {
                 return ImmutableSet.of();
             } else {
                 return lockEvent.lockDescriptors();
