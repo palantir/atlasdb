@@ -63,7 +63,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
         this.historyProvider = historyProvider;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
         this.timelockCorruptionAnalysisInterval = timelockCorruptionAnalysisIntervalSeconds
-                .map(interval -> Duration.ofSeconds(interval))
+                .map(Duration::ofSeconds)
                 .orElse(DEFAULT_TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL);
     }
 
