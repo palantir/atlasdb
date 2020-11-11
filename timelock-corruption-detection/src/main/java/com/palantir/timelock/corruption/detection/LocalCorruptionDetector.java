@@ -68,8 +68,9 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private void scheduleWithFixedDelay() {
-        log.info("Scheduling corruption checks to run every {} seconds", SafeArg.of("interval",
-                timelockCorruptionAnalysisInterval.getSeconds()));
+        log.info(
+                "Scheduling corruption checks to run every {} seconds",
+                SafeArg.of("interval", timelockCorruptionAnalysisInterval.getSeconds()));
         executor.scheduleWithFixedDelay(
                 () -> {
                     localCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();
