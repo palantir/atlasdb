@@ -19,6 +19,7 @@ package com.palantir.timelock.history;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
@@ -197,6 +198,14 @@ public class PaxosLogHistoryProvider {
     private PaxosHistoryOnRemote fetchHistoryFromRemote(
             List<HistoryQuery> historyQueries, TimeLockPaxosHistoryProvider remote) {
         try {
+            if (historyQueries.size() > 0) {
+                HistoryQuery sample = historyQueries.get(0);
+                log.info(
+                        "Sample query for total number of queries - {}",
+                        SafeArg.of("totalNumberOfQueries", historyQueries.size()),
+                        SafeArg.of("sampleQueryNamespace", sample.getNamespaceAndUseCase()),
+                        SafeArg.of("sampleQuerySeqBounds", sample.getSequenceBounds()));
+            }
             return remote.getPaxosHistory(AUTH_HEADER, historyQueries);
         } catch (Exception exception) {
             log.warn(

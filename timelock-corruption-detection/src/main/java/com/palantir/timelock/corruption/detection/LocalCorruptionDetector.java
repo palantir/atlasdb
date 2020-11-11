@@ -18,6 +18,7 @@ package com.palantir.timelock.corruption.detection;
 
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.handle.LocalCorruptionHandler;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
@@ -26,8 +27,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class LocalCorruptionDetector implements CorruptionDetector {
+    private static final Logger log = LoggerFactory.getLogger(LocalCorruptionDetector.class);
+
     private static final Duration DEFAULT_TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
     private static final String CORRUPTION_DETECTOR_THREAD_PREFIX = "timelock-corruption-detector";
 
@@ -63,6 +68,8 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private void scheduleWithFixedDelay() {
+        log.info("Scheduling corruption checks to run every {} seconds", SafeArg.of("interval",
+                timelockCorruptionAnalysisInterval.getSeconds()));
         executor.scheduleWithFixedDelay(
                 () -> {
                     localCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();

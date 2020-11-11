@@ -20,7 +20,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CorruptionCheckConfig {
-    long timelockCorruptionAnalysisInterval();
+    long timelockCorruptionAnalysisIntervalSeconds();
 
     int maxAllowedRowsInOneIteration();
 }

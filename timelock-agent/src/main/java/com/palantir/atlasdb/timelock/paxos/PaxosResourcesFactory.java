@@ -267,7 +267,7 @@ public final class PaxosResourcesFactory {
         LocalCorruptionDetector localCorruptionDetector = LocalCorruptionDetector.create(
                 historyProvider,
                 remoteClients.getRemoteCorruptionNotifiers(),
-                corruptionCheckConfig.map(CorruptionCheckConfig::timelockCorruptionAnalysisInterval));
+                corruptionCheckConfig.map(CorruptionCheckConfig::timelockCorruptionAnalysisIntervalSeconds));
 
         CorruptionHealthCheck healthCheck =
                 new CorruptionHealthCheck(localCorruptionDetector, remoteCorruptionDetector);
