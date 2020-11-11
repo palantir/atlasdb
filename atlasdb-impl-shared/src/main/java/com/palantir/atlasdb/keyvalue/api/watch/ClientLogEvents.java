@@ -54,8 +54,9 @@ interface ClientLogEvents {
     default TransactionsLockWatchUpdate toTransactionsLockWatchUpdate(
             TimestampMapping timestampMapping, Optional<LockWatchVersion> lastKnownVersion) {
         /*
-         Case 1: client is behind earliest transaction. Therefore we want to ensure that there are events from
-                 after the client version up to the latest transaction version.
+         Case 1: client is behind earliest transaction. Therefore we want to ensure that there are events present for
+                 each version starting with the client version (exclusive) and ending with latest transaction version
+                 (inclusive).
          Case 2: client is at least as up-to-date as the earliest transaction. The check here is the same as above.
          Case 3: client is completely up-to-date. Here, we don't need to check for any versions.
          Case 4: client has no version. Then we expect that the events returned at least enclose the versions of
