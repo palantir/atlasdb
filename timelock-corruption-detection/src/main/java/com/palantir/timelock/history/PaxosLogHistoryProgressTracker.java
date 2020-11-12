@@ -28,7 +28,7 @@ import javax.sql.DataSource;
 
 public class PaxosLogHistoryProgressTracker {
     @VisibleForTesting
-    static final int MAX_ROWS_ALLOWED = 500;
+    static final int MAX_ROWS_ALLOWED = 250;
 
     private final LogVerificationProgressState logVerificationProgressState;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
