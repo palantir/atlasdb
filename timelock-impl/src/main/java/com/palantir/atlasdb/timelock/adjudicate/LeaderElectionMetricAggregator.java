@@ -40,12 +40,14 @@ public final class LeaderElectionMetricAggregator {
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactP95", weightedGaugeP95);
         metricsManager.registerMetric(
                 LeaderElectionMetricAggregator.class, "leaderElectionImpactP99", weightedGaugeP99);
-        Histogram leaderElectionHistogram = metricsManager.registerOrGetHistogram(
-                LeaderElectionMetricAggregator.class,
-                "leaderElectionDurationEstimate",
-                () -> new Histogram(new SlidingTimeWindowArrayReservoir(5, TimeUnit.MINUTES)));
+
+        Histogram leaderElectionHistogram = new Histogram(new SlidingTimeWindowArrayReservoir(5, TimeUnit.MINUTES));
         leaderElectionDurationAccumulator =
                 new LeaderElectionDurationAccumulator(leaderElectionHistogram::update, CONFIDENCE_THRESHOLD);
+        metricsManager.registerMetric(LeaderElectionMetricAggregator.class, "leaderElectionEstimateMin",
+                () -> leaderElectionHistogram.getSnapshot().getMin());
+        metricsManager.registerMetric(LeaderElectionMetricAggregator.class, "leaderElectionEstimateMedian",
+                () -> leaderElectionHistogram.getSnapshot().getMedian());
     }
 
     void report(LeaderElectionStatistics statistics) {
