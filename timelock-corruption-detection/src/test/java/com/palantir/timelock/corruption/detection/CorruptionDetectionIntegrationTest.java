@@ -16,6 +16,8 @@
 
 package com.palantir.timelock.corruption.detection;
 
+import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
+
 import com.google.common.collect.ImmutableSet;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
@@ -36,17 +38,17 @@ public final class CorruptionDetectionIntegrationTest {
 
     @Test
     public void detectCorruptionForLogAtBatchEnd() {
-        // We write logs in range [1, 500]. The first range of sequences for corruption detection = [0, 499] since
-        // this range is computed from INITIAL_PROGRESS = -1.
-        helper.writeLogsOnDefaultLocalAndRemote(1, 500);
-        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(499);
+        // We write logs in range [1, MAX_ROWS_ALLOWED]. The first range of sequences for corruption detection
+        // = [0, MAX_ROWS_ALLOWED - 1] since this range is computed from INITIAL_PROGRESS = -1.
+        helper.writeLogsOnDefaultLocalAndRemote(1, MAX_ROWS_ALLOWED);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED - 1);
         helper.assertAcceptedValueGreaterThanLearnedValue();
     }
 
     @Test
     public void detectCorruptionForLogInLaterBatches() {
-        helper.writeLogsOnDefaultLocalAndRemote(1, 1000);
-        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(599);
+        helper.writeLogsOnDefaultLocalAndRemote(1, MAX_ROWS_ALLOWED * 2);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED + 2);
 
         // No signs of corruption in the first batch
         helper.assertNoCorruptionViolations();
@@ -57,10 +59,11 @@ public final class CorruptionDetectionIntegrationTest {
 
     @Test
     public void detectCorruptionForLogAtStartOfSecondBatch() {
-        // We write logs in range [1, 1000]. The first range of sequences for corruption detection = [0, 499] since
-        // this range is computed from INITIAL_PROGRESS = -1, which makes range of the second batch = [500, 999].
-        helper.writeLogsOnDefaultLocalAndRemote(1, 1000);
-        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(500);
+        // We write logs in range [1, MAX_ROWS_ALLOWED * 2]. The first range of sequences for corruption detection
+        // = [0, MAX_ROWS_ALLOWED - 1] since this range is computed from INITIAL_PROGRESS = -1, which makes range of
+        // the second batch = [MAX_ROWS_ALLOWED, MAX_ROWS_ALLOWED * 2 - 1].
+        helper.writeLogsOnDefaultLocalAndRemote(1, MAX_ROWS_ALLOWED * 2);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED);
 
         // No signs of corruption in the first batch
         helper.assertNoCorruptionViolations();
@@ -71,20 +74,21 @@ public final class CorruptionDetectionIntegrationTest {
 
     @Test
     public void resetsLastVerifiedOnceGreatestKnownSeqInMemoryIsVerified() {
-        helper.writeLogsOnDefaultLocalAndRemote(1, 400);
+        helper.writeLogsOnDefaultLocalAndRemote(1, MAX_ROWS_ALLOWED / 2 + 1);
 
         // No signs of corruption
         helper.assertNoCorruptionViolations();
 
-        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(250);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED / 2);
         // Detects signs of corruption in the now corrupt first batch of logs
         helper.assertAcceptedValueGreaterThanLearnedValue();
     }
 
     @Test
     public void canDetectCorruptionForLargeNumberOfLogs() {
-        helper.writeLogsOnDefaultLocalAndRemote(1, 10000);
-        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(9600);
+        int greatestSeqNumber = MAX_ROWS_ALLOWED * 20;
+        helper.writeLogsOnDefaultLocalAndRemote(1, greatestSeqNumber);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(greatestSeqNumber - (MAX_ROWS_ALLOWED / 2));
 
         for (int i = 0; i < 19; i++) {
             helper.assertNoCorruptionViolations();
@@ -94,7 +98,8 @@ public final class CorruptionDetectionIntegrationTest {
 
     @Test
     public void detectCorruptionForMultipleCorruptSeries() {
-        // We create 7 series and write logs to each of these in the range [1, 500]. We then corrupt series 6 & 7.
+        // We create 7 series and write logs to each of these in the range [1, MAX_ROWS_ALLOWED]. We then corrupt series
+        // 6 & 7.
         IntStream.rangeClosed(1, 7).boxed().forEach(this::createSeriesWithPaxosLogs);
         IntStream.rangeClosed(6, 7).boxed().forEach(this::corruptSeries);
 
@@ -106,13 +111,13 @@ public final class CorruptionDetectionIntegrationTest {
     private void createSeriesWithPaxosLogs(int namespaceAndUseCaseIndex) {
         NamespaceAndUseCase namespaceAndUseCase = namespaceAndUseCaseForIndex(namespaceAndUseCaseIndex);
         helper.writeLogsOnLocalAndRemote(
-                helper.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase), 1, 500);
+                helper.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase), 1, MAX_ROWS_ALLOWED);
     }
 
     private void corruptSeries(int namespaceAndUseCaseIndex) {
         NamespaceAndUseCase namespaceAndUseCase = namespaceAndUseCaseForIndex(namespaceAndUseCaseIndex);
         List<StateLogComponents> components = helper.createStatLogComponentsForNamespaceAndUseCase(namespaceAndUseCase);
-        helper.induceGreaterAcceptedValueCorruption(components.get(0), 499);
+        helper.induceGreaterAcceptedValueCorruption(components.get(0), MAX_ROWS_ALLOWED - 1);
     }
 
     private static NamespaceAndUseCase namespaceAndUseCaseForIndex(int index) {

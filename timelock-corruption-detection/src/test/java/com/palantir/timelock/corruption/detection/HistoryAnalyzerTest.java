@@ -16,6 +16,7 @@
 
 package com.palantir.timelock.corruption.detection;
 
+import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Iterables;
@@ -60,7 +61,7 @@ public final class HistoryAnalyzerTest {
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotAcceptedByQuorum() {
-        helper.writeLogsOnDefaultLocalServer(5, 500);
+        helper.writeLogsOnDefaultLocalServer(5, MAX_ROWS_ALLOWED);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
@@ -73,8 +74,8 @@ public final class HistoryAnalyzerTest {
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
-        helper.writeLogsOnDefaultLocalAndRemote(9, 453);
-        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(432);
+        helper.writeLogsOnDefaultLocalAndRemote(9, MAX_ROWS_ALLOWED - 1);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED / 2);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
