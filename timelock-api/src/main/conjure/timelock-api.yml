@@ -110,8 +110,21 @@ types:
       LockWatchRequest:
         fields:
           references: set<LockWatchReference>
-
-
+      NamespacedLeaderTime:
+        fields:
+          namespace: string
+          leaderTime: LeaderTime
+      NamespacedGetCommitTimestampsRequest:
+        fields:
+          namespace: string
+          numTimestamps: integer
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
+      NamespacedGetCommitTimestampsResponse:
+        fields:
+          namespace: string
+          inclusiveLower: Long
+          inclusiveUpper: Long
+          lockWatchUpdate: LockWatchStateUpdate
 
 services:
   ConjureTimelockService:
@@ -161,7 +174,6 @@ services:
           namespace: string
           request: ConjureUnlockRequest
         returns: ConjureUnlockResponse
-
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:
@@ -182,3 +194,23 @@ services:
         args:
           namespace: string
           request: LockWatchRequest
+  MultiClientConjureTimelockService:
+    name: Multi Client Timelock Service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.api
+    base-path: /tl/multi
+    endpoints:
+      leaderTimes:
+        http: POST /lts
+        args:
+          namespaces: set<string>
+        returns: list<NamespacedLeaderTime>
+        docs: |
+          Version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes for a set of namespaces.
+      getCommitTimestamps:
+        http: POST /gcts
+        args:
+          requests: list<NamespacedGetCommitTimestampsRequest>
+        returns: list<NamespacedGetCommitTimestampsResponse>
+        docs: |
+          Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
