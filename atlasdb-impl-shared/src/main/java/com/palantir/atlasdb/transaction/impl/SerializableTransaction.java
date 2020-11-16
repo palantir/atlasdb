@@ -218,6 +218,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
+    @SuppressWarnings("BadImport")
     private BatchingVisitable<Entry<Cell, byte[]>> wrapWithColumnRangeChecking(
             TableReference tableRef,
             BatchColumnRangeSelection columnRangeSelection,

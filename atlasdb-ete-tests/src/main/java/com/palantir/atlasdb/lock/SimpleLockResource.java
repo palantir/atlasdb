@@ -18,18 +18,21 @@ package com.palantir.atlasdb.lock;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.ByteArrayLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import java.security.SecureRandom;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -70,6 +73,15 @@ public class SimpleLockResource implements LockResource {
             throw new RuntimeException(e);
         }
         return false;
+    }
+
+    @Override
+    public String lockImmutableTimestamp() {
+        LockImmutableTimestampResponse litr =
+                transactionManager.getTimelockService().lockImmutableTimestamp();
+        System.out.println(litr.getLock());
+        Uninterruptibles.sleepUninterruptibly(17, TimeUnit.SECONDS);
+        return litr.getLock().toString();
     }
 
     private SortedMap<LockDescriptor, LockMode> generateDescriptorMap(int numLocks, int descriptorSize) {

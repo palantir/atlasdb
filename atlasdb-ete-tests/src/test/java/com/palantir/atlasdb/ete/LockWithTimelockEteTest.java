@@ -16,31 +16,34 @@
 
 package com.palantir.atlasdb.ete;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.palantir.atlasdb.lock.LockResource;
 import org.junit.Test;
 
 public class LockWithTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
-    @Test
-    public void smallV1LockSucceeds() {
-        assertThat(lockResource.lockUsingLegacyLockApi(1, 100)).isTrue();
-    }
+    // @Test
+    // public void smallV1LockSucceeds() {
+    //     assertThat(lockResource.lockUsingLegacyLockApi(1, 100)).isTrue();
+    // }
+    //
+    // @Test
+    // public void smallV2LockSucceeds() {
+    //     assertThat(lockResource.lockUsingTimelockApi(1, 100)).isTrue();
+    // }
+    //
+    // @Test
+    // public void largeV1LockSucceeds() {
+    //     assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
+    // }
+    //
+    // @Test
+    // public void largeV2LockSucceeds() {
+    //     assertThat(lockResource.lockUsingTimelockApi(50, 100_000)).isTrue();
+    // }
 
     @Test
-    public void smallV2LockSucceeds() {
-        assertThat(lockResource.lockUsingTimelockApi(1, 100)).isTrue();
-    }
-
-    @Test
-    public void largeV1LockSucceeds() {
-        assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
-    }
-
-    @Test
-    public void largeV2LockSucceeds() {
-        assertThat(lockResource.lockUsingTimelockApi(50, 100_000)).isTrue();
+    public void jeremy() {
+        System.out.println("ETE_CLIENT:" + lockResource.lockImmutableTimestamp());
     }
 }

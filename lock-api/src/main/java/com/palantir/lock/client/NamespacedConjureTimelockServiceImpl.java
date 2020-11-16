@@ -75,6 +75,7 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
+        System.out.println("SERVER TOKENS = " + request.getTokens());
         return conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
     }
 

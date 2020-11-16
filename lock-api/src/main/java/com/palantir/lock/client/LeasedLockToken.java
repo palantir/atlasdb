@@ -82,4 +82,14 @@ public final class LeasedLockToken implements LockToken {
     public SafeArg<?> toSafeArg(String name) {
         return SafeArg.of(name, serverToken);
     }
+
+    @Override
+    public synchronized String toString() {
+        return "LeasedLockToken{" +
+                "serverToken=" + serverToken +
+                ", requestId=" + requestId +
+                ", lease=" + lease +
+                ", invalidated=" + invalidated +
+                '}';
+    }
 }

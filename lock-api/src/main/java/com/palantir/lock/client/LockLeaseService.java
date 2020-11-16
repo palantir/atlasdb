@@ -76,6 +76,7 @@ class LockLeaseService {
         ConjureStartTransactionsResponse conjureResponse = delegate.startTransactions(request);
         StartTransactionResponseV4 response = StartTransactionResponseV4.of(
                 conjureResponse.getImmutableTimestamp(), conjureResponse.getTimestamps(), conjureResponse.getLease());
+        System.out.println("serverToken = " + response);
 
         Lease lease = response.lease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(

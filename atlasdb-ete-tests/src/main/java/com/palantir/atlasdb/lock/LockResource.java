@@ -36,4 +36,9 @@ public interface LockResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     boolean lockUsingLegacyLockApi(@QueryParam("number") int numDescriptors, int descriptorSize);
+
+    @POST
+    @Path("lock-immutable-timestamp")
+    @Produces(MediaType.TEXT_PLAIN)
+    String lockImmutableTimestamp();
 }
