@@ -198,7 +198,7 @@ services:
     name: Multi Client Timelock Service
     default-auth: header
     package: com.palantir.atlasdb.timelock.api
-    base-path: /tl/batch
+    base-path: /tl/multi
     endpoints:
       leaderTimes:
         http: POST /lts
