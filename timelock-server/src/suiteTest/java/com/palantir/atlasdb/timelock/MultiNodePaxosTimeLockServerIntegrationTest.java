@@ -32,6 +32,8 @@ import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
@@ -50,6 +52,7 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.ConjureLockRequests;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -100,6 +103,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .toJavaDuration()
                     .plus(Duration.ofSeconds(1))
                     .toMillis());
+    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
     private NamespacedClients client;
 
@@ -488,14 +492,33 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderRespondsToMultiClientRequests() {
-        MultiClientConjureTimelockService multiClientConjureTimelockService =
-                cluster.currentLeaderFor(client.namespace()).multiClientService();
+    public void leaderCanProcessMultiClientLeaderTimeRequest() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
         Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
         List<NamespacedLeaderTime> leaderTimes =
-                multiClientConjureTimelockService.leaderTimes(AuthHeader.valueOf("Bearer omitted"), expectedNamespaces);
+                multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);
         Set<String> namespaces =
                 leaderTimes.stream().map(NamespacedLeaderTime::getNamespace).collect(Collectors.toSet());
+        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
+
+        Set<LeadershipId> leadershipIds = leaderTimes.stream()
+                .map(NamespacedLeaderTime::getLeaderTime)
+                .map(LeaderTime::id)
+                .collect(Collectors.toSet());
+        assertThat(leadershipIds).hasSameSizeAs(expectedNamespaces);
+    }
+
+    @Test
+    public void leaderCanProcessMultiClientGetCommitTimestampRequest() {
+        MultiClientConjureTimelockService service =
+                cluster.currentLeaderFor(client.namespace()).multiClientService();
+        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
+        List<NamespacedGetCommitTimestampsResponse> commitTimestamps =
+                service.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(expectedNamespaces));
+        Set<String> namespaces = commitTimestamps.stream()
+                .map(NamespacedGetCommitTimestampsResponse::getNamespace)
+                .collect(Collectors.toSet());
         assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
     }
 
@@ -527,6 +550,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                                 .withFixedDelay(
                                         Ints.checkedCast(Duration.ofSeconds(2).toMillis())))
                         .build());
+    }
+
+    private List<NamespacedGetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
+        return namespaces.stream()
+                .map(namespace -> NamespacedGetCommitTimestampsRequest.builder()
+                        .namespace(namespace)
+                        .numTimestamps(5)
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
