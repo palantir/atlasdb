@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -152,10 +154,10 @@ public class ReadTransactionShould {
             Runnable thrower, Class<? extends Exception> exception, String errorMessage) {
         try {
             thrower.run();
-            Assert.fail();
+            fail("fail");
         } catch (Exception e) {
-            Assert.assertThat(e, is(instanceOf(exception)));
-            Assert.assertThat(e.getMessage(), containsString(errorMessage));
+            assertThat(e).isInstanceOf(exception);
+            assertThat(e.getMessage()).contains(errorMessage);
             verifyNoMoreInteractions(delegateTransaction);
         }
     }

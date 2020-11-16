@@ -24,42 +24,42 @@ import org.junit.Test;
 public class HiddenTablesTest {
     @Test
     public void shouldSayTimestampIsHidden() {
-        assertThat(HiddenTables.isHidden(AtlasDbConstants.TIMESTAMP_TABLE)).isEqualTo(true);
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.TIMESTAMP_TABLE)).isTrue();
     }
 
     @Test
     public void shouldSayMetadataIsHidden() {
         assertThat(HiddenTables.isHidden(AtlasDbConstants.DEFAULT_METADATA_TABLE))
-                .isEqualTo(true);
+                .isTrue();
     }
 
     @Test
     public void shouldSayAnOldStyleLocksTableIsHidden() {
         assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks")))
-                .isEqualTo(true);
+                .isTrue();
     }
 
     @Test
     public void shouldSayANewStyleLocksTableIsHidden() {
         assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks_aaaa_123")))
-                .isEqualTo(true);
+                .isTrue();
     }
 
     @Test
     public void shouldSayANamespacedTableIsNotHidden() {
         assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table")))
-                .isEqualTo(false);
+                .isFalse();
     }
 
     @Test
     public void shouldSayANonNamespacedVisibleTableIsNotHidden() {
         assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("table")))
-                .isEqualTo(false);
+                .isFalse();
     }
 
     @Test
     public void shouldSayPersistedLocksTableIsHidden() {
         assertThat(HiddenTables.isHidden(AtlasDbConstants.PERSISTED_LOCKS_TABLE))
-                .isEqualTo(true);
+                .isTrue();
     }
 }

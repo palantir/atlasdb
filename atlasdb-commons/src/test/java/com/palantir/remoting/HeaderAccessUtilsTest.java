@@ -15,7 +15,7 @@
  */
 package com.palantir.remoting;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
@@ -71,9 +71,7 @@ public class HeaderAccessUtilsTest {
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
-        assertThat(
-                HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand),
-                is(false));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand)).isEqualTo(false);
     }
 
     @Test
@@ -93,14 +91,14 @@ public class HeaderAccessUtilsTest {
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
-        assertEquals(VALUE_2, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase())).isEqualTo(VALUE_2);
     }
 
     private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {
-        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(HEADERS, key, value), is(outcome));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(HEADERS, key, value)).isEqualTo(outcome);
     }
 
     private static void assertCaseInsensitiveGet(String key, Collection<String> expected) {
-        assertEquals(expected, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(HEADERS, key));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(HEADERS, key)).isEqualTo(expected);
     }
 }

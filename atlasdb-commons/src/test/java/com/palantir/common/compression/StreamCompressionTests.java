@@ -97,7 +97,7 @@ public class StreamCompressionTests {
         initializeStreams(uncompressedData);
         int value = decompressingStream.read();
 
-        assertEquals(uncompressedData[0] & 0xFF, value);
+        assertThat(value).isEqualTo(uncompressedData[0] & 0xFF);
         assertStreamIsEmpty(decompressingStream);
     }
 
@@ -129,7 +129,7 @@ public class StreamCompressionTests {
 
         for (int i = 0; i < uncompressedData.length; ++i) {
             int value = decompressingStream.read();
-            assertEquals(uncompressedData[i] & 0xFF, value);
+            assertThat(value).isEqualTo(uncompressedData[i] & 0xFF);
         }
         assertStreamIsEmpty(decompressingStream);
     }
@@ -142,8 +142,8 @@ public class StreamCompressionTests {
 
         byte[] decompressedData = new byte[17 * BLOCK_SIZE];
         int bytesRead = ByteStreams.read(decompressingStream, decompressedData, 0, decompressedData.length);
-        assertEquals(uncompressedData.length, bytesRead);
-        assertArrayEquals(uncompressedData, Arrays.copyOf(decompressedData, bytesRead));
+        assertThat(bytesRead).isEqualTo(uncompressedData.length);
+        assertThat(Arrays.copyOf(decompressedData, bytesRead)).isEqualTo(uncompressedData);
     }
 
     private void testStream_compressible(int streamSize) throws IOException {
@@ -177,11 +177,11 @@ public class StreamCompressionTests {
     private void verifyStreamContents(byte[] uncompressedData) throws IOException {
         byte[] decompressedData = new byte[uncompressedData.length];
         ByteStreams.read(decompressingStream, decompressedData, 0, decompressedData.length);
-        assertArrayEquals(uncompressedData, decompressedData);
+        assertThat(decompressedData).isEqualTo(uncompressedData);
         assertStreamIsEmpty(decompressingStream);
     }
 
     private void assertStreamIsEmpty(InputStream stream) throws IOException {
-        assertEquals(-1, stream.read());
+        assertThat(stream.read()).isEqualTo(-1);
     }
 }

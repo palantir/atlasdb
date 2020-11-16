@@ -15,6 +15,9 @@
  */
 package com.palantir.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,7 +60,7 @@ public class MutuallyExclusiveSetLockTest {
             thread.setDaemon(true);
             thread.start();
             Thread.sleep(100);
-            Assert.assertTrue(thread.isAlive());
+            assertThat(thread.isAlive()).isTrue();
             //            assertEquals(2, mutuallyExclusiveSetLock.syncMap.size());
         } finally {
             mutuallyExclusiveSetLock.unlock(lockOnObjects);
@@ -93,7 +96,7 @@ public class MutuallyExclusiveSetLockTest {
         } finally {
             mutuallyExclusiveSetLock.unlock(lockOnObjects);
         }
-        Assert.fail(); // should have thrown
+        fail("fail"); // should have thrown
     }
 
     /* test that the current thread owns stuff it locks. */
@@ -103,7 +106,7 @@ public class MutuallyExclusiveSetLockTest {
         List<String> asList = Arrays.asList("whatup", "dog");
         LockState<String> lockOnObjects = mutuallyExclusiveSetLock.lockOnObjects(asList);
         try {
-            Assert.assertTrue(mutuallyExclusiveSetLock.isLocked(asList));
+            assertThat(mutuallyExclusiveSetLock.isLocked(asList)).isTrue();
         } finally {
             mutuallyExclusiveSetLock.unlock(lockOnObjects);
         }
@@ -114,7 +117,7 @@ public class MutuallyExclusiveSetLockTest {
     public void testThreadDoesNotOwnUnlocked() {
         final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<String>();
         List<String> asList = Arrays.asList("whatup", "dog");
-        Assert.assertTrue(!mutuallyExclusiveSetLock.isLocked(asList));
+        assertThat(mutuallyExclusiveSetLock.isLocked(asList)).isFalse();
     }
 
     /* test that the current thread does not own stuff locked by another thread. */
@@ -142,14 +145,14 @@ public class MutuallyExclusiveSetLockTest {
         locker.start();
         try {
             Thread.sleep(1000);
-            Assert.assertFalse("locks should be held by other thread", setLock.isLocked(toLock));
+            assertThat(setLock.isLocked(toLock)).describedAs("locks should be held by other thread").isFalse();
             unlock = true;
             locker.join();
         } catch (InterruptedException e) {
             unlock = true;
-            Assert.fail("unexpected interruption: " + e);
+            fail("unexpected interruption: " + e);
         }
-        Assert.assertFalse("locks should be held by other thread", setLock.isLocked(toLock));
+        assertThat(setLock.isLocked(toLock)).describedAs("locks should be held by other thread").isFalse();
     }
 
     private Thread createThread(

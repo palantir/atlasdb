@@ -15,6 +15,8 @@
  */
 package com.palantir.util.crypto;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import java.security.MessageDigest;
@@ -26,12 +28,10 @@ public class Sha256HashTest {
     @Test
     public void testSha256() throws Exception {
         MessageDigest digest = Sha256Hash.getMessageDigest();
-        Assert.assertEquals("SHA-256", digest.getAlgorithm());
-        Assert.assertNotSame(Sha256Hash.getMessageDigest(), digest);
+        assertThat(digest.getAlgorithm()).isEqualTo("SHA-256");
+        assertThat(digest).isNotSameAs(Sha256Hash.getMessageDigest());
         byte[] result = digest.digest("Hello World".getBytes(Charsets.UTF_8));
-        Assert.assertEquals(
-                "A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E",
-                BaseEncoding.base16().encode(result));
-        Assert.assertEquals(32, result.length);
+        assertThat(BaseEncoding.base16().encode(result)).isEqualTo("A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E");
+        assertThat(result.length).isEqualTo(32);
     }
 }

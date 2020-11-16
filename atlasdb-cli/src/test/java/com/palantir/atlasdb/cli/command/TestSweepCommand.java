@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
@@ -116,15 +118,15 @@ public class TestSweepCommand {
                     Long.parseLong(scanner.findInLine("\\d+ cell values").split(" ")[0]);
             final long deletedCells = Long.parseLong(scanner.findInLine("deleted \\d+ stale versions of those cells")
                     .split(" ")[1]);
-            Assert.assertEquals(2, cellValuesExamined);
-            Assert.assertEquals(1, deletedCells);
+            assertThat(cellValuesExamined).isEqualTo(2);
+            assertThat(deletedCells).isEqualTo(1);
 
-            Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts5));
-            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
-            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), ts3), getAllTs(kvs, TABLE_ONE, "foo"));
-            Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts5));
-            Assert.assertEquals("tar", get(kvs, TABLE_TWO, "foo", mid(ts3, ts4)));
-            Assert.assertEquals(ImmutableSet.of(ts2, ts4), getAllTs(kvs, TABLE_TWO, "foo"));
+            assertThat(get(kvs, TABLE_ONE, "foo", ts5)).isEqualTo("baz");
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts3))).isEqualTo(deletedValue("bar"));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), ts3));
+            assertThat(get(kvs, TABLE_TWO, "foo", ts5)).isEqualTo("taz");
+            assertThat(get(kvs, TABLE_TWO, "foo", mid(ts3, ts4))).isEqualTo("tar");
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).isEqualTo(ImmutableSet.of(ts2, ts4));
         }
     }
 
@@ -137,9 +139,8 @@ public class TestSweepCommand {
             long ts5 = services.getManagedTimestampService().getFreshTimestamp();
             String stdout = sweep(runner, ts5);
 
-            Assert.assertFalse(stdout.contains("Swept from"));
-            Assert.assertTrue(stdout.contains(
-                    String.format("The table %s passed in to sweep does not exist", NON_EXISTING_TABLE)));
+            assertThat(stdout).doesNotContain("Swept from");
+            assertThat(stdout).contains(String.format("The table %s passed in to sweep does not exist", NON_EXISTING_TABLE));
         }
     }
 
@@ -163,15 +164,15 @@ public class TestSweepCommand {
             long ts7 = tss.getFreshTimestamp();
             sweep(runner, ts7);
 
-            Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts7));
-            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts2)));
-            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), ts4), getAllTs(kvs, TABLE_ONE, "foo"));
-            Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts7));
-            Assert.assertEquals(deletedValue("tar"), get(kvs, TABLE_TWO, "foo", mid(ts4, ts6)));
-            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts2), ts6), getAllTs(kvs, TABLE_TWO, "foo"));
-            Assert.assertEquals("jaz", get(kvs, TABLE_THREE, "foo", ts7));
-            Assert.assertEquals("jar", get(kvs, TABLE_THREE, "foo", mid(ts3, ts5)));
-            Assert.assertEquals(ImmutableSet.of(ts3, ts5), getAllTs(kvs, TABLE_THREE, "foo"));
+            assertThat(get(kvs, TABLE_ONE, "foo", ts7)).isEqualTo("baz");
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue("bar"));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), ts4));
+            assertThat(get(kvs, TABLE_TWO, "foo", ts7)).isEqualTo("taz");
+            assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue("tar"));
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts2), ts6));
+            assertThat(get(kvs, TABLE_THREE, "foo", ts7)).isEqualTo("jaz");
+            assertThat(get(kvs, TABLE_THREE, "foo", mid(ts3, ts5))).isEqualTo("jar");
+            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).isEqualTo(ImmutableSet.of(ts3, ts5));
         }
     }
 
@@ -195,15 +196,15 @@ public class TestSweepCommand {
             long ts7 = tss.getFreshTimestamp();
             sweep(runner, ts7);
 
-            Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts7));
-            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts2)));
-            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts1), ts4), getAllTs(kvs, TABLE_ONE, "foo"));
-            Assert.assertEquals("taz", get(kvs, TABLE_TWO, "foo", ts7));
-            Assert.assertEquals(deletedValue("tar"), get(kvs, TABLE_TWO, "foo", mid(ts4, ts6)));
-            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts2), ts6), getAllTs(kvs, TABLE_TWO, "foo"));
-            Assert.assertEquals("jaz", get(kvs, TABLE_THREE, "foo", ts7));
-            Assert.assertEquals(deletedValue("jar"), get(kvs, TABLE_THREE, "foo", mid(ts3, ts5)));
-            Assert.assertEquals(ImmutableSet.of(deletedTimestamp(ts3), ts5), getAllTs(kvs, TABLE_THREE, "foo"));
+            assertThat(get(kvs, TABLE_ONE, "foo", ts7)).isEqualTo("baz");
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue("bar"));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), ts4));
+            assertThat(get(kvs, TABLE_TWO, "foo", ts7)).isEqualTo("taz");
+            assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue("tar"));
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts2), ts6));
+            assertThat(get(kvs, TABLE_THREE, "foo", ts7)).isEqualTo("jaz");
+            assertThat(get(kvs, TABLE_THREE, "foo", mid(ts3, ts5))).isEqualTo(deletedValue("jar"));
+            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts3), ts5));
         }
     }
 
@@ -228,14 +229,12 @@ public class TestSweepCommand {
             long ts5 = tss.getFreshTimestamp();
             sweep(runner, ts5);
 
-            Assert.assertEquals("baz", get(kvs, TABLE_ONE, "foo", ts5));
-            Assert.assertEquals(deletedValue("bar"), get(kvs, TABLE_ONE, "foo", mid(ts1, ts3)));
-            Assert.assertEquals(deletedValue("biz"), get(kvs, TABLE_ONE, "foo", mid(ts2, ts4)));
-            Assert.assertEquals("biz", get(kvs, TABLE_ONE, "boo", mid(ts3, ts5)));
-            Assert.assertEquals(
-                    ImmutableSet.of(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4),
-                    getAllTs(kvs, TABLE_ONE, "foo"));
-            Assert.assertEquals(ImmutableSet.of(ts3), getAllTs(kvs, TABLE_ONE, "boo"));
+            assertThat(get(kvs, TABLE_ONE, "foo", ts5)).isEqualTo("baz");
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts3))).isEqualTo(deletedValue("bar"));
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts2, ts4))).isEqualTo(deletedValue("biz"));
+            assertThat(get(kvs, TABLE_ONE, "boo", mid(ts3, ts5))).isEqualTo("biz");
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4));
+            assertThat(getAllTs(kvs, TABLE_ONE, "boo")).isEqualTo(ImmutableSet.of(ts3));
         }
     }
 

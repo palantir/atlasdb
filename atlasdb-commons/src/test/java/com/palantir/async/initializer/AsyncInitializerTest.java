@@ -129,7 +129,7 @@ public class AsyncInitializerTest {
         };
 
         eventuallySuccessfulInitializer.initialize(true);
-        assertFalse(eventuallySuccessfulInitializer.isInitialized());
+        assertThat(eventuallySuccessfulInitializer.isInitialized()).isFalse();
         tickSchedulerFiveTimes(eventuallySuccessfulInitializer);
         assertThat(eventuallySuccessfulInitializer.isInitialized()).isTrue();
     }
