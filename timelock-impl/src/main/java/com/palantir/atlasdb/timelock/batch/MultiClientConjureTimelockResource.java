@@ -55,8 +55,9 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     public static UndertowService undertow(
             RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return MultiClientConjureTimelockServiceEndpoints.of(
-                new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
+        return MultiClientConjureTimelockServiceEndpoints.of(new MultiClientConjureTimelockResource(
+                redirectRetryTargeter,
+                timelockServices));
     }
 
     public static MultiClientConjureTimelockService jersey(
@@ -93,7 +94,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     private ListenableFuture<NamespacedGetCommitTimestampsResponse>
-            getNamespacedGetCommitTimestampsResponseListenableFutures(NamespacedGetCommitTimestampsRequest request) {
+    getNamespacedGetCommitTimestampsResponseListenableFutures(NamespacedGetCommitTimestampsRequest request) {
         ListenableFuture<GetCommitTimestampsResponse> commitTimestamps = getServiceForNamespace(request.getNamespace())
                 .getCommitTimestamps(
                         request.getNumTimestamps(),
