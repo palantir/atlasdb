@@ -31,6 +31,8 @@ import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
@@ -57,6 +59,7 @@ import com.palantir.tokens.auth.AuthHeader;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -482,6 +485,18 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         } finally {
             nonLeader.serverHolder().resetWireMock();
         }
+    }
+
+    @Test
+    public void leaderRespondsToMultiClientRequests() {
+        MultiClientConjureTimelockService multiClientConjureTimelockService =
+                cluster.currentLeaderFor(client.namespace()).multiClientService();
+        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
+        List<NamespacedLeaderTime> leaderTimes =
+                multiClientConjureTimelockService.leaderTimes(AuthHeader.valueOf("Bearer omitted"), expectedNamespaces);
+        Set<String> namespaces =
+                leaderTimes.stream().map(NamespacedLeaderTime::getNamespace).collect(Collectors.toSet());
+        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
     }
 
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
