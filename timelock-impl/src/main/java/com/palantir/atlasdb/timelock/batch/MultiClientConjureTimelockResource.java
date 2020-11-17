@@ -36,12 +36,17 @@ import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
 import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -90,12 +95,30 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     @Override
     public ListenableFuture<List<NamespacedStartTransactionsResponse>> startTransactions(
             AuthHeader authHeader, List<NamespacedStartTransactionsRequest> requests) {
-        // todo sudiksha: sanitize
+
+        sanityCheckStartTransactionsQueryList(requests);
         List<ListenableFuture<NamespacedStartTransactionsResponse>> futures = requests.stream()
                 .map(this::getNamespacedStartTransactionsResponseListenableFutures)
                 .collect(Collectors.toList());
 
         return handleExceptions(() -> Futures.allAsList(futures));
+    }
+
+    private void sanityCheckStartTransactionsQueryList(List<NamespacedStartTransactionsRequest> requests) {
+        Map<String, Set<UUID>> namespaceToRequestorIdsMap = requests.stream()
+                .collect(Collectors.groupingBy(
+                        NamespacedStartTransactionsRequest::getNamespace,
+                        Collectors.mapping(NamespacedStartTransactionsRequest::getRequestorId, Collectors.toSet())));
+        List<String> namespacesWithMoreThanOneTimeLockClient = KeyedStream.stream(namespaceToRequestorIdsMap)
+                .filter(requestors -> requestors.size() > 1)
+                .keys()
+                .collect(Collectors.toList());
+        if (!namespacesWithMoreThanOneTimeLockClient.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "More than one TimeLock clients are requesting to start transactions for each of the following"
+                            + " namespaces - {}. This is not allowed. Contact support immediately!",
+                    SafeArg.of("namespaces", namespacesWithMoreThanOneTimeLockClient));
+        }
     }
 
     private ListenableFuture<NamespacedLeaderTime> getNamespacedLeaderTimeListenableFutures(String namespace) {
