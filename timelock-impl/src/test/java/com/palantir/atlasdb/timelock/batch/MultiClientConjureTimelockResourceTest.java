@@ -28,18 +28,26 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
+import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsResponse;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.Lease;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,6 +65,9 @@ public class MultiClientConjureTimelockResourceTest {
     private AsyncTimelockService timelockService = mock(AsyncTimelockService.class);
     private LeaderTime leaderTime = mock(LeaderTime.class);
     private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
+    private PartitionedTimestamps partitionedTimestamps = mock(PartitionedTimestamps.class);
+    private Lease lease = mock(Lease.class);
+    private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
     private MultiClientConjureTimelockResource resource;
 
     @Before
@@ -87,6 +98,24 @@ public class MultiClientConjureTimelockResourceTest {
     }
 
     @Test
+    public void canStartTransactionsForMultipleClients() {
+        configureStartTransactionsEndPoint();
+        List<String> namespaces = ImmutableList.of("client1", "client2");
+        assertThat(Futures.getUnchecked(
+                        resource.startTransactions(AUTH_HEADER, getStartTransactionsRequests(namespaces))))
+                .isEqualTo(getStartTransactionsResponseList(namespaces));
+    }
+
+    @Test
+    public void startTransactionsThrowsWhenMultipleRequestorsQueryForSameNamespace() {
+        configureStartTransactionsEndPoint();
+        assertThatThrownBy(() -> resource.startTransactions(
+                        AUTH_HEADER, getStartTransactionsRequests(ImmutableList.of("client1", "client1"))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("More than one TimeLock client is requesting to start transactions");
+    }
+
+    @Test
     public void requestThrowsIfAnyQueryFails() {
         when(timelockService.leaderTime())
                 .thenReturn(Futures.immediateFuture(leaderTime))
@@ -107,6 +136,18 @@ public class MultiClientConjureTimelockResourceTest {
                 .collect(Collectors.toList());
     }
 
+    private List<NamespacedStartTransactionsResponse> getStartTransactionsResponseList(List<String> namespaces) {
+        return namespaces.stream()
+                .map(namespace -> NamespacedStartTransactionsResponse.builder()
+                        .namespace(namespace)
+                        .immutableTimestamp(lockImmutableTimestampResponse)
+                        .lease(lease)
+                        .timestamps(partitionedTimestamps)
+                        .lockWatchUpdate(lockWatchStateUpdate)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     private List<NamespacedGetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
         return namespaces.stream()
                 .map(namespace -> NamespacedGetCommitTimestampsRequest.builder()
@@ -116,10 +157,33 @@ public class MultiClientConjureTimelockResourceTest {
                 .collect(Collectors.toList());
     }
 
+    private List<NamespacedStartTransactionsRequest> getStartTransactionsRequests(List<String> namespaces) {
+        return namespaces.stream()
+                .map(namespace -> NamespacedStartTransactionsRequest.builder()
+                        .namespace(namespace)
+                        .numTransactions(5)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     private List<NamespacedLeaderTime> getLeaderTimesForNamespaces(Set<String> namespaces) {
         return namespaces.stream()
                 .map(namespace -> NamespacedLeaderTime.of(namespace, leaderTime))
                 .collect(Collectors.toList());
+    }
+
+    public void configureStartTransactionsEndPoint() {
+        ConjureStartTransactionsResponse startTransactionsResponse = ConjureStartTransactionsResponse.builder()
+                .immutableTimestamp(lockImmutableTimestampResponse)
+                .lease(lease)
+                .timestamps(partitionedTimestamps)
+                .lockWatchUpdate(lockWatchStateUpdate)
+                .build();
+
+        when(timelockService.startTransactionsWithWatches(any()))
+                .thenReturn(Futures.immediateFuture(startTransactionsResponse));
     }
 
     private static URL url(String url) {

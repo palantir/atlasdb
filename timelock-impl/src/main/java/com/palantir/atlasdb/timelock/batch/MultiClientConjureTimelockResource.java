@@ -115,7 +115,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                 .collect(Collectors.toList());
         if (!namespacesWithMoreThanOneTimeLockClient.isEmpty()) {
             throw new SafeIllegalStateException(
-                    "More than one TimeLock clients are requesting to start transactions for each of the following"
+                    "More than one TimeLock client is requesting to start transactions for each of the following"
                             + " namespaces - {}. This is not allowed. Contact support immediately!",
                     SafeArg.of("namespaces", namespacesWithMoreThanOneTimeLockClient));
         }
@@ -149,8 +149,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     private ListenableFuture<NamespacedStartTransactionsResponse>
             getNamespacedStartTransactionsResponseListenableFutures(NamespacedStartTransactionsRequest request) {
-        ListenableFuture<ConjureStartTransactionsResponse> commitTimestamps = getServiceForNamespace(
-                        request.getNamespace())
+        ListenableFuture<ConjureStartTransactionsResponse> transactions = getServiceForNamespace(request.getNamespace())
                 .startTransactionsWithWatches(ConjureStartTransactionsRequest.builder()
                         .requestId(request.getRequestId())
                         .requestorId(request.getRequestorId())
@@ -158,7 +157,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                         .numTransactions(request.getNumTransactions())
                         .build());
         return Futures.transform(
-                commitTimestamps,
+                transactions,
                 response -> NamespacedStartTransactionsResponse.builder()
                         .namespace(request.getNamespace())
                         .immutableTimestamp(response.getImmutableTimestamp())
