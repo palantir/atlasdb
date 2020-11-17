@@ -50,8 +50,12 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
+    private static final Logger log = LoggerFactory.getLogger(MultiClientConjureTimelockResource.class);
+
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
 
@@ -95,7 +99,6 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     @Override
     public ListenableFuture<List<NamespacedStartTransactionsResponse>> startTransactions(
             AuthHeader authHeader, List<NamespacedStartTransactionsRequest> requests) {
-
         sanityCheckStartTransactionsQueryList(requests);
         List<ListenableFuture<NamespacedStartTransactionsResponse>> futures = requests.stream()
                 .map(this::getNamespacedStartTransactionsResponseListenableFutures)
@@ -114,10 +117,11 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                 .keys()
                 .collect(Collectors.toList());
         if (!namespacesWithMoreThanOneTimeLockClient.isEmpty()) {
-            throw new SafeIllegalStateException(
+            log.error(
                     "More than one TimeLock client is requesting to start transactions for each of the following"
                             + " namespaces - {}. This is not allowed. Contact support immediately!",
                     SafeArg.of("namespaces", namespacesWithMoreThanOneTimeLockClient));
+            throw new SafeIllegalStateException("Multiple clients configured for single namespace.");
         }
     }
 

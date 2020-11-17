@@ -37,11 +37,14 @@ import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
+import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
+import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
@@ -586,6 +589,38 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         });
     }
 
+    @Test
+    public void leaderCanProcessMultiClientStartTransactionsRequest() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
+        List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
+
+        List<NamespacedStartTransactionsResponse> startTransactions =
+                multiClientConjureTimelockService.startTransactions(
+                        AUTH_HEADER, defaultNamespacedStartTransactionsRequests(expectedNamespaces));
+        Set<String> namespaces = startTransactions.stream()
+                .map(NamespacedStartTransactionsResponse::getNamespace)
+                .collect(Collectors.toSet());
+        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
+
+        Set<UUID> leadershipIds = startTransactions.stream()
+                .map(NamespacedStartTransactionsResponse::getLockWatchUpdate)
+                .map(LockWatchStateUpdate::logId)
+                .collect(Collectors.toSet());
+        assertThat(leadershipIds).hasSameSizeAs(expectedNamespaces);
+    }
+
+    @Test
+    public void startTransactionsThrowsWhenMultipleRequestorsQueryForSameNamespace() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
+        List<String> expectedNamespaces = ImmutableList.of("alpha", "alpha");
+
+        assertThatThrownBy(() -> multiClientConjureTimelockService.startTransactions(
+                        AUTH_HEADER, defaultNamespacedStartTransactionsRequests(expectedNamespaces)))
+                .isInstanceOf(UnknownRemoteException.class);
+    }
+
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
         int threadLimit = startingThreads + 1000;
         if (nonLeaderDown) {
@@ -628,6 +663,18 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     private GetCommitTimestampsRequest defaultCommitTimestampRequest() {
         return GetCommitTimestampsRequest.builder().numTimestamps(5).build();
+    }
+
+    private List<NamespacedStartTransactionsRequest> defaultNamespacedStartTransactionsRequests(
+            List<String> namespaces) {
+        return namespaces.stream()
+                .map(namespace -> NamespacedStartTransactionsRequest.builder()
+                        .namespace(namespace)
+                        .numTransactions(5)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
