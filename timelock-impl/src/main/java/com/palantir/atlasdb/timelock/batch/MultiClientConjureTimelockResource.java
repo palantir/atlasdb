@@ -25,12 +25,16 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
+import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.NamespacedStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
@@ -83,6 +87,17 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         return handleExceptions(() -> Futures.allAsList(futures));
     }
 
+    @Override
+    public ListenableFuture<List<NamespacedStartTransactionsResponse>> startTransactions(
+            AuthHeader authHeader, List<NamespacedStartTransactionsRequest> requests) {
+        // todo sudiksha: sanitize
+        List<ListenableFuture<NamespacedStartTransactionsResponse>> futures = requests.stream()
+                .map(this::getNamespacedStartTransactionsResponseListenableFutures)
+                .collect(Collectors.toList());
+
+        return handleExceptions(() -> Futures.allAsList(futures));
+    }
+
     private ListenableFuture<NamespacedLeaderTime> getNamespacedLeaderTimeListenableFutures(String namespace) {
         ListenableFuture<LeaderTime> leaderTimeListenableFuture =
                 getServiceForNamespace(namespace).leaderTime();
@@ -104,6 +119,28 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                         .namespace(request.getNamespace())
                         .inclusiveLower(response.getInclusiveLower())
                         .inclusiveUpper(response.getInclusiveUpper())
+                        .lockWatchUpdate(response.getLockWatchUpdate())
+                        .build(),
+                MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<NamespacedStartTransactionsResponse>
+            getNamespacedStartTransactionsResponseListenableFutures(NamespacedStartTransactionsRequest request) {
+        ListenableFuture<ConjureStartTransactionsResponse> commitTimestamps = getServiceForNamespace(
+                        request.getNamespace())
+                .startTransactionsWithWatches(ConjureStartTransactionsRequest.builder()
+                        .requestId(request.getRequestId())
+                        .requestorId(request.getRequestorId())
+                        .lastKnownVersion(request.getLastKnownVersion())
+                        .numTransactions(request.getNumTransactions())
+                        .build());
+        return Futures.transform(
+                commitTimestamps,
+                response -> NamespacedStartTransactionsResponse.builder()
+                        .namespace(request.getNamespace())
+                        .immutableTimestamp(response.getImmutableTimestamp())
+                        .timestamps(response.getTimestamps())
+                        .lease(response.getLease())
                         .lockWatchUpdate(response.getLockWatchUpdate())
                         .build(),
                 MoreExecutors.directExecutor());
@@ -137,6 +174,12 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public List<NamespacedGetCommitTimestampsResponse> getCommitTimestamps(
                 AuthHeader authHeader, List<NamespacedGetCommitTimestampsRequest> requests) {
             return unwrap(resource.getCommitTimestamps(authHeader, requests));
+        }
+
+        @Override
+        public List<NamespacedStartTransactionsResponse> startTransactions(
+                AuthHeader authHeader, List<NamespacedStartTransactionsRequest> requests) {
+            return unwrap(resource.startTransactions(authHeader, requests));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

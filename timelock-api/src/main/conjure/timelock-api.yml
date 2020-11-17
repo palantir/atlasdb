@@ -125,6 +125,20 @@ types:
           inclusiveLower: Long
           inclusiveUpper: Long
           lockWatchUpdate: LockWatchStateUpdate
+      NamespacedStartTransactionsRequest:
+        fields:
+          namespace: string
+          requestId: uuid
+          requestorId: uuid
+          numTransactions: integer
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
+      NamespacedStartTransactionsResponse:
+        fields:
+          namespace: string
+          immutableTimestamp: LockImmutableTimestampResponse
+          timestamps: PartitionedTimestamps
+          lease: Lease
+          lockWatchUpdate: LockWatchStateUpdate
 
 services:
   ConjureTimelockService:
@@ -206,11 +220,18 @@ services:
           namespaces: set<string>
         returns: list<NamespacedLeaderTime>
         docs: |
-          Version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes for a set of namespaces.
+          Version of ConjureTimelockService#leaderTime endpoint that acquires leaderTimes for a set of namespaces.
       getCommitTimestamps:
         http: POST /gcts
         args:
           requests: list<NamespacedGetCommitTimestampsRequest>
         returns: list<NamespacedGetCommitTimestampsResponse>
         docs: |
-          Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
+          Version of ConjureTimelockService#getCommitTimestamps that acquires commit timestamps for multiple namespaces.
+      startTransactions:
+        http: POST /sts
+        args:
+          requests: list<NamespacedStartTransactionsRequest>
+        returns: list<NamespacedStartTransactionsResponse>
+        docs: |
+          Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.
