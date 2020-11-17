@@ -495,8 +495,10 @@ public final class LockServiceImpl
             case BLOCK_INDEFINITELY:
             case BLOCK_INDEFINITELY_THEN_RELEASE:
                 return true;
+            default:
+                throw new SafeIllegalStateException(
+                        "Unrecognized blockingMode", SafeArg.of("blockingMode", blockingMode));
         }
-        throw new SafeIllegalStateException("Unhandled BlockingMode", SafeArg.of("blockingMode", blockingMode))
     }
 
     private void tryLocks(
@@ -590,7 +592,8 @@ public final class LockServiceImpl
                 lock.lockInterruptibly();
                 return null;
             default:
-                throw new IllegalArgumentException("blockingMode = " + blockingMode);
+                throw new SafeIllegalStateException(
+                        "Unrecognized blockingMode", SafeArg.of("blockingMode", blockingMode));
         }
     }
 
