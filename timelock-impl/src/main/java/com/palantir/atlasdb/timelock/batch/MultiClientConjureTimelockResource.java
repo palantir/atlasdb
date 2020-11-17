@@ -20,15 +20,19 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
+import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
@@ -47,6 +51,17 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
             RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
+    }
+
+    public static UndertowService undertow(
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+        return MultiClientConjureTimelockServiceEndpoints.of(
+                new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
+    }
+
+    public static MultiClientConjureTimelockService jersey(
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+        return new JerseyAdapter(new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
     @Override
@@ -104,5 +119,28 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     private LockWatchVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
         return LockWatchVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
+    }
+
+    public static final class JerseyAdapter implements MultiClientConjureTimelockService {
+        private final MultiClientConjureTimelockResource resource;
+
+        private JerseyAdapter(MultiClientConjureTimelockResource resource) {
+            this.resource = resource;
+        }
+
+        @Override
+        public List<NamespacedLeaderTime> leaderTimes(AuthHeader authHeader, Set<String> namespaces) {
+            return unwrap(resource.leaderTimes(authHeader, namespaces));
+        }
+
+        @Override
+        public List<NamespacedGetCommitTimestampsResponse> getCommitTimestamps(
+                AuthHeader authHeader, List<NamespacedGetCommitTimestampsRequest> requests) {
+            return unwrap(resource.getCommitTimestamps(authHeader, requests));
+        }
+
+        private static <T> T unwrap(ListenableFuture<T> future) {
+            return AtlasFutures.getUnchecked(future);
+        }
     }
 }
