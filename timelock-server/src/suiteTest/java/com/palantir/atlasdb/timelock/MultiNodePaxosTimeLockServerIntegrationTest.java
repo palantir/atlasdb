@@ -550,7 +550,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             LeaderTime conjureTimelockServiceLeaderTime = leader.client(namespacedLeaderTime.getNamespace())
                     .namespacedConjureTimelockService()
                     .leaderTime();
-            assertThat(namespacedLeaderTime.getLeaderTime().id()).isEqualTo(conjureTimelockServiceLeaderTime.id());
+            assertThat(conjureTimelockServiceLeaderTime.id())
+                    .isEqualTo(namespacedLeaderTime.getLeaderTime().id());
         });
     }
 
@@ -573,14 +574,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                             namespacedGetCommitTimestampsResponse.getNamespace())
                     .namespacedConjureTimelockService()
                     .getCommitTimestamps(defaultCommitTimestampRequest());
-            assertThat(namespacedGetCommitTimestampsResponse
+            assertThat(conjureTimelockServiceGetCommitTimestampResponse
                             .getLockWatchUpdate()
                             .logId())
-                    .isEqualTo(conjureTimelockServiceGetCommitTimestampResponse
+                    .isEqualTo(namespacedGetCommitTimestampsResponse
                             .getLockWatchUpdate()
                             .logId());
-            assertThat(namespacedGetCommitTimestampsResponse.getInclusiveUpper())
-                    .isEqualTo(conjureTimelockServiceGetCommitTimestampResponse.getInclusiveLower() - 1);
+            assertThat(conjureTimelockServiceGetCommitTimestampResponse.getInclusiveLower())
+                    .as("timestamps should contiguously increase per namespace if there are no elections.")
+                    .isEqualTo(namespacedGetCommitTimestampsResponse.getInclusiveUpper() + 1);
         });
     }
 
