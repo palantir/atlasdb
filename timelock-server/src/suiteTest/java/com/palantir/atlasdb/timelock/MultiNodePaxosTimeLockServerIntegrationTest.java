@@ -436,8 +436,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             for (int i = 0; i < 10_000; i++) { // Needed as it takes a while for the thread buildup to occur
                 client.getFreshTimestamp();
                 assertNumberOfThreadsReasonable(
-                        startingNumThreads, ManagementFactory.getThreadMXBean().getThreadCount(),
-    isNonLeaderTakenOut);
+                        startingNumThreads, ManagementFactory.getThreadMXBean().getThreadCount(), isNonLeaderTakenOut);
                 if (i == 1_000) {
                     makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
                     isNonLeaderTakenOut = true;
@@ -481,8 +480,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         try {
             for (int i = 0; i < 1_800; i++) { // Needed as it takes a while for the thread buildup to occur
                 assertNumberOfThreadsReasonable(
-                        startingNumThreads, ManagementFactory.getThreadMXBean().getThreadCount(),
-    isNonLeaderTakenOut);
+                        startingNumThreads, ManagementFactory.getThreadMXBean().getThreadCount(), isNonLeaderTakenOut);
                 cluster.currentLeaderFor(client.namespace())
                         .timeLockManagementService()
                         .achieveConsensus(AuthHeader.valueOf("Bearer pqrstuv"), ImmutableSet.of(client.namespace()));
