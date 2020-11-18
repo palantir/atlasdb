@@ -40,8 +40,8 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
@@ -116,13 +116,12 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                 .filter(requestors -> requestors.size() > 1)
                 .keys()
                 .collect(Collectors.toList());
-        if (!namespacesWithMoreThanOneTimeLockClient.isEmpty()) {
-            log.error(
-                    "More than one TimeLock client is requesting to start transactions for each of the following"
-                            + " namespaces - {}. This is not allowed. Contact support immediately!",
-                    SafeArg.of("namespaces", namespacesWithMoreThanOneTimeLockClient));
-            throw new SafeIllegalStateException("Multiple clients configured for single namespace.");
-        }
+        Preconditions.checkState(
+                namespacesWithMoreThanOneTimeLockClient.isEmpty(),
+                "More than one TimeLock client is "
+                        + "requesting to start transactions for each of the following"
+                        + " namespaces - {}. This is not allowed. Contact support immediately!",
+                SafeArg.of("namespaces", namespacesWithMoreThanOneTimeLockClient));
     }
 
     private ListenableFuture<NamespacedLeaderTime> getNamespacedLeaderTimeListenableFutures(String namespace) {
