@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.timelock.batch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -24,19 +26,17 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
-import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
-import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -65,47 +65,25 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     @Override
-    public ListenableFuture<List<NamespacedLeaderTime>> leaderTimes(AuthHeader authHeader, Set<String> namespaces) {
-        List<ListenableFuture<NamespacedLeaderTime>> futures = namespaces.stream()
-                .map(this::getNamespacedLeaderTimeListenableFutures)
-                .collect(Collectors.toList());
+    public ListenableFuture<LeaderTimes> leaderTimes(AuthHeader authHeader, Set<Namespace> namespaces) {
+        List<ListenableFuture<Map.Entry<Namespace, LeaderTime>>> futures =
+                namespaces.stream().map(this::getNamespacedLeaderTimes).collect(Collectors.toList());
 
-        return handleExceptions(() -> Futures.allAsList(futures));
+        return handleExceptions(() -> {
+            ListenableFuture<List<Entry<Namespace, LeaderTime>>> listListenableFuture = Futures.allAsList(futures);
+            return Futures.transform(
+                    listListenableFuture,
+                    entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
+                    MoreExecutors.directExecutor());
+        });
     }
 
-    @Override
-    public ListenableFuture<List<NamespacedGetCommitTimestampsResponse>> getCommitTimestamps(
-            AuthHeader authHeader, List<NamespacedGetCommitTimestampsRequest> requests) {
-        List<ListenableFuture<NamespacedGetCommitTimestampsResponse>> futures = requests.stream()
-                .map(this::getNamespacedGetCommitTimestampsResponseListenableFutures)
-                .collect(Collectors.toList());
-
-        return handleExceptions(() -> Futures.allAsList(futures));
-    }
-
-    private ListenableFuture<NamespacedLeaderTime> getNamespacedLeaderTimeListenableFutures(String namespace) {
+    private ListenableFuture<Map.Entry<Namespace, LeaderTime>> getNamespacedLeaderTimes(Namespace namespace) {
         ListenableFuture<LeaderTime> leaderTimeListenableFuture =
-                getServiceForNamespace(namespace).leaderTime();
+                getServiceForNamespace(namespace.get()).leaderTime();
         return Futures.transform(
                 leaderTimeListenableFuture,
-                leaderTime -> NamespacedLeaderTime.of(namespace, leaderTime),
-                MoreExecutors.directExecutor());
-    }
-
-    private ListenableFuture<NamespacedGetCommitTimestampsResponse>
-            getNamespacedGetCommitTimestampsResponseListenableFutures(NamespacedGetCommitTimestampsRequest request) {
-        ListenableFuture<GetCommitTimestampsResponse> commitTimestamps = getServiceForNamespace(request.getNamespace())
-                .getCommitTimestamps(
-                        request.getNumTimestamps(),
-                        request.getLastKnownVersion().map(this::toIdentifiedVersion));
-        return Futures.transform(
-                commitTimestamps,
-                response -> NamespacedGetCommitTimestampsResponse.builder()
-                        .namespace(request.getNamespace())
-                        .inclusiveLower(response.getInclusiveLower())
-                        .inclusiveUpper(response.getInclusiveUpper())
-                        .lockWatchUpdate(response.getLockWatchUpdate())
-                        .build(),
+                leaderTime -> Maps.immutableEntry(namespace, leaderTime),
                 MoreExecutors.directExecutor());
     }
 
@@ -117,10 +95,6 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         return exceptionHandler.handleExceptions(supplier);
     }
 
-    private LockWatchVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
-        return LockWatchVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
-    }
-
     public static final class JerseyAdapter implements MultiClientConjureTimelockService {
         private final MultiClientConjureTimelockResource resource;
 
@@ -129,14 +103,8 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         }
 
         @Override
-        public List<NamespacedLeaderTime> leaderTimes(AuthHeader authHeader, Set<String> namespaces) {
+        public LeaderTimes leaderTimes(AuthHeader authHeader, Set<Namespace> namespaces) {
             return unwrap(resource.leaderTimes(authHeader, namespaces));
-        }
-
-        @Override
-        public List<NamespacedGetCommitTimestampsResponse> getCommitTimestamps(
-                AuthHeader authHeader, List<NamespacedGetCommitTimestampsRequest> requests) {
-            return unwrap(resource.getCommitTimestamps(authHeader, requests));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
