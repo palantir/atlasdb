@@ -16,26 +16,24 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
 
 public class NamespacedCoalescingLeaderTimeGetter implements LeaderTimeGetter {
-    private final DisruptorAutobatcher<Namespace, LeaderTime> delegate;
+    private final LeaderTimeCoalescingBatcher batcher;
     private final Namespace namespace;
 
-    public NamespacedCoalescingLeaderTimeGetter(String namespace, DisruptorAutobatcher<Namespace, LeaderTime> batcher) {
+    public NamespacedCoalescingLeaderTimeGetter(String namespace, LeaderTimeCoalescingBatcher batcher) {
         this.namespace = Namespace.of(namespace);
-        this.delegate = batcher;
+        this.batcher = batcher;
     }
 
     public LeaderTime leaderTime() {
-        return AtlasFutures.getUnchecked(delegate.apply(namespace));
+        return batcher.apply(namespace);
     }
 
     @Override
     public void close() {
-        delegate.close();
+        batcher.close();
     }
 }
