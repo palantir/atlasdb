@@ -33,7 +33,6 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -75,8 +74,7 @@ public class MultiClientConjureTimelockResourceTest {
     }
 
     private LeaderTimes getLeaderTimesForNamespaces(Set<Namespace> namespaces) {
-        Map<Namespace, LeaderTime> collect = namespaces.stream().collect(Collectors.toMap(x -> x, x -> leaderTime));
-        return LeaderTimes.of(collect);
+        return LeaderTimes.of(namespaces.stream().collect(Collectors.toMap(x -> x, x -> leaderTime)));
     }
 
     private static URL url(String url) {

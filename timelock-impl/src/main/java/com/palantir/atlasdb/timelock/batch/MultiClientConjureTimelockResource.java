@@ -36,7 +36,6 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -69,26 +68,23 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         List<ListenableFuture<Map.Entry<Namespace, LeaderTime>>> futures =
                 namespaces.stream().map(this::getNamespacedLeaderTimes).collect(Collectors.toList());
 
-        return handleExceptions(() -> {
-            ListenableFuture<List<Entry<Namespace, LeaderTime>>> listListenableFuture = Futures.allAsList(futures);
-            return Futures.transform(
-                    listListenableFuture,
-                    entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
-                    MoreExecutors.directExecutor());
-        });
+        return handleExceptions(() -> Futures.transform(
+                Futures.allAsList(futures),
+                entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
+                MoreExecutors.directExecutor()));
     }
 
     private ListenableFuture<Map.Entry<Namespace, LeaderTime>> getNamespacedLeaderTimes(Namespace namespace) {
         ListenableFuture<LeaderTime> leaderTimeListenableFuture =
-                getServiceForNamespace(namespace.get()).leaderTime();
+                getServiceForNamespace(namespace).leaderTime();
         return Futures.transform(
                 leaderTimeListenableFuture,
                 leaderTime -> Maps.immutableEntry(namespace, leaderTime),
                 MoreExecutors.directExecutor());
     }
 
-    private AsyncTimelockService getServiceForNamespace(String namespace) {
-        return timelockServices.apply(namespace);
+    private AsyncTimelockService getServiceForNamespace(Namespace namespace) {
+        return timelockServices.apply(namespace.get());
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
