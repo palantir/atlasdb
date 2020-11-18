@@ -1184,7 +1184,7 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
+                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, Optional.empty());
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 

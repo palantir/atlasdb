@@ -30,6 +30,7 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
@@ -42,9 +43,10 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private RemoteTimelockServiceAdapter(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
-            LockWatchEventCache lockWatchEventCache) {
+            LockWatchEventCache lockWatchEventCache,
+            Optional<LeaderTimeGetter> leaderTimeGetter) {
         this.rpcClient = rpcClient;
-        this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
+        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
         this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
@@ -54,7 +56,15 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
+        return create(rpcClient, conjureClient, lockWatchEventCache, Optional.empty());
+    }
+
+    public static RemoteTimelockServiceAdapter create(
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureClient,
+            LockWatchEventCache lockWatchEventCache,
+            Optional<LeaderTimeGetter> leaderTimeGetter) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter);
     }
 
     @Override

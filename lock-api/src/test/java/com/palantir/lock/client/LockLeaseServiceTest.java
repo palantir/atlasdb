@@ -49,6 +49,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -92,7 +93,7 @@ public class LockLeaseServiceTest {
             ConjureUnlockRequest request = inv.getArgument(0);
             return ConjureUnlockResponse.of(request.getTokens());
         });
-        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID);
+        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, Optional.empty());
     }
 
     @Test

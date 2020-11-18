@@ -27,7 +27,6 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -47,19 +46,21 @@ import java.util.stream.Collectors;
 class LockLeaseService {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
-    private final CoalescingSupplier<LeaderTime> time;
+    private final LeaderTimeGetter leaderTimeGetter;
     private final BlockEnforcingLockService lockService;
 
     @VisibleForTesting
-    LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId) {
+    LockLeaseService(
+            NamespacedConjureTimelockService delegate, UUID clientId, Optional<LeaderTimeGetter> leaderTimeGetter) {
         this.delegate = delegate;
         this.clientId = clientId;
-        this.time = new CoalescingSupplier<>(delegate::leaderTime);
+        this.leaderTimeGetter = leaderTimeGetter.orElseGet(() -> new CoalescingLeaderTimeGetter(delegate));
         this.lockService = BlockEnforcingLockService.create(delegate);
     }
 
-    static LockLeaseService create(NamespacedConjureTimelockService conjureTimelock) {
-        return new LockLeaseService(conjureTimelock, UUID.randomUUID());
+    static LockLeaseService create(
+            NamespacedConjureTimelockService conjureTimelock, Optional<LeaderTimeGetter> leaderTimeGetter) {
+        return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter);
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
@@ -128,7 +129,7 @@ class LockLeaseService {
             return uncastedTokens;
         }
 
-        LeaderTime leaderTime = time.get();
+        LeaderTime leaderTime = leaderTimeGetter.leaderTime();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 
         Set<LeasedLockToken> validByLease =
