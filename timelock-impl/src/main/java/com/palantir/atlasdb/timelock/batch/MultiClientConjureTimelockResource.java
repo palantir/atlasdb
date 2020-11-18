@@ -50,12 +50,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
-    private static final Logger log = LoggerFactory.getLogger(MultiClientConjureTimelockResource.class);
-
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
 

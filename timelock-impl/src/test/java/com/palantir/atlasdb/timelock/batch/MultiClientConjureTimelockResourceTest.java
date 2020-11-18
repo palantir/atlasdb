@@ -174,7 +174,7 @@ public class MultiClientConjureTimelockResourceTest {
                 .collect(Collectors.toList());
     }
 
-    public void configureStartTransactionsEndPoint() {
+    private void configureStartTransactionsEndPoint() {
         ConjureStartTransactionsResponse startTransactionsResponse = ConjureStartTransactionsResponse.builder()
                 .immutableTimestamp(lockImmutableTimestampResponse)
                 .lease(lease)
