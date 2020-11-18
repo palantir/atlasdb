@@ -18,8 +18,6 @@ package com.palantir.atlasdb.timelock.batch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -28,17 +26,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
+import com.palantir.atlasdb.timelock.api.LeaderTimes;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -51,12 +46,9 @@ public class MultiClientConjureTimelockResourceTest {
     private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
-    private static final int COMMIT_TS_LOWER_INCLUSIVE = 1;
-    private static final int COMMIT_TS_UPPER_INCLUSIVE = 5;
 
     private AsyncTimelockService timelockService = mock(AsyncTimelockService.class);
     private LeaderTime leaderTime = mock(LeaderTime.class);
-    private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
     private MultiClientConjureTimelockResource resource;
 
     @Before
@@ -67,23 +59,9 @@ public class MultiClientConjureTimelockResourceTest {
     @Test
     public void canGetLeaderTimesForMultipleClients() {
         when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
-        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        Set<Namespace> namespaces = ImmutableSet.of(Namespace.of("client1"), Namespace.of("client2"));
         assertThat(Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
                 .isEqualTo(getLeaderTimesForNamespaces(namespaces));
-    }
-
-    @Test
-    public void canGetCommitTimestampsForMultipleClients() {
-        GetCommitTimestampsResponse getCommitTimestampsResponse = GetCommitTimestampsResponse.of(
-                COMMIT_TS_LOWER_INCLUSIVE, COMMIT_TS_UPPER_INCLUSIVE, lockWatchStateUpdate);
-
-        when(timelockService.getCommitTimestamps(anyInt(), any()))
-                .thenReturn(Futures.immediateFuture(getCommitTimestampsResponse));
-
-        Set<String> namespaces = ImmutableSet.of("client1", "client2");
-        assertThat(Futures.getUnchecked(
-                        resource.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
-                .isEqualTo(getGetCommitTimestampsResponseList(namespaces));
     }
 
     @Test
@@ -91,35 +69,14 @@ public class MultiClientConjureTimelockResourceTest {
         when(timelockService.leaderTime())
                 .thenReturn(Futures.immediateFuture(leaderTime))
                 .thenThrow(new BlockingTimeoutException(""));
-        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        Set<Namespace> namespaces = ImmutableSet.of(Namespace.of("client1"), Namespace.of("client2"));
         assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
                 .isInstanceOf(BlockingTimeoutException.class);
     }
 
-    private List<NamespacedGetCommitTimestampsResponse> getGetCommitTimestampsResponseList(Set<String> namespaces) {
-        return namespaces.stream()
-                .map(namespace -> NamespacedGetCommitTimestampsResponse.builder()
-                        .namespace(namespace)
-                        .inclusiveLower(COMMIT_TS_LOWER_INCLUSIVE)
-                        .inclusiveUpper(COMMIT_TS_UPPER_INCLUSIVE)
-                        .lockWatchUpdate(lockWatchStateUpdate)
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    private List<NamespacedGetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
-        return namespaces.stream()
-                .map(namespace -> NamespacedGetCommitTimestampsRequest.builder()
-                        .namespace(namespace)
-                        .numTimestamps(4)
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    private List<NamespacedLeaderTime> getLeaderTimesForNamespaces(Set<String> namespaces) {
-        return namespaces.stream()
-                .map(namespace -> NamespacedLeaderTime.of(namespace, leaderTime))
-                .collect(Collectors.toList());
+    private LeaderTimes getLeaderTimesForNamespaces(Set<Namespace> namespaces) {
+        Map<Namespace, LeaderTime> collect = namespaces.stream().collect(Collectors.toMap(x -> x, x -> leaderTime));
+        return LeaderTimes.of(collect);
     }
 
     private static URL url(String url) {
