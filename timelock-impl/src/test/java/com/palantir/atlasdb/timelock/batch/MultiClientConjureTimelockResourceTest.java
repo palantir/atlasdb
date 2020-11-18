@@ -53,7 +53,6 @@ public class MultiClientConjureTimelockResourceTest {
 
     private Map<String, AsyncTimelockService> namespaces = new HashMap();
     private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
-
     private MultiClientConjureTimelockResource resource;
 
     @Before
@@ -88,6 +87,7 @@ public class MultiClientConjureTimelockResourceTest {
         String throwingClient = "alpha";
         Set<Namespace> namespaces = ImmutableSet.of(Namespace.of(throwingClient), Namespace.of("beta"));
         when(getServiceForClient(throwingClient).leaderTime()).thenThrow(new BlockingTimeoutException(""));
+
         assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
                 .isInstanceOf(BlockingTimeoutException.class);
     }
