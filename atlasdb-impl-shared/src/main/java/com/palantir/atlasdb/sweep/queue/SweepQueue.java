@@ -83,7 +83,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             IntSupplier partitionBatchLimitSupplier,
             Supplier<Set<TableReference>> tablesToFilterOut) {
         return SweepQueueFactory.create(
-                metrics, kvs, timelock, shardsConfig, partitionBatchLimitSupplier, tablesToFilterOut)
+                        metrics, kvs, timelock, shardsConfig, partitionBatchLimitSupplier, tablesToFilterOut)
                 .createWriter();
     }
 

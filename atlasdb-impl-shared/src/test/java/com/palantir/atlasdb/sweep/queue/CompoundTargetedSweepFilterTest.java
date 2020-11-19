@@ -27,25 +27,19 @@ import org.junit.Test;
 
 public class CompoundTargetedSweepFilterTest {
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("table.one");
-    private static final WriteInfo WRITE_INFO_1 = WriteInfo.write(
-            TABLE_REFERENCE,
-            Cell.create(PtBytes.toBytes("fire"), PtBytes.toBytes("water")),
-            42L);
-    private static final WriteInfo WRITE_INFO_2 = WriteInfo.write(
-            TABLE_REFERENCE,
-            Cell.create(PtBytes.toBytes("order"), PtBytes.toBytes("chaos")),
-            42L);
-    private static final WriteInfo WRITE_INFO_3 = WriteInfo.write(
-            TABLE_REFERENCE,
-            Cell.create(PtBytes.toBytes("apple"), PtBytes.toBytes("banana")),
-            42L);
+    private static final WriteInfo WRITE_INFO_1 =
+            WriteInfo.write(TABLE_REFERENCE, Cell.create(PtBytes.toBytes("fire"), PtBytes.toBytes("water")), 42L);
+    private static final WriteInfo WRITE_INFO_2 =
+            WriteInfo.write(TABLE_REFERENCE, Cell.create(PtBytes.toBytes("order"), PtBytes.toBytes("chaos")), 42L);
+    private static final WriteInfo WRITE_INFO_3 =
+            WriteInfo.write(TABLE_REFERENCE, Cell.create(PtBytes.toBytes("apple"), PtBytes.toBytes("banana")), 42L);
 
     private final TargetedSweepFilter FILTER_OUT_1 =
             cellsToDelete -> Sets.difference(ImmutableSet.copyOf(cellsToDelete), ImmutableSet.of(WRITE_INFO_1));
     private final TargetedSweepFilter FILTER_OUT_2 =
             cellsToDelete -> Sets.difference(ImmutableSet.copyOf(cellsToDelete), ImmutableSet.of(WRITE_INFO_2));
-    private final TargetedSweepFilter COMPOUND_FILTER = new CompoundTargetedSweepFilter(
-            ImmutableSet.of(FILTER_OUT_1, FILTER_OUT_2));
+    private final TargetedSweepFilter COMPOUND_FILTER =
+            new CompoundTargetedSweepFilter(ImmutableSet.of(FILTER_OUT_1, FILTER_OUT_2));
 
     @Test
     public void appliesAllFilters() {

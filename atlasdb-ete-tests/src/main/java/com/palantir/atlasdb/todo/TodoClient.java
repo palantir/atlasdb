@@ -271,7 +271,8 @@ public class TodoClient {
 
     public void writeAndDeleteFromGoodAndBadTables() {
         // TODO (jkong): Actually create the tables, like, properly.
-        byte[] thoroughSweepMetadata = TableMetadata.builder().nameLogSafety(LogSafety.SAFE)
+        byte[] thoroughSweepMetadata = TableMetadata.builder()
+                .nameLogSafety(LogSafety.SAFE)
                 .sweepStrategy(SweepStrategy.CONSERVATIVE)
                 .build()
                 .persistToBytes();

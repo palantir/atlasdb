@@ -30,8 +30,8 @@ public class SpecificTableTargetedSweepFilterTest {
     private static final TableReference TABLE_TO_FILTER_OUT = TableReference.createFromFullyQualifiedName("bad.evil");
     private static final TableReference TABLE_TO_KEEP = TableReference.createFromFullyQualifiedName("good.nice");
 
-    private static final SpecificTableTargetedSweepFilter FILTER = new SpecificTableTargetedSweepFilter(
-            () -> ImmutableSet.of(TABLE_TO_FILTER_OUT));
+    private static final SpecificTableTargetedSweepFilter FILTER =
+            new SpecificTableTargetedSweepFilter(() -> ImmutableSet.of(TABLE_TO_FILTER_OUT));
 
     private static final Cell CELL = Cell.create(PtBytes.toBytes("123"), PtBytes.toBytes("456"));
     private static final WriteInfo WRITE_TO_BAD_TABLE = WriteInfo.write(TABLE_TO_FILTER_OUT, CELL, 42L);
