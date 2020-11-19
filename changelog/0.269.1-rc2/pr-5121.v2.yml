@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[FOR RC ONLY] Add the ability to ignore tables for TargetedSweep'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5121
