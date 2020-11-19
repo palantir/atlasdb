@@ -156,7 +156,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
                 transaction,
                 follower,
-                this::getPartitionBatchLimit);
+                this::getPartitionBatchLimit,
+                Suppliers.compose(TargetedSweepRuntimeConfig::dangerousSkipTables, runtime::get));
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         isInitialized = true;

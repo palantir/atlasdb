@@ -18,10 +18,13 @@ package com.palantir.atlasdb.sweep.queue.config;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
+import java.util.Set;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableTargetedSweepRuntimeConfig.class)
@@ -60,6 +63,20 @@ public abstract class TargetedSweepRuntimeConfig {
     @Value.Default
     public int maximumPartitionsToBatchInSingleRead() {
         return 1;
+    }
+
+    /**
+     * Skips entries in the Targeted Sweep Queue for the aforementioned tables.
+     *
+     * VERY DANGEROUS! Stale entries in this table will NEVER be swept by Targeted Sweep, and reading these cells may
+     * involve reading through old versions. This will NEVER be cleaned up.
+     *
+     * This may be subsequently cleaned up either by running Background Sweep on the relevant table, or performing
+     * a migration that touches EVERY cell in these tables.
+     */
+    @Value.Default
+    public Set<TableReference> dangerousSkipTables() {
+        return ImmutableSet.of();
     }
 
     @Value.Check
