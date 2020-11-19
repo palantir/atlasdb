@@ -65,7 +65,7 @@ public class MultiClientConjureTimelockResourceTest {
     public void canGetLeaderTimesForMultipleClients() {
         Namespace client1 = Namespace.of("client1");
         Namespace client2 = Namespace.of("client2");
-        Set<Namespace> namespaces = ImmutableSet.of(client1, client1, client2);
+        Set<Namespace> namespaces = ImmutableSet.of(client1, client2);
 
         LeaderTimes leaderTimesResponse = Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces));
         Map<Namespace, LeaderTime> leaderTimes = leaderTimesResponse.getLeaderTimes();
