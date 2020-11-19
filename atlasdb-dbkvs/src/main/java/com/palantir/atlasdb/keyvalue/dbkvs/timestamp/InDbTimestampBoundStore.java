@@ -87,7 +87,9 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     public static TimestampBoundStore create(
             ConnectionManager connManager, TableReference timestampTable, String tablePrefixString) {
         return createWithStrategy(
-                connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                connManager,
+                new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimestampBoundStore create(
@@ -102,7 +104,9 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     public static TimestampBoundStore createForMultiSeries(
             ConnectionManager connManager, TableReference timestampTable, TimestampSeries series) {
         return createWithStrategy(
-                connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                connManager,
+                new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimestampBoundStore createForMultiSeries(
