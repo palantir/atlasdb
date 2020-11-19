@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Targeted sweep now uses 16 _shards_ by default. The default number
+    of _threads_ is unaffected.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5123
