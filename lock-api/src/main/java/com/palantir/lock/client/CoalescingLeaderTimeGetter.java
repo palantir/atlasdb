@@ -26,6 +26,7 @@ public class CoalescingLeaderTimeGetter implements LeaderTimeGetter {
         this.time = new CoalescingSupplier<>(delegate::leaderTime);
     }
 
+    @Override
     public LeaderTime leaderTime() {
         return time.get();
     }

@@ -48,7 +48,7 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
         batcher.close();
     }
 
-    class LeaderTimeCoalescingConsumer implements CoalescingRequestFunction<Namespace, LeaderTime> {
+    static class LeaderTimeCoalescingConsumer implements CoalescingRequestFunction<Namespace, LeaderTime> {
         private final MultiClientConjureTimelockService delegate;
 
         public LeaderTimeCoalescingConsumer(MultiClientConjureTimelockService delegate) {

@@ -28,6 +28,7 @@ public class NamespacedCoalescingLeaderTimeGetter implements LeaderTimeGetter {
         this.batcher = batcher;
     }
 
+    @Override
     public LeaderTime leaderTime() {
         return batcher.apply(namespace);
     }
