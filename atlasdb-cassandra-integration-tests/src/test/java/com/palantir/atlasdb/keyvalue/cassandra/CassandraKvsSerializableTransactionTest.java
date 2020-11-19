@@ -70,7 +70,11 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
         return SweepQueue.createWriter(
-                mock(TargetedSweepMetrics.class), keyValueService, timelockService, () -> 128, () -> 1,
+                mock(TargetedSweepMetrics.class),
+                keyValueService,
+                timelockService,
+                () -> 128,
+                () -> 1,
                 ImmutableSet::of);
     }
 

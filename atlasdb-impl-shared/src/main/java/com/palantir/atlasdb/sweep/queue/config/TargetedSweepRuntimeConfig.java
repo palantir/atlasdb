@@ -73,6 +73,9 @@ public abstract class TargetedSweepRuntimeConfig {
      *
      * This may be subsequently cleaned up either by running Background Sweep on the relevant table, or performing
      * a migration that touches EVERY cell in these tables.
+     *
+     * If you have any values set for this configuration option and you have not paged the AtlasDB team concerning
+     * their usage, you're on your own.
      */
     @Value.Default
     public Set<TableReference> dangerousSkipTables() {
