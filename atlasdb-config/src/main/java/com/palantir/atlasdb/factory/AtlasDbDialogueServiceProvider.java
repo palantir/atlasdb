@@ -32,6 +32,7 @@ import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -43,6 +44,7 @@ import com.palantir.lock.ConjureLockV1ServiceBlocking;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
+import com.palantir.lock.client.DialogueAdaptingMultiClientConjureTimelockService;
 import com.palantir.lock.client.DialogueComposingLockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.refreshable.Refreshable;
@@ -111,6 +113,17 @@ public final class AtlasDbDialogueServiceProvider {
                                 instrumentedService, conjureTimelockServiceBlockingMetrics));
 
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
+    }
+
+    DialogueAdaptingMultiClientConjureTimelockService getMultiClientConjureTimelockService() {
+        MultiClientConjureTimelockServiceBlocking blockingService =
+                dialogueClientFactory.get(MultiClientConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        MultiClientConjureTimelockServiceBlocking instrumentedService = AtlasDbMetrics.instrumentWithTaggedMetrics(
+                taggedMetricRegistry,
+                MultiClientConjureTimelockServiceBlocking.class,
+                FastFailoverProxy.newProxyInstance(
+                        MultiClientConjureTimelockServiceBlocking.class, () -> blockingService));
+        return new DialogueAdaptingMultiClientConjureTimelockService(instrumentedService);
     }
 
     TimestampManagementRpcClient getTimestampManagementRpcClient() {

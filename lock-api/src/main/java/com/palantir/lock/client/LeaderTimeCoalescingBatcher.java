@@ -20,19 +20,17 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 
 public class LeaderTimeCoalescingBatcher implements AutoCloseable {
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final DisruptorAutobatcher<Namespace, LeaderTime> batcher;
 
-    public LeaderTimeCoalescingBatcher(MultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
+    public LeaderTimeCoalescingBatcher(DialogueAdaptingMultiClientConjureTimelockService delegate,
+            OptionalInt bufferSize) {
         this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate))
                 .bufferSize(bufferSize)
                 .safeLoggablePurpose("get-leader-times")
@@ -49,15 +47,15 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     }
 
     static class LeaderTimeCoalescingConsumer implements CoalescingRequestFunction<Namespace, LeaderTime> {
-        private final MultiClientConjureTimelockService delegate;
+        private final DialogueAdaptingMultiClientConjureTimelockService delegate;
 
-        public LeaderTimeCoalescingConsumer(MultiClientConjureTimelockService delegate) {
+        public LeaderTimeCoalescingConsumer(DialogueAdaptingMultiClientConjureTimelockService delegate) {
             this.delegate = delegate;
         }
 
         @Override
         public Map<Namespace, LeaderTime> apply(Set<Namespace> namespaces) {
-            return delegate.leaderTimes(AUTH_HEADER, namespaces).getLeaderTimes();
+            return delegate.leaderTimes(namespaces).getLeaderTimes();
         }
     }
 }
