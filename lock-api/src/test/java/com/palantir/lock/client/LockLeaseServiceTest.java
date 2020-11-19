@@ -83,7 +83,6 @@ public class LockLeaseServiceTest {
     private LockLeaseService lockLeaseService;
     private AtomicLong currentTime = new AtomicLong(123);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, currentTime::incrementAndGet);
-    private LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(timelock);
 
     @Before
     public void before() {
@@ -93,7 +92,7 @@ public class LockLeaseServiceTest {
             ConjureUnlockRequest request = inv.getArgument(0);
             return ConjureUnlockResponse.of(request.getTokens());
         });
-        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, leaderTimeGetter);
+        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, new LegacyLeaderTimeGetter(timelock));
     }
 
     @Test
