@@ -105,4 +105,9 @@ public class SimpleTodoResource implements TodoResource {
     public boolean namespacedTodoDoesNotExistBeforeTimestamp(long id, long timestamp, String namespace) {
         return atlas.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace);
     }
+
+    @Override
+    public void writeAndDeleteFromGoodAndBadTables() {
+        atlas.writeAndDeleteFromGoodAndBadTables();
+    }
 }

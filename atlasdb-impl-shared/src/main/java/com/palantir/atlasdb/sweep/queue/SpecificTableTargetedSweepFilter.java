@@ -33,7 +33,7 @@ public class SpecificTableTargetedSweepFilter implements TargetedSweepFilter {
     public Collection<WriteInfo> filter(Collection<WriteInfo> cellsToDelete) {
         Set<TableReference> canonicalTablesToFilterOut = tablesToFilterOut.get();
         return cellsToDelete.stream()
-                .filter(writeInfo -> canonicalTablesToFilterOut.contains(writeInfo.tableRef()))
+                .filter(writeInfo -> !canonicalTablesToFilterOut.contains(writeInfo.tableRef()))
                 .collect(Collectors.toList());
     }
 }

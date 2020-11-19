@@ -34,6 +34,8 @@ atlasDbRuntime:
   targetedSweep:
     enabled: true
     shards: 1
+    dangerousSkipTables:
+      - "bad.bad"
   timelockRuntime:
     serversList:
       servers:

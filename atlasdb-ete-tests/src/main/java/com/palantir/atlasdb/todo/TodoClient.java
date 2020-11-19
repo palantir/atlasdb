@@ -18,6 +18,7 @@ package com.palantir.atlasdb.todo;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -63,6 +64,9 @@ import org.slf4j.LoggerFactory;
 
 public class TodoClient {
     private static final Logger log = LoggerFactory.getLogger(TodoClient.class);
+    private static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("bad.bad");
+    private static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("good.good");
+    private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
     private final TransactionManager transactionManager;
     private final Supplier<KeyValueService> kvs;
@@ -260,5 +264,19 @@ public class TodoClient {
                         TodoSchema.namespacedTodoTable(),
                         ImmutableMap.of(Cell.create(PtBytes.toBytes(namespace), PtBytes.toBytes(id)), timestamp + 1))
                 .isEmpty();
+    }
+
+    public void writeAndDeleteFromGoodAndBadTables() {
+        transactionManager.runTaskWithRetry(txn -> {
+            txn.put(GOOD_TABLE, ImmutableMap.of(CELL, PtBytes.toBytes(42)));
+            txn.put(BAD_TABLE, ImmutableMap.of(CELL, PtBytes.toBytes(42)));
+            return null;
+        });
+
+        transactionManager.runTaskWithRetry(txn -> {
+            txn.delete(GOOD_TABLE, ImmutableSet.of(CELL));
+            txn.delete(BAD_TABLE, ImmutableSet.of(CELL));
+            return null;
+        });
     }
 }

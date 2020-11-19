@@ -108,4 +108,8 @@ public interface TodoResource {
             @QueryParam("id") long id,
             @QueryParam("timestamp") long timestamp,
             @QueryParam("namespace") String namespace);
+
+    @POST
+    @Path("/writeAndDeleteFromGoodAndBadTables")
+    void writeAndDeleteFromGoodAndBadTables();
 }

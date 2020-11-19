@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.collect.Lists;
 import java.util.Collection;
 
 public class CompoundTargetedSweepFilter implements TargetedSweepFilter {
@@ -28,7 +27,7 @@ public class CompoundTargetedSweepFilter implements TargetedSweepFilter {
 
     @Override
     public Collection<WriteInfo> filter(Collection<WriteInfo> cellsToDelete) {
-        Collection<WriteInfo> cellsPassingFilters = Lists.newArrayList(cellsToDelete);
+        Collection<WriteInfo> cellsPassingFilters = cellsToDelete;
         for (TargetedSweepFilter filter : filters) {
             cellsPassingFilters = filter.filter(cellsPassingFilters);
         }
