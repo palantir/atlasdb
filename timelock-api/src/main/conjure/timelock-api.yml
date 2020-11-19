@@ -114,7 +114,7 @@ types:
         alias: string
       LeaderTimes:
         fields:
-          namespaceWiseLeaderTimes: map<Namespace, LeaderTime>
+          leaderTimes: map<Namespace, LeaderTime>
 
 services:
   ConjureTimelockService:

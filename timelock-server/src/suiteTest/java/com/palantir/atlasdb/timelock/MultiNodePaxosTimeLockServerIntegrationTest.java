@@ -495,7 +495,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(expectedNamespaces);
 
         // leaderTimes for namespaces are computed by their respective underlying AsyncTimelockService instances
-        Set<UUID> leadershipIds = leaderTimes.getNamespaceWiseLeaderTimes().values().stream()
+        Set<UUID> leadershipIds = leaderTimes.getLeaderTimes().values().stream()
                 .map(LeaderTime::id)
                 .map(LeadershipId::id)
                 .collect(Collectors.toSet());
@@ -510,7 +510,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
         // call), for a namespace, the underlying service to process the request is the same
-        leaderTimes.getNamespaceWiseLeaderTimes().forEach((namespace, leaderTime) -> {
+        leaderTimes.getLeaderTimes().forEach((namespace, leaderTime) -> {
             LeaderTime conjureTimelockServiceLeaderTime = leader.client(namespace.get())
                     .namespacedConjureTimelockService()
                     .leaderTime();
@@ -523,7 +523,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
 
         LeaderTimes leaderTimes = multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);
-        Set<Namespace> namespaces = leaderTimes.getNamespaceWiseLeaderTimes().keySet();
+        Set<Namespace> namespaces = leaderTimes.getLeaderTimes().keySet();
         assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
 
         return leaderTimes;
