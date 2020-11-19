@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -69,7 +70,8 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
         return SweepQueue.createWriter(
-                mock(TargetedSweepMetrics.class), keyValueService, timelockService, () -> 128, () -> 1);
+                mock(TargetedSweepMetrics.class), keyValueService, timelockService, () -> 128, () -> 1,
+                ImmutableSet::of);
     }
 
     @Override
