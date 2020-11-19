@@ -25,16 +25,16 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 
 public class LeaderTimeCoalescingBatcher implements AutoCloseable {
-    private static final int BUFFER_SIZE = 16384;
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final DisruptorAutobatcher<Namespace, LeaderTime> batcher;
 
-    public LeaderTimeCoalescingBatcher(MultiClientConjureTimelockService delegate) {
+    public LeaderTimeCoalescingBatcher(MultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
         this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate))
-                .bufferSize(BUFFER_SIZE)
+                .bufferSize(bufferSize)
                 .safeLoggablePurpose("get-leader-times")
                 .build();
     }
@@ -57,7 +57,7 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
 
         @Override
         public Map<Namespace, LeaderTime> apply(Set<Namespace> namespaces) {
-            return delegate.leaderTimes(AUTH_HEADER, namespaces).getNamespaceWiseLeaderTimes();
+            return delegate.leaderTimes(AUTH_HEADER, namespaces).getLeaderTimes();
         }
     }
 }

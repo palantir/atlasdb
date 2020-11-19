@@ -30,7 +30,6 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
@@ -44,7 +43,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LockWatchEventCache lockWatchEventCache,
-            Optional<LeaderTimeGetter> leaderTimeGetter) {
+            LeaderTimeGetter leaderTimeGetter) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
@@ -56,14 +55,14 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
-        return create(rpcClient, conjureClient, lockWatchEventCache, Optional.empty());
+        return create(rpcClient, conjureClient, lockWatchEventCache, new LegacyLeaderTimeGetter(conjureClient));
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache,
-            Optional<LeaderTimeGetter> leaderTimeGetter) {
+            LeaderTimeGetter leaderTimeGetter) {
         return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter);
     }
 

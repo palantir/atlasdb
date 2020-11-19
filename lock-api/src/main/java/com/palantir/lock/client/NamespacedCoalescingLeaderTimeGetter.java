@@ -19,6 +19,13 @@ package com.palantir.lock.client;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
 
+/**
+ * This class maintains the context of namespace for a client and directs leaderTime requests to
+ * {@link LeaderTimeCoalescingBatcher} that coalesces and batches requests across clients.
+ *
+ * This is different from {@link LegacyLeaderTimeGetter} in that LegacyLeaderTimeGetter coalesces requests only for a
+ * single namespace.
+ */
 public class NamespacedCoalescingLeaderTimeGetter implements LeaderTimeGetter {
     private final LeaderTimeCoalescingBatcher batcher;
     private final Namespace namespace;

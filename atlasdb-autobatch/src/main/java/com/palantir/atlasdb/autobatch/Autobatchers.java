@@ -23,6 +23,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Observability;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -88,7 +89,7 @@ public final class Autobatchers {
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private Observability observability = Observability.UNDECIDED;
-        private int bufferSize = DEFAULT_BUFFER_SIZE;
+        private OptionalInt optionalBufferSize = OptionalInt.empty();
 
         @Nullable
         private String purpose;
@@ -112,13 +113,16 @@ public final class Autobatchers {
             return this;
         }
 
-        public AutobatcherBuilder<I, O> bufferSize(int bufferSizeParam) {
-            this.bufferSize = bufferSizeParam;
+        public AutobatcherBuilder<I, O> bufferSize(OptionalInt bufferSizeParam) {
+            this.optionalBufferSize = bufferSizeParam;
             return this;
         }
 
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
+
+            int bufferSize = optionalBufferSize.orElse(DEFAULT_BUFFER_SIZE);
+
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(bufferSize);
 
             EventHandler<BatchElement<I, O>> tracingHandler = new TracingEventHandler<>(handler, bufferSize);

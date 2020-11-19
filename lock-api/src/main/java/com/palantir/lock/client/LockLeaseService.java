@@ -50,16 +50,15 @@ class LockLeaseService {
     private final BlockEnforcingLockService lockService;
 
     @VisibleForTesting
-    LockLeaseService(
-            NamespacedConjureTimelockService delegate, UUID clientId, Optional<LeaderTimeGetter> leaderTimeGetter) {
+    LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId, LeaderTimeGetter leaderTimeGetter) {
         this.delegate = delegate;
         this.clientId = clientId;
-        this.leaderTimeGetter = leaderTimeGetter.orElseGet(() -> new CoalescingLeaderTimeGetter(delegate));
+        this.leaderTimeGetter = leaderTimeGetter;
         this.lockService = BlockEnforcingLockService.create(delegate);
     }
 
     static LockLeaseService create(
-            NamespacedConjureTimelockService conjureTimelock, Optional<LeaderTimeGetter> leaderTimeGetter) {
+            NamespacedConjureTimelockService conjureTimelock, LeaderTimeGetter leaderTimeGetter) {
         return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter);
     }
 

@@ -49,7 +49,6 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -84,6 +83,7 @@ public class LockLeaseServiceTest {
     private LockLeaseService lockLeaseService;
     private AtomicLong currentTime = new AtomicLong(123);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, currentTime::incrementAndGet);
+    private LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(timelock);
 
     @Before
     public void before() {
@@ -93,7 +93,7 @@ public class LockLeaseServiceTest {
             ConjureUnlockRequest request = inv.getArgument(0);
             return ConjureUnlockResponse.of(request.getTokens());
         });
-        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, Optional.empty());
+        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, leaderTimeGetter);
     }
 
     @Test
