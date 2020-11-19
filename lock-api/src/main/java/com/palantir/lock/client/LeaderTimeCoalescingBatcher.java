@@ -29,8 +29,8 @@ import java.util.Set;
 public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     private final DisruptorAutobatcher<Namespace, LeaderTime> batcher;
 
-    public LeaderTimeCoalescingBatcher(DialogueAdaptingMultiClientConjureTimelockService delegate,
-            OptionalInt bufferSize) {
+    public LeaderTimeCoalescingBatcher(
+            DialogueAdaptingMultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
         this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate))
                 .bufferSize(bufferSize)
                 .safeLoggablePurpose("get-leader-times")
