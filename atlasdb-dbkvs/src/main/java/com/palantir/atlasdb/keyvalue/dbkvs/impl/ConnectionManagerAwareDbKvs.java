@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
@@ -38,7 +39,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
     private final SqlConnectionSupplier sqlConnectionSupplier;
 
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config) {
-        return create(config, false);
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config, boolean initializeAsync) {

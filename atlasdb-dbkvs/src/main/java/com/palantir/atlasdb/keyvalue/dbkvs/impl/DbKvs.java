@@ -152,7 +152,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     public static DbKeyValueService create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
-        return create(config, sqlConnSupplier, false);
+        return create(config, sqlConnSupplier, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static DbKeyValueService create(

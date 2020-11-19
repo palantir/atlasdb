@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.common.base.Throwables;
@@ -86,7 +87,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     public static TimestampBoundStore create(
             ConnectionManager connManager, TableReference timestampTable, String tablePrefixString) {
         return createWithStrategy(
-                connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString), false);
+                connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimestampBoundStore create(
@@ -101,7 +102,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     public static TimestampBoundStore createForMultiSeries(
             ConnectionManager connManager, TableReference timestampTable, TimestampSeries series) {
         return createWithStrategy(
-                connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series), false);
+                connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimestampBoundStore createForMultiSeries(
