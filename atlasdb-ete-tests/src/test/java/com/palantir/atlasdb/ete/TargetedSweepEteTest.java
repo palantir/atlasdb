@@ -52,7 +52,7 @@ public class TargetedSweepEteTest {
         todoClient.truncate();
     }
 
-    @Test
+    // @Test
     public void backgroundThoroughSweepDeletesOldVersion() throws InterruptedException {
         long ts = todoClient.addTodoWithIdAndReturnTimestamp(100L, TODO);
         assertThat(todoClient.doesNotExistBeforeTimestamp(100L, ts)).isFalse();
@@ -87,7 +87,7 @@ public class TargetedSweepEteTest {
         assertDeletedAndSwept(9, 9, 9, 9);
     }
 
-    @Test
+    // @Test
     public void targetedSweepLargeStreamsTest() {
         // same as above, except the stream is bigger, so each uses 4 cells in the values table
         StreamTestUtils.storeFiveStreams(todoClient, 1500000);
@@ -100,7 +100,7 @@ public class TargetedSweepEteTest {
         assertDeletedAndSwept(4, 4, 4, 4 * 4);
     }
 
-    @Test
+    // @Test
     public void targetedSweepCleansUpUnmarkedStreamsTest() {
         todoClient.storeUnmarkedSnapshot("snap");
         todoClient.storeUnmarkedSnapshot("crackle");
@@ -113,12 +113,12 @@ public class TargetedSweepEteTest {
     @Test
     public void targetedSweepSkipsWritesFromBadTables() {
         todoClient.writeAndDeleteFromGoodAndBadTables();
-
         assertThat(todoClient.numberOfCellsDeleted(GOOD_TABLE)).isEqualTo(1);
         assertThat(todoClient.numberOfCellsDeleted(BAD_TABLE)).isEqualTo(1);
 
-        assertThat(todoClient.numberOfCellsDeletedAndSwept(GOOD_TABLE)).isEqualTo(1);
+        todoClient.runIterationOfTargetedSweep();
         assertThat(todoClient.numberOfCellsDeletedAndSwept(BAD_TABLE)).isEqualTo(0);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(GOOD_TABLE)).isEqualTo(1);
     }
 
     private void assertDeleted(long idx, long hash, long meta, long val) {

@@ -31,6 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
@@ -40,6 +42,7 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.generated.LatestSnapshotTable;
 import com.palantir.atlasdb.todo.generated.NamespacedTodoTable;
@@ -267,6 +270,13 @@ public class TodoClient {
     }
 
     public void writeAndDeleteFromGoodAndBadTables() {
+        byte[] thoroughSweepMetadata = TableMetadata.builder().nameLogSafety(LogSafety.SAFE)
+                .sweepStrategy(SweepStrategy.THOROUGH)
+                .build()
+                .persistToBytes();
+        transactionManager.getKeyValueService().createTable(GOOD_TABLE, thoroughSweepMetadata);
+        transactionManager.getKeyValueService().createTable(BAD_TABLE, thoroughSweepMetadata);
+
         transactionManager.runTaskWithRetry(txn -> {
             txn.put(GOOD_TABLE, ImmutableMap.of(CELL, PtBytes.toBytes(42)));
             txn.put(BAD_TABLE, ImmutableMap.of(CELL, PtBytes.toBytes(42)));
